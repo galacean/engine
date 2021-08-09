@@ -47,37 +47,20 @@ float getSpecularMIPLevel( const in float roughness, const in int maxMIPLevel ) 
 
 vec3 getIndirectRadiance( const in GeometricContext geometry, const in float roughness, const in int maxMIPLevel ) {
 
-    #if !defined(O3_USE_SPECULAR_ENV) && !defined(HAS_REFLECTIONMAP)
+    #ifndef O3_USE_SPECULAR_ENV
 
         return vec3(0.0);
 
     #else
 
-        #ifdef ENVMAPMODE_REFRACT
-
-            vec3 reflectVec = refract( -geometry.viewDir, geometry.normal, u_refractionRatio );
-
-        #else
-
-            vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
-
-        #endif
+        vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
 
         float specularMIPLevel = getSpecularMIPLevel( roughness, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
-            #ifdef HAS_REFLECTIONMAP
-                 vec4 envMapColor = textureCubeLodEXT( u_reflectionSampler, reflectVec, specularMIPLevel );
-            #else
-                vec4 envMapColor = textureCubeLodEXT( u_env_specularSampler, reflectVec, specularMIPLevel );
-            #endif
-
+            vec4 envMapColor = textureCubeLodEXT( u_env_specularSampler, reflectVec, specularMIPLevel );
         #else
-            #ifdef HAS_REFLECTIONMAP
-                 vec4 envMapColor = textureCube( u_reflectionSampler, reflectVec, specularMIPLevel );
-            #else
-                 vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
-            #endif
+            vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
         #endif
 
         #ifdef ENV_RGBE
@@ -86,7 +69,7 @@ vec3 getIndirectRadiance( const in GeometricContext geometry, const in float rou
             envMapColor.rgb = SRGBtoLinear( envMapColor).rgb;
         #endif
         
-        return envMapColor.rgb * u_envMapLight.specularIntensity * u_envMapIntensity;
+        return envMapColor.rgb * u_envMapLight.specularIntensity;
 
     #endif
 

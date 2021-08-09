@@ -10,236 +10,200 @@ import { Vector3 } from "./Vector3";
  * https://google.github.io/filament/Filament.md.html#annex/sphericalharmonics
  */
 export class SphericalHarmonics3 implements IClone {
-  static fromArray(shArray: number[]): SphericalHarmonics3 {
-    if (shArray.length != 27) {
-      console.error("sh coefficients must be as large as 27");
-    }
-
-    const sh = new SphericalHarmonics3();
-    sh.y00 = new Color(shArray[0], shArray[1], shArray[2], 0);
-    sh.y1_1 = new Color(shArray[3], shArray[4], shArray[5], 0);
-    sh.y10 = new Color(shArray[6], shArray[7], shArray[8], 0);
-    sh.y11 = new Color(shArray[9], shArray[10], shArray[11], 0);
-    sh.y2_2 = new Color(shArray[12], shArray[13], shArray[14], 0);
-    sh.y2_1 = new Color(shArray[15], shArray[16], shArray[17], 0);
-    sh.y20 = new Color(shArray[18], shArray[19], shArray[20], 0);
-    sh.y21 = new Color(shArray[21], shArray[22], shArray[23], 0);
-    sh.y22 = new Color(shArray[24], shArray[25], shArray[26], 0);
-
-    return sh;
-  }
-
-  private static _basisFunction = [
-    0.282095, //  1/2 * Math.sqrt(1 / PI)
-
-    -0.488603, // -1/2 * Math.sqrt(3 / PI)
-    0.488603, //  1/2 * Math.sqrt(3 / PI)
-    -0.488603, // -1/2 * Math.sqrt(3 / PI)
-
-    1.092548, //  1/2 * Math.sqrt(15 / PI)
-    -1.092548, // -1/2 * Math.sqrt(15 / PI)
-    0.315392, //  1/4 * Math.sqrt(5 / PI)
-    -1.092548, // -1/2 * Math.sqrt(15 / PI)
-    0.546274 //  1/4 * Math.sqrt(15 / PI)
-  ];
-
-  private static _convolutionKernel = [
-    3.141593, //  PI
-    2.094395, // (2 * PI) / 3,
-    0.785398 //   PI / 4
-  ];
-
-  private static _tempColor = new Color();
-
-  /**  The Y(0, 0) coefficient of the SH3. */
-  y00: Color = new Color(0, 0, 0, 0);
-  /**  The Y(1, -1) coefficient of the SH3. */
-  y1_1: Color = new Color(0, 0, 0, 0);
-  /**  The Y(1, 0) coefficient of the SH3. */
-  y10: Color = new Color(0, 0, 0, 0);
-  /**  The Y(1, 1) coefficient of the SH3. */
-  y11: Color = new Color(0, 0, 0, 0);
-  /**  The Y(2, -2) coefficient of the SH3. */
-  y2_2: Color = new Color(0, 0, 0, 0);
-  /**  The Y(2, -1) coefficient of the SH3. */
-  y2_1: Color = new Color(0, 0, 0, 0);
-  /**  The Y(2, 0) coefficient of the SH3. */
-  y20: Color = new Color(0, 0, 0, 0);
-  /**  The Y(2, 1) coefficient of the SH3. */
-  y21: Color = new Color(0, 0, 0, 0);
-  /**  The Y(2, 2) coefficient of the SH3. */
-  y22: Color = new Color(0, 0, 0, 0);
-
-  private _coefficients: Float32Array = new Float32Array(27);
+  /** The coefficients of SphericalHarmonics3. */
+  coefficients: Float32Array = new Float32Array(27);
 
   /**
-   * Get pre-scaled coefficients used in shader.
-   * @remarks
-   * Convert radiance to irradiance with the A_l which is convoluted by the cosine lobe and pre-scale the basis function.
-   * Reference equation [4,5,6,7,8,9] from https://graphics.stanford.edu/papers/envmap/envmap.pdf
+   * Add light to SphericalHarmonics3.
+   * @param direction - Light direction
+   * @param color - Light color
+   * @param deltaSolidAngle - The delta solid angle of the light
    */
-  get preScaledCoefficients(): Float32Array {
-    const kernel = SphericalHarmonics3._convolutionKernel;
-    const basis = SphericalHarmonics3._basisFunction;
-    const data = this._coefficients;
-
+  addLight(direction: Vector3, color: Color, deltaSolidAngle: number): void {
     /**
-     * 1.  L -> E
-     * 2.  E * basis
+     * Implements `EvalSHBasis` from [Projection from Cube maps] in http://www.ppsloan.org/publications/StupidSH36.pdf.
+     *
+     * Basis constants
+     * 0: Math.sqrt(1/(4 * Math.PI))
+     *
+     * 1: -Math.sqrt(3 / (4 * Math.PI))
+     * 2: Math.sqrt(3 / (4 * Math.PI))
+     * 3: -Math.sqrt(3 / (4 * Math.PI))
+     *
+     * 4: Math.sqrt(15 / (4 * Math.PI))
+     * 5: -Math.sqrt(15 / (4 * Math.PI))
+     * 6: Math.sqrt(5 / (16 * Math.PI))
+     * 7: -Math.sqrt(15 / (4 * Math.PI)）
+     * 8: Math.sqrt(15 / (16 * Math.PI))
      */
 
-    // l0
-    data[0] = this.y00.r * kernel[0] * basis[0];
-    data[1] = this.y00.g * kernel[0] * basis[0];
-    data[2] = this.y00.b * kernel[0] * basis[0];
+    color.scale(deltaSolidAngle);
 
-    // l1
-    data[3] = this.y1_1.r * kernel[1] * basis[1];
-    data[4] = this.y1_1.g * kernel[1] * basis[1];
-    data[5] = this.y1_1.b * kernel[1] * basis[1];
-    data[6] = this.y10.r * kernel[1] * basis[2];
-    data[7] = this.y10.g * kernel[1] * basis[2];
-    data[8] = this.y10.b * kernel[1] * basis[2];
-    data[9] = this.y11.r * kernel[1] * basis[3];
-    data[10] = this.y11.g * kernel[1] * basis[3];
-    data[11] = this.y11.b * kernel[1] * basis[3];
+    const coe = this.coefficients;
 
-    // l2
-    data[12] = this.y2_2.r * kernel[2] * basis[4];
-    data[13] = this.y2_2.g * kernel[2] * basis[4];
-    data[14] = this.y2_2.b * kernel[2] * basis[4];
-    data[15] = this.y2_1.r * kernel[2] * basis[5];
-    data[16] = this.y2_1.g * kernel[2] * basis[5];
-    data[17] = this.y2_1.b * kernel[2] * basis[5];
-    data[18] = this.y20.r * kernel[2] * basis[6];
-    data[19] = this.y20.g * kernel[2] * basis[6];
-    data[20] = this.y20.b * kernel[2] * basis[6];
-    data[21] = this.y21.r * kernel[2] * basis[7];
-    data[22] = this.y21.g * kernel[2] * basis[7];
-    data[23] = this.y21.b * kernel[2] * basis[7];
-    data[24] = this.y22.r * kernel[2] * basis[8];
-    data[25] = this.y22.g * kernel[2] * basis[8];
-    data[26] = this.y22.b * kernel[2] * basis[8];
+    const { x, y, z } = direction;
+    const { r, g, b } = color;
 
-    return data;
+    const bv0 = 0.282095; // basis0 = 0.886227
+    const bv1 = -0.488603 * y; // basis1 = -0.488603
+    const bv2 = 0.488603 * z; // basis2 = 0.488603
+    const bv3 = -0.488603 * x; // basis3 = -0.488603
+    const bv4 = 1.092548 * (x * y); // basis4 = 1.092548
+    const bv5 = -1.092548 * (y * z); // basis5 = -1.092548
+    const bv6 = 0.315392 * (3 * z * z - 1); // basis6 = 0.315392
+    const bv7 = -1.092548 * (x * z); // basis7 = -1.092548
+    const bv8 = 0.546274 * (x * x - y * y); // basis8 = 0.546274
+
+    (coe[0] += r * bv0), (coe[1] += g * bv0), (coe[2] += b * bv0);
+
+    (coe[3] += r * bv1), (coe[4] += g * bv1), (coe[5] += b * bv1);
+    (coe[6] += r * bv2), (coe[7] += g * bv2), (coe[8] += b * bv2);
+    (coe[9] += r * bv3), (coe[10] += g * bv3), (coe[11] += b * bv3);
+
+    (coe[12] += r * bv4), (coe[13] += g * bv4), (coe[14] += b * bv4);
+    (coe[15] += r * bv5), (coe[16] += g * bv5), (coe[17] += b * bv5);
+    (coe[18] += r * bv6), (coe[19] += g * bv6), (coe[20] += b * bv6);
+    (coe[21] += r * bv7), (coe[22] += g * bv7), (coe[23] += b * bv7);
+    (coe[24] += r * bv8), (coe[25] += g * bv8), (coe[26] += b * bv8);
   }
 
   /**
-   * Add radiance to the SH3 in specified direction.
-   * @remarks
-   * Implements `EvalSHBasis` from [Projection from Cube maps] in http://www.ppsloan.org/publications/StupidSH36.pdf.
-   *
-   * @param color - Radiance color
-   * @param direction - Radiance direction
-   * @param solidAngle - Radiance solid angle, dA / (r^2)
+   * Evaluates the color for the specified direction.
+   * @param direction - Specified direction
+   * @param out - Out color
    */
-  addRadiance(color: Color, direction: Vector3, solidAngle: number): void {
-    const basis = SphericalHarmonics3._basisFunction;
-    const tempColor = SphericalHarmonics3._tempColor;
+  evaluate(direction: Vector3, out: Color): Color {
+    /**
+     * Equations based on data from: http://ppsloan.org/publications/StupidSH36.pdf
+     *
+     *
+     * Basis constants
+     * 0: Math.sqrt(1/(4 * Math.PI))
+     *
+     * 1: -Math.sqrt(3 / (4 * Math.PI))
+     * 2: Math.sqrt(3 / (4 * Math.PI))
+     * 3: -Math.sqrt(3 / (4 * Math.PI))
+     *
+     * 4: Math.sqrt(15 / (4 * Math.PI)）
+     * 5: -Math.sqrt(15 / (4 * Math.PI))
+     * 6: Math.sqrt(5 / (16 * Math.PI)）
+     * 7: -Math.sqrt(15 / (4 * Math.PI)）
+     * 8: Math.sqrt(15 / (16 * Math.PI)）
+     *
+     *
+     * Convolution kernel
+     * 0: Math.PI
+     * 1: (2 * Math.PI) / 3
+     * 2: Math.PI / 4
+     */
+
+    const coe = this.coefficients;
     const { x, y, z } = direction;
 
-    color.scale(solidAngle);
+    const bv0 = 0.886227; // kernel0 * basis0 = 0.886227
+    const bv1 = -1.023327 * y; // kernel1 * basis1 = -1.023327
+    const bv2 = 1.023327 * z; // kernel1 * basis2 = 1.023327
+    const bv3 = -1.023327 * x; // kernel1 * basis3 = -1.023327
+    const bv4 = 0.858086 * y * x; // kernel2 * basis4 = 0.858086
+    const bv5 = -0.858086 * y * z; // kernel2 * basis5 = -0.858086
+    const bv6 = 0.247708 * (3 * z * z - 1); // kernel2 * basis6 = 0.247708
+    const bv7 = -0.858086 * z * x; // kernel2 * basis7 = -0.858086
+    const bv8 = 0.429042 * (x * x - y * y); // kernel2 * basis8 = 0.429042
 
-    this.y00.add(Color.scale(color, basis[0], tempColor));
+    // l0
+    let r = coe[0] * bv0;
+    let g = coe[1] * bv0;
+    let b = coe[2] * bv0;
 
-    this.y1_1.add(Color.scale(color, basis[1] * y, tempColor));
-    this.y10.add(Color.scale(color, basis[2] * z, tempColor));
-    this.y11.add(Color.scale(color, basis[3] * x, tempColor));
+    // l1
+    r += coe[3] * bv1 + coe[6] * bv2 + coe[9] * bv3;
+    g += coe[4] * bv1 + coe[7] * bv2 + coe[10] * bv3;
+    b += coe[5] * bv1 + coe[8] * bv2 + coe[11] * bv3;
 
-    this.y2_2.add(Color.scale(color, basis[4] * x * y, tempColor));
-    this.y2_1.add(Color.scale(color, basis[5] * y * z, tempColor));
-    this.y20.add(Color.scale(color, basis[6] * (3 * z * z - 1), tempColor));
-    this.y21.add(Color.scale(color, basis[7] * x * z, tempColor));
-    this.y22.add(Color.scale(color, basis[8] * (x * x - y * y), tempColor));
+    // l2
+    r += coe[12] * bv4 + coe[15] * bv5 + coe[18] * bv6 + coe[21] * bv7 + coe[24] * bv8;
+    g += coe[13] * bv4 + coe[16] * bv5 + coe[19] * bv6 + coe[22] * bv7 + coe[25] * bv8;
+    b += coe[14] * bv4 + coe[17] * bv5 + coe[20] * bv6 + coe[23] * bv7 + coe[26] * bv8;
+
+    out.setValue(r, g, b, 1.0);
+    return out;
   }
 
   /**
    * Scale the coefficients.
+   * @param s - The amount by which to scale the SphericalHarmonics3
    */
-  scale(value: number) {
-    this.y00.scale(value);
-    this.y1_1.scale(value);
-    this.y10.scale(value);
-    this.y11.scale(value);
-    this.y2_2.scale(value);
-    this.y2_1.scale(value);
-    this.y20.scale(value);
-    this.y21.scale(value);
-    this.y22.scale(value);
+  scale(s: number): void {
+    const src = this.coefficients;
+
+    (src[0] *= s), (src[1] *= s), (src[2] *= s);
+    (src[3] *= s), (src[4] *= s), (src[5] *= s);
+    (src[6] *= s), (src[7] *= s), (src[8] *= s);
+    (src[9] *= s), (src[10] *= s), (src[11] *= s);
+    (src[12] *= s), (src[13] *= s), (src[14] *= s);
+    (src[15] *= s), (src[16] *= s), (src[17] *= s);
+    (src[18] *= s), (src[19] *= s), (src[20] *= s);
+    (src[21] *= s), (src[22] *= s), (src[23] *= s);
+    (src[24] *= s), (src[25] *= s), (src[26] *= s);
   }
 
   /**
-   * Clear SH3 to zero.
+   * Set the value of this spherical harmonics by an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
    */
-  clear(): void {
-    this.y00.setValue(0, 0, 0, 0);
-    this.y1_1.setValue(0, 0, 0, 0);
-    this.y10.setValue(0, 0, 0, 0);
-    this.y11.setValue(0, 0, 0, 0);
-    this.y2_2.setValue(0, 0, 0, 0);
-    this.y2_1.setValue(0, 0, 0, 0);
-    this.y20.setValue(0, 0, 0, 0);
-    this.y21.setValue(0, 0, 0, 0);
-    this.y22.setValue(0, 0, 0, 0);
+  setValueByArray(array: ArrayLike<number>, offset: number = 0): void {
+    const s = this.coefficients;
+
+    (s[0] = array[offset]), (s[1] = array[1 + offset]), (s[2] = array[2 + offset]);
+    (s[3] = array[3 + offset]), (s[4] = array[4 + offset]), (s[5] = array[5 + offset]);
+    (s[6] = array[6 + offset]), (s[7] = array[7 + offset]), (s[8] = array[8 + offset]);
+    (s[9] = array[9 + offset]), (s[10] = array[10 + offset]), (s[11] = array[11 + offset]);
+    (s[12] = array[12 + offset]), (s[13] = array[13 + offset]), (s[14] = array[14 + offset]);
+    (s[15] = array[15 + offset]), (s[16] = array[16 + offset]), (s[17] = array[17 + offset]);
+    (s[18] = array[18 + offset]), (s[19] = array[19 + offset]), (s[20] = array[20 + offset]);
+    (s[21] = array[21 + offset]), (s[22] = array[22 + offset]), (s[23] = array[23 + offset]);
+    (s[24] = array[24 + offset]), (s[25] = array[25 + offset]), (s[26] = array[26 + offset]);
   }
 
   /**
-   * Clone the value of this coefficients to an array.
+   * Clone the value of this spherical harmonics to an array.
    * @param out - The array
+   * @param outOffset - The start offset of the array
    */
-  toArray(out: number[]): void {
-    out[0] = this.y00.r;
-    out[1] = this.y00.g;
-    out[2] = this.y00.b;
+  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0): void {
+    const s = this.coefficients;
 
-    out[3] = this.y1_1.r;
-    out[4] = this.y1_1.g;
-    out[5] = this.y1_1.b;
-    out[6] = this.y10.r;
-    out[7] = this.y10.g;
-    out[8] = this.y10.b;
-    out[9] = this.y11.r;
-    out[10] = this.y11.g;
-    out[11] = this.y11.b;
+    (out[0 + outOffset] = s[0]), (out[1 + outOffset] = s[1]), (out[2 + outOffset] = s[2]);
 
-    out[12] = this.y2_2.r;
-    out[13] = this.y2_2.g;
-    out[14] = this.y2_2.b;
-    out[15] = this.y2_1.r;
-    out[16] = this.y2_1.g;
-    out[17] = this.y2_1.b;
-    out[18] = this.y20.r;
-    out[19] = this.y20.g;
-    out[20] = this.y20.b;
-    out[21] = this.y21.r;
-    out[22] = this.y21.g;
-    out[23] = this.y21.b;
-    out[24] = this.y22.r;
-    out[25] = this.y22.g;
-    out[26] = this.y22.b;
+    (out[3 + outOffset] = s[3]), (out[4 + outOffset] = s[4]), (out[5 + outOffset] = s[5]);
+    (out[6 + outOffset] = s[6]), (out[7 + outOffset] = s[7]), (out[8 + outOffset] = s[8]);
+    (out[9 + outOffset] = s[9]), (out[10 + outOffset] = s[10]), (out[11 + outOffset] = s[11]);
+
+    (out[12 + outOffset] = s[12]), (out[13 + outOffset] = s[13]), (out[14 + outOffset] = s[14]);
+    (out[15 + outOffset] = s[15]), (out[16 + outOffset] = s[16]), (out[17 + outOffset] = s[17]);
+    (out[18 + outOffset] = s[18]), (out[19 + outOffset] = s[19]), (out[20 + outOffset] = s[20]);
+    (out[21 + outOffset] = s[21]), (out[22 + outOffset] = s[22]), (out[23 + outOffset] = s[23]);
+    (out[24 + outOffset] = s[24]), (out[25 + outOffset] = s[25]), (out[26 + outOffset] = s[26]);
   }
 
   /**
-   * @override
+   * Creates a clone of this SphericalHarmonics3.
+   * @returns A clone of this SphericalHarmonics3
    */
   clone(): SphericalHarmonics3 {
     const v = new SphericalHarmonics3();
-    return this.cloneTo(v);
+    this.cloneTo(v);
+
+    return v;
   }
 
   /**
-   * @override
+   * Clones this SphericalHarmonics3 to the specified SphericalHarmonics3.
+   * @param out - The specified SphericalHarmonics3
+   * @returns The specified SphericalHarmonics3
    */
-  cloneTo(out: SphericalHarmonics3): SphericalHarmonics3 {
-    this.y00.cloneTo(out.y00);
-    this.y1_1.cloneTo(out.y1_1);
-    this.y10.cloneTo(out.y10);
-    this.y11.cloneTo(out.y11);
-    this.y2_2.cloneTo(out.y2_2);
-    this.y2_1.cloneTo(out.y2_1);
-    this.y20.cloneTo(out.y20);
-    this.y21.cloneTo(out.y21);
-    this.y22.cloneTo(out.y22);
-    return out;
+  cloneTo(out: SphericalHarmonics3): void {
+    this.toArray(out.coefficients);
   }
 }

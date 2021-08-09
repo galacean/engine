@@ -38,7 +38,7 @@ export class Camera extends Component {
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
 
-  /** Rendering priority - A Camera with higher priority will be rendererd on top of a camera with lower priority. */
+  /** Rendering priority - A Camera with higher priority will be rendered on top of a camera with lower priority. */
   priority: number = 0;
 
   /** Whether to enable frustum culling, it is enabled by default. */
@@ -52,7 +52,7 @@ export class Camera extends Component {
 
   /**
    * Culling mask - which layers the camera renders.
-   * @remarks Support bit manipulation, conresponding to Entity's layer.
+   * @remarks Support bit manipulation, corresponding to Entity's layer.
    */
   cullingMask: Layer = Layer.Everything;
 
@@ -99,7 +99,7 @@ export class Camera extends Component {
   private _invViewProjMat: Matrix = new Matrix();
 
   /**
-   * Near clip plane - the cloest point to the camera when rendering occurs.
+   * Near clip plane - the closest point to the camera when rendering occurs.
    */
   get nearClipPlane(): number {
     return this._nearClipPlane;
@@ -123,7 +123,7 @@ export class Camera extends Component {
   }
 
   /**
-   * The camera's view angle. activing when camera use perspective projection.
+   * The camera's view angle. activating when camera use perspective projection.
    */
   get fieldOfView(): number {
     return this._fieldOfView;
@@ -135,7 +135,8 @@ export class Camera extends Component {
   }
 
   /**
-   * Aspect ratio. The default is automatically calculated by the viewport's aspect ratio. If it is manually set, the manual value will be kept. Call resetAspectRatio() to restore it.
+   * Aspect ratio. The default is automatically calculated by the viewport's aspect ratio. If it is manually set,
+   * the manual value will be kept. Call resetAspectRatio() to restore it.
    */
   get aspectRatio(): number {
     const canvas = this._entity.engine.canvas;
@@ -199,7 +200,8 @@ export class Camera extends Component {
   }
 
   /**
-   * The projection matrix is ​​calculated by the relevant parameters of the camera by default. If it is manually set, the manual value will be maintained. Call resetProjectionMatrix() to restore it.
+   * The projection matrix is ​​calculated by the relevant parameters of the camera by default.
+   * If it is manually set, the manual value will be maintained. Call resetProjectionMatrix() to restore it.
    */
   set projectionMatrix(value: Matrix) {
     this._projectionMatrix = value;
@@ -241,12 +243,12 @@ export class Camera extends Component {
    * @todo When render pipeline modification
    */
   get enableHDR(): boolean {
-    console.log("not implemention");
+    console.log("not implementation");
     return false;
   }
 
   set enableHDR(value: boolean) {
-    console.log("not implemention");
+    console.log("not implementation");
   }
 
   /**
@@ -318,7 +320,7 @@ export class Camera extends Component {
 
   /**
    * Transform a point from viewport space to world space.
-   * @param point - Point in viewport sapce, X and Y are the viewport space coordinates, Z is the viewport depth. The near clipping plane is 0, and the far clipping plane is 1
+   * @param point - Point in viewport space, X and Y are the viewport space coordinates, Z is the viewport depth. The near clipping plane is 0, and the far clipping plane is 1
    * @param out - Point in world space
    * @returns Point in world space
    */
@@ -415,7 +417,7 @@ export class Camera extends Component {
    * @param mipLevel - Set mip level the data want to wirte
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
-    // compute cull frustm.
+    // compute cull frustum.
     const context = this.engine._renderContext;
     context._setContext(this);
     if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {

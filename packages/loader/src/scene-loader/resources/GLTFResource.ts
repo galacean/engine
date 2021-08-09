@@ -19,7 +19,7 @@ import { UnlitMaterialResource } from "./UnlitMaterialResource";
 export class GLTFResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
     return resourceManager
-      .load<any>({ url: assetConfig.url, type: AssetType.Perfab })
+      .load<any>({ url: assetConfig.url, type: AssetType.Prefab })
       .then((res) => {
         const gltf = res;
         if (assetConfig.props) {

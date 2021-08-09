@@ -2,13 +2,13 @@ import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { InterpolationType } from "./enums/InterpolationType";
 import {
+  FloatArrayKeyframe,
   FloatKeyframe,
   InterpolableValue,
-  Keyframe,
   QuaternionKeyframe,
+  UnionInterpolaKeyframe,
   Vector2Keyframe,
-  Vector3Keyframe,
-  Vector4Keyframe
+  Vector3Keyframe
 } from "./KeyFrame";
 
 /**
@@ -16,7 +16,7 @@ import {
  */
 export class AnimationCurve {
   /** All keys defined in the animation curve. */
-  keys: Keyframe[] = [];
+  keys: UnionInterpolaKeyframe[] = [];
   /** The interpolationType of the animation curve. */
   interpolation: InterpolationType;
 
@@ -40,7 +40,7 @@ export class AnimationCurve {
    * Add a new key to the curve.
    * @param key - The keyframe
    */
-  addKey(key: Keyframe): void {
+  addKey(key: UnionInterpolaKeyframe): void {
     const { time } = key;
     this.keys.push(key);
     if (time > this._length) {
@@ -48,30 +48,38 @@ export class AnimationCurve {
     }
 
     if (!this._valueSize) {
-      if (key instanceof FloatKeyframe) {
+      //CM: It's not reasonable to write here.
+      if (typeof key.value == "number") {
         this._valueSize = 1;
         this._valueType = InterpolableValueType.Float;
         this._currentValue = 0;
       }
-      if (key instanceof Vector2Keyframe) {
+      if (key.value instanceof Vector2) {
         this._valueSize = 2;
         this._valueType = InterpolableValueType.Vector2;
         this._currentValue = new Vector2();
       }
-      if (key instanceof Vector3Keyframe) {
+      if (key.value instanceof Vector3) {
         this._valueSize = 3;
         this._valueType = InterpolableValueType.Vector3;
         this._currentValue = new Vector3();
       }
-      if (key instanceof Vector4Keyframe) {
+      if (key.value instanceof Vector4) {
         this._valueSize = 4;
         this._valueType = InterpolableValueType.Vector4;
         this._currentValue = new Vector4();
       }
-      if (key instanceof QuaternionKeyframe) {
+      if (key.value instanceof Quaternion) {
         this._valueSize = 4;
         this._valueType = InterpolableValueType.Quaternion;
         this._currentValue = new Quaternion();
+      }
+
+      if (key.value instanceof Float32Array) {
+        const size = key.value.length;
+        this._valueSize = size;
+        this._valueType = InterpolableValueType.FloatArray;
+        this._currentValue = new Float32Array(size);
       }
     }
     this.keys.sort((a, b) => a.time - b.time);
@@ -81,7 +89,7 @@ export class AnimationCurve {
    * Evaluate the curve at time.
    * @param time - The time within the curve you want to evaluate
    */
-  evaluate(time: number): Readonly<InterpolableValue> {
+  evaluate(time: number): InterpolableValue {
     const { keys, interpolation } = this;
     const { length } = this.keys;
 
@@ -105,9 +113,9 @@ export class AnimationCurve {
     // Evaluate value.
     let value: InterpolableValue;
     if (curIndex === -1) {
-      value = keys[0].value;
+      value = (<UnionInterpolaKeyframe>keys[0]).value;
     } else if (nextIndex === length) {
-      value = keys[curIndex].value;
+      value = (<UnionInterpolaKeyframe>keys[curIndex]).value;
     } else {
       // Time between first frame and end frame.
       const curFrameTime = keys[curIndex].time;
@@ -137,7 +145,7 @@ export class AnimationCurve {
    * @param index - The index of the key to move
    * @param key - The key to insert
    */
-  moveKey(index: number, key: Keyframe): void {
+  moveKey(index: number, key: UnionInterpolaKeyframe): void {
     this.keys[index] = key;
   }
 
@@ -162,27 +170,35 @@ export class AnimationCurve {
     const { _valueType, keys } = this;
     switch (_valueType) {
       case InterpolableValueType.Float:
-        return <number>keys[frameIndex].value * (1 - t) + <number>keys[nextFrameIndex].value * t;
+        return (<FloatKeyframe>keys[frameIndex]).value * (1 - t) + (<FloatKeyframe>keys[nextFrameIndex]).value * t;
+      case InterpolableValueType.FloatArray:
+        const curValue = this._currentValue;
+        const value = (<FloatArrayKeyframe>keys[frameIndex]).value;
+        const nextValue = (<FloatArrayKeyframe>keys[nextFrameIndex]).value;
+        for (let i = 0, n = value.length; i < n; i++) {
+          curValue[i] = value[i] * (1 - t) + nextValue[i] * t;
+        }
+        return curValue;
       case InterpolableValueType.Vector2:
         Vector2.lerp(
-          <Vector2>keys[frameIndex].value,
-          <Vector2>keys[nextFrameIndex].value,
+          (<Vector2Keyframe>keys[frameIndex]).value,
+          (<Vector2Keyframe>keys[nextFrameIndex]).value,
           t,
           <Vector2>this._currentValue
         );
         return this._currentValue;
       case InterpolableValueType.Vector3:
         Vector3.lerp(
-          <Vector3>keys[frameIndex].value,
-          <Vector3>keys[nextFrameIndex].value,
+          (<Vector3Keyframe>keys[frameIndex]).value,
+          (<Vector3Keyframe>keys[nextFrameIndex]).value,
           t,
           <Vector3>this._currentValue
         );
         return this._currentValue;
       case InterpolableValueType.Quaternion:
         Quaternion.slerp(
-          <Quaternion>keys[frameIndex].value,
-          <Quaternion>keys[nextFrameIndex].value,
+          (<QuaternionKeyframe>keys[frameIndex]).value,
+          (<QuaternionKeyframe>keys[nextFrameIndex]).value,
           t,
           <Quaternion>this._currentValue
         );
@@ -199,10 +215,10 @@ export class AnimationCurve {
     const part3 = cubed - 2.0 * squared + t;
     const part4 = cubed - squared;
 
-    const t1: Vector3 = <Vector3>keys[frameIndex].value;
-    const v1: Vector3 = <Vector3>keys[frameIndex + 1].value;
-    const t2: Vector3 = <Vector3>keys[frameIndex + 2].value;
-    const v2: Vector3 = <Vector3>keys[nextFrameIndex + 1].value;
+    const t1: Vector3 = (<Vector3Keyframe>keys[frameIndex]).value;
+    const v1: Vector3 = (<Vector3Keyframe>keys[frameIndex + 1]).value;
+    const t2: Vector3 = (<Vector3Keyframe>keys[frameIndex + 2]).value;
+    const v2: Vector3 = (<Vector3Keyframe>keys[nextFrameIndex + 1]).value;
 
     //CM:clone
     return v1.scale(part1).add(v2.scale(part2)).add(t1.scale(part3)).add(t2.scale(part4)).clone();
@@ -211,22 +227,22 @@ export class AnimationCurve {
   private _evaluateStep(nextFrameIndex: number): InterpolableValue {
     const { _valueSize, keys } = this;
     if (_valueSize === 1) {
-      return keys[nextFrameIndex].value;
+      return (<UnionInterpolaKeyframe>keys[nextFrameIndex]).value;
     } else {
-      return keys[nextFrameIndex].value;
+      return (<UnionInterpolaKeyframe>keys[nextFrameIndex]).value;
     }
   }
 
-  private _evaluateHermite(frameIedex: number, nextFrameIndex: number, t: number, dur: number): InterpolableValue {
+  private _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number): InterpolableValue {
     const { _valueSize, keys } = this;
-    const curKey = keys[frameIedex];
+    const curKey = keys[frameIndex];
     const nextKey = keys[nextFrameIndex];
     switch (_valueSize) {
       case 1: {
-        const t0 = <number>curKey.outTangent,
-          t1 = <number>nextKey.inTangent,
-          p0 = <number>curKey.value,
-          p1 = <number>nextKey.value;
+        const t0 = (<FloatKeyframe>curKey).outTangent,
+          t1 = (<FloatKeyframe>nextKey).inTangent,
+          p0 = (<FloatKeyframe>curKey).value,
+          p1 = (<FloatKeyframe>nextKey).value;
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
           const t2 = t * t;
           const t3 = t2 * t;
@@ -235,13 +251,15 @@ export class AnimationCurve {
           const c = t3 - t2;
           const d = -2.0 * t3 + 3.0 * t2;
           return a * p0 + b * t0 * dur + c * t1 * dur + d * p1;
-        } else return curKey.value;
+        } else {
+          return (<FloatKeyframe>curKey).value;
+        }
       }
       case 2: {
-        const p0 = <Vector2>curKey.value;
-        const tan0 = <Vector2>curKey.outTangent;
-        const p1 = <Vector2>nextKey.value;
-        const tan1 = <Vector2>nextKey.inTangent;
+        const p0 = (<Vector2Keyframe>curKey).value;
+        const tan0 = (<Vector2Keyframe>curKey).outTangent;
+        const p1 = (<Vector2Keyframe>nextKey).value;
+        const tan1 = (<Vector2Keyframe>nextKey).inTangent;
 
         const t2 = t * t;
         const t3 = t2 * t;
@@ -267,10 +285,10 @@ export class AnimationCurve {
         return this._currentValue;
       }
       case 3: {
-        const p0 = <Vector3>curKey.value;
-        const tan0 = <Vector3>curKey.outTangent;
-        const p1 = <Vector3>nextKey.value;
-        const tan1 = <Vector3>nextKey.inTangent;
+        const p0 = (<Vector3Keyframe>curKey).value;
+        const tan0 = (<Vector3Keyframe>curKey).outTangent;
+        const p1 = (<Vector3Keyframe>nextKey).value;
+        const tan1 = (<Vector3Keyframe>nextKey).inTangent;
 
         const t2 = t * t;
         const t3 = t2 * t;
@@ -303,10 +321,10 @@ export class AnimationCurve {
         return <Vector3>this._currentValue;
       }
       case 4: {
-        const p0 = <Quaternion>curKey.value;
-        const tan0 = <Vector4>curKey.outTangent;
-        const p1 = <Quaternion>nextKey.value;
-        const tan1 = <Vector4>nextKey.inTangent;
+        const p0 = (<QuaternionKeyframe>curKey).value;
+        const tan0 = (<QuaternionKeyframe>curKey).outTangent;
+        const p1 = (<QuaternionKeyframe>nextKey).value;
+        const tan1 = (<QuaternionKeyframe>nextKey).inTangent;
 
         const t2 = t * t;
         const t3 = t2 * t;

@@ -15,7 +15,7 @@ describe("Vector2 test", () => {
     expect(toString(out)).toEqual("vec2(-1, 8)");
   });
 
-  it("static substract", () => {
+  it("static subtract", () => {
     const a = new Vector2(2, 3);
     const b = new Vector2(-3, 5);
     const out = new Vector2();

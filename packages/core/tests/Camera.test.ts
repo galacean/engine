@@ -210,7 +210,7 @@ describe("camera test", function () {
     expect(farClipPoint.z).toBeCloseTo(-camera.farClipPlane);
   });
 
-  it("todo implemention", () => {
+  it("todo implementation", () => {
     camera.enableHDR = true;
     expect(camera.enableHDR).toBeFalsy();
   });
