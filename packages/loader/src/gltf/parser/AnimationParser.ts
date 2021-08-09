@@ -53,6 +53,7 @@ export class AnimationParser extends Parser {
             samplerInterpolation = InterpolationType.Step;
             break;
           case AnimationSamplerInterpolation.Linear:
+          default:
             samplerInterpolation = InterpolationType.Linear;
             break;
         }
