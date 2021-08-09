@@ -8,20 +8,21 @@ import { BaseMaterial } from "./BaseMaterial";
  * Unlit Material.
  */
 export class UnlitMaterial extends BaseMaterial {
-  private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _baseTexture: Texture2D;
-  private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
+  private static _baseColorProp = Shader.getPropertyByName("u_baseColor");
+  private static _baseTextureProp = Shader.getPropertyByName("u_baseTexture");
+  private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
 
   /**
    * Base color.
    */
   get baseColor(): Color {
-    return this._baseColor;
+    return this.shaderData.getColor(UnlitMaterial._baseColorProp);
   }
 
   set baseColor(value: Color) {
-    if (value !== this._baseColor) {
-      value.cloneTo(this._baseColor);
+    const baseColor = this.shaderData.getColor(UnlitMaterial._baseColorProp);
+    if (value !== baseColor) {
+      value.cloneTo(baseColor);
     }
   }
 
@@ -29,15 +30,13 @@ export class UnlitMaterial extends BaseMaterial {
    * Base texture.
    */
   get baseTexture(): Texture2D {
-    return this._baseTexture;
+    return <Texture2D>this.shaderData.getTexture(UnlitMaterial._baseTextureProp);
   }
 
   set baseTexture(value: Texture2D) {
-    this._baseTexture = value;
-
     if (value) {
       this.shaderData.enableMacro("O3_BASE_TEXTURE");
-      this.shaderData.setTexture("u_baseTexture", value);
+      this.shaderData.setTexture(UnlitMaterial._baseTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_BASE_TEXTURE");
     }
@@ -47,12 +46,13 @@ export class UnlitMaterial extends BaseMaterial {
    * Tiling and offset of main textures.
    */
   get tilingOffset(): Vector4 {
-    return this._tilingOffset;
+    return this.shaderData.getVector4(UnlitMaterial._tilingOffsetProp);
   }
 
   set tilingOffset(value: Vector4) {
-    if (value !== this._tilingOffset) {
-      value.cloneTo(this._tilingOffset);
+    const tilingOffset = this.shaderData.getVector4(UnlitMaterial._tilingOffsetProp);
+    if (value !== tilingOffset) {
+      value.cloneTo(tilingOffset);
     }
   }
 
@@ -68,8 +68,8 @@ export class UnlitMaterial extends BaseMaterial {
     shaderData.enableMacro("OMIT_NORMAL");
     shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    shaderData.setColor("u_baseColor", this._baseColor);
-    shaderData.setVector4("u_tilingOffset", this._tilingOffset);
+    shaderData.setColor(UnlitMaterial._baseColorProp, new Color(1, 1, 1, 1));
+    shaderData.setVector4(UnlitMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
   }
 
   /**
