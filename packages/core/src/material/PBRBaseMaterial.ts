@@ -8,7 +8,7 @@ import { BaseMaterial } from "./BaseMaterial";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
-  private static _baseColorProp = Shader.getPropertyByName("u_baseColorSampler");
+  private static _baseColorProp = Shader.getPropertyByName("u_baseColor");
   private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
   private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
   private static _baseTextureProp = Shader.getPropertyByName("u_baseColorSampler");
