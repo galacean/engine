@@ -8,27 +8,29 @@ import { BaseMaterial } from "./BaseMaterial";
  * Blinn-phong Material.
  */
 export class BlinnPhongMaterial extends BaseMaterial {
-  private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _specularColor: Color = new Color(1, 1, 1, 1);
-  private _emissiveColor: Color = new Color(0, 0, 0, 1);
-  private _baseTexture: Texture2D;
-  private _specularTexture: Texture2D;
-  private _emissiveTexture: Texture2D;
-  private _normalTexture: Texture2D;
-  private _normalIntensity: number = 1;
-  private _shininess: number = 16;
-  private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
+  private static _diffuseColorProp = Shader.getPropertyByName("u_diffuseColor");
+  private static _specularColorProp = Shader.getPropertyByName("u_specularColor");
+  private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
+  private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
+  private static _shininessProp = Shader.getPropertyByName("u_shininess");
+  private static _normalIntensityProp = Shader.getPropertyByName("u_normalIntensity");
+
+  private static _baseTextureProp = Shader.getPropertyByName("u_diffuseTexture");
+  private static _specularTextureProp = Shader.getPropertyByName("u_specularTexture");
+  private static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveTexture");
+  private static _normalTextureProp = Shader.getPropertyByName("u_normalTexture");
 
   /**
    * Base color.
    */
   get baseColor(): Color {
-    return this._baseColor;
+    return this.shaderData.getColor(BlinnPhongMaterial._diffuseColorProp);
   }
 
   set baseColor(value: Color) {
-    if (value !== this._baseColor) {
-      value.cloneTo(this._baseColor);
+    const baseColor = this.shaderData.getColor(BlinnPhongMaterial._diffuseColorProp);
+    if (value !== baseColor) {
+      value.cloneTo(baseColor);
     }
   }
 
@@ -36,15 +38,13 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * Base texture.
    */
   get baseTexture(): Texture2D {
-    return this._baseTexture;
+    return <Texture2D>this.shaderData.getTexture(BlinnPhongMaterial._baseTextureProp);
   }
 
   set baseTexture(value: Texture2D) {
-    this._baseTexture = value;
-
     if (value) {
       this.shaderData.enableMacro("O3_DIFFUSE_TEXTURE");
-      this.shaderData.setTexture("u_diffuseTexture", value);
+      this.shaderData.setTexture(BlinnPhongMaterial._baseTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_DIFFUSE_TEXTURE");
     }
@@ -54,12 +54,13 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * Specular color.
    */
   get specularColor(): Color {
-    return this._specularColor;
+    return this.shaderData.getColor(BlinnPhongMaterial._specularColorProp);
   }
 
   set specularColor(value: Color) {
-    if (value !== this._specularColor) {
-      value.cloneTo(this._specularColor);
+    const specularColor = this.shaderData.getColor(BlinnPhongMaterial._specularColorProp);
+    if (value !== specularColor) {
+      value.cloneTo(specularColor);
     }
   }
 
@@ -67,15 +68,13 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * Specular texture.
    */
   get specularTexture(): Texture2D {
-    return this._specularTexture;
+    return <Texture2D>this.shaderData.getTexture(BlinnPhongMaterial._specularTextureProp);
   }
 
   set specularTexture(value: Texture2D) {
-    this._specularTexture = value;
-
     if (value) {
       this.shaderData.enableMacro("O3_SPECULAR_TEXTURE");
-      this.shaderData.setTexture("u_specularTexture", value);
+      this.shaderData.setTexture(BlinnPhongMaterial._specularTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_SPECULAR_TEXTURE");
     }
@@ -85,12 +84,13 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * Emissive color.
    */
   get emissiveColor(): Color {
-    return this._emissiveColor;
+    return this.shaderData.getColor(BlinnPhongMaterial._emissiveColorProp);
   }
 
   set emissiveColor(value: Color) {
-    if (value !== this._emissiveColor) {
-      value.cloneTo(this._emissiveColor);
+    const emissiveColor = this.shaderData.getColor(BlinnPhongMaterial._emissiveColorProp);
+    if (value !== emissiveColor) {
+      value.cloneTo(emissiveColor);
     }
   }
 
@@ -98,15 +98,13 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * Emissive texture.
    */
   get emissiveTexture(): Texture2D {
-    return this._emissiveTexture;
+    return <Texture2D>this.shaderData.getTexture(BlinnPhongMaterial._emissiveTextureProp);
   }
 
   set emissiveTexture(value: Texture2D) {
-    this._emissiveTexture = value;
-
     if (value) {
       this.shaderData.enableMacro("O3_EMISSIVE_TEXTURE");
-      this.shaderData.setTexture("u_emissiveTexture", value);
+      this.shaderData.setTexture(BlinnPhongMaterial._emissiveTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_EMISSIVE_TEXTURE");
     }
@@ -116,15 +114,13 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * Normal texture.
    */
   get normalTexture(): Texture2D {
-    return this._normalTexture;
+    return <Texture2D>this.shaderData.getTexture(BlinnPhongMaterial._normalTextureProp);
   }
 
   set normalTexture(value: Texture2D) {
-    this._normalTexture = value;
-
     if (value) {
       this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
-      this.shaderData.setTexture("u_normalTexture", value);
+      this.shaderData.setTexture(BlinnPhongMaterial._normalTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
     }
@@ -134,36 +130,35 @@ export class BlinnPhongMaterial extends BaseMaterial {
    * Normal texture intensity.
    */
   get normalIntensity(): number {
-    return this._normalIntensity;
+    return this.shaderData.getFloat(BlinnPhongMaterial._normalIntensityProp);
   }
 
   set normalIntensity(value: number) {
-    this._normalIntensity = value;
-    this.shaderData.setFloat("u_normalIntensity", value);
+    this.shaderData.setFloat(BlinnPhongMaterial._normalIntensityProp, value);
   }
 
   /**
    * Set the specular reflection coefficient, the larger the value, the more convergent the specular reflection effect.
    */
   get shininess(): number {
-    return this._shininess;
+    return this.shaderData.getFloat(BlinnPhongMaterial._shininessProp);
   }
 
   set shininess(value: number) {
-    this._shininess = value;
-    this.shaderData.setFloat("u_shininess", value);
+    this.shaderData.setFloat(BlinnPhongMaterial._shininessProp, value);
   }
 
   /**
    * Tiling and offset of main textures.
    */
   get tilingOffset(): Vector4 {
-    return this._tilingOffset;
+    return this.shaderData.getVector4(BlinnPhongMaterial._tilingOffsetProp);
   }
 
   set tilingOffset(value: Vector4) {
-    if (value !== this._tilingOffset) {
-      value.cloneTo(this._tilingOffset);
+    const tilingOffset = this.shaderData.getVector4(BlinnPhongMaterial._tilingOffsetProp);
+    if (value !== tilingOffset) {
+      value.cloneTo(tilingOffset);
     }
   }
 
@@ -175,13 +170,12 @@ export class BlinnPhongMaterial extends BaseMaterial {
     shaderData.enableMacro("O3_NEED_WORLDPOS");
     shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    shaderData.setColor("u_diffuseColor", this._baseColor);
-    shaderData.setColor("u_specularColor", this._specularColor);
-    shaderData.setColor("u_emissiveColor", this._emissiveColor);
-    shaderData.setVector4("u_tilingOffset", this._tilingOffset);
-
-    this.shininess = this._shininess;
-    this.normalIntensity = this._normalIntensity;
+    shaderData.setColor(BlinnPhongMaterial._diffuseColorProp, new Color(1, 1, 1, 1));
+    shaderData.setColor(BlinnPhongMaterial._specularColorProp, new Color(1, 1, 1, 1));
+    shaderData.setColor(BlinnPhongMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
+    shaderData.setVector4(BlinnPhongMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
+    shaderData.setFloat(BlinnPhongMaterial._shininessProp, 16);
+    shaderData.setFloat(BlinnPhongMaterial._normalIntensityProp, 1);
   }
 
   /**
