@@ -42,9 +42,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set baseTexture(value: Texture2D) {
+    this.shaderData.setTexture(BlinnPhongMaterial._baseTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("O3_DIFFUSE_TEXTURE");
-      this.shaderData.setTexture(BlinnPhongMaterial._baseTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_DIFFUSE_TEXTURE");
     }
@@ -72,9 +72,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set specularTexture(value: Texture2D) {
+    this.shaderData.setTexture(BlinnPhongMaterial._specularTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("O3_SPECULAR_TEXTURE");
-      this.shaderData.setTexture(BlinnPhongMaterial._specularTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_SPECULAR_TEXTURE");
     }
@@ -102,9 +102,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set emissiveTexture(value: Texture2D) {
+    this.shaderData.setTexture(BlinnPhongMaterial._emissiveTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("O3_EMISSIVE_TEXTURE");
-      this.shaderData.setTexture(BlinnPhongMaterial._emissiveTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_EMISSIVE_TEXTURE");
     }
@@ -118,9 +118,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set normalTexture(value: Texture2D) {
+    this.shaderData.setTexture(BlinnPhongMaterial._normalTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
-      this.shaderData.setTexture(BlinnPhongMaterial._normalTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
     }

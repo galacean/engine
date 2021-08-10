@@ -41,9 +41,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   set baseTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._baseTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("HAS_BASECOLORMAP");
-      this.shaderData.setTexture(PBRBaseMaterial._baseTextureProp, value);
     } else {
       this.shaderData.disableMacro("HAS_BASECOLORMAP");
     }
@@ -57,9 +57,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   set normalTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._normalTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
-      this.shaderData.setTexture(PBRBaseMaterial._normalTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
     }
@@ -99,9 +99,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   set emissiveTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._emissiveTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("HAS_EMISSIVEMAP");
-      this.shaderData.setTexture(PBRBaseMaterial._emissiveTextureProp, value);
     } else {
       this.shaderData.disableMacro("HAS_EMISSIVEMAP");
     }
@@ -115,9 +115,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   set occlusionTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._occlusionTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("HAS_OCCLUSIONMAP");
-      this.shaderData.setTexture(PBRBaseMaterial._occlusionTextureProp, value);
     } else {
       this.shaderData.disableMacro("HAS_OCCLUSIONMAP");
     }

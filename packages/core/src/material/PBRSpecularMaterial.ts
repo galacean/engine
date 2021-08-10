@@ -46,9 +46,9 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   }
 
   set specularGlossinessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRSpecularMaterial._specularGlossinessTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("HAS_SPECULARGLOSSINESSMAP");
-      this.shaderData.setTexture(PBRSpecularMaterial._specularGlossinessTextureProp, value);
     } else {
       this.shaderData.disableMacro("HAS_SPECULARGLOSSINESSMAP");
     }

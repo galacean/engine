@@ -34,9 +34,9 @@ export class UnlitMaterial extends BaseMaterial {
   }
 
   set baseTexture(value: Texture2D) {
+    this.shaderData.setTexture(UnlitMaterial._baseTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("O3_BASE_TEXTURE");
-      this.shaderData.setTexture(UnlitMaterial._baseTextureProp, value);
     } else {
       this.shaderData.disableMacro("O3_BASE_TEXTURE");
     }
