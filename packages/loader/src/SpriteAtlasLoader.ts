@@ -59,6 +59,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   atlasSprite.pixelsPerUnit || undefined,
                   atlasSprite.name
                 );
+                atlasSprite.rotated && (sprite.rotated = true);
                 sprite.atlasRegion.setValue(
                   atlasRegion.x * sourceWidthReciprocal,
                   atlasRegion.y * sourceHeightReciprocal,
