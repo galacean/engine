@@ -1,5 +1,5 @@
 import { Color } from "@oasis-engine/math";
-import { Engine } from ".";
+import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 import { Sky } from "./sky/Sky";
