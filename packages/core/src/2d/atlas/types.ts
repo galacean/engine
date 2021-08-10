@@ -24,7 +24,7 @@ export interface AtlasSprite {
   /** The name the sprite. */
   name: string;
   /** Whether to rotate 90 degrees clockwise. */
-  rotated: boolean;
+  atlasRotated: boolean;
   /** The range of the sprites on the big picture. */
   atlasRegion: { x: number; y: number; w: number; h: number };
   /** If there is trimming, the offset of the sprite relative to the original sprite. */

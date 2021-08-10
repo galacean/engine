@@ -23,7 +23,7 @@ export class Sprite extends RefObject {
 
   private _pixelsPerUnit: number;
   private _texture: Texture2D = null;
-  private _rotated: boolean = false;
+  private _atlasRotated: boolean = false;
   private _region: Rect = new Rect(0, 0, 1, 1);
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
@@ -59,13 +59,13 @@ export class Sprite extends RefObject {
   /**
    * Is it rotated 90 degrees clockwise when packing.
    */
-  get rotated(): boolean {
-    return this._rotated;
+  get atlasRotated(): boolean {
+    return this._atlasRotated;
   }
 
-  set rotated(value: boolean) {
-    if (this._rotated != value) {
-      this._rotated = value;
+  set atlasRotated(value: boolean) {
+    if (this._atlasRotated != value) {
+      this._atlasRotated = value;
       this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
     }
   }
@@ -188,7 +188,7 @@ export class Sprite extends RefObject {
       // Get the width and height in 3D space.
       let unitWidth: number;
       let unitHeight: number;
-      if (this._rotated) {
+      if (this._atlasRotated) {
         // If it is rotated, we need to swap the height and width.
         unitWidth = atlasRegion.height * region.height * texture.height * pixelsPerUnitReciprocal;
         unitHeight = atlasRegion.width * region.width * texture.width * pixelsPerUnitReciprocal;
@@ -240,7 +240,7 @@ export class Sprite extends RefObject {
       const right = left + atlasRegionWidth * region.width;
       const bottom = top + atlasRegionHeight * region.height;
 
-      if (this._rotated) {
+      if (this._atlasRotated) {
         // If it is rotated, we need to rotate the UV 90 degrees counterclockwise to correct it.
         // Top-left.
         uv[0].setValue(right, top);
