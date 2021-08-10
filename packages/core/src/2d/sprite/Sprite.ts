@@ -64,8 +64,10 @@ export class Sprite extends RefObject {
   }
 
   set rotated(value: boolean) {
-    this._rotated = value;
-    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+    if (this._rotated != value) {
+      this._rotated = value;
+      this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+    }
   }
 
   /**
