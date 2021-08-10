@@ -8,8 +8,8 @@ import { Material } from "./Material";
 
 export class BaseMaterial extends Material {
   private static _alphaCutoffMacro: ShaderMacro = Shader.getMacroByName("ALPHA_CUTOFF");
-
-  private _alphaCutoff: number = 0;
+  private static _alphaCutoffProp = Shader.getPropertyByName("u_alphaCutoff");
+  
   private _renderFace: RenderFace = RenderFace.Front;
   private _isTransparent: boolean = false;
   private _blendMode: BlendMode;
@@ -39,7 +39,9 @@ export class BaseMaterial extends Material {
     } else {
       targetBlendState.enabled = false;
       depthState.writeEnabled = true;
-      this.renderQueueType = this._alphaCutoff ? RenderQueueType.AlphaTest : RenderQueueType.Opaque;
+      this.renderQueueType = this.shaderData.getFloat(BaseMaterial._alphaCutoffProp)
+        ? RenderQueueType.AlphaTest
+        : RenderQueueType.Opaque;
     }
   }
 
@@ -50,12 +52,11 @@ export class BaseMaterial extends Material {
    * `0` means no fragment will be discarded.
    */
   get alphaCutoff(): number {
-    return this._alphaCutoff;
+    return this.shaderData.getFloat(BaseMaterial._alphaCutoffProp);
   }
 
   set alphaCutoff(value: number) {
-    if (value === this._alphaCutoff) return;
-    this._alphaCutoff = value;
+    this.shaderData.setFloat(BaseMaterial._alphaCutoffProp, value);
 
     if (value > 0) {
       this.shaderData.enableMacro(BaseMaterial._alphaCutoffMacro);
@@ -64,8 +65,6 @@ export class BaseMaterial extends Material {
       this.shaderData.disableMacro(BaseMaterial._alphaCutoffMacro);
       this.renderQueueType = this._isTransparent ? RenderQueueType.Transparent : RenderQueueType.Opaque;
     }
-
-    this.shaderData.setFloat("u_alphaCutoff", value);
   }
 
   /**
@@ -135,5 +134,6 @@ export class BaseMaterial extends Material {
   protected constructor(engine: Engine, shader: Shader) {
     super(engine, shader);
     this.blendMode = BlendMode.Normal;
+    this.shaderData.setFloat(BaseMaterial._alphaCutoffProp, 0);
   }
 }
