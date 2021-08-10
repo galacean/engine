@@ -1,10 +1,12 @@
 import { Matrix } from "@oasis-engine/math";
+import { Background } from "..";
 import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
+import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
 import { RenderQueueType } from "../material/enums/RenderQueueType";
@@ -36,6 +38,8 @@ export class BasicRenderPipeline {
   private _camera: Camera;
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
+  private _lastCanvasWidth: number = 0;
+  private _lastCanvasHeight: number = 0;
 
   /**
    * Create a basic render pipeline.
@@ -178,6 +182,8 @@ export class BasicRenderPipeline {
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
         if (background.mode === BackgroundMode.Sky) {
           this._drawSky(engine, camera, background.sky);
+        } else if (background.mode === BackgroundMode.Texture) {
+          this._drawBackgroundTexture(engine, background);
         }
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
@@ -203,6 +209,27 @@ export class BasicRenderPipeline {
     } else {
       this._opaqueQueue.pushPrimitive(element);
     }
+  }
+
+  private _drawBackgroundTexture(engine: Engine, background: Background) {
+    const rhi = engine._hardwareRenderer;
+    const { shaderData, shader, renderState } = engine._backgroundTextureMaterial;
+    const { _backgroundTextureMesh, canvas } = engine;
+
+    if (
+      (this._lastCanvasWidth !== canvas.width || this._lastCanvasHeight !== canvas.width) &&
+      background._textureFillMode !== BackgroundTextureFillMode.Scale
+    ) {
+      background._resizeBackground();
+    }
+
+    const program = shader._getShaderProgram(engine, Shader._compileMacros);
+    program.bind();
+    program.uploadAll(program.materialUniformBlock, shaderData);
+    program.uploadUngroupTextures();
+
+    renderState._apply(engine);
+    rhi.drawPrimitive(_backgroundTextureMesh, _backgroundTextureMesh.subMesh, program);
   }
 
   private _drawSky(engine: Engine, camera: Camera, sky: Sky): void {
