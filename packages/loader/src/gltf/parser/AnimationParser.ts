@@ -44,8 +44,9 @@ export class AnimationParser extends Parser {
         const output = GLTFUtil.getAccessorData(gltf, outputAccessor, buffers);
         const outputAccessorSize = output.length / input.length;
 
+        const interpolation = gltfSampler.interpolation ?? AnimationSamplerInterpolation.Linear;
         let samplerInterpolation: InterpolationType;
-        switch (gltfSampler.interpolation) {
+        switch (interpolation) {
           case AnimationSamplerInterpolation.CubicSpine:
             samplerInterpolation = InterpolationType.CubicSpine;
             break;

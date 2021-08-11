@@ -23,6 +23,7 @@ export class Sprite extends RefObject {
 
   private _pixelsPerUnit: number;
   private _texture: Texture2D = null;
+  private _atlasRotated: boolean = false;
   private _region: Rect = new Rect(0, 0, 1, 1);
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
@@ -50,9 +51,23 @@ export class Sprite extends RefObject {
   get bounds(): Readonly<BoundingBox> {
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       this._updatePositionsAndBounds();
-      this._setDirtyFlagTrue(DirtyFlag.positions);
+      this._setDirtyFlagFalse(DirtyFlag.positions);
     }
     return this._bounds;
+  }
+
+  /**
+   * Is it rotated 90 degrees clockwise when packing.
+   */
+  get atlasRotated(): boolean {
+    return this._atlasRotated;
+  }
+
+  set atlasRotated(value: boolean) {
+    if (this._atlasRotated != value) {
+      this._atlasRotated = value;
+      this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+    }
   }
 
   /**
@@ -171,8 +186,16 @@ export class Sprite extends RefObject {
       const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
 
       // Get the width and height in 3D space.
-      const unitWidth = atlasRegion.width * region.width * texture.width * pixelsPerUnitReciprocal;
-      const unitHeight = atlasRegion.height * region.height * texture.height * pixelsPerUnitReciprocal;
+      let unitWidth: number;
+      let unitHeight: number;
+      if (this._atlasRotated) {
+        // If it is rotated, we need to swap the height and width.
+        unitWidth = atlasRegion.height * region.height * texture.height * pixelsPerUnitReciprocal;
+        unitHeight = atlasRegion.width * region.width * texture.width * pixelsPerUnitReciprocal;
+      } else {
+        unitWidth = atlasRegion.width * region.width * texture.width * pixelsPerUnitReciprocal;
+        unitHeight = atlasRegion.height * region.height * texture.height * pixelsPerUnitReciprocal;
+      }
 
       // Get the distance between the anchor point and the four sides.
       const lx = (-pivot.x + atlasRegionOffset.x) * unitWidth;
@@ -217,14 +240,26 @@ export class Sprite extends RefObject {
       const right = left + atlasRegionWidth * region.width;
       const bottom = top + atlasRegionHeight * region.height;
 
-      // Top-left.
-      uv[0].setValue(left, top);
-      // Top-right.
-      uv[1].setValue(right, top);
-      // Bottom-right.
-      uv[2].setValue(right, bottom);
-      // Bottom-left.
-      uv[3].setValue(left, bottom);
+      if (this._atlasRotated) {
+        // If it is rotated, we need to rotate the UV 90 degrees counterclockwise to correct it.
+        // Top-left.
+        uv[0].setValue(right, top);
+        // Top-right.
+        uv[1].setValue(right, bottom);
+        // Bottom-right.
+        uv[2].setValue(left, bottom);
+        // Bottom-left.
+        uv[3].setValue(left, top);
+      } else {
+        // Top-left.
+        uv[0].setValue(left, top);
+        // Top-right.
+        uv[1].setValue(right, top);
+        // Bottom-right.
+        uv[2].setValue(right, bottom);
+        // Bottom-left.
+        uv[3].setValue(left, bottom);
+      }
     }
   }
 

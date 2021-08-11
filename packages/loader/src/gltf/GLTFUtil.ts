@@ -106,16 +106,15 @@ export class GLTFUtil {
     const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const length = accessorTypeSize * accessor.count;
     const byteStride = bufferView.byteStride ?? 0;
-
     const arrayType = GLTFUtil.getComponentType(accessor.componentType);
     let uint8Array;
     if (byteStride) {
-      uint8Array = new Uint8Array(accessor.count * byteStride);
-      const originalBufferView = new Uint8Array(arrayBuffer, bufferViewByteOffset, bufferView.byteLength);
       const accessorByteSize = accessorTypeSize * arrayType.BYTES_PER_ELEMENT;
+      uint8Array = new Uint8Array(accessor.count * accessorByteSize);
+      const originalBufferView = new Uint8Array(arrayBuffer, bufferViewByteOffset, bufferView.byteLength);
       for (let i = 0; i < accessor.count; i++) {
         for (let j = 0; j < accessorByteSize; j++) {
-          uint8Array[i * byteStride + j] = originalBufferView[i * byteStride + accessorByteOffset + j];
+          uint8Array[i * accessorByteSize + j] = originalBufferView[i * byteStride + accessorByteOffset + j];
         }
       }
     } else {

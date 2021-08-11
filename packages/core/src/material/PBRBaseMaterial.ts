@@ -8,26 +8,28 @@ import { BaseMaterial } from "./BaseMaterial";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
-  private _baseColor: Color = new Color(1, 1, 1, 1);
-  private _baseTexture: Texture2D;
-  private _normalTexture: Texture2D;
-  private _normalTextureIntensity: number = 1;
-  private _emissiveColor: Color = new Color(0, 0, 0, 1);
-  private _emissiveTexture: Texture2D;
-  private _tilingOffset: Vector4 = new Vector4(1, 1, 0, 0);
-  private _occlusionTexture: Texture2D;
-  private _occlusionTextureIntensity: number = 1;
+  private static _baseColorProp = Shader.getPropertyByName("u_baseColor");
+  private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
+  private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
+  private static _baseTextureProp = Shader.getPropertyByName("u_baseColorSampler");
+  private static _normalTextureProp = Shader.getPropertyByName("u_normalTexture");
+  private static _normalTextureIntensityProp = Shader.getPropertyByName("u_normalIntensity");
+  private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionStrength");
+
+  private static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveSampler");
+  private static _occlusionTextureProp = Shader.getPropertyByName("u_occlusionSampler");
 
   /**
    * Base color.
    */
   get baseColor(): Color {
-    return this._baseColor;
+    return this.shaderData.getColor(PBRBaseMaterial._baseColorProp);
   }
 
   set baseColor(value: Color) {
-    if (value !== this._baseColor) {
-      value.cloneTo(this._baseColor);
+    const baseColor = this.shaderData.getColor(PBRBaseMaterial._baseColorProp);
+    if (value !== baseColor) {
+      value.cloneTo(baseColor);
     }
   }
 
@@ -35,15 +37,13 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Base texture.
    */
   get baseTexture(): Texture2D {
-    return this._baseTexture;
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._baseTextureProp);
   }
 
   set baseTexture(value: Texture2D) {
-    this._baseTexture = value;
-
+    this.shaderData.setTexture(PBRBaseMaterial._baseTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("HAS_BASECOLORMAP");
-      this.shaderData.setTexture("u_baseColorSampler", value);
     } else {
       this.shaderData.disableMacro("HAS_BASECOLORMAP");
     }
@@ -53,15 +53,13 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Normal texture.
    */
   get normalTexture(): Texture2D {
-    return this._normalTexture;
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._normalTextureProp);
   }
 
   set normalTexture(value: Texture2D) {
-    this._normalTexture = value;
-
+    this.shaderData.setTexture(PBRBaseMaterial._normalTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
-      this.shaderData.setTexture("u_normalTexture", value);
     } else {
       this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
     }
@@ -71,11 +69,11 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Normal texture intensity.
    */
   get normalTextureIntensity(): number {
-    return this._normalTextureIntensity;
+    return this.shaderData.getFloat(PBRBaseMaterial._normalTextureIntensityProp);
   }
 
   set normalTextureIntensity(value: number) {
-    this._normalTextureIntensity = value;
+    this.shaderData.setFloat(PBRBaseMaterial._normalTextureIntensityProp, value);
     this.shaderData.setFloat("u_normalIntensity", value);
   }
 
@@ -83,12 +81,13 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Emissive color.
    */
   get emissiveColor(): Color {
-    return this._emissiveColor;
+    return this.shaderData.getColor(PBRBaseMaterial._emissiveColorProp);
   }
 
   set emissiveColor(value: Color) {
-    if (value !== this._emissiveColor) {
-      value.cloneTo(this._emissiveColor);
+    const emissiveColor = this.shaderData.getColor(PBRBaseMaterial._emissiveColorProp);
+    if (value !== emissiveColor) {
+      value.cloneTo(emissiveColor);
     }
   }
 
@@ -96,15 +95,13 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Emissive texture.
    */
   get emissiveTexture(): Texture2D {
-    return this._emissiveTexture;
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._emissiveTextureProp);
   }
 
   set emissiveTexture(value: Texture2D) {
-    this._emissiveTexture = value;
-
+    this.shaderData.setTexture(PBRBaseMaterial._emissiveTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("HAS_EMISSIVEMAP");
-      this.shaderData.setTexture("u_emissiveSampler", value);
     } else {
       this.shaderData.disableMacro("HAS_EMISSIVEMAP");
     }
@@ -114,15 +111,13 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Occlusion texture.
    */
   get occlusionTexture(): Texture2D {
-    return this._occlusionTexture;
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._occlusionTextureProp);
   }
 
   set occlusionTexture(value: Texture2D) {
-    this._occlusionTexture = value;
-
+    this.shaderData.setTexture(PBRBaseMaterial._occlusionTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("HAS_OCCLUSIONMAP");
-      this.shaderData.setTexture("u_occlusionSampler", value);
     } else {
       this.shaderData.disableMacro("HAS_OCCLUSIONMAP");
     }
@@ -132,24 +127,24 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Occlusion texture intensity.
    */
   get occlusionTextureIntensity(): number {
-    return this._occlusionTextureIntensity;
+    return this.shaderData.getFloat(PBRBaseMaterial._occlusionTextureIntensityProp);
   }
 
   set occlusionTextureIntensity(value: number) {
-    this._occlusionTextureIntensity = value;
-    this.shaderData.setFloat("u_occlusionStrength", value);
+    this.shaderData.setFloat(PBRBaseMaterial._occlusionTextureIntensityProp, value);
   }
 
   /**
    * Tiling and offset of main textures.
    */
   get tilingOffset(): Vector4 {
-    return this._tilingOffset;
+    return this.shaderData.getVector4(PBRBaseMaterial._tilingOffsetProp);
   }
 
   set tilingOffset(value: Vector4) {
-    if (value !== this._tilingOffset) {
-      value.cloneTo(this._tilingOffset);
+    const tilingOffset = this.shaderData.getVector4(PBRBaseMaterial._tilingOffsetProp);
+    if (value !== tilingOffset) {
+      value.cloneTo(tilingOffset);
     }
   }
 
@@ -165,11 +160,11 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.enableMacro("O3_NEED_WORLDPOS");
     shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    shaderData.setColor("u_baseColor", this._baseColor);
-    shaderData.setColor("u_emissiveColor", this._emissiveColor);
-    shaderData.setVector4("u_tilingOffset", this._tilingOffset);
+    shaderData.setColor(PBRBaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
+    shaderData.setColor(PBRBaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
+    shaderData.setVector4(PBRBaseMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
 
-    this.normalTextureIntensity = this._normalTextureIntensity;
-    this.occlusionTextureIntensity = this._occlusionTextureIntensity;
+    shaderData.setFloat(PBRBaseMaterial._normalTextureIntensityProp, 1);
+    shaderData.setFloat(PBRBaseMaterial._occlusionTextureIntensityProp, 1);
   }
 }
