@@ -61,11 +61,9 @@ export class Background {
 
   public set textureFillMode(value: BackgroundTextureMode) {
     if (value === this._textureFillMode) {
-      return;
+      this._textureFillMode = value;
+      this._resizeBackgroundTexture();
     }
-
-    this._textureFillMode = value;
-    this._resizeBackgroundTexture();
   }
 
   /**
@@ -74,8 +72,8 @@ export class Background {
    */
   constructor(private _engine: Engine) {}
 
-  /** 
-   * @internal 
+  /**
+   * @internal
    */
   _resizeBackgroundTexture(): void {
     if (!this._texture) {
