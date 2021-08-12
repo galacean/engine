@@ -6,7 +6,7 @@ import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
-import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
+import { BackgroundTextureMode } from "../enums/BackgroundTextureMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
 import { RenderQueueType } from "../material/enums/RenderQueueType";
@@ -217,10 +217,12 @@ export class BasicRenderPipeline {
     const { _backgroundTextureMesh, canvas } = engine;
 
     if (
-      (this._lastCanvasWidth !== canvas.width || this._lastCanvasHeight !== canvas.width) &&
-      background._textureFillMode !== BackgroundTextureFillMode.Scale
+      (this._lastCanvasWidth !== canvas.width || this._lastCanvasHeight !== canvas.height) &&
+      background._textureFillMode !== BackgroundTextureMode.ScaleToFill
     ) {
-      background._resizeBackground();
+      this._lastCanvasWidth = canvas.width;
+      this._lastCanvasHeight = canvas.height;
+      background._resizeBackgroundTexture();
     }
 
     const program = shader._getShaderProgram(engine, Shader._compileMacros);

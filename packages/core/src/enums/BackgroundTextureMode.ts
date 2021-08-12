@@ -1,4 +1,4 @@
-export enum BackgroundTextureFillMode {
+export enum BackgroundTextureMode {
   /**
    * Adapt to width, scale based on texture width.
    */
@@ -10,5 +10,5 @@ export enum BackgroundTextureFillMode {
   /**
    * Scale mode, Scale the texture completely according to the canvas size.
    */
-  Scale
+  ScaleToFill
 }

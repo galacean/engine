@@ -1,7 +1,7 @@
 import { Color } from "@oasis-engine/math";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
-import { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
+import { BackgroundTextureMode } from "./enums/BackgroundTextureMode";
 import { Sky } from "./sky/Sky";
 import { Texture2D } from "./texture";
 
@@ -33,7 +33,7 @@ export class Background {
   _texture: Texture2D = null;
 
   /** @internal */
-  _textureFillMode: BackgroundTextureFillMode = BackgroundTextureFillMode.FitHeight;
+  _textureFillMode: BackgroundTextureMode = BackgroundTextureMode.FitHeight;
 
   /**
    * Background texture.
@@ -43,11 +43,11 @@ export class Background {
     return this._texture;
   }
 
-  public set texture(v: Texture2D) {
-    if (this._texture === v) {
-      return;
+  public set texture(value: Texture2D) {
+    if (this._texture !== value) {
+      this._texture = value;
+      this._engine._backgroundTextureMaterial.shaderData.setTexture("u_baseTexture", value);
     }
-    this._engine._backgroundTextureMaterial.shaderData.setTexture("u_baseTexture", v);
   }
 
   /**
@@ -55,17 +55,17 @@ export class Background {
    * @remarks When `mode` is `BackgroundMode.Texture`, the property will take effects.
    * @defaultValue `BackgroundTextureFillMode.FitHeight`
    */
-  public get textureFillMode(): BackgroundTextureFillMode {
+  public get textureFillMode(): BackgroundTextureMode {
     return this._textureFillMode;
   }
 
-  public set textureFillMode(textureFillMode: BackgroundTextureFillMode) {
-    if (textureFillMode === this._textureFillMode) {
+  public set textureFillMode(value: BackgroundTextureMode) {
+    if (value === this._textureFillMode) {
       return;
     }
 
-    this._textureFillMode = textureFillMode;
-    this._resizeBackground();
+    this._textureFillMode = value;
+    this._resizeBackgroundTexture();
   }
 
   /**
@@ -74,35 +74,46 @@ export class Background {
    */
   constructor(private _engine: Engine) {}
 
-  /** @internal */
-  _resizeBackground(): void {
+  /** 
+   * @internal 
+   */
+  _resizeBackgroundTexture(): void {
+    if (!this._texture) {
+      return;
+    }
     const { canvas } = this._engine;
     const { width, height } = canvas;
-    const ratio = height / width;
+    const { width: textureWidth } = this._texture;
     const { _backgroundTextureMesh } = this._engine;
-    const postions = _backgroundTextureMesh.getPositions();
+    const positions = _backgroundTextureMesh.getPositions();
 
-    switch (this.textureFillMode) {
-      case BackgroundTextureFillMode.Scale:
-        postions[0].setValue(-1, -1, 0);
-        postions[1].setValue(1, -1, 0);
-        postions[2].setValue(-1, 1, 0);
-        postions[3].setValue(1, 1, 0);
+    switch (this._textureFillMode) {
+      case BackgroundTextureMode.ScaleToFill:
+        positions[0].setValue(-1, -1, -1);
+        positions[1].setValue(1, -1, -1);
+        positions[2].setValue(-1, 1, -1);
+        positions[3].setValue(1, 1, -1);
         break;
-      case BackgroundTextureFillMode.FitWidth:
-        postions[0].setValue(-1, -1 * ratio, 0);
-        postions[1].setValue(1, -1 * ratio, 0);
-        postions[2].setValue(-1, 1 * ratio, 0);
-        postions[3].setValue(1, 1 * ratio, 0);
+      case BackgroundTextureMode.FitWidth:
+        {
+          const scaleValue = 1 / ((textureWidth * (height / width)) / height);
+          positions[0].setValue(-1, -scaleValue, -1);
+          positions[1].setValue(1, -scaleValue, -1);
+          positions[2].setValue(-1, scaleValue, -1);
+          positions[3].setValue(1, scaleValue, 0);
+        }
         break;
-      case BackgroundTextureFillMode.FitHeight:
-        postions[0].setValue(-1 / ratio, -1, 0);
-        postions[1].setValue(1 / ratio, -1, 0);
-        postions[2].setValue(-1 / ratio, 1, 0);
-        postions[3].setValue(1 / ratio, 1, 0);
+      case BackgroundTextureMode.FitHeight:
+        {
+          const scaleValue = (textureWidth * (height / width)) / height;
+          positions[0].setValue(-scaleValue, -1, -1);
+          positions[1].setValue(scaleValue, -1, -1);
+          positions[2].setValue(-scaleValue, 1, -1);
+          positions[3].setValue(scaleValue, 1, -1);
+        }
         break;
     }
-    _backgroundTextureMesh.setPositions(postions);
+    _backgroundTextureMesh.setPositions(positions);
     _backgroundTextureMesh.uploadData(false);
   }
 }
