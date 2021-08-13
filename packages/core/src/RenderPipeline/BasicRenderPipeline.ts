@@ -1,4 +1,4 @@
-import { Matrix } from "@oasis-engine/math";
+import { Matrix, Vector2 } from "@oasis-engine/math";
 import { Background } from "..";
 import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { Logger } from "../base/Logger";
@@ -38,8 +38,7 @@ export class BasicRenderPipeline {
   private _camera: Camera;
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
-  private _lastCanvasWidth: number = 0;
-  private _lastCanvasHeight: number = 0;
+  private _lastCanvasSize = new Vector2();
 
   /**
    * Create a basic render pipeline.
@@ -213,24 +212,23 @@ export class BasicRenderPipeline {
 
   private _drawBackgroundTexture(engine: Engine, background: Background) {
     const rhi = engine._hardwareRenderer;
-    const { shaderData, shader, renderState } = engine._backgroundTextureMaterial;
+    const { _backgroundTextureMaterial } = engine;
     const { _backgroundTextureMesh, canvas } = engine;
 
     if (
-      (this._lastCanvasWidth !== canvas.width || this._lastCanvasHeight !== canvas.height) &&
+      (this._lastCanvasSize.x !== canvas.width || this._lastCanvasSize.y !== canvas.height) &&
       background._textureFillMode !== BackgroundTextureMode.ScaleToFill
     ) {
-      this._lastCanvasWidth = canvas.width;
-      this._lastCanvasHeight = canvas.height;
+      this._lastCanvasSize.setValue(canvas.width, canvas.height);
       background._resizeBackgroundTexture();
     }
 
-    const program = shader._getShaderProgram(engine, Shader._compileMacros);
+    const program = _backgroundTextureMaterial.shader._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
-    program.uploadAll(program.materialUniformBlock, shaderData);
+    program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
     program.uploadUngroupTextures();
 
-    renderState._apply(engine);
+    _backgroundTextureMaterial.renderState._apply(engine);
     rhi.drawPrimitive(_backgroundTextureMesh, _backgroundTextureMesh.subMesh, program);
   }
 
