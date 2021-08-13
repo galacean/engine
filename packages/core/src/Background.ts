@@ -51,6 +51,7 @@ export class Background {
   }
 
   /**
+   * @internal
    * Background texture fill mode.
    * @remarks When `mode` is `BackgroundMode.Texture`, the property will take effects.
    * @defaultValue `BackgroundTextureFillMode.FitHeight`
@@ -98,7 +99,7 @@ export class Background {
           positions[0].setValue(-1, -scaleValue, -1);
           positions[1].setValue(1, -scaleValue, -1);
           positions[2].setValue(-1, scaleValue, -1);
-          positions[3].setValue(1, scaleValue, 0);
+          positions[3].setValue(1, scaleValue, -1);
         }
         break;
       case BackgroundTextureMode.FitHeight:
