@@ -212,8 +212,7 @@ export class BasicRenderPipeline {
 
   private _drawBackgroundTexture(engine: Engine, background: Background) {
     const rhi = engine._hardwareRenderer;
-    const { _backgroundTextureMaterial } = engine;
-    const { _backgroundTextureMesh, canvas } = engine;
+    const { _backgroundTextureMaterial, _backgroundTextureMesh, canvas } = engine;
 
     if (
       (this._lastCanvasSize.x !== canvas.width || this._lastCanvasSize.y !== canvas.height) &&
