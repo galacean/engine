@@ -61,7 +61,7 @@ export class Background {
   }
 
   public set textureFillMode(value: BackgroundTextureMode) {
-    if (value === this._textureFillMode) {
+    if (value !== this._textureFillMode) {
       this._textureFillMode = value;
       this._resizeBackgroundTexture();
     }
