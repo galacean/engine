@@ -30,10 +30,9 @@ export class Background {
   readonly sky: Sky = new Sky();
 
   /** @internal */
-  _texture: Texture2D = null;
-
-  /** @internal */
   _textureFillMode: BackgroundTextureFillMode = BackgroundTextureFillMode.AspectFitHeight;
+
+  private _texture: Texture2D = null;
 
   /**
    * Background texture.
@@ -93,22 +92,18 @@ export class Background {
         positions[3].setValue(1, 1, -1);
         break;
       case BackgroundTextureFillMode.AspectFitWidth:
-        {
-          const scaleValue = 1 / ((this._texture.width * (height / width)) / height);
-          positions[0].setValue(-1, -scaleValue, -1);
-          positions[1].setValue(1, -scaleValue, -1);
-          positions[2].setValue(-1, scaleValue, -1);
-          positions[3].setValue(1, scaleValue, -1);
-        }
+        const fitWidthScale = 1 / ((this._texture.width * (height / width)) / height);
+        positions[0].setValue(-1, -fitWidthScale, -1);
+        positions[1].setValue(1, -fitWidthScale, -1);
+        positions[2].setValue(-1, fitWidthScale, -1);
+        positions[3].setValue(1, fitWidthScale, -1);
         break;
       case BackgroundTextureFillMode.AspectFitHeight:
-        {
-          const scaleValue = (this._texture.width * (height / width)) / height;
-          positions[0].setValue(-scaleValue, -1, -1);
-          positions[1].setValue(scaleValue, -1, -1);
-          positions[2].setValue(-scaleValue, 1, -1);
-          positions[3].setValue(scaleValue, 1, -1);
-        }
+        const fitHeightScale = (this._texture.width * (height / width)) / height;
+        positions[0].setValue(-fitHeightScale, -1, -1);
+        positions[1].setValue(fitHeightScale, -1, -1);
+        positions[2].setValue(-fitHeightScale, 1, -1);
+        positions[3].setValue(fitHeightScale, 1, -1);
         break;
     }
     _backgroundTextureMesh.setPositions(positions);
