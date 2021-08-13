@@ -227,7 +227,7 @@ export class GLTFUtil {
   static loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const blob = new window.Blob([imageBuffer], { type });
-      const img = new Image();
+      let img = new Image();
       img.src = URL.createObjectURL(blob);
 
       img.crossOrigin = "anonymous";
@@ -238,6 +238,10 @@ export class GLTFUtil {
         // Call requestAnimationFrame to avoid iOS's bug.
         requestAnimationFrame(() => {
           resolve(img);
+          img.onload = null;
+          img.onerror = null;
+          img.onabort = null;
+          img = null;
         });
       };
     });

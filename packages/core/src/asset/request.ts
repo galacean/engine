@@ -58,7 +58,7 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
 function requestImage<T>(url: string, config: RequestConfig): AssetPromise<T> {
   return new AssetPromise((resolve, reject) => {
     const { timeout } = config;
-    const img = new Image();
+    let img = new Image();
     const onerror = () => {
       reject(new Error(`request ${url} fail`));
     };
@@ -76,6 +76,10 @@ function requestImage<T>(url: string, config: RequestConfig): AssetPromise<T> {
         requestAnimationFrame(() => {
           //@ts-ignore
           resolve(img);
+          img.onload = null;
+          img.onerror = null;
+          img.onabort = null;
+          img = null;
         });
         clearTimeout(timeoutId);
       };
