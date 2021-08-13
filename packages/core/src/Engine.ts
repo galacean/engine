@@ -26,6 +26,7 @@ import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
 import { PhysicsManager } from "./PhysicsManager";
+import { ModelMesh, PrimitiveMesh } from "./mesh";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -52,6 +53,10 @@ export class Engine extends EventDispatcher {
   _whiteTexture2D: Texture2D;
   /* @internal */
   _whiteTextureCube: TextureCubeMap;
+  /* @internal */
+  _backgroundTextureMaterial: Material;
+  /* @internal */
+  _backgroundTextureMesh: ModelMesh;
   /* @internal */
   _renderCount: number = 0;
   /* @internal */
@@ -182,6 +187,12 @@ export class Engine extends EventDispatcher {
 
     this._whiteTexture2D = whiteTexture2D;
     this._whiteTextureCube = whiteTextureCube;
+
+    this._backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
+    this._backgroundTextureMaterial.isGCIgnored = true;
+
+    this._backgroundTextureMesh = PrimitiveMesh.createPlane(this, 2, 2, 1, 1, false);
+    this._backgroundTextureMesh.isGCIgnored = true;
   }
 
   /**

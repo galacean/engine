@@ -21,7 +21,7 @@ export class Scene extends EngineObject {
   /** Scene name. */
   name: string;
   /** The background of the scene. */
-  readonly background: Background = new Background();
+  readonly background: Background = new Background(this._engine);
   /** Ambient light. */
   readonly ambientLight: AmbientLight;
   /** Scene-related shader data. */
