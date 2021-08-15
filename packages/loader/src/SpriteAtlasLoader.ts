@@ -34,7 +34,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object
             const tempRect = new Rect();
-            const tempPivot = new Vector2();
+            const tempVect2 = new Vector2();
             const spriteAtlas = new SpriteAtlas(engine);
             for (let i = 0; i < atlasItemsLen; i++) {
               // Generate Texture2D according to configuration
@@ -50,12 +50,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const sourceHeightReciprocal = 1.0 / height;
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
-                const { region, pivot, atlasRegionOffset, atlasRegion } = atlasSprite;
+                const { region, pivot, atlasRegionOffset, atlasRegion, originalSize } = atlasSprite;
                 const sprite = new Sprite(
                   engine,
                   texture,
                   region ? tempRect.setValue(region.x, region.y, region.w, region.h) : undefined,
-                  pivot ? tempPivot.setValue(pivot.x, pivot.y) : undefined,
+                  pivot ? tempVect2.setValue(pivot.x, pivot.y) : undefined,
                   atlasSprite.pixelsPerUnit || undefined,
                   atlasSprite.name
                 );
@@ -66,7 +66,13 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   atlasRegion.w * sourceWidthReciprocal,
                   atlasRegion.h * sourceHeightReciprocal
                 );
-                atlasRegionOffset && sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
+                // The original size is a necessary parameter.
+                sprite.originalSize = tempVect2.setValue(originalSize.w, originalSize.h);
+                atlasRegionOffset &&
+                  sprite.atlasRegionOffset.setValue(
+                    atlasRegionOffset.x / originalSize.w,
+                    atlasRegionOffset.y / originalSize.h
+                  );
                 /** @ts-ignore */
                 spriteAtlas._addSprite(sprite);
               }

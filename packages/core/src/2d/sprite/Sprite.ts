@@ -23,6 +23,7 @@ export class Sprite extends RefObject {
 
   private _pixelsPerUnit: number;
   private _texture: Texture2D = null;
+  private _originalSize: Vector2 = null;
   private _atlasRotated: boolean = false;
   private _region: Rect = new Rect(0, 0, 1, 1);
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
@@ -45,13 +46,33 @@ export class Sprite extends RefObject {
   }
 
   /**
+   * The original size of the sprite.
+   */
+  get originalSize(): Vector2 {
+    const { _originalSize, _texture } = this;
+    if (!_originalSize && _texture) {
+      this._originalSize = new Vector2(_texture.width, _texture.height);
+    }
+    return _originalSize;
+  }
+
+  set originalSize(value: Vector2) {
+    if (!this._originalSize) {
+      this._originalSize = value.clone();
+    } else {
+      value.cloneTo(this._originalSize);
+    }
+    this._setDirtyFlagTrue(DirtyFlag.positions);
+  }
+
+  /**
    *  Bounding volume of the sprite.
    *  @remarks The returned bounds should be considered deep-read-only.
    */
   get bounds(): Readonly<BoundingBox> {
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       this._updatePositionsAndBounds();
-      this._setDirtyFlagFalse(DirtyFlag.positions);
+      // this._setDirtyFlagFalse(DirtyFlag.positions);
     }
     return this._bounds;
   }
@@ -66,7 +87,7 @@ export class Sprite extends RefObject {
   set atlasRotated(value: boolean) {
     if (this._atlasRotated != value) {
       this._atlasRotated = value;
-      this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+      this._setDirtyFlagTrue(DirtyFlag.uv);
     }
   }
 
@@ -82,7 +103,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     atlasRegion.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._setDirtyFlagTrue(DirtyFlag.positions);
+    this._setDirtyFlagTrue(DirtyFlag.uv);
   }
 
   /**
@@ -180,28 +201,46 @@ export class Sprite extends RefObject {
    * Update positions and bounds.
    */
   private _updatePositionsAndBounds(): void {
-    const { texture, _bounds: bounds } = this;
-    if (texture) {
-      const { _atlasRegionOffset: atlasRegionOffset, _atlasRegion: atlasRegion, _region: region, _pivot: pivot } = this;
+    const { originalSize, _bounds: bounds } = this;
+    if (originalSize) {
+      const { _atlasRegion, _texture, _atlasRegionOffset, _pivot } = this;
+      const { x: regionX, y: regionY, width: regionWidth, height: regionHeight } = this._region;
       const pixelsPerUnitReciprocal = 1.0 / this._pixelsPerUnit;
 
-      // Get the width and height in 3D space.
-      let unitWidth: number;
-      let unitHeight: number;
-      if (this._atlasRotated) {
-        // If it is rotated, we need to swap the height and width.
-        unitWidth = atlasRegion.height * region.height * texture.height * pixelsPerUnitReciprocal;
-        unitHeight = atlasRegion.width * region.width * texture.width * pixelsPerUnitReciprocal;
+      // The coordinates of the trimmed up, down, left, and right.
+      const leftBlankSpace = _atlasRegionOffset.x;
+      const topBlankSpace = _atlasRegionOffset.y;
+      const rightBlankSpace = (_texture.width * _atlasRegion.width) / originalSize.x + leftBlankSpace;
+      const downBlankSpace = (_texture.height * _atlasRegion.height) / originalSize.y + topBlankSpace;
+
+      // The size of the real rendering.
+      let realRenderWidth: number;
+      let realRenderHeight: number;
+      if (
+        regionX + regionWidth <= leftBlankSpace ||
+        regionY + regionHeight <= topBlankSpace ||
+        regionX >= rightBlankSpace ||
+        regionY >= downBlankSpace
+      ) {
+        realRenderWidth = realRenderHeight = 0;
       } else {
-        unitWidth = atlasRegion.width * region.width * texture.width * pixelsPerUnitReciprocal;
-        unitHeight = atlasRegion.height * region.height * texture.height * pixelsPerUnitReciprocal;
+        realRenderWidth = Math.min(rightBlankSpace, regionX + regionWidth) - Math.max(leftBlankSpace, regionX);
+        realRenderHeight = Math.min(downBlankSpace, regionY + regionHeight) - Math.max(topBlankSpace, regionY);
+        realRenderWidth = realRenderWidth * originalSize.x * pixelsPerUnitReciprocal;
+        realRenderHeight = realRenderHeight * originalSize.y * pixelsPerUnitReciprocal;
       }
 
       // Get the distance between the anchor point and the four sides.
-      const lx = (-pivot.x + atlasRegionOffset.x) * unitWidth;
-      const by = (-pivot.y + atlasRegionOffset.y) * unitHeight;
-      const rx = unitWidth + lx;
-      const ty = unitHeight + by;
+      const lx =
+        (-_pivot.x * regionWidth + (leftBlankSpace > regionX ? leftBlankSpace - regionX : 0)) *
+        originalSize.x *
+        pixelsPerUnitReciprocal;
+      const ty =
+        (_pivot.y * regionHeight - (topBlankSpace > regionY ? topBlankSpace - regionY : 0)) *
+        originalSize.y *
+        pixelsPerUnitReciprocal;
+      const rx = lx + realRenderWidth;
+      const by = ty - realRenderHeight;
 
       // Assign values ​​to _positions
       const positions = this._positions;
@@ -233,32 +272,58 @@ export class Sprite extends RefObject {
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
-      const { _region: region, _atlasRegion: atlasRegion, _uv: uv } = this;
+      const { _region: region, _atlasRegion: atlasRegion, _uv, originalSize, _atlasRegionOffset, _texture } = this;
       const { width: atlasRegionWidth, height: atlasRegionHeight } = atlasRegion;
-      const left = atlasRegion.x + atlasRegionWidth * region.x;
-      const top = atlasRegion.y + atlasRegionHeight * region.y;
-      const right = left + atlasRegionWidth * region.width;
-      const bottom = top + atlasRegionHeight * region.height;
+      // 上下左右的间隔
+      const leftSub = _atlasRegionOffset.x;
+      const topSub = _atlasRegionOffset.y;
+      const rightSub = (_texture.width * atlasRegion.width) / originalSize.x + leftSub;
+      const downSub = (_texture.height * atlasRegion.height) / originalSize.y + topSub;
+
+      let left: number = 0;
+      let top: number = 0;
+      let rw: number;
+      let rh: number;
+      if (
+        region.x + region.width <= leftSub ||
+        region.y + region.height <= topSub ||
+        region.x >= rightSub ||
+        region.y >= downSub
+      ) {
+        rw = rh = 0;
+      } else {
+        rw = Math.min(rightSub, region.x + region.width) - Math.max(leftSub, region.x);
+        rh = Math.min(downSub, region.y + region.height) - Math.max(topSub, region.y);
+        rw = (rw * originalSize.x) / this._texture.width;
+        rh = (rh * originalSize.y) / this._texture.height;
+        left = Math.max(leftSub, region.x) - leftSub;
+        top = Math.max(topSub, region.y) - topSub;
+      }
+
+      left = (left * originalSize.x) / this._texture.width + atlasRegion.x;
+      top = (top * originalSize.y) / this._texture.height + atlasRegion.y;
+      const right = left + rw;
+      const bottom = top + rh;
 
       if (this._atlasRotated) {
         // If it is rotated, we need to rotate the UV 90 degrees counterclockwise to correct it.
         // Top-left.
-        uv[0].setValue(right, top);
+        _uv[0].setValue(right, top);
         // Top-right.
-        uv[1].setValue(right, bottom);
+        _uv[1].setValue(right, bottom);
         // Bottom-right.
-        uv[2].setValue(left, bottom);
+        _uv[2].setValue(left, bottom);
         // Bottom-left.
-        uv[3].setValue(left, top);
+        _uv[3].setValue(left, top);
       } else {
         // Top-left.
-        uv[0].setValue(left, top);
+        _uv[0].setValue(left, top);
         // Top-right.
-        uv[1].setValue(right, top);
+        _uv[1].setValue(right, top);
         // Bottom-right.
-        uv[2].setValue(right, bottom);
+        _uv[2].setValue(right, bottom);
         // Bottom-left.
-        uv[3].setValue(left, bottom);
+        _uv[3].setValue(left, bottom);
       }
     }
   }
