@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { Texture2D, TextureFormat } from "../src/texture";
-import { WebGLEngine } from "../../rhi-webgl/src/WebGLEngine";
+import { Texture2D, TextureFormat } from "../../src/texture";
+import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
 
 describe("Texture2D", () => {
   const width = 1024;
