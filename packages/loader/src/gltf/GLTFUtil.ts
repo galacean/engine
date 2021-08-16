@@ -227,7 +227,7 @@ export class GLTFUtil {
   static loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement> {
     return new Promise((resolve, reject) => {
       const blob = new window.Blob([imageBuffer], { type });
-      let img = new Image();
+      const img = new Image();
       img.src = URL.createObjectURL(blob);
 
       img.crossOrigin = "anonymous";
@@ -241,7 +241,6 @@ export class GLTFUtil {
           img.onload = null;
           img.onerror = null;
           img.onabort = null;
-          img = null;
         });
       };
     });
