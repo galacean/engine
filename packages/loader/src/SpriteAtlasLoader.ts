@@ -59,7 +59,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   atlasSprite.pixelsPerUnit || undefined,
                   atlasSprite.name
                 );
-                atlasSprite.atlasRotated && (sprite.atlasRotated = true);
+                sprite.setPacked(true);
                 sprite.atlasRegion.setValue(
                   atlasRegion.x * sourceWidthReciprocal,
                   atlasRegion.y * sourceHeightReciprocal,
@@ -68,6 +68,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 );
                 // The original size is a necessary parameter.
                 sprite.originalSize = tempVect2.setValue(originalSize.w, originalSize.h);
+                if (atlasSprite.atlasRotated) {
+                  sprite.atlasRotated = true;
+                  sprite.setTrimmed(originalSize.w != atlasRegion.w || originalSize.h != atlasRegion.h);
+                } else {
+                  sprite.setTrimmed(originalSize.h != atlasRegion.w || originalSize.w != atlasRegion.h);
+                }
                 atlasRegionOffset &&
                   sprite.atlasRegionOffset.setValue(
                     atlasRegionOffset.x / originalSize.w,
