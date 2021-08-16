@@ -33,7 +33,7 @@ export abstract class RefObject extends EngineObject implements IRefObject {
 
   /**
    * Destroy self.
-   * @param force - Whether to force the destruction, if it is fasle, refCount = 0 can be released successfully.
+   * @param force - Whether to force the destruction, if it is false, refCount = 0 can be released successfully.
    * @returns Whether the release was successful.
    */
   destroy(force: boolean = false): boolean {

@@ -161,7 +161,7 @@ export class Vector2 implements IClone {
   /**
    * Scale a vector by the given value.
    * @param left - The vector to scale
-   * @param scale - The amount by which to scale the vector
+   * @param s - The amount by which to scale the vector
    * @param out - The scaled vector
    */
   static scale(left: Vector2, s: number, out: Vector2): void {
