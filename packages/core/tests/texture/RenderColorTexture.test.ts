@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { WebGLEngine } from "../../rhi-webgl/src/WebGLEngine";
-import { RenderBufferColorFormat, RenderColorTexture } from "../src/texture";
+import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
+import { RenderBufferColorFormat, RenderColorTexture } from "../../src/texture";
 
 describe("RenderColorTexture", () => {
   const width = 1024;

@@ -6,11 +6,11 @@ import { RenderState } from "./RenderState";
  * Raster state.
  */
 export class RasterState {
-  /** specifies whether or not front- and/or back-facing polygons can be culled. */
+  /** Specifies whether or not front- and/or back-facing polygons can be culled. */
   cullMode: CullMode = CullMode.Back;
-  /** the multiplier by which an implementation-specific value is multiplied with to create a constant depth offset. */
+  /** The multiplier by which an implementation-specific value is multiplied with to create a constant depth offset. */
   depthBias: number = 0;
-  /** the scale factor for the variable depth offset for each polygon. */
+  /** The scale factor for the variable depth offset for each polygon. */
   slopeScaledDepthBias: number = 0;
 
   /** @internal */
