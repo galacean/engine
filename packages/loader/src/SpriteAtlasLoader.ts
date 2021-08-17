@@ -50,7 +50,9 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const sourceHeightReciprocal = 1.0 / height;
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
-                const { region, pivot, atlasRegionOffset, atlasRegion, originalSize } = atlasSprite;
+                const { region, pivot } = atlasSprite;
+                const { w: originalW, h: originalH } = atlasSprite.originalSize;
+                const { x: atlasRegionX, y: atlasRegionY, w: atlasRegionW, h: atlasRegionH } = atlasSprite.atlasRegion;
                 const sprite = new Sprite(
                   engine,
                   texture,
@@ -59,26 +61,39 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   atlasSprite.pixelsPerUnit || undefined,
                   atlasSprite.name
                 );
-                sprite.setPacked(true);
                 sprite.atlasRegion.setValue(
-                  atlasRegion.x * sourceWidthReciprocal,
-                  atlasRegion.y * sourceHeightReciprocal,
-                  atlasRegion.w * sourceWidthReciprocal,
-                  atlasRegion.h * sourceHeightReciprocal
+                  atlasRegionX * sourceWidthReciprocal,
+                  atlasRegionY * sourceHeightReciprocal,
+                  atlasRegionW * sourceWidthReciprocal,
+                  atlasRegionH * sourceHeightReciprocal
                 );
+                let isTrimmed: boolean;
                 // The original size is a necessary parameter.
-                sprite.originalSize = tempVect2.setValue(originalSize.w, originalSize.h);
                 if (atlasSprite.atlasRotated) {
                   sprite.atlasRotated = true;
-                  sprite.setTrimmed(originalSize.w != atlasRegion.w || originalSize.h != atlasRegion.h);
+                  isTrimmed = originalW != atlasRegionH || originalH != atlasRegionW;
                 } else {
-                  sprite.setTrimmed(originalSize.h != atlasRegion.w || originalSize.w != atlasRegion.h);
+                  isTrimmed = originalW != atlasRegionW || originalH != atlasRegionH;
                 }
-                atlasRegionOffset &&
-                  sprite.atlasRegionOffset.setValue(
-                    atlasRegionOffset.x / originalSize.w,
-                    atlasRegionOffset.y / originalSize.h
-                  );
+                if (isTrimmed) {
+                  sprite.setTrimmed(true);
+                  const { x: atlasRegionOffsetX, y: atlasRegionOffsetY } = atlasSprite.atlasRegionOffset;
+                  if (atlasSprite.atlasRotated) {
+                    sprite.atlasRegionOffset.setValue(
+                      atlasRegionOffsetX / originalW,
+                      atlasRegionOffsetY / originalH,
+                      1 - (atlasRegionH + atlasRegionOffsetX) / originalW,
+                      1 - (atlasRegionW + atlasRegionOffsetY) / originalH
+                    );
+                  } else {
+                    sprite.atlasRegionOffset.setValue(
+                      atlasRegionOffsetX / originalW,
+                      atlasRegionOffsetY / originalH,
+                      1 - (atlasRegionW + atlasRegionOffsetX) / originalW,
+                      1 - (atlasRegionH + atlasRegionOffsetY) / originalH
+                    );
+                  }
+                }
                 /** @ts-ignore */
                 spriteAtlas._addSprite(sprite);
               }
