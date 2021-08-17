@@ -96,7 +96,6 @@ export class AnimationParser extends Parser {
           relativePath = relativePath === "" ? `${entity.name}` : `${entity.name}/${relativePath}`;
           entity = entity.parent;
         }
-        // console.log(relativePath)
 
         let compType: new (entity: Entity) => Component;
         let propertyName: string;
