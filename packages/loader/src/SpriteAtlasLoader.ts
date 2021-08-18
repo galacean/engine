@@ -67,7 +67,6 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 );
                 atlasSprite.atlasRotated && (sprite.atlasRotated = true);
                 if (atlasRegionOffset) {
-                  sprite.setTrimmed(true);
                   const { originalSize } = atlasSprite;
                   const originalWReciprocal = 1 / originalSize.w;
                   const originalHReciprocal = 1 / originalSize.h;

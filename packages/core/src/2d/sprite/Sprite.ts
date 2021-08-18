@@ -23,7 +23,6 @@ export class Sprite extends RefObject {
 
   private _pixelsPerUnit: number;
   private _texture: Texture2D = null;
-  private _trimmed: boolean = false;
   private _atlasRotated: boolean = false;
   private _region: Rect = new Rect(0, 0, 1, 1);
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
@@ -72,7 +71,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The rectangle region of the original sprite on its atlas texture, specified in normalized.
+   * The rectangle region of the original texture on its atlas texture, specified in normalized.
    */
   get atlasRegion(): Rect {
     return this._atlasRegion;
@@ -86,7 +85,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The rectangle region offset of the original sprite on its atlas texture, specified in normalized.
+   * The rectangle region offset of the original texture on its atlas texture, specified in normalized.
    */
   get atlasRegionOffset(): Vector4 {
     return this._atlasRegionOffset;
@@ -141,14 +140,6 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Set whether to be trimmed.
-   * @param value Whether to be trimmed
-   */
-  setTrimmed(value: boolean): void {
-    this._trimmed = value;
-  }
-
-  /**
    * Constructor a Sprite.
    * @param engine - Engine to which the sprite belongs
    * @param texture - Texture from which to obtain the Sprite
@@ -192,7 +183,7 @@ export class Sprite extends RefObject {
   private _updatePositionsAndBounds(): void {
     const { _texture: texture, _bounds: bounds } = this;
     if (texture) {
-      const { _atlasRegion: atlasRegion, _pivot: pivot } = this;
+      const { _atlasRegion: atlasRegion, _pivot: pivot, _atlasRegionOffset: atlasRegionOffset } = this;
       const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
       const pPUReciprocal = 1.0 / this._pixelsPerUnit;
       // Coordinates of the four boundaries.
@@ -206,16 +197,13 @@ export class Sprite extends RefObject {
         textureW = texture.width * atlasRegion.width * pPUReciprocal;
         textureH = texture.height * atlasRegion.height * pPUReciprocal;
       }
-      if (this._trimmed) {
-        const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = this._atlasRegionOffset;
-        const oriWidth = textureW / (1 - blankRight - blankLeft);
-        const oriHeight = textureH / (1 - blankBottom - blankTop);
-        // The size of the real rendering.
-        lx = (-pivot.x * regionW + Math.max(blankLeft, regionX) - regionX) * oriWidth;
-        ty = (pivot.y * regionH - Math.max(blankTop, regionY) + regionY) * oriHeight;
-        rx = (-pivot.x * regionW + Math.min(1 - blankRight, regionX + regionW) - regionX) * oriWidth;
-        by = (pivot.y * regionH - Math.min(1 - blankBottom, regionY + regionH) + regionY) * oriHeight;
-      } else {
+      // Determine whether it has been trimmed.
+      if (
+        atlasRegionOffset.x == 0 &&
+        atlasRegionOffset.y == 0 &&
+        atlasRegionOffset.z == 0 &&
+        atlasRegionOffset.w == 0
+      ) {
         // Real rendering size.
         const realRenderW = textureW * regionW;
         const realRenderH = textureH * regionH;
@@ -223,6 +211,15 @@ export class Sprite extends RefObject {
         by = -pivot.y * realRenderH;
         rx = realRenderW + lx;
         ty = realRenderH + by;
+      } else {
+        const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = atlasRegionOffset;
+        const oriWidth = textureW / (1 - blankRight - blankLeft);
+        const oriHeight = textureH / (1 - blankBottom - blankTop);
+        // The size of the real rendering.
+        lx = (-pivot.x * regionW + Math.max(blankLeft, regionX) - regionX) * oriWidth;
+        ty = (pivot.y * regionH - Math.max(blankTop, regionY) + regionY) * oriHeight;
+        rx = (-pivot.x * regionW + Math.min(1 - blankRight, regionX + regionW) - regionX) * oriWidth;
+        by = (pivot.y * regionH - Math.min(1 - blankBottom, regionY + regionH) + regionY) * oriHeight;
       }
 
       // Assign values ​​to _positions
@@ -255,45 +252,51 @@ export class Sprite extends RefObject {
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
-      const { _atlasRegion: atlasRegion, _uv: uv, _region: region, _atlasRotated: atlasRotated } = this;
+      const { _atlasRegion, _uv: uv, _region: region, _atlasRotated, _atlasRegionOffset: atlasRegionOffset } = this;
       let left: number, top: number, right: number, bottom: number;
-      if (this._trimmed) {
+      // Determine whether it has been trimmed.
+      if (
+        atlasRegionOffset.x == 0 &&
+        atlasRegionOffset.y == 0 &&
+        atlasRegionOffset.z == 0 &&
+        atlasRegionOffset.w == 0
+      ) {
+        const { width: atlasRegionW, height: atlasRegionH } = _atlasRegion;
+        if (_atlasRotated) {
+          left = atlasRegionW * (1 - region.y - region.height) + _atlasRegion.x;
+          top = atlasRegionH * region.x + _atlasRegion.y;
+          right = atlasRegionW * region.height + left;
+          bottom = atlasRegionH * region.width + top;
+        } else {
+          left = atlasRegionW * region.x + _atlasRegion.x;
+          top = atlasRegionH * region.y + _atlasRegion.y;
+          right = atlasRegionW * region.width + left;
+          bottom = atlasRegionH * region.height + top;
+        }
+      } else {
         const { x: regionX, y: regionY } = region;
-        const { x: atlasRegionX, y: atlasRegionY } = atlasRegion;
-        const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = this._atlasRegionOffset;
+        const { x: atlasRegionX, y: atlasRegionY } = _atlasRegion;
+        const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = atlasRegionOffset;
         // Proportion of the original sprite size in the atlas.
         let textureW: number, textureH: number;
-        if (atlasRotated) {
-          textureW = atlasRegion.width / (1 - blankBottom - blankTop);
-          textureH = atlasRegion.height / (1 - blankRight - blankLeft);
+        if (_atlasRotated) {
+          textureW = _atlasRegion.width / (1 - blankBottom - blankTop);
+          textureH = _atlasRegion.height / (1 - blankRight - blankLeft);
           left = (Math.max(blankBottom, 1 - regionY - region.height) - blankBottom) * textureW + atlasRegionX;
           top = (Math.max(blankLeft, regionX) - blankLeft) * textureH + atlasRegionY;
           right = (Math.min(1 - blankTop, 1 - regionY) - blankBottom) * textureW + atlasRegionX;
           bottom = (Math.min(1 - blankRight, regionX + region.width) - blankLeft) * textureH + atlasRegionY;
         } else {
-          textureW = atlasRegion.width / (1 - blankRight - blankLeft);
-          textureH = atlasRegion.height / (1 - blankBottom - blankTop);
+          textureW = _atlasRegion.width / (1 - blankRight - blankLeft);
+          textureH = _atlasRegion.height / (1 - blankBottom - blankTop);
           left = (Math.max(blankLeft, regionX) - blankLeft) * textureW + atlasRegionX;
           top = (Math.max(blankTop, regionY) - blankTop) * textureH + atlasRegionY;
           right = (Math.min(1 - blankRight, regionX + region.width) - blankLeft) * textureW + atlasRegionX;
           bottom = (Math.min(1 - blankBottom, regionY + region.height) - blankTop) * textureH + atlasRegionY;
         }
-      } else {
-        const { width: atlasRegionW, height: atlasRegionH } = atlasRegion;
-        if (atlasRotated) {
-          left = atlasRegionW * (1 - region.y - region.height) + atlasRegion.x;
-          top = atlasRegionH * region.x + atlasRegion.y;
-          right = atlasRegionW * region.height + left;
-          bottom = atlasRegionH * region.width + top;
-        } else {
-          left = atlasRegionW * region.x + atlasRegion.x;
-          top = atlasRegionH * region.y + atlasRegion.y;
-          right = atlasRegionW * region.width + left;
-          bottom = atlasRegionH * region.height + top;
-        }
       }
 
-      if (atlasRotated) {
+      if (_atlasRotated) {
         // If it is rotated, we need to rotate the UV 90 degrees counterclockwise to correct it.
         // Top-right.
         uv[0].setValue(right, top);
