@@ -99,7 +99,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Location of the sprite's center point in the rectangle region on the original sprite, specified in normalized.
+   * Location of the sprite's center point in the rectangle region, specified in normalized.
    */
   get pivot(): Vector2 {
     return this._pivot;
