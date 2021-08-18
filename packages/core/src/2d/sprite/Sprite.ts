@@ -81,7 +81,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._setDirtyFlagTrue(DirtyFlag.uv);
+    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
   /**
