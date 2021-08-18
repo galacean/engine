@@ -43,6 +43,16 @@ describe("Matrix test", () => {
     expect(Matrix.equals(a, c)).toEqual(false);
   });
 
+  it("static lerp", () => {
+    const a = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+    const b = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
+    const c = new Matrix();
+    Matrix.lerp(a, b, 0.7, c);
+
+    expect(Matrix.equals(a, c)).toEqual(true);
+    expect(Matrix.equals(b, c)).toEqual(true);
+  });
+
   it("static rotationQuaternion", () => {
     const q = new Quaternion(1, 2, 3, 4);
     const out = new Matrix();
@@ -283,6 +293,23 @@ describe("Matrix test", () => {
     a.setValue(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
     expect(Matrix.equals(a, new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16))).toEqual(true);
+  });
+
+  it("setValueByArray", () => {
+    const a = new Matrix();
+    a.setValueByArray([1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16]);
+
+    expect(Matrix.equals(a, new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16))).toEqual(true);
+  });
+
+  it("toArray", () => {
+    const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
+    const b = [];
+    a.toArray(b);
+    const c = new Matrix();
+    c.setValueByArray(b);
+
+    expect(Matrix.equals(a, c)).toEqual(true);
   });
 
   it("clone", () => {

@@ -46,11 +46,14 @@ describe("BoundingBox test", () => {
     const matrix = new Matrix(2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 2, 0, 1, 0.5, -1, 1);
     const newBox = new BoundingBox();
     BoundingBox.transform(box, matrix, newBox);
+    box.transform(matrix);
 
     const newMin = new Vector3(-1, -1.5, -3);
     const newMax = new Vector3(3, 2.5, 1);
     expect(Vector3.equals(newBox.min, newMin)).toEqual(true);
     expect(Vector3.equals(newBox.max, newMax)).toEqual(true);
+    expect(Vector3.equals(box.min, newMin)).toEqual(true);
+    expect(Vector3.equals(box.max, newMax)).toEqual(true);
   });
 
   it("merge", () => {
@@ -119,5 +122,20 @@ describe("BoundingBox test", () => {
     for (let i = 0; i < 8; ++i) {
       expect(Vector3.equals(corners[i], expectedCorners[i])).toEqual(true);
     }
+  });
+
+  it("clone", () => {
+    const a = new BoundingBox(new Vector3(0, 0, 0), new Vector3(1, 1, 1));
+    const b = a.clone();
+    expect(Vector3.equals(a.min, b.min)).toEqual(true);
+    expect(Vector3.equals(a.max, b.max)).toEqual(true);
+  });
+
+  it("cloneTo", () => {
+    const a = new BoundingBox(new Vector3(0, 0, 0), new Vector3(1, 1, 1));
+    const out = new BoundingBox();
+    a.cloneTo(out);
+    expect(Vector3.equals(a.min, out.min)).toEqual(true);
+    expect(Vector3.equals(a.max, out.max)).toEqual(true);
   });
 });
