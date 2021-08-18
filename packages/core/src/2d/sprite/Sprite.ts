@@ -278,17 +278,16 @@ export class Sprite extends RefObject {
         const { x: atlasRegionX, y: atlasRegionY } = _atlasRegion;
         const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = atlasRegionOffset;
         // Proportion of the original sprite size in the atlas.
-        let textureW: number, textureH: number;
         if (_atlasRotated) {
-          textureW = _atlasRegion.width / (1 - blankBottom - blankTop);
-          textureH = _atlasRegion.height / (1 - blankRight - blankLeft);
+          const textureW = _atlasRegion.width / (1 - blankBottom - blankTop);
+          const textureH = _atlasRegion.height / (1 - blankRight - blankLeft);
           left = (Math.max(blankBottom, 1 - regionY - region.height) - blankBottom) * textureW + atlasRegionX;
           top = (Math.max(blankLeft, regionX) - blankLeft) * textureH + atlasRegionY;
           right = (Math.min(1 - blankTop, 1 - regionY) - blankBottom) * textureW + atlasRegionX;
           bottom = (Math.min(1 - blankRight, regionX + region.width) - blankLeft) * textureH + atlasRegionY;
         } else {
-          textureW = _atlasRegion.width / (1 - blankRight - blankLeft);
-          textureH = _atlasRegion.height / (1 - blankBottom - blankTop);
+          const textureW = _atlasRegion.width / (1 - blankRight - blankLeft);
+          const textureH = _atlasRegion.height / (1 - blankBottom - blankTop);
           left = (Math.max(blankLeft, regionX) - blankLeft) * textureW + atlasRegionX;
           top = (Math.max(blankTop, regionY) - blankTop) * textureH + atlasRegionY;
           right = (Math.min(1 - blankRight, regionX + region.width) - blankLeft) * textureW + atlasRegionX;
