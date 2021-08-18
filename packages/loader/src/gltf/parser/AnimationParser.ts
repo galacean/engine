@@ -25,24 +25,10 @@ export class AnimationParser extends Parser {
 
     const animationClipCount = animations.length;
     const animationClips = new Array<AnimationClip>(animationClipCount);
-    const animationClipMap: Record<string, AnimationClip> = {};
 
-    let nameIndex = 0;
     for (let i = 0; i < animationClipCount; i++) {
-      const glTFAnimation = animations[i];
-      const { channels, samplers } = glTFAnimation;
-      let { name = `AnimationClip${nameIndex}` } = glTFAnimation;
-
-      // Avoid duplication of names.
-      let renamed = false;
-      while (animationClipMap[name]) {
-        name += ` ${nameIndex++}`;
-        renamed = true;
-      }
-      if (renamed) {
-        console.warn(`Animation name is repeated, reset to ${name}`);
-      }
-
+      const gltfAnimation = animations[i];
+      const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
       const animationClip = new AnimationClip(name);
       const sampleDataCollection = new Array<SampleData>();
 
@@ -122,7 +108,7 @@ export class AnimationParser extends Parser {
         const curve = this._addCurve(gltfChannel, sampleDataCollection);
         animationClip.setCurve(relativePath, compType, propertyName, curve);
       }
-      animationClipMap[name] = animationClip;
+
       animationClips[i] = animationClip;
     }
     context.animations = animationClips;
