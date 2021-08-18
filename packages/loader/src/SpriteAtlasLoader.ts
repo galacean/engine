@@ -67,14 +67,20 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 );
                 atlasSprite.atlasRotated && (sprite.atlasRotated = true);
                 if (atlasRegionOffset) {
-                  const { originalSize } = atlasSprite;
-                  const originalWReciprocal = 1 / originalSize.w;
-                  const originalHReciprocal = 1 / originalSize.h;
+                  const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+                  let originalWReciprocal: number, originalHReciprocal: number;
+                  if (atlasSprite.atlasRotated) {
+                    originalWReciprocal = 1 / (offsetLeft + atlasRegion.h + offsetRight);
+                    originalHReciprocal = 1 / (offsetTop + atlasRegion.w + offsetBottom);
+                  } else {
+                    originalWReciprocal = 1 / (offsetLeft + atlasRegion.w + offsetRight);
+                    originalHReciprocal = 1 / (offsetTop + atlasRegion.h + offsetBottom);
+                  }
                   sprite.atlasRegionOffset.setValue(
-                    atlasRegionOffset.x * originalWReciprocal,
-                    atlasRegionOffset.y * originalHReciprocal,
-                    atlasRegionOffset.z * originalWReciprocal,
-                    atlasRegionOffset.w * originalHReciprocal
+                    offsetLeft * originalWReciprocal,
+                    offsetTop * originalHReciprocal,
+                    offsetRight * originalWReciprocal,
+                    offsetBottom * originalHReciprocal
                   );
                 }
                 /** @ts-ignore */

@@ -23,8 +23,6 @@ export interface AtlasConfig {
 export interface AtlasSprite {
   /** The name the sprite. */
   name: string;
-  /** The original size of the sprite. */
-  originalSize: { w: number; h: number };
   /** Whether to rotate 90 degrees clockwise. */
   atlasRotated: boolean;
   /** The range of the sprites on the big picture. */
