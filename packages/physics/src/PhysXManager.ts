@@ -1,3 +1,7 @@
+/**
+ * Store and Init the foundation of PhysX Object
+ * @internal
+ */
 export class PhysXManager {
   /** PhysX wasm object */
   static PhysX: any;
