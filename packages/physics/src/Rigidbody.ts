@@ -455,6 +455,7 @@ export class Rigidbody extends Component {
 
   //----------------------------------------------------------------------------
   private _allocActor() {
+    const quat = this._rotation.normalize();
     const transform = {
       translation: {
         x: this._position.x,
@@ -462,10 +463,10 @@ export class Rigidbody extends Component {
         z: this._position.z
       },
       rotation: {
-        w: this._rotation.w, // PHYSX uses WXYZ quaternions,
-        x: this._rotation.x,
-        y: this._rotation.y,
-        z: this._rotation.z
+        w: quat.w, // PHYSX uses WXYZ quaternions,
+        x: quat.x,
+        y: quat.y,
+        z: quat.z
       }
     };
     this._pxRigidActor = PhysXManager.physics.createRigidDynamic(transform);

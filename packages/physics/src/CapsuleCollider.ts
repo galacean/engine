@@ -48,6 +48,6 @@ export class CapsuleCollider extends Collider {
 
   //----------------------------------------------------------------------------
   private _allocGeometry() {
-    this._pxGeometry = new PhysXManager.PhysX.PxCapsuleGeometry(this._radius, this.height / 2.0);
+    this._pxGeometry = new PhysXManager.PhysX.PxCapsuleGeometry(this._radius, this._height / 2.0);
   }
 }

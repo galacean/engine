@@ -1,4 +1,4 @@
-import { Component, Vector3 } from "oasis-engine";
+import { Component, Quaternion, Vector3 } from "oasis-engine";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PhysXManager } from "./PhysXManager";
 
@@ -14,6 +14,9 @@ export enum ShapeFlag {
 
 /** A base class of all colliders. */
 export class Collider extends Component {
+  private _position: Vector3 = this.entity.transform.position;
+  private _rotation: Quaternion = this.entity.transform.rotationQuaternion;
+
   protected _group_id: number = PhysXManager.physical_id++;
 
   protected _center: Vector3 = new Vector3();
@@ -82,17 +85,18 @@ export class Collider extends Component {
   }
 
   protected _allocActor() {
+    const quat = this._rotation.normalize();
     const transform = {
       translation: {
-        x: this.entity.transform.position.x,
-        y: this.entity.transform.position.y,
-        z: this.entity.transform.position.z
+        x: this._position.x,
+        y: this._position.y,
+        z: this._position.z
       },
       rotation: {
-        w: this.entity.transform.rotationQuaternion.w, // PHYSX uses WXYZ quaternions,
-        x: this.entity.transform.rotationQuaternion.x,
-        y: this.entity.transform.rotationQuaternion.y,
-        z: this.entity.transform.rotationQuaternion.z
+        w: quat.w, // PHYSX uses WXYZ quaternions,
+        x: quat.x,
+        y: quat.y,
+        z: quat.z
       }
     };
     this._pxRigidStatic = PhysXManager.physics.createRigidStatic(transform);
