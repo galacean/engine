@@ -17,6 +17,7 @@ export class CapsuleCollider extends Collider {
   set radius(value: number) {
     this._radius = value;
     this._pxGeometry.radius = value;
+    this._pxShape.setGeometry(this._pxGeometry);
   }
 
   get height(): number {
@@ -26,6 +27,7 @@ export class CapsuleCollider extends Collider {
   set height(value: number) {
     this._height = value;
     this._pxGeometry.halfHeight = value / 2.0;
+    this._pxShape.setGeometry(this._pxGeometry);
   }
 
   /**
