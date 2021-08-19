@@ -23,8 +23,8 @@ export class BlendShapeFrame {
   constructor(
     weight: number,
     deltaPositions: Vector3[],
-    deltaNormals: Vector3[] | null,
-    deltaTangents: Vector3[] | null
+    deltaNormals: Vector3[] = null,
+    deltaTangents: Vector3[] = null
   ) {
     if (deltaNormals && deltaNormals.length !== deltaPositions.length) {
       throw "deltaNormals length must same with deltaPositions length.";
