@@ -34,7 +34,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object
             const tempRect = new Rect();
-            const tempPivot = new Vector2();
+            const tempVect2 = new Vector2();
             const spriteAtlas = new SpriteAtlas(engine);
             for (let i = 0; i < atlasItemsLen; i++) {
               // Generate Texture2D according to configuration
@@ -55,18 +55,34 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   engine,
                   texture,
                   region ? tempRect.setValue(region.x, region.y, region.w, region.h) : undefined,
-                  pivot ? tempPivot.setValue(pivot.x, pivot.y) : undefined,
+                  pivot ? tempVect2.setValue(pivot.x, pivot.y) : undefined,
                   atlasSprite.pixelsPerUnit || undefined,
                   atlasSprite.name
                 );
-                atlasSprite.atlasRotated && (sprite.atlasRotated = true);
                 sprite.atlasRegion.setValue(
                   atlasRegion.x * sourceWidthReciprocal,
                   atlasRegion.y * sourceHeightReciprocal,
                   atlasRegion.w * sourceWidthReciprocal,
                   atlasRegion.h * sourceHeightReciprocal
                 );
-                atlasRegionOffset && sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
+                atlasSprite.atlasRotated && (sprite.atlasRotated = true);
+                if (atlasRegionOffset) {
+                  const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+                  let originalWReciprocal: number, originalHReciprocal: number;
+                  if (atlasSprite.atlasRotated) {
+                    originalWReciprocal = 1 / (offsetLeft + atlasRegion.h + offsetRight);
+                    originalHReciprocal = 1 / (offsetTop + atlasRegion.w + offsetBottom);
+                  } else {
+                    originalWReciprocal = 1 / (offsetLeft + atlasRegion.w + offsetRight);
+                    originalHReciprocal = 1 / (offsetTop + atlasRegion.h + offsetBottom);
+                  }
+                  sprite.atlasRegionOffset.setValue(
+                    offsetLeft * originalWReciprocal,
+                    offsetTop * originalHReciprocal,
+                    offsetRight * originalWReciprocal,
+                    offsetBottom * originalHReciprocal
+                  );
+                }
                 /** @ts-ignore */
                 spriteAtlas._addSprite(sprite);
               }

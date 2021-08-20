@@ -72,6 +72,9 @@ export class ModelMesh extends Mesh {
    * BlendShape count of this ModelMesh.
    */
   get blendShapes(): Readonly<BlendShape[]> {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
     return this._blendShapes;
   }
 
@@ -898,6 +901,7 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
+    this._blendShapes = null;
   }
 }
 
