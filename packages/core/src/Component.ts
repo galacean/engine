@@ -18,7 +18,7 @@ export abstract class Component extends EngineObject {
   @assignmentClone
   private _enabled: boolean = true;
   @ignoreClone
-  private _awaked: boolean = false;
+  private _awoken: boolean = false;
 
   /**
    * Indicates whether the component is enabled.
@@ -47,7 +47,7 @@ export abstract class Component extends EngineObject {
   }
 
   /**
-   * The entitiy which the component belongs to.
+   * The entity which the component belongs to.
    */
   get entity(): Entity {
     return this._entity;
@@ -66,7 +66,7 @@ export abstract class Component extends EngineObject {
   }
 
   /**
-   * Destory this instance.
+   * Destroy this instance.
    */
   destroy(): void {
     if (this._destroyed) {
@@ -116,8 +116,8 @@ export abstract class Component extends EngineObject {
    */
   _setActive(value: boolean): void {
     if (value) {
-      if (!this._awaked) {
-        this._awaked = true;
+      if (!this._awoken) {
+        this._awoken = true;
         this._onAwake();
       }
       // You can do isActive = false in onAwake function.

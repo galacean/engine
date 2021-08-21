@@ -1,4 +1,3 @@
-
 /**
  * Base class for AnimationClips and BlendTrees.
  */

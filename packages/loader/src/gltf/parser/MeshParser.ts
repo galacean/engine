@@ -1,20 +1,8 @@
-import {
-  Buffer,
-  BufferBindFlag,
-  BufferMesh,
-  BufferUsage,
-  Engine,
-  EngineObject,
-  IndexBufferBinding,
-  IndexFormat,
-  Logger,
-  TypedArray,
-  VertexElement
-} from "@oasis-engine/core";
+import { BlendShape, Engine, EngineObject, ModelMesh, TypedArray } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
-import { IGLTF, IMeshPrimitive } from "../Schema";
+import { IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
 
 export class MeshParser extends Parser {
@@ -23,28 +11,20 @@ export class MeshParser extends Parser {
     const { engine, gltf, buffers } = context;
     if (!gltf.meshes) return;
 
-    const meshPromises: Promise<BufferMesh[]>[] = [];
+    const meshPromises: Promise<ModelMesh[]>[] = [];
 
     for (let i = 0; i < gltf.meshes.length; i++) {
       const gltfMesh = gltf.meshes[i];
-      const primitivePromises: Promise<BufferMesh>[] = [];
-
-      if (gltfMesh.weights) {
-        Logger.error("Sorry, morph animation is not supported now, wait please.");
-      }
+      const primitivePromises: Promise<ModelMesh>[] = [];
 
       for (let j = 0; j < gltfMesh.primitives.length; j++) {
         const gltfPrimitive = gltfMesh.primitives[j];
-        const { targets, extensions = {} } = gltfPrimitive;
+        const { extensions = {} } = gltfPrimitive;
         const { KHR_draco_mesh_compression } = extensions;
 
         primitivePromises.push(
           new Promise((resolve) => {
-            const mesh = new BufferMesh(engine, gltfMesh.name || j + "");
-
-            if (targets) {
-              Logger.error("Sorry, morph animation is not supported now, wait please.");
-            }
+            const mesh = new ModelMesh(engine, gltfMesh.name || j + "");
 
             if (KHR_draco_mesh_compression) {
               (<Promise<EngineObject>>(
@@ -58,6 +38,7 @@ export class MeshParser extends Parser {
                 .then((decodedGeometry: any) => {
                   return this._parseMeshFromGLTFPrimitive(
                     mesh,
+                    gltfMesh,
                     gltfPrimitive,
                     gltf,
                     (attributeSemantic) => {
@@ -67,6 +48,9 @@ export class MeshParser extends Parser {
                         }
                       }
                       return null;
+                    },
+                    (attributeSemantic, shapeIndex) => {
+                      throw "BlendShape animation is not supported when using draco.";
                     },
                     () => {
                       return decodedGeometry.index.array;
@@ -78,12 +62,23 @@ export class MeshParser extends Parser {
             } else {
               this._parseMeshFromGLTFPrimitive(
                 mesh,
+                gltfMesh,
                 gltfPrimitive,
                 gltf,
                 (attributeSemantic) => {
                   const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
                   const accessor = gltf.accessors[accessorIdx];
                   return GLTFUtil.getAccessorData(gltf, accessor, buffers);
+                },
+                (attributeName, shapeIndex) => {
+                  const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
+                  const attributeAccessorIdx = shapeAccessorIdx[attributeName];
+                  if (attributeAccessorIdx) {
+                    const accessor = gltf.accessors[attributeAccessorIdx];
+                    return GLTFUtil.getAccessorData(gltf, accessor, buffers);
+                  } else {
+                    return null;
+                  }
                 },
                 () => {
                   const indexAccessor = gltf.accessors[gltfPrimitive.indices];
@@ -95,87 +90,125 @@ export class MeshParser extends Parser {
           })
         );
       }
+
       meshPromises.push(Promise.all(primitivePromises));
     }
 
-    return Promise.all(meshPromises).then((meshes: BufferMesh[][]) => {
+    return Promise.all(meshPromises).then((meshes: ModelMesh[][]) => {
       context.meshes = meshes;
     });
   }
 
   private _parseMeshFromGLTFPrimitive(
-    mesh: BufferMesh,
+    mesh: ModelMesh,
+    gltfMesh: IMesh,
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
     getIndexBufferData: () => TypedArray,
     engine: Engine
-  ): Promise<BufferMesh> {
-    const { attributes, indices, mode } = gltfPrimitive;
-    const vertexElements: VertexElement[] = [];
-    let j = 0;
+  ): Promise<ModelMesh> {
+    const { attributes, targets, indices, mode } = gltfPrimitive;
     let vertexCount: number;
 
-    for (const attributeSemantic in attributes) {
-      const accessorIdx = attributes[attributeSemantic];
-      const accessor = gltf.accessors[accessorIdx];
-      const stride = GLTFUtil.getVertexStride(gltf, accessor);
-      const vertexELement = GLTFUtil.createVertexElement(attributeSemantic, accessor, j);
+    const accessor = gltf.accessors[attributes["POSITION"]];
+    const positionBuffer = <Float32Array>getVertexBufferData("POSITION");
+    const positions = GLTFUtil.floatBufferToVector3Array(positionBuffer);
+    mesh.setPositions(positions);
 
-      vertexElements.push(vertexELement);
-      const bufferData = getVertexBufferData(attributeSemantic);
-      const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, bufferData.byteLength, BufferUsage.Static);
-      vertexBuffer.setData(bufferData);
-      mesh.setVertexBufferBinding(vertexBuffer, stride, j++);
+    const { bounds } = mesh;
+    vertexCount = accessor.count;
+    if (accessor.min && accessor.max) {
+      bounds.min.setValueByArray(accessor.min);
+      bounds.max.setValueByArray(accessor.max);
+    } else {
+      const position = MeshParser._tempVector3;
+      const { min, max } = bounds;
 
-      // Bounds
-      if (vertexELement.semantic === "POSITION") {
-        const { bounds } = mesh;
-        vertexCount = accessor.count;
-        if (accessor.min && accessor.max) {
-          bounds.min.setValueByArray(accessor.min);
-          bounds.max.setValueByArray(accessor.max);
-        } else {
-          const position = MeshParser._tempVector3;
-          const { min, max } = bounds;
+      min.setValue(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+      max.setValue(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
-          min.setValue(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
-          max.setValue(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-
-          const stride = bufferData.length / vertexCount;
-          for (let j = 0; j < vertexCount; j++) {
-            const offset = j * stride;
-            position.setValueByArray(bufferData, offset);
-            Vector3.min(min, position, min);
-            Vector3.max(max, position, max);
-          }
-        }
+      const stride = positionBuffer.length / vertexCount;
+      for (let j = 0; j < vertexCount; j++) {
+        const offset = j * stride;
+        position.setValueByArray(positionBuffer, offset);
+        Vector3.min(min, position, min);
+        Vector3.max(max, position, max);
       }
     }
-    mesh.setVertexElements(vertexElements);
+
+    for (const attributeSemantic in attributes) {
+      if (attributeSemantic === "POSITION") {
+        continue;
+      }
+      const bufferData = getVertexBufferData(attributeSemantic);
+      switch (attributeSemantic) {
+        case "NORMAL":
+          const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
+          mesh.setNormals(normals);
+          break;
+        case "TANGENT":
+          const tangents = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
+          mesh.setTangents(tangents);
+          break;
+        case "TEXCOORD_0":
+          const texturecoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(texturecoords, 0);
+          break;
+        case "JOINTS_0":
+          const joints = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
+          mesh.setBoneIndices(joints);
+          break;
+        case "WEIGHTS_0":
+          const weights = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
+          mesh.setBoneWeights(weights);
+          break;
+        default:
+          // console.warn(`Unsupport attribute semantic ${attributeSemantic}.`);
+          break;
+      }
+    }
 
     // Indices
     if (indices !== undefined) {
       const indexAccessor = gltf.accessors[indices];
       const indexData = getIndexBufferData();
-
-      const indexCount = indexAccessor.count;
-      const indexFormat = GLTFUtil.getIndexFormat(indexAccessor.componentType);
-      const indexByteSize = indexFormat == IndexFormat.UInt32 ? 4 : indexFormat == IndexFormat.UInt16 ? 2 : 1;
-      const indexBuffer = new Buffer(
-        engine,
-        BufferBindFlag.IndexBuffer,
-        indexCount * indexByteSize,
-        BufferUsage.Static
-      );
-
-      indexBuffer.setData(indexData);
-      mesh.setIndexBufferBinding(new IndexBufferBinding(indexBuffer, indexFormat));
-      mesh.addSubMesh(0, indexCount, mode);
+      mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>indexData);
+      mesh.addSubMesh(0, indexAccessor.count, mode);
     } else {
       mesh.addSubMesh(0, vertexCount, mode);
     }
 
+    // BlendShapes
+    targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
+
+    mesh.uploadData(true);
     return Promise.resolve(mesh);
+  }
+
+  private _createBlendShape(
+    mesh: ModelMesh,
+    glTFMesh: IMesh,
+    glTFTargets: {
+      [name: string]: number;
+    }[],
+    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray
+  ): void {
+    const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
+
+    for (let i = 0, n = glTFTargets.length; i < n; i++) {
+      const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
+      const deltaPosBuffer = getBlendShapeData("POSITION", i);
+      const deltaNorBuffer = getBlendShapeData("NORMAL", i);
+      const deltaTanBuffer = getBlendShapeData("TANGENT", i);
+      const deltaPositions = deltaPosBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaPosBuffer) : null;
+      const deltaNormals = deltaNorBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaNorBuffer) : null;
+      const deltaTangents = deltaTanBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaTanBuffer) : null;
+
+      const blendShape = new BlendShape(name);
+      blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
+      mesh.addBlendShape(blendShape);
+    }
   }
 }

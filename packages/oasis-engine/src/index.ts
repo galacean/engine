@@ -12,7 +12,7 @@ import {
   PointLight,
   SphereCollider,
   SpriteRenderer,
-  SpriteMask,
+  SpriteMask
 } from "@oasis-engine/core";
 import { GLTFModel, Parser, Model } from "@oasis-engine/loader";
 

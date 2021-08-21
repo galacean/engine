@@ -8,9 +8,9 @@ export enum RenderBufferColorFormat {
   R8G8B8A8,
   /** RGBA format,4 bits per channel. */
   R4G4B4A4,
-  /** RGBA format,5 bits in R cahnnel, 5 bits in G channel, 5 bits in B cahnnel, 1 bit in A channel. */
+  /** RGBA format,5 bits in R channel, 5 bits in G channel, 5 bits in B channel, 1 bit in A channel. */
   R5G5B5A1,
-  /** RGB format,5 bits in R cahnnel, 6 bits in G channel, 5 bits in B cahnnel. */
+  /** RGB format,5 bits in R channel, 6 bits in G channel, 5 bits in B channel. */
   R5G6B5,
   /** transparent format, 8 bits. */
   Alpha8,

@@ -350,7 +350,7 @@ export class OrbitControl extends Script {
   }
 
   /**
-   * Rotate to the left by a certain randian.
+   * Rotate to the left by a certain radian.
    * @param radian - Radian value of rotation
    */
   rotateLeft(radian: number) {
@@ -361,7 +361,7 @@ export class OrbitControl extends Script {
   }
 
   /**
-   * Rotate to the right by a certain randian.
+   * Rotate to the right by a certain radian.
    * @param radian - Radian value of rotation
    */
   rotateUp(radian: number) {

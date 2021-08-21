@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { WebGLEngine } from "../../rhi-webgl/src/WebGLEngine";
-import { RenderBufferDepthFormat, RenderDepthTexture } from "../src/texture";
+import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
+import { RenderBufferDepthFormat, RenderDepthTexture } from "../../src/texture";
 
 describe("RenderDepthTexture", () => {
   const width = 1024;

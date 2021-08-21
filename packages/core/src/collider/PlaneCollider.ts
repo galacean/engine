@@ -1,13 +1,15 @@
 import { Collider } from "./Collider";
-import { Vector3 } from "@oasis-engine/math";
+import { Plane, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
+import { HitResult } from "../HitResult";
 
 /**
  * Represents a plane in three dimensional space.
  */
 export class PlaneCollider extends Collider {
-  planePoint: Vector3;
+  private static _tempPlane: Plane = new Plane();
 
+  planePoint: Vector3;
   normal: Vector3;
 
   /**
@@ -32,5 +34,23 @@ export class PlaneCollider extends Collider {
   setPlane(point: Vector3, normal: Vector3) {
     this.planePoint = point;
     this.normal = normal;
+  }
+
+  /**
+   * @internal
+   */
+  _raycast(ray: Ray, hit: HitResult): boolean {
+    const localRay = this._getLocalRay(ray);
+
+    const boundingPlane = PlaneCollider._tempPlane;
+    this.normal.cloneTo(boundingPlane.normal);
+    boundingPlane.distance = -Vector3.dot(this.planePoint, boundingPlane.normal);
+    const intersect = localRay.intersectPlane(boundingPlane);
+    if (intersect !== -1) {
+      this._updateHitResult(localRay, intersect, hit, ray.origin);
+      return true;
+    } else {
+      return false;
+    } // end of else
   }
 }

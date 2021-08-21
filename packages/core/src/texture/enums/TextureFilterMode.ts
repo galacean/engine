@@ -4,7 +4,7 @@
 export enum TextureFilterMode {
   /** Point filtering. */
   Point = 0,
-  /** Bilinear fitering. */
+  /** Bilinear filtering. */
   Bilinear = 1,
   /** Trilinear filtering. */
   Trilinear = 2
