@@ -237,19 +237,19 @@ export class SpriteRenderer extends Renderer {
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
     const sprite = this._sprite;
-    if (this._customLocalBounds && this._curtomRootEntity) {
-      const worldMatrix = this._curtomRootEntity.transform.worldMatrix;
-      BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
-    } else {
-      if (sprite) {
+    if (sprite) {
+      if (this._customLocalBounds && this._curtomRootEntity) {
+        const worldMatrix = this._curtomRootEntity.transform.worldMatrix;
+        BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
+      } else {
         const localBounds = sprite.bounds;
         const worldMatrix = this._entity.transform.worldMatrix;
         BoundingBox.transform(localBounds, worldMatrix, worldBounds);
-      } else {
-        worldBounds.min.setValue(0, 0, 0);
-        worldBounds.max.setValue(0, 0, 0);
       }
-    } 
+    } else {
+      worldBounds.min.setValue(0, 0, 0);
+      worldBounds.max.setValue(0, 0, 0);
+    }
   }
 
   private _updateStencilState(): void {
