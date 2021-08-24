@@ -23,7 +23,7 @@ export class SpriteRenderer extends Renderer {
   _customLocalBounds: BoundingBox = null;
   /** @internal temp solution. */
   @ignoreClone
-  _curtomRootEntity: Entity = null;
+  _customRootEntity: Entity = null;
 
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
@@ -238,8 +238,8 @@ export class SpriteRenderer extends Renderer {
   protected _updateBounds(worldBounds: BoundingBox): void {
     const sprite = this._sprite;
     if (sprite) {
-      if (this._customLocalBounds && this._curtomRootEntity) {
-        const worldMatrix = this._curtomRootEntity.transform.worldMatrix;
+      if (this._customLocalBounds && this._customRootEntity) {
+        const worldMatrix = this._customRootEntity.transform.worldMatrix;
         BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
       } else {
         const localBounds = sprite.bounds;
