@@ -19,7 +19,7 @@
 
      #ifdef O3_HAS_VERTEXCOLOR
 
-        diffuse.rgb *= v_color.rgb;
+        diffuse *= v_color;
 
     #endif
 
