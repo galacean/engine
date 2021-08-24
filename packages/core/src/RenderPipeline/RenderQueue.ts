@@ -28,11 +28,6 @@ export class RenderQueue {
       return distanceDif;
     }
 
-    const groupIdDif = b.component._renderGroupId - a.component._renderGroupId;
-    if (groupIdDif) {
-      return groupIdDif;
-    }
-
     return b.component._renderSortId - a.component._renderSortId;
   }
 
@@ -48,11 +43,6 @@ export class RenderQueue {
     const distanceDif =  b.component._distanceForSort - a.component._distanceForSort;
     if (distanceDif) {
       return distanceDif;
-    }
-
-    const groupIdDif = b.component._renderGroupId - a.component._renderGroupId;
-    if (groupIdDif) {
-      return groupIdDif;
     }
 
     return b.component._renderSortId - a.component._renderSortId;

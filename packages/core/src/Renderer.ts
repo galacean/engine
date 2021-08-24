@@ -44,10 +44,6 @@ export abstract class Renderer extends Component {
 
   /** @internal temp solution. */
   @ignoreClone
-  _renderGroupId: number = 0;
-
-  /** @internal temp solution. */
-  @ignoreClone
   _renderSortId: number = 0;
 
   @ignoreClone

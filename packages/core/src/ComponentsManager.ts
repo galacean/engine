@@ -181,11 +181,7 @@ export class ComponentsManager {
         Vector3.subtract(center, position, center);
         element._distanceForSort = Vector3.dot(center, forward);
       } else {
-        if (element._renderSortId > 0) {
-          element._distanceForSort = -1;
-        } else {
-          element._distanceForSort = Vector3.distanceSquared(center, position);
-        }
+        element._distanceForSort = Vector3.distanceSquared(center, position);
       }
 
       element._updateShaderData(context);
