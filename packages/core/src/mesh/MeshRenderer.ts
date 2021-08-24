@@ -18,7 +18,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
   private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
   private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
-  private static _vertexAlphaMacro = Shader.getMacroByName("O3_HAS_VERTEXALPHA");
 
   @ignoreClone
   private _mesh: Mesh;
@@ -68,10 +67,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         shaderData.disableMacro(MeshRenderer._normalMacro);
         shaderData.disableMacro(MeshRenderer._tangentMacro);
         shaderData.disableMacro(MeshRenderer._vertexColorMacro);
-        shaderData.disableMacro(MeshRenderer._vertexAlphaMacro);
 
         for (let i = 0, n = vertexElements.length; i < n; i++) {
-          const { semantic, format } = vertexElements[i];
+          const { semantic } = vertexElements[i];
           switch (semantic) {
             case "TEXCOORD_0":
               shaderData.enableMacro(MeshRenderer._uvMacro);
@@ -84,9 +82,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
             case "COLOR_0":
               shaderData.enableMacro(MeshRenderer._vertexColorMacro);
-              if (format === VertexElementFormat.Vector4) {
-                shaderData.enableMacro(MeshRenderer._vertexAlphaMacro);
-              }
               break;
           }
         }
