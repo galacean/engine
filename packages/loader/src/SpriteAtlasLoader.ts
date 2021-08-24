@@ -11,6 +11,7 @@ import {
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
 import { Rect, Vector2 } from "@oasis-engine/math";
+import { GLTFUtil } from "./gltf/GLTFUtil";
 
 @resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
 class SpriteAtlasLoader extends Loader<SpriteAtlas> {
@@ -25,7 +26,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           const atlasItemsLen = atlasItems.length;
           Promise.all(
             atlasItems.map(({ img }) =>
-              this.request<HTMLImageElement>(img, {
+              this.request<HTMLImageElement>(GLTFUtil.parseRelativeUrl(item.url, img), {
                 ...item,
                 type: "image"
               })
