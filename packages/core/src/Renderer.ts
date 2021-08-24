@@ -42,6 +42,14 @@ export abstract class Renderer extends Component {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
 
+  /** @internal temp solution. */
+  @ignoreClone
+  _renderGroupId: number = 0;
+
+  /** @internal temp solution. */
+  @ignoreClone
+  _renderSortId: number = 0;
+
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @shallowClone

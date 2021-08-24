@@ -19,11 +19,21 @@ export class RenderQueue {
    */
   static _compareFromNearToFar(a: Item, b: Item): number {
     const renderQueueDif = a.material.renderQueueType - b.material.renderQueueType;
-
     if (renderQueueDif) {
       return renderQueueDif;
     }
-    return a.component._distanceForSort - b.component._distanceForSort;
+
+    const distanceDif = a.component._distanceForSort - b.component._distanceForSort;
+    if (distanceDif) {
+      return distanceDif;
+    }
+
+    const groupIdDif = b.component._renderGroupId - a.component._renderGroupId;
+    if (groupIdDif) {
+      return groupIdDif;
+    }
+
+    return b.component._renderSortId - a.component._renderSortId;
   }
 
   /**
@@ -31,11 +41,21 @@ export class RenderQueue {
    */
   static _compareFromFarToNear(a: Item, b: Item): number {
     const renderQueueDif = a.material.renderQueueType - b.material.renderQueueType;
-
     if (renderQueueDif) {
       return renderQueueDif;
     }
-    return b.component._distanceForSort - a.component._distanceForSort;
+
+    const distanceDif =  b.component._distanceForSort - a.component._distanceForSort;
+    if (distanceDif) {
+      return distanceDif;
+    }
+
+    const groupIdDif = b.component._renderGroupId - a.component._renderGroupId;
+    if (groupIdDif) {
+      return groupIdDif;
+    }
+
+    return b.component._renderSortId - a.component._renderSortId;
   }
 
   readonly items: Item[] = [];
