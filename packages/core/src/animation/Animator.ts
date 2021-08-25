@@ -71,7 +71,6 @@ export class Animator extends Component {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController._registerChangeFlag();
       this._animatorController = animatorController;
-      this._clearPlayData();
       console.warn("The animatorController has changed, Please call play method again.");
     }
   }
@@ -90,6 +89,10 @@ export class Animator extends Component {
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
+    if (this._controllerUpdateFlag.flag) {
+      this._clearPlayData();
+    }
+
     const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
     const { state } = animatorInfo;
 
@@ -125,6 +128,10 @@ export class Animator extends Component {
     layerIndex: number = -1,
     normalizedTimeOffset: number = 0
   ): void {
+    if (this._controllerUpdateFlag.flag) {
+      this._clearPlayData();
+    }
+
     const { state } = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
     const { manuallyTransition } = this._getAnimatorLayerData(layerIndex);
     manuallyTransition.duration = normalizedTransitionDuration;
@@ -147,7 +154,6 @@ export class Animator extends Component {
       return;
     }
     if (this._controllerUpdateFlag.flag) {
-      this._clearPlayData();
       console.warn("The animatorController is modified, please call play()/crossFade() method again.");
       return;
     }
