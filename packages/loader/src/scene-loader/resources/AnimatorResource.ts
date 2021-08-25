@@ -55,7 +55,7 @@ export class AnimatorResource extends SchemaResource {
         if (!clipAssetId) continue;
         const uniqueName = stateMachine.makeUniqueStateName(name);
         if (uniqueName !== name) {
-          console.warn(`AnimatorState name is exsited, auto reset to ${uniqueName}`);
+          console.warn(`AnimatorState name is exsited, name: ${name} reset to ${uniqueName}`);
         }
         const state = stateMachine.addState(uniqueName);
         state.speed = speed;
