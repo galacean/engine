@@ -39,7 +39,7 @@ export class GLTFResource extends SchemaResource {
     return new Promise((resolve) => {
       this.load(resourceManager, assetConfig, oasis).then(() => {
         const gltf = this.resource;
-        const { materials, animations } = gltf;
+        const { materials = [], animations = [] } = gltf;
         const materialLoadPromises = [];
         const clipLoadPromises = [];
         const result = {

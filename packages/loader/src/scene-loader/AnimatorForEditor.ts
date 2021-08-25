@@ -38,13 +38,14 @@ export class AnimatorForEditor extends Animator {
     }
   }
 
-  update(deltaTime: number) {
+  update() {
     if (this._animatorController?.isDirty) {
       this.playDefaultState();
       return;
     }
-    this.animator.speed = this._speed;
-    super.update(deltaTime);
+    if (this._speed && this.animator) {
+      this.animator.speed = this._speed;
+    }
   }
 
   initAnimator() {
