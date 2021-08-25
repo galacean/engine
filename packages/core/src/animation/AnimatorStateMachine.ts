@@ -59,11 +59,11 @@ export class AnimatorStateMachine {
    */
   makeUniqueStateName(name: string) {
     const { _statesMap, _stateNameIndex } = this;
-    console.log(_statesMap, _stateNameIndex);
+    _stateNameIndex[name] = _stateNameIndex[name] ?? 0;
+    const originName = name;
     while (_statesMap[name]) {
-      _stateNameIndex[name] = _stateNameIndex[name] ?? 0;
-      const index = ++_stateNameIndex[name];
-      name = `${name}_${index}`;
+      const index = ++_stateNameIndex[originName];
+      name = `${originName}_${index}`;
     }
     return name;
   }
