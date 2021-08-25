@@ -54,6 +54,7 @@ export class Animator extends Component {
     if (animatorController !== this._animatorController) {
       this._animatorController = animatorController;
       this._reset();
+      console.warn("The animatorController has changed, Please call play method again.");
     }
   }
 
@@ -132,7 +133,7 @@ export class Animator extends Component {
       return;
     }
     if (animatorController._isDirty) {
-      console.warn("The animatorController is dirty, Please call play method again.", animatorController._isDirty);
+      console.warn("The animatorController is dirty, Please call play method again.");
       this._reset();
       return;
     }
