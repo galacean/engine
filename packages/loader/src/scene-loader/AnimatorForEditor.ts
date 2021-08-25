@@ -38,7 +38,7 @@ export class AnimatorForEditor extends Animator {
   }
 
   update(deltaTime: number) {
-    if (this._animatorController?.isDirty) {
+    if (this._controllerUpdateFlag.flag) {
       this.playDefaultState();
       return;
     }
@@ -49,18 +49,18 @@ export class AnimatorForEditor extends Animator {
   initAnimator() {
     const { _animatorController: animatorController, _speed: speed } = this;
     const { children } = this.entity;
-    let gltfAnimator: Animator;
+    let glTFAnimator: Animator;
     for (let i = 0, length = children.length; i < length; ++i) {
       const child = children[i];
       const animator = child.getComponent(Animator);
       if (animator) {
-        gltfAnimator = animator;
+        glTFAnimator = animator;
         break;
       }
     }
-    if (gltfAnimator) {
-      gltfAnimator.speed = speed;
-      this._animator = gltfAnimator;
+    if (glTFAnimator) {
+      glTFAnimator.speed = speed;
+      this._animator = glTFAnimator;
       this._animator.animatorController = animatorController;
       this.playDefaultState();
     }

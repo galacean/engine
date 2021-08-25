@@ -5,6 +5,7 @@ import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh";
 import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Transform } from "../Transform";
+import { UpdateFlag } from "../UpdateFlag";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
@@ -33,7 +34,9 @@ export class Animator extends Component {
   protected _animatorController: AnimatorController;
   @assignmentClone
   protected _speed: number = 1.0;
-  
+  @ignoreClone
+  protected _controllerUpdateFlag: UpdateFlag;
+
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
@@ -57,7 +60,7 @@ export class Animator extends Component {
   }
 
   /**
-   * All layers from the AnimatorController which belongs this Animator .
+   * All layers from the AnimatorController which belongs this Animator.
    */
   get animatorController(): AnimatorController {
     return this._animatorController;
@@ -65,8 +68,10 @@ export class Animator extends Component {
 
   set animatorController(animatorController: AnimatorController) {
     if (animatorController !== this._animatorController) {
+      this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
+      this._controllerUpdateFlag = animatorController._registerChangeFlag();
       this._animatorController = animatorController;
-      this._reset();
+      this._clearPlayData();
       console.warn("The animatorController has changed, Please call play method again.");
     }
   }
@@ -87,8 +92,6 @@ export class Animator extends Component {
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
     const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
     const { state } = animatorInfo;
-
-    this._animatorController._isDirty = false;
 
     if (!state) {
       return;
@@ -145,9 +148,9 @@ export class Animator extends Component {
     if (!animatorController) {
       return;
     }
-    if (animatorController._isDirty) {
-      console.warn("The animatorController is dirty, Please call play method again.");
-      this._reset();
+    if (this._controllerUpdateFlag.flag) {
+      this._clearPlayData();
+      console.warn("The animatorController is modified, please call play()/crossFade() method again.");
       return;
     }
     deltaTime *= this.speed;
@@ -302,7 +305,7 @@ export class Animator extends Component {
     this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, crossCurveMark, true);
   }
 
-  private _prepareFiexdPoseCrossFading(animatorLayerData: AnimatorLayerData): void {
+  private _prepareFixedPoseCrossFading(animatorLayerData: AnimatorLayerData): void {
     const crossCurveData = this._crossCurveDataCollection;
 
     // Save current cross curve data owner fixed pose.
@@ -340,7 +343,7 @@ export class Animator extends Component {
 
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      // Not inclue in previous AnimatorState.
+      // Not include in previous AnimatorState.
       if (owner.crossCurveMark === crossCurveMark) {
         crossCurveData[owner.crossCurveIndex].destCurveIndex = i;
       } else {
@@ -703,10 +706,10 @@ export class Animator extends Component {
         break;
       case LayerState.CrossFading:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
-        this._prepareFiexdPoseCrossFading(animatorLayerData);
+        this._prepareFixedPoseCrossFading(animatorLayerData);
         break;
       case LayerState.FixedCrossFading:
-        this._prepareFiexdPoseCrossFading(animatorLayerData);
+        this._prepareFixedPoseCrossFading(animatorLayerData);
         break;
     }
 
@@ -755,9 +758,10 @@ export class Animator extends Component {
     }
   }
 
-  private _reset() {
+  private _clearPlayData() {
     this._animatorLayersData.length = 0;
     this._crossCurveDataCollection.length = 0;
     this._animationCurveOwners.length = 0;
+    this._controllerUpdateFlag.flag = false;
   }
 }
