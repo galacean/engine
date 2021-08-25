@@ -6,7 +6,7 @@ import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 /**
  * @internal
  */
-export interface AnimatorStateTransitionInfo {
+export interface AnimatorStateTransitionInfo {//CM:
   transition: AnimatorStateTransition;
   duration: number;
   offset: number;
