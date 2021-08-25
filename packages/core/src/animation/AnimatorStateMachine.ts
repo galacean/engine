@@ -1,6 +1,4 @@
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorStateTransition } from "./AnimatorTransition";
-
 export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
@@ -10,12 +8,12 @@ export interface AnimatorStateMap {
  */
 export class AnimatorStateMachine {
   /** The list of states. */
-  states: AnimatorState[] = [];
-  /** The list of transitions in the state machine. */
-  transitions: AnimatorStateTransition[] = [];
+  readonly states: AnimatorState[] = [];
 
   /** @internal */
   _statesMap: AnimatorStateMap = {};
+
+  private _stateNameIndex: Record<string, number> = {};
 
   /**
    * Add a state to the state machine.
@@ -27,6 +25,8 @@ export class AnimatorStateMachine {
       state = new AnimatorState(name);
       this.states.push(state);
       this._statesMap[name] = state;
+    } else {
+      console.warn(`The state named ${name} has existed.`);
     }
     return state;
   }
@@ -42,6 +42,7 @@ export class AnimatorStateMachine {
       this.states.splice(index, 1);
     }
     delete this._statesMap[name];
+    delete this._stateNameIndex[name];
   }
 
   /**
@@ -50,5 +51,20 @@ export class AnimatorStateMachine {
    */
   findStateByName(name: string): AnimatorState {
     return this._statesMap[name];
+  }
+
+  /**
+   * Makes a unique state name in the context of the parent state machine.
+   * @param name - Desired name for the state.
+   */
+  makeUniqueStateName(name: string) {
+    const { _statesMap, _stateNameIndex } = this;
+    console.log(_statesMap, _stateNameIndex);
+    while (_statesMap[name]) {
+      _stateNameIndex[name] = _stateNameIndex[name] ?? 0;
+      const index = ++_stateNameIndex[name];
+      name = `${name}_${index}`;
+    }
+    return name;
   }
 }

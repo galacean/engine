@@ -12,7 +12,9 @@ import {
   SpriteResource,
   TextureCubeMapResource,
   TextureResource,
-  UnlitMaterialResource
+  UnlitMaterialResource,
+  AnimatorResource,
+  AnimationClipResource
 } from "./resources";
 import { AssetConfig } from "./types";
 
@@ -28,7 +30,9 @@ export const RESOURCE_CLASS = {
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   // Animation: Animation,
   base: BaseResource,
-  sprite: SpriteResource
+  sprite: SpriteResource,
+  animatorController: AnimatorResource,
+  animationClip: AnimationClipResource
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();

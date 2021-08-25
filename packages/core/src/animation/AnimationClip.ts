@@ -19,10 +19,17 @@ export class AnimationClip extends Motion {
   private _events: AnimationEvent[] = [];
 
   /**
-   * Animation Events for this animation clip.
+   * Animation events for this animation clip.
    */
   get events(): Readonly<AnimationEvent[]> {
     return this._events;
+  }
+
+  /**
+   * Animation curves for this animation clip.
+   */
+  get curves(): Readonly<AnimationClipCurveData<Component>[]> {
+    return this._curves;
   }
 
   /** Animation length in seconds. */

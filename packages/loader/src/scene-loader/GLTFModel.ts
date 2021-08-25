@@ -1,3 +1,4 @@
+import { AnimatorForEditor } from "./AnimatorForEditor";
 import { Component, Entity, WrapMode, Animator } from "@oasis-engine/core";
 import { GLTFResource } from "../gltf/GLTFResource";
 
@@ -25,6 +26,10 @@ export class GLTFModel extends Component {
         this.entity.addChild(gltfEntity);
         gltfEntity.isActive = this.enabled;
         this.glTFEntity = gltfEntity;
+        const animatorForEditor = this.entity.getComponent(AnimatorForEditor);
+        if (animatorForEditor) {
+          animatorForEditor.initAnimator();
+        }
       }
     }
     this._asset = value;

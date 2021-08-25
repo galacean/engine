@@ -12,9 +12,10 @@ import {
   PointLight,
   SphereCollider,
   SpriteRenderer,
-  SpriteMask
+  SpriteMask,
+  Animator
 } from "@oasis-engine/core";
-import { GLTFModel, Parser, Model } from "@oasis-engine/loader";
+import { GLTFModel, AnimatorForEditor, Parser, Model } from "@oasis-engine/loader";
 
 Parser.registerComponents("o3", {
   GLTFModel,
@@ -28,7 +29,9 @@ Parser.registerComponents("o3", {
   Camera,
   Model,
   Component,
-  SphereCollider
+  SphereCollider,
+  Animator,
+  AnimatorForEditor
 });
 
 //@ts-ignore

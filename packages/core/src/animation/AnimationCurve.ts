@@ -36,6 +36,11 @@ export class AnimationCurve {
     return this._length;
   }
 
+  /** The curve value type. */
+  get valueType(): Readonly<InterpolableValueType> {
+    return this._valueType;
+  }
+
   /**
    * Add a new key to the curve.
    * @param key - The keyframe

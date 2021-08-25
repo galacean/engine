@@ -1,5 +1,6 @@
 import {
-  AnimationClip, Camera,
+  AnimationClip,
+  Camera,
   EngineObject,
   Entity,
   Light,

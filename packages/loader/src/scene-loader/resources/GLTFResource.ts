@@ -1,3 +1,4 @@
+import { AnimationClipResource } from "./AnimationClipResource";
 import {
   AssetType,
   Entity,
@@ -24,6 +25,7 @@ export class GLTFResource extends SchemaResource {
         const gltf = res;
         if (assetConfig.props) {
           gltf.newMaterial = (assetConfig.props as any).newMaterial;
+          gltf.animationClips = (assetConfig.props as any).animationClips;
         }
         this._resource = gltf;
       });
@@ -37,14 +39,16 @@ export class GLTFResource extends SchemaResource {
     return new Promise((resolve) => {
       this.load(resourceManager, assetConfig, oasis).then(() => {
         const gltf = this.resource;
-        const { materials } = gltf;
-        const loadPromises = [];
+        const { materials, animations } = gltf;
+        const materialLoadPromises = [];
+        const clipLoadPromises = [];
         const result = {
           resources: [this],
           structure: {
             index: 0,
             props: {
-              newMaterial: []
+              newMaterial: [],
+              animationClips: []
             }
           }
         };
@@ -68,7 +72,7 @@ export class GLTFResource extends SchemaResource {
           }
 
           this._attachedResources.push(materialResource);
-          loadPromises.push(
+          materialLoadPromises.push(
             materialResource.loadWithAttachedResources(resourceManager, {
               type,
               name: material.name,
@@ -76,7 +80,19 @@ export class GLTFResource extends SchemaResource {
             })
           );
         }
-        Promise.all(loadPromises).then((res) => {
+        for (let i = 0, length = animations.length; i < length; ++i) {
+          const clip = animations[i];
+          const clipResourse = new AnimationClipResource(this.resourceManager);
+          this._attachedResources.push(clipResourse);
+          clipLoadPromises.push(
+            clipResourse.loadWithAttachedResources(resourceManager, {
+              type: "animationClip",
+              name: clip.name,
+              resource: clip
+            })
+          );
+        }
+        const loadAttachedMaterial = Promise.all(materialLoadPromises).then((res) => {
           const newMaterial = result.structure.props.newMaterial;
           res.forEach((mat) => {
             const matStructure = mat.structure;
@@ -93,6 +109,19 @@ export class GLTFResource extends SchemaResource {
             }
             newMaterial.push(matStructure);
           });
+        });
+        const LoadAttachedClip = Promise.all(clipLoadPromises).then((res) => {
+          const animationClips = result.structure.props.animationClips;
+          res.forEach((clip) => {
+            const clipStructure = clip.structure;
+            const clipResource = clip.resources[clipStructure.index];
+            result.resources.push(clipResource);
+            clipStructure.index = result.resources.length - 1;
+            animationClips.push(clipStructure);
+          });
+        });
+        console.log(loadAttachedMaterial, LoadAttachedClip);
+        Promise.all([loadAttachedMaterial, LoadAttachedClip]).then(() => {
           resolve(result);
         });
       });
@@ -108,6 +137,7 @@ export class GLTFResource extends SchemaResource {
   bind() {
     const resource = this._resource;
     this.bindMaterials(resource.newMaterial);
+    this.bindAnimationClips(resource.animationClips);
   }
 
   update(key: string, value: any) {
@@ -156,6 +186,18 @@ export class GLTFResource extends SchemaResource {
             meshRenderer.setMaterial(k, newMaterial);
           }
         }
+      }
+    }
+  }
+
+  private bindAnimationClips(animationClips) {
+    for (let i = 0, length = animationClips.length; i < length; i++) {
+      const clipAsset = animationClips[i];
+      const clipResource = this.resourceManager.get(clipAsset.id);
+      if (clipResource) {
+        this._attachedResources.push(clipResource);
+      } else {
+        Logger.warn(`GLTFResource: ${this.meta.name} can't find asset "animationClip", which id is: ${clipAsset.id}`);
       }
     }
   }
