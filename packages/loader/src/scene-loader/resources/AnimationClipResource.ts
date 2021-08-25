@@ -1,16 +1,11 @@
-import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
 import {
-  Transform,
   AnimationClip,
-  AnimationCurve,
-  AnimationProperty,
-  InterpolaKeyframe,
-  InterpolableValueType,
-  AnimationEvent,
-  ResourceManager
+  AnimationCurve, AnimationEvent, AnimationProperty,
+  InterpolableKeyframe,
+  InterpolableValueType, ResourceManager, Transform
 } from "@oasis-engine/core";
-import { AssetConfig } from "../types";
-import { LoadAttachedResourceResult } from "../types";
+import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { SchemaResource } from "./SchemaResource";
 
 export class AnimationClipResource extends SchemaResource {
@@ -38,15 +33,15 @@ export class AnimationClipResource extends SchemaResource {
             break;
         }
         if (!propertyName) continue;
-        const { interpolation, keys, valueType } = curve;
+        const { interpolation, keys, _valueType } = curve;
         const animationCurve = new AnimationCurve();
         animationCurve.interpolation = interpolation;
         for (let j = 0, length = keys.length; j < length; ++j) {
           const keyframeData = keys[j];
-          const keyframe = this._createKeyframe(keyframeData, valueType);
+          const keyframe = this._createKeyframe(keyframeData, _valueType);
           animationCurve.addKey(keyframe);
         }
-        assetObj.setCurve(relativePath, type, propertyName, animationCurve);
+        assetObj.addCurveBinding(relativePath, type, propertyName, animationCurve);
       }
       for (let i = 0, length = events.length; i < length; ++i) {
         const eventData = events[i];
@@ -107,14 +102,15 @@ export class AnimationClipResource extends SchemaResource {
     const result: any = {};
     const clip = this.resource as AnimationClip;
     result.name = clip.name;
-    result.curves = clip.curves.map((curveData) => {
+    result.curves = clip.curveBindings.map((curveData) => {
       const { relativePath, property, curve } = curveData;
       return {
         relativePath,
         property,
         curve: {
           interpolation: curve.interpolation,
-          valueType: curve.valueType,
+          //@ts-ignore
+          valueType: curve._valueType,
           keys: curve.keys
         }
       };
@@ -143,7 +139,7 @@ export class AnimationClipResource extends SchemaResource {
   _createKeyframe(keyframeData, valueType: InterpolableValueType) {
     switch (valueType) {
       case InterpolableValueType.Float: {
-        const keyframe = new InterpolaKeyframe<number, number>();
+        const keyframe = new InterpolableKeyframe<number, number>();
         keyframe.time = keyframeData.time;
         keyframe.value = keyframeData.value;
         keyframe.inTangent = keyframeData.inTangent;
@@ -151,7 +147,7 @@ export class AnimationClipResource extends SchemaResource {
         return keyframe;
       }
       case InterpolableValueType.FloatArray: {
-        const keyframe = new InterpolaKeyframe<Float32Array, Float32Array>();
+        const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
         keyframe.time = keyframeData.time;
         keyframe.value = new Float32Array(keyframeData.value);
         keyframe.inTangent = keyframeData.inTangent;
@@ -159,7 +155,7 @@ export class AnimationClipResource extends SchemaResource {
         return keyframe;
       }
       case InterpolableValueType.Vector2: {
-        const keyframe = new InterpolaKeyframe<Vector2, Vector2>();
+        const keyframe = new InterpolableKeyframe<Vector2, Vector2>();
         keyframe.time = keyframeData.time;
         keyframe.value = this._transformObjToVec2(keyframeData.value);
         keyframe.inTangent = this._transformObjToVec2(keyframeData.inTangent);
@@ -167,7 +163,7 @@ export class AnimationClipResource extends SchemaResource {
         return keyframe;
       }
       case InterpolableValueType.Vector3: {
-        const keyframe = new InterpolaKeyframe<Vector3, Vector3>();
+        const keyframe = new InterpolableKeyframe<Vector3, Vector3>();
         keyframe.time = keyframeData.time;
         keyframe.value = this._transformObjToVec3(keyframeData.value);
         keyframe.inTangent = this._transformObjToVec3(keyframeData.inTangent);
@@ -175,7 +171,7 @@ export class AnimationClipResource extends SchemaResource {
         return keyframe;
       }
       case InterpolableValueType.Vector4: {
-        const keyframe = new InterpolaKeyframe<Vector4, Vector4>();
+        const keyframe = new InterpolableKeyframe<Vector4, Vector4>();
         keyframe.time = keyframeData.time;
         keyframe.value = this._transformObjToVec4(keyframeData.value);
         keyframe.inTangent = this._transformObjToVec4(keyframeData.inTangent);
@@ -183,7 +179,7 @@ export class AnimationClipResource extends SchemaResource {
         return keyframe;
       }
       case InterpolableValueType.Quaternion: {
-        const keyframe = new InterpolaKeyframe<Vector4, Quaternion>();
+        const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
         keyframe.time = keyframeData.time;
         keyframe.value = this._transformObjToQuat(keyframeData.value);
         keyframe.inTangent = this._transformObjToVec4(keyframeData.inTangent);

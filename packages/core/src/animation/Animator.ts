@@ -1,5 +1,5 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { ignoreClone } from "../clone/CloneManager";
+import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh";
@@ -16,11 +16,11 @@ import { LayerState } from "./enums/LayerState";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData, AnimatorStateTransitionInfo } from "./internal/AnimatorLayerData";
-import { AnimatorStateData } from "./internal/AnimatorStataData";
+import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
-import { InterpolableValue, UnionInterpolaKeyframe } from "./KeyFrame";
+import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
 
 /**
  * The controller of the animation system.
@@ -31,9 +31,9 @@ export class Animator extends Component {
   private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
 
   protected _animatorController: AnimatorController;
-
-  /** The playback speed of the Animator, 1.0 is normal playback speed. */
-  speed: number = 1.0;
+  @assignmentClone
+  protected _speed: number = 1.0;
+  
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
@@ -45,7 +45,20 @@ export class Animator extends Component {
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
 
-  /** All layers from the AnimatorController which belongs this Animator .*/
+  /**
+   * The playback speed of the Animator, 1.0 is normal playback speed.
+   */
+  get speed(): number {
+    return this._speed;
+  }
+
+  set speed(value: number) {
+    this._speed = value;
+  }
+
+  /**
+   * All layers from the AnimatorController which belongs this Animator .
+   */
   get animatorController(): AnimatorController {
     return this._animatorController;
   }
@@ -212,7 +225,7 @@ export class Animator extends Component {
   private _saveAnimatorStateData(animatorState: AnimatorState, animatorStateData: AnimatorStateData): void {
     const { entity, _animationCurveOwners: animationCureOwners } = this;
     const { curveOwners } = animatorStateData;
-    const { _curves: curves } = animatorState.clip;
+    const { _curveBindings: curves } = animatorState.clip;
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
@@ -347,7 +360,7 @@ export class Animator extends Component {
     const value = curve.evaluate(time);
 
     if (additive) {
-      const baseValue = (<UnionInterpolaKeyframe>curve.keys[0]).value;
+      const baseValue = (<UnionInterpolableKeyframe>curve.keys[0]).value;
       switch (property) {
         case AnimationProperty.Position:
           const pos = Animator._tempVector3;
@@ -401,7 +414,7 @@ export class Animator extends Component {
     additive: boolean
   ): void {
     const { curveOwners, eventHandlers } = playData.stateData;
-    const { _curves: curves } = playData.state.clip;
+    const { _curveBindings: curves } = playData.state.clip;
     const lastClipTime = playData.clipTime;
 
     playData.update();
@@ -435,8 +448,8 @@ export class Animator extends Component {
     additive: boolean
   ) {
     const crossCurveDataCollection = this._crossCurveDataCollection;
-    const srcCurves = srcPlayData.state.clip._curves;
-    const destCurves = destPlayData.state.clip._curves;
+    const srcCurves = srcPlayData.state.clip._curveBindings;
+    const destCurves = destPlayData.state.clip._curveBindings;
 
     let crossWeight = destPlayData.frameTime / layerData.crossFadeTransitionInfo.duration;
     crossWeight >= 1.0 && (crossWeight = 1.0);
@@ -471,7 +484,7 @@ export class Animator extends Component {
     additive: boolean
   ) {
     const crossCurveDataCollection = this._crossCurveDataCollection;
-    const curves = destPlayData.state.clip._curves;
+    const curves = destPlayData.state.clip._curveBindings;
 
     let crossWeight = destPlayData.frameTime / layerData.crossFadeTransitionInfo.duration;
     crossWeight >= 1.0 && (crossWeight = 1.0);
@@ -616,7 +629,7 @@ export class Animator extends Component {
   private _revertDefaultValue(playData: AnimatorStatePlayData) {
     const { clip } = playData.state;
     if (clip) {
-      const curves = clip._curves;
+      const curves = clip._curveBindings;
       const { curveOwners } = playData.stateData;
       for (let i = curves.length - 1; i >= 0; i--) {
         const owner = curveOwners[i];

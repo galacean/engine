@@ -1,6 +1,6 @@
 import { AnimatorStateTransition } from "../AnimatorTransition";
 import { LayerState } from "../enums/LayerState";
-import { AnimatorStateData } from "./AnimatorStataData";
+import { AnimatorStateData } from "./AnimatorStateData";
 import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 
 /**

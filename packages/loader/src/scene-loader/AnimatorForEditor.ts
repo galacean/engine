@@ -1,22 +1,21 @@
-import { Entity, AnimatorController, Animator } from "@oasis-engine/core";
+import { Animator, AnimatorController } from "@oasis-engine/core";
 
 /**
  * @deprecated
  * Temporarily only for editor use.
- * Remove when editor finish change from gltf to prefab.
+ * Remove when editor finish change from glTF to prefab.
  */
 export class AnimatorForEditor extends Animator {
-  private _speed: number = 1;
-  private animator: Animator;
+  private _animator: Animator;
 
   get animatorController(): AnimatorController {
     return this._animatorController;
   }
 
   set animatorController(animatorController: AnimatorController) {
-    const { animator } = this;
+    const { _animator: animator } = this;
     this._animatorController = animatorController;
-    if (this.animator) {
+    if (this._animator) {
       animator.animatorController = animatorController;
       this.playDefaultState();
     } else {
@@ -28,11 +27,11 @@ export class AnimatorForEditor extends Animator {
     return this._speed;
   }
 
-  set speed(val: number) {
-    const { animator } = this;
-    this._speed = val;
+  set speed(value: number) {
+    const { _animator: animator } = this;
+    this._speed = value;
     if (animator) {
-      animator.speed = val;
+      animator.speed = value;
     } else {
       this.initAnimator();
     }
@@ -43,7 +42,7 @@ export class AnimatorForEditor extends Animator {
       this.playDefaultState();
       return;
     }
-    this.animator.speed = this._speed;
+    this._animator.speed = this._speed;
     super.update(deltaTime);
   }
 
@@ -61,14 +60,14 @@ export class AnimatorForEditor extends Animator {
     }
     if (gltfAnimator) {
       gltfAnimator.speed = speed;
-      this.animator = gltfAnimator;
-      this.animator.animatorController = animatorController;
+      this._animator = gltfAnimator;
+      this._animator.animatorController = animatorController;
       this.playDefaultState();
     }
   }
 
   playDefaultState() {
-    const { _animatorController: animatorController, animator } = this;
+    const { _animatorController: animatorController, _animator: animator } = this;
     if (!animator) return;
     if (animatorController) {
       const { layers } = animatorController;
