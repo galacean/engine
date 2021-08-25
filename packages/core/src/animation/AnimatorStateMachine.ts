@@ -13,8 +13,6 @@ export class AnimatorStateMachine {
   /** @internal */
   _statesMap: AnimatorStateMap = {};
 
-  private _stateNameIndex: Record<string, number> = {};
-
   /**
    * Add a state to the state machine.
    * @param name - The name of the new state
@@ -42,7 +40,6 @@ export class AnimatorStateMachine {
       this.states.splice(index, 1);
     }
     delete this._statesMap[name];
-    delete this._stateNameIndex[name];
   }
 
   /**
@@ -54,16 +51,17 @@ export class AnimatorStateMachine {
   }
 
   /**
-   * Makes a unique state name in the context of the parent state machine.
+   * Makes a unique state name in the state machine.
    * @param name - Desired name for the state.
+   * @returns Unique name.
    */
-  makeUniqueStateName(name: string) {
-    const { _statesMap, _stateNameIndex } = this;
-    _stateNameIndex[name] = _stateNameIndex[name] ?? 0;
+  makeUniqueStateName(name: string): string {
+    const { _statesMap } = this;
     const originName = name;
+    let index = 0;
     while (_statesMap[name]) {
-      const index = ++_stateNameIndex[originName];
-      name = `${originName}_${index}`;
+      name = `${originName} ${index}`;
+      index++;
     }
     return name;
   }

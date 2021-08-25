@@ -6,7 +6,7 @@ export { AnimatorStateMachine } from "./AnimatorStateMachine";
 export { AnimatorState } from "./AnimatorState";
 export { AnimatorStateTransition } from "./AnimatorTransition";
 export { AnimationCurve } from "./AnimationCurve";
-export * from "./AnimationClipCurveData";
+export { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 export * from "./KeyFrame";
 export { AnimationEvent } from "./AnimationEvent";
 export { AnimatorConditionMode } from "./enums/AnimatorConditionMode";

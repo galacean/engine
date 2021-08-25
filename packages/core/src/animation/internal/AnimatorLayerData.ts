@@ -1,16 +1,7 @@
 import { AnimatorStateTransition } from "../AnimatorTransition";
 import { LayerState } from "../enums/LayerState";
-import { AnimatorStateData } from "./AnimatorStataData";
+import { AnimatorStateData } from "./AnimatorStateData";
 import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
-
-/**
- * @internal
- */
-export interface AnimatorStateTransitionInfo {
-  transition: AnimatorStateTransition;
-  duration: number;
-  offset: number;
-}
 
 /**
  * @internal
@@ -21,12 +12,8 @@ export class AnimatorLayerData {
   destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   layerState: LayerState = LayerState.Standby;
   crossCurveMark: number = 0;
-  transitionForManuallyCall: AnimatorStateTransition = new AnimatorStateTransition();
-  crossFadeTransitionInfo: AnimatorStateTransitionInfo = {
-    transition: null,
-    duration: 0,
-    offset: 0
-  };
+  manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
+  crossFadeTransition: AnimatorStateTransition;
 
   switchPlayData(): void {
     const srcPlayData = this.destPlayData;

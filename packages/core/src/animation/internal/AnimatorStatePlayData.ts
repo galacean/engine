@@ -1,7 +1,6 @@
-import { AnimatorStateTransition } from "../AnimatorTransition";
 import { AnimatorState } from "../AnimatorState";
 import { WrapMode } from "../enums/WrapMode";
-import { AnimatorStateData } from "./AnimatorStataData";
+import { AnimatorStateData } from "./AnimatorStateData";
 
 /**
  * @internal
@@ -13,7 +12,6 @@ export class AnimatorStatePlayData {
   finished: boolean;
   clipTime: number;
   currentEventIndex: number;
-  currentTransition: AnimatorStateTransition = null;
 
   reset(state: AnimatorState, stateData: AnimatorStateData, offsetFrameTime: number): void {
     this.state = state;
@@ -21,7 +19,6 @@ export class AnimatorStatePlayData {
     this.stateData = stateData;
     this.finished = false;
     this.currentEventIndex = 0;
-    this.currentTransition = null;
   }
 
   update(): void {

@@ -1,18 +1,15 @@
+import { UpdateFlag } from "../UpdateFlag";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 
 /**
  * Store the data for Animator playback.
  */
 export class AnimatorController {
-  /** @internal */
-  _isDirty: boolean = false;
-
+  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   private _layers: AnimatorControllerLayer[] = [];
   private _layersMap: Record<string, AnimatorControllerLayer> = {};
 
-  get isDirty(): Readonly<boolean> {
-    return this._isDirty;
-  }
   /**
    * The layers in the controller.
    */
@@ -35,7 +32,7 @@ export class AnimatorController {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
-    this._isDirty = true;
+    this._updateFlagManager.distribute();
   }
 
   /**
@@ -46,7 +43,7 @@ export class AnimatorController {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
     delete this._layersMap[theLayer.name];
-    this._isDirty = true;
+    this._updateFlagManager.distribute();
   }
 
   /**
@@ -57,6 +54,13 @@ export class AnimatorController {
     for (let name in this._layersMap) {
       delete this._layersMap[name];
     }
-    this._isDirty = true;
+    this._updateFlagManager.distribute();
+  }
+
+  /**
+   * @internal
+   */
+  _registerChangeFlag(): UpdateFlag {
+    return this._updateFlagManager.register();
   }
 }
