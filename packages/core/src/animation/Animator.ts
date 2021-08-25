@@ -16,7 +16,7 @@ import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { LayerState } from "./enums/LayerState";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
-import { AnimatorLayerData, AnimatorStateTransitionInfo } from "./internal/AnimatorLayerData";
+import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
@@ -390,7 +390,7 @@ export class Animator extends Component {
   private _updateLayer(layerIndex: number, firstLayer: boolean, deltaTime: number): void {
     const { blendingMode, weight } = this._animatorController.layers[layerIndex];
     const animLayerData = this._animatorLayersData[layerIndex];
-    const { srcPlayData, destPlayData, crossFadeTransitionInfo } = animLayerData;
+    const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = animLayerData;
     const layerAdditive = blendingMode === AnimatorLayerBlendingMode.Additive;
     const layerWeight = firstLayer ? 1.0 : weight;
     this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
@@ -451,9 +451,10 @@ export class Animator extends Component {
   ) {
     const crossCurveDataCollection = this._crossCurveDataCollection;
     const srcCurves = srcPlayData.state.clip._curveBindings;
-    const destCurves = destPlayData.state.clip._curveBindings;
+    const { state: destState } = destPlayData;
+    const destCurves = destState.clip._curveBindings;
 
-    let crossWeight = destPlayData.frameTime / layerData.crossFadeTransitionInfo.duration;
+    let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
     srcPlayData.update();
     destPlayData.update();
@@ -486,9 +487,10 @@ export class Animator extends Component {
     additive: boolean
   ) {
     const crossCurveDataCollection = this._crossCurveDataCollection;
-    const curves = destPlayData.state.clip._curveBindings;
+    const { state: destState } = destPlayData;
+    const curves = destState.clip._curveBindings;
 
-    let crossWeight = destPlayData.frameTime / layerData.crossFadeTransitionInfo.duration;
+    let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
     destPlayData.update();
 
@@ -654,7 +656,7 @@ export class Animator extends Component {
 
   private _checkTransition(
     stateData: AnimatorStatePlayData,
-    crossFadeTransitionInfo: AnimatorStateTransitionInfo,
+    crossFadeTransition: AnimatorStateTransition,
     layerIndex: number
   ) {
     const { state, clipTime } = stateData;
@@ -663,7 +665,7 @@ export class Animator extends Component {
     for (let i = 0, n = transitions.length; i < n; ++i) {
       const transition = transitions[i];
       if (duration * transition.exitTime >= clipTime) {
-        crossFadeTransitionInfo.transition !== transition && this._crossFadeByTransition(transition, layerIndex);
+        crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex);
       }
     }
   }
@@ -708,10 +710,7 @@ export class Animator extends Component {
         break;
     }
 
-    const { crossFadeTransitionInfo } = animatorLayerData;
-    crossFadeTransitionInfo.transition = transition;
-    crossFadeTransitionInfo.duration = duration * transition.duration;
-    crossFadeTransitionInfo.offset = offset;
+    animatorLayerData.crossFadeTransition = transition;
   }
 
   private _fireAnimationEvents(
