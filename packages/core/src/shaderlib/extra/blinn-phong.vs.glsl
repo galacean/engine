@@ -2,6 +2,7 @@
 #include <common_vert>
 #include <blendShape_input>
 #include <uv_share>
+#include <color_share>
 #include <normal_share>
 #include <worldpos_share>
 #include <shadow_share>
@@ -15,6 +16,7 @@ void main() {
     #include <blendShape_vert>
     #include <skinning_vert>
     #include <uv_vert>
+    #include <color_vert>
     #include <normal_vert>
     #include <worldpos_vert>
     #include <shadow_vert>

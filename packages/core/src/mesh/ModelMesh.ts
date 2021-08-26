@@ -19,6 +19,8 @@ import { TextureFilterMode, TextureFormat } from "../texture";
  */
 export class ModelMesh extends Mesh {
   /** @internal */
+  _hasBlendShape: boolean = false;
+  /** @internal */
   _useBlendShapeNormal: boolean = false;
   /** @internal */
   _useBlendShapeTangent: boolean = false;
@@ -72,6 +74,9 @@ export class ModelMesh extends Mesh {
    * BlendShape count of this ModelMesh.
    */
   get blendShapes(): Readonly<BlendShape[]> {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
     return this._blendShapes;
   }
 
@@ -408,12 +413,16 @@ export class ModelMesh extends Mesh {
     this._useBlendShapeTangent = this._useBlendShapeTangent || blendShape._useBlendShapeTangent;
     this._blendShapes.push(blendShape);
     this._blendShapeUpdateFlags.push(blendShape._registerChangeFlag());
+    this._hasBlendShape = true;
   }
 
   /**
    * Clear all BlendShapes.
    */
   clearBlendShapes(): void {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
     this._vertexChangeFlag |= ValueChanged.BlendShape;
     this._useBlendShapeNormal = false;
     this._useBlendShapeTangent = false;
@@ -423,6 +432,7 @@ export class ModelMesh extends Mesh {
       blendShapeUpdateFlags[i].destroy();
     }
     blendShapeUpdateFlags.length = 0;
+    this._hasBlendShape = false;
   }
 
   /**
@@ -898,6 +908,7 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
+    this._blendShapes = null;
   }
 }
 
