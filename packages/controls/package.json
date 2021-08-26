@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/controls",
-  "version": "0.5.3-alpha.2",
+  "version": "0.5.3-alpha.3",
   "license": "MIT",
   "scripts": {
     "b:types": "tsc",
@@ -15,6 +15,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "oasis-engine": "0.5.3-alpha.2"
+    "oasis-engine": "0.5.3-alpha.3"
   }
 }
