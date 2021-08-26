@@ -10,5 +10,5 @@ export { BlinnPhongMaterialResource } from "./BlinnPhongMaterialResource";
 export { TextureCubeMapResource } from "./TextureCubeMapResource";
 export * from "./ScriptResource";
 export { BaseResource } from "./BaseResource";
-export { AnimatorResource } from "./AnimatorResource";
+export { AnimatorControllerResource } from "./AnimatorControllerResource";
 export { AnimationClipResource } from "./AnimationClipResource";

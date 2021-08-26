@@ -6,7 +6,7 @@ import { AnimationCurve } from "./AnimationCurve";
 /**
  * Associate AnimationCurve and the Entity
  */
-export interface AnimationClipCurveBinding {
+export class AnimationClipCurveBinding {
   /** Path to the entity this curve applies to. The relativePath is formatted similar to a pathname,
    * e.g. "root/spine/leftArm". If relativePath is empty it refers to the entity the animation clip is attached to. */
   relativePath: string;

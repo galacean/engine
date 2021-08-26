@@ -6,16 +6,24 @@ import { Animator, AnimatorController } from "@oasis-engine/core";
  * Remove when editor finish change from glTF to prefab.
  */
 export class AnimatorForEditor extends Animator {
-  private _animator: Animator;
+  // The animator component in runtime.
+  runTimeAnimator: Animator;
 
   get animatorController(): AnimatorController {
     return this._animatorController;
   }
 
   set animatorController(animatorController: AnimatorController) {
-    const { _animator: animator } = this;
-    this._animatorController = animatorController;
-    if (this._animator) {
+    const { runTimeAnimator: animator } = this;
+    if (animatorController !== this._animatorController) {
+      this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
+      //@ts-ignore
+      console.log(4444, animatorController)
+      this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
+      this._animatorController = animatorController;
+      console.warn("The animatorController has changed, Please call play method again.");
+    }
+    if (animator) {
       animator.animatorController = animatorController;
       this.playDefaultState();
     } else {
@@ -28,7 +36,7 @@ export class AnimatorForEditor extends Animator {
   }
 
   set speed(value: number) {
-    const { _animator: animator } = this;
+    const { runTimeAnimator: animator } = this;
     this._speed = value;
     if (animator) {
       animator.speed = value;
@@ -37,13 +45,16 @@ export class AnimatorForEditor extends Animator {
     }
   }
 
-  update(deltaTime: number) {
-    if (this._controllerUpdateFlag.flag) {
-      this.playDefaultState();
-      return;
+  update() {
+    if (this.runTimeAnimator) {
+      if (this._controllerUpdateFlag?.flag) {
+        this.playDefaultState();
+        console.warn("The animatorController is modified, please call play()/crossFade() method again.");
+        return;
+      }
+      // Avoid be modfied by GLTFModel.
+      this.runTimeAnimator.speed = this._speed;
     }
-    this._animator.speed = this._speed;
-    super.update(deltaTime);
   }
 
   initAnimator() {
@@ -60,20 +71,22 @@ export class AnimatorForEditor extends Animator {
     }
     if (glTFAnimator) {
       glTFAnimator.speed = speed;
-      this._animator = glTFAnimator;
-      this._animator.animatorController = animatorController;
+      this.runTimeAnimator = glTFAnimator;
+      this.runTimeAnimator.animatorController = animatorController;
       this.playDefaultState();
     }
   }
 
   playDefaultState() {
-    const { _animatorController: animatorController, _animator: animator } = this;
+    const { _animatorController: animatorController, runTimeAnimator: animator } = this;
     if (!animator) return;
+    if (this._controllerUpdateFlag?.flag) {
+      this._controllerUpdateFlag.flag = false;
+    }
     if (animatorController) {
       const { layers } = animatorController;
       for (let i = 0, length = layers.length; i < length; ++i) {
         const startStateName = layers[i]?.stateMachine?.states[0]?.name;
-        console.log(animatorController, startStateName);
         startStateName && animator.play(startStateName, i);
       }
     }

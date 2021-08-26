@@ -1,8 +1,12 @@
 import {
   AnimationClip,
-  AnimationCurve, AnimationEvent, AnimationProperty,
+  AnimationCurve,
+  AnimationEvent,
+  AnimationProperty,
   InterpolableKeyframe,
-  InterpolableValueType, ResourceManager, Transform
+  InterpolableValueType,
+  ResourceManager,
+  Transform
 } from "@oasis-engine/core";
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
@@ -33,12 +37,12 @@ export class AnimationClipResource extends SchemaResource {
             break;
         }
         if (!propertyName) continue;
-        const { interpolation, keys, _valueType } = curve;
+        const { interpolation, keys, valueType } = curve;
         const animationCurve = new AnimationCurve();
         animationCurve.interpolation = interpolation;
         for (let j = 0, length = keys.length; j < length; ++j) {
           const keyframeData = keys[j];
-          const keyframe = this._createKeyframe(keyframeData, _valueType);
+          const keyframe = this._createKeyframe(keyframeData, valueType);
           animationCurve.addKey(keyframe);
         }
         assetObj.addCurveBinding(relativePath, type, propertyName, animationCurve);

@@ -13,7 +13,7 @@ import {
   TextureCubeMapResource,
   TextureResource,
   UnlitMaterialResource,
-  AnimatorResource,
+  AnimatorControllerResource,
   AnimationClipResource
 } from "./resources";
 import { AssetConfig } from "./types";
@@ -31,7 +31,7 @@ export const RESOURCE_CLASS = {
   // Animation: Animation,
   base: BaseResource,
   sprite: SpriteResource,
-  animatorController: AnimatorResource,
+  animatorController: AnimatorControllerResource,
   animationClip: AnimationClipResource
 };
 
@@ -95,6 +95,7 @@ export class SchemaResourceManager {
       delete this.resourceMap[id];
       if (resource) {
         const attached = resource.attachedResources;
+        console.log(3333333333333, resource, attached)
         for (let index = 0; index < attached.length; index++) {
           const attachedResource = attached[index];
           const attachedResourceId = this.resourceIdMap.get(attachedResource);
@@ -153,9 +154,11 @@ export class SchemaResourceManager {
     addResourceResult.type = RESOURCE_TYPE.get(resource.constructor);
     addResourceResult.meta = resource.meta;
     addResourceResult.props = {};
+    console.log(9999999, resources, structure);
     for (const key in structure.props) {
       if (structure.props.hasOwnProperty(key)) {
         const element = structure.props[key];
+        console.log(88888888,resources, element);
         if (element) {
           if (Array.isArray(element)) {
             addResourceResult.props[key] = element.map((child) => this.getAddResourceResult(resources, child));

@@ -42,7 +42,7 @@ export class AnimationClip extends Motion {
   /**
    * @param name - The AnimationClip's name
    */
-  constructor(public readonly name: string) {
+  constructor (public readonly name: string) {
     super();
   }
 
@@ -91,12 +91,11 @@ export class AnimationClip extends Motion {
         break;
       default:
     }
-    const curveBinding: AnimationClipCurveBinding = {
-      relativePath,
-      type,
-      property,
-      curve
-    };
+    const curveBinding = new AnimationClipCurveBinding();
+    curveBinding.relativePath = relativePath;
+    curveBinding.type = type;
+    curveBinding.property = property;
+    curveBinding.curve = curve;
     if (curve.length > this._length) {
       this._length = curve.length;
     }

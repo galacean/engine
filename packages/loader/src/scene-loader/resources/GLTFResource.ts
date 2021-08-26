@@ -1,3 +1,5 @@
+import { getAnimatorControllerDefaultData } from './AnimatorControllerDefaultData';
+import { AnimatorControllerResource } from "./AnimatorControllerResource";
 import { AnimationClipResource } from "./AnimationClipResource";
 import {
   AssetType,
@@ -26,6 +28,7 @@ export class GLTFResource extends SchemaResource {
         if (assetConfig.props) {
           gltf.newMaterial = (assetConfig.props as any).newMaterial;
           gltf.animationClips = (assetConfig.props as any).animationClips;
+          gltf.animatorController = (assetConfig.props as any).animatorController;
         }
         this._resource = gltf;
       });
@@ -42,13 +45,15 @@ export class GLTFResource extends SchemaResource {
         const { materials = [], animations = [] } = gltf;
         const materialLoadPromises = [];
         const clipLoadPromises = [];
+        let animatorControllerLoadPromise: Promise<any>;
         const result = {
           resources: [this],
           structure: {
             index: 0,
             props: {
               newMaterial: [],
-              animationClips: []
+              animationClips: [],
+              animatorControllers: []
             }
           }
         };
@@ -80,18 +85,32 @@ export class GLTFResource extends SchemaResource {
             })
           );
         }
-        for (let i = 0, length = animations.length; i < length; ++i) {
-          const clip = animations[i];
-          const clipResourse = new AnimationClipResource(this.resourceManager);
-          this._attachedResources.push(clipResourse);
-          clipLoadPromises.push(
-            clipResourse.loadWithAttachedResources(resourceManager, {
-              type: "animationClip",
-              name: clip.name,
-              resource: clip
-            })
-          );
+        // for (let i = 0, length = animations.length; i < length; ++i) {
+        //   const clip = animations[i];
+        //   const clipResourse = new AnimationClipResource(this.resourceManager);
+        //   this._attachedResources.push(clipResourse);
+        //   clipLoadPromises.push(
+        //     clipResourse.loadWithAttachedResources(resourceManager, {
+        //       type: "animationClip",
+        //       name: clip.name,
+        //       resource: clip
+        //     })
+        //   );
+        // }
+
+        if (animations.length) {
+          const animatorControllerResource = new AnimatorControllerResource(this.resourceManager);
+          // const defaultData =  getAnimatorControllerDefaultData();
+          this._attachedResources.push(animatorControllerResource);
+          animatorControllerLoadPromise = animatorControllerResource.loadWithAttachedResources(resourceManager, {
+            type: "animatorController",
+            name: "AnimatorController",
+            props: {
+              animationClips: animations
+            }
+          });
         }
+
         const loadAttachedMaterial = Promise.all(materialLoadPromises).then((res) => {
           const newMaterial = result.structure.props.newMaterial;
           res.forEach((mat) => {
@@ -110,18 +129,24 @@ export class GLTFResource extends SchemaResource {
             newMaterial.push(matStructure);
           });
         });
-        const LoadAttachedClip = Promise.all(clipLoadPromises).then((res) => {
-          const animationClips = result.structure.props.animationClips;
-          res.forEach((clip) => {
-            const clipStructure = clip.structure;
-            const clipResource = clip.resources[clipStructure.index];
-            result.resources.push(clipResource);
-            clipStructure.index = result.resources.length - 1;
-            animationClips.push(clipStructure);
-          });
+        const loadAttachedController = animatorControllerLoadPromise.then((res) => {
+          const { animatorControllers } = result.structure.props;
+          const controllerStructure = res.structure;
+          const controllerResource = res.resources[controllerStructure.index];
+          result.resources.push(controllerResource as any);
+          controllerStructure.index = result.resources.length - 1;
+          const { animationClips } = controllerStructure.props;
+          if (animationClips) {
+            for (let i = 0, length = animationClips.length; i < length; ++i) {
+              const clipStructure = animationClips[i];
+              const clipResource = res.resources[clipStructure.index];
+              result.resources.push(clipResource);
+              clipStructure.index = result.resources.length - 1;
+            }
+          }
+          animatorControllers.push(controllerStructure);
         });
-        console.log(loadAttachedMaterial, LoadAttachedClip);
-        Promise.all([loadAttachedMaterial, LoadAttachedClip]).then(() => {
+        Promise.all([loadAttachedMaterial, loadAttachedController]).then(() => {
           resolve(result);
         });
       });
@@ -138,6 +163,7 @@ export class GLTFResource extends SchemaResource {
     const resource = this._resource;
     this.bindMaterials(resource.newMaterial);
     this.bindAnimationClips(resource.animationClips);
+    this.bindAnimatorController(resource.animatorController);
   }
 
   update(key: string, value: any) {
@@ -166,7 +192,7 @@ export class GLTFResource extends SchemaResource {
         newMaterials[i] = mtlResource.resource;
       } else {
         Logger.warn(
-          `GLTFResource: ${this.meta.name} can't find asset "material", which id is: ${newMaterialsConfig[i].id}`
+          `GLTFResource: ${ this.meta.name } can't find asset "material", which id is: ${ newMaterialsConfig[i].id }`
         );
       }
     }
@@ -197,8 +223,20 @@ export class GLTFResource extends SchemaResource {
       if (clipResource) {
         this._attachedResources.push(clipResource);
       } else {
-        Logger.warn(`GLTFResource: ${this.meta.name} can't find asset "animationClip", which id is: ${clipAsset.id}`);
+        Logger.warn(`GLTFResource: ${ this.meta.name } can't find asset "animationClip", which id is: ${ clipAsset.id }`);
       }
+    }
+  }
+
+  private bindAnimatorController(animatorController) {
+    if (!animatorController) return;
+    const controllerResource = this.resourceManager.get(animatorController.id);
+    if (controllerResource) {
+      this._attachedResources.push(controllerResource);
+    } else {
+      Logger.warn(
+        `GLTFResource: ${ this.meta.name } can't find asset "animatorControler", which id is: ${ animatorController.id }`
+      );
     }
   }
 }
