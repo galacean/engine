@@ -181,7 +181,7 @@ export class BasicRenderPipeline {
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
         if (background.mode === BackgroundMode.Sky) {
           this._drawSky(engine, camera, background.sky);
-        } else if (background.mode === BackgroundMode.Texture) {
+        } else if (background.mode === BackgroundMode.Texture && background.texture) {
           this._drawBackgroundTexture(engine, background);
         }
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
