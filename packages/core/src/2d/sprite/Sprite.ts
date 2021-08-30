@@ -20,6 +20,8 @@ export class Sprite extends RefObject {
   _bounds: BoundingBox = new BoundingBox();
   /** @internal */
   _triangles: number[];
+  /** @internal temp solution. */
+  _assetID: number;
 
   private _pixelsPerUnit: number;
   private _texture: Texture2D = null;

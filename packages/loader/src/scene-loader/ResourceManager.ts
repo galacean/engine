@@ -14,6 +14,7 @@ import {
   TextureResource,
   UnlitMaterialResource
 } from "./resources";
+import { SpriteAtlasResource } from "./resources/SpriteAtlasResource";
 import { AssetConfig } from "./types";
 
 export const RESOURCE_CLASS = {
@@ -28,7 +29,8 @@ export const RESOURCE_CLASS = {
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   // Animation: Animation,
   base: BaseResource,
-  sprite: SpriteResource
+  sprite: SpriteResource,
+  SpriteAtlas: SpriteAtlasResource
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();
