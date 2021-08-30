@@ -1040,6 +1040,19 @@ export class Matrix implements IClone {
   }
 
   /**
+   * Calculate Frobenius norm of this matrix.
+   * @returns The Frobenius norm of this matrix
+   */
+  norm(): number {
+    const e = this.elements;
+    let sum = 0;
+    for (let i = 0; i < e.length; i++) {
+      sum += e[i] ** 2;
+    }
+    return Math.sqrt(sum);
+  }
+
+  /**
    * Decompose this matrix to translation, rotation and scale elements.
    * @param translation - Translation vector as an output parameter
    * @param rotation - Rotation quaternion as an output parameter
