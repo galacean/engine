@@ -79,31 +79,35 @@ export class PhysicsManager {
     const cf = this._engine.sceneManager.activeScene.findFeature(ColliderFeature);
     const colliders = cf.colliders;
 
-    let distance: number = Number.MAX_VALUE;
+    let hasResult = false;
+    let hitResult: HitResult;
+
+    let distance = Number.MAX_VALUE;
     if (typeof distanceOrResult === "number") {
       distance = distanceOrResult;
-    }
-
-    let hasResult: Boolean = false;
-    let hitResult: HitResult = outHitResult;
-    if (distanceOrResult instanceof HitResult) {
+    } else if (distance != undefined) {
       hasResult = true;
       hitResult = distanceOrResult;
-    } else if (layerMaskOrResult instanceof HitResult) {
-      hasResult = true;
-      hitResult = layerMaskOrResult;
-    } else if (outHitResult) {
-      hasResult = true;
     }
 
-    let curHit = PhysicsManager._currentHit;
+    let layerMask = Layer.Everything;
+    if (typeof layerMaskOrResult === "number") {
+      layerMask = layerMaskOrResult;
+    } else if (layerMaskOrResult != undefined) {
+      hasResult = true;
+      hitResult = layerMaskOrResult;
+    }
+
+    if (outHitResult) {
+      hasResult = true;
+      hitResult = outHitResult;
+    }
+
+    const curHit = PhysicsManager._currentHit;
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
 
-      if (
-        !(layerMaskOrResult instanceof HitResult) &&
-        !(collider.entity.layer & (layerMaskOrResult ? (layerMaskOrResult as Layer) : Layer.Everything))
-      ) {
+      if (!(collider.entity.layer & layerMask)) {
         continue;
       }
 
