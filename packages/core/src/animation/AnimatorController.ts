@@ -32,7 +32,7 @@ export class AnimatorController {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
-    this._updateFlagManager.distribute();
+    this._distributeUpdateFlag();
   }
 
   /**
@@ -43,7 +43,7 @@ export class AnimatorController {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
     delete this._layersMap[theLayer.name];
-    this._updateFlagManager.distribute();
+    this._distributeUpdateFlag();
   }
 
   /**
@@ -54,7 +54,7 @@ export class AnimatorController {
     for (let name in this._layersMap) {
       delete this._layersMap[name];
     }
-    this._updateFlagManager.distribute();
+    this._distributeUpdateFlag();
   }
 
   /**
@@ -62,5 +62,10 @@ export class AnimatorController {
    */
   _registerChangeFlag(): UpdateFlag {
     return this._updateFlagManager.register();
+  }
+
+  private _distributeUpdateFlag(): void {
+    this._updateFlagManager.distribute();
+    console.warn("The animatorController is modified, please call play()/crossFade() method again.");
   }
 }

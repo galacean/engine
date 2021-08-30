@@ -71,7 +71,7 @@ export class Animator extends Component {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
-      console.warn("The animatorController has changed, Please call play method again.");
+      console.warn("The animatorController is modified, please call play()/crossFade() method again.");
     }
   }
 
@@ -154,7 +154,6 @@ export class Animator extends Component {
       return;
     }
     if (this._controllerUpdateFlag?.flag) {
-      console.warn("The animatorController is modified, please call play()/crossFade() method again.");
       return;
     }
     deltaTime *= this.speed;

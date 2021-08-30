@@ -1,5 +1,4 @@
-import { AnimatorForEditor } from "./AnimatorForEditor";
-import { Component, Entity, WrapMode, Animator } from "@oasis-engine/core";
+import { Animator, AnimatorController, AnimatorState, Component, Entity, UpdateFlag } from "@oasis-engine/core";
 import { GLTFResource } from "../gltf/GLTFResource";
 
 /**
@@ -8,13 +7,23 @@ import { GLTFResource } from "../gltf/GLTFResource";
  * Remove when editor finish change from gltf to prefab.
  */
 export class GLTFModel extends Component {
+  private _animatorController: AnimatorController;
+  private _speed: number = 1.0;
+  private _animator: Animator;
+  private _asset: GLTFResource;
+  private _glTFEntity: Entity;
+  private _preview: string;
+  private _hasBuiltNode: boolean = false;
+  private _controllerUpdateFlag: UpdateFlag;
+
   get asset() {
     return this._asset;
   }
 
   set asset(value: GLTFResource) {
-    const entity = this.glTFEntity;
-    if (value && value.defaultSceneRoot === this.glTFEntity) {
+    const { _animatorController: animatorController, _speed: speed } = this;
+    const entity = this._glTFEntity;
+    if (value && value.defaultSceneRoot === this._glTFEntity) {
       return;
     }
     if (!this._hasBuiltNode) {
@@ -25,57 +34,66 @@ export class GLTFModel extends Component {
         this._animator = gltfEntity.getComponent(Animator);
         this.entity.addChild(gltfEntity);
         gltfEntity.isActive = this.enabled;
-        this.glTFEntity = gltfEntity;
-        const animatorForEditor = this.entity.getComponent(AnimatorForEditor);
-        if (animatorForEditor) {
-          animatorForEditor.initAnimator();
-        }
+        this._glTFEntity = gltfEntity;
       }
     }
+    if (animatorController) {
+      this._animator.animatorController = animatorController;
+      this._animator.speed = speed;
+      this._playState();
+    }
     this._asset = value;
+  }
+
+  get animatorController(): AnimatorController {
+    return this._animatorController;
+  }
+
+  set animatorController(animatorController: AnimatorController) {
+    const { _animator: animator } = this;
+    if (animatorController !== this._animatorController) {
+      this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
+      // @ts-ignore
+      this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
+      this._animatorController = animatorController;
+      if (animator) {
+        animator.animatorController = animatorController;
+        this._playState();
+      }
+    }
+  }
+
+  get speed(): number {
+    return this._speed;
+  }
+
+  set speed(speed: number) {
+    const { _animator: animator } = this;
+    this._speed = speed;
+    if (animator) {
+      animator.speed = speed;
+      this._playState();
+    }
   }
 
   get animator() {
     return this._animator;
   }
 
-  get autoPlay() {
-    return this._autoPlay;
+  get preview() {
+    return this._preview;
   }
 
-  set autoPlay(value: string) {
+  set preview(value: string) {
     if (this._animator) {
-      // Play bone animation.
       if (value) {
-        this._animator.play(value);
-        this._animator.speed = 1;
+        this._animator.play(value, 0);
       } else {
-        this._animator.speed = 0;
+        this._playDefaultState();
       }
     }
-    this._autoPlay = value;
+    this._preview = value;
   }
-
-  get loop() {
-    return this._loop;
-  }
-
-  set loop(value: WrapMode) {
-    if (this._animator && this.autoPlay) {
-      // Play bone animation
-      this._animator.play(this._autoPlay);
-    }
-    this._loop = value;
-  }
-
-  public _animator: Animator;
-  public animationsNames: String[];
-
-  private _asset: GLTFResource;
-  private glTFEntity: Entity;
-  private _loop: number;
-  private _autoPlay: string;
-  private _hasBuiltNode: boolean = false;
 
   constructor(entity) {
     super(entity);
@@ -86,38 +104,80 @@ export class GLTFModel extends Component {
    * @param props - Init props
    */
   init(props): void {
-    const { asset = null, autoPlay, loop, isClone } = props;
+    const { asset = null, speed, animatorController, play,  isClone } = props;
     if (isClone) {
       const rootName = (props as any).gltfRootName;
       if (rootName) {
-        this.glTFEntity = this.entity.findByName(rootName);
+        this._glTFEntity = this.entity.findByName(rootName);
       }
     }
-    if (!this.glTFEntity) {
+    if (!this._glTFEntity) {
       const rootName = `GLTF-${Date.now()}`;
       (props as any).gltfRootName = rootName;
-      this.glTFEntity = this.entity.createChild(rootName);
+      this._glTFEntity = this.entity.createChild(rootName);
       this._hasBuiltNode = false;
     } else {
       this._hasBuiltNode = true;
     }
 
     this.asset = asset;
-    this.loop = loop;
-    this.autoPlay = autoPlay;
+    this.animatorController = animatorController;
+    this.speed = speed;
+    this.preview = play;
+  }
+
+  update() {
+    if (this._animator) {
+      if (this._controllerUpdateFlag?.flag) {
+        this._playState();
+      }
+    }
   }
 
   /**
    * @override
    */
   _onEnable(): void {
-    this.glTFEntity && (this.glTFEntity.isActive = true);
+    this._glTFEntity && (this._glTFEntity.isActive = true);
+    this.engine._componentsManager.addOnUpdateAnimations(this);
   }
 
   /**
    * @override
    */
   _onDisable(): void {
-    this.glTFEntity && (this.glTFEntity.isActive = false);
+    this._glTFEntity && (this._glTFEntity.isActive = false);
+    this.engine._componentsManager.removeOnUpdateAnimations(this);
+  }
+
+  _playState() {
+    const playStateName = this._preview
+    if (playStateName) {
+      this._animator.play(playStateName, 0);
+      if (this._controllerUpdateFlag?.flag) {
+        this._controllerUpdateFlag.flag = false;
+      }
+    } else {
+      this._playDefaultState();
+    }
+  }
+
+  _playDefaultState() {
+    const { _animatorController: animatorController, _animator: animator } = this;
+    if (!animator) return;
+    if (animatorController) {
+      const { layers } = animatorController;
+      for (let i = 0, length = layers.length; i < length; ++i) {
+        //@ts-ignore
+        const defaultState = layers[i]?.stateMachine?._defaultState ?? layers[i]?.stateMachine?.states[0];
+        const defaultStateName = defaultState?.name;
+        if (defaultStateName) {
+          animator.play(defaultStateName, i);
+          if (this._controllerUpdateFlag?.flag) {
+            this._controllerUpdateFlag.flag = false;
+          }
+        }
+      }
+    }
   }
 }

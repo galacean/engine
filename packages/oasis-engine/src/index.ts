@@ -15,7 +15,7 @@ import {
   SpriteMask,
   Animator
 } from "@oasis-engine/core";
-import { GLTFModel, AnimatorForEditor, Parser, Model } from "@oasis-engine/loader";
+import { GLTFModel, Parser, Model } from "@oasis-engine/loader";
 
 Parser.registerComponents("o3", {
   GLTFModel,
@@ -30,8 +30,7 @@ Parser.registerComponents("o3", {
   Model,
   Component,
   SphereCollider,
-  Animator,
-  AnimatorForEditor
+  Animator
 });
 
 //@ts-ignore

@@ -1,4 +1,3 @@
-import { getAnimatorControllerDefaultData } from './AnimatorControllerDefaultData';
 import { AnimatorControllerResource } from "./AnimatorControllerResource";
 import { AnimationClipResource } from "./AnimationClipResource";
 import {
@@ -27,8 +26,7 @@ export class GLTFResource extends SchemaResource {
         const gltf = res;
         if (assetConfig.props) {
           gltf.newMaterial = (assetConfig.props as any).newMaterial;
-          gltf.animationClips = (assetConfig.props as any).animationClips;
-          gltf.animatorController = (assetConfig.props as any).animatorController;
+          gltf.animatorControllers = (assetConfig.props as any).animatorControllers;
         }
         this._resource = gltf;
       });
@@ -52,7 +50,6 @@ export class GLTFResource extends SchemaResource {
             index: 0,
             props: {
               newMaterial: [],
-              animationClips: [],
               animatorControllers: []
             }
           }
@@ -85,28 +82,15 @@ export class GLTFResource extends SchemaResource {
             })
           );
         }
-        // for (let i = 0, length = animations.length; i < length; ++i) {
-        //   const clip = animations[i];
-        //   const clipResourse = new AnimationClipResource(this.resourceManager);
-        //   this._attachedResources.push(clipResourse);
-        //   clipLoadPromises.push(
-        //     clipResourse.loadWithAttachedResources(resourceManager, {
-        //       type: "animationClip",
-        //       name: clip.name,
-        //       resource: clip
-        //     })
-        //   );
-        // }
 
         if (animations.length) {
           const animatorControllerResource = new AnimatorControllerResource(this.resourceManager);
-          // const defaultData =  getAnimatorControllerDefaultData();
           this._attachedResources.push(animatorControllerResource);
           animatorControllerLoadPromise = animatorControllerResource.loadWithAttachedResources(resourceManager, {
             type: "animatorController",
             name: "AnimatorController",
             props: {
-              animationClips: animations
+              animations
             }
           });
         }
@@ -162,8 +146,7 @@ export class GLTFResource extends SchemaResource {
   bind() {
     const resource = this._resource;
     this.bindMaterials(resource.newMaterial);
-    this.bindAnimationClips(resource.animationClips);
-    this.bindAnimatorController(resource.animatorController);
+    this.bindAnimatorControllers(resource.animatorControllers);
   }
 
   update(key: string, value: any) {
@@ -216,27 +199,15 @@ export class GLTFResource extends SchemaResource {
     }
   }
 
-  private bindAnimationClips(animationClips) {
-    for (let i = 0, length = animationClips.length; i < length; i++) {
-      const clipAsset = animationClips[i];
-      const clipResource = this.resourceManager.get(clipAsset.id);
-      if (clipResource) {
-        this._attachedResources.push(clipResource);
+  private bindAnimatorControllers(animatorControllers) {
+    for (let i = 0, length = animatorControllers.length; i < length; i++) {
+      const animatorControllerAsset = animatorControllers[i];
+      const controllerResource = this.resourceManager.get(animatorControllerAsset.id);
+      if (controllerResource) {
+        this._attachedResources.push(controllerResource);
       } else {
-        Logger.warn(`GLTFResource: ${ this.meta.name } can't find asset "animationClip", which id is: ${ clipAsset.id }`);
+        `GLTFResource: ${ this.meta.name } can't find asset "animatorControler", which id is: ${ animatorControllerAsset.id }`
       }
-    }
-  }
-
-  private bindAnimatorController(animatorController) {
-    if (!animatorController) return;
-    const controllerResource = this.resourceManager.get(animatorController.id);
-    if (controllerResource) {
-      this._attachedResources.push(controllerResource);
-    } else {
-      Logger.warn(
-        `GLTFResource: ${ this.meta.name } can't find asset "animatorControler", which id is: ${ animatorController.id }`
-      );
     }
   }
 }
