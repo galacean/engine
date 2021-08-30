@@ -158,7 +158,12 @@ export class SceneParser extends Parser {
     if (animations) {
       for (let i = 0; i < animations.length; i++) {
         const animationClip = animations[i];
-        const animatorState = animatorStateMachine.addState(animationClip.name);
+        const name = animationClip.name;
+        const uniqueName = animatorStateMachine.makeUniqueStateName(name);
+        if (uniqueName !== name) {
+          console.warn(`AnimatorState name is exsited, name: ${name} reset to ${uniqueName}`);
+        }
+        const animatorState = animatorStateMachine.addState(uniqueName);
         animatorState.clip = animationClip;
       }
     }
