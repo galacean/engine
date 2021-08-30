@@ -10,10 +10,10 @@ export class SpriteAtlasResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<SpriteAtlasResource> {
     return new Promise((resolve) => {
       this.setMeta();
-      if (assetConfig.props.url) {
+      if (assetConfig.source) {
         resourceManager
           .load<SpriteAtlas>({
-            url: assetConfig.props.url,
+            url: assetConfig.source,
             type: AssetType.SpriteAtlas
           })
           .then((spriteAtlas) => {
