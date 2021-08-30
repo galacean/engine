@@ -6,7 +6,7 @@ import {
   FloatKeyframe,
   InterpolableValue,
   QuaternionKeyframe,
-  UnionInterpolableKeyframe as UnionInterpolateKeyframe,
+  UnionInterpolableKeyframe,
   Vector2Keyframe,
   Vector3Keyframe
 } from "./KeyFrame";
@@ -16,7 +16,7 @@ import {
  */
 export class AnimationCurve {
   /** All keys defined in the animation curve. */
-  keys: UnionInterpolateKeyframe[] = [];
+  keys: UnionInterpolableKeyframe[] = [];
   /** The interpolationType of the animation curve. */
   interpolation: InterpolationType;
 
@@ -40,7 +40,7 @@ export class AnimationCurve {
    * Add a new key to the curve.
    * @param key - The keyframe
    */
-  addKey(key: UnionInterpolateKeyframe): void {
+  addKey(key: UnionInterpolableKeyframe): void {
     const { time } = key;
     this.keys.push(key);
     if (time > this._length) {
@@ -113,9 +113,9 @@ export class AnimationCurve {
     // Evaluate value.
     let value: InterpolableValue;
     if (curIndex === -1) {
-      value = (<UnionInterpolateKeyframe>keys[0]).value;
+      value = (<UnionInterpolableKeyframe>keys[0]).value;
     } else if (nextIndex === length) {
-      value = (<UnionInterpolateKeyframe>keys[curIndex]).value;
+      value = (<UnionInterpolableKeyframe>keys[curIndex]).value;
     } else {
       // Time between first frame and end frame.
       const curFrameTime = keys[curIndex].time;
@@ -145,7 +145,7 @@ export class AnimationCurve {
    * @param index - The index of the key to move
    * @param key - The key to insert
    */
-  moveKey(index: number, key: UnionInterpolateKeyframe): void {
+  moveKey(index: number, key: UnionInterpolableKeyframe): void {
     this.keys[index] = key;
   }
 
@@ -227,9 +227,9 @@ export class AnimationCurve {
   private _evaluateStep(nextFrameIndex: number): InterpolableValue {
     const { _valueSize, keys } = this;
     if (_valueSize === 1) {
-      return (<UnionInterpolateKeyframe>keys[nextFrameIndex]).value;
+      return (<UnionInterpolableKeyframe>keys[nextFrameIndex]).value;
     } else {
-      return (<UnionInterpolateKeyframe>keys[nextFrameIndex]).value;
+      return (<UnionInterpolableKeyframe>keys[nextFrameIndex]).value;
     }
   }
 

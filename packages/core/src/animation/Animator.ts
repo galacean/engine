@@ -669,7 +669,7 @@ export class Animator extends Component {
     const { transitions } = state;
     for (let i = 0, n = transitions.length; i < n; ++i) {
       const transition = transitions[i];
-      if (duration * transition.exitTime >= clipTime) {
+      if (duration * transition.exitTime <= clipTime) {
         crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex);
       }
     }
