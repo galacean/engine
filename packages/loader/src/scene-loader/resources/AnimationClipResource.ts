@@ -55,7 +55,6 @@ export class AnimationClipResource extends SchemaResource {
         event.parameter = eventData.parameter;
         assetObj.addEvent(event);
       }
-      console.log("AnimationClipResource load", assetConfig, assetObj);
       this._resource = assetObj;
       this.setMeta();
       resolve(this);
@@ -70,13 +69,11 @@ export class AnimationClipResource extends SchemaResource {
       let loadPromise;
       if (assetConfig.resource instanceof AnimationClip) {
         loadPromise = new Promise((resolve) => {
-          console.log("AnimationClipResource loadWithAttachedResources AnimationClip");
           this._resource = assetConfig.resource;
           this.setMeta();
           resolve(this);
         });
       } else if (assetConfig.props) {
-        console.log("AnimationClipResource loadWithAttachedResources props");
         loadPromise = this.load(resourceManager, assetConfig);
       } else {
         reject("Load AnimationClip Error");
