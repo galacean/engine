@@ -117,7 +117,6 @@ export class AnimationClipResource extends SchemaResource {
       };
     });
     result.events = clip.events;
-    console.log("AnimationClipResource getProps", this.resource, result);
     return result;
   }
 
