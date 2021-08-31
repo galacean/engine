@@ -207,7 +207,7 @@ export class Matrix implements IClone {
   }
 
   /**
-   * Calculate a matrix rotates around an arbitary axis.
+   * Calculate a matrix rotates around an arbitrary axis.
    * @param axis - The axis
    * @param r - The rotation angle in radians
    * @param out - The matrix after rotate
@@ -550,7 +550,7 @@ export class Matrix implements IClone {
   }
 
   /**
-   * The specified matrix rotates around an arbitary axis.
+   * The specified matrix rotates around an arbitrary axis.
    * @param m - The specified matrix
    * @param axis - The axis
    * @param r - The rotation angle in radians
@@ -1225,7 +1225,7 @@ export class Matrix implements IClone {
   }
 
   /**
-   * This matrix rotates around an arbitary axis.
+   * This matrix rotates around an arbitrary axis.
    * @param axis - The axis
    * @param r - The rotation angle in radians
    * @returns This matrix after rotate

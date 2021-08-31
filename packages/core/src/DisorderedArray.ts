@@ -21,6 +21,14 @@ export class DisorderedArray<T> {
     const index = this._elements.indexOf(element);
     this.deleteByIndex(index);
   }
+
+  get(index: number): T {
+    if (index >= this.length) {
+      throw "Index is out of range.";
+    }
+    return this._elements[index];
+  }
+
   /**
    *
    * @param index

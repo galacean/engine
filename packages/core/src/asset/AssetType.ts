@@ -28,13 +28,11 @@ export enum AssetType {
   /** Animation Clip. */
   AnimationClip = "animation-clip",
   /** Prefab.*/
-  Perfab = "prefab",
+  Prefab = "prefab",
   /** Compress Texture. */
   KTX = "ktx",
   /** Cube Compress Texture. */
   KTXCube = "ktx-cube",
-  /** @todo Scene. */
-  // Scene = 9
-  /** Editor File loader, for editor custom loader. */
-  EditorFile = "editor-file"
+  /** Sprite Atlas. */
+  SpriteAtlas = "sprite-atlas"
 }

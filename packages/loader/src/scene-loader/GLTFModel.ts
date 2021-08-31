@@ -1,4 +1,4 @@
-import { Component, Entity, WrapMode, Animation } from "@oasis-engine/core";
+import { Component, Entity, WrapMode, Animator } from "@oasis-engine/core";
 import { GLTFResource } from "../gltf/GLTFResource";
 
 /**
@@ -21,7 +21,7 @@ export class GLTFModel extends Component {
       if (value !== null) {
         entity?.destroy();
         const gltfEntity = value.defaultSceneRoot.clone();
-        this._animator = gltfEntity.getComponent(Animation);
+        this._animator = gltfEntity.getComponent(Animator);
         this.entity.addChild(gltfEntity);
         gltfEntity.isActive = this.enabled;
         this.glTFEntity = gltfEntity;
@@ -42,11 +42,10 @@ export class GLTFModel extends Component {
     if (this._animator) {
       // Play bone animation.
       if (value) {
-        this._animator.playAnimationClip(value, {
-          wrapMode: this._loop
-        });
+        this._animator.play(value);
+        this._animator.speed = 1;
       } else {
-        this._animator.stop(false);
+        this._animator.speed = 0;
       }
     }
     this._autoPlay = value;
@@ -59,14 +58,12 @@ export class GLTFModel extends Component {
   set loop(value: WrapMode) {
     if (this._animator && this.autoPlay) {
       // Play bone animation
-      this._animator.playAnimationClip(this._autoPlay, {
-        wrapMode: value
-      });
+      this._animator.play(this._autoPlay);
     }
     this._loop = value;
   }
 
-  public _animator: Animation;
+  public _animator: Animator;
   public animationsNames: String[];
 
   private _asset: GLTFResource;

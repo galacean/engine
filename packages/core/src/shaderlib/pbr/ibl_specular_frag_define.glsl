@@ -34,41 +34,23 @@ float getSpecularMIPLevel( const in float blinnShininessExponent, const in int m
 
 vec3 getLightProbeIndirectRadiance( /*const in SpecularLightProbe specularLightProbe,*/ const in GeometricContext geometry, const in float blinnShininessExponent, const in int maxMIPLevel ) {
 
-    #if !defined(O3_USE_SPECULAR_ENV) && !defined(HAS_REFLECTIONMAP)
+    #ifndef O3_USE_SPECULAR_ENV
 
         return vec3(0.0);
 
     #else
 
-        #ifdef ENVMAPMODE_REFRACT
-
-            vec3 reflectVec = refract( -geometry.viewDir, geometry.normal, u_refractionRatio );
-
-        #else
-
-            vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
-
-        #endif
-//        reflectVec = inverseTransformDirection( reflectVec, u_viewMat );
+        vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
 
         float specularMIPLevel = getSpecularMIPLevel( blinnShininessExponent, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
-            #ifdef HAS_REFLECTIONMAP
-                 vec4 envMapColor = textureCubeLodEXT( u_reflectionSampler, reflectVec, specularMIPLevel );
-            #else
-                vec4 envMapColor = textureCubeLodEXT( u_env_specularSampler, reflectVec, specularMIPLevel );
-            #endif
-
+            vec4 envMapColor = textureCubeLodEXT( u_env_specularSampler, reflectVec, specularMIPLevel );
         #else
-            #ifdef HAS_REFLECTIONMAP
-                 vec4 envMapColor = textureCube( u_reflectionSampler, reflectVec, specularMIPLevel );
-            #else
-                 vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
-            #endif
+            vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
         #endif
 
-        envMapColor.rgb = SRGBtoLINEAR( envMapColor * u_envMapLight.specularIntensity * u_envMapIntensity).rgb;
+        envMapColor.rgb = SRGBtoLINEAR( envMapColor * u_envMapLight.specularIntensity).rgb;
 
         return envMapColor.rgb;
 

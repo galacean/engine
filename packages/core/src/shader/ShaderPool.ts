@@ -15,6 +15,8 @@ import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
 import spriteVs from "../shaderlib/extra/sprite.vs.glsl";
 import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
+import backgroundTextureVs from "../shaderlib/extra/background-texture.vs.glsl";
+import backgroundTextureFs from "../shaderlib/extra/background-texture.fs.glsl";
 import { Shader } from "./Shader";
 
 /**
@@ -32,5 +34,6 @@ export class ShaderPool {
     Shader.create("particle-shader", particleVs, particleFs);
     Shader.create("SpriteMask", spriteMaskVs, spriteMaskFs);
     Shader.create("Sprite", spriteVs, spriteFs);
+    Shader.create("background-texture", backgroundTextureVs, backgroundTextureFs);
   }
 }

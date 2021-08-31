@@ -1,5 +1,6 @@
 import { Color } from "@oasis-engine/math";
 import { Engine } from "../Engine";
+import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
 
@@ -7,47 +8,47 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Specular-Glossiness Workflow) Material.
  */
 export class PBRSpecularMaterial extends PBRBaseMaterial {
-  private _specularColor = new Color(1, 1, 1, 1);
-  private _glossinessFactor: number = 1;
-  private _specularGlossinessTexture: Texture2D;
+  private static _specularColorProp = Shader.getPropertyByName("u_specularColor");
+  private static _glossinessProp = Shader.getPropertyByName("u_glossinessFactor");
+  private static _specularGlossinessTextureProp = Shader.getPropertyByName("u_specularGlossinessSampler");
 
   /**
    * Specular color.
    */
   get specularColor(): Color {
-    return this._specularColor;
+    return this.shaderData.getColor(PBRSpecularMaterial._specularColorProp);
   }
 
-  set specularColor(v: Color) {
-    this._specularColor = v;
-    this.shaderData.setColor("u_specularFactor", v);
+  set specularColor(value: Color) {
+    const specularColor = this.shaderData.getColor(PBRSpecularMaterial._specularColorProp);
+    if (value !== specularColor) {
+      value.cloneTo(specularColor);
+    }
   }
 
   /**
-   * Glossiness factor.
+   * Glossiness.
    */
-  get glossinessFactor(): number {
-    return this._glossinessFactor;
+  get glossiness(): number {
+    return this.shaderData.getFloat(PBRSpecularMaterial._glossinessProp);
   }
 
-  set glossinessFactor(v: number) {
-    this._glossinessFactor = v;
-    this.shaderData.setFloat("u_glossinessFactor", v);
+  set glossiness(value: number) {
+    this.shaderData.setFloat(PBRSpecularMaterial._glossinessProp, value);
   }
 
   /**
-   * Specular and glossiness texture.
+   * Specular glossiness texture.
+   * @remarks RGB is specular, A is glossiness
    */
   get specularGlossinessTexture(): Texture2D {
-    return this._specularGlossinessTexture;
+    return <Texture2D>this.shaderData.getTexture(PBRSpecularMaterial._specularGlossinessTextureProp);
   }
 
-  set specularGlossinessTexture(v: Texture2D) {
-    this._specularGlossinessTexture = v;
-
-    if (v) {
+  set specularGlossinessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRSpecularMaterial._specularGlossinessTextureProp, value);
+    if (value) {
       this.shaderData.enableMacro("HAS_SPECULARGLOSSINESSMAP");
-      this.shaderData.setTexture("u_specularGlossinessSampler", v);
     } else {
       this.shaderData.disableMacro("HAS_SPECULARGLOSSINESSMAP");
     }
@@ -60,8 +61,8 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   constructor(engine: Engine) {
     super(engine);
 
-    this.specularColor = this._specularColor;
-    this.glossinessFactor = this._glossinessFactor;
+    this.shaderData.setColor(PBRSpecularMaterial._specularColorProp, new Color(1, 1, 1, 1));
+    this.shaderData.setFloat(PBRSpecularMaterial._glossinessProp, 1.0);
   }
 
   /**

@@ -18,24 +18,22 @@ export class RenderQueue {
    * @internal
    */
   static _compareFromNearToFar(a: Item, b: Item): number {
-    const renderQueueDif = a.material.renderQueueType - b.material.renderQueueType;
-
-    if (renderQueueDif) {
-      return renderQueueDif;
-    }
-    return a.component._distanceForSort - b.component._distanceForSort;
+    return (
+      a.material.renderQueueType - b.material.renderQueueType ||
+      a.component._distanceForSort - b.component._distanceForSort ||
+      b.component._renderSortId - a.component._renderSortId
+    );
   }
 
   /**
    * @internal
    */
   static _compareFromFarToNear(a: Item, b: Item): number {
-    const renderQueueDif = a.material.renderQueueType - b.material.renderQueueType;
-
-    if (renderQueueDif) {
-      return renderQueueDif;
-    }
-    return b.component._distanceForSort - a.component._distanceForSort;
+    return (
+      a.material.renderQueueType - b.material.renderQueueType ||
+      b.component._distanceForSort - a.component._distanceForSort ||
+      b.component._renderSortId - a.component._renderSortId
+    );
   }
 
   readonly items: Item[] = [];
@@ -132,7 +130,7 @@ export class RenderQueue {
             program.uploadTextures(program.materialUniformBlock, materialData);
           }
 
-          // We only consider switchProgram case, because ungroup texure's value is always default.
+          // We only consider switchProgram case, because ungroup texture's value is always default.
           if (switchProgram) {
             program.uploadUngroupTextures();
           }
@@ -140,8 +138,8 @@ export class RenderQueue {
         material.renderState._apply(camera.engine);
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
-        const spirteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spirteElement);
+        const spriteElement = <SpriteElement>item;
+        this._spriteBatcher.drawElement(spriteElement);
       }
     }
 
@@ -259,8 +257,9 @@ export class RenderQueue {
 
   private _insertionSort<T>(a: T[], from: number, to: number, compareFunc: Function): void {
     for (let i = from + 1; i < to; i++) {
+      let j;
       const element = a[i];
-      for (var j = i - 1; j >= from; j--) {
+      for (j = i - 1; j >= from; j--) {
         const tmp = a[j];
         const order = compareFunc(tmp, element);
         if (order > 0) {
