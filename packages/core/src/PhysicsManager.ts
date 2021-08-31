@@ -103,6 +103,7 @@ export class PhysicsManager {
       hitResult = outHitResult;
     }
 
+    let isHit = false;
     const curHit = PhysicsManager._currentHit;
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
@@ -112,6 +113,7 @@ export class PhysicsManager {
       }
 
       if (collider._raycast(ray, curHit)) {
+        isHit = true;
         if (curHit.distance < distance) {
           if (hasResult) {
             curHit.normal.cloneTo(hitResult.normal);
@@ -126,10 +128,12 @@ export class PhysicsManager {
       }
     }
 
-    if (hasResult) {
-      return hitResult.collider != null;
-    } else {
-      return false;
+    if (!isHit) {
+      hitResult.collider = null;
+      hitResult.distance = 0;
+      hitResult.point.setValue(0, 0, 0);
+      hitResult.normal.setValue(0, 0, 0);
     }
+    return isHit;
   }
 }
