@@ -21,7 +21,7 @@ export interface AtlasConfig {
  * The original data type of each sprite.
  */
 export interface AtlasSprite {
-  /** Asset id in the editor. */
+  /** @internal temp solution. */
   id: number;
   /** The name the sprite. */
   name: string;
