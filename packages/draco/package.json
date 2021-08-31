@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/draco",
-  "version": "0.5.3-alpha.2",
+  "version": "0.5.3-alpha.6",
   "license": "MIT",
   "scripts": {
     "b:types": "tsc"
@@ -13,6 +13,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.5.3-alpha.2"
+    "@oasis-engine/core": "0.5.3-alpha.6"
   }
 }
