@@ -79,14 +79,12 @@ export class PhysicsManager {
     const cf = this._engine.sceneManager.activeScene.findFeature(ColliderFeature);
     const colliders = cf.colliders;
 
-    let hasResult = false;
     let hitResult: HitResult;
 
     let distance = Number.MAX_VALUE;
     if (typeof distanceOrResult === "number") {
       distance = distanceOrResult;
-    } else if (distance != undefined) {
-      hasResult = true;
+    } else if (distanceOrResult != undefined) {
       hitResult = distanceOrResult;
     }
 
@@ -94,12 +92,10 @@ export class PhysicsManager {
     if (typeof layerMaskOrResult === "number") {
       layerMask = layerMaskOrResult;
     } else if (layerMaskOrResult != undefined) {
-      hasResult = true;
       hitResult = layerMaskOrResult;
     }
 
     if (outHitResult) {
-      hasResult = true;
       hitResult = outHitResult;
     }
 
@@ -115,7 +111,7 @@ export class PhysicsManager {
       if (collider._raycast(ray, curHit)) {
         isHit = true;
         if (curHit.distance < distance) {
-          if (hasResult) {
+          if (hitResult) {
             curHit.normal.cloneTo(hitResult.normal);
             curHit.point.cloneTo(hitResult.point);
             hitResult.distance = curHit.distance;
