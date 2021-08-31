@@ -124,7 +124,7 @@ export class PhysicsManager {
       }
     }
 
-    if (!isHit) {
+    if (!isHit && hitResult) {
       hitResult.collider = null;
       hitResult.distance = 0;
       hitResult.point.setValue(0, 0, 0);
