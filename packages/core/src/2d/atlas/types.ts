@@ -21,6 +21,8 @@ export interface AtlasConfig {
  * The original data type of each sprite.
  */
 export interface AtlasSprite {
+  /** @internal temp solution. */
+  id: number;
   /** The name the sprite. */
   name: string;
   /** Whether to rotate 90 degrees clockwise. */

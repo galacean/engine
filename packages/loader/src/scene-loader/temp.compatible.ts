@@ -64,7 +64,7 @@ function handleSceneProps(props) {
       } else if (v.length === 2) {
         props[k] = new Vector2(v[0], v[1]);
       }
-    } else if (k === "diffuseSphericalHarmonics") {
+    } else if (v && k === "diffuseSphericalHarmonics") {
       sh.setValueByArray(JSON.parse(v));
       props[k] = sh;
     }
