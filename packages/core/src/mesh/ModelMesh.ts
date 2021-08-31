@@ -161,6 +161,10 @@ export class ModelMesh extends Mesh {
    * Get indices for the mesh.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
+
     return this._indices;
   }
 
