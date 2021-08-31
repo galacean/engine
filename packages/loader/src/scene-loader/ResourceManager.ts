@@ -16,6 +16,7 @@ import {
   AnimatorControllerResource,
   AnimationClipResource
 } from "./resources";
+import { SpriteAtlasResource } from "./resources/SpriteAtlasResource";
 import { AssetConfig } from "./types";
 
 export const RESOURCE_CLASS = {
@@ -30,6 +31,7 @@ export const RESOURCE_CLASS = {
   BlinnPhongMaterial: BlinnPhongMaterialResource,
   base: BaseResource,
   sprite: SpriteResource,
+  SpriteAtlas: SpriteAtlasResource,
   animatorController: AnimatorControllerResource,
   animationClip: AnimationClipResource
 };

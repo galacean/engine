@@ -1,14 +1,6 @@
 import {
-  AnimationClip,
-  AnimationCurve,
-  AnimationEvent,
-  AnimationProperty,
-  InterpolableKeyframe,
-  InterpolableValueType,
   ResourceManager,
-  Transform
 } from "@oasis-engine/core";
-import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 import { SchemaResource } from "./SchemaResource";
 
