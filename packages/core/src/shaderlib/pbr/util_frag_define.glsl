@@ -1,12 +1,17 @@
 vec4 SRGBtoLINEAR(vec4 srgbIn)
 {
+    #ifdef MANUAL_SRGB
+        #ifdef SRGB_FAST_APPROXIMATION
+            vec3 linOut = pow(srgbIn.xyz, vec3(2.2));
+        #else
+            vec3 bLess = step(vec3(0.04045), srgbIn.xyz);
+            vec3 linOut = mix(srgbIn.xyz/vec3(12.92), pow((srgbIn.xyz+vec3(0.055))/vec3(1.055), vec3(2.4)), bLess);
+        #endif
 
-    vec3 bLess = step(vec3(0.04045), srgbIn.rgb);
-    vec3 linOut = mix(srgbIn.rgb / vec3(12.92), pow((srgbIn.rgb + vec3(0.055))/vec3(1.055), vec3(2.4)), bLess);
-
-
-    return vec4(linOut, srgbIn.a);;
-
+        return vec4(linOut, srgbIn.w);;
+    #else
+        return srgbIn;
+    #endif
 }
 
 float pow2( const in float x ) {

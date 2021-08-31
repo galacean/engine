@@ -92,14 +92,14 @@ export class Background {
         positions[3].setValue(1, 1, 1);
         break;
       case BackgroundTextureFillMode.AspectFitWidth:
-        const fitWidthScale = 1 / ((this._texture.width * (height / width)) / height);
+        const fitWidthScale = (this._texture.height * width) / this.texture.width / height;
         positions[0].setValue(-1, -fitWidthScale, 1);
         positions[1].setValue(1, -fitWidthScale, 1);
         positions[2].setValue(-1, fitWidthScale, 1);
         positions[3].setValue(1, fitWidthScale, 1);
         break;
       case BackgroundTextureFillMode.AspectFitHeight:
-        const fitHeightScale = (this._texture.width * (height / width)) / height;
+        const fitHeightScale = (this._texture.width * height) / this.texture.height / width;
         positions[0].setValue(-fitHeightScale, -1, 1);
         positions[1].setValue(fitHeightScale, -1, 1);
         positions[2].setValue(-fitHeightScale, 1, 1);
