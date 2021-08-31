@@ -7,7 +7,7 @@ import { SchemaResource } from "./SchemaResource";
 export class AnimationClipResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<any> {
     return new Promise((resolve) => {
-      this._resource = assetConfig.props || {};;
+      this._resource = assetConfig.props || {};
       this.setMeta();
       resolve(this);
     });
@@ -43,5 +43,9 @@ export class AnimationClipResource extends SchemaResource {
     if (this.resource) {
       this.meta.name = this.resource.name;
     }
+  }
+
+  getProps() {
+    return this._resource;
   }
 }
