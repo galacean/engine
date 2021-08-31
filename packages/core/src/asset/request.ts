@@ -76,6 +76,9 @@ function requestImage<T>(url: string, config: RequestConfig): AssetPromise<T> {
         requestAnimationFrame(() => {
           //@ts-ignore
           resolve(img);
+          img.onload = null;
+          img.onerror = null;
+          img.onabort = null;
         });
         clearTimeout(timeoutId);
       };
