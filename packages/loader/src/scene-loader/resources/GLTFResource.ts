@@ -54,25 +54,24 @@ export class GLTFResource extends SchemaResource {
             }
           }
         };
-        if (materials?.length) {
-          for (let i = 0; i < materials.length; i++) {
-            const material = materials[i];
-            let materialResource = null;
-            let type = "";
+        for (let i = 0; i < materials.length; i++) {
+          const material = materials[i];
+          let materialResource = null;
+          let type = "";
 
-            if (material instanceof PBRMaterial) {
-              materialResource = new PBRMaterialResource(this.resourceManager);
-              type = "PBRMaterial";
-            } else if (material instanceof UnlitMaterial) {
-              materialResource = new UnlitMaterialResource(this.resourceManager);
-              type = "UnlitMaterial";
-            } else if (material instanceof PBRSpecularMaterial) {
-              materialResource = new PBRSpecularMaterialResource(this.resourceManager);
-              type = "PBRSpecularMaterial";
-            } else {
-              materialResource = new BlinnPhongMaterialResource(this.resourceManager);
-              type = "BlinnPhongMaterial";
-            }
+          if (material instanceof PBRMaterial) {
+            materialResource = new PBRMaterialResource(this.resourceManager);
+            type = "PBRMaterial";
+          } else if (material instanceof UnlitMaterial) {
+            materialResource = new UnlitMaterialResource(this.resourceManager);
+            type = "UnlitMaterial";
+          } else if (material instanceof PBRSpecularMaterial) {
+            materialResource = new PBRSpecularMaterialResource(this.resourceManager);
+            type = "PBRSpecularMaterial";
+          } else {
+            materialResource = new BlinnPhongMaterialResource(this.resourceManager);
+            type = "BlinnPhongMaterial";
+          }
 
           this._attachedResources.push(materialResource);
           materialLoadPromises.push(
