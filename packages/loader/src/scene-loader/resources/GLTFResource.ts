@@ -1,5 +1,4 @@
 import { AnimatorControllerResource } from "./AnimatorControllerResource";
-import { AnimationClipResource } from "./AnimationClipResource";
 import {
   AssetType,
   Entity,
@@ -40,7 +39,7 @@ export class GLTFResource extends SchemaResource {
     return new Promise((resolve) => {
       this.load(resourceManager, assetConfig, oasis).then(() => {
         const gltf = this.resource;
-        const { materials = [], animations = [] } = gltf;
+        const { materials = [], _animationsIndices = [] } = gltf;
         const materialLoadPromises = [];
         const clipLoadPromises = [];
         let animatorControllerLoadPromise: Promise<any>;
@@ -83,14 +82,15 @@ export class GLTFResource extends SchemaResource {
           );
         }
 
-        if (animations.length) {
+        if (_animationsIndices.length) {
           const animatorControllerResource = new AnimatorControllerResource(this.resourceManager);
           this._attachedResources.push(animatorControllerResource);
           animatorControllerLoadPromise = animatorControllerResource.loadWithAttachedResources(resourceManager, {
             type: "animatorController",
             name: "AnimatorController",
             props: {
-              animations
+              animationsIndices: _animationsIndices,
+              gltf: this._resource
             }
           });
         }
@@ -202,11 +202,12 @@ export class GLTFResource extends SchemaResource {
   private bindAnimatorControllers(animatorControllers) {
     for (let i = 0, length = animatorControllers.length; i < length; i++) {
       const animatorControllerAsset = animatorControllers[i];
-      const controllerResource = this.resourceManager.get(animatorControllerAsset.id);
+      const controllerResource = <AnimatorControllerResource>this.resourceManager.get(animatorControllerAsset.id);
+      controllerResource.gltf= this._resource;
       if (controllerResource) {
         this._attachedResources.push(controllerResource);
       } else {
-        `GLTFResource: ${ this.meta.name } can't find asset "animatorControler", which id is: ${ animatorControllerAsset.id }`
+        `GLTFResource: ${ this.meta.name } can't find asset "animatorController", which id is: ${ animatorControllerAsset.id }`
       }
     }
   }
