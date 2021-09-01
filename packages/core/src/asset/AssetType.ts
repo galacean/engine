@@ -34,5 +34,7 @@ export enum AssetType {
   /** Cube Compress Texture. */
   KTXCube = "ktx-cube",
   /** Sprite Atlas. */
-  SpriteAtlas = "sprite-atlas"
+  SpriteAtlas = "sprite-atlas",
+  /** EditorFile */
+  EditorFile = "editor-file"
 }
