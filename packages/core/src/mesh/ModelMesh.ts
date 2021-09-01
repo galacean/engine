@@ -85,12 +85,9 @@ export class ModelMesh extends Mesh {
    * @param engine - Engine to which the mesh belongs
    * @param name - Mesh name
    */
-  getIndices(): Uint8Array | Uint16Array | Uint32Array {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    return this._indices;
+  constructor(engine: Engine, name?: string) {
+    super(engine);
+    this.name = name;
   }
 
   /**
