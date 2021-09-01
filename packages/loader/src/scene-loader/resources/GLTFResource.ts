@@ -113,7 +113,7 @@ export class GLTFResource extends SchemaResource {
             newMaterial.push(matStructure);
           });
         });
-        const loadAttachedController = animatorControllerLoadPromise.then((res) => {
+        const loadAttachedController = animatorControllerLoadPromise ? animatorControllerLoadPromise.then((res) => {
           const { animatorControllers } = result.structure.props;
           const controllerStructure = res.structure;
           const controllerResource = res.resources[controllerStructure.index];
@@ -129,7 +129,7 @@ export class GLTFResource extends SchemaResource {
             }
           }
           animatorControllers.push(controllerStructure);
-        });
+        }) : Promise.resolve();
         Promise.all([loadAttachedMaterial, loadAttachedController]).then(() => {
           resolve(result);
         });
