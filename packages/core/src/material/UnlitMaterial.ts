@@ -13,18 +13,6 @@ export class UnlitMaterial extends BaseMaterial {
   private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
 
   /**
-   * Tiling and offset of main textures.
-   */
-  get tilingOffset(): Vector4 {
-    return this._tilingOffset;
-  }
-
-  set tilingOffset(value: Vector4) {
-    this._tilingOffset = value;
-    this.shaderData.setVector4("u_tilingOffset", value);
-  }
-
-  /**
    * Base color.
    */
   get baseColor(): Color {
