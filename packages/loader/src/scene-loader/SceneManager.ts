@@ -1,3 +1,4 @@
+import { PrimitiveMesh, SkyBoxMaterial } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 
@@ -25,7 +26,18 @@ export class SceneManager {
 
   private setProp(field, key, prop) {
     const scene = this.oasis.engine.sceneManager.activeScene;
-    if (scene[field]) {
+    if (field === "background" && key === "skyboxTexture") {
+      const sky = scene.background.sky;
+      if (prop) {
+        sky.mesh = PrimitiveMesh.createCuboid(scene.engine, 2, 2, 2);
+        const skyMaterial = new SkyBoxMaterial(scene.engine);
+        skyMaterial.textureCubeMap = this.oasis.resourceManager.get(prop.id).resource;
+        sky.material = skyMaterial;
+      } else {
+        sky.mesh = null;
+        sky.material = null;
+      }
+    } else if (scene[field]) {
       if (prop && prop.type === "asset") {
         scene[field][key] = this.oasis.resourceManager.get(prop.id).resource;
       } else {
