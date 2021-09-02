@@ -33,7 +33,7 @@ class KHR_lights {
           props = { name, color, intensity, angle: spot.outerConeAngle };
           break;
         default:
-          Logger.error(`unknow light typ ${type}`);
+          Logger.error(`unknown light typ ${type}`);
           break;
       }
 

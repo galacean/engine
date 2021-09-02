@@ -4,6 +4,7 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { StencilOperation } from "../shader/enums/StencilOperation";
 import { Shader } from "../shader/Shader";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { Basic2DBatcher } from "./Basic2DBatcher";
 import { SpriteMaskElement } from "./SpriteMaskElement";
 
@@ -61,10 +62,17 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
         return;
       }
 
-      const compileMacros = Shader._compileMacros;
-      compileMacros.clear();
-
+      const renderer = <SpriteMask>spriteMaskElement.component;
       const material = spriteMaskElement.material;
+
+      const compileMacros = Shader._compileMacros;
+      // union render global macro and material self macro.
+      ShaderMacroCollection.unionCollection(
+        renderer._globalShaderMacro,
+        material.shaderData._macroCollection,
+        compileMacros
+      );
+
       // Update stencil state
       const stencilState = material.renderState.stencilState;
       const op = spriteMaskElement.isAdd ? StencilOperation.IncrementSaturate : StencilOperation.DecrementSaturate;
@@ -77,7 +85,6 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       }
 
       const camera = spriteMaskElement.camera;
-      const renderer = <SpriteMask>spriteMaskElement.component;
 
       program.bind();
       program.groupingOtherUniformBlock();

@@ -4,7 +4,11 @@
 export enum DiffuseMode {
   /** Solid color mode. */
   SolidColor,
-  /** Texture cube mode. */
-  Texture
-  // SphericalHarmonics
+
+  /**
+   * SH mode
+   * @remarks
+   * Use SH3 to represent irradiance environment maps efficiently, allowing for interactive rendering of diffuse objects under distant illumination.
+   */
+  SphericalHarmonics
 }

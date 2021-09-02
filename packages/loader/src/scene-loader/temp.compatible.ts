@@ -1,4 +1,4 @@
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3, Vector4, SphericalHarmonics3 } from "@oasis-engine/math";
 
 /**
  * temp compa
@@ -32,7 +32,7 @@ function handleComponents(props) {
     const k = keys[i];
     const v = props[k];
 
-    if (Array.isArray(v)) {
+    if (Array.isArray(v) && typeof v[0] !== "object") {
       if (["color", "diffuseColor", "specularColor"].indexOf(k) !== -1) {
         props[k] = new Color(v[0], v[1], v[2], v[3]);
       } else if (v.length === 4) {
@@ -46,13 +46,15 @@ function handleComponents(props) {
   }
 }
 
+const sh = new SphericalHarmonics3();
+
 function handleSceneProps(props) {
   const keys = Object.keys(props);
   for (let i = 0, l = keys.length; i < l; ++i) {
     const k = keys[i];
     const v = props[k];
 
-    if (Array.isArray(v)) {
+    if (Array.isArray(v) && typeof v[0] !== "object") {
       if (/color/i.test(k)) {
         props[k] = new Color(v[0], v[1], v[2], v[3]);
       } else if (v.length === 4) {
@@ -62,6 +64,9 @@ function handleSceneProps(props) {
       } else if (v.length === 2) {
         props[k] = new Vector2(v[0], v[1]);
       }
+    } else if (v && k === "diffuseSphericalHarmonics") {
+      sh.setValueByArray(JSON.parse(v));
+      props[k] = sh;
     }
   }
 }
@@ -79,7 +84,7 @@ function handleAssets(props: any = {}) {
       continue;
     }
 
-    if (Array.isArray(value)) {
+    if (Array.isArray(value) && typeof value[0] !== "object") {
       if (["emissiveColor", "diffuseColor", "specularColor", "baseColor"].indexOf(key) !== -1) {
         props[key] = new Color(value[0], value[1], value[2], value[3]);
       } else if (value.length === 4) {

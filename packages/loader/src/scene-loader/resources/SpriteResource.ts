@@ -127,21 +127,22 @@ export class SpriteResource extends SchemaResource {
 
   bind() {
     const resource = this._resource;
-    Object.keys(this.configProps).forEach((attr) => {
-      const value = this.configProps[attr];
-      if (isAsset(value)) {
-        const textureResource = this.resourceManager.get(value.id);
-        if (textureResource && textureResource instanceof TextureResource) {
-          resource[attr] = textureResource.resource;
-          this._attachedResources.push(textureResource);
+    this.configProps &&
+      Object.keys(this.configProps).forEach((attr) => {
+        const value = this.configProps[attr];
+        if (isAsset(value)) {
+          const textureResource = this.resourceManager.get(value.id);
+          if (textureResource && textureResource instanceof TextureResource) {
+            resource[attr] = textureResource.resource;
+            this._attachedResources.push(textureResource);
+          } else {
+            resource[attr] = null;
+            Logger.warn(`SpriteResource: ${this.meta.name} can't find asset "${attr}", which id is: ${value.id}`);
+          }
         } else {
-          resource[attr] = null;
-          Logger.warn(`SpriteResource: ${this.meta.name} can't find asset "${attr}", which id is: ${value.id}`);
+          resource[attr] = value;
         }
-      } else {
-        resource[attr] = value;
-      }
-    });
+      });
   }
 }
 

@@ -4,6 +4,7 @@ import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { Shader } from "../shader/Shader";
+import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Basic2DBatcher } from "./Basic2DBatcher";
 import { SpriteElement } from "./SpriteElement";
@@ -89,12 +90,17 @@ export class SpriteBatcher extends Basic2DBatcher {
 
       const renderer = <SpriteRenderer>spriteElement.component;
       const camera = spriteElement.camera;
+      const material = spriteElement.material;
       maskManager.preRender(camera, renderer);
 
       const compileMacros = Shader._compileMacros;
-      compileMacros.clear();
+      // union render global macro and material self macro.
+      ShaderMacroCollection.unionCollection(
+        renderer._globalShaderMacro,
+        material.shaderData._macroCollection,
+        compileMacros
+      );
 
-      const material = spriteElement.material;
       const program = material.shader._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
