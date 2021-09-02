@@ -99,6 +99,10 @@ export class Animator extends Component {
     if (!state) {
       return;
     }
+    if (!state.clip) {
+      console.warn(`The state named ${stateName} has no AnimationClip data.`);
+      return;
+    }
     const animatorLayerData = this._getAnimatorLayerData(animatorInfo.layerIndex);
     const { srcPlayData } = animatorLayerData;
     const { state: curState } = srcPlayData;
@@ -680,6 +684,10 @@ export class Animator extends Component {
     const animatorStateInfo = this._getAnimatorStateInfo(name, layerIndex, Animator._animatorInfo);
     const { state: crossState } = animatorStateInfo;
     if (!crossState) {
+      return;
+    }
+    if (!crossState.clip) {
+      console.warn(`The state named ${name} has no AnimationClip data.`);
       return;
     }
 

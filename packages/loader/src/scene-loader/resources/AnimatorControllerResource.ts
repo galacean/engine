@@ -134,6 +134,7 @@ export class AnimatorControllerResource extends SchemaResource {
         state.wrapMode = wrapMode;
         const animationIndex = this.resourceManager.get(clipAssetId).resource;
         const animationClip = animations[animationIndex.index];
+        if (!animationClip) continue;
         state.clip = animationClip;
         state.clipStartTime = animationClip.length * clipStartNormalizedTime;
         state.clipEndTime = animationClip.length * clipEndNormalizedTime;
