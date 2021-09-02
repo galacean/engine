@@ -1,6 +1,7 @@
-import { Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
+import { HitResult } from "../HitResult";
 
 /**
  * Axis Aligned Bound Box (AABB).
@@ -8,9 +9,11 @@ import { Collider } from "./Collider";
  */
 export class ABoxCollider extends Collider {
   private static _tempVec3: Vector3 = new Vector3();
+  private static _tempBox: BoundingBox = new BoundingBox();
 
   public boxMin: Vector3;
   public boxMax: Vector3;
+
   private _corners: Array<Vector3> = [];
   private _cornerFlag: boolean = false;
 
@@ -102,5 +105,23 @@ export class ABoxCollider extends Collider {
     // }
 
     // return this._corners;
+  }
+
+  /**
+   * @internal
+   */
+  _raycast(ray: Ray, hit: HitResult): boolean {
+    const localRay = this._getLocalRay(ray);
+
+    const boundingBox = ABoxCollider._tempBox;
+    this.boxMin.cloneTo(boundingBox.min);
+    this.boxMax.cloneTo(boundingBox.max);
+    const intersect = localRay.intersectBox(boundingBox);
+    if (intersect !== -1) {
+      this._updateHitResult(localRay, intersect, hit, ray.origin);
+      return true;
+    } else {
+      return false;
+    } // end of else
   }
 }

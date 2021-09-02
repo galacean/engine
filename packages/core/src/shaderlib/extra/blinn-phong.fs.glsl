@@ -3,6 +3,7 @@
 
 #include <uv_share>
 #include <normal_share>
+#include <color_share>
 #include <worldpos_share>
 
 #include <pbr_envmap_light_frag_define>

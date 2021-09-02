@@ -1,8 +1,37 @@
+import { Vector3, Vector4, Vector2 } from "@oasis-engine/math";
 import { IndexFormat, TypedArray, VertexElement, VertexElementFormat } from "@oasis-engine/core";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
+/**
+ * @internal
+ */
 export class GLTFUtil {
-  private constructor() {}
+  public static floatBufferToVector2Array(buffer: Float32Array): Vector2[] {
+    const bufferLen = buffer.length;
+    const array = new Array<Vector2>(bufferLen / 2);
+    for (let i = 0; i < bufferLen; i += 2) {
+      array[i / 2] = new Vector2(buffer[i], buffer[i + 1]);
+    }
+    return array;
+  }
+
+  public static floatBufferToVector3Array(buffer: Float32Array): Vector3[] {
+    const bufferLen = buffer.length;
+    const array = new Array<Vector3>(bufferLen / 3);
+    for (let i = 0; i < bufferLen; i += 3) {
+      array[i / 3] = new Vector3(buffer[i], buffer[i + 1], buffer[i + 2]);
+    }
+    return array;
+  }
+
+  public static floatBufferToVector4Array(buffer: Float32Array): Vector4[] {
+    const bufferLen = buffer.length;
+    const array = new Array<Vector4>(bufferLen / 4);
+    for (let i = 0; i < bufferLen; i += 4) {
+      array[i / 4] = new Vector4(buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]);
+    }
+    return array;
+  }
 
   /**
    * Parse binary text for glb loader.
@@ -77,16 +106,15 @@ export class GLTFUtil {
     const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const length = accessorTypeSize * accessor.count;
     const byteStride = bufferView.byteStride ?? 0;
-
     const arrayType = GLTFUtil.getComponentType(accessor.componentType);
     let uint8Array;
     if (byteStride) {
-      uint8Array = new Uint8Array(accessor.count * byteStride);
-      const originalBufferView = new Uint8Array(arrayBuffer, bufferViewByteOffset, bufferView.byteLength);
       const accessorByteSize = accessorTypeSize * arrayType.BYTES_PER_ELEMENT;
+      uint8Array = new Uint8Array(accessor.count * accessorByteSize);
+      const originalBufferView = new Uint8Array(arrayBuffer, bufferViewByteOffset, bufferView.byteLength);
       for (let i = 0; i < accessor.count; i++) {
         for (let j = 0; j < accessorByteSize; j++) {
-          uint8Array[i * byteStride + j] = originalBufferView[i * byteStride + accessorByteOffset + j];
+          uint8Array[i * accessorByteSize + j] = originalBufferView[i * byteStride + accessorByteOffset + j];
         }
       }
     } else {
@@ -266,9 +294,7 @@ export class GLTFUtil {
   /**
    * Parse the glb format.
    */
-  static parseGLB(
-    glb: ArrayBuffer
-  ): {
+  static parseGLB(glb: ArrayBuffer): {
     gltf: IGLTF;
     buffers: ArrayBuffer[];
   } {
