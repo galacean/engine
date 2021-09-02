@@ -44,11 +44,11 @@ export class BoundingBox implements IClone {
 
   /**
    * Calculate a bounding box from a given sphere.
-   * @param shpere - The given sphere
+   * @param sphere - The given sphere
    * @param out - The calculated bounding box
    */
-  static fromSphere(shpere: BoundingSphere, out: BoundingBox): void {
-    const { center, radius } = shpere;
+  static fromSphere(sphere: BoundingSphere, out: BoundingBox): void {
+    const { center, radius } = sphere;
     const { min, max } = out;
 
     min.x = center.x - radius;

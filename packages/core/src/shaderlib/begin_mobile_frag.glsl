@@ -17,6 +17,12 @@
 
     #endif
 
+     #ifdef O3_HAS_VERTEXCOLOR
+
+        diffuse *= v_color;
+
+    #endif
+
     #ifdef O3_SPECULAR_TEXTURE
 
         specular *= texture2D(u_specularTexture, v_uv);

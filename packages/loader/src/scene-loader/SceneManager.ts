@@ -1,4 +1,4 @@
-import { BackgroundMode, PrimitiveMesh, SkyBoxMaterial } from "@oasis-engine/core";
+import { PrimitiveMesh, SkyBoxMaterial } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 

@@ -148,7 +148,7 @@ export class ShaderProgram {
   }
 
   /**
-   * Groupping other data.
+   * Grouping other data.
    */
   groupingOtherUniformBlock() {
     const { constUniforms, textureUniforms } = this.otherUniformBlock;
@@ -181,12 +181,12 @@ export class ShaderProgram {
     this._glProgram && gl.deleteProgram(this._glProgram);
   }
 
-  private _groupingSubOtherUniforms(unifroms: ShaderUniform[], isTexture: boolean): void {
-    for (let i = unifroms.length - 1; i >= 0; i--) {
-      const uniform = unifroms[i];
+  private _groupingSubOtherUniforms(uniforms: ShaderUniform[], isTexture: boolean): void {
+    for (let i = uniforms.length - 1; i >= 0; i--) {
+      const uniform = uniforms[i];
       const group = Shader._getShaderPropertyGroup(uniform.name);
       if (group !== undefined) {
-        unifroms.splice(unifroms.indexOf(uniform), 1);
+        uniforms.splice(uniforms.indexOf(uniform), 1);
         this._groupingUniform(uniform, group, isTexture);
       }
     }
@@ -256,7 +256,7 @@ export class ShaderProgram {
     gl.validateProgram(program);
 
     if (gl.isContextLost()) {
-      Logger.error("Contex lost while linking program.");
+      Logger.error("Context lost while linking program.");
       gl.deleteShader(vertexShader);
       gl.deleteShader(fragmentShader);
       return null;

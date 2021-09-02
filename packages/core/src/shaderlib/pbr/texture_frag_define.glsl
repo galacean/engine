@@ -16,18 +16,6 @@ uniform sampler2D u_emissiveSampler;
 
 #endif
 
-#ifdef HAS_METALMAP
-
-uniform sampler2D u_metallicSampler;
-
-#endif
-
-#ifdef HAS_ROUGHNESSMAP
-
-uniform sampler2D u_roughnessSampler;
-
-#endif
-
 #ifdef HAS_METALROUGHNESSMAP
 
 uniform sampler2D u_metallicRoughnessSampler;
@@ -44,17 +32,5 @@ uniform sampler2D u_specularGlossinessSampler;
 #ifdef HAS_OCCLUSIONMAP
 
 uniform sampler2D u_occlusionSampler;
-
-#endif
-
-#ifdef HAS_OPACITYMAP
-
-uniform sampler2D u_opacitySampler;
-
-#endif
-
-#ifdef HAS_REFLECTIONMAP
-
-uniform samplerCube u_reflectionSampler;
 
 #endif

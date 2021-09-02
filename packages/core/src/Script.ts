@@ -1,7 +1,7 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-
+import { ACollider } from "./collider";
 /**
  * Script class, used for logic writing.
  */
@@ -24,6 +24,8 @@ export class Script extends Component {
   /** @internal */
   @ignoreClone
   _onPostRenderIndex: number = -1;
+  @ignoreClone
+  _entityCacheIndex: number = -1;
 
   /**
    * Called when be enabled first time, only once.
@@ -65,7 +67,57 @@ export class Script extends Component {
   onEndRender(camera: Camera): void {}
 
   /**
-   * Called when be diabled.
+   * Called when the collision enter.
+   * @param other Collider
+   */
+  onTriggerEnter(other: ACollider): void {}
+
+  /**
+   * Called when the collision stay.
+   * @remarks onTriggerStay is called every frame while the collision stay.
+   * @param other Collider
+   */
+  onTriggerStay(other: ACollider): void {}
+
+  /**
+   * Called when the collision exit.
+   * @param other Collider
+   */
+  onTriggerExit(other: ACollider): void {}
+
+  /**
+   * Called when the pointer is down while over the Collider.
+   */
+  onPointerDown(): void {}
+
+  /**
+   * Called when the pointer is up while over the Collider.
+   */
+  onPointerUp(): void {}
+
+  /**
+   * Called when the pointer is down and up with the same collider.
+   */
+  onPointerClick(): void {}
+
+  /**
+   * Called when the pointer is enters the Collider.
+   */
+  onPointerEnter(): void {}
+
+  /**
+   * Called when the pointer is no longer over the Collider.
+   */
+  onPointerExit(): void {}
+
+  /**
+   * Called when the pointer is down while over the Collider and is still holding down.
+   * @remarks onPointerDrag is called every frame while the pointer is down.
+   */
+  onPointerDrag(): void {}
+
+  /**
+   * Called when be disabled.
    */
   onDisable(): void {}
 
@@ -100,6 +152,7 @@ export class Script extends Component {
     if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.addOnLateUpdateScript(this);
     }
+    this._entity._addScript(this);
     this.onEnable();
   }
 
@@ -121,6 +174,9 @@ export class Script extends Component {
     if (this._onLateUpdateIndex !== -1) {
       componentsManager.removeOnLateUpdateScript(this);
     }
+    if (this._entityCacheIndex !== -1) {
+      this._entity._removeScript(this);
+    }
     this.onDisable();
   }
 
@@ -130,6 +186,6 @@ export class Script extends Component {
    * @override
    */
   _onDestroy(): void {
-    this.engine._componentsManager.addDestoryComponent(this);
+    this.engine._componentsManager.addDestroyComponent(this);
   }
 }

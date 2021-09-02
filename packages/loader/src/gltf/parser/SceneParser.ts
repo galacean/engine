@@ -1,10 +1,12 @@
 import {
-  Animation,
+  Animator,
+  AnimatorController,
+  AnimatorControllerLayer,
+  AnimatorStateMachine,
   BlinnPhongMaterial,
   Camera,
   Engine,
   Entity,
-  Logger,
   MeshRenderer,
   SkinnedMeshRenderer
 } from "@oasis-engine/core";
@@ -107,23 +109,24 @@ export class SceneParser extends Parser {
       materials,
       skins
     } = context;
-    const { mesh: meshID, skin: skinID, weights } = gltfNode;
-
-    if (weights) {
-      Logger.error("Sorry, morph animation is not supported now, wait please.");
-    }
-
-    const gltfMeshPrimitives = gltfMeshes[meshID].primitives;
+    const { mesh: meshID, skin: skinID } = gltfNode;
+    const glTFMesh = gltfMeshes[meshID];
+    const gltfMeshPrimitives = glTFMesh.primitives;
+    const blendShapeWeights = gltfNode.weights || glTFMesh.weights;
 
     for (let i = 0; i < gltfMeshPrimitives.length; i++) {
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
-      if (skinID !== undefined) {
-        const skin = skins[skinID];
+      if (skinID !== undefined || blendShapeWeights) {
         const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
         skinRenderer.mesh = mesh;
-        skinRenderer.skin = skin;
+        if (skinID !== undefined) {
+          skinRenderer.skin = skins[skinID];
+        }
+        if (blendShapeWeights) {
+          skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
+        }
         renderer = skinRenderer;
       } else {
         renderer = entity.addComponent(MeshRenderer);
@@ -144,14 +147,25 @@ export class SceneParser extends Parser {
 
   private _createAnimator(context: GLTFResource) {
     const { defaultSceneRoot, animations } = context;
-
     if (!animations) return;
-
-    const animator = defaultSceneRoot.addComponent(Animation);
-
-    for (let i = 0; i < animations.length; i++) {
-      const animationClip = animations[i];
-      animator.addAnimationClip(animationClip, animationClip.name);
+    const animator = defaultSceneRoot.addComponent(Animator);
+    const animatorController = new AnimatorController();
+    const layer = new AnimatorControllerLayer("layer");
+    const animatorStateMachine = new AnimatorStateMachine();
+    animatorController.addLayer(layer);
+    animator.animatorController = animatorController;
+    layer.stateMachine = animatorStateMachine;
+    if (animations) {
+      for (let i = 0; i < animations.length; i++) {
+        const animationClip = animations[i];
+        const name = animationClip.name;
+        const uniqueName = animatorStateMachine.makeUniqueStateName(name);
+        if (uniqueName !== name) {
+          console.warn(`AnimatorState name is existed, name: ${name} reset to ${uniqueName}`);
+        }
+        const animatorState = animatorStateMachine.addState(uniqueName);
+        animatorState.clip = animationClip;
+      }
     }
   }
 }
