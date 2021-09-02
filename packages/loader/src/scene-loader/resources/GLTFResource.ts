@@ -146,7 +146,7 @@ export class GLTFResource extends SchemaResource {
   bind() {
     const resource = this._resource;
     this.bindMaterials(resource.newMaterial);
-    this.bindAnimatorControllers(resource.animatorControllers);
+    resource.animatorControllers && this.bindAnimatorControllers(resource.animatorControllers);
   }
 
   update(key: string, value: any) {

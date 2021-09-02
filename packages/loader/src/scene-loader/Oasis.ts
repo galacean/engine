@@ -65,7 +65,8 @@ export class Oasis extends EventDispatcher {
 
     const loadingPromises = ObjectValues(assets)
       .filter((asset) => {
-        if (RESOURCE_CLASS[asset.type]) {
+        // TODO 临时解决过度问题
+        if (RESOURCE_CLASS[asset.type] || asset.type === "bin") {
           return true;
         }
         console.warn(`${asset.type} loader is not defined. the ${asset.type} type will be ignored.`);
@@ -78,7 +79,7 @@ export class Oasis extends EventDispatcher {
 
   private bindResources() {
     this.resourceManager.getAll().forEach((resource) => {
-      resource.bind();
+      resource.bind && resource.bind();
     });
   }
 
@@ -115,7 +116,7 @@ export class Oasis extends EventDispatcher {
 
   private attach() {
     this.resourceManager.getAll().forEach((resource) => {
-      resource.attach();
+      resource.attach && resource.attach();
     });
   }
 

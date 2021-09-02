@@ -1,4 +1,4 @@
-import { ObjectValues, ResourceManager } from "@oasis-engine/core";
+import { AssetType, ObjectValues, ResourceManager } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 import {
@@ -68,14 +68,27 @@ export class SchemaResourceManager {
   }
 
   load(asset: AssetConfig): Promise<SchemaResource> {
-    const resource = resourceFactory.createResource(this, asset.type);
-    const loadPromise = resource.load(this.oasis.engine.resourceManager, asset, this.oasis);
-    this.maxId = Math.max(+asset.id, this.maxId);
-    loadPromise.then(() => {
-      this.resourceMap[asset.id] = resource;
-      this.resourceIdMap.set(resource, asset.id);
-    });
-    return loadPromise;
+    // TODO 临时解决文件化问题
+    if (asset.type === "bin") {
+      this.engineResourceManager.load({ url: asset.url, type: AssetType.EditorFile }).then((res) => {
+        const resource = {
+          resource: res
+        };
+        // @ts-ignore
+        this.resourceMap[asset.id] = resource;
+        // @ts-ignore
+        this.resourceIdMap.set(resource, asset.id);
+      });
+    } else {
+      const resource = resourceFactory.createResource(this, asset.type);
+      const loadPromise = resource.load(this.oasis.engine.resourceManager, asset, this.oasis);
+      this.maxId = Math.max(+asset.id, this.maxId);
+      loadPromise.then(() => {
+        this.resourceMap[asset.id] = resource;
+        this.resourceIdMap.set(resource, asset.id);
+      });
+      return loadPromise;
+    }
   }
 
   add(asset: AssetConfig): Promise<any> {

@@ -7,6 +7,7 @@ import "./Texture2DLoader";
 import "./TextureCubeLoader";
 import "./SpriteAtlasLoader";
 import "./gltf/extensions/index";
+import "./EditorFileLoader"
 
 export { GLTFResource } from "./gltf/GLTFResource";
 export { GLTFModel } from "./scene-loader/GLTFModel";
