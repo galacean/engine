@@ -825,10 +825,14 @@ export class ModelMesh extends Mesh {
 
       const rhi = this.engine._hardwareRenderer;
       if (/*rhi.canUseFloatTextureBlendShape*/ false) {
-        let stride = 1;
-        this._useBlendShapeNormal && stride++;
-        this._useBlendShapeTangent && stride++;
 
+        const maxTextureSize = rhi.renderStates.getParameter(rhi.gl.MAX_TEXTURE_SIZE);
+        const pixelCount = this._vertexCount * stride;
+        const height = Math.ceil(pixelCount / maxTextureSize);
+        const width = height > 1 ? maxTextureSize : pixelCount;
+
+        this._blendShapeTexture = new Texture2D(this.engine, 0, 0, TextureFormat.R32G32B32A32, false);
+        this._blendShapeTexture.filterMode = TextureFilterMode.Point;
       } else {
         for (let i = 0; i < blendShapeCount; i++) {
           const blendShapeUpdateFlag = blendShapeUpdateFlags[i];
