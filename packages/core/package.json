@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/core",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -14,9 +14,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/math": "0.5.1"
+    "@oasis-engine/math": "0.5.2"
   },
   "devDependencies": {
-    "@oasis-engine/design": "0.5.1"
+    "@oasis-engine/design": "0.5.2"
   }
 }
