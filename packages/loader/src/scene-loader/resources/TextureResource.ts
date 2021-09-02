@@ -38,9 +38,6 @@ export class TextureResource extends SchemaResource {
   setMeta() {
     if (this.resource) {
       this._meta.name = this.resource.name;
-      if (this.resource.image) {
-        this._meta.url = this.resource.image.src;
-      }
     }
   }
 }

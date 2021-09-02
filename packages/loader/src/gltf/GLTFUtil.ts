@@ -266,6 +266,9 @@ export class GLTFUtil {
         // Call requestAnimationFrame to avoid iOS's bug.
         requestAnimationFrame(() => {
           resolve(img);
+          img.onload = null;
+          img.onerror = null;
+          img.onabort = null;
         });
       };
     });

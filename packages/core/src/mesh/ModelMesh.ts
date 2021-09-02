@@ -512,7 +512,12 @@ export class ModelMesh extends Mesh {
    */
   _onDestroy(): void {
     super._onDestroy();
-    this.clearBlendShapes();
+    this._blendShapes.length = 0;
+    const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
+    for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
+      blendShapeUpdateFlags[i].destroy();
+    }
+    blendShapeUpdateFlags.length = 0;
   }
 
   private _updateVertexElements(): VertexElement[] {

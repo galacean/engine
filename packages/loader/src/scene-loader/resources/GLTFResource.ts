@@ -19,16 +19,14 @@ import { UnlitMaterialResource } from "./UnlitMaterialResource";
 
 export class GLTFResource extends SchemaResource {
   load(resourceManager: ResourceManager, assetConfig: AssetConfig, oasis: Oasis): Promise<any> {
-    return resourceManager
-      .load<any>({ url: assetConfig.url, type: AssetType.Prefab })
-      .then((res) => {
-        const gltf = res;
-        if (assetConfig.props) {
-          gltf.newMaterial = (assetConfig.props as any).newMaterial;
-          gltf.animatorControllers = (assetConfig.props as any).animatorControllers;
-        }
-        this._resource = gltf;
-      });
+    return resourceManager.load<any>({ url: assetConfig.url, type: AssetType.Prefab }).then((res) => {
+      const gltf = res;
+      if (assetConfig.props) {
+        gltf.newMaterial = (assetConfig.props as any).newMaterial;
+        gltf.animatorControllers = (assetConfig.props as any).animatorControllers;
+      }
+      this._resource = gltf;
+    });
   }
 
   loadWithAttachedResources(
@@ -53,33 +51,35 @@ export class GLTFResource extends SchemaResource {
             }
           }
         };
-        for (let i = 0; i < materials.length; i++) {
-          const material = materials[i];
-          let materialResource = null;
-          let type = "";
+        if (materials?.length) {
+          for (let i = 0; i < materials.length; i++) {
+            const material = materials[i];
+            let materialResource = null;
+            let type = "";
 
-          if (material instanceof PBRMaterial) {
-            materialResource = new PBRMaterialResource(this.resourceManager);
-            type = "PBRMaterial";
-          } else if (material instanceof UnlitMaterial) {
-            materialResource = new UnlitMaterialResource(this.resourceManager);
-            type = "UnlitMaterial";
-          } else if (material instanceof PBRSpecularMaterial) {
-            materialResource = new PBRSpecularMaterialResource(this.resourceManager);
-            type = "PBRSpecularMaterial";
-          } else {
-            materialResource = new BlinnPhongMaterialResource(this.resourceManager);
-            type = "BlinnPhongMaterial";
+            if (material instanceof PBRMaterial) {
+              materialResource = new PBRMaterialResource(this.resourceManager);
+              type = "PBRMaterial";
+            } else if (material instanceof UnlitMaterial) {
+              materialResource = new UnlitMaterialResource(this.resourceManager);
+              type = "UnlitMaterial";
+            } else if (material instanceof PBRSpecularMaterial) {
+              materialResource = new PBRSpecularMaterialResource(this.resourceManager);
+              type = "PBRSpecularMaterial";
+            } else {
+              materialResource = new BlinnPhongMaterialResource(this.resourceManager);
+              type = "BlinnPhongMaterial";
+            }
+
+            this._attachedResources.push(materialResource);
+            materialLoadPromises.push(
+              materialResource.loadWithAttachedResources(resourceManager, {
+                type,
+                name: material.name,
+                resource: material
+              })
+            );
           }
-
-          this._attachedResources.push(materialResource);
-          materialLoadPromises.push(
-            materialResource.loadWithAttachedResources(resourceManager, {
-              type,
-              name: material.name,
-              resource: material
-            })
-          );
         }
 
         if (_animationsIndices.length) {
@@ -113,23 +113,25 @@ export class GLTFResource extends SchemaResource {
             newMaterial.push(matStructure);
           });
         });
-        const loadAttachedController = animatorControllerLoadPromise ? animatorControllerLoadPromise.then((res) => {
-          const { animatorControllers } = result.structure.props;
-          const controllerStructure = res.structure;
-          const controllerResource = res.resources[controllerStructure.index];
-          result.resources.push(controllerResource as any);
-          controllerStructure.index = result.resources.length - 1;
-          const { animationClips } = controllerStructure.props;
-          if (animationClips) {
-            for (let i = 0, length = animationClips.length; i < length; ++i) {
-              const clipStructure = animationClips[i];
-              const clipResource = res.resources[clipStructure.index];
-              result.resources.push(clipResource);
-              clipStructure.index = result.resources.length - 1;
-            }
-          }
-          animatorControllers.push(controllerStructure);
-        }) : Promise.resolve();
+        const loadAttachedController = animatorControllerLoadPromise
+          ? animatorControllerLoadPromise.then((res) => {
+              const { animatorControllers } = result.structure.props;
+              const controllerStructure = res.structure;
+              const controllerResource = res.resources[controllerStructure.index];
+              result.resources.push(controllerResource as any);
+              controllerStructure.index = result.resources.length - 1;
+              const { animationClips } = controllerStructure.props;
+              if (animationClips) {
+                for (let i = 0, length = animationClips.length; i < length; ++i) {
+                  const clipStructure = animationClips[i];
+                  const clipResource = res.resources[clipStructure.index];
+                  result.resources.push(clipResource);
+                  clipStructure.index = result.resources.length - 1;
+                }
+              }
+              animatorControllers.push(controllerStructure);
+            })
+          : Promise.resolve();
         Promise.all([loadAttachedMaterial, loadAttachedController]).then(() => {
           resolve(result);
         });
@@ -175,7 +177,7 @@ export class GLTFResource extends SchemaResource {
         newMaterials[i] = mtlResource.resource;
       } else {
         Logger.warn(
-          `GLTFResource: ${ this.meta.name } can't find asset "material", which id is: ${ newMaterialsConfig[i].id }`
+          `GLTFResource: ${this.meta.name} can't find asset "material", which id is: ${newMaterialsConfig[i].id}`
         );
       }
     }
@@ -203,11 +205,11 @@ export class GLTFResource extends SchemaResource {
     for (let i = 0, length = animatorControllers.length; i < length; i++) {
       const animatorControllerAsset = animatorControllers[i];
       const controllerResource = <AnimatorControllerResource>this.resourceManager.get(animatorControllerAsset.id);
-      controllerResource.gltf= this._resource;
+      controllerResource.gltf = this._resource;
       if (controllerResource) {
         this._attachedResources.push(controllerResource);
       } else {
-        `GLTFResource: ${ this.meta.name } can't find asset "animatorController", which id is: ${ animatorControllerAsset.id }`
+        `GLTFResource: ${this.meta.name} can't find asset "animatorController", which id is: ${animatorControllerAsset.id}`;
       }
     }
   }
