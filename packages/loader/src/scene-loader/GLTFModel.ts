@@ -12,7 +12,7 @@ export class GLTFModel extends Component {
   private _animator: Animator;
   private _asset: GLTFResource;
   private _glTFEntity: Entity;
-  private _preview: string;
+  private _clipPreview: string;
   private _hasBuiltNode: boolean = false;
   private _controllerUpdateFlag: UpdateFlag;
 
@@ -80,11 +80,11 @@ export class GLTFModel extends Component {
     return this._animator;
   }
 
-  get preview() {
-    return this._preview;
+  get clipPreview() {
+    return this._clipPreview;
   }
 
-  set preview(value: string) {
+  set clipPreview(value: string) {
     if (this._animator) {
       if (value) {
         this._animator.play(value, 0);
@@ -92,7 +92,7 @@ export class GLTFModel extends Component {
         this._playDefaultState();
       }
     }
-    this._preview = value;
+    this._clipPreview = value;
   }
 
   constructor(entity) {
@@ -104,7 +104,7 @@ export class GLTFModel extends Component {
    * @param props - Init props
    */
   init(props): void {
-    const { asset = null, speed, animatorController, play,  isClone } = props;
+    const { asset = null, speed, animatorController, clipPreview,  isClone } = props;
     if (isClone) {
       const rootName = (props as any).gltfRootName;
       if (rootName) {
@@ -123,7 +123,7 @@ export class GLTFModel extends Component {
     this.asset = asset;
     this.animatorController = animatorController;
     this.speed = speed;
-    this.preview = play;
+    this.clipPreview = clipPreview;
   }
 
   update() {
@@ -151,7 +151,7 @@ export class GLTFModel extends Component {
   }
 
   _playState() {
-    const playStateName = this._preview
+    const playStateName = this._clipPreview;
     if (playStateName) {
       this._animator.play(playStateName, 0);
       if (this._controllerUpdateFlag?.flag) {

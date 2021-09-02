@@ -22,9 +22,12 @@ export class AnimationParser extends Parser {
     if (!animations) {
       return;
     }
-
     const animationClipCount = animations.length;
     const animationClips = new Array<AnimationClip>(animationClipCount);
+    const animationsIndices = new Array<{
+      name: string;
+      index: number;
+    }>(animationClipCount);
 
     for (let i = 0; i < animationClipCount; i++) {
       const gltfAnimation = animations[i];
@@ -110,8 +113,14 @@ export class AnimationParser extends Parser {
       }
 
       animationClips[i] = animationClip;
+      animationsIndices[i] = {
+        name,
+        index: i
+      };
     }
     context.animations = animationClips;
+    // @ts-ignore for editor
+    context._animationsIndices = animationsIndices;
   }
 
   private _addCurve(gltfChannel: IAnimationChannel, sampleDataCollection: SampleData[]): AnimationCurve {
