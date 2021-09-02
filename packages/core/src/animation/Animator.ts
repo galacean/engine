@@ -71,7 +71,6 @@ export class Animator extends Component {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
-      console.warn("The animatorController is modified, please call play()/crossFade() method again.");
     }
   }
 
