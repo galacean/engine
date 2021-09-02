@@ -825,6 +825,10 @@ export class ModelMesh extends Mesh {
 
       const rhi = this.engine._hardwareRenderer;
       if (/*rhi.canUseFloatTextureBlendShape*/ false) {
+        let stride = 1;
+        this._useBlendShapeNormal && stride++;
+        this._useBlendShapeTangent && stride++;
+
       } else {
         for (let i = 0; i < blendShapeCount; i++) {
           const blendShapeUpdateFlag = blendShapeUpdateFlags[i];
