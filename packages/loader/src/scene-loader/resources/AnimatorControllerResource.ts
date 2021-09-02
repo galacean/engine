@@ -98,8 +98,9 @@ export class AnimatorControllerResource extends SchemaResource {
   }
 
   _initAnimatorController(animatorControllerData) {
-    const { animations } = this.gltf;
+    const { animations } = this.gltf || {};
     const { layers } = animatorControllerData;
+    if (!animations || !layers) return;
     this._resource.clearLayers();
     for (let i = 0, length = layers.length; i < length; ++i) {
       const { name, blending, weight, stateMachine: stateMachineData } = layers[i];
@@ -133,6 +134,7 @@ export class AnimatorControllerResource extends SchemaResource {
         state.wrapMode = wrapMode;
         const animationIndex = this.resourceManager.get(clipAssetId).resource;
         const animationClip = animations[animationIndex.index];
+        if (!animationClip) continue;
         state.clip = animationClip;
         state.clipStartTime = animationClip.length * clipStartNormalizedTime;
         state.clipEndTime = animationClip.length * clipEndNormalizedTime;
