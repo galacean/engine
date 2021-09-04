@@ -3,26 +3,30 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
-  AnimatorStateTransition,
-  AnimationClip
+  AnimatorStateTransition
 } from "@oasis-engine/core";
 import { ResourceManager } from "@oasis-engine/core";
 import { SchemaResource } from "./SchemaResource";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
 
 export class AnimatorControllerResource extends SchemaResource {
+  public gltf;
   private animatorControllerData;
   private animationClipAssets: any[];
-  private initAnimationClips: AnimationClip[];
+  private animationsIndices: {
+    name: string;
+    index: number;
+  }[];
 
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<any> {
     return new Promise((resolve) => {
-      const { animatorController, animationClips: animationClipAssets, animations: initAnimationClips } =
+      const { animatorController, animationClips: animationClipAssets, animationsIndices, gltf } =
         assetConfig.props || {};
       this._resource = new AnimatorController();
       this.animatorControllerData = animatorController;
-      this.initAnimationClips = initAnimationClips || [];
+      this.animationsIndices = animationsIndices || [];
       this.animationClipAssets = animationClipAssets || [];
+      this.gltf = gltf;
       !animatorController && this._setDefaultDataByAnimationClip();
       this.setMetaData("name", assetConfig.name);
       resolve(this);
@@ -46,7 +50,7 @@ export class AnimatorControllerResource extends SchemaResource {
           }
         };
 
-        const animations = this.initAnimationClips;
+        const animations = this.animationsIndices;
         for (let i = 0, length = animations.length; i < length; ++i) {
           const clip = animations[i];
           const clipResourse = new AnimationClipResource(this.resourceManager);
@@ -55,7 +59,7 @@ export class AnimatorControllerResource extends SchemaResource {
             clipResourse.loadWithAttachedResources(resourceManager, {
               type: "animationClip",
               name: clip.name,
-              resource: clip
+              props: clip
             })
           );
         }
@@ -94,7 +98,9 @@ export class AnimatorControllerResource extends SchemaResource {
   }
 
   _initAnimatorController(animatorControllerData) {
+    const { animations } = this.gltf || {};
     const { layers } = animatorControllerData;
+    if (!animations || !layers) return;
     this._resource.clearLayers();
     for (let i = 0, length = layers.length; i < length; ++i) {
       const { name, blending, weight, stateMachine: stateMachineData } = layers[i];
@@ -107,17 +113,28 @@ export class AnimatorControllerResource extends SchemaResource {
       let stateMachineTransitions = [];
       for (let j = 0, length = states.length; j < length; ++j) {
         const stateData = states[j];
-        const { name, transitions, clip, speed, wrapMode, clipStartNormalizedTime, clipEndNormalizedTime, isDefaultState } = stateData;
+        const {
+          name,
+          transitions,
+          clip,
+          speed,
+          wrapMode,
+          clipStartNormalizedTime,
+          clipEndNormalizedTime,
+          isDefaultState
+        } = stateData;
         const { id: clipAssetId } = clip || {};
         if (!clipAssetId) continue;
         const uniqueName = stateMachine.makeUniqueStateName(name);
         if (uniqueName !== name) {
-          console.warn(`AnimatorState name is exsited, name: ${name} reset to ${uniqueName}`);
+          console.warn(`AnimatorState name is existed, name: ${name} reset to ${uniqueName}`);
         }
         const state = stateMachine.addState(uniqueName);
         state.speed = speed;
         state.wrapMode = wrapMode;
-        const animationClip = this.resourceManager.get(clipAssetId).resource;
+        const animationIndex = this.resourceManager.get(clipAssetId).resource;
+        const animationClip = animations[animationIndex.index];
+        if (!animationClip) continue;
         state.clip = animationClip;
         state.clipStartTime = animationClip.length * clipStartNormalizedTime;
         state.clipEndTime = animationClip.length * clipEndNormalizedTime;
@@ -160,38 +177,38 @@ export class AnimatorControllerResource extends SchemaResource {
   }
 
   _setDefaultDataByAnimationClipAsset() {
-    const { animationClipAssets, _resource: animatorController } = this;
+    const { animationClipAssets } = this;
     if (!animationClipAssets.length) {
       return;
     }
     let clips = [];
-    for (let i = 0; i < animationClipAssets.length; i++) {
+    for (let i = 0, length = animationClipAssets.length; i < length; i++) {
       const clipAsset = this.resourceManager.get(animationClipAssets[i].id);
-      clips.push(clipAsset.resource)
-      
+      clips.push(clipAsset.resource);
     }
-    this.initAnimationClips = clips;
+    this.animationsIndices = clips;
     this._setDefaultDataByAnimationClip();
   }
 
   _setDefaultDataByAnimationClip() {
-    const { initAnimationClips: animationClips, _resource: animatorController } = this;
-    if (!animationClips.length) {
+    const { animationsIndices, _resource: animatorController, gltf } = this;
+    if (!animationsIndices.length || !gltf) {
       return;
     }
+    const { animations } = gltf
     const layer = new AnimatorControllerLayer("layer");
     const animatorStateMachine = new AnimatorStateMachine();
     animatorController.addLayer(layer);
     layer.stateMachine = animatorStateMachine;
-    for (let i = 0; i < animationClips.length; i++) {
-      const animationClip = animationClips[i];
-      const name = animationClip.name;
+    for (let i = 0, length = animationsIndices.length; i < length; i++) {
+      const animationIndex = animationsIndices[i];
+      const { name, index} = animationIndex
       const uniqueName = animatorStateMachine.makeUniqueStateName(name);
       if (uniqueName !== name) {
-        console.warn(`AnimatorState name is exsited, name: ${name} reset to ${uniqueName}`);
+        console.warn(`AnimatorState name is existed, name: ${name} reset to ${uniqueName}`);
       }
       const animatorState = animatorStateMachine.addState(uniqueName);
-      animatorState.clip = animationClip;
+      animatorState.clip = animations[index];
     }
   }
 }
