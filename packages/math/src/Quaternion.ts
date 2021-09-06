@@ -9,6 +9,7 @@ import { Vector3 } from "./Vector3";
 export class Quaternion implements IClone {
   /** @internal */
   static readonly _tempVector3 = new Vector3();
+  static readonly _tempQuaternion1 = new Quaternion();
 
   /**
    * Determines the sum of two quaternions.
@@ -695,6 +696,18 @@ export class Quaternion implements IClone {
    */
   lerp(quat: Quaternion, t: number): Quaternion {
     Quaternion.lerp(this, quat, t, this);
+    return this;
+  }
+
+  /**
+   * Create a quaternion rotates around an arbitary axis.
+   * @param axis - The axis
+   * @param rad - The rotation angle in radians
+   * @returns The quaternion after rotate
+   */
+  rotateAxisAngel(axis: Vector3, rad: number): Quaternion {
+    Quaternion._tempQuaternion1.rotationAxisAngle(axis, rad);
+    this.multiply(Quaternion._tempQuaternion1);
     return this;
   }
 }
