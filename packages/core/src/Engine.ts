@@ -28,6 +28,8 @@ import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./tex
 import { PhysicsManager } from "./PhysicsManager";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
+import { PHYSX } from "../../physics-physx/src/physx.release.js";
+import { IPhysicsEngine } from "@oasis-engine/design";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -42,6 +44,7 @@ export class Engine extends EventDispatcher {
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
+  _physicsEngine: IPhysicsEngine;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
@@ -195,6 +198,16 @@ export class Engine extends EventDispatcher {
 
     this._backgroundTextureMesh = PrimitiveMesh.createPlane(this, 2, 2, 1, 1, false);
     this._backgroundTextureMesh.isGCIgnored = true;
+  }
+
+  /**
+   * Engine Initialization after asynchronous loader i.e. WASM.
+   * @param _cb initialization callback.
+   */
+  init(_cb) {
+    PHYSX().then(function (PHYSX) {
+      _cb(PHYSX);
+    });
   }
 
   /**
