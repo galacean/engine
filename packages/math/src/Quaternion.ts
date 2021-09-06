@@ -708,6 +708,6 @@ export class Quaternion implements IClone {
   rotateAxisAngle(axis: Vector3, rad: number): Quaternion {
     Quaternion._tempQuat1.rotationAxisAngle(axis, rad);
     this.multiply(Quaternion._tempQuat1);
-    return this
+    return this;
   }
 }
