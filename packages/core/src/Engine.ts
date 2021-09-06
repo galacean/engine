@@ -28,8 +28,8 @@ import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./tex
 import { PhysicsManager } from "./PhysicsManager";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
-import { PHYSX } from "../../physics-physx/src/physx.release.js";
 import { IPhysicsEngine } from "@oasis-engine/design";
+import { PHYSX } from "../../physics-physx/src/physx.release.js";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();

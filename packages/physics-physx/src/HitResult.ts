@@ -1,5 +1,4 @@
 import { Entity, Vector3 } from "oasis-engine";
-import { Rigidbody } from "./Rigidbody";
 import { Collider } from "./Collider";
 
 /**

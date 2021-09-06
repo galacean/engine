@@ -8,5 +8,4 @@ export { PlaneCollider } from "./PlaneCollider";
 export { HitResult } from "./HitResult";
 export { Collision } from "./Collision";
 export { PhysicsScene, QueryFlag } from "./PhysicsScene";
-export { Rigidbody, CollisionDetectionMode, RigidbodyConstraints } from "./Rigidbody";
 export { PhysicsScript } from "./PhysicsScript";

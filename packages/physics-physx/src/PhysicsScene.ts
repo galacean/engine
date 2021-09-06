@@ -2,7 +2,6 @@ import { PhysXManager } from "./PhysXManager";
 import { Collision } from "./Collision";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
-import { Rigidbody } from "./Rigidbody";
 import { PhysicsScript } from "./PhysicsScript";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "@oasis-engine/core";
@@ -175,14 +174,6 @@ export class PhysicsScene {
 
   //--------------adding to the scene-------------------------------------------
   private _physicalObjectsMap = new Map<number, Entity>();
-  private _updateObject: Rigidbody[] = [];
-
-  /** add Dynamic Actor, i.e. Rigidbody. */
-  addDynamicActor(actor: Rigidbody) {
-    this._updateObject.push(actor);
-    this._physicalObjectsMap.set(actor.collider.group_id, actor.entity);
-    this._pxScene.addActor(actor._pxRigidActor, null);
-  }
 
   /** add Static Actor, i.e Collider and Trigger. */
   addStaticActor(actor: Collider) {
@@ -222,12 +213,6 @@ export class PhysicsScene {
   update() {
     this.simulate();
     this.fetchResults();
-
-    this._updateObject.forEach((actor: Rigidbody, key: number) => {
-      const transform = actor.getGlobalPose();
-      actor.entity.transform.position = transform.translation;
-      actor.entity.transform.rotationQuaternion = transform.rotation;
-    });
   }
 
   //----------------raycast-----------------------------------------------------
