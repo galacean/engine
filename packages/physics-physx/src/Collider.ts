@@ -1,6 +1,7 @@
 import { Component, Quaternion, Vector3 } from "oasis-engine";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PhysXManager } from "./PhysXManager";
+import { ICollider } from "@oasis-engine/design";
 
 /** Flags which affect the behavior of Shapes. */
 export enum ShapeFlag {
@@ -13,7 +14,7 @@ export enum ShapeFlag {
 }
 
 /** A base class of all colliders. */
-export class Collider {
+export class Collider implements ICollider {
   protected _position: Vector3;
   protected _rotation: Quaternion;
 

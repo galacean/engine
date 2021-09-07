@@ -28,7 +28,7 @@ export class BoxCollider extends Collider implements IBoxCollider {
    * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithSize(value: Vector3, position: Vector3, rotation: Quaternion) {
+  initWithSize(value: Vector3, position: Vector3, rotation: Quaternion): void {
     this._size = value;
     this._position = position;
     this._rotation = rotation;

@@ -1,14 +1,27 @@
-import { Component } from "../Component";
-import { IBoxCollider } from "@oasis-engine/design/types/physicsInterface";
-import { Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
+import { Vector3 } from "@oasis-engine/math";
+import { Collider } from "./Collider";
+import { IBoxCollider } from "@oasis-engine/design";
 
-export class BoxCollider extends Component {
+export class BoxCollider extends Collider {
   _boxCollider: IBoxCollider;
+
+  get size(): Vector3 {
+    return this._boxCollider.size;
+  }
+
+  /**
+   * set size of collider
+   * @param value size of BoxCollider
+   */
+  set size(value: Vector3) {
+    this._boxCollider.size = value;
+  }
 
   constructor(entity: Entity) {
     super(entity);
     this._boxCollider = this.engine._physicsEngine.createBoxCollider();
+    this._collider = this._boxCollider;
   }
 
   /**
