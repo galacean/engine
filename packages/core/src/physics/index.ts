@@ -1,0 +1,1 @@
+export { BoxCollider } from "./BoxCollider";

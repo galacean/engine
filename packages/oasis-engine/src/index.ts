@@ -10,7 +10,6 @@ import {
   DirectLight,
   ParticleRenderer,
   PointLight,
-  SphereCollider,
   SpriteRenderer,
   SpriteMask,
   Animator
@@ -29,7 +28,6 @@ Parser.registerComponents("o3", {
   Camera,
   Model,
   Component,
-  SphereCollider,
   Animator
 });
 
