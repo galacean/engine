@@ -2,9 +2,9 @@ import { PhysXManager } from "./PhysXManager";
 import { Collision } from "./Collision";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
-import { PhysicsScript } from "./PhysicsScript";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { Entity } from "@oasis-engine/core";
+import { IPhysicsScene } from "@oasis-engine/design";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -15,110 +15,12 @@ export enum QueryFlag {
 }
 
 /** A scene is a collection of bodies and constraints which can interact. */
-export class PhysicsScene {
+export class PhysicsScene implements IPhysicsScene {
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _tempCollision: Collision = new Collision();
   private static _pxRaycastHit: any;
   private static _pxFilterData: any;
-
-  /**
-   * PhysX Trigger callback
-   * @internal
-   */
-  triggerCallback = {
-    onContactBegin: (obj1, obj2) => {
-      let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
-      if (scripts.length > 0) {
-        // for (let i = 0, len = scripts.length; i < len; i++) {
-        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-        //     .get(obj2.getQueryFilterData().word0)
-        //     .getComponent(Collider);
-        //   scripts[i].onCollisionEnter(PhysicsScene._tempCollision);
-        // }
-      }
-
-      scripts = [];
-      this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
-      if (scripts.length > 0) {
-        // for (let i = 0, len = scripts.length; i < len; i++) {
-        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-        //     .get(obj2.getQueryFilterData().word0)
-        //     .getComponent(Collider);
-        //   scripts[i].onCollisionEnter(PhysicsScene._tempCollision);
-        // }
-      }
-    },
-    onContactEnd: (obj1, obj2) => {
-      let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
-      if (scripts.length > 0) {
-        // for (let i = 0, len = scripts.length; i < len; i++) {
-        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-        //     .get(obj2.getQueryFilterData().word0)
-        //     .getComponent(Collider);
-        //   scripts[i].onCollisionExit(PhysicsScene._tempCollision);
-        // }
-      }
-
-      scripts = [];
-      this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
-      if (scripts.length > 0) {
-        // for (let i = 0, len = scripts.length; i < len; i++) {
-        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-        //     .get(obj2.getQueryFilterData().word0)
-        //     .getComponent(Collider);
-        //   scripts[i].onCollisionExit(PhysicsScene._tempCollision);
-        // }
-      }
-    },
-    onContactPersist: (obj1, obj2) => {
-      let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
-      if (scripts.length > 0) {
-        // for (let i = 0, len = scripts.length; i < len; i++) {
-        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-        //     .get(obj2.getQueryFilterData().word0)
-        //     .getComponent(Collider);
-        //   scripts[i].onCollisionStay(PhysicsScene._tempCollision);
-        // }
-      }
-
-      scripts = [];
-      this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
-      if (scripts.length > 0) {
-        // for (let i = 0, len = scripts.length; i < len; i++) {
-        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-        //     .get(obj2.getQueryFilterData().word0)
-        //     .getComponent(Collider);
-        //   scripts[i].onCollisionStay(PhysicsScene._tempCollision);
-        // }
-      }
-    },
-    onTriggerBegin: (obj1, obj2) => {
-      let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
-      if (scripts.length > 0) {
-        // for (let i = 0, len = scripts.length; i < len; i++) {
-        //   scripts[i].onTriggerEnters(
-        //     this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponent(Collider)
-        //   );
-        // }
-      }
-    },
-    onTriggerEnd: (obj1, obj2) => {
-      let scripts: PhysicsScript[] = [];
-      this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
-      if (scripts.length > 0) {
-        // for (let i = 0, len = scripts.length; i < len; i++) {
-        //   scripts[i].onTriggerExits(
-        //     this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponent(Collider)
-        //   );
-        // }
-      }
-    }
-  };
 
   /**
    * PhysX Raycast callback
@@ -157,9 +59,43 @@ export class PhysicsScene {
     this._pxScene.setGravity({ x: value.x, y: value.y, z: value.z });
   }
 
-  constructor() {
+  constructor(
+    onContactBegin?: Function,
+    onContactEnd?: Function,
+    onContactPersist?: Function,
+    onTriggerBegin?: Function,
+    onTriggerEnd?: Function
+  ) {
+    const triggerCallback = {
+      onContactBegin: (obj1, obj2) => {
+        if (onContactBegin != undefined) {
+          onContactBegin(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
+        }
+      },
+      onContactEnd: (obj1, obj2) => {
+        if (onContactEnd != undefined) {
+          onContactEnd(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
+        }
+      },
+      onContactPersist: (obj1, obj2) => {
+        if (onContactPersist != undefined) {
+          onContactPersist(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
+        }
+      },
+      onTriggerBegin: (obj1, obj2) => {
+        if (onTriggerBegin != undefined) {
+          onTriggerBegin(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
+        }
+      },
+      onTriggerEnd: (obj1, obj2) => {
+        if (onTriggerEnd != undefined) {
+          onTriggerEnd(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
+        }
+      }
+    };
+
     const PHYSXSimulationCallbackInstance = PhysXManager.PhysX.PxSimulationEventCallback.implement(
-      this.triggerCallback
+      triggerCallback
     );
     const sceneDesc = PhysXManager.PhysX.getDefaultSceneDesc(
       PhysXManager.physics.getTolerancesScale(),

@@ -8,4 +8,3 @@ export { PlaneCollider } from "./PlaneCollider";
 export { HitResult } from "./HitResult";
 export { Collision } from "./Collision";
 export { PhysicsScene, QueryFlag } from "./PhysicsScene";
-export { PhysicsScript } from "./PhysicsScript";
