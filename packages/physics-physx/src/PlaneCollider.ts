@@ -1,11 +1,12 @@
 import { Collider } from "./Collider";
 import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "./PhysXManager";
+import { IPlaneCollider } from "@oasis-engine/design";
 
 /**
  * Represents a plane in three dimensional space.
  */
-export class PlaneCollider extends Collider {
+export class PlaneCollider extends Collider implements IPlaneCollider {
   private static tempMatrix = new Matrix();
   private _normal: Vector3 = new Vector3(0, 0, 1);
   private _distance: number = 0;
@@ -22,7 +23,7 @@ export class PlaneCollider extends Collider {
    * distance of collider
    * @remarks will re-alloc new PhysX object.
    */
-  get distance(): number {
+  getDistance(): number {
     return this._distance;
   }
 

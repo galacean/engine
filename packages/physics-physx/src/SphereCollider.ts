@@ -1,7 +1,8 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collider } from "./Collider";
+import { ISphereCollider } from "@oasis-engine/design";
 
-export class SphereCollider extends Collider {
+export class SphereCollider extends Collider implements ISphereCollider {
   private _radius: number = 0.0;
 
   get radius(): number {

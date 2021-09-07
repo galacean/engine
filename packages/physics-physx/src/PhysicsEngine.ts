@@ -1,7 +1,16 @@
-// @ts-ignore
-import { IPhysicsEngine, IBoxCollider, IPhysicsMaterial } from "@oasis-engine/design";
+import {
+  IPhysicsEngine,
+  IBoxCollider,
+  IPhysicsMaterial,
+  ISphereCollider,
+  ICapsuleCollider,
+  IPlaneCollider
+} from "@oasis-engine/design";
 import { BoxCollider } from "./BoxCollider";
 import { PhysicsMaterial } from "./PhysicsMaterial";
+import { SphereCollider } from "./SphereCollider";
+import { CapsuleCollider } from "./CapsuleCollider";
+import { PlaneCollider } from "./PlaneCollider";
 
 export class PhysicsEngine implements IPhysicsEngine {
   createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial {
@@ -10,5 +19,17 @@ export class PhysicsEngine implements IPhysicsEngine {
 
   createBoxCollider(): IBoxCollider {
     return new BoxCollider();
+  }
+
+  createSphereCollider(): ISphereCollider {
+    return new SphereCollider();
+  }
+
+  createCapsuleCollider(): ICapsuleCollider {
+    return new CapsuleCollider();
+  }
+
+  createPlaneCollider(): IPlaneCollider {
+    return new PlaneCollider();
   }
 }

@@ -1,7 +1,8 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collider } from "./Collider";
+import { ICapsuleCollider } from "@oasis-engine/design";
 
-export class CapsuleCollider extends Collider {
+export class CapsuleCollider extends Collider implements ICapsuleCollider {
   private _radius: number = 0.0;
   private _height: number = 0.0;
 
