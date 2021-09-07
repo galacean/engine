@@ -1,4 +1,4 @@
-import { IClone } from "./IClone";
+import { IClone } from "@oasis-engine/design";
 import { MathUtil } from "./MathUtil";
 
 /**

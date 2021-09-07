@@ -1,4 +1,4 @@
-import { IClone } from "./IClone";
+import { IClone } from "@oasis-engine/design";
 import { BoundingBox } from "./BoundingBox";
 import { BoundingSphere } from "./BoundingSphere";
 import { CollisionUtil } from "./CollisionUtil";

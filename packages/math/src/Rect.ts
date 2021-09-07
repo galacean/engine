@@ -1,4 +1,4 @@
-import { IClone } from "./IClone";
+import { IClone } from "@oasis-engine/design";
 
 // A 2d rectangle defined by x and y position, width and height.
 export class Rect implements IClone {
