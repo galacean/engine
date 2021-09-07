@@ -1,8 +1,10 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collider } from "./Collider";
-import { Vector3 } from "oasis-engine";
+import { Quaternion, Vector3 } from "oasis-engine";
+// @ts-ignore
+import { IBoxCollider } from "@oasis-engine/design";
 
-export class BoxCollider extends Collider {
+export class BoxCollider extends Collider implements IBoxCollider {
   private _size: Vector3 = new Vector3();
 
   get size(): Vector3 {
@@ -16,16 +18,20 @@ export class BoxCollider extends Collider {
    */
   set size(value: Vector3) {
     this._size = value;
-    this.initWithSize(value);
+    this.initWithSize(value, this._position, this._rotation);
   }
 
   /**
    * init Collider and alloc PhysX objects.
    * @param value size of BoxCollider
+   * @param position position of Collider
+   * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithSize(value: Vector3) {
+  initWithSize(value: Vector3, position: Vector3, rotation: Quaternion) {
     this._size = value;
+    this._position = position;
+    this._rotation = rotation;
 
     // alloc Physx object
     this._allocGeometry();

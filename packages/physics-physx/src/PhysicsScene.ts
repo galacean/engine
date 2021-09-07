@@ -31,91 +31,91 @@ export class PhysicsScene {
       let scripts: PhysicsScript[] = [];
       this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
-        for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-            .get(obj2.getQueryFilterData().word0)
-            .getComponent(Collider);
-          scripts[i].onCollisionEnter(PhysicsScene._tempCollision);
-        }
+        // for (let i = 0, len = scripts.length; i < len; i++) {
+        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+        //     .get(obj2.getQueryFilterData().word0)
+        //     .getComponent(Collider);
+        //   scripts[i].onCollisionEnter(PhysicsScene._tempCollision);
+        // }
       }
 
       scripts = [];
       this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
-        for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-            .get(obj2.getQueryFilterData().word0)
-            .getComponent(Collider);
-          scripts[i].onCollisionEnter(PhysicsScene._tempCollision);
-        }
+        // for (let i = 0, len = scripts.length; i < len; i++) {
+        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+        //     .get(obj2.getQueryFilterData().word0)
+        //     .getComponent(Collider);
+        //   scripts[i].onCollisionEnter(PhysicsScene._tempCollision);
+        // }
       }
     },
     onContactEnd: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
       this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
-        for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-            .get(obj2.getQueryFilterData().word0)
-            .getComponent(Collider);
-          scripts[i].onCollisionExit(PhysicsScene._tempCollision);
-        }
+        // for (let i = 0, len = scripts.length; i < len; i++) {
+        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+        //     .get(obj2.getQueryFilterData().word0)
+        //     .getComponent(Collider);
+        //   scripts[i].onCollisionExit(PhysicsScene._tempCollision);
+        // }
       }
 
       scripts = [];
       this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
-        for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-            .get(obj2.getQueryFilterData().word0)
-            .getComponent(Collider);
-          scripts[i].onCollisionExit(PhysicsScene._tempCollision);
-        }
+        // for (let i = 0, len = scripts.length; i < len; i++) {
+        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+        //     .get(obj2.getQueryFilterData().word0)
+        //     .getComponent(Collider);
+        //   scripts[i].onCollisionExit(PhysicsScene._tempCollision);
+        // }
       }
     },
     onContactPersist: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
       this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
-        for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-            .get(obj2.getQueryFilterData().word0)
-            .getComponent(Collider);
-          scripts[i].onCollisionStay(PhysicsScene._tempCollision);
-        }
+        // for (let i = 0, len = scripts.length; i < len; i++) {
+        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+        //     .get(obj2.getQueryFilterData().word0)
+        //     .getComponent(Collider);
+        //   scripts[i].onCollisionStay(PhysicsScene._tempCollision);
+        // }
       }
 
       scripts = [];
       this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
-        for (let i = 0, len = scripts.length; i < len; i++) {
-          PhysicsScene._tempCollision.collider = this._physicalObjectsMap
-            .get(obj2.getQueryFilterData().word0)
-            .getComponent(Collider);
-          scripts[i].onCollisionStay(PhysicsScene._tempCollision);
-        }
+        // for (let i = 0, len = scripts.length; i < len; i++) {
+        //   PhysicsScene._tempCollision.collider = this._physicalObjectsMap
+        //     .get(obj2.getQueryFilterData().word0)
+        //     .getComponent(Collider);
+        //   scripts[i].onCollisionStay(PhysicsScene._tempCollision);
+        // }
       }
     },
     onTriggerBegin: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
       this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
-        for (let i = 0, len = scripts.length; i < len; i++) {
-          scripts[i].onTriggerEnters(
-            this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponent(Collider)
-          );
-        }
+        // for (let i = 0, len = scripts.length; i < len; i++) {
+        //   scripts[i].onTriggerEnters(
+        //     this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponent(Collider)
+        //   );
+        // }
       }
     },
     onTriggerEnd: (obj1, obj2) => {
       let scripts: PhysicsScript[] = [];
       this._physicalObjectsMap.get(obj1.getQueryFilterData().word0).getComponents(PhysicsScript, scripts);
       if (scripts.length > 0) {
-        for (let i = 0, len = scripts.length; i < len; i++) {
-          scripts[i].onTriggerExits(
-            this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponent(Collider)
-          );
-        }
+        // for (let i = 0, len = scripts.length; i < len; i++) {
+        //   scripts[i].onTriggerExits(
+        //     this._physicalObjectsMap.get(obj2.getQueryFilterData().word0).getComponent(Collider)
+        //   );
+        // }
       }
     }
   };
@@ -177,7 +177,7 @@ export class PhysicsScene {
 
   /** add Static Actor, i.e Collider and Trigger. */
   addStaticActor(actor: Collider) {
-    this._physicalObjectsMap.set(actor.group_id, actor.entity);
+    // this._physicalObjectsMap.set(actor.group_id, actor.entity);
     this._pxScene.addActor(actor._pxRigidStatic, null);
   }
 

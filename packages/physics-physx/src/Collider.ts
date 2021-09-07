@@ -13,9 +13,9 @@ export enum ShapeFlag {
 }
 
 /** A base class of all colliders. */
-export class Collider extends Component {
-  private _position: Vector3 = this.entity.transform.position;
-  private _rotation: Quaternion = this.entity.transform.rotationQuaternion;
+export class Collider {
+  protected _position: Vector3;
+  protected _rotation: Quaternion;
 
   protected _group_id: number = PhysXManager.physical_id++;
 
