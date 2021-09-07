@@ -16,4 +16,3 @@ export { Plane } from "./Plane";
 export { Color } from "./Color";
 export { Rect } from "./Rect";
 export { SphericalHarmonics3 } from "./SphericalHarmonics3";
-export type { IClone } from "./IClone";
