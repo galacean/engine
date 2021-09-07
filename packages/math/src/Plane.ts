@@ -1,4 +1,4 @@
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "./IClone";
 import { Vector3 } from "./Vector3";
 
 /**
