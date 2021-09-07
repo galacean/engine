@@ -71,7 +71,6 @@ export class Animator extends Component {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
-      console.warn("The animatorController is modified, please call play()/crossFade() method again.");
     }
   }
 
@@ -97,6 +96,10 @@ export class Animator extends Component {
     const { state } = animatorInfo;
 
     if (!state) {
+      return;
+    }
+    if (!state.clip) {
+      console.warn(`The state named ${stateName} has no AnimationClip data.`);
       return;
     }
     const animatorLayerData = this._getAnimatorLayerData(animatorInfo.layerIndex);
@@ -680,6 +683,10 @@ export class Animator extends Component {
     const animatorStateInfo = this._getAnimatorStateInfo(name, layerIndex, Animator._animatorInfo);
     const { state: crossState } = animatorStateInfo;
     if (!crossState) {
+      return;
+    }
+    if (!crossState.clip) {
+      console.warn(`The state named ${name} has no AnimationClip data.`);
       return;
     }
 

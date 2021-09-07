@@ -396,6 +396,9 @@ export class ModelMesh extends Mesh {
    * Get indices for the mesh.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
     return this._indices;
   }
 
@@ -512,7 +515,7 @@ export class ModelMesh extends Mesh {
    */
   _onDestroy(): void {
     super._onDestroy();
-    this.clearBlendShapes();
+    this._accessible && this._releaseCache();
   }
 
   private _updateVertexElements(): VertexElement[] {
@@ -893,6 +896,11 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
+    const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
+    for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
+      blendShapeUpdateFlags[i].destroy();
+    }
+
     this._verticesUint8 = null;
     this._indices = null;
     this._verticesFloat32 = null;
@@ -909,6 +917,7 @@ export class ModelMesh extends Mesh {
     this._uv6 = null;
     this._uv7 = null;
     this._blendShapes = null;
+    this._blendShapeUpdateFlags = null;
   }
 }
 

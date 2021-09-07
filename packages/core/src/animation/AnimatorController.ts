@@ -66,6 +66,5 @@ export class AnimatorController {
 
   private _distributeUpdateFlag(): void {
     this._updateFlagManager.distribute();
-    console.warn("The animatorController is modified, please call play()/crossFade() method again.");
   }
 }
