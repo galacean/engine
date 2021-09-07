@@ -1,4 +1,5 @@
 import { PhysXManager } from "./PhysXManager";
+import { IPhysicsMaterial } from "@oasis-engine/design";
 
 /**
  * Describes how physics materials of the colliding objects are combined.
@@ -17,7 +18,7 @@ export enum PhysicsCombineMode {
 /**
  * Physics material describes how to handle colliding objects (friction, bounciness).
  */
-export class PhysicsMaterial {
+export class PhysicsMaterial implements IPhysicsMaterial {
   private _bounciness: number;
   private _dynamicFriction: number;
   private _staticFriction: number;

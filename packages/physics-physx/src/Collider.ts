@@ -62,11 +62,11 @@ export class Collider implements ICollider {
     this._pxShape.setMaterials([this.material._pxMaterial]);
   }
 
-  get group_id(): number {
+  getGroup_id(): number {
     return this._group_id;
   }
 
-  set isTrigger(value: boolean) {
+  setTrigger(value: boolean) {
     this._pxShape.setFlag(PhysXManager.PhysX.PxShapeFlag.eSIMULATION_SHAPE, !value);
   }
 
