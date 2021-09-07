@@ -19,7 +19,7 @@ class EditorFileLoader<T> extends Loader<T> {
         ...item,
         type: "arraybuffer"
       })
-        .then((ab) => decode(ab, resourceManager.engine))
+        .then((ab) => decode<T>(ab, resourceManager.engine))
         .then((object) => {
           resolve(object);
           resourceManager.baseUrl = "";

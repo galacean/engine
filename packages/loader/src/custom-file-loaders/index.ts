@@ -9,9 +9,11 @@ export const decoderMap: { [key: number]: { decode: Function } } = {
   3: MaterialDecoder
 };
 
-export function decode<T>(arraybuffer: ArrayBuffer, engine: Engine): T {
+export function decode<T>(arraybuffer: ArrayBuffer, engine: Engine): Promise<T> {
   const header = FileHeader.decode(arraybuffer);
-  const object = decoderMap[header.type].decode(engine, arraybuffer, header.headerLength, header.dataLength);
-  object.name = header.name;
-  return object;
+  return decoderMap[header.type].decode(engine, arraybuffer, header.headerLength, header.dataLength).then((object)=>{
+    object.name = header.name;
+    return object
+  });
+  
 }

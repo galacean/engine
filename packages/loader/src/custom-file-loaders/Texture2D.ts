@@ -12,6 +12,7 @@ export class Texture2DDecoder {
     return new Promise((resolve, reject) => {
       const bufferReader = new BufferReader(arraybuffer, byteOffset, byteLength);
 
+      const objectId = bufferReader.nextStr();
       const mipmap = bufferReader.nextUint8();
       const filterMode = bufferReader.nextUint8();
       const anisoLevel = bufferReader.nextUint8();
@@ -31,6 +32,8 @@ export class Texture2DDecoder {
           texture2D.wrapModeU = wrapModeU;
           texture2D.wrapModeV = wrapModeV;
           texture2D.setImageSource(image);
+          // @ts-ignore
+          engine.resourceManager._objectPool[objectId] = texture2D;
           resolve(texture2D);
         })
         .catch((err) => {
