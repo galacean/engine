@@ -36,9 +36,6 @@ import { Scene } from "./Scene";
 Scene.registerFeature(LightFeature);
 (Scene.prototype as any).hasLight = hasLight;
 
-export { PhysicsManager } from "./PhysicsManager";
-export { HitResult } from "./HitResult";
-
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
@@ -53,8 +50,6 @@ export * from "./mesh/index";
 export * from "./sky/index";
 export * from "./particle/index";
 export * from "./trail/index";
-export * from "./collider/index";
-export * from "./collision/index";
 export * from "./fog/index";
 export * from "./env-probe/index";
 export * from "./shadow/index";
@@ -62,3 +57,4 @@ export * from "./shader/index";
 export * from "./Layer";
 export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
+export * from "./physics/index";

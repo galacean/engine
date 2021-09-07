@@ -25,9 +25,10 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
-import { PhysicsManager } from "./PhysicsManager";
+// import { PhysicsManager } from "./PhysicsManager";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
+import { IPhysicsEngine } from "@oasis-engine/design/types/physicsInterface";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -38,10 +39,11 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** Physics manager of Engine. */
-  readonly physicsManager: PhysicsManager = new PhysicsManager(this);
+  // readonly physicsManager: PhysicsManager = new PhysicsManager(this);
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
+  _physicsEngine: IPhysicsEngine;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
