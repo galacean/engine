@@ -4,3 +4,4 @@ export { BoxCollider } from "./BoxCollider";
 export { SphereCollider } from "./SphereCollider";
 export { PlaneCollider } from "./PlaneCollider";
 export { CapsuleCollider } from "./CapsuleCollider";
+export { Collision } from "./Collision";
