@@ -1,4 +1,4 @@
-import { IClone } from "./IClone";
+import { IClone } from "@oasis-engine/design";
 import { Color } from "./Color";
 import { Vector3 } from "./Vector3";
 
@@ -203,8 +203,7 @@ export class SphericalHarmonics3 implements IClone {
    * @param out - The specified SphericalHarmonics3
    * @returns The specified SphericalHarmonics3
    */
-  cloneTo(out: SphericalHarmonics3): SphericalHarmonics3 {
+  cloneTo(out: SphericalHarmonics3): void {
     this.toArray(out.coefficients);
-    return out;
   }
 }
