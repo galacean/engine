@@ -11,5 +11,8 @@
     "dist/**/*",
     "types/**/*"
   ],
-  "types": "types/index.d.ts"
+  "types": "types/index.d.ts",
+  "dependencies": {
+    "@oasis-engine/math": "0.5.2"
+  }
 }

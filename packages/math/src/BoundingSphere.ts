@@ -1,4 +1,4 @@
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "./IClone";
 import { BoundingBox } from "./BoundingBox";
 import { Vector3 } from "./Vector3";
 
