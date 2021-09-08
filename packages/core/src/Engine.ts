@@ -157,11 +157,13 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
+   * @param physicsEngine - Physics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physicsEngine: IPhysicsEngine) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
+    this._physicsEngine = physicsEngine;
     this._canvas = canvas;
     // @todo delete
     engineFeatureManager.addObject(this);

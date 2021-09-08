@@ -5,10 +5,11 @@ import { Collision } from "./Collision";
 import { Collider } from "./Collider";
 import { IPhysicsScene } from "@oasis-engine/design";
 import { Engine } from "../Engine";
+import { HitResult } from "./HitResult";
 
 export class PhysicsScene {
   private static _tempCollision: Collision = new Collision();
-
+  private static _tempHitResult: HitResult = new HitResult();
   private _physicalObjectsMap = new Map<number, Entity>();
   private _physicsScene: IPhysicsScene;
 
@@ -111,6 +112,10 @@ export class PhysicsScene {
     this._physicsScene.gravity = value;
   }
 
+  getPhysicsEntity(idx: number): Entity {
+    return this._physicalObjectsMap.get(idx);
+  }
+
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
   addStaticActor(actor: Collider) {
@@ -179,9 +184,19 @@ export class PhysicsScene {
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, flag: number, outHitResult: Function): Boolean;
+  raycast(ray: Ray, distance: number, flag: number, outHitResult: HitResult): Boolean;
 
-  raycast(ray: Ray, distance: number = Number.MAX_VALUE, flag?: number, hit?: Function): Boolean {
-    return this._physicsScene.raycast(ray, distance, flag, hit);
+  raycast(ray: Ray, distance: number = Number.MAX_VALUE, flag?: number, hit?: HitResult): Boolean {
+    if (hit != undefined) {
+      hit = PhysicsScene._tempHitResult;
+      return this._physicsScene.raycast(ray, distance, flag, (idx, distance, position, normal) => {
+        hit.entity = this.getPhysicsEntity(idx);
+        hit.distance = distance;
+        hit.point = position;
+        hit.normal = normal;
+      });
+    } else {
+      return this._physicsScene.raycast(ray, distance, flag);
+    }
   }
 }

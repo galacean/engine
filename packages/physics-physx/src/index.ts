@@ -6,3 +6,4 @@ export { SphereCollider } from "./SphereCollider";
 export { CapsuleCollider } from "./CapsuleCollider";
 export { PlaneCollider } from "./PlaneCollider";
 export { PhysicsScene, QueryFlag } from "./PhysicsScene";
+export { PhysicsEngine } from "./PhysicsEngine";
