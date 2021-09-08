@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/physics",
-  "version": "0.4.2",
+  "version": "0.5.2",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -14,7 +14,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "oasis-engine": "0.5.2",
     "@oasis-engine/design": "0.5.2",
     "@oasis-engine/math": "0.5.2"
   }

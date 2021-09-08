@@ -1,7 +1,7 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collider } from "./Collider";
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { IPhysicsScene } from "@oasis-engine/design";
+import { IPhysicsManager } from "@oasis-engine/design";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -12,7 +12,7 @@ export enum QueryFlag {
 }
 
 /** A scene is a collection of bodies and constraints which can interact. */
-export class PhysicsScene implements IPhysicsScene {
+export class PhysicsManager implements IPhysicsManager {
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _pxRaycastHit: any;
@@ -79,8 +79,8 @@ export class PhysicsScene implements IPhysicsScene {
     );
     this._pxScene = PhysXManager.physics.createScene(sceneDesc);
 
-    PhysicsScene._pxRaycastHit = new PhysXManager.PhysX.PxRaycastHit();
-    PhysicsScene._pxFilterData = new PhysXManager.PhysX.PxQueryFilterData();
+    PhysicsManager._pxRaycastHit = new PhysXManager.PhysX.PxRaycastHit();
+    PhysicsManager._pxFilterData = new PhysXManager.PhysX.PxQueryFilterData();
   }
 
   //--------------adding to the scene-------------------------------------------
@@ -164,13 +164,13 @@ export class PhysicsScene implements IPhysicsScene {
     flag: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC,
     hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    PhysicsScene._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(flag);
+    PhysicsManager._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(flag);
     const result = this._pxScene.raycastSingle(
       { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
       { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
       distance,
-      PhysicsScene._pxRaycastHit,
-      PhysicsScene._pxFilterData
+      PhysicsManager._pxRaycastHit,
+      PhysicsManager._pxFilterData
     );
 
     if (result == false) {
@@ -178,14 +178,14 @@ export class PhysicsScene implements IPhysicsScene {
     }
 
     if (hit != undefined) {
-      const hitResult = PhysicsScene._pxRaycastHit;
-      const position = PhysicsScene._tempPosition;
+      const hitResult = PhysicsManager._pxRaycastHit;
+      const position = PhysicsManager._tempPosition;
       {
         position.x = hitResult.position.x;
         position.y = hitResult.position.y;
         position.z = hitResult.position.z;
       }
-      const normal = PhysicsScene._tempNormal;
+      const normal = PhysicsManager._tempNormal;
       {
         normal.x = hitResult.normal.x;
         normal.y = hitResult.normal.y;

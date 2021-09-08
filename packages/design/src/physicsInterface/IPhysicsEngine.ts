@@ -3,7 +3,7 @@ import { IBoxCollider } from "./IBoxCollider";
 import { ISphereCollider } from "./ISphereCollider";
 import { ICapsuleCollider } from "./ICapsuleCollider";
 import { IPlaneCollider } from "./IPlaneCollider";
-import { IPhysicsScene } from "./IPhysicsScene";
+import { IPhysicsManager } from "./IPhysicsManager";
 
 /**
  * Physics Engine Interface
@@ -19,11 +19,11 @@ export interface IPhysicsEngine {
 
   createPlaneCollider(): IPlaneCollider;
 
-  createPhysicsScene(
+  createPhysicsManager(
     onContactBegin?: Function,
     onContactEnd?: Function,
     onContactPersist?: Function,
     onTriggerBegin?: Function,
     onTriggerEnd?: Function
-  ): IPhysicsScene;
+  ): IPhysicsManager;
 }

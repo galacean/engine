@@ -5,14 +5,14 @@ import {
   ISphereCollider,
   ICapsuleCollider,
   IPlaneCollider,
-  IPhysicsScene
+  IPhysicsManager
 } from "@oasis-engine/design";
 import { BoxCollider } from "./BoxCollider";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { SphereCollider } from "./SphereCollider";
 import { CapsuleCollider } from "./CapsuleCollider";
 import { PlaneCollider } from "./PlaneCollider";
-import { PhysicsScene } from "./PhysicsScene";
+import { PhysicsManager } from "./PhysicsManager";
 
 export class PhysicsEngine implements IPhysicsEngine {
   createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial {
@@ -35,13 +35,13 @@ export class PhysicsEngine implements IPhysicsEngine {
     return new PlaneCollider();
   }
 
-  createPhysicsScene(
+  createPhysicsManager(
     onContactBegin?: Function,
     onContactEnd?: Function,
     onContactPersist?: Function,
     onTriggerBegin?: Function,
     onTriggerEnd?: Function
-  ): IPhysicsScene {
-    return new PhysicsScene(onContactBegin, onContactEnd, onContactPersist, onTriggerBegin, onTriggerEnd);
+  ): IPhysicsManager {
+    return new PhysicsManager(onContactBegin, onContactEnd, onContactPersist, onTriggerBegin, onTriggerEnd);
   }
 }

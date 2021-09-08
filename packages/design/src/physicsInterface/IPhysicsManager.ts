@@ -1,7 +1,7 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
 
-export interface IPhysicsScene {
+export interface IPhysicsManager {
   gravity: Vector3;
 
   addStaticActor(actor: ICollider);

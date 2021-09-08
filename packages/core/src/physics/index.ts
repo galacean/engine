@@ -6,4 +6,4 @@ export { PlaneCollider } from "./PlaneCollider";
 export { CapsuleCollider } from "./CapsuleCollider";
 export { Collision } from "./Collision";
 export { HitResult } from "./HitResult";
-export { PhysicsScene } from "./PhysicsScene";
+export { PhysicsManager } from "./PhysicsManager";

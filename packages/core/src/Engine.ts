@@ -28,7 +28,8 @@ import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./tex
 // import { PhysicsManager } from "./PhysicsManager";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
-import { IPhysicsEngine } from "@oasis-engine/design/types/physicsInterface";
+import { IPhysicsEngine } from "@oasis-engine/design";
+import { PhysicsManager } from "./physics";
 import { PHYSX } from "../../physics-physx/src/physx.release.js";
 
 /** TODO: delete */
@@ -39,6 +40,9 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
+  /** Physics manager of Engine. */
+  physicsManager: PhysicsManager;
+
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _physicsEngine: IPhysicsEngine;
@@ -207,6 +211,11 @@ export class Engine extends EventDispatcher {
     PHYSX().then(function (PHYSX) {
       _cb(PHYSX);
     });
+  }
+
+  createPhysicsManager(): PhysicsManager {
+    this.physicsManager = new PhysicsManager(this);
+    return this.physicsManager;
   }
 
   /**

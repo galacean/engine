@@ -5,4 +5,4 @@ export type { IBoxCollider } from "./IBoxCollider";
 export type { ICapsuleCollider } from "./ICapsuleCollider";
 export type { ISphereCollider } from "./ISphereCollider";
 export type { IPlaneCollider } from "./IPlaneCollider";
-export type { IPhysicsScene } from "./IPhysicsScene";
+export type { IPhysicsManager } from "./IPhysicsManager";
