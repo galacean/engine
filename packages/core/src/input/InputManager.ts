@@ -67,30 +67,12 @@ export class InputManager {
   }
 
   /**
-   * Add the script that listens the input.
-   */
-  on() {
-    if (this._regScriptCount++ == 0) {
-      this._updateListener();
-    }
-  }
-
-  /**
-   * Remove the script that listens for input.
-   */
-  off() {
-    if (this._regScriptCount-- == 0) {
-      this._updateListener();
-    }
-  }
-
-  /**
    *	Get touch pointer.
    * 	@param	idx - Index of touch pointer
    * 	@return Touch pointer
    *  @remarks The returned Pointer should be considered deep-read-only.
    */
-  getTouch(idx: number): Pointer {
+  getTouch(idx: number): Readonly<Pointer> {
     if (idx < this._actPointerCount) {
       return this._pointerList[idx];
     } else {
@@ -103,8 +85,26 @@ export class InputManager {
    * 	@return Input
    *  @remarks The returned Input should be considered deep-read-only.
    */
-  getInput(): Input {
+  getInput(): Readonly<Input> {
     return this._input;
+  }
+
+  /**
+   * Add the script that listen to input.
+   */
+  on() {
+    if (this._regScriptCount++ == 0) {
+      this._updateListener();
+    }
+  }
+
+  /**
+   * Remove the script that listen to input.
+   */
+  off() {
+    if (this._regScriptCount-- == 0) {
+      this._updateListener();
+    }
   }
 
   /**
