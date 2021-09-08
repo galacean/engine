@@ -3,6 +3,7 @@ import { SpriteRenderer } from "../2d/sprite/SpriteRenderer";
 import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
+import { Material } from "../material/Material";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -74,7 +75,7 @@ export class SpriteBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  drawBatches(engine: Engine): void {
+  drawBatches(engine: Engine, replaceMaterial: Material): void {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const batchedQueue = this._batchedQueue;
@@ -90,8 +91,11 @@ export class SpriteBatcher extends Basic2DBatcher {
 
       const renderer = <SpriteRenderer>spriteElement.component;
       const camera = spriteElement.camera;
-      const material = spriteElement.material;
+      const material = replaceMaterial || spriteElement.material;
       maskManager.preRender(camera, renderer);
+
+      // @todo: temporary solution
+      material._preRender(spriteElement as any);
 
       const compileMacros = Shader._compileMacros;
       // union render global macro and material self macro.

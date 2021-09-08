@@ -1,4 +1,4 @@
-import { Engine, Logger, Material, RenderElement, Shader, Vector3 } from "oasis-engine";
+import { CompareFunction, Engine, Logger, Material, RenderElement, Shader, Vector3 } from "oasis-engine";
 import fs from "./color.fs.glsl";
 import vs from "./color.vs.glsl";
 
@@ -13,6 +13,7 @@ export class ColorMaterial extends Material {
 
   constructor(engine: Engine) {
     super(engine, Shader.find("framebuffer-picker-color"));
+    this.renderState.depthState.compareFunction = CompareFunction.LessEqual;
   }
 
   /**
@@ -58,6 +59,9 @@ export class ColorMaterial extends Material {
     const { component, mesh } = renderElement;
     this._currentId += 1;
     this._primitivesMap[this._currentId] = { component, mesh };
+    if (!mesh) {
+      component.shaderData.enableMacro("IS_SPRITE");
+    }
     component.shaderData.setVector3("u_colorId", this.id2Color(this._currentId));
   }
 }

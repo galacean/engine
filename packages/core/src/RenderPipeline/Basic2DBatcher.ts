@@ -1,7 +1,7 @@
 import { Engine } from "../Engine";
 import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../graphic";
+import { Material } from "../material";
 import { BufferMesh } from "../mesh";
-import { SystemInfo } from "../SystemInfo";
 import { ClassPool } from "./ClassPool";
 import { SpriteElement } from "./SpriteElement";
 import { SpriteMaskElement } from "./SpriteMaskElement";
@@ -47,17 +47,17 @@ export abstract class Basic2DBatcher {
     }
   }
 
-  drawElement(element: Element): void {
+  drawElement(element: Element, replaceMaterial: Material): void {
     const len = element.positions.length;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
-      this.flush(element.camera.engine);
+      this.flush(element.camera.engine, replaceMaterial);
     }
 
     this._vertexCount += len;
     this._batchedQueue[this._elementCount++] = element;
   }
 
-  flush(engine: Engine): void {
+  flush(engine: Engine, replaceMaterial: Material): void {
     const batchedQueue = this._batchedQueue;
 
     if (batchedQueue.length === 0) {
@@ -65,7 +65,7 @@ export abstract class Basic2DBatcher {
     }
 
     this._updateData(engine);
-    this.drawBatches(engine);
+    this.drawBatches(engine, replaceMaterial);
 
     if (!Basic2DBatcher._canUploadSameBuffer) {
       this._flushId++;
@@ -216,5 +216,5 @@ export abstract class Basic2DBatcher {
   /**
    * @internal
    */
-  abstract drawBatches(engine: Engine): void;
+  abstract drawBatches(engine: Engine, replaceMaterial: Material): void;
 }

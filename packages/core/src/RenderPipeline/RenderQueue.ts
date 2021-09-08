@@ -71,7 +71,7 @@ export class RenderQueue {
       }
 
       if (!!(item as RenderElement).mesh) {
-        this._spriteBatcher.flush(engine);
+        this._spriteBatcher.flush(engine, replaceMaterial);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
@@ -141,11 +141,11 @@ export class RenderQueue {
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spriteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spriteElement);
+        this._spriteBatcher.drawElement(spriteElement, replaceMaterial);
       }
     }
 
-    this._spriteBatcher.flush(engine);
+    this._spriteBatcher.flush(engine, replaceMaterial);
   }
 
   /**
