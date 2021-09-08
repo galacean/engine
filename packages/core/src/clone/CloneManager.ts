@@ -47,7 +47,8 @@ export function shallowClone(target: Object, propertyKey: string): void {
  *
  * @remarks
  * Applicable to Object, Array, TypedArray and Class types.
- * If Class is encountered during the deep cloning process, the custom cloning function of the object will be called first. Custom cloning requires the object to implement the IClone interface.
+ * If Class is encountered during the deep cloning process, the custom cloning function of the object will be called first.
+ * Custom cloning requires the object to implement the IClone interface.
  */
 export function deepClone(target: Object, propertyKey: string): void {
   CloneManager.registerCloneMode(target, propertyKey, CloneMode.Deep);
@@ -63,7 +64,7 @@ export class CloneManager {
   /** @internal */
   static _cloneModeMap = new Map<Object, Object>();
 
-  private static _obejctType = Object.getPrototypeOf(Object);
+  private static _objectType = Object.getPrototypeOf(Object);
 
   /**
    * Register clone mode.
@@ -88,9 +89,9 @@ export class CloneManager {
     if (!cloneModes) {
       cloneModes = Object.create(null);
       CloneManager._cloneModeMap.set(type, cloneModes);
-      const obejctType = CloneManager._obejctType;
+      const objectType = CloneManager._objectType;
       const cloneModeMap = CloneManager._subCloneModeMap;
-      while (type !== obejctType) {
+      while (type !== objectType) {
         const subCloneModes = cloneModeMap.get(type);
         if (subCloneModes) {
           Object.assign(cloneModes, subCloneModes);
@@ -132,7 +133,7 @@ export class CloneManager {
           // Custom clone.
           customSource.cloneTo(target);
         } else {
-          // Object or other class not implments custom clone.
+          // Object or other class not implements custom clone.
           const keys = Object.keys(source);
           for (let i = 0, n = keys.length; i < n; i++) {
             CloneManager._deepCloneObjectItem(source, target, keys[i]);
@@ -165,14 +166,14 @@ export class CloneManager {
           break;
         case Array:
           // Array clone.
-          const sourceArryItem = <[]>sourceItem;
+          const sourceArrayItem = <[]>sourceItem;
           let targetArrayItem = <[]>target[k];
           if (targetArrayItem == null) {
-            target[k] = new Array(sourceArryItem.length);
+            target[k] = new Array(sourceArrayItem.length);
           } else {
-            targetArrayItem.length = sourceArryItem.length;
+            targetArrayItem.length = sourceArrayItem.length;
           }
-          CloneManager.deepCloneObject(sourceArryItem, targetArrayItem);
+          CloneManager.deepCloneObject(sourceArrayItem, targetArrayItem);
           break;
         default:
           if (sourceItem.clone && sourceItem.cloneTo) {
@@ -185,7 +186,7 @@ export class CloneManager {
               target[k] = sourceCustomItem.clone();
             }
           } else {
-            // Object or other class not implments custom clone.
+            // Object or other class not implements custom clone.
             let targetItem = <Object>target[k];
             targetItem == null && (target[k] = targetItem = new sourceItem.constructor());
             CloneManager.deepCloneObject(sourceItem, targetItem);
@@ -193,7 +194,7 @@ export class CloneManager {
           }
       }
     } else {
-      // Null or undefine and primitive type.
+      // Null or undefined and primitive type.
       target[k] = sourceItem;
     }
   }

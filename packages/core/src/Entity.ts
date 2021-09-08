@@ -2,12 +2,14 @@ import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
+import { Script } from "./Script";
 import { ComponentsDependencies } from "./ComponentsDependencies";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
+import { DisorderedArray } from "./DisorderedArray";
 
 /**
  * Entity, be used as components container.
@@ -49,6 +51,8 @@ export class Entity extends EngineObject {
   _isActiveInHierarchy: boolean = false;
   /** @internal */
   _components: Component[] = [];
+  /** @internal */
+  _scripts: DisorderedArray<Script> = new DisorderedArray<Script>();
   /** @internal */
   _children: Entity[] = [];
   /** @internal */
@@ -223,7 +227,7 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Remove child entitiy.
+   * Remove child entity.
    * @param child - The child entity which want to be removed.
    */
   removeChild(child: Entity): void {
@@ -233,7 +237,7 @@ export class Entity extends EngineObject {
   /**
    * Find child entity by index.
    * @param index - The index of the child entity.
-   * @returns	The component which be finded.
+   * @returns	The component which be found.
    */
   getChild(index: number): Entity {
     return this._children[index];
@@ -241,8 +245,8 @@ export class Entity extends EngineObject {
 
   /**
    * Find child entity by name.
-   * @param name - The name of the entity which want to be finded.
-   * @returns The component which be finded.
+   * @param name - The name of the entity which want to be found.
+   * @returns The component which be found.
    */
   findByName(name: string): Entity {
     const children = this._children;
@@ -261,7 +265,7 @@ export class Entity extends EngineObject {
   /**
    * Find the entity by path.
    * @param path - The path fo the entity eg: /entity.
-   * @returns The component which be finded.
+   * @returns The component which be found.
    */
   findByPath(path: string): Entity {
     const splits = path.split("/");
@@ -362,6 +366,23 @@ export class Entity extends EngineObject {
     ComponentsDependencies._removeCheck(this, component.constructor as any);
     const components = this._components;
     components.splice(components.indexOf(component), 1);
+  }
+
+  /**
+   * @internal
+   */
+  _addScript(script: Script) {
+    script._entityCacheIndex = this._scripts.length;
+    this._scripts.add(script);
+  }
+
+  /**
+   * @internal
+   */
+  _removeScript(script: Script): void {
+    const replaced = this._scripts.deleteByIndex(script._entityCacheIndex);
+    replaced && (replaced._entityCacheIndex = script._entityCacheIndex);
+    script._entityCacheIndex = -1;
   }
 
   /**

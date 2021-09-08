@@ -20,12 +20,49 @@ describe("Color test", () => {
     expect(Color.equals(color1, color2)).toEqual(true);
   });
 
+  it("scale", () => {
+    const color1 = new Color(0.5, 0.5, 0.5, 0.5);
+    const color2 = new Color(1, 1, 1, 1);
+
+    color1.scale(2);
+    expect(color1).toEqual(color2);
+
+    Color.scale(color1, 0.5, color2);
+    expect(color2).toEqual(new Color(0.5, 0.5, 0.5, 0.5));
+  });
+
+  it("add", () => {
+    const color1 = new Color(1, 0, 0, 0);
+    const color2 = new Color(0, 1, 0, 0);
+
+    color1.add(color2);
+    expect(color1).toEqual(new Color(1, 1, 0, 0));
+
+    Color.add(color1, new Color(0, 0, 1, 0), color2);
+    expect(color2).toEqual(new Color(1, 1, 1, 0));
+  });
+
+  it("clone", () => {
+    const a = new Color();
+    const b = a.clone();
+
+    expect(Color.equals(a, b)).toEqual(true);
+  });
+
+  it("cloneTo", () => {
+    const a = new Color();
+    const out = new Color();
+
+    a.cloneTo(out);
+    expect(Color.equals(a, out)).toEqual(true);
+  });
+
   it("LinearAndGamma", () => {
     const fixColor = (color: Color) => {
       color.r = Math.floor(color.r * 1000) / 1000;
       color.g = Math.floor(color.g * 1000) / 1000;
       color.b = Math.floor(color.b * 1000) / 1000;
-    }
+    };
 
     const colorLinear = new Color();
     const colorGamma = new Color();

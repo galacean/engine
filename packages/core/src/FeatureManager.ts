@@ -13,7 +13,7 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
 
   /**
    * Register a feature.
-   * @param {SceneFeature|EngineFeature} Feature
+   * @param {SceneFeature|EngineFeature} IFeature
    */
   public registerFeature(IFeature: new () => T): void {
     const featureArray = this._features;
@@ -68,7 +68,7 @@ export class FeatureManager<T extends EngineFeature | SceneFeature> {
   /**
    * Find feature.
    * @param obj - Scene or engine
-   * @param feature - plug-in
+   * @param IFeature - plug-in
    */
 
   public findFeature(obj: Scene | Engine, IFeature: new () => T): T {

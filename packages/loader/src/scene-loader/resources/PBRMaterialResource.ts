@@ -1,37 +1,24 @@
 import { Logger, PBRMaterial, ResourceManager, Texture } from "@oasis-engine/core";
 import { AssetConfig, LoadAttachedResourceResult } from "../types";
-import { getAllGetters, isAsset } from "../utils";
+import { isAsset } from "../utils";
 import { SchemaResource } from "./SchemaResource";
 import { TextureResource } from "./TextureResource";
 
 const attrs = [
-  "metallicFactor",
-  "roughnessFactor",
-  "metallicTexture",
-  "roughnessTexture",
-  "metallicRoughnessTexture",
+  "metallic",
+  "roughness",
+  "roughnessMetallicTexture",
 
+  // pbr base
   "tilingOffset",
   "baseColor",
-  "normalIntensity",
+  "normalTextureIntensity",
   "emissiveColor",
-  "occlusionStrength",
-  "envMapIntensity",
-  "refractionRatio",
-  "refractionDepth",
-  "perturbationUOffset",
-  "perturbationVOffset",
+  "occlusionTextureIntensity",
   "baseTexture",
-  "opacityTexture",
   "normalTexture",
   "emissiveTexture",
   "occlusionTexture",
-  "refractionTexture",
-  "perturbationTexture",
-  "srgb",
-  "srgbFast",
-  "gamma",
-  "getOpacityFromRGB",
 
   // base material
   "isTransparent",

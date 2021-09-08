@@ -1,7 +1,7 @@
-import { Stats } from '../src/Stats';
+import { Stats } from "../src/Stats";
 
-describe("Stats", ()=>{
-  it("It worked!", ()=>{
+describe("Stats", () => {
+  it("It worked!", () => {
     let stats = new Stats();
     expect(stats).to.be.an("object");
   });

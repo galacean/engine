@@ -18,7 +18,7 @@ export class ComponentsManager {
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _destoryComponents: Script[] = [];
+  private _destroyComponents: Script[] = [];
 
   // Animation
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
@@ -100,8 +100,8 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
-  addDestoryComponent(component): void {
-    this._destoryComponents.push(component);
+  addDestroyComponent(component): void {
+    this._destroyComponents.push(component);
   }
 
   callScriptOnStart(): void {
@@ -165,7 +165,7 @@ export class ComponentsManager {
         continue;
       }
 
-      // filter by camera frustm.
+      // filter by camera frustum.
       if (camera.enableFrustumCulling) {
         element.isCulled = !camera._frustum.intersectsBox(element.bounds);
         if (element.isCulled) {
@@ -197,14 +197,14 @@ export class ComponentsManager {
     }
   }
 
-  callComponentDestory(): void {
-    const destoryComponents = this._destoryComponents;
-    const length = destoryComponents.length;
+  callComponentDestroy(): void {
+    const destroyComponents = this._destroyComponents;
+    const length = destroyComponents.length;
     if (length > 0) {
       for (let i = length - 1; i >= 0; --i) {
-        destoryComponents[i].onDestroy();
+        destroyComponents[i].onDestroy();
       }
-      destoryComponents.length = 0;
+      destroyComponents.length = 0;
     }
   }
 

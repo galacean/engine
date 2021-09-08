@@ -1,7 +1,4 @@
-import { Entity } from "../Entity";
 import { AnimatorState } from "./AnimatorState";
-import { AnimatorStateTransition } from "./AnimatorTransition";
-
 export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
@@ -11,9 +8,7 @@ export interface AnimatorStateMap {
  */
 export class AnimatorStateMachine {
   /** The list of states. */
-  states: AnimatorState[] = [];
-  /** The list of transitions in the state machine. */
-  transitions: AnimatorStateTransition[] = [];
+  readonly states: AnimatorState[] = [];
 
   /** @internal */
   _statesMap: AnimatorStateMap = {};
@@ -28,13 +23,15 @@ export class AnimatorStateMachine {
       state = new AnimatorState(name);
       this.states.push(state);
       this._statesMap[name] = state;
+    } else {
+      console.warn(`The state named ${name} has existed.`);
     }
     return state;
   }
 
   /**
    * Remove a state from the state machine.
-   * @param name - The state
+   * @param state - The state
    */
   removeState(state: AnimatorState): void {
     const { name } = state;
@@ -51,5 +48,21 @@ export class AnimatorStateMachine {
    */
   findStateByName(name: string): AnimatorState {
     return this._statesMap[name];
+  }
+
+  /**
+   * Makes a unique state name in the state machine.
+   * @param name - Desired name for the state.
+   * @returns Unique name.
+   */
+  makeUniqueStateName(name: string): string {
+    const { _statesMap } = this;
+    const originName = name;
+    let index = 0;
+    while (_statesMap[name]) {
+      name = `${originName} ${index}`;
+      index++;
+    }
+    return name;
   }
 }

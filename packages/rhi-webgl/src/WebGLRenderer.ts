@@ -68,7 +68,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _capability: GLCapability;
   private _isWebGL2: boolean;
 
-  private _activedTextureID: number = WebGLRenderingContext.TEXTURE0;
+  private _activeTextureID: number = WebGLRenderingContext.TEXTURE0;
   private _activeTextures: GLTexture[] = new Array(32);
 
   get isWebGL2() {
@@ -139,6 +139,8 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this);
     this._capability = new GLCapability(this);
+    // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
+    gl.activeTexture(WebGLRenderingContext.TEXTURE0);
 
     this._options = null;
   }
@@ -257,14 +259,14 @@ export class WebGLRenderer implements IHardwareRenderer {
   destroy() {}
 
   activeTexture(textureID: number): void {
-    if (this._activedTextureID !== textureID) {
+    if (this._activeTextureID !== textureID) {
       this._gl.activeTexture(textureID);
-      this._activedTextureID = textureID;
+      this._activeTextureID = textureID;
     }
   }
 
   bindTexture(texture: GLTexture): void {
-    const index = this._activedTextureID - this._gl.TEXTURE0;
+    const index = this._activeTextureID - this._gl.TEXTURE0;
     if (this._activeTextures[index] !== texture) {
       this._gl.bindTexture(texture._target, texture._glTexture);
       this._activeTextures[index] = texture;

@@ -10,11 +10,12 @@ import { WebGLRenderer } from "./WebGLRenderer";
  */
 
 /**
- * GL platform primtive.
+ * @internal
+ * GL platform primitive.
  */
 export class GLPrimitive implements IPlatformPrimitive {
-  protected readonly _primitive: Mesh;
   protected attribLocArray: number[];
+  protected readonly _primitive: Mesh;
   protected readonly canUseInstancedArrays: boolean;
 
   private gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
@@ -31,7 +32,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Draw the primitive.
    */
-  draw(shaderProgram: any, subMesh: SubMesh) {
+  draw(shaderProgram: any, subMesh: SubMesh): void {
     const gl = this.gl;
     const primitive = this._primitive;
 
@@ -102,7 +103,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Bind buffer and attribute.
    */
-  protected bindBufferAndAttrib(shaderProgram: any) {
+  protected bindBufferAndAttrib(shaderProgram: any): void {
     const gl = this.gl;
     const primitive = this._primitive;
     // @ts-ignore

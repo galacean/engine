@@ -88,6 +88,7 @@ export enum DataType {
  * Some capabilities can be smoothed out by extension, and some capabilities must use WebGL 2.0.
  * */
 export enum GLCapabilityType {
+  shaderVertexID = "shaderVertexID",
   standardDerivatives = "OES_standard_derivatives",
   shaderTextureLod = "EXT_shader_texture_lod",
   elementIndexUint = "OES_element_index_uint",

@@ -1,9 +1,9 @@
     vec3 normal = getNormal();
-    vec4 diffuseColor = u_baseColorFactor;
-    vec3 totalEmissiveRadiance = u_emissiveFactor;
+    vec4 diffuseColor = u_baseColor;
+    vec3 totalEmissiveRadiance = u_emissiveColor;
     float metalnessFactor = u_metal;
     float roughnessFactor = u_roughness;
-    vec3 specularFactor = u_specularFactor;
+    vec3 specularFactor = u_specularColor;
     float glossinessFactor = u_glossinessFactor;
 
     ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
@@ -20,27 +20,9 @@
     #endif
 
     #ifdef O3_HAS_VERTEXCOLOR
-
-        diffuseColor.rgb *= v_color.rgb;
-
-        #ifdef O3_HAS_VERTEXALPHA
-
-            diffuseColor.a *= v_color.a;
-
-        #endif
-
+        diffuseColor *= v_color;
     #endif
 
-
-    #if defined(ALPHA_BLEND) && defined(HAS_OPACITYMAP)
-
-        #ifdef GETOPACITYFROMRGB
-            diffuseColor.a *= getLuminance(texture2D( u_opacitySampler, v_uv ).rgb);
-        #else
-            diffuseColor.a *= texture2D( u_opacitySampler, v_uv ).a;
-        #endif
-
-    #endif
 
     #ifdef ALPHA_CUTOFF
 
@@ -50,49 +32,35 @@
 
     #endif
 
-        #ifdef HAS_METALROUGHNESSMAP
+    #ifdef HAS_METALROUGHNESSMAP
 
-            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv );
-            metalnessFactor *= metalRoughMapColor.b;
-            roughnessFactor *= metalRoughMapColor.g;
+        vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv );
+        roughnessFactor *= metalRoughMapColor.g;
+        metalnessFactor *= metalRoughMapColor.b;
 
-        #else
-            #ifdef HAS_METALMAP
+    #endif
 
-            vec4 metalMapColor = texture2D( u_metallicSampler, v_uv );
-            metalnessFactor *= metalMapColor.b;
+    #ifdef HAS_SPECULARGLOSSINESSMAP
 
-            #endif
+        vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv );
+        specularFactor *= specularGlossinessColor.rgb;
+        glossinessFactor *= specularGlossinessColor.a;
 
-            #ifdef HAS_ROUGHNESSMAP
-
-            vec4 roughMapColor = texture2D( u_roughnessSampler, v_uv );
-            roughnessFactor *= roughMapColor.g;
-
-            #endif
-        #endif
-
-        #ifdef HAS_SPECULARGLOSSINESSMAP
-
-            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv );
-            specularFactor *= specularGlossinessColor.rgb;
-            glossinessFactor *= specularGlossinessColor.a;
-
-        #endif
+    #endif
 
 
-        #ifdef IS_METALLIC_WORKFLOW
-            material.diffuseColor = diffuseColor.rgb * ( 1.0 - metalnessFactor );
-            material.specularRoughness = clamp( roughnessFactor, 0.04, 1.0 );
-//          material.specularColor = mix( vec3( DEFAULT_SPECULAR_COEFFICIENT ), diffuseColor.rgb, metalnessFactor );
-            material.specularColor = mix( vec3( MAXIMUM_SPECULAR_COEFFICIENT /* pow2( reflectivity )*/ ), diffuseColor.rgb, metalnessFactor );
-        #else
-            float specularStrength = max( max( specularFactor.r, specularFactor.g ), specularFactor.b );
-            material.diffuseColor = diffuseColor.rgb * ( 1.0 - specularStrength );
-            material.specularRoughness = clamp( 1.0 - glossinessFactor, 0.04, 1.0 );
-            material.specularColor = specularFactor;
-        #endif
+    #ifdef IS_METALLIC_WORKFLOW
+        material.diffuseColor = diffuseColor.rgb * ( 1.0 - metalnessFactor );
+        material.specularRoughness = clamp( roughnessFactor, 0.04, 1.0 );
+//        material.specularColor = mix( vec3( DEFAULT_SPECULAR_COEFFICIENT ), diffuseColor.rgb, metalnessFactor );
+        material.specularColor = mix( vec3( MAXIMUM_SPECULAR_COEFFICIENT /* pow2( reflectivity )*/ ), diffuseColor.rgb, metalnessFactor );
+    #else
+        float specularStrength = max( max( specularFactor.r, specularFactor.g ), specularFactor.b );
+        material.diffuseColor = diffuseColor.rgb * ( 1.0 - specularStrength );
+        material.specularRoughness = clamp( 1.0 - glossinessFactor, 0.04, 1.0 );
+        material.specularColor = specularFactor;
+    #endif
 
-        geometry.position = v_pos;
-        geometry.normal = normal;
-        geometry.viewDir = normalize( u_cameraPos - v_pos );
+    geometry.position = v_pos;
+    geometry.normal = normal;
+    geometry.viewDir = normalize( u_cameraPos - v_pos );

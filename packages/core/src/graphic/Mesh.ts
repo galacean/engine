@@ -10,6 +10,7 @@ import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { ShaderProgram } from "../shader/ShaderProgram";
 import { UpdateFlag } from "../UpdateFlag";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * Mesh.
@@ -35,7 +36,7 @@ export abstract class Mesh extends RefObject {
   _vertexElements: VertexElement[] = [];
 
   private _subMeshes: SubMesh[] = [];
-  private _updateFlags: UpdateFlag[] = [];
+  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * First sub-mesh. Rendered using the first material.
@@ -52,7 +53,7 @@ export abstract class Mesh extends RefObject {
   }
 
   /**
-   * Create emsh.
+   * Create mesh.
    * @param engine - Engine
    * @param name - Mesh name
    */
@@ -114,7 +115,7 @@ export abstract class Mesh extends RefObject {
    * @returns Update flag
    */
   registerUpdateFlag(): UpdateFlag {
-    return new UpdateFlag(this._updateFlags);
+    return this._updateFlagManager.register();
   }
 
   /**
@@ -139,7 +140,7 @@ export abstract class Mesh extends RefObject {
    * @override
    * Destroy.
    */
-  _onDestroy() {
+  _onDestroy(): void {
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;
     this._vertexElements = null;
@@ -177,7 +178,7 @@ export abstract class Mesh extends RefObject {
   private _clearVertexElements(): void {
     this._vertexElements.length = 0;
     const vertexElementMap = this._vertexElementMap;
-    for (var k in vertexElementMap) {
+    for (const k in vertexElementMap) {
       delete vertexElementMap[k];
     }
   }
@@ -186,12 +187,6 @@ export abstract class Mesh extends RefObject {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-    this._makeModified();
-  }
-
-  private _makeModified(): void {
-    for (let i = this._updateFlags.length - 1; i >= 0; i--) {
-      this._updateFlags[i].flag = true;
-    }
+    this._updateFlagManager.distribute();
   }
 }

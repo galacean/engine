@@ -16,6 +16,8 @@ import position_vert from "./position_vert.glsl";
 import color_vert from "./color_vert.glsl";
 import normal_vert from "./normal_vert.glsl";
 import skinning_vert from "./skinning_vert.glsl";
+import blendShape_input from "./blendShape_input.glsl";
+import blendShape_vert from "./blendShape_vert.glsl";
 import uv_vert from "./uv_vert.glsl";
 import worldpos_vert from "./worldpos_vert.glsl";
 import shadow_vert from "./shadow_vert.glsl";
@@ -49,11 +51,6 @@ import noise_simplex_3D from "./noise_simplex_3D.glsl";
 import noise_simplex_4D from "./noise_simplex_4D.glsl";
 import noise_simplex from "./noise_simplex.glsl";
 
-import perturbation_share from "./perturbation_share.glsl";
-import perturbation_frag from "./perturbation_frag.glsl";
-import refraction_share from "./refraction_share.glsl";
-import refraction_frag from "./refraction_frag.glsl";
-
 import gamma_frag from "./gamma_frag.glsl";
 
 import PBRShaderLib from "./pbr";
@@ -79,6 +76,8 @@ export const ShaderLib = {
   color_vert,
   normal_vert,
   skinning_vert,
+  blendShape_input,
+  blendShape_vert,
   uv_vert,
   worldpos_vert,
   shadow_vert,
@@ -111,11 +110,6 @@ export const ShaderLib = {
   noise_simplex_3D,
   noise_simplex_4D,
   noise_simplex,
-
-  perturbation_share,
-  perturbation_frag,
-  refraction_share,
-  refraction_frag,
 
   gamma_frag,
 

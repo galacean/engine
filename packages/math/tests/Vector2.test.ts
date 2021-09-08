@@ -15,7 +15,7 @@ describe("Vector2 test", () => {
     expect(toString(out)).toEqual("vec2(-1, 8)");
   });
 
-  it("static substract", () => {
+  it("static subtract", () => {
     const a = new Vector2(2, 3);
     const b = new Vector2(-3, 5);
     const out = new Vector2();
@@ -124,6 +124,15 @@ describe("Vector2 test", () => {
   it("setValue", () => {
     const a = new Vector2(3, 4);
     expect(toString(a.setValue(5, 6))).toEqual("vec2(5, 6)");
+  });
+
+  it("setValueByArray", () => {
+    const a = new Vector2(3, 4);
+    expect(toString(a.setValueByArray([5, 6]))).toEqual("vec2(5, 6)");
+    const b = [];
+    a.toArray(b);
+    expect(b[0]).toEqual(5);
+    expect(b[1]).toEqual(6);
   });
 
   it("clone", () => {

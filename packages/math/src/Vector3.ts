@@ -208,9 +208,9 @@ export class Vector3 implements IClone {
    * Performs a normal transformation using the given 4x4 matrix.
    * @remarks
    * A normal transform performs the transformation with the assumption that the w component
-   * is zero. This causes the fourth row and fourth collumn of the matrix to be unused. The
+   * is zero. This causes the fourth row and fourth column of the matrix to be unused. The
    * end result is a vector that is not translated, but all other transformation properties
-   * apply. This is often prefered for normal vectors as normals purely represent direction
+   * apply. This is often preferred for normal vectors as normals purely represent direction
    * rather than location because normal vectors should not be translated.
    * @param v - The normal vector to transform
    * @param m - The transform matrix
@@ -261,8 +261,8 @@ export class Vector3 implements IClone {
    * @remarks
    * A coordinate transform performs the transformation with the assumption that the w component
    * is one. The four dimensional vector obtained from the transformation operation has each
-   * component in the vector divided by the w component. This forces the wcomponent to be one and
-   * therefore makes the vector homogeneous. The homogeneous vector is often prefered when working
+   * component in the vector divided by the w component. This forces the w-component to be one and
+   * therefore makes the vector homogeneous. The homogeneous vector is often preferred when working
    * with coordinates as the w component can safely be ignored.
    * @param v - The coordinate vector to transform
    * @param m - The transform matrix
@@ -480,9 +480,9 @@ export class Vector3 implements IClone {
    * This vector performs a normal transformation using the given 4x4 matrix.
    * @remarks
    * A normal transform performs the transformation with the assumption that the w component
-   * is zero. This causes the fourth row and fourth collumn of the matrix to be unused. The
+   * is zero. This causes the fourth row and fourth column of the matrix to be unused. The
    * end result is a vector that is not translated, but all other transformation properties
-   * apply. This is often prefered for normal vectors as normals purely represent direction
+   * apply. This is often preferred for normal vectors as normals purely represent direction
    * rather than location because normal vectors should not be translated.
    * @param m - The transform matrix
    * @returns This vector
@@ -507,8 +507,8 @@ export class Vector3 implements IClone {
    * @remarks
    * A coordinate transform performs the transformation with the assumption that the w component
    * is one. The four dimensional vector obtained from the transformation operation has each
-   * component in the vector divided by the w component. This forces the wcomponent to be one and
-   * therefore makes the vector homogeneous. The homogeneous vector is often prefered when working
+   * component in the vector divided by the w component. This forces the w-component to be one and
+   * therefore makes the vector homogeneous. The homogeneous vector is often preferred when working
    * with coordinates as the w component can safely be ignored.
    * @param m - The transform matrix
    * @returns This vector
@@ -521,7 +521,7 @@ export class Vector3 implements IClone {
   /**
    * This vector performs a transformation using the given quaternion.
    * @param quaternion - The transform quaternion
-   * @param out - This vector
+   * @returns This vector
    */
   transformByQuat(quaternion: Quaternion): Vector3 {
     Vector3.transformByQuat(this, quaternion, this);

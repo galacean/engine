@@ -281,7 +281,7 @@ describe("Script", () => {
       const root = scene.getRootEntity();
       const component = root.addComponent(TheScript);
       component.destroy();
-      engine._componentsManager.callComponentDestory();
+      engine._componentsManager.callComponentDestroy();
       expect(component.onDestroy).toHaveBeenCalledTimes(1);
     });
   });

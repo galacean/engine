@@ -32,7 +32,7 @@ export interface IPlatformTextureCubeMap extends IPlatformTexture {
    * @param imageSource - The source of texture
    * @param mipLevel - Texture mipmapping level
    * @param flipY - Whether to flip the Y axis
-   * @param premultipltAlpha - Whether to premultiply the transparent channel
+   * @param premultiplyAlpha - Whether to premultiply the transparent channel
    * @param x - X coordinate of area start
    * @param y - Y coordinate of area start
    */

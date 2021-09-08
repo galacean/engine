@@ -53,7 +53,7 @@ export class Buffer extends RefObject {
    * Create Buffer.
    * @param engine - Engine
    * @param type - Buffer binding flag
-   * @param byteLength - Byte length
+   * @param data - Byte
    * @param bufferUsage - Buffer usage
    */
   constructor(engine: Engine, type: BufferBindFlag, data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage);

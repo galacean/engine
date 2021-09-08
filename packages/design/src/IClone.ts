@@ -3,7 +3,7 @@
  */
 export interface IClone {
   /**
-   * Clone and return obejct.
+   * Clone and return object.
    * @returns Clone object
    */
   clone(): Object;

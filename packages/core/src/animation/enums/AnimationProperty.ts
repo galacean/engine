@@ -1,5 +1,6 @@
 export enum AnimationProperty {
   Position,
   Rotation,
-  Scale
+  Scale,
+  BlendShapeWeights
 }

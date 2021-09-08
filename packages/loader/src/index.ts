@@ -5,6 +5,7 @@ import "./KTXCubeLoader";
 import "./KTXLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
+import "./SpriteAtlasLoader";
 import "./gltf/extensions/index";
 
 export { GLTFResource } from "./gltf/GLTFResource";

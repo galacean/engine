@@ -9,8 +9,6 @@
 #include <normal_share>
 #include <color_share>
 #include <worldpos_share>
-#include <refraction_share>
-#include <perturbation_share>
 
 // light
 #include <direct_light_frag>
@@ -41,10 +39,7 @@ void main() {
     #include <pbr_direct_irradiance_frag>
     #include <pbr_ibl_diffuse_frag>
     #include <pbr_ibl_specular_frag>
-    // todo: generalize texture logic
     #include <pbr_end_frag>
     #include <gamma_frag>
-    #include <refraction_frag>
-    #include <perturbation_frag>
     #include <fog_frag>
 }

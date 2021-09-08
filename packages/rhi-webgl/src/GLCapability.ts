@@ -15,10 +15,18 @@ export class GLCapability {
   _rhi: WebGLRenderer;
   capabilityList: Map<GLCapabilityType, boolean>;
 
+  get canUseFloatTextureBlendShape(): boolean {
+    return (
+      this.canIUse(GLCapabilityType.shaderVertexID) &&
+      this.canIUse(GLCapabilityType.textureFloat) &&
+      this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0
+    );
+  }
+
   /**
    * Whether can use more joints.
    */
-  get canIUseMoreJoints() {
+  get canIUseMoreJoints(): boolean {
     return (
       this.canIUse(GLCapabilityType.textureFloat) &&
       this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0
@@ -127,6 +135,7 @@ export class GLCapability {
     const requireExtension = this.rhi.requireExtension.bind(this.rhi);
 
     const {
+      shaderVertexID,
       standardDerivatives,
       shaderTextureLod,
       elementIndexUint,
@@ -156,6 +165,7 @@ export class GLCapability {
       colorBufferHalfFloat,
       textureFilterAnisotropic
     } = GLCapabilityType;
+    cap.set(shaderVertexID, isWebGL2);
     cap.set(standardDerivatives, isWebGL2 || !!requireExtension(standardDerivatives));
     cap.set(shaderTextureLod, isWebGL2 || !!requireExtension(shaderTextureLod));
     cap.set(elementIndexUint, isWebGL2 || !!requireExtension(elementIndexUint));

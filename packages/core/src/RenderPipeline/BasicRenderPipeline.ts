@@ -1,10 +1,12 @@
-import { Matrix } from "@oasis-engine/math";
+import { Matrix, Vector2 } from "@oasis-engine/math";
+import { Background } from "..";
 import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { BackgroundMode } from "../enums/BackgroundMode";
+import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
 import { RenderQueueType } from "../material/enums/RenderQueueType";
@@ -36,6 +38,7 @@ export class BasicRenderPipeline {
   private _camera: Camera;
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
+  private _lastCanvasSize = new Vector2();
 
   /**
    * Create a basic render pipeline.
@@ -131,7 +134,7 @@ export class BasicRenderPipeline {
    * Perform scene rendering.
    * @param context - Render context
    * @param cubeFace - Render surface of cube texture
-   * @param mipLevel - Set mip level the data want to wirte
+   * @param mipLevel - Set mip level the data want to write
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number) {
     const camera = this._camera;
@@ -179,6 +182,8 @@ export class BasicRenderPipeline {
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
         if (background.mode === BackgroundMode.Sky) {
           this._drawSky(engine, camera, background.sky);
+        } else if (background.mode === BackgroundMode.Texture && background.texture) {
+          this._drawBackgroundTexture(engine, background);
         }
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
@@ -204,6 +209,27 @@ export class BasicRenderPipeline {
     } else {
       this._opaqueQueue.pushPrimitive(element);
     }
+  }
+
+  private _drawBackgroundTexture(engine: Engine, background: Background) {
+    const rhi = engine._hardwareRenderer;
+    const { _backgroundTextureMaterial, _backgroundTextureMesh, canvas } = engine;
+
+    if (
+      (this._lastCanvasSize.x !== canvas.width || this._lastCanvasSize.y !== canvas.height) &&
+      background._textureFillMode !== BackgroundTextureFillMode.Fill
+    ) {
+      this._lastCanvasSize.setValue(canvas.width, canvas.height);
+      background._resizeBackgroundTexture();
+    }
+
+    const program = _backgroundTextureMaterial.shader._getShaderProgram(engine, Shader._compileMacros);
+    program.bind();
+    program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
+    program.uploadUngroupTextures();
+
+    _backgroundTextureMaterial.renderState._apply(engine);
+    rhi.drawPrimitive(_backgroundTextureMesh, _backgroundTextureMesh.subMesh, program);
   }
 
   private _drawSky(engine: Engine, camera: Camera, sky: Sky): void {

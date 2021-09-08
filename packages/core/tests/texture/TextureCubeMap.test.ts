@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { TextureCubeFace, TextureCubeMap, TextureFormat } from "../src/texture";
-import { WebGLEngine } from "../../rhi-webgl/src/WebGLEngine";
+import { TextureCubeFace, TextureCubeMap, TextureFormat } from "../../src/texture";
+import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
 
 describe("TextureCubeMap", () => {
   const width = 1024;

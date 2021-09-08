@@ -83,7 +83,7 @@ export class Quaternion implements IClone {
   }
 
   /**
-   * Calculate a quaternion rotates around an arbitary axis.
+   * Calculate a quaternion rotates around an arbitrary axis.
    * @param axis - The axis
    * @param rad - The rotation angle in radians
    * @param out - The quaternion after rotate
@@ -649,7 +649,7 @@ export class Quaternion implements IClone {
   }
 
   /**
-   * Calculate this quaternion rotates around an arbitary axis.
+   * Calculate this quaternion rotates around an arbitrary axis.
    * @param axis - The axis
    * @param rad - The rotation angle in radians
    * @returns This quaternion

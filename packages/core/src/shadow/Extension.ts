@@ -30,7 +30,7 @@ Object.defineProperty(Light.prototype, "enableShadow", {
 /**
  * Set whether the renderer to receive shadows.
  */
-Object.defineProperty(Component.prototype, "recieveShadow", {
+Object.defineProperty(Component.prototype, "receiveShadow", {
   get: function () {
     return this._recieveShadow;
   },

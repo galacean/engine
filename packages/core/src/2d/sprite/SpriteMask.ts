@@ -17,7 +17,7 @@ export class SpriteMask extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
   /** @internal */
-  static _alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_alphaCutoff");
+  static _alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_maskAlphaCutoff");
 
   private static _tempVec3: Vector3 = new Vector3();
 

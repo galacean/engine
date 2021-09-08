@@ -54,13 +54,8 @@ export class MaterialParser extends Parser {
       material.name = name;
 
       if (pbrMetallicRoughness) {
-        const {
-          baseColorFactor,
-          baseColorTexture,
-          metallicFactor,
-          roughnessFactor,
-          metallicRoughnessTexture
-        } = pbrMetallicRoughness;
+        const { baseColorFactor, baseColorTexture, metallicFactor, roughnessFactor, metallicRoughnessTexture } =
+          pbrMetallicRoughness;
 
         if (baseColorFactor) {
           material.baseColor = new Color(...baseColorFactor);
@@ -71,43 +66,43 @@ export class MaterialParser extends Parser {
         }
 
         if (!KHR_materials_unlit && !KHR_materials_pbrSpecularGlossiness) {
-          material = material as PBRMaterial;
-          material.metallicFactor = metallicFactor ?? 1;
-          material.roughnessFactor = roughnessFactor ?? 1;
+          const m = material as PBRMaterial;
+          m.metallic = metallicFactor ?? 1;
+          m.roughness = roughnessFactor ?? 1;
           if (metallicRoughnessTexture) {
-            material.metallicRoughnessTexture = textures[metallicRoughnessTexture.index];
+            m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
             MaterialParser._parseTextureTransform(material, metallicRoughnessTexture.extensions, context);
           }
         }
       }
 
       if (!KHR_materials_unlit) {
-        material = material as PBRMaterial | PBRSpecularMaterial;
+        const m = material as PBRMaterial | PBRSpecularMaterial;
 
         if (emissiveTexture) {
-          material.emissiveTexture = textures[emissiveTexture.index];
+          m.emissiveTexture = textures[emissiveTexture.index];
           MaterialParser._parseTextureTransform(material, emissiveTexture.extensions, context);
         }
 
         if (emissiveFactor) {
-          material.emissiveColor = new Color(...emissiveFactor);
+          m.emissiveColor = new Color(...emissiveFactor);
         }
 
         if (normalTexture) {
           const { index, scale } = normalTexture;
-          material.normalTexture = textures[index];
+          m.normalTexture = textures[index];
           MaterialParser._parseTextureTransform(material, normalTexture.extensions, context);
           if (scale !== undefined) {
-            material.normalIntensity = scale;
+            m.normalTextureIntensity = scale;
           }
         }
 
         if (occlusionTexture) {
           const { index, strength } = occlusionTexture;
-          material.occlusionTexture = textures[index];
+          m.occlusionTexture = textures[index];
           MaterialParser._parseTextureTransform(material, occlusionTexture.extensions, context);
           if (strength !== undefined) {
-            material.occlusionStrength = strength;
+            m.occlusionTextureIntensity = strength;
           }
         }
       }
