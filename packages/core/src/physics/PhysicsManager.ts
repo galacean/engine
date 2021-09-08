@@ -118,7 +118,7 @@ export class PhysicsManager {
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
   addStaticActor(actor: Collider) {
-    this._physicalObjectsMap.set(actor.getGroup_id(), actor.entity);
+    this._physicalObjectsMap.set(actor.index, actor.entity);
     this._physicsManager.addStaticActor(actor._collider);
   }
 

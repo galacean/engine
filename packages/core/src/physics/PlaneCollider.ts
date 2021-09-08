@@ -34,10 +34,12 @@ export class PlaneCollider extends Collider {
     super(entity);
     this._planeCollider = this.engine._physicsEngine.createPlaneCollider();
     this._collider = this._planeCollider;
+    this._updateFlag = this.entity.transform.registerWorldChangeFlag();
   }
 
   initWithNormalDistance(normal: Vector3, distance: number) {
     this._planeCollider.initWithNormalDistance(
+      this._index,
       normal,
       distance,
       this.entity.transform.position,

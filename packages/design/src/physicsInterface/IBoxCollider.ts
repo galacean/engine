@@ -10,10 +10,11 @@ export interface IBoxCollider extends ICollider {
 
   /**
    * init Collider and alloc PhysX objects.
+   * @param index index mark collider
    * @param value size of BoxCollider
    * @param position position of Collider
    * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithSize(value: Vector3, position: Vector3, rotation: Quaternion): void;
+  initWithSize(index: number, value: Vector3, position: Vector3, rotation: Quaternion): void;
 }

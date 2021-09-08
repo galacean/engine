@@ -17,17 +17,19 @@ export class SphereCollider extends Collider implements ISphereCollider {
    */
   set radius(value: number) {
     this._radius = value;
-    this.initWithRadius(value, this._position, this._rotation);
+    this.initWithRadius(this._index, value, this._position, this._rotation);
   }
 
   /**
    * init Collider and alloc PhysX objects.
+   * @param index index mark collider
    * @param value size of SphereCollider
    * @param position position of Collider
    * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithRadius(value: number, position: Vector3, rotation: Quaternion) {
+  initWithRadius(index: number, value: number, position: Vector3, rotation: Quaternion) {
+    this._index = index;
     this._radius = value;
     this._position = position;
     this._rotation = rotation;
@@ -36,7 +38,7 @@ export class SphereCollider extends Collider implements ISphereCollider {
     this._allocGeometry();
     this._allocShape();
     this._setLocalPose();
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._group_id, 0, 0, 0));
+    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
     this._allocActor();
   }
 

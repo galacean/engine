@@ -51,7 +51,17 @@ export class PlaneCollider extends Collider implements IPlaneCollider {
     this._pxShape.setLocalPose(transform);
   }
 
-  initWithNormalDistance(normal: Vector3, distance: number, position: Vector3, rotation: Quaternion) {
+  /**
+   * init Collider and alloc PhysX objects.
+   * @param index index mark collider
+   * @param normal normal of planeCollider
+   * @param distance distance of origin for planeCollider
+   * @param position position of Collider
+   * @param rotation rotation of Collider
+   * @remarks must call after this component add to Entity.
+   */
+  initWithNormalDistance(index: number, normal: Vector3, distance: number, position: Vector3, rotation: Quaternion) {
+    this._index = index;
     this._normal = normal;
     this._distance = distance;
     this._position = position;
@@ -63,6 +73,6 @@ export class PlaneCollider extends Collider implements IPlaneCollider {
       this._material._pxMaterial
     );
     this._pxShape = this._pxRigidStatic.getShape();
-    this._pxRigidStatic.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._group_id, 0, 0, 0));
+    this._pxRigidStatic.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
   }
 }

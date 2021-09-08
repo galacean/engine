@@ -17,17 +17,19 @@ export class BoxCollider extends Collider implements IBoxCollider {
    */
   set size(value: Vector3) {
     this._size = value;
-    this.initWithSize(value, this._position, this._rotation);
+    this.initWithSize(this._index, value, this._position, this._rotation);
   }
 
   /**
    * init Collider and alloc PhysX objects.
+   * @param index index mark collider
    * @param value size of BoxCollider
    * @param position position of Collider
    * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithSize(value: Vector3, position: Vector3, rotation: Quaternion): void {
+  initWithSize(index: number, value: Vector3, position: Vector3, rotation: Quaternion): void {
+    this._index = index;
     this._size = value;
     this._position = position;
     this._rotation = rotation;
@@ -36,7 +38,7 @@ export class BoxCollider extends Collider implements IBoxCollider {
     this._allocGeometry();
     this._allocShape();
     this._setLocalPose();
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._group_id, 0, 0, 0));
+    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
     this._allocActor();
   }
 

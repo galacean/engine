@@ -34,13 +34,15 @@ export class CapsuleCollider extends Collider implements ICapsuleCollider {
 
   /**
    * init Collider and alloc PhysX objects.
+   * @param index index mark collider
    * @param radius radius of CapsuleCollider
    * @param height height of CapsuleCollider
    * @param position position of Collider
    * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithRadiusHeight(radius: number, height: number, position: Vector3, rotation: Quaternion) {
+  initWithRadiusHeight(index: number, radius: number, height: number, position: Vector3, rotation: Quaternion) {
+    this._index = index;
     this._radius = radius;
     this._height = height;
     this._position = position;
@@ -50,7 +52,7 @@ export class CapsuleCollider extends Collider implements ICapsuleCollider {
     this._allocGeometry();
     this._allocShape();
     this._setLocalPose();
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._group_id, 0, 0, 0));
+    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
     this._allocActor();
   }
 

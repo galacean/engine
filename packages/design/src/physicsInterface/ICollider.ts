@@ -5,8 +5,6 @@ export interface ICollider {
   center: Vector3;
   material: IPhysicsMaterial;
 
-  getGroup_id(): number;
-
   setTrigger(value: boolean);
 
   setFlag(flag: number, value: boolean);

@@ -6,6 +6,7 @@ import { Script } from "./Script";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Vector3 } from "@oasis-engine/math";
+import { Collider } from "./physics";
 
 /**
  * The manager of the components.
@@ -30,6 +31,9 @@ export class ComponentsManager {
   // Delay dispose active/inActive Pool
   private _componentsContainerPool: Component[][] = [];
 
+  // Physics
+  private _colliders: DisorderedArray<Collider> = new DisorderedArray();
+
   addRenderer(renderer: Renderer) {
     renderer._rendererIndex = this._renderers.length;
     this._renderers.add(renderer);
@@ -50,6 +54,17 @@ export class ComponentsManager {
     const replaced = this._onStartScripts.deleteByIndex(script._onStartIndex);
     replaced && (replaced._onStartIndex = script._onStartIndex);
     script._onStartIndex = -1;
+  }
+
+  addCollider(collider: Collider) {
+    collider._index = this._colliders.length;
+    this._colliders.add(collider);
+  }
+
+  removeCollider(collider: Collider) {
+    const replaced = this._colliders.deleteByIndex(collider._index);
+    replaced && (replaced._index = collider._index);
+    collider._index = -1;
   }
 
   addOnUpdateScript(script: Script) {

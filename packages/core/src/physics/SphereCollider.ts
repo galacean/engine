@@ -21,6 +21,7 @@ export class SphereCollider extends Collider {
     super(entity);
     this._sphereCollider = this.engine._physicsEngine.createSphereCollider();
     this._collider = this._sphereCollider;
+    this._updateFlag = this.entity.transform.registerWorldChangeFlag();
   }
 
   /**
@@ -30,6 +31,7 @@ export class SphereCollider extends Collider {
    */
   initWithRadius(value: number) {
     this._sphereCollider.initWithRadius(
+      this._index,
       value,
       this.entity.transform.position,
       this.entity.transform.rotationQuaternion

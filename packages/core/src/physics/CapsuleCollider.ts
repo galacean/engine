@@ -29,6 +29,7 @@ export class CapsuleCollider extends Collider {
     super(entity);
     this._capsuleCollider = this.engine._physicsEngine.createCapsuleCollider();
     this._collider = this._capsuleCollider;
+    this._updateFlag = this.entity.transform.registerWorldChangeFlag();
   }
 
   /**
@@ -39,6 +40,7 @@ export class CapsuleCollider extends Collider {
    */
   initWithRadiusHeight(radius: number, height: number) {
     this._capsuleCollider.initWithRadiusHeight(
+      this._index,
       radius,
       height,
       this.entity.transform.position,

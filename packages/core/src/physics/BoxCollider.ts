@@ -22,6 +22,7 @@ export class BoxCollider extends Collider {
     super(entity);
     this._boxCollider = this.engine._physicsEngine.createBoxCollider();
     this._collider = this._boxCollider;
+    this._updateFlag = this.entity.transform.registerWorldChangeFlag();
   }
 
   /**
@@ -30,7 +31,12 @@ export class BoxCollider extends Collider {
    * @remarks must call after this component add to Entity.
    */
   initWithSize(value: Vector3) {
-    this._boxCollider.initWithSize(value, this.entity.transform.position, this.entity.transform.rotationQuaternion);
+    this._boxCollider.initWithSize(
+      this._index,
+      value,
+      this.entity.transform.position,
+      this.entity.transform.rotationQuaternion
+    );
     this.engine.physicsManager.addStaticActor(this);
   }
 }

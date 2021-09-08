@@ -18,7 +18,7 @@ export class Collider implements ICollider {
   protected _position: Vector3;
   protected _rotation: Quaternion;
 
-  protected _group_id: number = PhysXManager.physical_id++;
+  protected _index: number;
 
   protected _center: Vector3 = new Vector3();
 
@@ -60,10 +60,6 @@ export class Collider implements ICollider {
   set material(value: PhysicsMaterial) {
     this._material = value;
     this._pxShape.setMaterials([this.material._pxMaterial]);
-  }
-
-  getGroup_id(): number {
-    return this._group_id;
   }
 
   setTrigger(value: boolean) {
