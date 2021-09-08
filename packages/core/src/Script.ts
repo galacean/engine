@@ -23,6 +23,9 @@ export class Script extends Component {
   _onPreRenderIndex: number = -1;
   /** @internal */
   @ignoreClone
+  _listenInput: boolean = false;
+  /** @internal */
+  @ignoreClone
   _onPostRenderIndex: number = -1;
   @ignoreClone
   _entityCacheIndex: number = -1;
@@ -141,7 +144,8 @@ export class Script extends Component {
    * @override
    */
   _onEnable(): void {
-    const componentsManager = this.engine._componentsManager;
+    const { engine } = this;
+    const { _componentsManager: componentsManager } = engine;
     const prototype = Script.prototype;
     if (!this._started) {
       componentsManager.addOnStartScript(this);
@@ -152,6 +156,21 @@ export class Script extends Component {
     if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.addOnLateUpdateScript(this);
     }
+    // Input callback.
+    if (
+      this.onPointerDown !== prototype.onPointerDown ||
+      this.onPointerUp !== prototype.onPointerUp ||
+      this.onPointerClick !== prototype.onPointerClick ||
+      this.onPointerDrag !== prototype.onPointerDrag ||
+      this.onPointerEnter !== prototype.onPointerEnter ||
+      this.onPointerExit !== prototype.onPointerExit
+    ) {
+      if (!this._listenInput) {
+        engine._inputManager.on();
+        this._listenInput = true;
+      }
+    }
+
     this._entity._addScript(this);
     this.onEnable();
   }
@@ -162,7 +181,8 @@ export class Script extends Component {
    * @override
    */
   _onDisable(): void {
-    const componentsManager = this.engine._componentsManager;
+    const { engine } = this;
+    const { _componentsManager: componentsManager } = engine;
     // Use "xxIndex" is more safe.
     // When call onDisable it maybe it still not in script queue,for example write "entity.isActive = false" in onWake().
     if (this._onStartIndex !== -1) {
@@ -173,6 +193,10 @@ export class Script extends Component {
     }
     if (this._onLateUpdateIndex !== -1) {
       componentsManager.removeOnLateUpdateScript(this);
+    }
+    if (this._listenInput) {
+      engine._inputManager.off();
+      this._listenInput = false;
     }
     if (this._entityCacheIndex !== -1) {
       this._entity._removeScript(this);
