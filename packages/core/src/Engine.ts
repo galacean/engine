@@ -161,12 +161,14 @@ export class Engine extends EventDispatcher {
    * @param hardwareRenderer - Graphics API renderer
    * @param physicsEngine - Physics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physicsEngine: IPhysicsEngine) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physicsEngine?: IPhysicsEngine) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._physicsEngine = physicsEngine;
-    this.physicsManager = new PhysicsManager(this);
+    if (this._physicsEngine) {
+      this.physicsManager = new PhysicsManager(this);
+    }
     this._canvas = canvas;
     // @todo delete
     engineFeatureManager.addObject(this);
@@ -247,8 +249,9 @@ export class Engine extends EventDispatcher {
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;
     if (scene) {
-      this.physicsManager.update();
-
+      if (this._physicsEngine) {
+        this.physicsManager.update();
+      }
       componentsManager.callScriptOnStart();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);

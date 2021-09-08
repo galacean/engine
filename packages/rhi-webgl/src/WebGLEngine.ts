@@ -15,7 +15,7 @@ export class WebGLEngine extends Engine {
    */
   constructor(
     canvas: string | HTMLCanvasElement | OffscreenCanvas,
-    physicsEngine: IPhysicsEngine,
+    physicsEngine?: IPhysicsEngine,
     webGLRendererOptions?: WebGLRendererOptions
   ) {
     const webCanvas = new WebCanvas(
