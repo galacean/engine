@@ -13,6 +13,7 @@ import { SphereCollider } from "./SphereCollider";
 import { CapsuleCollider } from "./CapsuleCollider";
 import { PlaneCollider } from "./PlaneCollider";
 import { PhysicsManager } from "./PhysicsManager";
+import { PhysXManager } from "./PhysXManager";
 
 export class PhysicsEngine implements IPhysicsEngine {
   createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial {
@@ -43,5 +44,13 @@ export class PhysicsEngine implements IPhysicsEngine {
     onTriggerEnd?: Function
   ): IPhysicsManager {
     return new PhysicsManager(onContactBegin, onContactEnd, onContactPersist, onTriggerBegin, onTriggerEnd);
+  }
+
+  static init(): Promise<void> {
+    return new Promise((resolve) => {
+      PhysXManager.init().then(() => {
+        resolve();
+      });
+    });
   }
 }

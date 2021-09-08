@@ -7,3 +7,4 @@ export { CapsuleCollider } from "./CapsuleCollider";
 export { PlaneCollider } from "./PlaneCollider";
 export { PhysicsManager, QueryFlag } from "./PhysicsManager";
 export { PhysicsEngine } from "./PhysicsEngine";
+export { PHYSX } from "./physx.release.js";

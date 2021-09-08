@@ -25,12 +25,10 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
-// import { PhysicsManager } from "./PhysicsManager";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
 import { IPhysicsEngine } from "@oasis-engine/design";
 import { PhysicsManager } from "./physics";
-import { PHYSX } from "../../physics-physx/src/physx.release.js";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -41,7 +39,7 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** Physics manager of Engine. */
-  physicsManager: PhysicsManager;
+  readonly physicsManager: PhysicsManager;
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
@@ -168,6 +166,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     this._physicsEngine = physicsEngine;
+    this.physicsManager = new PhysicsManager(this);
     this._canvas = canvas;
     // @todo delete
     engineFeatureManager.addObject(this);
@@ -201,21 +200,6 @@ export class Engine extends EventDispatcher {
 
     this._backgroundTextureMesh = PrimitiveMesh.createPlane(this, 2, 2, 1, 1, false);
     this._backgroundTextureMesh.isGCIgnored = true;
-  }
-
-  /**
-   * Engine Initialization after asynchronous loader i.e. WASM.
-   * @param _cb initialization callback.
-   */
-  init(_cb) {
-    PHYSX().then(function (PHYSX) {
-      _cb(PHYSX);
-    });
-  }
-
-  createPhysicsManager(): PhysicsManager {
-    this.physicsManager = new PhysicsManager(this);
-    return this.physicsManager;
   }
 
   /**

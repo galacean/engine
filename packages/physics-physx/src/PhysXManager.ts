@@ -1,3 +1,5 @@
+import { PHYSX } from "./physx.release";
+
 /**
  * Store and Init the foundation of PhysX Object
  * @internal
@@ -12,12 +14,17 @@ export class PhysXManager {
 
   /**
    * Initialize PhysX Object.
-   * @param PHYSX PhysX wasm object.
    * */
-  public static init(PHYSX: any) {
-    PhysXManager.PhysX = PHYSX;
-    PhysXManager._setup();
-    console.log("PHYSX loaded");
+  public static init(): Promise<void> {
+    return new Promise((resolve) => {
+      PHYSX().then(function (PHYSX) {
+        PhysXManager.PhysX = PHYSX;
+        PhysXManager._setup();
+        console.log("PHYSX loaded");
+
+        resolve();
+      });
+    });
   }
 
   private static _setup() {

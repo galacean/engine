@@ -1,5 +1,5 @@
 {
-  "name": "@oasis-engine/physics",
+  "name": "@oasis-engine/physics-physx",
   "version": "0.5.2",
   "license": "MIT",
   "main": "dist/main.js",
