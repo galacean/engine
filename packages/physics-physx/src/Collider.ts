@@ -1,6 +1,6 @@
-import { Component, Quaternion, Vector3 } from "oasis-engine";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PhysXManager } from "./PhysXManager";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "@oasis-engine/design";
 
 /** Flags which affect the behavior of Shapes. */

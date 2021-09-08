@@ -89,20 +89,20 @@ export class Script extends Component {
    * Called when the collision enter.
    * @param other Collider
    */
-  onTriggerEnters(other: Collider): void {}
+  onTriggerEnter(other: Collider): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
    * @param other Collider
    */
-  onTriggerExits(other: Collider): void {}
+  onTriggerExit(other: Collider): void {}
 
   /**
    * Called when the collision exit.
    * @param other Collider
    */
-  onTriggerStays(other: Collider): void {}
+  onTriggerStay(other: Collider): void {}
 
   /**
    * Called when the pointer is down while over the Collider.

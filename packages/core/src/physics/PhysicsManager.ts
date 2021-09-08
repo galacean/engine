@@ -77,7 +77,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerEnters(this._physicalObjectsMap.get(obj2).getComponent(Collider));
+        scripts[i].onTriggerEnter(this._physicalObjectsMap.get(obj2).getComponent(Collider));
       }
     }
   };
@@ -87,7 +87,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerExits(this._physicalObjectsMap.get(obj2).getComponent(Collider));
+        scripts[i].onTriggerExit(this._physicalObjectsMap.get(obj2).getComponent(Collider));
       }
     }
   };

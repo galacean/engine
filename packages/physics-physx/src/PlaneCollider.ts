@@ -1,6 +1,6 @@
 import { Collider } from "./Collider";
-import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "./PhysXManager";
+import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPlaneCollider } from "@oasis-engine/design";
 
 /**

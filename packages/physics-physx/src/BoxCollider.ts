@@ -1,7 +1,6 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collider } from "./Collider";
-import { Quaternion, Vector3 } from "oasis-engine";
-// @ts-ignore
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IBoxCollider } from "@oasis-engine/design";
 
 export class BoxCollider extends Collider implements IBoxCollider {
