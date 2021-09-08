@@ -51,9 +51,11 @@ export class PlaneCollider extends Collider implements IPlaneCollider {
     this._pxShape.setLocalPose(transform);
   }
 
-  initWithNormalDistance(normal: Vector3, distance: number) {
+  initWithNormalDistance(normal: Vector3, distance: number, position: Vector3, rotation: Quaternion) {
     this._normal = normal;
     this._distance = distance;
+    this._position = position;
+    this._rotation = rotation;
 
     this._pxRigidStatic = PhysXManager.PhysX.PxCreatePlane(
       PhysXManager.physics,

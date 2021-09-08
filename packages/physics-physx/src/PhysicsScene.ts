@@ -162,7 +162,7 @@ export class PhysicsScene implements IPhysicsScene {
     ray: Ray,
     distance: number = Number.MAX_VALUE,
     flag: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC,
-    hit?: Function
+    hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     PhysicsScene._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(flag);
     const result = this._pxScene.raycastSingle(

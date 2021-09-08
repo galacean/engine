@@ -1,6 +1,7 @@
 import { PhysXManager } from "./PhysXManager";
 import { Collider } from "./Collider";
 import { ICapsuleCollider } from "@oasis-engine/design";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 export class CapsuleCollider extends Collider implements ICapsuleCollider {
   private _radius: number = 0.0;
@@ -35,11 +36,15 @@ export class CapsuleCollider extends Collider implements ICapsuleCollider {
    * init Collider and alloc PhysX objects.
    * @param radius radius of CapsuleCollider
    * @param height height of CapsuleCollider
+   * @param position position of Collider
+   * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithRadiusHeight(radius: number, height: number) {
+  initWithRadiusHeight(radius: number, height: number, position: Vector3, rotation: Quaternion) {
     this._radius = radius;
     this._height = height;
+    this._position = position;
+    this._rotation = rotation;
 
     // alloc Physx object
     this._allocGeometry();
