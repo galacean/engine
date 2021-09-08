@@ -1,4 +1,4 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
 
 export interface ICollider {
@@ -8,4 +8,6 @@ export interface ICollider {
   setTrigger(value: boolean);
 
   setFlag(flag: number, value: boolean);
+
+  setGlobalPose(position: Vector3, rotation: Quaternion);
 }

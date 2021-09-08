@@ -250,6 +250,7 @@ export class Engine extends EventDispatcher {
     const componentsManager = this._componentsManager;
     if (scene) {
       if (this._physicsEngine) {
+        componentsManager.callColliderOnUpdate();
         this.physicsManager.update();
       }
       componentsManager.callScriptOnStart();

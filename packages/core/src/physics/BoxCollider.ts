@@ -23,6 +23,7 @@ export class BoxCollider extends Collider {
     this._boxCollider = this.engine._physicsEngine.createBoxCollider();
     this._collider = this._boxCollider;
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
+    this._updateFlag.flag = false;
   }
 
   /**

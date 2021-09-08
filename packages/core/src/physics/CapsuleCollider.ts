@@ -30,6 +30,7 @@ export class CapsuleCollider extends Collider {
     this._capsuleCollider = this.engine._physicsEngine.createCapsuleCollider();
     this._collider = this._capsuleCollider;
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
+    this._updateFlag.flag = false;
   }
 
   /**

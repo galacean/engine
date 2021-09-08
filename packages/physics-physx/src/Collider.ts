@@ -71,6 +71,26 @@ export class Collider implements ICollider {
     this._pxShape.setFlag(flag, value);
   }
 
+  setGlobalPose(position: Vector3, rotation: Quaternion) {
+    this._position = position;
+    this._rotation = rotation;
+    const quat = this._rotation.normalize();
+    const transform = {
+      translation: {
+        x: this._position.x,
+        y: this._position.y,
+        z: this._position.z
+      },
+      rotation: {
+        w: quat.w, // PHYSX uses WXYZ quaternions,
+        x: quat.x,
+        y: quat.y,
+        z: quat.z
+      }
+    };
+    this._pxRigidStatic.setGlobalPose(transform, true);
+  }
+
   //----------------------------------------------------------------------------
   protected _allocShape() {
     this._pxShape = PhysXManager.physics.createShape(

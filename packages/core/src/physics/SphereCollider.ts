@@ -22,6 +22,7 @@ export class SphereCollider extends Collider {
     this._sphereCollider = this.engine._physicsEngine.createSphereCollider();
     this._collider = this._sphereCollider;
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
+    this._updateFlag.flag = false;
   }
 
   /**
