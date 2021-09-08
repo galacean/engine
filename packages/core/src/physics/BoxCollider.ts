@@ -31,5 +31,6 @@ export class BoxCollider extends Collider {
    */
   initWithSize(value: Vector3) {
     this._boxCollider.initWithSize(value, this.entity.transform.position, this.entity.transform.rotationQuaternion);
+    this.engine.physicsManager.addStaticActor(this);
   }
 }
