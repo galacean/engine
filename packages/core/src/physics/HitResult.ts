@@ -1,5 +1,6 @@
-import { Entity, Vector3 } from "oasis-engine";
 import { Collider } from "./Collider";
+import { Entity } from "../Entity";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * Structure used to get information back from a raycast or a sweep.

@@ -1,9 +1,6 @@
 import { PhysXManager } from "./PhysXManager";
-import { Collision } from "./Collision";
 import { Collider } from "./Collider";
-import { HitResult } from "./HitResult";
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { Entity } from "@oasis-engine/core";
 import { IPhysicsScene } from "@oasis-engine/design";
 
 /** Filtering flags for scene queries. */
@@ -18,27 +15,8 @@ export enum QueryFlag {
 export class PhysicsScene implements IPhysicsScene {
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
-  private static _tempCollision: Collision = new Collision();
   private static _pxRaycastHit: any;
   private static _pxFilterData: any;
-
-  /**
-   * PhysX Raycast callback
-   * @internal
-   */
-  raycastCallback = {
-    processTouches: (obj) => {
-      const hit = new HitResult();
-      hit.distance = obj.distance;
-      hit.point.x = obj.position.x;
-      hit.point.y = obj.position.y;
-      hit.point.z = obj.position.z;
-      hit.normal.x = obj.normal.x;
-      hit.normal.y = obj.normal.y;
-      hit.normal.z = obj.normal.z;
-      this._hits.push(hit);
-    }
-  };
 
   /**
    * PhysX Scene object
@@ -46,7 +24,6 @@ export class PhysicsScene implements IPhysicsScene {
    */
   _pxScene: any;
 
-  private _hits: HitResult[] = [];
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
   /** Global gravity in the physical scene */
@@ -94,9 +71,7 @@ export class PhysicsScene implements IPhysicsScene {
       }
     };
 
-    const PHYSXSimulationCallbackInstance = PhysXManager.PhysX.PxSimulationEventCallback.implement(
-      triggerCallback
-    );
+    const PHYSXSimulationCallbackInstance = PhysXManager.PhysX.PxSimulationEventCallback.implement(triggerCallback);
     const sceneDesc = PhysXManager.PhysX.getDefaultSceneDesc(
       PhysXManager.physics.getTolerancesScale(),
       0,
@@ -109,11 +84,8 @@ export class PhysicsScene implements IPhysicsScene {
   }
 
   //--------------adding to the scene-------------------------------------------
-  private _physicalObjectsMap = new Map<number, Entity>();
-
   /** add Static Actor, i.e Collider and Trigger. */
   addStaticActor(actor: Collider) {
-    // this._physicalObjectsMap.set(actor.group_id, actor.entity);
     this._pxScene.addActor(actor._pxRigidStatic, null);
   }
 
@@ -184,13 +156,13 @@ export class PhysicsScene implements IPhysicsScene {
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, flag: QueryFlag, outHitResult: HitResult): Boolean;
+  raycast(ray: Ray, distance: number, flag: QueryFlag, outHitResult: Function): Boolean;
 
   raycast(
     ray: Ray,
     distance: number = Number.MAX_VALUE,
     flag: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC,
-    hit?: HitResult
+    hit?: Function
   ): boolean {
     PhysicsScene._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(flag);
     const result = this._pxScene.raycastSingle(
@@ -208,55 +180,20 @@ export class PhysicsScene implements IPhysicsScene {
     if (hit != undefined) {
       const hitResult = PhysicsScene._pxRaycastHit;
       const position = PhysicsScene._tempPosition;
-      const normal = PhysicsScene._tempNormal;
-      hit.entity = this._physicalObjectsMap.get(hitResult.getShape().getQueryFilterData().word0);
-      hit.distance = hitResult.distance;
       {
         position.x = hitResult.position.x;
         position.y = hitResult.position.y;
         position.z = hitResult.position.z;
       }
-      hit.point = position;
+      const normal = PhysicsScene._tempNormal;
       {
         normal.x = hitResult.normal.x;
         normal.y = hitResult.normal.y;
         normal.z = hitResult.normal.z;
       }
-      hit.normal = normal;
+
+      hit(hitResult.getShape().getQueryFilterData().word0, hitResult.distance, position, normal);
     }
-    return result;
-  }
-
-  /**
-   * Casts a ray through the Scene and returns the whole of hit.
-   * @param ray The ray
-   * @param hit If true is returned, outHitResult will contain more detailed collision information
-   */
-  raycastAll(ray: Ray, hit: HitResult[]): boolean;
-
-  /**
-   * Casts a ray through the Scene and returns the whole of hit.
-   * @param ray The ray
-   * @param hit If true is returned, outHitResult will contain more detailed collision information
-   * @param distance The max distance the ray should check
-   */
-  raycastAll(ray: Ray, hit: HitResult[], distance: number): boolean;
-
-  raycastAll(ray: Ray, hit: HitResult[], distance?: number): boolean {
-    const PHYSXRaycastCallbackInstance = PhysXManager.PhysX.PxRaycastCallback.implement(this.raycastCallback);
-    this._hits = [];
-    const result = this._pxScene.raycast(
-      { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
-      { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
-      distance ? distance : Number.MAX_VALUE,
-      PHYSXRaycastCallbackInstance
-    );
-
-    if (result == false) {
-      return false;
-    }
-
-    hit = this._hits;
     return result;
   }
 }

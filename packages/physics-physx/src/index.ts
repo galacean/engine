@@ -5,6 +5,4 @@ export { BoxCollider } from "./BoxCollider";
 export { SphereCollider } from "./SphereCollider";
 export { CapsuleCollider } from "./CapsuleCollider";
 export { PlaneCollider } from "./PlaneCollider";
-export { HitResult } from "./HitResult";
-export { Collision } from "./Collision";
 export { PhysicsScene, QueryFlag } from "./PhysicsScene";
