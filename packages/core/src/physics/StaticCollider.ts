@@ -4,6 +4,7 @@ import { Entity } from "../Entity";
 import { IStaticCollider } from "@oasis-engine/design";
 import { PhysicsShape } from "./PhysicsShape";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Engine } from "../Engine";
 
 export class StaticCollider extends Component {
   /** @internal */
@@ -27,6 +28,12 @@ export class StaticCollider extends Component {
     rotation: Quaternion = this.entity.transform.rotationQuaternion
   ) {
     this._collider.init(position, rotation);
+  }
+
+  createShape<T extends PhysicsShape>(type: new (entity: Engine) => T): T {
+    const component = new type(this.engine);
+    component.init(this._index);
+    return component;
   }
 
   /**

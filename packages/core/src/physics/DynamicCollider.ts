@@ -5,6 +5,7 @@ import { Entity } from "../Entity";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysicsShape } from "./PhysicsShape";
 import { ignoreClone } from "../clone/CloneManager";
+import { Engine } from "../Engine";
 
 export class DynamicCollider extends Component {
   /** @internal */
@@ -37,6 +38,12 @@ export class DynamicCollider extends Component {
     rotation: Quaternion = this.entity.transform.rotationQuaternion
   ) {
     this._collider.init(position, rotation);
+  }
+
+  createShape<T extends PhysicsShape>(type: new (entity: Engine) => T): T {
+    const component = new type(this.engine);
+    component.init(this._index);
+    return component;
   }
 
   /**

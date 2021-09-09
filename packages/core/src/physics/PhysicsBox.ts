@@ -26,10 +26,10 @@ export class PhysicsBox extends PhysicsShape {
 
   /**
    * init Collider and alloc PhysX objects.
-   * @param value size of BoxCollider
+   * @param index index of BoxCollider
    * @remarks must call after this component add to Entity.
    */
-  initWithSize(value: Vector3) {
-    this._physicsBox.initWithSize(this._index, value, new Vector3(), new Quaternion());
+  init(index: number) {
+    this._physicsBox.initWithSize(index, new Vector3(1.0, 1.0, 1.0), new Vector3(), new Quaternion());
   }
 }

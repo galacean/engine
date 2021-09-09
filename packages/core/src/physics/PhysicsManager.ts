@@ -14,6 +14,9 @@ export class PhysicsManager {
   private _physicalObjectsMap = new Map<number, Entity>();
   private _physicsManager: IPhysicsManager;
 
+  /** Global Physical Components ID which use to match PhysX and Oasis Components */
+  physical_id: number = 0;
+
   onContactBegin = (obj1: number, obj2: number) => {
     console.log("dsadsa1");
     let scripts: Script[] = [];
@@ -135,7 +138,7 @@ export class PhysicsManager {
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addStaticActor(actor: StaticCollider | DynamicCollider | PlaneCollider) {
+  addActor(actor: StaticCollider | DynamicCollider | PlaneCollider) {
     this._physicalObjectsMap.set(actor.index, actor.entity);
     this._physicsManager.addActor(actor._collider);
   }

@@ -1,12 +1,7 @@
-import { ignoreClone } from "../clone/CloneManager";
 import { IPhysicsShape } from "@oasis-engine/design";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 
-export class PhysicsShape {
-  /** @internal */
-  @ignoreClone
-  _index: number = -1;
-
+export abstract class PhysicsShape {
   /** @internal */
   _shape: IPhysicsShape;
 
@@ -18,10 +13,6 @@ export class PhysicsShape {
     this._shape.material = value._physicsMaterial;
   }
 
-  get index(): number {
-    return this._index;
-  }
-
   setTrigger(value: boolean) {
     this._shape.setTrigger(value);
   }
@@ -29,4 +20,11 @@ export class PhysicsShape {
   setFlag(flag: number, value: boolean) {
     this._shape.setFlag(flag, value);
   }
+
+  /**
+   * init Collider and alloc PhysX objects.
+   * @param index index of SphereCollider
+   * @remarks must call after this component add to Entity.
+   */
+  abstract init(index: number);
 }

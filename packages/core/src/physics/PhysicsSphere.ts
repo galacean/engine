@@ -26,10 +26,10 @@ export class PhysicsSphere extends PhysicsShape {
 
   /**
    * init Collider and alloc PhysX objects.
-   * @param value size of SphereCollider
+   * @param index index of SphereCollider
    * @remarks must call after this component add to Entity.
    */
-  initWithRadius(value: number) {
-    this._physicsSphere.initWithRadius(this._index, value, new Vector3(), new Quaternion());
+  init(index: number) {
+    this._physicsSphere.initWithRadius(index, 1.0, new Vector3(), new Quaternion());
   }
 }

@@ -34,11 +34,10 @@ export class PhysicsCapsule extends PhysicsShape {
 
   /**
    * init Collider and alloc PhysX objects.
-   * @param radius radius of CapsuleCollider
-   * @param height height of CapsuleCollider
+   * @param index index of CapsuleCollider
    * @remarks must call after this component add to Entity.
    */
-  initWithRadiusHeight(radius: number, height: number) {
-    this._physicsCapsule.initWithRadiusHeight(this._index, radius, height, new Vector3(), new Quaternion());
+  init(index: number) {
+    this._physicsCapsule.initWithRadiusHeight(index, 1, 2, new Vector3(), new Quaternion());
   }
 }
