@@ -1,8 +1,9 @@
 import { PhysXManager } from "./PhysXManager";
-import { Collider } from "./Collider";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
-import { Rigidbody } from "./Rigidbody";
+import { StaticCollider } from "./StaticCollider";
+import { DynamicCollider } from "./DynamicCollider";
+import { PlaneCollider } from "./PlaneCollider";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -98,13 +99,8 @@ export class PhysicsManager implements IPhysicsManager {
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addStaticActor(actor: Collider) {
-    this._pxScene.addActor(actor._pxRigidStatic, null);
-  }
-
-  /** add Dynamic Actor, i.e. Rigidbody. */
-  addDynamicActor(actor: Rigidbody) {
-    this._pxScene.addActor(actor._pxRigidActor, null);
+  addActor(actor: StaticCollider | DynamicCollider | PlaneCollider) {
+    this._pxScene.addActor(actor._pxActor, null);
   }
 
   //--------------simulation ---------------------------------------------------

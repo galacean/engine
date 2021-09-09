@@ -1,13 +1,13 @@
-import { ICollider } from "./ICollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { IPhysicsShape } from "./IPhysicsShape";
 
-export interface IRigidbody {
+export interface IDynamicCollider {
   /**
    * attach Collider with Rigidbody
    * @param shape The Collider attached
    * @remark must call after init.
    */
-  attachShape(shape: ICollider);
+  attachShape(shape: IPhysicsShape);
 
   init(position: Vector3, rotation: Quaternion);
 

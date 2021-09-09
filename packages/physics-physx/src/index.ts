@@ -1,14 +1,10 @@
 export { PhysXManager } from "./PhysXManager";
-export { PhysicsMaterial, PhysicsCombineMode } from "./PhysicsMaterial";
-export { Collider, ShapeFlag } from "./Collider";
-export { BoxCollider } from "./BoxCollider";
-export { SphereCollider } from "./SphereCollider";
-export { CapsuleCollider } from "./CapsuleCollider";
-export { PlaneCollider } from "./PlaneCollider";
-export { PhysicsManager, QueryFlag } from "./PhysicsManager";
 export { PhysicsEngine } from "./PhysicsEngine";
-export { Rigidbody } from "./Rigidbody";
-
-export { PHYSX } from "./physx.release.js";
-export { PhysicsShape } from "./PhysicsShape";
+export { PhysicsManager, QueryFlag } from "./PhysicsManager";
+export { PhysicsMaterial, PhysicsCombineMode } from "./PhysicsMaterial";
+export { PhysicsShape, ShapeFlag } from "./PhysicsShape";
 export { PhysicsBox } from "./PhysicsBox";
+export { PhysicsCapsule } from "./PhysicsCapsule";
+export { PlaneCollider } from "./PlaneCollider";
+export { StaticCollider } from "./StaticCollider";
+export { DynamicCollider } from "./DynamicCollider";

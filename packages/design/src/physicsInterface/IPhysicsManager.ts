@@ -1,13 +1,12 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { ICollider } from "./ICollider";
-import { IRigidbody } from "./IRigidbody";
+import { IStaticCollider } from "./IStaticCollider";
+import { IDynamicCollider } from "./IDynamicCollider";
+import { IPlaneCollider } from "./IPlaneCollider";
 
 export interface IPhysicsManager {
   gravity: Vector3;
 
-  addStaticActor(actor: ICollider);
-
-  addDynamicActor(actor: IRigidbody);
+  addActor(actor: IStaticCollider | IDynamicCollider | IPlaneCollider);
 
   //--------------simulation ---------------------------------------------------
   simulate(elapsedTime: number, controlSimulation: boolean);

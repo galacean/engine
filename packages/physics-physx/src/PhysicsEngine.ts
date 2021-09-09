@@ -1,45 +1,51 @@
 import {
   IPhysicsEngine,
-  IBoxCollider,
   IPhysicsMaterial,
-  ISphereCollider,
-  ICapsuleCollider,
   IPlaneCollider,
   IPhysicsManager,
-  IRigidbody
+  IPhysicsBox,
+  IPhysicsSphere,
+  IPhysicsCapsule,
+  IDynamicCollider,
+  IStaticCollider
 } from "@oasis-engine/design";
-import { BoxCollider } from "./BoxCollider";
 import { PhysicsMaterial } from "./PhysicsMaterial";
-import { SphereCollider } from "./SphereCollider";
-import { CapsuleCollider } from "./CapsuleCollider";
 import { PlaneCollider } from "./PlaneCollider";
 import { PhysicsManager } from "./PhysicsManager";
 import { PhysXManager } from "./PhysXManager";
-import { Rigidbody } from "./Rigidbody";
+import { PhysicsBox } from "./PhysicsBox";
+import { PhysicsSphere } from "./PhysicsSphere";
+import { PhysicsCapsule } from "./PhysicsCapsule";
+import { DynamicCollider } from "./DynamicCollider";
+import { StaticCollider } from "./StaticCollider";
 
 export class PhysicsEngine implements IPhysicsEngine {
   createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial {
     return new PhysicsMaterial(staticFriction, dynamicFriction, bounciness);
   }
 
-  createBoxCollider(): IBoxCollider {
-    return new BoxCollider();
+  createPhysicsBox(): IPhysicsBox {
+    return new PhysicsBox();
   }
 
-  createSphereCollider(): ISphereCollider {
-    return new SphereCollider();
+  createPhysicsSphere(): IPhysicsSphere {
+    return new PhysicsSphere();
   }
 
-  createCapsuleCollider(): ICapsuleCollider {
-    return new CapsuleCollider();
+  createPhysicsCapsule(): IPhysicsCapsule {
+    return new PhysicsCapsule();
   }
 
   createPlaneCollider(): IPlaneCollider {
     return new PlaneCollider();
   }
 
-  createRigidbody(): IRigidbody {
-    return new Rigidbody();
+  createDynamicCollider(): IDynamicCollider {
+    return new DynamicCollider();
+  }
+
+  createStaticCollider(): IStaticCollider {
+    return new StaticCollider();
   }
 
   createPhysicsManager(
@@ -50,7 +56,14 @@ export class PhysicsEngine implements IPhysicsEngine {
     onTriggerEnd?: Function,
     onTriggerPersist?: Function
   ): IPhysicsManager {
-    return new PhysicsManager(onContactBegin, onContactEnd, onContactPersist, onTriggerBegin, onTriggerEnd, onTriggerPersist);
+    return new PhysicsManager(
+      onContactBegin,
+      onContactEnd,
+      onContactPersist,
+      onTriggerBegin,
+      onTriggerEnd,
+      onTriggerPersist
+    );
   }
 
   static init(): Promise<void> {

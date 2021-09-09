@@ -1,10 +1,11 @@
 import { PhysXManager } from "./PhysXManager";
-import { Collider, ShapeFlag } from "./Collider";
-import { ISphereCollider } from "@oasis-engine/design";
+import { IPhysicsCapsule } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { PhysicsShape } from "./PhysicsShape";
 
-export class SphereCollider extends Collider implements ISphereCollider {
+export class PhysicsCapsule extends PhysicsShape implements IPhysicsCapsule {
   private _radius: number = 0.0;
+  private _height: number = 0.0;
 
   get radius(): number {
     return this._radius;
@@ -17,33 +18,45 @@ export class SphereCollider extends Collider implements ISphereCollider {
    */
   set radius(value: number) {
     this._radius = value;
-    this.initWithRadius(this._index, value, this._position, this._rotation);
+    this._pxGeometry.radius = value;
+    this._pxShape.setGeometry(this._pxGeometry);
+  }
+
+  get height(): number {
+    return this._height;
+  }
+
+  set height(value: number) {
+    this._height = value;
+    this._pxGeometry.halfHeight = value / 2.0;
+    this._pxShape.setGeometry(this._pxGeometry);
   }
 
   /**
    * init Collider and alloc PhysX objects.
    * @param index index mark collider
-   * @param value size of SphereCollider
+   * @param radius radius of CapsuleCollider
+   * @param height height of CapsuleCollider
    * @param position position of Collider
    * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithRadius(index: number, value: number, position: Vector3, rotation: Quaternion) {
+  initWithRadiusHeight(index: number, radius: number, height: number, position: Vector3, rotation: Quaternion) {
     this._index = index;
-    this._radius = value;
+    this._radius = radius;
+    this._height = height;
     this._position = position;
     this._rotation = rotation;
 
     // alloc Physx object
     this._allocGeometry();
-    this._allocShape(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
-    this._setLocalPose();
+    this._allocShape();
+    this.setLocalPose(this._position, this._rotation);
     this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
-    this._allocActor();
   }
 
   //----------------------------------------------------------------------------
   private _allocGeometry() {
-    this._pxGeometry = new PhysXManager.PhysX.PxSphereGeometry(this._radius);
+    this._pxGeometry = new PhysXManager.PhysX.PxCapsuleGeometry(this._radius, this._height / 2.0);
   }
 }

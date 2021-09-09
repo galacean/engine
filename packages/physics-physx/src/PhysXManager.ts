@@ -4,7 +4,7 @@ enum PhysXTarget {
   release,
   profile,
   checked,
-  debug,
+  debug
 }
 
 /**
@@ -27,7 +27,7 @@ export class PhysXManager {
    * */
   public static init(): Promise<void> {
     return new Promise((resolve) => {
-      PHYSX().then(function(PHYSX) {
+      PHYSX().then(function (PHYSX) {
         PhysXManager.PhysX = PHYSX;
         PhysXManager._setup();
         console.log("PHYSX loaded");
@@ -39,23 +39,21 @@ export class PhysXManager {
 
   private static _setupPVD() {
     this.pvdTransport = PhysXManager.PhysX.PxPvdTransport.implement({
-      connect: function() {
+      connect: function () {
         PhysXManager.socket = new WebSocket("ws://127.0.0.1:8090", ["binary"]);
         PhysXManager.socket.onopen = () => {
           console.log("Connected to PhysX Debugger");
           PhysXManager.queue.forEach((data) => PhysXManager.socket.send(data));
           PhysXManager.queue = [];
         };
-        PhysXManager.socket.onclose = () => {
-        };
+        PhysXManager.socket.onclose = () => {};
         return true;
       },
-      disconnect: function() {
+      disconnect: function () {
         console.log("Socket disconnect");
       },
-      isConnected: function() {
-      },
-      write: function(inBytes, inLength) {
+      isConnected: function () {},
+      write: function (inBytes, inLength) {
         const data = PhysXManager.PhysX.HEAPU8.slice(inBytes, inBytes + inLength);
         if (PhysXManager.socket.readyState === WebSocket.OPEN) {
           if (PhysXManager.queue.length) {
@@ -82,7 +80,8 @@ export class PhysXManager {
       const gPvd = PhysXManager.PhysX.PxCreatePvd(foundation);
       gPvd.connect(
         PhysXManager.pvdTransport,
-        new PhysXManager.PhysX.PxPvdInstrumentationFlags(PhysXManager.PhysX.PxPvdInstrumentationFlag.eALL.value);
+        new PhysXManager.PhysX.PxPvdInstrumentationFlags(PhysXManager.PhysX.PxPvdInstrumentationFlag.eALL.value)
+      );
 
       this.physics = PhysXManager.PhysX.PxCreatePhysics(
         version,

@@ -1,36 +1,36 @@
-import { IPhysicsBox } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "./PhysXManager";
+import { IPhysicsSphere } from "@oasis-engine/design";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysicsShape } from "./PhysicsShape";
 
-export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
-  private _size: Vector3 = new Vector3();
+export class PhysicsSphere extends PhysicsShape implements IPhysicsSphere {
+  private _radius: number = 0.0;
 
-  get size(): Vector3 {
-    return this._size;
+  get radius(): number {
+    return this._radius;
   }
 
   /**
    * set size of collider
-   * @param value size of BoxCollider
+   * @param value size of SphereCollider
    * @remarks will re-alloc new PhysX object.
    */
-  set size(value: Vector3) {
-    this._size = value;
-    this.initWithSize(this._index, value, this._position, this._rotation);
+  set radius(value: number) {
+    this._radius = value;
+    this.initWithRadius(this._index, value, this._position, this._rotation);
   }
 
   /**
    * init Collider and alloc PhysX objects.
    * @param index index mark collider
-   * @param value size of BoxCollider
+   * @param value size of SphereCollider
    * @param position position of Collider
    * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithSize(index: number, value: Vector3, position: Vector3, rotation: Quaternion): void {
+  initWithRadius(index: number, value: number, position: Vector3, rotation: Quaternion) {
     this._index = index;
-    this._size = value;
+    this._radius = value;
     this._position = position;
     this._rotation = rotation;
 
@@ -43,11 +43,6 @@ export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
 
   //----------------------------------------------------------------------------
   private _allocGeometry() {
-    this._pxGeometry = new PhysXManager.PhysX.PxBoxGeometry(
-      // PHYSX uses half-extents
-      this._size.x / 2,
-      this._size.y / 2,
-      this._size.z / 2
-    );
+    this._pxGeometry = new PhysXManager.PhysX.PxSphereGeometry(this._radius);
   }
 }

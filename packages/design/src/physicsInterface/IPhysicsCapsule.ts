@@ -1,7 +1,7 @@
+import { IPhysicsShape } from "./IPhysicsShape";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { ICollider } from "./ICollider";
 
-export interface ICapsuleCollider extends ICollider {
+export interface IPhysicsCapsule extends IPhysicsShape {
   /**
    * the radius of collider
    * @remarks will re-alloc new PhysX object.

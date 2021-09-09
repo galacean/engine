@@ -1,7 +1,7 @@
 import { PhysXManager } from "./PhysXManager";
-import { Collider } from "./Collider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { IRigidbody } from "@oasis-engine/design";
+import { IDynamicCollider } from "@oasis-engine/design";
+import { PhysicsShape } from "./PhysicsShape";
 
 /** The collision detection mode constants used for Rigidbody.collisionDetectionMode. */
 export enum CollisionDetectionMode {
@@ -38,10 +38,10 @@ export enum RigidbodyConstraints {
 }
 
 /** Control of an object's position through physics simulation. */
-export class Rigidbody implements IRigidbody {
+export class DynamicCollider implements IDynamicCollider {
   private _position: Vector3;
   private _rotation: Quaternion;
-  private _collider: Collider;
+  private _shape: PhysicsShape;
 
   private _drag: number;
   private _angularDrag: number;
@@ -69,7 +69,7 @@ export class Rigidbody implements IRigidbody {
    * PhysX rigid body object
    * @internal
    */
-  _pxRigidActor: any;
+  _pxActor: any;
 
   /** The drag of the object. */
   get drag(): number {
@@ -78,7 +78,7 @@ export class Rigidbody implements IRigidbody {
 
   set drag(value: number) {
     this._drag = value;
-    this._pxRigidActor.setLinearDamping(value);
+    this._pxActor.setLinearDamping(value);
   }
 
   /** The angular drag of the object. */
@@ -88,7 +88,7 @@ export class Rigidbody implements IRigidbody {
 
   set angularDrag(value: number) {
     this._angularDrag = value;
-    this._pxRigidActor.setAngularDamping(value);
+    this._pxActor.setAngularDamping(value);
   }
 
   /** The velocity vector of the rigidbody. It represents the rate of change of Rigidbody position. */
@@ -99,7 +99,7 @@ export class Rigidbody implements IRigidbody {
   set velocity(value: Vector3) {
     this._velocity = value;
     const vel = { x: value.x, y: value.y, z: value.z };
-    this._pxRigidActor.setLinearVelocity(vel, true);
+    this._pxActor.setLinearVelocity(vel, true);
   }
 
   /** The angular velocity vector of the rigidbody measured in radians per second. */
@@ -109,7 +109,7 @@ export class Rigidbody implements IRigidbody {
 
   set angularVelocity(value: Vector3) {
     this._angularVelocity = value;
-    this._pxRigidActor.setAngularVelocity({ x: value.x, y: value.y, z: value.z }, true);
+    this._pxActor.setAngularVelocity({ x: value.x, y: value.y, z: value.z }, true);
   }
 
   /** The mass of the rigidbody. */
@@ -119,7 +119,7 @@ export class Rigidbody implements IRigidbody {
 
   set mass(value: number) {
     this._mass = value;
-    this._pxRigidActor.setMass(value);
+    this._pxActor.setMass(value);
   }
 
   /** The center of mass relative to the transform's origin. */
@@ -142,7 +142,7 @@ export class Rigidbody implements IRigidbody {
         z: 0
       }
     };
-    this._pxRigidActor.setCMassLocalPose(transform);
+    this._pxActor.setCMassLocalPose(transform);
   }
 
   /** The diagonal inertia tensor of mass relative to the center of mass. */
@@ -152,7 +152,7 @@ export class Rigidbody implements IRigidbody {
 
   set inertiaTensor(value: Vector3) {
     this._inertiaTensor = value;
-    this._pxRigidActor.setMassSpaceInertiaTensor({ x: value.x, y: value.y, z: value.z });
+    this._pxActor.setMassSpaceInertiaTensor({ x: value.x, y: value.y, z: value.z });
   }
 
   /** The maximum angular velocity of the rigidbody measured in radians per second. (Default 7) range { 0, infinity }. */
@@ -162,7 +162,7 @@ export class Rigidbody implements IRigidbody {
 
   set maxAngularVelocity(value: number) {
     this._maxAngularVelocity = value;
-    this._pxRigidActor.setMaxAngularVelocity(value);
+    this._pxActor.setMaxAngularVelocity(value);
   }
 
   /** Maximum velocity of a rigidbody when moving out of penetrating state. */
@@ -172,7 +172,7 @@ export class Rigidbody implements IRigidbody {
 
   set maxDepenetrationVelocity(value: number) {
     this._maxDepenetrationVelocity = value;
-    this._pxRigidActor.setMaxDepenetrationVelocity(value);
+    this._pxActor.setMaxDepenetrationVelocity(value);
   }
 
   /** The mass-normalized energy threshold, below which objects start going to sleep. */
@@ -182,7 +182,7 @@ export class Rigidbody implements IRigidbody {
 
   set sleepThreshold(value: number) {
     this._sleepThreshold = value;
-    this._pxRigidActor.setSleepThreshold(value);
+    this._pxActor.setSleepThreshold(value);
   }
 
   /** The solverIterations determines how accurately Rigidbody joints and collision contacts are resolved.
@@ -194,7 +194,7 @@ export class Rigidbody implements IRigidbody {
 
   set solverIterations(value: number) {
     this._solverIterations = value;
-    this._pxRigidActor.setSolverIterationCounts(value, 1);
+    this._pxActor.setSolverIterationCounts(value, 1);
   }
 
   /** The Rigidbody's collision detection mode. */
@@ -206,18 +206,18 @@ export class Rigidbody implements IRigidbody {
     this._collisionDetectionMode = value;
     switch (value) {
       case CollisionDetectionMode.Continuous:
-        this._pxRigidActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD, true);
+        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD, true);
         break;
       case CollisionDetectionMode.ContinuousDynamic:
-        this._pxRigidActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
+        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
         break;
       case CollisionDetectionMode.ContinuousSpeculative:
-        this._pxRigidActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
+        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
         break;
       case CollisionDetectionMode.Discrete:
-        this._pxRigidActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD, false);
-        this._pxRigidActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
-        this._pxRigidActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
+        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD, false);
+        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
+        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
         break;
     }
   }
@@ -230,9 +230,9 @@ export class Rigidbody implements IRigidbody {
   set isKinematic(value: boolean) {
     this._isKinematic = value;
     if (value) {
-      this._pxRigidActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eKINEMATIC, true);
+      this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eKINEMATIC, true);
     } else {
-      this._pxRigidActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eKINEMATIC, false);
+      this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eKINEMATIC, false);
     }
   }
 
@@ -247,40 +247,40 @@ export class Rigidbody implements IRigidbody {
 
     switch (flag) {
       case RigidbodyConstraints.FreezePositionX:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
         break;
       case RigidbodyConstraints.FreezePositionY:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
       case RigidbodyConstraints.FreezePositionZ:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
       case RigidbodyConstraints.FreezeRotationX:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
         break;
       case RigidbodyConstraints.FreezeRotationY:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
         break;
       case RigidbodyConstraints.FreezeRotationZ:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
       case RigidbodyConstraints.FreezeAll:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
       case RigidbodyConstraints.FreezePosition:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
       case RigidbodyConstraints.FreezeRotation:
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
-        this._pxRigidActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
     }
   }
@@ -302,7 +302,7 @@ export class Rigidbody implements IRigidbody {
    * @remark addForce must called after add into scene.
    */
   addForce(force: Vector3) {
-    this._pxRigidActor.addForce({ x: force.x, y: force.y, z: force.z });
+    this._pxActor.addForce({ x: force.x, y: force.y, z: force.z });
   }
 
   /**
@@ -311,7 +311,7 @@ export class Rigidbody implements IRigidbody {
    * @remark addTorque must called after add into scene.
    */
   addTorque(torque: Vector3) {
-    this._pxRigidActor.addTorque({ x: torque.x, y: torque.y, z: torque.z });
+    this._pxActor.addTorque({ x: torque.x, y: torque.y, z: torque.z });
   }
 
   /**
@@ -320,7 +320,7 @@ export class Rigidbody implements IRigidbody {
    * @param pos Position in world coordinates.
    */
   addForceAtPosition(force: Vector3, pos: Vector3) {
-    this._pxRigidActor.addForceAtPos({ x: force.x, y: force.y, z: force.z }, { x: pos.x, y: pos.y, z: pos.z });
+    this._pxActor.addForceAtPos({ x: force.x, y: force.y, z: force.z }, { x: pos.x, y: pos.y, z: pos.z });
   }
 
   /**
@@ -328,7 +328,7 @@ export class Rigidbody implements IRigidbody {
    * @param pos The point in global space.
    */
   getPointVelocity(pos: Vector3): Vector3 {
-    const vel = this._pxRigidActor.getVelocityAtPos({ x: pos.x, y: pos.y, z: pos.z });
+    const vel = this._pxActor.getVelocityAtPos({ x: pos.x, y: pos.y, z: pos.z });
     return new Vector3(vel.x, vel.y, vel.z);
   }
 
@@ -337,12 +337,12 @@ export class Rigidbody implements IRigidbody {
    * @param pos The relative point
    */
   getRelativePointVelocity(pos: Vector3): Vector3 {
-    const vel = this._pxRigidActor.getLocalVelocityAtLocalPos({ x: pos.x, y: pos.y, z: pos.z });
+    const vel = this._pxActor.getLocalVelocityAtLocalPos({ x: pos.x, y: pos.y, z: pos.z });
     return new Vector3(vel.x, vel.y, vel.z);
   }
 
   getGlobalPose(): { translation: Vector3; rotation: Quaternion } {
-    const transform = this._pxRigidActor.getGlobalPose();
+    const transform = this._pxActor.getGlobalPose();
     return {
       translation: new Vector3(transform.translation.x, transform.translation.y, transform.translation.z),
       rotation: new Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w)
@@ -366,7 +366,7 @@ export class Rigidbody implements IRigidbody {
         z: quat.z
       }
     };
-    this._pxRigidActor.setGlobalPose(transform, true);
+    this._pxActor.setGlobalPose(transform, true);
   }
 
   /**
@@ -387,7 +387,7 @@ export class Rigidbody implements IRigidbody {
         z: this.rotation.z
       }
     };
-    this._pxRigidActor.setKinematicTarget(transform);
+    this._pxActor.setKinematicTarget(transform);
   }
 
   /**
@@ -408,28 +408,28 @@ export class Rigidbody implements IRigidbody {
         z: value.z
       }
     };
-    this._pxRigidActor.setKinematicTarget(transform);
+    this._pxActor.setKinematicTarget(transform);
   }
 
   /**
    * Is the rigidbody sleeping?
    */
   isSleeping(): boolean {
-    return this._pxRigidActor.isSleeping();
+    return this._pxActor.isSleeping();
   }
 
   /**
    * Forces a rigidbody to sleep at least one frame.
    */
   sleep() {
-    return this._pxRigidActor.putToSleep();
+    return this._pxActor.putToSleep();
   }
 
   /**
    * Forces a rigidbody to wake up.
    */
   wakeUp() {
-    return this._pxRigidActor.wakeUp();
+    return this._pxActor.wakeUp();
   }
 
   //----------------------------------------------------------------------------
@@ -456,8 +456,8 @@ export class Rigidbody implements IRigidbody {
   }
 
   /** The Collider attached */
-  get collider(): Collider {
-    return this._collider;
+  get shape(): PhysicsShape {
+    return this._shape;
   }
 
   /**
@@ -465,9 +465,9 @@ export class Rigidbody implements IRigidbody {
    * @param shape The Collider attached
    * @remark must call after init.
    */
-  attachShape(shape: Collider) {
-    this._collider = shape;
-    this._pxRigidActor.attachShape(shape._pxShape);
+  attachShape(shape: PhysicsShape) {
+    this._shape = shape;
+    this._pxActor.attachShape(shape._pxShape);
   }
 
   //----------------------------------------------------------------------------
@@ -486,6 +486,6 @@ export class Rigidbody implements IRigidbody {
         z: quat.z
       }
     };
-    this._pxRigidActor = PhysXManager.physics.createRigidDynamic(transform);
+    this._pxActor = PhysXManager.physics.createRigidDynamic(transform);
   }
 }
