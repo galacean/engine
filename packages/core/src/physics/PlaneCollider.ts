@@ -1,17 +1,24 @@
 import { IPlaneCollider } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { Collider } from "./Collider";
 import { Entity } from "../Entity";
+import { Component } from "../Component";
+import { UpdateFlag } from "../UpdateFlag";
 
-export class PlaneCollider extends Collider {
-  _planeCollider: IPlaneCollider;
+export class PlaneCollider extends Component {
+  _collider: IPlaneCollider;
+  _updateFlag: UpdateFlag;
+  _index: number = -1;
+
+  get index(): number {
+    return this._index;
+  }
 
   /**
    * normal of collider
    * @remarks will re-alloc new PhysX object.
    */
   get normal(): Vector3 {
-    return this._planeCollider.normal;
+    return this._collider.normal;
   }
 
   /**
@@ -19,7 +26,7 @@ export class PlaneCollider extends Collider {
    * @remarks will re-alloc new PhysX object.
    */
   getDistance(): number {
-    return this._planeCollider.getDistance();
+    return this._collider.getDistance();
   }
 
   /**
@@ -27,19 +34,18 @@ export class PlaneCollider extends Collider {
    * @param quat new local quaternion
    */
   rotate(quat: Quaternion) {
-    this._planeCollider.rotate(quat);
+    // todo
   }
 
   constructor(entity: Entity) {
     super(entity);
-    this._planeCollider = this.engine._physicsEngine.createPlaneCollider();
-    this._collider = this._planeCollider;
+    this._collider = this.engine._physicsEngine.createPlaneCollider();
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
     this._updateFlag.flag = false;
   }
 
   initWithNormalDistance(normal: Vector3, distance: number) {
-    this._planeCollider.initWithNormalDistance(
+    this._collider.initWithNormalDistance(
       this._index,
       normal,
       distance,
@@ -47,4 +53,22 @@ export class PlaneCollider extends Collider {
       this.entity.transform.rotationQuaternion
     );
   }
+
+  /**
+   * @override
+   */
+  _onEnable() {
+    super._onEnable();
+    this.engine._componentsManager.addCollider(this);
+  }
+
+  /**
+   * @override
+   */
+  _onDisable() {
+    super._onDisable();
+    this.engine._componentsManager.removeCollider(this);
+  }
+
+  onUpdate() {}
 }

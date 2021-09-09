@@ -1,12 +1,13 @@
 import { Entity } from "../Entity";
 import { Script } from "../Script";
 import { Collision } from "./Collision";
-import { Collider } from "./Collider";
 import { Engine } from "../Engine";
 import { HitResult } from "./HitResult";
-import { Rigidbody } from "./Rigidbody";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
+import { DynamicCollider } from "./DynamicCollider";
+import { StaticCollider } from "./StaticCollider";
+import { PlaneCollider } from "./PlaneCollider";
 
 export class PhysicsManager {
   private static _tempCollision: Collision = new Collision();
@@ -19,7 +20,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(Collider);
+        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
         scripts[i].onCollisionEnter(PhysicsManager._tempCollision);
       }
     }
@@ -28,7 +29,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(Collider);
+        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
         scripts[i].onCollisionEnter(PhysicsManager._tempCollision);
       }
     }
@@ -40,7 +41,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(Collider);
+        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
         scripts[i].onCollisionExit(PhysicsManager._tempCollision);
       }
     }
@@ -49,7 +50,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(Collider);
+        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
         scripts[i].onCollisionExit(PhysicsManager._tempCollision);
       }
     }
@@ -61,7 +62,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(Collider);
+        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
         scripts[i].onCollisionStay(PhysicsManager._tempCollision);
       }
     }
@@ -70,7 +71,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(Collider);
+        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
         scripts[i].onCollisionStay(PhysicsManager._tempCollision);
       }
     }
@@ -82,7 +83,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerEnter(this._physicalObjectsMap.get(obj2).getComponent(Collider));
+        scripts[i].onTriggerEnter(this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider));
       }
     }
   };
@@ -93,7 +94,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerExit(this._physicalObjectsMap.get(obj2).getComponent(Collider));
+        scripts[i].onTriggerExit(this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider));
       }
     }
   };
@@ -104,7 +105,7 @@ export class PhysicsManager {
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerStay(this._physicalObjectsMap.get(obj2).getComponent(Collider));
+        scripts[i].onTriggerStay(this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider));
       }
     }
   };
@@ -134,15 +135,9 @@ export class PhysicsManager {
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addStaticActor(actor: Collider) {
+  addStaticActor(actor: StaticCollider | DynamicCollider | PlaneCollider) {
     this._physicalObjectsMap.set(actor.index, actor.entity);
-    this._physicsManager.addStaticActor(actor._collider);
-  }
-
-  /** add Dynamic Actor, i.e. Rigidbody. */
-  addDynamicActor(actor: Rigidbody) {
-    this._physicalObjectsMap.set(actor.collider.index, actor.entity);
-    this._physicsManager.addDynamicActor(actor._rigidBody);
+    this._physicsManager.addActor(actor._collider);
   }
 
   //--------------simulation ---------------------------------------------------

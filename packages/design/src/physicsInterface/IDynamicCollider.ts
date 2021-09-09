@@ -3,7 +3,7 @@ import { IPhysicsShape } from "./IPhysicsShape";
 
 export interface IDynamicCollider {
   /**
-   * attach Collider with Rigidbody
+   * attach Collider with DynamicCollider
    * @param shape The Collider attached
    * @remark must call after init.
    */

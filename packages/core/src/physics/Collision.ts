@@ -1,7 +1,7 @@
-import { Collider } from "./Collider";
+import { DynamicCollider } from "./DynamicCollider";
 
 /** Describes a collision. */
 export class Collision {
   /** The Collider we hit */
-  collider: Collider;
+  collider: DynamicCollider;
 }

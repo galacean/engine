@@ -1,4 +1,3 @@
-import { Collider } from "./Collider";
 import { Entity } from "../Entity";
 import { Vector3 } from "@oasis-engine/math";
 
