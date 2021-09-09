@@ -22,7 +22,7 @@ export class Collider implements ICollider {
 
   protected _center: Vector3 = new Vector3();
 
-  protected _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
+  protected _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.TRIGGER_SHAPE;
 
   protected _material: PhysicsMaterial = new PhysicsMaterial(0.1, 0.1, 0.1);
 
@@ -91,13 +91,21 @@ export class Collider implements ICollider {
     this._pxRigidStatic.setGlobalPose(transform, true);
   }
 
+  getGlobalPose(): { translation: Vector3; rotation: Quaternion } {
+    const transform = this._pxRigidStatic.getGlobalPose();
+    return {
+      translation: new Vector3(transform.translation.x, transform.translation.y, transform.translation.z),
+      rotation: new Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w)
+    };
+  }
+
   //----------------------------------------------------------------------------
-  protected _allocShape() {
+  protected _allocShape(shapeFlag: ShapeFlag) {
     this._pxShape = PhysXManager.physics.createShape(
       this._pxGeometry,
       this._material._pxMaterial,
       false,
-      new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags)
+      new PhysXManager.PhysX.PxShapeFlags(shapeFlag)
     );
   }
 

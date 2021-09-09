@@ -5,7 +5,8 @@ import {
   ISphereCollider,
   ICapsuleCollider,
   IPlaneCollider,
-  IPhysicsManager
+  IPhysicsManager,
+  IRigidbody
 } from "@oasis-engine/design";
 import { BoxCollider } from "./BoxCollider";
 import { PhysicsMaterial } from "./PhysicsMaterial";
@@ -14,6 +15,7 @@ import { CapsuleCollider } from "./CapsuleCollider";
 import { PlaneCollider } from "./PlaneCollider";
 import { PhysicsManager } from "./PhysicsManager";
 import { PhysXManager } from "./PhysXManager";
+import { Rigidbody } from "./Rigidbody";
 
 export class PhysicsEngine implements IPhysicsEngine {
   createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial {
@@ -36,14 +38,19 @@ export class PhysicsEngine implements IPhysicsEngine {
     return new PlaneCollider();
   }
 
+  createRigidbody(): IRigidbody {
+    return new Rigidbody();
+  }
+
   createPhysicsManager(
     onContactBegin?: Function,
     onContactEnd?: Function,
     onContactPersist?: Function,
     onTriggerBegin?: Function,
-    onTriggerEnd?: Function
+    onTriggerEnd?: Function,
+    onTriggerPersist?: Function
   ): IPhysicsManager {
-    return new PhysicsManager(onContactBegin, onContactEnd, onContactPersist, onTriggerBegin, onTriggerEnd);
+    return new PhysicsManager(onContactBegin, onContactEnd, onContactPersist, onTriggerBegin, onTriggerEnd, onTriggerPersist);
   }
 
   static init(): Promise<void> {

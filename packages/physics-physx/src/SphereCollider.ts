@@ -1,5 +1,5 @@
 import { PhysXManager } from "./PhysXManager";
-import { Collider } from "./Collider";
+import { Collider, ShapeFlag } from "./Collider";
 import { ISphereCollider } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
@@ -36,7 +36,7 @@ export class SphereCollider extends Collider implements ISphereCollider {
 
     // alloc Physx object
     this._allocGeometry();
-    this._allocShape();
+    this._allocShape(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE);
     this._setLocalPose();
     this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
     this._allocActor();

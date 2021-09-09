@@ -1,5 +1,5 @@
 import { PhysXManager } from "./PhysXManager";
-import { Collider } from "./Collider";
+import { Collider, ShapeFlag } from "./Collider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IBoxCollider } from "@oasis-engine/design";
 
@@ -36,7 +36,7 @@ export class BoxCollider extends Collider implements IBoxCollider {
 
     // alloc Physx object
     this._allocGeometry();
-    this._allocShape();
+    this._allocShape(ShapeFlag.TRIGGER_SHAPE);
     this._setLocalPose();
     this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
     this._allocActor();

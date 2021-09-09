@@ -1,5 +1,5 @@
 import { PhysXManager } from "./PhysXManager";
-import { Collider } from "./Collider";
+import { Collider, ShapeFlag } from "./Collider";
 import { ICapsuleCollider } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
@@ -50,7 +50,7 @@ export class CapsuleCollider extends Collider implements ICapsuleCollider {
 
     // alloc Physx object
     this._allocGeometry();
-    this._allocShape();
+    this._allocShape(ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.TRIGGER_SHAPE);
     this._setLocalPose();
     this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
     this._allocActor();

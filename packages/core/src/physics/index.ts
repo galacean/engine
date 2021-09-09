@@ -7,3 +7,4 @@ export { CapsuleCollider } from "./CapsuleCollider";
 export { Collision } from "./Collision";
 export { HitResult } from "./HitResult";
 export { PhysicsManager } from "./PhysicsManager";
+export { Rigidbody } from "./Rigidbody";

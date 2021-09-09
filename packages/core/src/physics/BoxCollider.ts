@@ -38,6 +38,5 @@ export class BoxCollider extends Collider {
       this.entity.transform.position,
       this.entity.transform.rotationQuaternion
     );
-    this.engine.physicsManager.addStaticActor(this);
   }
 }

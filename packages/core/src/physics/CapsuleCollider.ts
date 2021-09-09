@@ -47,6 +47,5 @@ export class CapsuleCollider extends Collider {
       this.entity.transform.position,
       this.entity.transform.rotationQuaternion
     );
-    this.engine.physicsManager.addStaticActor(this);
   }
 }

@@ -1,11 +1,12 @@
 import { Entity } from "../Entity";
 import { Script } from "../Script";
-import { Ray, Vector3 } from "@oasis-engine/math";
 import { Collision } from "./Collision";
 import { Collider } from "./Collider";
-import { IPhysicsManager } from "@oasis-engine/design";
 import { Engine } from "../Engine";
 import { HitResult } from "./HitResult";
+import { Rigidbody } from "./Rigidbody";
+import { Ray, Vector3 } from "@oasis-engine/math";
+import { IPhysicsManager } from "@oasis-engine/design";
 
 export class PhysicsManager {
   private static _tempCollision: Collision = new Collision();
@@ -13,6 +14,7 @@ export class PhysicsManager {
   private _physicsManager: IPhysicsManager;
 
   onContactBegin = (obj1: number, obj2: number) => {
+    console.log("dsadsa1");
     let scripts: Script[] = [];
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
@@ -33,6 +35,7 @@ export class PhysicsManager {
   };
 
   onContactEnd = (obj1: number, obj2: number) => {
+    console.log("dsadsa2");
     let scripts: Script[] = [];
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
@@ -53,6 +56,7 @@ export class PhysicsManager {
   };
 
   onContactPersist = (obj1: number, obj2: number) => {
+    console.log("dsadsa3");
     let scripts: Script[] = [];
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
@@ -73,6 +77,7 @@ export class PhysicsManager {
   };
 
   onTriggerBegin = (obj1: number, obj2: number) => {
+    console.log("dsadsa4");
     let scripts: Script[] = [];
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
@@ -83,11 +88,23 @@ export class PhysicsManager {
   };
 
   onTriggerEnd = (obj1: number, obj2: number) => {
+    console.log("dsadsa5");
     let scripts: Script[] = [];
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
         scripts[i].onTriggerExit(this._physicalObjectsMap.get(obj2).getComponent(Collider));
+      }
+    }
+  };
+
+  onTriggerPersist = (obj1: number, obj2: number) => {
+    console.log("dsadsa6");
+    let scripts: Script[] = [];
+    this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
+    if (scripts.length > 0) {
+      for (let i = 0, len = scripts.length; i < len; i++) {
+        scripts[i].onTriggerStay(this._physicalObjectsMap.get(obj2).getComponent(Collider));
       }
     }
   };
@@ -120,6 +137,12 @@ export class PhysicsManager {
   addStaticActor(actor: Collider) {
     this._physicalObjectsMap.set(actor.index, actor.entity);
     this._physicsManager.addStaticActor(actor._collider);
+  }
+
+  /** add Dynamic Actor, i.e. Rigidbody. */
+  addDynamicActor(actor: Rigidbody) {
+    this._physicalObjectsMap.set(actor.collider.index, actor.entity);
+    this._physicsManager.addDynamicActor(actor._rigidBody);
   }
 
   //--------------simulation ---------------------------------------------------

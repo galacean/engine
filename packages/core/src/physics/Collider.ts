@@ -61,7 +61,6 @@ export class Collider extends Component {
 
   onUpdate() {
     if (this._updateFlag.flag) {
-      console.log("changed");
       this._collider.setGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
       this._updateFlag.flag = false;
     }

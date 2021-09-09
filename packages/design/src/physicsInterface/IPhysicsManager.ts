@@ -1,10 +1,13 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
+import { IRigidbody } from "./IRigidbody";
 
 export interface IPhysicsManager {
   gravity: Vector3;
 
   addStaticActor(actor: ICollider);
+
+  addDynamicActor(actor: IRigidbody);
 
   //--------------simulation ---------------------------------------------------
   simulate(elapsedTime: number, controlSimulation: boolean);

@@ -10,4 +10,6 @@ export interface ICollider {
   setFlag(flag: number, value: boolean);
 
   setGlobalPose(position: Vector3, rotation: Quaternion);
+
+  getGlobalPose(): { translation: Vector3; rotation: Quaternion };
 }
