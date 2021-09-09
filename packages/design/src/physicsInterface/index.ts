@@ -7,3 +7,6 @@ export type { ISphereCollider } from "./ISphereCollider";
 export type { IPlaneCollider } from "./IPlaneCollider";
 export type { IPhysicsManager } from "./IPhysicsManager";
 export type { IRigidbody } from "./IRigidbody";
+
+export type { IPhysicsShape } from "./IPhysicsShape";
+export type { IPhysicsBox } from "./IPhysicsBox";
