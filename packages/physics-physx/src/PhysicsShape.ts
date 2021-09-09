@@ -19,7 +19,7 @@ export class PhysicsShape implements IPhysicsShape {
 
   protected _index: number;
 
-  protected _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.TRIGGER_SHAPE;
+  protected _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   protected _material: PhysicsMaterial = new PhysicsMaterial(0.1, 0.1, 0.1);
 
@@ -46,6 +46,7 @@ export class PhysicsShape implements IPhysicsShape {
 
   setTrigger(value: boolean) {
     this._pxShape.setFlag(PhysXManager.PhysX.PxShapeFlag.eSIMULATION_SHAPE, !value);
+    this._pxShape.setFlag(PhysXManager.PhysX.PxShapeFlag.eTRIGGER_SHAPE, value);
   }
 
   setFlag(flag: ShapeFlag, value: boolean) {

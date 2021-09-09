@@ -48,37 +48,31 @@ export class PhysicsManager implements IPhysicsManager {
   ) {
     const triggerCallback = {
       onContactBegin: (obj1, obj2) => {
-        console.log("dsadsa7");
         if (onContactBegin != undefined) {
           onContactBegin(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
         }
       },
       onContactEnd: (obj1, obj2) => {
-        console.log("dsadsa8");
         if (onContactEnd != undefined) {
           onContactEnd(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
         }
       },
       onContactPersist: (obj1, obj2) => {
-        console.log("dsadsa9");
         if (onContactPersist != undefined) {
           onContactPersist(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
         }
       },
       onTriggerBegin: (obj1, obj2) => {
-        console.log("dsadsa10");
         if (onTriggerBegin != undefined) {
           onTriggerBegin(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
         }
       },
       onTriggerEnd: (obj1, obj2) => {
-        console.log("dsadsa11");
         if (onTriggerEnd != undefined) {
           onTriggerEnd(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
         }
       },
       onTriggerPersist: (obj1, obj2) => {
-        console.log("dsadsa12");
         if (onTriggerPersist != undefined) {
           onTriggerPersist(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
         }

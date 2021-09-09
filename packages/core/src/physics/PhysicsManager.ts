@@ -18,7 +18,6 @@ export class PhysicsManager {
   physical_id: number = 0;
 
   onContactBegin = (obj1: number, obj2: number) => {
-    console.log("dsadsa1");
     let scripts: Script[] = [];
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
@@ -39,7 +38,6 @@ export class PhysicsManager {
   };
 
   onContactEnd = (obj1: number, obj2: number) => {
-    console.log("dsadsa2");
     let scripts: Script[] = [];
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
@@ -60,7 +58,6 @@ export class PhysicsManager {
   };
 
   onContactPersist = (obj1: number, obj2: number) => {
-    console.log("dsadsa3");
     let scripts: Script[] = [];
     this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
     if (scripts.length > 0) {
@@ -81,34 +78,31 @@ export class PhysicsManager {
   };
 
   onTriggerBegin = (obj1: number, obj2: number) => {
-    console.log("dsadsa4");
     let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
+    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerEnter(this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider));
+        scripts[i].onTriggerEnter(this._physicalObjectsMap.get(obj1).getComponent(DynamicCollider));
       }
     }
   };
 
   onTriggerEnd = (obj1: number, obj2: number) => {
-    console.log("dsadsa5");
     let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
+    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerExit(this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider));
+        scripts[i].onTriggerExit(this._physicalObjectsMap.get(obj1).getComponent(DynamicCollider));
       }
     }
   };
 
   onTriggerPersist = (obj1: number, obj2: number) => {
-    console.log("dsadsa6");
     let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
+    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
     if (scripts.length > 0) {
       for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerStay(this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider));
+        scripts[i].onTriggerStay(this._physicalObjectsMap.get(obj1).getComponent(DynamicCollider));
       }
     }
   };
