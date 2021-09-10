@@ -1,7 +1,7 @@
 import { Engine } from "@oasis-engine/core";
 import { WebCanvas } from "./WebCanvas";
 import { WebGLRenderer, WebGLRendererOptions } from "./WebGLRenderer";
-import { IPhysicsEngine } from "@oasis-engine/design";
+import { IPhysics } from "@oasis-engine/design";
 
 /**
  * WebGL platform engine,support includes WebGL1.0 and WebGL2.0.
@@ -15,7 +15,7 @@ export class WebGLEngine extends Engine {
    */
   constructor(
     canvas: string | HTMLCanvasElement | OffscreenCanvas,
-    physicsEngine?: IPhysicsEngine,
+    physicsEngine?: IPhysics,
     webGLRendererOptions?: WebGLRendererOptions
   ) {
     const webCanvas = new WebCanvas(

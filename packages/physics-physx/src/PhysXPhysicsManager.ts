@@ -1,9 +1,8 @@
 import { PhysXManager } from "./PhysXManager";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
-import { StaticCollider } from "./StaticCollider";
-import { DynamicCollider } from "./DynamicCollider";
 import { PlaneCollider } from "./PlaneCollider";
+import { Collider } from "./Collider";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -14,7 +13,7 @@ export enum QueryFlag {
 }
 
 /** A scene is a collection of bodies and constraints which can interact. */
-export class PhysicsManager implements IPhysicsManager {
+export class PhysXPhysicsManager implements IPhysicsManager {
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _pxRaycastHit: any;
@@ -87,15 +86,17 @@ export class PhysicsManager implements IPhysicsManager {
     );
     this._pxScene = PhysXManager.physics.createScene(sceneDesc);
 
-    PhysicsManager._pxRaycastHit = new PhysXManager.PhysX.PxRaycastHit();
-    PhysicsManager._pxFilterData = new PhysXManager.PhysX.PxQueryFilterData();
+    PhysXPhysicsManager._pxRaycastHit = new PhysXManager.PhysX.PxRaycastHit();
+    PhysXPhysicsManager._pxFilterData = new PhysXManager.PhysX.PxQueryFilterData();
   }
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addActor(actor: StaticCollider | DynamicCollider | PlaneCollider) {
+  addCollider(actor: Collider | PlaneCollider) {
     this._pxScene.addActor(actor._pxActor, null);
   }
+
+  removeCollider(collider: Collider | PlaneCollider) {}
 
   //--------------simulation ---------------------------------------------------
   /** call PhysX simulate */
@@ -151,34 +152,34 @@ export class PhysicsManager implements IPhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param flag - Flag that is used to selectively ignore Colliders when casting
+   * @param layerMask - Flag that is used to selectively ignore Colliders when casting
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, flag: QueryFlag): Boolean;
+  raycast(ray: Ray, distance: number, layerMask: QueryFlag): Boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param flag - Flag that is used to selectively ignore Colliders when casting
+   * @param layerMask - Flag that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, flag: QueryFlag, outHitResult: Function): Boolean;
+  raycast(ray: Ray, distance: number, layerMask: QueryFlag, outHitResult: Function): Boolean;
 
   raycast(
     ray: Ray,
     distance: number = Number.MAX_VALUE,
-    flag: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC,
+    layerMask: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC,
     hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    PhysicsManager._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(flag);
+    PhysXPhysicsManager._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(layerMask);
     const result = this._pxScene.raycastSingle(
       { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
       { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
       distance,
-      PhysicsManager._pxRaycastHit,
-      PhysicsManager._pxFilterData
+      PhysXPhysicsManager._pxRaycastHit,
+      PhysXPhysicsManager._pxFilterData
     );
 
     if (result == false) {
@@ -186,14 +187,14 @@ export class PhysicsManager implements IPhysicsManager {
     }
 
     if (hit != undefined) {
-      const hitResult = PhysicsManager._pxRaycastHit;
-      const position = PhysicsManager._tempPosition;
+      const hitResult = PhysXPhysicsManager._pxRaycastHit;
+      const position = PhysXPhysicsManager._tempPosition;
       {
         position.x = hitResult.position.x;
         position.y = hitResult.position.y;
         position.z = hitResult.position.z;
       }
-      const normal = PhysicsManager._tempNormal;
+      const normal = PhysXPhysicsManager._tempNormal;
       {
         normal.x = hitResult.normal.x;
         normal.y = hitResult.normal.y;

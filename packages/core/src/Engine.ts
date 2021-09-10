@@ -27,7 +27,7 @@ import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
-import { IPhysicsEngine } from "@oasis-engine/design";
+import { IPhysics } from "@oasis-engine/design";
 import { PhysicsManager } from "./physics";
 
 /** TODO: delete */
@@ -38,12 +38,12 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
-  /** Physics manager of Engine. */
+  /** PhysXPhysics manager of Engine. */
   readonly physicsManager: PhysicsManager;
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
-  _physicsEngine: IPhysicsEngine;
+  _physicsEngine: IPhysics;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
@@ -159,9 +159,9 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
-   * @param physicsEngine - Physics Engine
+   * @param physicsEngine - PhysXPhysics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physicsEngine?: IPhysicsEngine) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physicsEngine?: IPhysics) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);

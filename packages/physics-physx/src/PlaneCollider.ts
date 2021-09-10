@@ -2,7 +2,7 @@ import { PhysXManager } from "./PhysXManager";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPlaneCollider } from "@oasis-engine/design";
 import { PhysicsMaterial } from "./PhysicsMaterial";
-import { ShapeFlag } from "./ColliderShape";
+import { ShapeFlag } from "./shape/ColliderShape";
 
 /**
  * Represents a plane in three dimensional space.

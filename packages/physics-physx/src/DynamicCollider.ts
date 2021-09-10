@@ -62,31 +62,31 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   private _freezeRotation: boolean;
 
   /** The drag of the object. */
-  get drag(): number {
+  get linearDamping(): number {
     return this._drag;
   }
 
-  set drag(value: number) {
+  set linearDamping(value: number) {
     this._drag = value;
     this._pxActor.setLinearDamping(value);
   }
 
   /** The angular drag of the object. */
-  get angularDrag(): number {
+  get angularDamping(): number {
     return this._angularDrag;
   }
 
-  set angularDrag(value: number) {
+  set angularDamping(value: number) {
     this._angularDrag = value;
     this._pxActor.setAngularDamping(value);
   }
 
   /** The velocity vector of the rigidbody. It represents the rate of change of Rigidbody position. */
-  get velocity(): Vector3 {
+  get linearVelocity(): Vector3 {
     return this._velocity;
   }
 
-  set velocity(value: Vector3) {
+  set linearVelocity(value: Vector3) {
     this._velocity = value;
     const vel = { x: value.x, y: value.y, z: value.z };
     this._pxActor.setLinearVelocity(vel, true);

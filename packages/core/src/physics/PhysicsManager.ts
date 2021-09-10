@@ -132,9 +132,9 @@ export class PhysicsManager {
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addActor(actor: StaticCollider | DynamicCollider | PlaneCollider) {
+  addCollider(actor: StaticCollider | DynamicCollider | PlaneCollider) {
     this._physicalObjectsMap.set(actor.index, actor.entity);
-    this._physicsManager.addActor(actor._collider);
+    this._physicsManager.addCollider(actor._collider);
   }
 
   //--------------simulation ---------------------------------------------------

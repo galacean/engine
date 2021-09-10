@@ -1,9 +1,9 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PhysXManager } from "./PhysXManager";
+import { PhysXManager } from "../PhysXManager";
 import { ColliderShape } from "./ColliderShape";
 
-/**Physics Shape for Box */
+/**PhysXPhysics Shape for Box */
 export class BoxColliderShape extends ColliderShape implements IBoxColliderShape {
   private _extents: Vector3 = new Vector3(1, 1, 1);
   private _tempHalfExtents: Vector3 = new Vector3(0.5, 0.5, 0.5);

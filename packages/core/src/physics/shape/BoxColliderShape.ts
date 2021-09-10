@@ -1,9 +1,9 @@
 import { ColliderShape } from "./ColliderShape";
 import { IBoxColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { Engine } from "../Engine";
+import { Engine } from "../../Engine";
 
-/**Physics Shape for Box */
+/**PhysXPhysics Shape for Box */
 export class BoxColliderShape extends ColliderShape {
   _physicsBox: IBoxColliderShape;
 
@@ -24,7 +24,7 @@ export class BoxColliderShape extends ColliderShape {
 
   /**
    * init box shape and alloc internal physics objects.
-   * @param index index of Physics Box
+   * @param index index of PhysXPhysics Box
    */
   init(index: number) {
     this._physicsBox.initWithSize(index, this.extents, new Vector3(), new Quaternion());

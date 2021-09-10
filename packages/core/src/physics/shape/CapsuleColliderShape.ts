@@ -1,9 +1,9 @@
 import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
-import { Engine } from "../Engine";
+import { Engine } from "../../Engine";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
-/** Physics Shape for Capsule */
+/** PhysXPhysics Shape for Capsule */
 export class CapsuleColliderShape extends ColliderShape {
   _physicsCapsule: ICapsuleColliderShape;
 

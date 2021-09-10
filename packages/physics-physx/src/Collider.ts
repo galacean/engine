@@ -1,6 +1,6 @@
-import { ICollider } from "@oasis-engine/design";
+import { ICollider, IColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { ColliderShape } from "./ColliderShape";
+import { ColliderShape } from "./shape/ColliderShape";
 
 export abstract class Collider implements ICollider {
   protected _position: Vector3;
@@ -42,9 +42,13 @@ export abstract class Collider implements ICollider {
   /** alloc RigidActor */
   abstract allocActor();
 
-  attachShape(shape: ColliderShape) {
+  addShape(shape: ColliderShape) {
     this._pxActor.attachShape(shape._pxShape);
   }
+
+  removeShape(shape: IColliderShape): void {}
+
+  clearShapes(): void {}
 
   setGlobalPose(position: Vector3, rotation: Quaternion) {
     this._position = position;

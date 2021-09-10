@@ -6,7 +6,7 @@ import { Script } from "./Script";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Vector3 } from "@oasis-engine/math";
-import { DynamicCollider, PlaneCollider, StaticCollider } from "./physics";
+import { PlaneCollider } from "./physics";
 import { Collider } from "./physics/Collider";
 
 /**

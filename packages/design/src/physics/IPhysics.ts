@@ -1,16 +1,27 @@
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
 import { IPlaneCollider } from "./IPlaneCollider";
 import { IPhysicsManager } from "./IPhysicsManager";
-import { IBoxColliderShape } from "./IBoxColliderShape";
-import { ISphereColliderShape } from "./ISphereColliderShape";
-import { ICapsuleColliderShape } from "./ICapsuleColliderShape";
+import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape } from "./shape";
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IStaticCollider } from "./IStaticCollider";
 
 /**
- * Physics Engine Interface
+ * PhysXPhysics Engine Interface
  */
-export interface IPhysicsEngine {
+export interface IPhysics {
+  createPhysicsManager(
+    onContactBegin?: Function,
+    onContactEnd?: Function,
+    onContactPersist?: Function,
+    onTriggerBegin?: Function,
+    onTriggerEnd?: Function,
+    onTriggerPersist?: Function
+  ): IPhysicsManager;
+
+  createDynamicCollider(): IDynamicCollider;
+
+  createStaticCollider(): IStaticCollider;
+
   createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial;
 
   createBoxColliderShape(): IBoxColliderShape;
@@ -20,17 +31,4 @@ export interface IPhysicsEngine {
   createCapsuleColliderShape(): ICapsuleColliderShape;
 
   createPlaneCollider(): IPlaneCollider;
-
-  createDynamicCollider(): IDynamicCollider;
-
-  createStaticCollider(): IStaticCollider;
-
-  createPhysicsManager(
-    onContactBegin?: Function,
-    onContactEnd?: Function,
-    onContactPersist?: Function,
-    onTriggerBegin?: Function,
-    onTriggerEnd?: Function,
-    onTriggerPersist?: Function
-  ): IPhysicsManager;
 }

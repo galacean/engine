@@ -1,7 +1,7 @@
 import { IColliderShape } from "./IColliderShape";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
-/**Interface of Physics Shape for Sphere */
+/**Interface of PhysXPhysics Shape for Sphere */
 export interface ISphereColliderShape extends IColliderShape {
   /** radius of sphere shape */
   radius: number;

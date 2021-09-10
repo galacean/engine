@@ -1,12 +1,13 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { IStaticCollider } from "./IStaticCollider";
-import { IDynamicCollider } from "./IDynamicCollider";
 import { IPlaneCollider } from "./IPlaneCollider";
+import { ICollider } from "./ICollider";
 
 export interface IPhysicsManager {
   gravity: Vector3;
 
-  addActor(actor: IStaticCollider | IDynamicCollider | IPlaneCollider);
+  addCollider(actor: ICollider | IPlaneCollider);
+
+  removeCollider(collider: ICollider | IPlaneCollider): void;
 
   //--------------simulation ---------------------------------------------------
   simulate(elapsedTime: number, controlSimulation: boolean);
@@ -44,18 +45,18 @@ export interface IPhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param flag - Flag that is used to selectively ignore Colliders when casting
+   * @param layerMask - Flag that is used to selectively ignore Colliders when casting
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, flag: number): Boolean;
+  raycast(ray: Ray, distance: number, layerMask: number): Boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param flag - Flag that is used to selectively ignore Colliders when casting
+   * @param layerMask - Flag that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, flag: number, outHitResult: Function): Boolean;
+  raycast(ray: Ray, distance: number, layerMask: number, outHitResult: Function): Boolean;
 }

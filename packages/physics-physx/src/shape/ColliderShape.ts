@@ -1,7 +1,7 @@
 import { IColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PhysicsMaterial } from "./PhysicsMaterial";
-import { PhysXManager } from "./PhysXManager";
+import { PhysicsMaterial } from "../PhysicsMaterial";
+import { PhysXManager } from "../PhysXManager";
 
 /** Flags which affect the behavior of Shapes. */
 export enum ShapeFlag {
@@ -55,7 +55,7 @@ export class ColliderShape implements IColliderShape {
   }
 
   /**
-   * Physics Material
+   * PhysXPhysics Material
    */
   get material(): PhysicsMaterial {
     return this._material;

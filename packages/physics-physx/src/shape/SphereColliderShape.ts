@@ -1,9 +1,9 @@
-import { PhysXManager } from "./PhysXManager";
+import { PhysXManager } from "../PhysXManager";
 import { ISphereColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./ColliderShape";
 
-/** Physics Shape for Sphere */
+/** PhysXPhysics Shape for Sphere */
 export class SphereColliderShape extends ColliderShape implements ISphereColliderShape {
   private _radius: number = 1.0;
 

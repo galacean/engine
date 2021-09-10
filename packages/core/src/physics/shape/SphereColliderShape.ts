@@ -1,9 +1,9 @@
 import { ColliderShape } from "./ColliderShape";
 import { ISphereColliderShape } from "@oasis-engine/design";
-import { Engine } from "../Engine";
+import { Engine } from "../../Engine";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
-/** Physics Shape for Sphere */
+/** PhysXPhysics Shape for Sphere */
 export class SphereColliderShape extends ColliderShape {
   _physicsSphere: ISphereColliderShape;
 

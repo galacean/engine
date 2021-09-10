@@ -1,9 +1,9 @@
-import { PhysXManager } from "./PhysXManager";
+import { PhysXManager } from "../PhysXManager";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./ColliderShape";
 
-/** Physics Shape for Capsule */
+/** PhysXPhysics Shape for Capsule */
 export class CapsuleColliderShape extends ColliderShape implements ICapsuleColliderShape {
   private _radius: number = 1.0;
   private _height: number = 2.0;

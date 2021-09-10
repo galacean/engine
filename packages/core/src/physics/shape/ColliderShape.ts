@@ -1,5 +1,5 @@
 import { IColliderShape } from "@oasis-engine/design";
-import { PhysicsMaterial } from "./PhysicsMaterial";
+import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /** Abstract class for collision shapes. */
@@ -7,7 +7,7 @@ export abstract class ColliderShape {
   /** @internal */
   _shape: IColliderShape;
 
-  /** Physics Material */
+  /** PhysXPhysics Material */
   get material(): PhysicsMaterial {
     return new PhysicsMaterial(this._shape.material);
   }
