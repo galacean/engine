@@ -3,33 +3,43 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "./PhysXManager";
 import { PhysicsShape } from "./PhysicsShape";
 
+/**Physics Shape for Box */
 export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
-  private _size: Vector3 = new Vector3();
+  private _extents: Vector3 = new Vector3(1, 1, 1);
+  private _tempHalfExtents: Vector3 = new Vector3(0.5, 0.5, 0.5);
 
-  /**
-   * size of Box
-   */
-  get size(): Vector3 {
-    return this._size;
+  /** size of Box */
+  get extents(): Vector3 {
+    return this._extents;
   }
 
-  set size(value: Vector3) {
-    this._size = value;
-    Vector3.scale(value, 0.5, this._size);
-    this._pxGeometry.halfExtents = this._size;
+  set extents(value: Vector3) {
+    this._extents = value;
+    const halfExtents = this.halfExtents;
+
+    this._pxGeometry.halfExtents = {
+      x: halfExtents.x,
+      y: halfExtents.y,
+      z: halfExtents.z
+    };
     this._pxShape.setGeometry(this._pxGeometry);
+  }
+
+  get halfExtents(): Vector3 {
+    Vector3.scale(this._extents, 0.5, this._tempHalfExtents);
+    return this._tempHalfExtents;
   }
 
   /**
    * init Box Shape and alloc PhysX objects.
    * @param index index mark Shape
-   * @param value size of Shape
+   * @param extents size of Shape
    * @param position position of Shape
    * @param rotation rotation of Shape
    * @remarks must call after this component add to Entity.
    */
-  initWithSize(index: number, value: Vector3, position: Vector3, rotation: Quaternion): void {
-    this._size = value;
+  initWithSize(index: number, extents: Vector3, position: Vector3, rotation: Quaternion): void {
+    this._extents = extents;
     this._position = position;
     this._rotation = rotation;
 
@@ -40,13 +50,8 @@ export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
     this.setLocalPose(this._position, this._rotation);
   }
 
-  //----------------------------------------------------------------------------
   private _allocGeometry() {
-    this._pxGeometry = new PhysXManager.PhysX.PxBoxGeometry(
-      // PHYSX uses half-extents
-      this._size.x / 2,
-      this._size.y / 2,
-      this._size.z / 2
-    );
+    const halfExtents = this.halfExtents;
+    this._pxGeometry = new PhysXManager.PhysX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
   }
 }

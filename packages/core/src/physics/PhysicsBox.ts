@@ -3,19 +3,17 @@ import { IPhysicsBox } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 
+/**Physics Shape for Box */
 export class PhysicsBox extends PhysicsShape {
   _physicsBox: IPhysicsBox;
 
-  get size(): Vector3 {
-    return this._physicsBox.size;
+  /** extents of box shape */
+  get extents(): Vector3 {
+    return this._physicsBox.extents;
   }
 
-  /**
-   * set size of collider
-   * @param value size of BoxCollider
-   */
-  set size(value: Vector3) {
-    this._physicsBox.size = value;
+  set extents(extents: Vector3) {
+    this._physicsBox.extents = extents;
   }
 
   constructor(engine: Engine) {
@@ -25,11 +23,10 @@ export class PhysicsBox extends PhysicsShape {
   }
 
   /**
-   * init Collider and alloc PhysX objects.
-   * @param index index of BoxCollider
-   * @remarks must call after this component add to Entity.
+   * init Box Shape and alloc internal physics objects.
+   * @param index index of Physics Box
    */
   init(index: number) {
-    this._physicsBox.initWithSize(index, new Vector3(1.0, 1.0, 1.0), new Vector3(), new Quaternion());
+    this._physicsBox.initWithSize(index, this.extents, new Vector3(), new Quaternion());
   }
 }
