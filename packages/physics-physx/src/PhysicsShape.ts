@@ -13,13 +13,14 @@ export enum ShapeFlag {
   TRIGGER_SHAPE = 1 << 2
 }
 
+/** Abstract class for collision shapes. */
 export class PhysicsShape implements IPhysicsShape {
   protected _position: Vector3;
   protected _rotation: Quaternion;
 
-  protected _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
+  private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
-  protected _material: PhysicsMaterial = new PhysicsMaterial(0.1, 0.1, 0.1);
+  private _material: PhysicsMaterial = new PhysicsMaterial(0.1, 0.1, 0.1);
 
   /**
    * PhysX shape object
@@ -46,31 +47,34 @@ export class PhysicsShape implements IPhysicsShape {
   }
 
   /**
+   *  Shape Flags
+   */
+  get shapeFlags(): ShapeFlag {
+    return this._shapeFlags;
+  }
+
+  set shapeFlags(flags: ShapeFlag) {
+    this._shapeFlags = flags;
+    this._pxShape.setFlags(new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags));
+  }
+
+  /**
    * Set Trigger or not
    * @param value true for TriggerShape, false for SimulationShape
    */
-  setTrigger(value: boolean) {
+  isTrigger(value: boolean) {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
-    this.setFlags(this._shapeFlags);
+    this.shapeFlags = this._shapeFlags;
   }
 
   /**
    * Set Scene Query or not
    * @param value true for Query, false for not Query
    */
-  setSceneQuery(value: boolean) {
+  isSceneQuery(value: boolean) {
     this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
-    this.setFlags(this._shapeFlags);
-  }
-
-  /**
-   * Set Shape Flags
-   * @param flags Shape Flag
-   */
-  setFlags(flags: ShapeFlag) {
-    this._shapeFlags = flags;
-    this._pxShape.setFlags(new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags));
+    this.shapeFlags = this._shapeFlags;
   }
 
   /**

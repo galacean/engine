@@ -1,13 +1,13 @@
 import { IPhysicsShape } from "@oasis-engine/design";
 import { PhysicsMaterial } from "./PhysicsMaterial";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 
+/** Abstract class for collision shapes. */
 export abstract class PhysicsShape {
   /** @internal */
   _shape: IPhysicsShape;
 
-  /**
-   * Physics Material
-   */
+  /** Physics Material */
   get material(): PhysicsMaterial {
     return new PhysicsMaterial(this._shape.material);
   }
@@ -16,28 +16,38 @@ export abstract class PhysicsShape {
     this._shape.material = value._physicsMaterial;
   }
 
+  /** Shape Property Flags */
+  get shapeFlags(): number {
+    return this._shape.shapeFlags;
+  }
+
+  set shapeFlags(flags: number) {
+    this._shape.shapeFlags = flags;
+  }
+
   /**
    * Set Trigger or not
    * @param value true for TriggerShape, false for SimulationShape
    */
-  setTrigger(value: boolean) {
-    this._shape.setTrigger(value);
+  isTrigger(value: boolean) {
+    this._shape.isTrigger(value);
   }
 
   /**
    * Set Scene Query or not
    * @param value true for Query, false for not Query
    */
-  setSceneQuery(value: boolean) {
-    this._shape.setSceneQuery(value);
+  isSceneQuery(value: boolean) {
+    this._shape.isSceneQuery(value);
   }
 
   /**
-   * Set Shape Flags
-   * @param flags Shape Flag
+   * Set Local Pose for the Shape
+   * @param position local position
+   * @param rotation local rotation
    */
-  setFlags(flags: number) {
-    this._shape.setFlags(flags);
+  setLocalPose(position: Vector3, rotation: Quaternion) {
+    this._shape.setLocalPose(position, rotation);
   }
 
   /**

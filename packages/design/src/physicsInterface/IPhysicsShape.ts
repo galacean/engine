@@ -1,14 +1,17 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
 
+/** Interface for Physics Shape */
 export interface IPhysicsShape {
+  /** physics material on shape */
   material: IPhysicsMaterial;
 
-  setTrigger(value: boolean);
+  /** shape property flags */
+  shapeFlags: number;
 
-  setSceneQuery(value: boolean);
+  isTrigger(value: boolean);
 
-  setFlags(flags: number);
+  isSceneQuery(value: boolean);
 
   setLocalPose(position: Vector3, rotation: Quaternion);
 }
