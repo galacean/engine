@@ -1,10 +1,10 @@
-import { PhysicsShape } from "./PhysicsShape";
+import { ColliderShape } from "./ColliderShape";
 import { IPhysicsSphere } from "@oasis-engine/design";
 import { Engine } from "../Engine";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /** Physics Shape for Sphere */
-export class PhysicsSphere extends PhysicsShape {
+export class PhysicsSphere extends ColliderShape {
   _physicsSphere: IPhysicsSphere;
 
   /** radius of sphere shape */

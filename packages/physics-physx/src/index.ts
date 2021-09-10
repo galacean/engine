@@ -2,7 +2,7 @@ export { PhysXManager } from "./PhysXManager";
 export { PhysicsEngine } from "./PhysicsEngine";
 export { PhysicsManager, QueryFlag } from "./PhysicsManager";
 export { PhysicsMaterial, PhysicsCombineMode } from "./PhysicsMaterial";
-export { PhysicsShape, ShapeFlag } from "./PhysicsShape";
+export { ColliderShape, ShapeFlag } from "./ColliderShape";
 export { PhysicsBox } from "./PhysicsBox";
 export { PhysicsCapsule } from "./PhysicsCapsule";
 export { PlaneCollider } from "./PlaneCollider";

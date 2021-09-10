@@ -3,7 +3,7 @@ export { HitResult } from "./HitResult";
 
 export { PhysicsManager } from "./PhysicsManager";
 export { PhysicsMaterial } from "./PhysicsMaterial";
-export { PhysicsShape } from "./PhysicsShape";
+export { ColliderShape } from "./ColliderShape";
 export { PhysicsBox } from "./PhysicsBox";
 export { PhysicsSphere } from "./PhysicsSphere";
 export { PhysicsCapsule } from "./PhysicsCapsule";

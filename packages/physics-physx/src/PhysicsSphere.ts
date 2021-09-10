@@ -1,10 +1,10 @@
 import { PhysXManager } from "./PhysXManager";
 import { IPhysicsSphere } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PhysicsShape } from "./PhysicsShape";
+import { ColliderShape } from "./ColliderShape";
 
 /** Physics Shape for Sphere */
-export class PhysicsSphere extends PhysicsShape implements IPhysicsSphere {
+export class PhysicsSphere extends ColliderShape implements IPhysicsSphere {
   private _radius: number = 1.0;
 
   /** radius of sphere shape */
@@ -34,7 +34,7 @@ export class PhysicsSphere extends PhysicsShape implements IPhysicsSphere {
     // alloc Physx object
     this._allocGeometry();
     this._allocShape();
-    this.setLocalPose(this._position, this._rotation);
+    this._setLocalPose(this._position, this._rotation);
     this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
   }
 

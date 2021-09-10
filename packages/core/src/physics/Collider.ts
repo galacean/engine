@@ -2,7 +2,7 @@ import { Component } from "../Component";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICollider } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PhysicsShape } from "./PhysicsShape";
+import { ColliderShape } from "./ColliderShape";
 import { Engine } from "../Engine";
 
 export abstract class Collider extends Component {
@@ -24,7 +24,7 @@ export abstract class Collider extends Component {
     this._collider.init(position, rotation);
   }
 
-  createShape<T extends PhysicsShape>(type: new (entity: Engine) => T): T {
+  createShape<T extends ColliderShape>(type: new (entity: Engine) => T): T {
     const component = new type(this.engine);
     component.init(this._index);
     return component;
@@ -35,7 +35,7 @@ export abstract class Collider extends Component {
    * @param shape collider shape
    * @remarks must call after this component add to Entity.
    */
-  attachShape(shape: PhysicsShape) {
+  attachShape(shape: ColliderShape) {
     this._collider.attachShape(shape._shape);
   }
 

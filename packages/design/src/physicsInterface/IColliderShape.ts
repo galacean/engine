@@ -2,12 +2,15 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
 
 /** Interface for Physics Shape */
-export interface IPhysicsShape {
+export interface IColliderShape {
+  /** local position */
+  position: Vector3;
+
+  /** local rotation */
+  rotation: Quaternion;
+
   /** physics material on shape */
   material: IPhysicsMaterial;
-
-  /** shape property flags */
-  shapeFlags: number;
 
   /**
    * Set Trigger or not
@@ -20,11 +23,4 @@ export interface IPhysicsShape {
    * @param value true for Query, false for not Query
    */
   isSceneQuery(value: boolean);
-
-  /**
-   * Set Local Pose for the Shape
-   * @param position local position
-   * @param rotation local rotation
-   */
-  setLocalPose(position: Vector3, rotation: Quaternion);
 }

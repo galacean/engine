@@ -1,10 +1,10 @@
-import { PhysicsShape } from "./PhysicsShape";
+import { ColliderShape } from "./ColliderShape";
 import { IPhysicsBox } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 
 /**Physics Shape for Box */
-export class PhysicsBox extends PhysicsShape {
+export class PhysicsBox extends ColliderShape {
   _physicsBox: IPhysicsBox;
 
   /** extents of box shape */

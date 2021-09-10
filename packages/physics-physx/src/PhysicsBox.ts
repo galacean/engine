@@ -1,10 +1,10 @@
 import { IPhysicsBox } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "./PhysXManager";
-import { PhysicsShape } from "./PhysicsShape";
+import { ColliderShape } from "./ColliderShape";
 
 /**Physics Shape for Box */
-export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
+export class PhysicsBox extends ColliderShape implements IPhysicsBox {
   private _extents: Vector3 = new Vector3(1, 1, 1);
   private _tempHalfExtents: Vector3 = new Vector3(0.5, 0.5, 0.5);
 
@@ -47,7 +47,7 @@ export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
     this._allocGeometry();
     this._allocShape();
     this._setIndex(index);
-    this.setLocalPose(this._position, this._rotation);
+    this._setLocalPose(this._position, this._rotation);
   }
 
   private _allocGeometry() {

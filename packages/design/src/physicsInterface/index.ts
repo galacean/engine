@@ -2,7 +2,7 @@ export type { IPhysicsEngine } from "./IPhysicsEngine";
 export type { IPhysicsManager } from "./IPhysicsManager";
 
 export type { IPhysicsMaterial } from "./IPhysicsMaterial";
-export type { IPhysicsShape } from "./IPhysicsShape";
+export type { IColliderShape } from "./IColliderShape";
 export type { IPhysicsBox } from "./IPhysicsBox";
 export type { IPhysicsSphere } from "./IPhysicsSphere";
 export type { IPhysicsCapsule } from "./IPhysicsCapsule";

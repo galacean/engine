@@ -1,4 +1,4 @@
-import { IPhysicsShape } from "@oasis-engine/design";
+import { IColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PhysXManager } from "./PhysXManager";
@@ -14,7 +14,7 @@ export enum ShapeFlag {
 }
 
 /** Abstract class for collision shapes. */
-export class PhysicsShape implements IPhysicsShape {
+export class ColliderShape implements IColliderShape {
   protected _position: Vector3;
   protected _rotation: Quaternion;
 
@@ -34,6 +34,26 @@ export class PhysicsShape implements IPhysicsShape {
    */
   _pxGeometry: any;
 
+  /** local position */
+  get position(): Vector3 {
+    return this._position;
+  }
+
+  set position(value: Vector3) {
+    this._position = value;
+    this._setLocalPose();
+  }
+
+  /** local rotation */
+  get rotation(): Quaternion {
+    return this._rotation;
+  }
+
+  set rotation(value: Quaternion) {
+    this._rotation = value;
+    this._setLocalPose();
+  }
+
   /**
    * Physics Material
    */
@@ -48,6 +68,7 @@ export class PhysicsShape implements IPhysicsShape {
 
   /**
    *  Shape Flags
+   *  @internal
    */
   get shapeFlags(): ShapeFlag {
     return this._shapeFlags;
@@ -79,10 +100,8 @@ export class PhysicsShape implements IPhysicsShape {
 
   /**
    * Set Local Pose for the Shape
-   * @param position local position
-   * @param rotation local rotation
    */
-  setLocalPose(position: Vector3, rotation: Quaternion) {
+  protected _setLocalPose(position: Vector3 = this._position, rotation: Quaternion = this._rotation) {
     this._position = position;
     this._rotation = rotation;
     const quat = this._rotation.normalize();
@@ -93,7 +112,7 @@ export class PhysicsShape implements IPhysicsShape {
         z: this._position.z
       },
       rotation: {
-        w: quat.w, // PHYSX uses WXYZ quaternions,
+        w: quat.w,
         x: quat.x,
         y: quat.y,
         z: quat.z

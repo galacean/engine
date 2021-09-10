@@ -1,10 +1,10 @@
 import { PhysXManager } from "./PhysXManager";
 import { IPhysicsCapsule } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PhysicsShape } from "./PhysicsShape";
+import { ColliderShape } from "./ColliderShape";
 
 /** Physics Shape for Capsule */
-export class PhysicsCapsule extends PhysicsShape implements IPhysicsCapsule {
+export class PhysicsCapsule extends ColliderShape implements IPhysicsCapsule {
   private _radius: number = 1.0;
   private _height: number = 2.0;
 
@@ -48,7 +48,7 @@ export class PhysicsCapsule extends PhysicsShape implements IPhysicsCapsule {
     // alloc Physx object
     this._allocGeometry();
     this._allocShape();
-    this.setLocalPose(this._position, this._rotation);
+    this._setLocalPose(this._position, this._rotation);
     this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
   }
 
