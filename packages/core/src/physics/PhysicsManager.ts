@@ -4,12 +4,13 @@ import { Collision } from "./Collision";
 import { Engine } from "../Engine";
 import { HitResult } from "./HitResult";
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { IPhysicsManager } from "@oasis-engine/design";
+import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { DynamicCollider } from "./DynamicCollider";
 import { StaticCollider } from "./StaticCollider";
 import { PlaneCollider } from "./PlaneCollider";
 
 export class PhysicsManager {
+  static nativePhysics: IPhysics;
   private static _tempCollision: Collision = new Collision();
   private _physicalObjectsMap = new Map<number, Entity>();
   private _physicsManager: IPhysicsManager;
@@ -107,8 +108,8 @@ export class PhysicsManager {
     }
   };
 
-  constructor(engine: Engine) {
-    this._physicsManager = engine._physicsEngine.createPhysicsManager(
+  constructor() {
+    this._physicsManager = PhysicsManager.nativePhysics.createPhysicsManager(
       this.onContactBegin,
       this.onContactEnd,
       this.onContactPersist,

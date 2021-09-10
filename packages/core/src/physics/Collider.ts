@@ -24,8 +24,8 @@ export abstract class Collider extends Component {
     this._collider.init(position, rotation);
   }
 
-  createShape<T extends ColliderShape>(type: new (entity: Engine) => T): T {
-    const component = new type(this.engine);
+  createShape<T extends ColliderShape>(type: new () => T): T {
+    const component = new type();
     component.init(this._index);
     return component;
   }

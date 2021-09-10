@@ -1,5 +1,6 @@
 import { IPhysicsMaterial } from "@oasis-engine/design";
 import { Engine } from "../Engine";
+import { PhysicsManager } from "./PhysicsManager";
 
 export class PhysicsMaterial {
   /** @internal */
@@ -16,7 +17,7 @@ export class PhysicsMaterial {
     bounciness?: number
   ) {
     if (typeof staticFriction === "number") {
-      this._physicsMaterial = (<Engine>engineOrMat)._physicsEngine.createPhysicsMaterial(
+      this._physicsMaterial = PhysicsManager.nativePhysics.createPhysicsMaterial(
         staticFriction,
         dynamicFriction,
         bounciness

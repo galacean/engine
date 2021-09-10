@@ -2,6 +2,7 @@ import { IDynamicCollider } from "@oasis-engine/design";
 import { UpdateFlag } from "../UpdateFlag";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
+import { PhysicsManager } from "./PhysicsManager";
 
 export class DynamicCollider extends Collider {
   /** @internal */
@@ -16,7 +17,7 @@ export class DynamicCollider extends Collider {
 
   constructor(entity: Entity) {
     super(entity);
-    this._dynamicCollider = this.engine._physicsEngine.createDynamicCollider();
+    this._dynamicCollider = PhysicsManager.nativePhysics.createDynamicCollider();
     this._collider = this._dynamicCollider;
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
     this._updateFlag.flag = false;

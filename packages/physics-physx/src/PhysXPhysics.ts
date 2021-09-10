@@ -7,8 +7,7 @@ import {
   ISphereColliderShape,
   ICapsuleColliderShape,
   IDynamicCollider,
-  IStaticCollider,
-  StaticInterfaceImplement
+  IStaticCollider
 } from "@oasis-engine/design";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PlaneCollider } from "./PlaneCollider";
@@ -19,9 +18,10 @@ import { SphereColliderShape } from "./shape/SphereColliderShape";
 import { CapsuleColliderShape } from "./shape/CapsuleColliderShape";
 import { DynamicCollider } from "./DynamicCollider";
 import { StaticCollider } from "./StaticCollider";
+import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
-// @StaticInterfaceImplement<IPhysics>()
-export class PhysXPhysics implements IPhysics {
+@StaticInterfaceImplement<IPhysics>()
+export class PhysXPhysics {
   static init(): Promise<void> {
     return new Promise((resolve) => {
       PhysXManager.init().then(() => {
@@ -30,7 +30,7 @@ export class PhysXPhysics implements IPhysics {
     });
   }
 
-  createPhysicsManager(
+  static createPhysicsManager(
     onContactBegin?: Function,
     onContactEnd?: Function,
     onContactPersist?: Function,
@@ -48,31 +48,31 @@ export class PhysXPhysics implements IPhysics {
     );
   }
 
-  createStaticCollider(): IStaticCollider {
+  static createStaticCollider(): IStaticCollider {
     return new StaticCollider();
   }
 
-  createDynamicCollider(): IDynamicCollider {
+  static createDynamicCollider(): IDynamicCollider {
     return new DynamicCollider();
   }
 
-  createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial {
+  static createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial {
     return new PhysicsMaterial(staticFriction, dynamicFriction, bounciness);
   }
 
-  createBoxColliderShape(): IBoxColliderShape {
+  static createBoxColliderShape(): IBoxColliderShape {
     return new BoxColliderShape();
   }
 
-  createSphereColliderShape(): ISphereColliderShape {
+  static createSphereColliderShape(): ISphereColliderShape {
     return new SphereColliderShape();
   }
 
-  createCapsuleColliderShape(): ICapsuleColliderShape {
+  static createCapsuleColliderShape(): ICapsuleColliderShape {
     return new CapsuleColliderShape();
   }
 
-  createPlaneCollider(): IPlaneCollider {
+  static createPlaneCollider(): IPlaneCollider {
     return new PlaneCollider();
   }
 }

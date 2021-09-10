@@ -43,7 +43,6 @@ export class Engine extends EventDispatcher {
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
-  _physicsEngine: IPhysics;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
@@ -165,9 +164,9 @@ export class Engine extends EventDispatcher {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
-    this._physicsEngine = physicsEngine;
-    if (this._physicsEngine) {
-      this.physicsManager = new PhysicsManager(this);
+    if (physicsEngine) {
+      PhysicsManager.nativePhysics = physicsEngine;
+      this.physicsManager = new PhysicsManager();
     }
     this._canvas = canvas;
     // @todo delete
@@ -249,7 +248,7 @@ export class Engine extends EventDispatcher {
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;
     if (scene) {
-      if (this._physicsEngine) {
+      if (this.physicsManager) {
         componentsManager.callColliderOnUpdate();
         this.physicsManager.update();
       }

@@ -3,6 +3,7 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Component } from "../Component";
 import { UpdateFlag } from "../UpdateFlag";
+import { PhysicsManager } from "./PhysicsManager";
 
 export class PlaneCollider extends Component {
   _collider: IPlaneCollider;
@@ -39,7 +40,7 @@ export class PlaneCollider extends Component {
 
   constructor(entity: Entity) {
     super(entity);
-    this._collider = this.engine._physicsEngine.createPlaneCollider();
+    this._collider = PhysicsManager.nativePhysics.createPlaneCollider();
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
     this._updateFlag.flag = false;
   }

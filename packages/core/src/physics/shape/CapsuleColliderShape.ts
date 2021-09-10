@@ -1,7 +1,7 @@
 import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
-import { Engine } from "../../Engine";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { PhysicsManager } from "../PhysicsManager";
 
 /** PhysXPhysics Shape for Capsule */
 export class CapsuleColliderShape extends ColliderShape {
@@ -25,9 +25,9 @@ export class CapsuleColliderShape extends ColliderShape {
     this._physicsCapsule.height = value;
   }
 
-  constructor(engine: Engine) {
+  constructor() {
     super();
-    this._physicsCapsule = engine._physicsEngine.createCapsuleColliderShape();
+    this._physicsCapsule = PhysicsManager.nativePhysics.createCapsuleColliderShape();
     this._shape = this._physicsCapsule;
   }
 
