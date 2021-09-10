@@ -21,7 +21,7 @@ import {
 } from "@oasis-engine/core";
 import { CameraClearFlags } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
-import { Color } from "@oasis-engine/math";
+import { Color, Vector4 } from "@oasis-engine/math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
@@ -70,6 +70,7 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   private _activeTextureID: number = WebGLRenderingContext.TEXTURE0;
   private _activeTextures: GLTexture[] = new Array(32);
+  private _lastViewport: Vector4 = new Vector4(NaN, NaN, NaN, NaN);
 
   get isWebGL2() {
     return this._isWebGL2;
@@ -181,11 +182,16 @@ export class WebGLRenderer implements IHardwareRenderer {
     return this.capability.canIUseCompressedTextureInternalFormat(type);
   }
 
-  viewport(x, y, width, height) {
+  viewport(x: number, y: number, width: number, height: number): void {
     // gl.enable(gl.SCISSOR_TEST);
     // gl.scissor(x, transformY, width, height);
     const gl = this._gl;
-    gl.viewport(x, gl.drawingBufferHeight - y - height, width, height);
+    const lv = this._lastViewport;
+
+    if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
+      gl.viewport(x, y, width, height);
+      lv.setValue(x, y, width, height);
+    }
   }
 
   colorMask(r, g, b, a) {
@@ -245,13 +251,16 @@ export class WebGLRenderer implements IHardwareRenderer {
       /** @ts-ignore */
       (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
       const { width, height } = renderTarget;
-      gl.viewport(0.0, 0.0, width, height);
+      this.viewport(0, 0, width, height);
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       const viewport = camera.viewport;
-      const width = gl.drawingBufferWidth;
-      const height = gl.drawingBufferHeight;
-      this.viewport(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
+      const { drawingBufferWidth, drawingBufferHeight } = gl;
+      const width = drawingBufferWidth * viewport.z;
+      const height = drawingBufferHeight * viewport.w;
+      const x = viewport.x * drawingBufferWidth;
+      const y = drawingBufferHeight - viewport.y * drawingBufferHeight - height;
+      this.viewport(x, y, width, height);
     }
   }
 
