@@ -3,25 +3,23 @@ import { IPhysicsCapsule } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysicsShape } from "./PhysicsShape";
 
+/** Physics Shape for Capsule */
 export class PhysicsCapsule extends PhysicsShape implements IPhysicsCapsule {
-  private _radius: number = 0.0;
-  private _height: number = 0.0;
+  private _radius: number = 1.0;
+  private _height: number = 2.0;
 
+  /** radius of capsule */
   get radius(): number {
     return this._radius;
   }
 
-  /**
-   * set size of collider
-   * @param value size of SphereCollider
-   * @remarks will re-alloc new PhysX object.
-   */
   set radius(value: number) {
     this._radius = value;
     this._pxGeometry.radius = value;
     this._pxShape.setGeometry(this._pxGeometry);
   }
 
+  /** height of capsule */
   get height(): number {
     return this._height;
   }

@@ -1,7 +1,9 @@
 import { IPhysicsShape } from "./IPhysicsShape";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
+/**Interface of Physics Shape for Sphere */
 export interface IPhysicsSphere extends IPhysicsShape {
+  /** radius of sphere shape */
   radius: number;
 
   /**

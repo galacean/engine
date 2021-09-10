@@ -23,7 +23,7 @@ export class PhysicsBox extends PhysicsShape {
   }
 
   /**
-   * init Box Shape and alloc internal physics objects.
+   * init box shape and alloc internal physics objects.
    * @param index index of Physics Box
    */
   init(index: number) {

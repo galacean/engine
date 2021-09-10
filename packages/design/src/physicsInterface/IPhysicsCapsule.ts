@@ -1,17 +1,12 @@
 import { IPhysicsShape } from "./IPhysicsShape";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
+/**Interface of Physics Shape for Capsule */
 export interface IPhysicsCapsule extends IPhysicsShape {
-  /**
-   * the radius of collider
-   * @remarks will re-alloc new PhysX object.
-   */
+  /** radius of capsule */
   radius: number;
 
-  /**
-   * the height of collider
-   * @remarks will re-alloc new PhysX object.
-   */
+  /** height of capsule */
   height: number;
 
   /**

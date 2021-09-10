@@ -8,7 +8,7 @@ export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
   private _extents: Vector3 = new Vector3(1, 1, 1);
   private _tempHalfExtents: Vector3 = new Vector3(0.5, 0.5, 0.5);
 
-  /** size of Box */
+  /** extents of Box */
   get extents(): Vector3 {
     return this._extents;
   }

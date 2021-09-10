@@ -3,17 +3,15 @@ import { IPhysicsSphere } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysicsShape } from "./PhysicsShape";
 
+/** Physics Shape for Sphere */
 export class PhysicsSphere extends PhysicsShape implements IPhysicsSphere {
-  private _radius: number = 0.0;
+  private _radius: number = 1.0;
 
+  /** radius of sphere shape */
   get radius(): number {
     return this._radius;
   }
 
-  /**
-   * set size of collider
-   * @param value size of SphereCollider
-   */
   set radius(value: number) {
     this._radius = value;
     this._pxGeometry.radius = value;

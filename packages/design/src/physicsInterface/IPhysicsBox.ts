@@ -3,9 +3,7 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /**Interface of Physics Shape for Box */
 export interface IPhysicsBox extends IPhysicsShape {
-  /**
-   * extents of Box Shape
-   */
+  /** extents of Box Shape */
   extents: Vector3;
 
   /**
