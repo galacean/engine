@@ -5,6 +5,9 @@ export abstract class PhysicsShape {
   /** @internal */
   _shape: IPhysicsShape;
 
+  /**
+   * Physics Material
+   */
   get material(): PhysicsMaterial {
     return new PhysicsMaterial(this._shape.material);
   }
@@ -13,18 +16,33 @@ export abstract class PhysicsShape {
     this._shape.material = value._physicsMaterial;
   }
 
+  /**
+   * Set Trigger or not
+   * @param value true for TriggerShape, false for SimulationShape
+   */
   setTrigger(value: boolean) {
     this._shape.setTrigger(value);
   }
 
-  setFlag(flag: number, value: boolean) {
-    this._shape.setFlag(flag, value);
+  /**
+   * Set Scene Query or not
+   * @param value true for Query, false for not Query
+   */
+  setSceneQuery(value: boolean) {
+    this._shape.setSceneQuery(value);
   }
 
   /**
-   * init Collider and alloc PhysX objects.
-   * @param index index of SphereCollider
-   * @remarks must call after this component add to Entity.
+   * Set Shape Flags
+   * @param flags Shape Flag
+   */
+  setFlags(flags: number) {
+    this._shape.setFlags(flags);
+  }
+
+  /**
+   * initialization internal physics shape object
+   * @param index index of shape
    */
   abstract init(index: number);
 }

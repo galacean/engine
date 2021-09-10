@@ -42,7 +42,6 @@ export class PhysicsCapsule extends PhysicsShape implements IPhysicsCapsule {
    * @remarks must call after this component add to Entity.
    */
   initWithRadiusHeight(index: number, radius: number, height: number, position: Vector3, rotation: Quaternion) {
-    this._index = index;
     this._radius = radius;
     this._height = height;
     this._position = position;
@@ -52,7 +51,7 @@ export class PhysicsCapsule extends PhysicsShape implements IPhysicsCapsule {
     this._allocGeometry();
     this._allocShape();
     this.setLocalPose(this._position, this._rotation);
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
+    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
   }
 
   //----------------------------------------------------------------------------

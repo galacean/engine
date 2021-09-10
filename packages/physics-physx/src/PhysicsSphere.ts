@@ -13,11 +13,11 @@ export class PhysicsSphere extends PhysicsShape implements IPhysicsSphere {
   /**
    * set size of collider
    * @param value size of SphereCollider
-   * @remarks will re-alloc new PhysX object.
    */
   set radius(value: number) {
     this._radius = value;
-    this.initWithRadius(this._index, value, this._position, this._rotation);
+    this._pxGeometry.radius = value;
+    this._pxShape.setGeometry(this._pxGeometry);
   }
 
   /**
@@ -29,7 +29,6 @@ export class PhysicsSphere extends PhysicsShape implements IPhysicsSphere {
    * @remarks must call after this component add to Entity.
    */
   initWithRadius(index: number, value: number, position: Vector3, rotation: Quaternion) {
-    this._index = index;
     this._radius = value;
     this._position = position;
     this._rotation = rotation;
@@ -38,7 +37,7 @@ export class PhysicsSphere extends PhysicsShape implements IPhysicsSphere {
     this._allocGeometry();
     this._allocShape();
     this.setLocalPose(this._position, this._rotation);
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
+    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
   }
 
   //----------------------------------------------------------------------------

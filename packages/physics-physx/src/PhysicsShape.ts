@@ -17,8 +17,6 @@ export class PhysicsShape implements IPhysicsShape {
   protected _position: Vector3;
   protected _rotation: Quaternion;
 
-  protected _index: number;
-
   protected _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   protected _material: PhysicsMaterial = new PhysicsMaterial(0.1, 0.1, 0.1);
@@ -35,6 +33,9 @@ export class PhysicsShape implements IPhysicsShape {
    */
   _pxGeometry: any;
 
+  /**
+   * Physics Material
+   */
   get material(): PhysicsMaterial {
     return this._material;
   }
@@ -44,16 +45,39 @@ export class PhysicsShape implements IPhysicsShape {
     this._pxShape.setMaterials([this.material._pxMaterial]);
   }
 
+  /**
+   * Set Trigger or not
+   * @param value true for TriggerShape, false for SimulationShape
+   */
   setTrigger(value: boolean) {
-    this._pxShape.setFlag(PhysXManager.PhysX.PxShapeFlag.eSIMULATION_SHAPE, !value);
-    this._pxShape.setFlag(PhysXManager.PhysX.PxShapeFlag.eTRIGGER_SHAPE, value);
+    this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
+    this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
+    this.setFlags(this._shapeFlags);
   }
 
-  setFlag(flag: ShapeFlag, value: boolean) {
-    this._shapeFlags = value ? this._shapeFlags | flag : this._shapeFlags & ~flag;
-    this._pxShape.setFlag(flag, value);
+  /**
+   * Set Scene Query or not
+   * @param value true for Query, false for not Query
+   */
+  setSceneQuery(value: boolean) {
+    this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
+    this.setFlags(this._shapeFlags);
   }
 
+  /**
+   * Set Shape Flags
+   * @param flags Shape Flag
+   */
+  setFlags(flags: ShapeFlag) {
+    this._shapeFlags = flags;
+    this._pxShape.setFlags(new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags));
+  }
+
+  /**
+   * Set Local Pose for the Shape
+   * @param position local position
+   * @param rotation local rotation
+   */
   setLocalPose(position: Vector3, rotation: Quaternion) {
     this._position = position;
     this._rotation = rotation;
@@ -81,5 +105,13 @@ export class PhysicsShape implements IPhysicsShape {
       false,
       new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags)
     );
+  }
+
+  protected _setIndex(index: number) {
+    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
+  }
+
+  private _modifyFlag(flag: ShapeFlag, value: boolean) {
+    this._shapeFlags = value ? this._shapeFlags | flag : this._shapeFlags & ~flag;
   }
 }

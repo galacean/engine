@@ -6,30 +6,29 @@ import { PhysicsShape } from "./PhysicsShape";
 export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
   private _size: Vector3 = new Vector3();
 
+  /**
+   * size of Box
+   */
   get size(): Vector3 {
     return this._size;
   }
 
-  /**
-   * set size of collider
-   * @param value size of BoxCollider
-   * @remarks will re-alloc new PhysX object.
-   */
   set size(value: Vector3) {
     this._size = value;
-    this.initWithSize(this._index, value, this._position, this._rotation);
+    Vector3.scale(value, 0.5, this._size);
+    this._pxGeometry.halfExtents = this._size;
+    this._pxShape.setGeometry(this._pxGeometry);
   }
 
   /**
-   * init Collider and alloc PhysX objects.
-   * @param index index mark collider
-   * @param value size of BoxCollider
-   * @param position position of Collider
-   * @param rotation rotation of Collider
+   * init Box Shape and alloc PhysX objects.
+   * @param index index mark Shape
+   * @param value size of Shape
+   * @param position position of Shape
+   * @param rotation rotation of Shape
    * @remarks must call after this component add to Entity.
    */
   initWithSize(index: number, value: Vector3, position: Vector3, rotation: Quaternion): void {
-    this._index = index;
     this._size = value;
     this._position = position;
     this._rotation = rotation;
@@ -37,8 +36,8 @@ export class PhysicsBox extends PhysicsShape implements IPhysicsBox {
     // alloc Physx object
     this._allocGeometry();
     this._allocShape();
+    this._setIndex(index);
     this.setLocalPose(this._position, this._rotation);
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(this._index, 0, 0, 0));
   }
 
   //----------------------------------------------------------------------------

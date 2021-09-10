@@ -6,7 +6,9 @@ export interface IPhysicsShape {
 
   setTrigger(value: boolean);
 
-  setFlag(flag: number, value: boolean);
+  setSceneQuery(value: boolean);
+
+  setFlags(flags: number);
 
   setLocalPose(position: Vector3, rotation: Quaternion);
 }
