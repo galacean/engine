@@ -2,7 +2,7 @@ import { IColliderShape } from "./IColliderShape";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /**Interface of Physics Shape for Capsule */
-export interface IPhysicsCapsule extends IColliderShape {
+export interface ICapsuleColliderShape extends IColliderShape {
   /** radius of capsule */
   radius: number;
 

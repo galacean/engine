@@ -1,9 +1,9 @@
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
 import { IPlaneCollider } from "./IPlaneCollider";
 import { IPhysicsManager } from "./IPhysicsManager";
-import { IPhysicsBox } from "./IPhysicsBox";
-import { IPhysicsSphere } from "./IPhysicsSphere";
-import { IPhysicsCapsule } from "./IPhysicsCapsule";
+import { IBoxColliderShape } from "./IBoxColliderShape";
+import { ISphereColliderShape } from "./ISphereColliderShape";
+import { ICapsuleColliderShape } from "./ICapsuleColliderShape";
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IStaticCollider } from "./IStaticCollider";
 
@@ -13,11 +13,11 @@ import { IStaticCollider } from "./IStaticCollider";
 export interface IPhysicsEngine {
   createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial;
 
-  createPhysicsBox(): IPhysicsBox;
+  createBoxColliderShape(): IBoxColliderShape;
 
-  createPhysicsSphere(): IPhysicsSphere;
+  createSphereColliderShape(): ISphereColliderShape;
 
-  createPhysicsCapsule(): IPhysicsCapsule;
+  createCapsuleColliderShape(): ICapsuleColliderShape;
 
   createPlaneCollider(): IPlaneCollider;
 

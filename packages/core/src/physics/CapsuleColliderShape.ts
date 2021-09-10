@@ -1,11 +1,11 @@
 import { ColliderShape } from "./ColliderShape";
-import { IPhysicsCapsule } from "@oasis-engine/design";
+import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { Engine } from "../Engine";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /** Physics Shape for Capsule */
-export class PhysicsCapsule extends ColliderShape {
-  _physicsCapsule: IPhysicsCapsule;
+export class CapsuleColliderShape extends ColliderShape {
+  _physicsCapsule: ICapsuleColliderShape;
 
   /** radius of capsule */
   get radius(): number {
@@ -27,7 +27,7 @@ export class PhysicsCapsule extends ColliderShape {
 
   constructor(engine: Engine) {
     super();
-    this._physicsCapsule = engine._physicsEngine.createPhysicsCapsule();
+    this._physicsCapsule = engine._physicsEngine.createCapsuleColliderShape();
     this._shape = this._physicsCapsule;
   }
 

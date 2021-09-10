@@ -3,9 +3,9 @@ import {
   IPhysicsMaterial,
   IPlaneCollider,
   IPhysicsManager,
-  IPhysicsBox,
-  IPhysicsSphere,
-  IPhysicsCapsule,
+  IBoxColliderShape,
+  ISphereColliderShape,
+  ICapsuleColliderShape,
   IDynamicCollider,
   IStaticCollider
 } from "@oasis-engine/design";
@@ -13,9 +13,9 @@ import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PlaneCollider } from "./PlaneCollider";
 import { PhysicsManager } from "./PhysicsManager";
 import { PhysXManager } from "./PhysXManager";
-import { PhysicsBox } from "./PhysicsBox";
-import { PhysicsSphere } from "./PhysicsSphere";
-import { PhysicsCapsule } from "./PhysicsCapsule";
+import { BoxColliderShape } from "./BoxColliderShape";
+import { SphereColliderShape } from "./SphereColliderShape";
+import { CapsuleColliderShape } from "./CapsuleColliderShape";
 import { DynamicCollider } from "./DynamicCollider";
 import { StaticCollider } from "./StaticCollider";
 
@@ -24,16 +24,16 @@ export class PhysicsEngine implements IPhysicsEngine {
     return new PhysicsMaterial(staticFriction, dynamicFriction, bounciness);
   }
 
-  createPhysicsBox(): IPhysicsBox {
-    return new PhysicsBox();
+  createBoxColliderShape(): IBoxColliderShape {
+    return new BoxColliderShape();
   }
 
-  createPhysicsSphere(): IPhysicsSphere {
-    return new PhysicsSphere();
+  createSphereColliderShape(): ISphereColliderShape {
+    return new SphereColliderShape();
   }
 
-  createPhysicsCapsule(): IPhysicsCapsule {
-    return new PhysicsCapsule();
+  createCapsuleColliderShape(): ICapsuleColliderShape {
+    return new CapsuleColliderShape();
   }
 
   createPlaneCollider(): IPlaneCollider {

@@ -1,11 +1,11 @@
 import { ColliderShape } from "./ColliderShape";
-import { IPhysicsSphere } from "@oasis-engine/design";
+import { ISphereColliderShape } from "@oasis-engine/design";
 import { Engine } from "../Engine";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /** Physics Shape for Sphere */
-export class PhysicsSphere extends ColliderShape {
-  _physicsSphere: IPhysicsSphere;
+export class SphereColliderShape extends ColliderShape {
+  _physicsSphere: ISphereColliderShape;
 
   /** radius of sphere shape */
   get radius(): number {
@@ -18,7 +18,7 @@ export class PhysicsSphere extends ColliderShape {
 
   constructor(engine: Engine) {
     super();
-    this._physicsSphere = engine._physicsEngine.createPhysicsSphere();
+    this._physicsSphere = engine._physicsEngine.createSphereColliderShape();
     this._shape = this._physicsSphere;
   }
 

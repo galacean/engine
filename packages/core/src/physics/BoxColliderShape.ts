@@ -1,11 +1,11 @@
 import { ColliderShape } from "./ColliderShape";
-import { IPhysicsBox } from "@oasis-engine/design";
+import { IBoxColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 
 /**Physics Shape for Box */
-export class PhysicsBox extends ColliderShape {
-  _physicsBox: IPhysicsBox;
+export class BoxColliderShape extends ColliderShape {
+  _physicsBox: IBoxColliderShape;
 
   /** extents of box shape */
   get extents(): Vector3 {
@@ -18,7 +18,7 @@ export class PhysicsBox extends ColliderShape {
 
   constructor(engine: Engine) {
     super();
-    this._physicsBox = engine._physicsEngine.createPhysicsBox();
+    this._physicsBox = engine._physicsEngine.createBoxColliderShape();
     this._shape = this._physicsBox;
   }
 
