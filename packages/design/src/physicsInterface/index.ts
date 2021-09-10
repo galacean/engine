@@ -1,10 +1,13 @@
 export type { IPhysicsEngine } from "./IPhysicsEngine";
 export type { IPhysicsManager } from "./IPhysicsManager";
-export type { IPhysicsShape } from "./IPhysicsShape";
+
 export type { IPhysicsMaterial } from "./IPhysicsMaterial";
+export type { IPhysicsShape } from "./IPhysicsShape";
 export type { IPhysicsBox } from "./IPhysicsBox";
 export type { IPhysicsSphere } from "./IPhysicsSphere";
 export type { IPhysicsCapsule } from "./IPhysicsCapsule";
-export type { IPlaneCollider } from "./IPlaneCollider";
+
+export type { ICollider } from "./ICollider";
 export type { IStaticCollider } from "./IStaticCollider";
 export type { IDynamicCollider } from "./IDynamicCollider";
+export type { IPlaneCollider } from "./IPlaneCollider";

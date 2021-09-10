@@ -7,6 +7,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Vector3 } from "@oasis-engine/math";
 import { DynamicCollider, PlaneCollider, StaticCollider } from "./physics";
+import { Collider } from "./physics/Collider";
 
 /**
  * The manager of the components.
@@ -32,7 +33,7 @@ export class ComponentsManager {
   private _componentsContainerPool: Component[][] = [];
 
   // Physics
-  private _colliders: DisorderedArray<StaticCollider | DynamicCollider | PlaneCollider> = new DisorderedArray();
+  private _colliders: DisorderedArray<Collider | PlaneCollider> = new DisorderedArray();
 
   addRenderer(renderer: Renderer) {
     renderer._rendererIndex = this._renderers.length;
@@ -56,12 +57,12 @@ export class ComponentsManager {
     script._onStartIndex = -1;
   }
 
-  addCollider(collider: StaticCollider | DynamicCollider | PlaneCollider) {
+  addCollider(collider: Collider | PlaneCollider) {
     collider._index = this._colliders.length;
     this._colliders.add(collider);
   }
 
-  removeCollider(collider: StaticCollider | DynamicCollider | PlaneCollider) {
+  removeCollider(collider: Collider | PlaneCollider) {
     const replaced = this._colliders.deleteByIndex(collider._index);
     replaced && (replaced._index = collider._index);
     collider._index = -1;

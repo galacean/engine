@@ -1,7 +1,7 @@
 import { PhysXManager } from "./PhysXManager";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IDynamicCollider } from "@oasis-engine/design";
-import { PhysicsShape } from "./PhysicsShape";
+import { Collider } from "./Collider";
 
 /** The collision detection mode constants used for Rigidbody.collisionDetectionMode. */
 export enum CollisionDetectionMode {
@@ -38,11 +38,7 @@ export enum RigidbodyConstraints {
 }
 
 /** Control of an object's position through physics simulation. */
-export class DynamicCollider implements IDynamicCollider {
-  private _position: Vector3;
-  private _rotation: Quaternion;
-  private _shape: PhysicsShape;
-
+export class DynamicCollider extends Collider implements IDynamicCollider {
   private _drag: number;
   private _angularDrag: number;
 
@@ -64,12 +60,6 @@ export class DynamicCollider implements IDynamicCollider {
 
   private _constraints: RigidbodyConstraints;
   private _freezeRotation: boolean;
-
-  /**
-   * PhysX rigid body object
-   * @internal
-   */
-  _pxActor: any;
 
   /** The drag of the object. */
   get drag(): number {
@@ -341,34 +331,6 @@ export class DynamicCollider implements IDynamicCollider {
     return new Vector3(vel.x, vel.y, vel.z);
   }
 
-  getGlobalPose(): { translation: Vector3; rotation: Quaternion } {
-    const transform = this._pxActor.getGlobalPose();
-    return {
-      translation: new Vector3(transform.translation.x, transform.translation.y, transform.translation.z),
-      rotation: new Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w)
-    };
-  }
-
-  setGlobalPose(position: Vector3, rotation: Quaternion) {
-    this._position = position;
-    this._rotation = rotation;
-    const quat = this._rotation.normalize();
-    const transform = {
-      translation: {
-        x: this._position.x,
-        y: this._position.y,
-        z: this._position.z
-      },
-      rotation: {
-        w: quat.w, // PHYSX uses WXYZ quaternions,
-        x: quat.x,
-        y: quat.y,
-        z: quat.z
-      }
-    };
-    this._pxActor.setGlobalPose(transform, true);
-  }
-
   /**
    * Moves the kinematic Rigidbody towards position.
    * @param value Provides the new position for the Rigidbody object.
@@ -381,10 +343,10 @@ export class DynamicCollider implements IDynamicCollider {
         z: value.z
       },
       rotation: {
-        w: this.rotation.w, // PHYSX uses WXYZ quaternions,
-        x: this.rotation.x,
-        y: this.rotation.y,
-        z: this.rotation.z
+        w: this._rotation.w, // PHYSX uses WXYZ quaternions,
+        x: this._rotation.x,
+        y: this._rotation.y,
+        z: this._rotation.z
       }
     };
     this._pxActor.setKinematicTarget(transform);
@@ -397,9 +359,9 @@ export class DynamicCollider implements IDynamicCollider {
   MoveRotation(value: Quaternion) {
     const transform = {
       translation: {
-        x: this.position.x,
-        y: this.position.y,
-        z: this.position.z
+        x: this._position.x,
+        y: this._position.y,
+        z: this._position.z
       },
       rotation: {
         w: value.w, // PHYSX uses WXYZ quaternions,
@@ -432,60 +394,8 @@ export class DynamicCollider implements IDynamicCollider {
     return this._pxActor.wakeUp();
   }
 
-  //----------------------------------------------------------------------------
-  /** The position of the rigidbody. */
-  get position(): Vector3 {
-    return this._position;
-  }
-
-  /** The rotation of the Rigidbody. */
-  get rotation(): Quaternion {
-    return this._rotation;
-  }
-
-  /**
-   * init RigidBody and alloc PhysX objects.
-   * @param position
-   * @param rotation
-   */
-  init(position: Vector3, rotation: Quaternion) {
-    this._position = position;
-    this._rotation = rotation;
-
-    this._allocActor();
-  }
-
-  /** The Collider attached */
-  get shape(): PhysicsShape {
-    return this._shape;
-  }
-
-  /**
-   * attach Collider with Rigidbody
-   * @param shape The Collider attached
-   * @remark must call after init.
-   */
-  attachShape(shape: PhysicsShape) {
-    this._shape = shape;
-    this._pxActor.attachShape(shape._pxShape);
-  }
-
-  //----------------------------------------------------------------------------
-  private _allocActor() {
-    const quat = this._rotation.normalize();
-    const transform = {
-      translation: {
-        x: this._position.x,
-        y: this._position.y,
-        z: this._position.z
-      },
-      rotation: {
-        w: quat.w, // PHYSX uses WXYZ quaternions,
-        x: quat.x,
-        y: quat.y,
-        z: quat.z
-      }
-    };
-    this._pxActor = PhysXManager.physics.createRigidDynamic(transform);
+  /** alloc RigidActor */
+  allocActor() {
+    this._pxActor = PhysXManager.physics.createRigidDynamic(this._transform);
   }
 }
