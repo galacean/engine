@@ -14,15 +14,11 @@ export abstract class Collider extends Component {
 
   _shape: ColliderShape;
 
+  _position: Vector3 = this.entity.transform.position;
+  _rotation: Quaternion = this.entity.transform.rotationQuaternion;
+
   getID(): number {
     return this._shape._id;
-  }
-
-  init(
-    position: Vector3 = this.entity.transform.position,
-    rotation: Quaternion = this.entity.transform.rotationQuaternion
-  ) {
-    this._collider.init(position, rotation);
   }
 
   /**

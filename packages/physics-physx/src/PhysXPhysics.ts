@@ -49,12 +49,12 @@ export class PhysXPhysics {
     );
   }
 
-  static createStaticCollider(): IStaticCollider {
-    return new StaticCollider();
+  static createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider {
+    return new StaticCollider(position, rotation);
   }
 
-  static createDynamicCollider(): IDynamicCollider {
-    return new DynamicCollider();
+  static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
+    return new DynamicCollider(position, rotation);
   }
 
   static createPhysicsMaterial(

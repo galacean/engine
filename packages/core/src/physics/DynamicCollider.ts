@@ -17,7 +17,7 @@ export class DynamicCollider extends Collider {
 
   constructor(entity: Entity) {
     super(entity);
-    this._dynamicCollider = PhysicsManager.nativePhysics.createDynamicCollider();
+    this._dynamicCollider = PhysicsManager.nativePhysics.createDynamicCollider(this._position, this._rotation);
     this._collider = this._dynamicCollider;
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
     this._updateFlag.flag = false;

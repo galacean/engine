@@ -17,10 +17,4 @@ export interface IDynamicCollider extends ICollider {
   addForce(force: Vector3): void;
 
   addTorque(torque: Vector3): void;
-
-  /**
-   * Moves the kinematic Rigidbody towards position.
-   * @param value Provides the new position for the Rigidbody object.
-   */
-  MovePosition(value: Vector3);
 }

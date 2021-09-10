@@ -1,4 +1,4 @@
-import { IColliderShape } from "./shape/IColliderShape";
+import { IColliderShape } from "./shape";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 export interface ICollider {
@@ -12,8 +12,6 @@ export interface ICollider {
   removeShape(shape: IColliderShape): void;
 
   clearShapes(): void;
-
-  init(position: Vector3, rotation: Quaternion);
 
   setGlobalPose(position: Vector3, rotation: Quaternion);
 

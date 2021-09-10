@@ -9,7 +9,7 @@ export class StaticCollider extends Collider {
 
   constructor(entity: Entity) {
     super(entity);
-    this._staticCollider = PhysicsManager.nativePhysics.createStaticCollider();
+    this._staticCollider = PhysicsManager.nativePhysics.createStaticCollider(this._position, this._rotation);
     this._collider = this._staticCollider;
   }
 

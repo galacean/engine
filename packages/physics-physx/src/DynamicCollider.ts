@@ -231,6 +231,13 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     return this._constraints;
   }
 
+  /** alloc RigidActor */
+  constructor(position: Vector3, rotation: Quaternion) {
+    super();
+    const transform = this._transform(position, rotation);
+    this._pxActor = PhysXManager.physics.createRigidDynamic(transform);
+  }
+
   setConstraints(flag: RigidbodyConstraints, value: boolean) {
     if (value) this._constraints = this._constraints | flag;
     else this._constraints = this._constraints & ~flag;
@@ -343,10 +350,10 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
         z: value.z
       },
       rotation: {
-        w: this._rotation.w, // PHYSX uses WXYZ quaternions,
-        x: this._rotation.x,
-        y: this._rotation.y,
-        z: this._rotation.z
+        w: 1,
+        x: 0,
+        y: 0,
+        z: 0
       }
     };
     this._pxActor.setKinematicTarget(transform);
@@ -359,12 +366,12 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   MoveRotation(value: Quaternion) {
     const transform = {
       translation: {
-        x: this._position.x,
-        y: this._position.y,
-        z: this._position.z
+        x: 0,
+        y: 0,
+        z: 0
       },
       rotation: {
-        w: value.w, // PHYSX uses WXYZ quaternions,
+        w: value.w,
         x: value.x,
         y: value.y,
         z: value.z
@@ -392,10 +399,5 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
    */
   wakeUp() {
     return this._pxActor.wakeUp();
-  }
-
-  /** alloc RigidActor */
-  allocActor() {
-    this._pxActor = PhysXManager.physics.createRigidDynamic(this._transform);
   }
 }

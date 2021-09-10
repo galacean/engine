@@ -248,11 +248,11 @@ export class Engine extends EventDispatcher {
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;
     if (scene) {
+      componentsManager.callScriptOnStart();
       if (this.physicsManager) {
         componentsManager.callColliderOnUpdate();
         this.physicsManager.update();
       }
-      componentsManager.callScriptOnStart();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);

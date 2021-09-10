@@ -19,9 +19,9 @@ export interface IPhysics {
     onTriggerPersist?: Function
   ): IPhysicsManager;
 
-  createDynamicCollider(): IDynamicCollider;
+  createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider;
 
-  createStaticCollider(): IStaticCollider;
+  createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider;
 
   createPhysicsMaterial(
     staticFriction: number,
