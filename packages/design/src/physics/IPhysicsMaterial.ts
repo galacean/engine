@@ -1,16 +1,16 @@
 export interface IPhysicsMaterial {
   /** the coefficient of restitution */
-  bounciness: number;
+  setBounciness(value: number): void;
 
   /** the coefficient of dynamic friction. */
-  dynamicFriction: number;
+  setDynamicFriction(value: number): void;
 
   /** Retrieves the coefficient of static friction. */
-  staticFriction: number;
+  setStaticFriction(value: number): void;
 
   /** the restitution combine mode. */
-  bounceCombine: number;
+  setBounceCombine(value: number): void;
 
   /** the friction combine mode. */
-  frictionCombine: number;
+  setFrictionCombine(value: number): void;
 }

@@ -1,7 +1,7 @@
 import { PhysXManager } from "./PhysXManager";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPlaneCollider } from "@oasis-engine/design";
-import { PhysicsMaterial } from "./PhysicsMaterial";
+import { PhysicsCombineMode, PhysicsMaterial } from "./PhysicsMaterial";
 import { ShapeFlag } from "./shape/ColliderShape";
 
 /**
@@ -18,7 +18,13 @@ export class PlaneCollider implements IPlaneCollider {
 
   protected _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.TRIGGER_SHAPE;
 
-  protected _material: PhysicsMaterial = new PhysicsMaterial(0.1, 0.1, 0.1);
+  protected _material: PhysicsMaterial = new PhysicsMaterial(
+    0.1,
+    0.1,
+    0.1,
+    PhysicsCombineMode.Average,
+    PhysicsCombineMode.Average
+  );
 
   /**
    * PhysX shape object

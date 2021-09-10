@@ -1,20 +1,18 @@
 import { Entity } from "../Entity";
 import { Script } from "../Script";
 import { Collision } from "./Collision";
-import { Engine } from "../Engine";
 import { HitResult } from "./HitResult";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { DynamicCollider } from "./DynamicCollider";
-import { StaticCollider } from "./StaticCollider";
 import { PlaneCollider } from "./PlaneCollider";
+import { Collider } from "./Collider";
 
 export class PhysicsManager {
   static nativePhysics: IPhysics;
   private static _tempCollision: Collision = new Collision();
   private _physicalObjectsMap = new Map<number, Entity>();
   private _physicsManager: IPhysicsManager;
-
   /** Global Physical Components ID which use to match PhysX and Oasis Components */
   physical_id: number = 0;
 
@@ -133,8 +131,8 @@ export class PhysicsManager {
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addCollider(actor: StaticCollider | DynamicCollider | PlaneCollider) {
-    this._physicalObjectsMap.set(actor.index, actor.entity);
+  addCollider(actor: Collider | PlaneCollider) {
+    this._physicalObjectsMap.set(actor.getID(), actor.entity);
     this._physicsManager.addCollider(actor._collider);
   }
 

@@ -20,8 +20,6 @@ export class ColliderShape implements IColliderShape {
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
-  private _material: PhysicsMaterial = new PhysicsMaterial(0.1, 0.1, 0.1);
-
   /**
    * PhysX shape object
    * @internal
@@ -34,38 +32,6 @@ export class ColliderShape implements IColliderShape {
    */
   _pxGeometry: any;
 
-  /** local position */
-  get position(): Vector3 {
-    return this._position;
-  }
-
-  set position(value: Vector3) {
-    this._position = value;
-    this._setLocalPose();
-  }
-
-  /** local rotation */
-  get rotation(): Quaternion {
-    return this._rotation;
-  }
-
-  set rotation(value: Quaternion) {
-    this._rotation = value;
-    this._setLocalPose();
-  }
-
-  /**
-   * PhysXPhysics Material
-   */
-  get material(): PhysicsMaterial {
-    return this._material;
-  }
-
-  set material(value: PhysicsMaterial) {
-    this._material = value;
-    this._pxShape.setMaterials([this.material._pxMaterial]);
-  }
-
   /**
    *  Shape Flags
    *  @internal
@@ -77,6 +43,28 @@ export class ColliderShape implements IColliderShape {
   set shapeFlags(flags: ShapeFlag) {
     this._shapeFlags = flags;
     this._pxShape.setFlags(new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags));
+  }
+
+  /** local position */
+  setPosition(value: Vector3) {
+    this._position = value;
+    this._setLocalPose();
+  }
+
+  /** local rotation */
+  setRotation(value: Quaternion) {
+    this._rotation = value;
+    this._setLocalPose();
+  }
+
+  /** physics material on shape */
+  setMaterial(value: PhysicsMaterial) {
+    this._pxShape.setMaterials([value._pxMaterial]);
+  }
+
+  /** physics shape marker */
+  setID(index: number) {
+    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
   }
 
   /**
@@ -121,17 +109,13 @@ export class ColliderShape implements IColliderShape {
     this._pxShape.setLocalPose(transform);
   }
 
-  protected _allocShape() {
+  protected _allocShape(material: PhysicsMaterial) {
     this._pxShape = PhysXManager.physics.createShape(
       this._pxGeometry,
-      this._material._pxMaterial,
+      material._pxMaterial,
       false,
       new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags)
     );
-  }
-
-  protected _setIndex(index: number) {
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
   }
 
   private _modifyFlag(flag: ShapeFlag, value: boolean) {

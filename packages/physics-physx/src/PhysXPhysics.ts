@@ -19,6 +19,7 @@ import { CapsuleColliderShape } from "./shape/CapsuleColliderShape";
 import { DynamicCollider } from "./DynamicCollider";
 import { StaticCollider } from "./StaticCollider";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 @StaticInterfaceImplement<IPhysics>()
 export class PhysXPhysics {
@@ -56,20 +57,45 @@ export class PhysXPhysics {
     return new DynamicCollider();
   }
 
-  static createPhysicsMaterial(staticFriction: number, dynamicFriction: number, bounciness: number): IPhysicsMaterial {
-    return new PhysicsMaterial(staticFriction, dynamicFriction, bounciness);
+  static createPhysicsMaterial(
+    staticFriction: number,
+    dynamicFriction: number,
+    bounciness: number,
+    frictionCombine: number,
+    bounceCombine: number
+  ): IPhysicsMaterial {
+    return new PhysicsMaterial(staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine);
   }
 
-  static createBoxColliderShape(): IBoxColliderShape {
-    return new BoxColliderShape();
+  static createBoxColliderShape(
+    index: number,
+    extents: Vector3,
+    material: PhysicsMaterial,
+    position: Vector3,
+    rotation: Quaternion
+  ): IBoxColliderShape {
+    return new BoxColliderShape(index, extents, material, position, rotation);
   }
 
-  static createSphereColliderShape(): ISphereColliderShape {
-    return new SphereColliderShape();
+  static createSphereColliderShape(
+    index: number,
+    radius: number,
+    material: PhysicsMaterial,
+    position: Vector3,
+    rotation: Quaternion
+  ): ISphereColliderShape {
+    return new SphereColliderShape(index, radius, material, position, rotation);
   }
 
-  static createCapsuleColliderShape(): ICapsuleColliderShape {
-    return new CapsuleColliderShape();
+  static createCapsuleColliderShape(
+    index: number,
+    radius: number,
+    height: number,
+    material: PhysicsMaterial,
+    position: Vector3,
+    rotation: Quaternion
+  ): ICapsuleColliderShape {
+    return new CapsuleColliderShape(index, radius, height, material, position, rotation);
   }
 
   static createPlaneCollider(): IPlaneCollider {

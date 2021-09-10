@@ -4,33 +4,52 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /** Abstract class for collision shapes. */
 export abstract class ColliderShape {
+  static idGenerator: number = 0;
+
   /** @internal */
-  _shape: IColliderShape;
+  _nativeShape: IColliderShape;
+
+  /** @internal */
+  _material: PhysicsMaterial;
+
+  /** @internal */
+  _id: number;
+
+  _position: Vector3 = new Vector3();
+  _rotation: Quaternion = new Quaternion();
 
   /** PhysXPhysics Material */
   get material(): PhysicsMaterial {
-    return new PhysicsMaterial(this._shape.material);
+    return this._material;
   }
 
   set material(value: PhysicsMaterial) {
-    this._shape.material = value._physicsMaterial;
+    this._material = value;
+    this._nativeShape.setMaterial(value._nativeMaterial);
   }
 
   /** The position of this ColliderShape. */
   get position(): Vector3 {
-    return this._shape.position;
+    return this._position;
   }
 
   set position(value: Vector3) {
-    this._shape.position = value;
+    this._position = value;
+    this._nativeShape.setPosition(value);
   }
 
   get rotation(): Quaternion {
-    return this._shape.rotation;
+    return this._rotation;
   }
 
   set rotation(value: Quaternion) {
-    this._shape.rotation = value;
+    this._rotation = value;
+    this._nativeShape.setRotation(value);
+  }
+
+  constructor() {
+    this._material = new PhysicsMaterial();
+    this._id = ColliderShape.idGenerator++;
   }
 
   /**
@@ -38,7 +57,7 @@ export abstract class ColliderShape {
    * @param value true for TriggerShape, false for SimulationShape
    */
   isTrigger(value: boolean) {
-    this._shape.isTrigger(value);
+    this._nativeShape.isTrigger(value);
   }
 
   /**
@@ -46,12 +65,6 @@ export abstract class ColliderShape {
    * @param value true for Query, false for not Query
    */
   isSceneQuery(value: boolean) {
-    this._shape.isSceneQuery(value);
+    this._nativeShape.isSceneQuery(value);
   }
-
-  /**
-   * initialization internal physics shape object
-   * @param index index of shape
-   */
-  abstract init(index: number);
 }

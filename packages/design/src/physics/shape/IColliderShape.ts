@@ -4,23 +4,20 @@ import { IPhysicsMaterial } from "../IPhysicsMaterial";
 /** Interface for PhysXPhysics Shape */
 export interface IColliderShape {
   /** local position */
-  position: Vector3;
+  setPosition(position: Vector3): void;
 
   /** local rotation */
-  rotation: Quaternion;
+  setRotation(rotation: Quaternion): void;
 
   /** physics material on shape */
-  material: IPhysicsMaterial;
+  setMaterial(material: IPhysicsMaterial): void;
 
-  /**
-   * Set Trigger or not
-   * @param value true for TriggerShape, false for SimulationShape
-   */
+  /** physics shape marker */
+  setID(id: number): void;
+
+  /** Set Trigger or not */
   isTrigger(value: boolean);
 
-  /**
-   * Set Scene Query or not
-   * @param value true for Query, false for not Query
-   */
+  /** Set Scene Query or not */
   isSceneQuery(value: boolean);
 }

@@ -1,32 +1,31 @@
 import { ColliderShape } from "./ColliderShape";
 import { IBoxColliderShape } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { PhysicsManager } from "../PhysicsManager";
 
 /**PhysXPhysics Shape for Box */
 export class BoxColliderShape extends ColliderShape {
-  _physicsBox: IBoxColliderShape;
+  private _extents: Vector3 = new Vector3(1, 1, 1);
+  private readonly _nativeBox: IBoxColliderShape;
 
   /** extents of box shape */
   get extents(): Vector3 {
-    return this._physicsBox.extents;
+    return this._extents;
   }
 
-  set extents(extents: Vector3) {
-    this._physicsBox.extents = extents;
+  set extents(value: Vector3) {
+    this._nativeBox.setExtents(value);
   }
 
   constructor() {
     super();
-    this._physicsBox = PhysicsManager.nativePhysics.createBoxColliderShape();
-    this._shape = this._physicsBox;
-  }
-
-  /**
-   * init box shape and alloc internal physics objects.
-   * @param index index of PhysXPhysics Box
-   */
-  init(index: number) {
-    this._physicsBox.initWithSize(index, this.extents, new Vector3(), new Quaternion());
+    this._nativeBox = PhysicsManager.nativePhysics.createBoxColliderShape(
+      this._id,
+      this._extents,
+      this._material._nativeMaterial,
+      this._position,
+      this._rotation
+    );
+    this._nativeShape = this._nativeBox;
   }
 }

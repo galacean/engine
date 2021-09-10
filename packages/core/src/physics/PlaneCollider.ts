@@ -10,7 +10,7 @@ export class PlaneCollider extends Component {
   _updateFlag: UpdateFlag;
   _index: number = -1;
 
-  get index(): number {
+  getID(): number {
     return this._index;
   }
 

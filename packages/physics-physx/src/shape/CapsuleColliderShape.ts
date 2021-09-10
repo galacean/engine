@@ -2,30 +2,17 @@ import { PhysXManager } from "../PhysXManager";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./ColliderShape";
+import { PhysicsMaterial } from "../PhysicsMaterial";
 
 /** PhysXPhysics Shape for Capsule */
 export class CapsuleColliderShape extends ColliderShape implements ICapsuleColliderShape {
-  private _radius: number = 1.0;
-  private _height: number = 2.0;
-
   /** radius of capsule */
-  get radius(): number {
-    return this._radius;
-  }
-
-  set radius(value: number) {
-    this._radius = value;
+  setRadius(value: number) {
     this._pxGeometry.radius = value;
     this._pxShape.setGeometry(this._pxGeometry);
   }
 
-  /** height of capsule */
-  get height(): number {
-    return this._height;
-  }
-
-  set height(value: number) {
-    this._height = value;
+  setHeight(value: number) {
     this._pxGeometry.halfHeight = value / 2.0;
     this._pxShape.setGeometry(this._pxGeometry);
   }
@@ -35,25 +22,32 @@ export class CapsuleColliderShape extends ColliderShape implements ICapsuleColli
    * @param index index mark collider
    * @param radius radius of CapsuleCollider
    * @param height height of CapsuleCollider
+   * @param material material of Collider
    * @param position position of Collider
    * @param rotation rotation of Collider
    * @remarks must call after this component add to Entity.
    */
-  initWithRadiusHeight(index: number, radius: number, height: number, position: Vector3, rotation: Quaternion) {
-    this._radius = radius;
-    this._height = height;
+  constructor(
+    index: number,
+    radius: number,
+    height: number,
+    material: PhysicsMaterial,
+    position: Vector3,
+    rotation: Quaternion
+  ) {
+    super();
     this._position = position;
     this._rotation = rotation;
 
     // alloc Physx object
-    this._allocGeometry();
-    this._allocShape();
-    this._setLocalPose(this._position, this._rotation);
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
+    this._allocGeometry(radius, height);
+    this._allocShape(material);
+    this._setLocalPose(position, rotation);
+    this.setID(index);
   }
 
   //----------------------------------------------------------------------------
-  private _allocGeometry() {
-    this._pxGeometry = new PhysXManager.PhysX.PxCapsuleGeometry(this._radius, this._height / 2.0);
+  private _allocGeometry(radius: number, height: number) {
+    this._pxGeometry = new PhysXManager.PhysX.PxCapsuleGeometry(radius, height / 2.0);
   }
 }
