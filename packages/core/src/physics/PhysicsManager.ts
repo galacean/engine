@@ -2,7 +2,7 @@ import { Entity } from "../Entity";
 import { Script } from "../Script";
 import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
-import { Ray, Vector3 } from "@oasis-engine/math";
+import { Ray } from "@oasis-engine/math";
 import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { DynamicCollider } from "./DynamicCollider";
 import { Collider } from "./Collider";

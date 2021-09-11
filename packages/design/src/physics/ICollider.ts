@@ -11,8 +11,6 @@ export interface ICollider {
 
   removeShape(shape: IColliderShape): void;
 
-  clearShapes(): void;
-
   setGlobalPose(position: Vector3, rotation: Quaternion);
 
   getGlobalPose(): { translation: Vector3; rotation: Quaternion };

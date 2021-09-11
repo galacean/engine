@@ -1,4 +1,4 @@
-import { ICollider, IColliderShape } from "@oasis-engine/design";
+import { ICollider } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./shape/ColliderShape";
 
@@ -15,10 +15,6 @@ export abstract class Collider implements ICollider {
 
   removeShape(shape: ColliderShape): void {
     this._pxActor.detachShape(shape._pxShape);
-  }
-
-  clearShapes(): void {
-    // todo
   }
 
   setGlobalPose(position: Vector3, rotation: Quaternion) {
@@ -47,7 +43,7 @@ export abstract class Collider implements ICollider {
         z: position.z
       },
       rotation: {
-        w: quat.w, // PHYSX uses WXYZ quaternions,
+        w: quat.w,
         x: quat.x,
         y: quat.y,
         z: quat.z

@@ -46,15 +46,6 @@ export abstract class Collider extends Component {
   }
 
   /**
-   * Clear all shape collection.
-   */
-  clearShapes(): void {
-    this._nativeStaticCollider.clearShapes();
-    this._shapes.length = 0;
-    this._shapes.garbageCollection();
-  }
-
-  /**
    * @override
    */
   _onEnable() {
