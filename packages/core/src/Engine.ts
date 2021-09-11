@@ -158,14 +158,14 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
-   * @param physicsEngine - PhysXPhysics Engine
+   * @param nativePhysics - PhysXPhysics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physicsEngine?: IPhysics) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, nativePhysics?: IPhysics) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
-    if (physicsEngine) {
-      PhysicsManager.nativePhysics = physicsEngine;
+    if (nativePhysics) {
+      PhysicsManager.nativePhysics = nativePhysics;
       this.physicsManager = new PhysicsManager();
     }
     this._canvas = canvas;
@@ -251,7 +251,7 @@ export class Engine extends EventDispatcher {
       componentsManager.callScriptOnStart();
       if (this.physicsManager) {
         componentsManager.callColliderOnUpdate();
-        this.physicsManager.update();
+        this.physicsManager.update(deltaTime);
       }
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);

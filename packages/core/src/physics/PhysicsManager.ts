@@ -20,7 +20,7 @@ export class PhysicsManager {
   private static _tempCollision: Collision = new Collision();
   /** @internal */
   static nativePhysics: IPhysics;
-  private _physicsManager: IPhysicsManager;
+  private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap = new Map<number, Entity>();
 
   queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
@@ -116,7 +116,7 @@ export class PhysicsManager {
   };
 
   constructor() {
-    this._physicsManager = PhysicsManager.nativePhysics.createPhysicsManager(
+    this._nativePhysicsManager = PhysicsManager.nativePhysics.createPhysicsManager(
       this.onContactBegin,
       this.onContactEnd,
       this.onContactPersist,
@@ -125,58 +125,32 @@ export class PhysicsManager {
     );
   }
 
-  /** Global gravity in the physical scene */
-  get gravity(): Vector3 {
-    return this._physicsManager.gravity;
-  }
-
-  set gravity(value: Vector3) {
-    this._physicsManager.gravity = value;
-  }
-
-  getPhysicsEntity(idx: number): Entity {
-    return this._physicalObjectsMap.get(idx);
-  }
-
-  //--------------adding to the scene-------------------------------------------
-  /** add Static Actor, i.e Collider and Trigger. */
+  //--------------physics manager APIs------------------------------------------
+  /** add Collider, i.e StaticCollider and DynamicCollider. */
   addCollider(actor: Collider) {
     const shapes = actor.shapes;
     for (let i = 0, len = shapes.length; i < len; i++) {
       this._physicalObjectsMap.set(shapes[i].id, actor.entity);
     }
-    this._physicsManager.addCollider(actor._nativeStaticCollider);
+    this._nativePhysicsManager.addCollider(actor._nativeStaticCollider);
   }
 
-  //--------------simulation ---------------------------------------------------
-  simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
-    this._physicsManager.simulate(elapsedTime, controlSimulation);
-  }
-
-  fetchResults(block: boolean = true) {
-    this._physicsManager.fetchResults(block);
-  }
-
-  advance() {
-    this._physicsManager.advance();
-  }
-
-  fetchCollision(block: boolean = true) {
-    this._physicsManager.fetchCollision(block);
-  }
-
-  collide(elapsedTime: number = 1 / 60) {
-    this._physicsManager.collide(elapsedTime);
+  /** remove Collider, i.e StaticCollider and DynamicCollider. */
+  removeCollider(actor: Collider) {
+    const shapes = actor.shapes;
+    for (let i = 0, len = shapes.length; i < len; i++) {
+      this._physicalObjectsMap.delete(shapes[i].id);
+    }
+    this._nativePhysicsManager.removeCollider(actor._nativeStaticCollider);
   }
 
   /**
    * call on every frame to update pose of objects
    */
-  update() {
-    this._physicsManager.update();
+  update(deltaTime: number) {
+    this._nativePhysicsManager.update(deltaTime);
   }
 
-  //----------------raycast-----------------------------------------------------
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
@@ -255,12 +229,17 @@ export class PhysicsManager {
     }
 
     if (hitResult != undefined) {
-      const result = this._physicsManager.raycast(ray, distance, this.queryFlag, (idx, distance, position, normal) => {
-        hitResult.entity = this.getPhysicsEntity(idx);
-        hitResult.distance = distance;
-        normal.cloneTo(hitResult.normal);
-        position.cloneTo(hitResult.point);
-      });
+      const result = this._nativePhysicsManager.raycast(
+        ray,
+        distance,
+        this.queryFlag,
+        (idx, distance, position, normal) => {
+          hitResult.entity = this._physicalObjectsMap.get(idx);
+          hitResult.distance = distance;
+          normal.cloneTo(hitResult.normal);
+          position.cloneTo(hitResult.point);
+        }
+      );
 
       if (result) {
         if (hitResult.entity.layer & layerMask) {
@@ -275,7 +254,7 @@ export class PhysicsManager {
       }
       return false;
     } else {
-      return this._physicsManager.raycast(ray, distance, this.queryFlag);
+      return this._nativePhysicsManager.raycast(ray, distance, this.queryFlag);
     }
   }
 }

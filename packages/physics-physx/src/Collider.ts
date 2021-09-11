@@ -13,9 +13,13 @@ export abstract class Collider implements ICollider {
     this._pxActor.attachShape(shape._pxShape);
   }
 
-  removeShape(shape: IColliderShape): void {}
+  removeShape(shape: ColliderShape): void {
+    this._pxActor.detachShape(shape._pxShape);
+  }
 
-  clearShapes(): void {}
+  clearShapes(): void {
+    // todo
+  }
 
   setGlobalPose(position: Vector3, rotation: Quaternion) {
     const transform = this._transform(position, rotation);

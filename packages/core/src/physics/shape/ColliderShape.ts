@@ -1,9 +1,14 @@
 import { IColliderShape } from "@oasis-engine/design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { ignoreClone } from "../../clone/CloneManager";
 
 /** Abstract class for collision shapes. */
 export abstract class ColliderShape {
+  /** @internal */
+  @ignoreClone
+  _index: number = -1;
+
   static idGenerator: number = 0;
 
   /** @internal */

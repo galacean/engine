@@ -91,44 +91,46 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addCollider(actor: Collider) {
-    this._pxScene.addActor(actor._pxActor, null);
+  addCollider(collider: Collider) {
+    this._pxScene.addActor(collider._pxActor, null);
   }
 
-  removeCollider(collider: Collider) {}
+  removeCollider(collider: Collider) {
+    this._pxScene.removeActor(collider._pxActor, true);
+  }
 
   //--------------simulation ---------------------------------------------------
   /** call PhysX simulate */
-  simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
+  private _simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
     this._pxScene.simulate(elapsedTime, controlSimulation);
   }
 
   /** call PhysX fetchResults */
-  fetchResults(block: boolean = true) {
+  private _fetchResults(block: boolean = true) {
     this._pxScene.fetchResults(block);
   }
 
   /** call PhysX advance */
-  advance() {
+  private _advance() {
     this._pxScene.advance();
   }
 
   /** call PhysX fetchCollision */
-  fetchCollision(block: boolean = true) {
+  private _fetchCollision(block: boolean = true) {
     this._pxScene.fetchCollision(block);
   }
 
   /** call PhysX collide */
-  collide(elapsedTime: number = 1 / 60) {
+  private _collide(elapsedTime: number = 1 / 60) {
     this._pxScene.collide(elapsedTime);
   }
 
   /**
    * call on every frame to update pose of objects
    */
-  update() {
-    this.simulate();
-    this.fetchResults();
+  update(elapsedTime: number) {
+    this._simulate(elapsedTime);
+    this._fetchResults();
   }
 
   //----------------raycast-----------------------------------------------------

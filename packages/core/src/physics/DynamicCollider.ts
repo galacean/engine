@@ -37,12 +37,12 @@ export class DynamicCollider extends Collider {
 
   /** apply a force to the DynamicCollider. */
   applyForce(force: Vector3): void {
-    // todo
+    this._dynamicCollider.addForce(force);
   }
 
   /** apply a torque to the DynamicCollider. */
   applyTorque(torque: Vector3): void {
-    // todo
+    this._dynamicCollider.addTorque(torque);
   }
 
   onUpdate() {

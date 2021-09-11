@@ -2,29 +2,15 @@ import { Ray, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
 
 export interface IPhysicsManager {
-  gravity: Vector3;
-
   addCollider(actor: ICollider);
 
   removeCollider(collider: ICollider): void;
 
-  //--------------simulation ---------------------------------------------------
-  simulate(elapsedTime: number, controlSimulation: boolean);
-
-  fetchResults(block: boolean);
-
-  advance();
-
-  fetchCollision(block: boolean);
-
-  collide(elapsedTime: number);
-
   /**
    * call on every frame to update pose of objects
    */
-  update();
+  update(elapsedTime: number);
 
-  //----------------raycast-----------------------------------------------------
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
@@ -42,5 +28,10 @@ export interface IPhysicsManager {
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, queryFlag: number, outHitResult: Function): Boolean;
+  raycast(
+    ray: Ray,
+    distance: number,
+    queryFlag: number,
+    outHitResult: (colliderShapeID: number, distance: number, point: Vector3, normal: Vector3) => void
+  ): Boolean;
 }
