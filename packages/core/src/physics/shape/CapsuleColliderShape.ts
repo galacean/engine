@@ -6,7 +6,6 @@ import { PhysicsManager } from "../PhysicsManager";
 export class CapsuleColliderShape extends ColliderShape {
   private _radius: number = 1;
   private _height: number = 2;
-  private readonly _nativeCapsule: ICapsuleColliderShape;
 
   /** radius of capsule */
   get radius(): number {
@@ -14,7 +13,7 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   set radius(value: number) {
-    this._nativeCapsule.setRadius(value);
+    (<ICapsuleColliderShape>this._nativeShape).setRadius(value);
   }
 
   /** height of capsule */
@@ -23,12 +22,12 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   set height(value: number) {
-    this._nativeCapsule.setHeight(value);
+    (<ICapsuleColliderShape>this._nativeShape).setHeight(value);
   }
 
   constructor() {
     super();
-    this._nativeCapsule = PhysicsManager.nativePhysics.createCapsuleColliderShape(
+    this._nativeShape = PhysicsManager.nativePhysics.createCapsuleColliderShape(
       this._id,
       this._radius,
       this._height,
@@ -36,6 +35,5 @@ export class CapsuleColliderShape extends ColliderShape {
       this._position,
       this._rotation
     );
-    this._nativeShape = this._nativeCapsule;
   }
 }

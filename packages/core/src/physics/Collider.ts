@@ -10,15 +10,16 @@ export abstract class Collider extends Component {
   _index: number = -1;
 
   /** @internal */
-  _collider: ICollider;
+  _nativeStaticCollider: ICollider;
 
-  _shape: ColliderShape;
+  private _shapes: ColliderShape[] = [];
 
-  _position: Vector3 = this.entity.transform.position;
-  _rotation: Quaternion = this.entity.transform.rotationQuaternion;
+  protected _position: Vector3 = this.entity.transform.position;
+  protected _rotation: Quaternion = this.entity.transform.rotationQuaternion;
 
-  getID(): number {
-    return this._shape._id;
+  /** The shape of the Collider. */
+  get shapes(): Readonly<ColliderShape[]> {
+    return this._shapes;
   }
 
   /**
@@ -27,8 +28,23 @@ export abstract class Collider extends Component {
    * @remarks must call after this component add to Entity.
    */
   addShape(shape: ColliderShape) {
-    this._shape = shape;
-    this._collider.addShape(shape._nativeShape);
+    this._shapes.push(shape);
+    this._nativeStaticCollider.addShape(shape._nativeShape);
+  }
+
+  /**
+   * Remove a collider shape.
+   * @param shape - The collider shape.
+   */
+  removeShape(shape: ColliderShape): void {
+    //todo
+  }
+
+  /**
+   * Clear all shape collection.
+   */
+  clearShapes(): void {
+    //todo
   }
 
   /**

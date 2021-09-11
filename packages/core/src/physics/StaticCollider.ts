@@ -1,16 +1,15 @@
 import { Entity } from "../Entity";
-import { IStaticCollider } from "@oasis-engine/design";
 import { Collider } from "./Collider";
 import { PhysicsManager } from "./PhysicsManager";
 
+/**
+ * A static rigid body collider component that will not move when colliding with a dynamic rigid body collider.
+ * @remarks Mostly used for object which always stays at the same place and never moves around.
+ */
 export class StaticCollider extends Collider {
-  /** @internal */
-  _staticCollider: IStaticCollider;
-
   constructor(entity: Entity) {
     super(entity);
-    this._staticCollider = PhysicsManager.nativePhysics.createStaticCollider(this._position, this._rotation);
-    this._collider = this._staticCollider;
+    this._nativeStaticCollider = PhysicsManager.nativePhysics.createStaticCollider(this._position, this._rotation);
   }
 
   onUpdate() {}

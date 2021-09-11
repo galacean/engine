@@ -1,27 +1,14 @@
 import { IPhysicsMaterial } from "@oasis-engine/design";
 import { PhysicsManager } from "./PhysicsManager";
-
-/**
- * Describes how physics materials of the colliding objects are combined.
- */
-export enum PhysicsCombineMode {
-  /** Averages the friction/bounce of the two colliding materials. */
-  Average,
-  /** Uses the smaller friction/bounce of the two colliding materials. */
-  Minimum,
-  /** Multiplies the friction/bounce of the two colliding materials. */
-  Multiply,
-  /** Uses the larger friction/bounce of the two colliding materials. */
-  Maximum
-}
+import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 export class PhysicsMaterial {
   private _bounciness: number = 0.1;
   private _dynamicFriction: number = 0.1;
   private _staticFriction: number = 0.1;
 
-  private _bounceCombine: PhysicsCombineMode = PhysicsCombineMode.Average;
-  private _frictionCombine: PhysicsCombineMode = PhysicsCombineMode.Average;
+  private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
+  private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
 
   /** @internal */
   _nativeMaterial: IPhysicsMaterial;
@@ -76,27 +63,27 @@ export class PhysicsMaterial {
   }
 
   /** Retrieves the restitution combine mode. */
-  get bounceCombine(): PhysicsCombineMode {
+  get bounceCombine(): PhysicsMaterialCombineMode {
     return this._bounceCombine;
   }
 
   /** Sets the restitution combine mode.
    * @param value Restitution combine mode for this material.
    */
-  set bounceCombine(value: PhysicsCombineMode) {
+  set bounceCombine(value: PhysicsMaterialCombineMode) {
     this._bounceCombine = value;
     this._nativeMaterial.setBounceCombine(value);
   }
 
   /** Retrieves the friction combine mode. */
-  get frictionCombine(): PhysicsCombineMode {
+  get frictionCombine(): PhysicsMaterialCombineMode {
     return this._frictionCombine;
   }
 
   /** Sets the friction combine mode.
    * @param value Friction combine mode to set for this material.
    */
-  set frictionCombine(value: PhysicsCombineMode) {
+  set frictionCombine(value: PhysicsMaterialCombineMode) {
     this._frictionCombine = value;
     this._nativeMaterial.setFrictionCombine(value);
   }

@@ -9,14 +9,14 @@ export abstract class ColliderShape {
   /** @internal */
   _nativeShape: IColliderShape;
 
-  /** @internal */
-  _material: PhysicsMaterial;
+  protected _id: number;
+  protected _position: Vector3 = new Vector3();
+  protected _rotation: Quaternion = new Quaternion();
+  protected _material: PhysicsMaterial;
 
-  /** @internal */
-  _id: number;
-
-  _position: Vector3 = new Vector3();
-  _rotation: Quaternion = new Quaternion();
+  get id(): number {
+    return this._id;
+  }
 
   /** PhysXPhysics Material */
   get material(): PhysicsMaterial {
@@ -47,7 +47,7 @@ export abstract class ColliderShape {
     this._nativeShape.setRotation(value);
   }
 
-  constructor() {
+  protected constructor() {
     this._material = new PhysicsMaterial();
     this._id = ColliderShape.idGenerator++;
   }

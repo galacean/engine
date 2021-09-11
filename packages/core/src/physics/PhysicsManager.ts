@@ -8,12 +8,11 @@ import { DynamicCollider } from "./DynamicCollider";
 import { Collider } from "./Collider";
 
 export class PhysicsManager {
-  static nativePhysics: IPhysics;
   private static _tempCollision: Collision = new Collision();
-  private _physicalObjectsMap = new Map<number, Entity>();
+
+  static nativePhysics: IPhysics;
   private _physicsManager: IPhysicsManager;
-  /** Global Physical Components ID which use to match PhysX and Oasis Components */
-  physical_id: number = 0;
+  private _physicalObjectsMap = new Map<number, Entity>();
 
   onContactBegin = (obj1: number, obj2: number) => {
     let scripts: Script[] = [];
@@ -131,8 +130,11 @@ export class PhysicsManager {
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
   addCollider(actor: Collider) {
-    this._physicalObjectsMap.set(actor.getID(), actor.entity);
-    this._physicsManager.addCollider(actor._collider);
+    const shapes = actor.shapes;
+    for (let i = 0, len = shapes.length; i < len; i++) {
+      this._physicalObjectsMap.set(shapes[i].id, actor.entity);
+    }
+    this._physicsManager.addCollider(actor._nativeStaticCollider);
   }
 
   //--------------simulation ---------------------------------------------------
