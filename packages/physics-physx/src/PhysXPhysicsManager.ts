@@ -41,8 +41,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onContactEnd?: Function,
     onContactPersist?: Function,
     onTriggerBegin?: Function,
-    onTriggerEnd?: Function,
-    onTriggerPersist?: Function
+    onTriggerEnd?: Function
   ) {
     const triggerCallback = {
       onContactBegin: (obj1, obj2) => {
@@ -68,11 +67,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       onTriggerEnd: (obj1, obj2) => {
         if (onTriggerEnd != undefined) {
           onTriggerEnd(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
-        }
-      },
-      onTriggerPersist: (obj1, obj2) => {
-        if (onTriggerPersist != undefined) {
-          onTriggerPersist(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
         }
       }
     };

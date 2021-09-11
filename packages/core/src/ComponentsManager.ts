@@ -239,10 +239,17 @@ export class ComponentsManager {
     }
   }
 
-  callColliderOnUpdate() {
+  callColliderOnStart() {
     const elements = this._colliders._elements;
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i].onUpdate();
+    }
+  }
+
+  callColliderLateUpdate() {
+    const elements = this._colliders._elements;
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
+      elements[i].callScript();
     }
   }
 

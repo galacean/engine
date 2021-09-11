@@ -1,12 +1,10 @@
-import { Entity } from "../Entity";
-import { Script } from "../Script";
-import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { Ray } from "@oasis-engine/math";
 import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
-import { DynamicCollider } from "./DynamicCollider";
 import { Collider } from "./Collider";
 import { Layer } from "../Layer";
+import { ColliderShape } from "./shape/ColliderShape";
+import { PhysicsState } from "./enums/PhysicsState";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -17,102 +15,31 @@ export enum QueryFlag {
 }
 
 export class PhysicsManager {
-  private static _tempCollision: Collision = new Collision();
   /** @internal */
   static nativePhysics: IPhysics;
   private _nativePhysicsManager: IPhysicsManager;
-  private _physicalObjectsMap = new Map<number, Entity>();
+  private _physicalObjectsMap = new Map<number, ColliderShape>();
 
   queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
 
-  onContactBegin = (obj1: number, obj2: number) => {
-    let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
-        scripts[i].onCollisionEnter(PhysicsManager._tempCollision);
-      }
-    }
+  onContactBegin = (obj1: number, obj2: number) => {};
 
-    scripts = [];
-    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
-        scripts[i].onCollisionEnter(PhysicsManager._tempCollision);
-      }
-    }
-  };
+  onContactEnd = (obj1: number, obj2: number) => {};
 
-  onContactEnd = (obj1: number, obj2: number) => {
-    let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
-        scripts[i].onCollisionExit(PhysicsManager._tempCollision);
-      }
-    }
-
-    scripts = [];
-    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
-        scripts[i].onCollisionExit(PhysicsManager._tempCollision);
-      }
-    }
-  };
-
-  onContactPersist = (obj1: number, obj2: number) => {
-    let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj1).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
-        scripts[i].onCollisionStay(PhysicsManager._tempCollision);
-      }
-    }
-
-    scripts = [];
-    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        PhysicsManager._tempCollision.collider = this._physicalObjectsMap.get(obj2).getComponent(DynamicCollider);
-        scripts[i].onCollisionStay(PhysicsManager._tempCollision);
-      }
-    }
-  };
+  onContactPersist = (obj1: number, obj2: number) => {};
 
   onTriggerBegin = (obj1: number, obj2: number) => {
-    let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerEnter(this._physicalObjectsMap.get(obj1).getComponent(DynamicCollider));
-      }
-    }
+    const shape1 = this._physicalObjectsMap.get(obj1);
+    const shape2 = this._physicalObjectsMap.get(obj2);
+    shape1.setScriptState(PhysicsState.TOUCH_FOUND, shape2);
+    shape2.setScriptState(PhysicsState.TOUCH_FOUND, shape1);
   };
 
   onTriggerEnd = (obj1: number, obj2: number) => {
-    let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerExit(this._physicalObjectsMap.get(obj1).getComponent(DynamicCollider));
-      }
-    }
-  };
-
-  onTriggerPersist = (obj1: number, obj2: number) => {
-    let scripts: Script[] = [];
-    this._physicalObjectsMap.get(obj2).getComponents(Script, scripts);
-    if (scripts.length > 0) {
-      for (let i = 0, len = scripts.length; i < len; i++) {
-        scripts[i].onTriggerStay(this._physicalObjectsMap.get(obj1).getComponent(DynamicCollider));
-      }
-    }
+    const shape1 = this._physicalObjectsMap.get(obj1);
+    const shape2 = this._physicalObjectsMap.get(obj2);
+    shape1.setScriptState(PhysicsState.TOUCH_LOST, shape2);
+    shape2.setScriptState(PhysicsState.TOUCH_LOST, shape1);
   };
 
   constructor() {
@@ -130,7 +57,7 @@ export class PhysicsManager {
   addCollider(actor: Collider) {
     const shapes = actor.shapes;
     for (let i = 0, len = shapes.length; i < len; i++) {
-      this._physicalObjectsMap.set(shapes[i].id, actor.entity);
+      this._physicalObjectsMap.set(shapes[i].id, shapes[i]);
     }
     this._nativePhysicsManager.addCollider(actor._nativeStaticCollider);
   }
@@ -234,7 +161,7 @@ export class PhysicsManager {
         distance,
         this.queryFlag,
         (idx, distance, position, normal) => {
-          hitResult.entity = this._physicalObjectsMap.get(idx);
+          hitResult.entity = this._physicalObjectsMap.get(idx).entity;
           hitResult.distance = distance;
           normal.cloneTo(hitResult.normal);
           position.cloneTo(hitResult.point);

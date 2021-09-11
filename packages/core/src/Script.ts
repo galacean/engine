@@ -1,7 +1,7 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { DynamicCollider, Collision } from "./physics";
+import { Collision, ColliderShape } from "./physics";
 
 /**
  * Script class, used for logic writing.
@@ -89,20 +89,20 @@ export class Script extends Component {
    * Called when the collision enter.
    * @param other Collider
    */
-  onTriggerEnter(other: DynamicCollider): void {}
+  onTriggerEnter(other: ColliderShape): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
    * @param other Collider
    */
-  onTriggerExit(other: DynamicCollider): void {}
+  onTriggerExit(other: ColliderShape): void {}
 
   /**
    * Called when the collision exit.
    * @param other Collider
    */
-  onTriggerStay(other: DynamicCollider): void {}
+  onTriggerStay(other: ColliderShape): void {}
 
   /**
    * Called when the pointer is down while over the Collider.

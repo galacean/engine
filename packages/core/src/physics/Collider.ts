@@ -29,6 +29,7 @@ export abstract class Collider extends Component {
    * @remarks must call after this component add to Entity.
    */
   addShape(shape: ColliderShape) {
+    shape.entity = this.entity;
     this._nativeStaticCollider.addShape(shape._nativeShape);
     shape._index = this._shapes.length;
     this._shapes.add(shape);
@@ -62,4 +63,11 @@ export abstract class Collider extends Component {
   }
 
   abstract onUpdate();
+
+  callScript() {
+    let scripts = this._shapes;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).callScript();
+    }
+  }
 }
