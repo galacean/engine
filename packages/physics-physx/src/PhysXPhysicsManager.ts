@@ -135,44 +135,29 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
+   * @param distance - The max distance the ray should check
+   * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray): Boolean;
+  raycast(ray: Ray, distance: number, queryFlag: QueryFlag): Boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @returns Returns true if the ray intersects with a Collider, otherwise false.
-   */
-  raycast(ray: Ray, distance: number): Boolean;
-
-  /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @param layerMask - Flag that is used to selectively ignore Colliders when casting
-   * @returns Returns true if the ray intersects with a Collider, otherwise false.
-   */
-  raycast(ray: Ray, distance: number, layerMask: QueryFlag): Boolean;
-
-  /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @param layerMask - Flag that is used to selectively ignore Colliders when casting
+   * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, layerMask: QueryFlag, outHitResult: Function): Boolean;
+  raycast(ray: Ray, distance: number, queryFlag: QueryFlag, outHitResult: Function): Boolean;
 
   raycast(
     ray: Ray,
-    distance: number = Number.MAX_VALUE,
-    layerMask: QueryFlag = QueryFlag.DYNAMIC | QueryFlag.STATIC,
+    distance: number,
+    queryFlag: QueryFlag,
     hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    PhysXPhysicsManager._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(layerMask);
+    PhysXPhysicsManager._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(queryFlag);
     const result = this._pxScene.raycastSingle(
       { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
       { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
