@@ -5,7 +5,6 @@ import { HitResult } from "./HitResult";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { DynamicCollider } from "./DynamicCollider";
-import { PlaneCollider } from "./PlaneCollider";
 import { Collider } from "./Collider";
 
 export class PhysicsManager {
@@ -131,7 +130,7 @@ export class PhysicsManager {
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addCollider(actor: Collider | PlaneCollider) {
+  addCollider(actor: Collider) {
     this._physicalObjectsMap.set(actor.getID(), actor.entity);
     this._physicsManager.addCollider(actor._collider);
   }

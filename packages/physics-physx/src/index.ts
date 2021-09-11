@@ -6,6 +6,6 @@ export { PhysicsMaterial, PhysicsCombineMode } from "./PhysicsMaterial";
 export { ColliderShape, ShapeFlag } from "./shape/ColliderShape";
 export { BoxColliderShape } from "./shape/BoxColliderShape";
 export { CapsuleColliderShape } from "./shape/CapsuleColliderShape";
-export { PlaneCollider } from "./PlaneCollider";
+
 export { StaticCollider } from "./StaticCollider";
 export { DynamicCollider } from "./DynamicCollider";

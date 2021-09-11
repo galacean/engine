@@ -1,13 +1,12 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
-import { IPlaneCollider } from "./IPlaneCollider";
 import { ICollider } from "./ICollider";
 
 export interface IPhysicsManager {
   gravity: Vector3;
 
-  addCollider(actor: ICollider | IPlaneCollider);
+  addCollider(actor: ICollider);
 
-  removeCollider(collider: ICollider | IPlaneCollider): void;
+  removeCollider(collider: ICollider): void;
 
   //--------------simulation ---------------------------------------------------
   simulate(elapsedTime: number, controlSimulation: boolean);

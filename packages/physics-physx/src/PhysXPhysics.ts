@@ -1,16 +1,15 @@
 import {
   IPhysics,
   IPhysicsMaterial,
-  IPlaneCollider,
   IPhysicsManager,
   IBoxColliderShape,
   ISphereColliderShape,
   ICapsuleColliderShape,
   IDynamicCollider,
-  IStaticCollider
+  IStaticCollider,
+  IPlaneColliderShape
 } from "@oasis-engine/design";
 import { PhysicsMaterial } from "./PhysicsMaterial";
-import { PlaneCollider } from "./PlaneCollider";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 import { PhysXManager } from "./PhysXManager";
 import { BoxColliderShape } from "./shape/BoxColliderShape";
@@ -20,6 +19,7 @@ import { DynamicCollider } from "./DynamicCollider";
 import { StaticCollider } from "./StaticCollider";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { PlaneColliderShape } from "./shape/PlaneColliderShape";
 
 @StaticInterfaceImplement<IPhysics>()
 export class PhysXPhysics {
@@ -87,6 +87,15 @@ export class PhysXPhysics {
     return new SphereColliderShape(index, radius, material, position, rotation);
   }
 
+  static createPlaneColliderShape(
+    index: number,
+    material: PhysicsMaterial,
+    position: Vector3,
+    rotation: Quaternion
+  ): IPlaneColliderShape {
+    return new PlaneColliderShape(index, material, position, rotation);
+  }
+
   static createCapsuleColliderShape(
     index: number,
     radius: number,
@@ -96,9 +105,5 @@ export class PhysXPhysics {
     rotation: Quaternion
   ): ICapsuleColliderShape {
     return new CapsuleColliderShape(index, radius, height, material, position, rotation);
-  }
-
-  static createPlaneCollider(): IPlaneCollider {
-    return new PlaneCollider();
   }
 }

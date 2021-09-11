@@ -1,7 +1,6 @@
 import { PhysXManager } from "./PhysXManager";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
-import { PlaneCollider } from "./PlaneCollider";
 import { Collider } from "./Collider";
 
 /** Filtering flags for scene queries. */
@@ -92,11 +91,11 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   //--------------adding to the scene-------------------------------------------
   /** add Static Actor, i.e Collider and Trigger. */
-  addCollider(actor: Collider | PlaneCollider) {
+  addCollider(actor: Collider) {
     this._pxScene.addActor(actor._pxActor, null);
   }
 
-  removeCollider(collider: Collider | PlaneCollider) {}
+  removeCollider(collider: Collider) {}
 
   //--------------simulation ---------------------------------------------------
   /** call PhysX simulate */

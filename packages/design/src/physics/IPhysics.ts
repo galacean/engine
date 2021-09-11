@@ -1,7 +1,6 @@
 import { IPhysicsMaterial } from "./IPhysicsMaterial";
-import { IPlaneCollider } from "./IPlaneCollider";
 import { IPhysicsManager } from "./IPhysicsManager";
-import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape } from "./shape";
+import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape, IPlaneColliderShape } from "./shape";
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
@@ -47,6 +46,13 @@ export interface IPhysics {
     rotation: Quaternion
   ): ISphereColliderShape;
 
+  createPlaneColliderShape(
+    index: number,
+    material: IPhysicsMaterial,
+    position: Vector3,
+    rotation: Quaternion
+  ): IPlaneColliderShape;
+
   createCapsuleColliderShape(
     index: number,
     radius: number,
@@ -55,6 +61,4 @@ export interface IPhysics {
     position: Vector3,
     rotation: Quaternion
   ): ICapsuleColliderShape;
-
-  createPlaneCollider(): IPlaneCollider;
 }
