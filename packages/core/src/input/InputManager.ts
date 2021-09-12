@@ -234,7 +234,7 @@ export class InputManager {
    * @param pageX - The pageX of Pointer
    * @param pageY - The pageY of Pointer
    */
-  private _changePointer(type: EnumPointerChangeType, pointerId: number, pageX: number, pageY: number) {
+  private _changePointer(type: EnumPointerChangeType, pointerId: number, pageX?: number, pageY?: number) {
     const { _pointerIdToIndex, _pointerList, _actPointerCount: lastCount, _input } = this;
     let idx = _pointerIdToIndex[pointerId];
     switch (type) {
@@ -333,7 +333,7 @@ export class InputManager {
    * @param evt - Pointer Event
    */
   private _onPointerCancelOrOut = (evt: PointerEvent) => {
-    this._changePointer(EnumPointerChangeType.Remove, evt.pointerId, evt.pageX, evt.pageY);
+    this._changePointer(EnumPointerChangeType.Remove, evt.pointerId);
   };
 
   /**
