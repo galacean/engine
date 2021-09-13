@@ -8,13 +8,13 @@ import { Script } from "../Script";
 import { Input } from "./Input";
 import { Pointer } from "./Pointer";
 
-export enum EnumPointerEventType {
+export enum PointerEventType {
   PointDown = 0,
   PointUp = 1,
   PointMove = 2
 }
 
-export enum EnumPointerChangeType {
+export enum PointerChangeType {
   Update = 0,
   Remove = 1
 }
@@ -35,7 +35,7 @@ export class InputManager {
   /** The number of events received in the current frame monitor. */
   private _eventLen: number = 0;
   /** Event list. */
-  private _eventList: EnumPointerEventType[] = [];
+  private _eventList: PointerEventType[] = [];
   /** The number of pointers currently active. */
   private _actPointerCount: number = 0;
   /** Pointer list. */
@@ -152,7 +152,7 @@ export class InputManager {
       }
       for (let i = 0; i < _eventLen; i++) {
         switch (_eventList[i]) {
-          case EnumPointerEventType.PointDown:
+          case PointerEventType.PointDown:
             if (curEntity) {
               for (let j = 0; j < curEntityScriptsLen; j++) {
                 curEntityScripts[j].onPointerDown();
@@ -160,7 +160,7 @@ export class InputManager {
             }
             prePressedEntity = curEntity;
             break;
-          case EnumPointerEventType.PointUp:
+          case PointerEventType.PointUp:
             if (prePressedEntity) {
               if (prePressedEntity == curEntity) {
                 for (let j = 0; j < curEntityScriptsLen; j++) {
@@ -230,11 +230,11 @@ export class InputManager {
    * @param pageX - The pageX of Pointer
    * @param pageY - The pageY of Pointer
    */
-  private _changePointer(type: EnumPointerChangeType, pointerId: number, pageX?: number, pageY?: number) {
+  private _changePointer(type: PointerChangeType, pointerId: number, pageX?: number, pageY?: number) {
     const { _pointerIdToIndex, _pointerList, _actPointerCount: lastCount, _input } = this;
     let idx = _pointerIdToIndex[pointerId];
     switch (type) {
-      case EnumPointerChangeType.Remove:
+      case PointerChangeType.Remove:
         if (idx === undefined) {
           return;
         } else {
@@ -251,7 +251,7 @@ export class InputManager {
           delete _pointerIdToIndex[pointerId];
         }
         break;
-      case EnumPointerChangeType.Update:
+      case PointerChangeType.Update:
         if (idx === undefined) {
           if (lastCount > 0 && !this._multiTouchEnabled) {
             return;
@@ -286,7 +286,7 @@ export class InputManager {
    * Push event types into an ordered queue.
    * @param type - Pointer event type
    */
-  private _pushEventList(type: EnumPointerEventType) {
+  private _pushEventList(type: PointerEventType) {
     const { _eventList } = this;
     if (_eventList.length == this._eventLen) {
       _eventList.push(type);
@@ -301,9 +301,9 @@ export class InputManager {
    * @param evt - Pointer Event
    */
   private _onPointerDown = (evt: PointerEvent) => {
-    this._changePointer(EnumPointerChangeType.Update, evt.pointerId, evt.pageX, evt.pageY);
+    this._changePointer(PointerChangeType.Update, evt.pointerId, evt.pageX, evt.pageY);
     if (this._actPointerCount == 1) {
-      this._pushEventList(EnumPointerEventType.PointDown);
+      this._pushEventList(PointerEventType.PointDown);
     }
   };
 
@@ -312,7 +312,7 @@ export class InputManager {
    */
   private _onPointerUp = () => {
     if (this._actPointerCount == 1) {
-      this._pushEventList(EnumPointerEventType.PointUp);
+      this._pushEventList(PointerEventType.PointUp);
     }
   };
 
@@ -321,7 +321,7 @@ export class InputManager {
    * @param evt - Pointer Event
    */
   private _onPointerMove = (evt: PointerEvent) => {
-    this._changePointer(EnumPointerChangeType.Update, evt.pointerId, evt.pageX, evt.pageY);
+    this._changePointer(PointerChangeType.Update, evt.pointerId, evt.pageX, evt.pageY);
   };
 
   /**
@@ -329,7 +329,7 @@ export class InputManager {
    * @param evt - Pointer Event
    */
   private _onPointerCancelOrOut = (evt: PointerEvent) => {
-    this._changePointer(EnumPointerChangeType.Remove, evt.pointerId);
+    this._changePointer(PointerChangeType.Remove, evt.pointerId);
   };
 
   /**
