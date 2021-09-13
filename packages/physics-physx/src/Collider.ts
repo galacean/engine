@@ -9,12 +9,20 @@ export abstract class Collider implements ICollider {
    */
   _pxActor: any;
 
+  /** @internal */
+  _shapes: ColliderShape[] = [];
+
   addShape(shape: ColliderShape) {
+    this._shapes.push(shape);
     this._pxActor.attachShape(shape._pxShape);
   }
 
   removeShape(shape: ColliderShape): void {
     this._pxActor.detachShape(shape._pxShape);
+    let removeID = this._shapes.findIndex((value) => {
+      return value == shape;
+    });
+    this._shapes.splice(removeID, 1);
   }
 
   setGlobalPose(position: Vector3, rotation: Quaternion) {

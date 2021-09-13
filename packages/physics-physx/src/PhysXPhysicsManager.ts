@@ -11,6 +11,16 @@ export enum QueryFlag {
   NO_BLOCK = 1 << 5
 }
 
+/**
+ * Physics state
+ */
+export enum PhysicsState {
+  TOUCH_FOUND,
+  TOUCH_PERSISTS,
+  TOUCH_LOST,
+  TOUCH_NONE
+}
+
 /** A scene is a collection of bodies and constraints which can interact. */
 export class PhysXPhysicsManager implements IPhysicsManager {
   private static _tempPosition: Vector3 = new Vector3();
@@ -23,6 +33,15 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * @internal
    */
   _pxScene: any;
+
+  onContactBegin?: Function;
+  onContactEnd?: Function;
+  onContactPersist?: Function;
+  onTriggerBegin?: Function;
+  onTriggerEnd?: Function;
+  onTriggerPersist?: Function;
+
+  eventMap: Map<number, [number, PhysicsState]> = new Map();
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
@@ -41,33 +60,27 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onContactEnd?: Function,
     onContactPersist?: Function,
     onTriggerBegin?: Function,
-    onTriggerEnd?: Function
+    onTriggerEnd?: Function,
+    onTriggerPersist?: Function
   ) {
+    this.onContactBegin = onContactBegin;
+    this.onContactEnd = onContactEnd;
+    this.onContactPersist = onContactPersist;
+    this.onTriggerBegin = onTriggerBegin;
+    this.onTriggerEnd = onTriggerEnd;
+    this.onTriggerPersist = onTriggerPersist;
+
     const triggerCallback = {
-      onContactBegin: (obj1, obj2) => {
-        if (onContactBegin != undefined) {
-          onContactBegin(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
-        }
-      },
-      onContactEnd: (obj1, obj2) => {
-        if (onContactEnd != undefined) {
-          onContactEnd(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
-        }
-      },
-      onContactPersist: (obj1, obj2) => {
-        if (onContactPersist != undefined) {
-          onContactPersist(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
-        }
-      },
+      onContactBegin: (obj1, obj2) => {},
+      onContactEnd: (obj1, obj2) => {},
+      onContactPersist: (obj1, obj2) => {},
       onTriggerBegin: (obj1, obj2) => {
-        if (onTriggerBegin != undefined) {
-          onTriggerBegin(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
-        }
+        this.eventMap.set(obj1.getQueryFilterData().word0, [obj2.getQueryFilterData().word0, PhysicsState.TOUCH_FOUND]);
+        this.eventMap.set(obj2.getQueryFilterData().word0, [obj1.getQueryFilterData().word0, PhysicsState.TOUCH_FOUND]);
       },
       onTriggerEnd: (obj1, obj2) => {
-        if (onTriggerEnd != undefined) {
-          onTriggerEnd(obj1.getQueryFilterData().word0, obj2.getQueryFilterData().word0);
-        }
+        this.eventMap.set(obj1.getQueryFilterData().word0, [obj2.getQueryFilterData().word0, PhysicsState.TOUCH_LOST]);
+        this.eventMap.set(obj2.getQueryFilterData().word0, [obj1.getQueryFilterData().word0, PhysicsState.TOUCH_LOST]);
       }
     };
 
@@ -87,10 +100,18 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   /** add Static Actor, i.e Collider and Trigger. */
   addCollider(collider: Collider) {
     this._pxScene.addActor(collider._pxActor, null);
+    for (let i = 0, len = collider._shapes.length; i < len; i++) {
+      const shape = collider._shapes[i];
+      this.eventMap.set(shape._id, [null, PhysicsState.TOUCH_NONE]);
+    }
   }
 
   removeCollider(collider: Collider) {
     this._pxScene.removeActor(collider._pxActor, true);
+    for (let i = 0, len = collider._shapes.length; i < len; i++) {
+      const shape = collider._shapes[i];
+      this.eventMap.delete(shape._id);
+    }
   }
 
   //--------------simulation ---------------------------------------------------
@@ -125,6 +146,21 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   update(elapsedTime: number) {
     this._simulate(elapsedTime);
     this._fetchResults();
+    this.resolveEvent();
+  }
+
+  resolveEvent() {
+    this.eventMap.forEach((value, key) => {
+      if (value[1] == PhysicsState.TOUCH_FOUND) {
+        this.onTriggerBegin(key, value[0]);
+        this.eventMap.set(key, [value[0], PhysicsState.TOUCH_PERSISTS]);
+      } else if (value[1] == PhysicsState.TOUCH_PERSISTS) {
+        this.onTriggerPersist(key, value[0]);
+      } else if (value[1] == PhysicsState.TOUCH_LOST) {
+        this.onTriggerEnd(key, value[0]);
+        this.eventMap.set(key, [null, PhysicsState.TOUCH_NONE]);
+      }
+    });
   }
 
   //----------------raycast-----------------------------------------------------

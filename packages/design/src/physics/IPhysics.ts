@@ -14,7 +14,8 @@ export interface IPhysics {
     onContactEnd?: Function,
     onContactPersist?: Function,
     onTriggerBegin?: Function,
-    onTriggerEnd?: Function
+    onTriggerEnd?: Function,
+    onTriggerPersist?: Function
   ): IPhysicsManager;
 
   createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider;

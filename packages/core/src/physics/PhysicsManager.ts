@@ -4,7 +4,6 @@ import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Collider } from "./Collider";
 import { Layer } from "../Layer";
 import { ColliderShape } from "./shape/ColliderShape";
-import { PhysicsState } from "./enums/PhysicsState";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -31,15 +30,46 @@ export class PhysicsManager {
   onTriggerBegin = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap.get(obj1);
     const shape2 = this._physicalObjectsMap.get(obj2);
-    shape1.setScriptState(PhysicsState.TOUCH_FOUND, shape2);
-    shape2.setScriptState(PhysicsState.TOUCH_FOUND, shape1);
+
+    let scripts = shape1.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onTriggerEnter(shape2);
+    }
+
+    scripts = shape2.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onTriggerEnter(shape1);
+    }
   };
 
   onTriggerEnd = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap.get(obj1);
     const shape2 = this._physicalObjectsMap.get(obj2);
-    shape1.setScriptState(PhysicsState.TOUCH_LOST, shape2);
-    shape2.setScriptState(PhysicsState.TOUCH_LOST, shape1);
+
+    let scripts = shape1.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onTriggerExit(shape2);
+    }
+
+    scripts = shape2.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onTriggerExit(shape1);
+    }
+  };
+
+  onTriggerPersist = (obj1: number, obj2: number) => {
+    const shape1 = this._physicalObjectsMap.get(obj1);
+    const shape2 = this._physicalObjectsMap.get(obj2);
+
+    let scripts = shape1.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onTriggerStay(shape2);
+    }
+
+    scripts = shape2.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onTriggerStay(shape1);
+    }
   };
 
   constructor() {
@@ -48,7 +78,8 @@ export class PhysicsManager {
       this.onContactEnd,
       this.onContactPersist,
       this.onTriggerBegin,
-      this.onTriggerEnd
+      this.onTriggerEnd,
+      this.onTriggerPersist
     );
   }
 

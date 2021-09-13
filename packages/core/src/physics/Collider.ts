@@ -63,11 +63,4 @@ export abstract class Collider extends Component {
   }
 
   abstract onUpdate();
-
-  callScript() {
-    let scripts = this._shapes;
-    for (let i = 0, len = scripts.length; i < len; i++) {
-      scripts.get(i).callScript();
-    }
-  }
 }

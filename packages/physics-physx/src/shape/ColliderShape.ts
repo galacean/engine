@@ -33,6 +33,12 @@ export class ColliderShape implements IColliderShape {
   _pxGeometry: any;
 
   /**
+   * mark physx object
+   * @internal
+   */
+  _id: number;
+
+  /**
    *  Shape Flags
    *  @internal
    */
@@ -64,6 +70,7 @@ export class ColliderShape implements IColliderShape {
 
   /** physics shape marker */
   setID(index: number) {
+    this._id = index;
     this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
   }
 

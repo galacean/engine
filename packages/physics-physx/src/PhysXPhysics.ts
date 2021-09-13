@@ -36,9 +36,17 @@ export class PhysXPhysics {
     onContactEnd?: Function,
     onContactPersist?: Function,
     onTriggerBegin?: Function,
-    onTriggerEnd?: Function
+    onTriggerEnd?: Function,
+    onTriggerPersist?: Function
   ): IPhysicsManager {
-    return new PhysXPhysicsManager(onContactBegin, onContactEnd, onContactPersist, onTriggerBegin, onTriggerEnd);
+    return new PhysXPhysicsManager(
+      onContactBegin,
+      onContactEnd,
+      onContactPersist,
+      onTriggerBegin,
+      onTriggerEnd,
+      onTriggerPersist
+    );
   }
 
   static createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider {
