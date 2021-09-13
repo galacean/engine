@@ -161,7 +161,7 @@ export class PhysicsManager {
         distance,
         this.queryFlag,
         (idx, distance, position, normal) => {
-          hitResult.entity = this._physicalObjectsMap.get(idx).entity;
+          hitResult.entity = this._physicalObjectsMap.get(idx)._collider.entity;
           hitResult.distance = distance;
           normal.cloneTo(hitResult.normal);
           position.cloneTo(hitResult.point);

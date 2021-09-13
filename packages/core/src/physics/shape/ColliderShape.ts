@@ -2,14 +2,15 @@ import { IColliderShape } from "@oasis-engine/design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ignoreClone } from "../../clone/CloneManager";
-import { Entity } from "../../Entity";
 import { PhysicsState } from "../enums/PhysicsState";
+import { Collider } from "../Collider";
 
 /** Abstract class for collision shapes. */
 export abstract class ColliderShape {
   static idGenerator: number = 0;
 
-  entity: Entity;
+  /** @internal */
+  _collider: Collider;
 
   /** @internal */
   @ignoreClone
@@ -23,6 +24,10 @@ export abstract class ColliderShape {
   protected _material: PhysicsMaterial;
 
   private _scriptState: [PhysicsState, ColliderShape] = [PhysicsState.TOUCH_NONE, null];
+
+  get collider(): Collider {
+    return this._collider;
+  }
 
   get id(): number {
     return this._id;
@@ -84,18 +89,18 @@ export abstract class ColliderShape {
 
   callScript() {
     if (this._scriptState[0] == PhysicsState.TOUCH_FOUND) {
-      let scripts = this._scriptState[1].entity._scripts;
+      let scripts = this._scriptState[1]._collider.entity._scripts;
       for (let i = 0, len = scripts.length; i < len; i++) {
         scripts.get(i).onTriggerEnter(this._scriptState[1]);
       }
       this._scriptState[0] = PhysicsState.TOUCH_PERSISTS;
     } else if (this._scriptState[0] == PhysicsState.TOUCH_PERSISTS) {
-      let scripts = this._scriptState[1].entity._scripts;
+      let scripts = this._scriptState[1]._collider.entity._scripts;
       for (let i = 0, len = scripts.length; i < len; i++) {
         scripts.get(i).onTriggerStay(this._scriptState[1]);
       }
     } else if (this._scriptState[0] == PhysicsState.TOUCH_LOST) {
-      let scripts = this._scriptState[1].entity._scripts;
+      let scripts = this._scriptState[1]._collider.entity._scripts;
       for (let i = 0, len = scripts.length; i < len; i++) {
         scripts.get(i).onTriggerExit(this._scriptState[1]);
       }
