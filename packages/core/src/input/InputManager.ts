@@ -211,7 +211,7 @@ export class InputManager {
     const cameras = this._sceneMgr.activeScene._activeCameras;
     for (let i = cameras.length - 1; i >= 0; i--) {
       const camera = cameras[i];
-      if (!camera.enabled) {
+      if (!camera.enabled || camera.renderTarget) {
         continue;
       }
       const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
