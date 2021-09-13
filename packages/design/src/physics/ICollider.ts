@@ -13,5 +13,5 @@ export interface ICollider {
 
   setGlobalPose(position: Vector3, rotation: Quaternion);
 
-  getGlobalPose(): { translation: Vector3; rotation: Quaternion };
+  getGlobalPose(translation: Vector3, rotation: Quaternion);
 }

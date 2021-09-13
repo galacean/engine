@@ -22,12 +22,10 @@ export abstract class Collider implements ICollider {
     this._pxActor.setGlobalPose(transform, true);
   }
 
-  getGlobalPose(): { translation: Vector3; rotation: Quaternion } {
+  getGlobalPose(translation: Vector3, rotation: Quaternion) {
     const transform = this._pxActor.getGlobalPose();
-    return {
-      translation: new Vector3(transform.translation.x, transform.translation.y, transform.translation.z),
-      rotation: new Quaternion(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w)
-    };
+    translation.setValue(transform.translation.x, transform.translation.y, transform.translation.z);
+    rotation.setValue(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
   }
 
   /**
