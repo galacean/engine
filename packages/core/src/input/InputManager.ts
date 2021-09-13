@@ -44,9 +44,9 @@ export class InputManager {
   private _pointerIdToIndex: Record<number, number> = {};
 
   /** Temporary variables. */
-  private _tempRay: Ray = new Ray();
-  private _tempPoint: Vector2 = new Vector2();
-  private _tempHitResult: HitResult = new HitResult();
+  private static _tempRay: Ray = new Ray();
+  private static _tempPoint: Vector2 = new Vector2();
+  private static _tempHitResult: HitResult = new HitResult();
 
   /** Whether to support multi-touch. */
   private _multiTouchEnabled: boolean = false;
@@ -64,6 +64,17 @@ export class InputManager {
 
   set multiTouchEnabled(enabled: boolean) {
     this._multiTouchEnabled = enabled;
+  }
+
+  /**
+   * Constructor an InputManager.
+   * @param engine - The current engine instance
+   */
+  constructor(engine: Engine) {
+    // @ts-ignore
+    this._canvas = engine.canvas._webCanvas;
+    this._sceneMgr = engine.sceneManager;
+    this._physicsMgr = engine.physicsManager;
   }
 
   /**
@@ -187,17 +198,6 @@ export class InputManager {
   }
 
   /**
-   * Constructor an InputManager.
-   * @param engine - The current engine instance
-   */
-  constructor(engine: Engine) {
-    // @ts-ignore
-    this._canvas = engine.canvas._webCanvas;
-    this._sceneMgr = engine.sceneManager;
-    this._physicsMgr = engine.physicsManager;
-  }
-
-  /**
    * Get the Entity to which the ray is cast.
    * @param posX - The X coordinate of the pointer on the screen, specified in normalized
    * @param posY - The Y coordinate of the pointer on the screen, specified in normalized
@@ -212,12 +212,12 @@ export class InputManager {
       }
       const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
       if (posX >= vpX && posY >= vpY && posX - vpX <= vpW && posY - vpY <= vpH) {
-        const { _tempHitResult, _tempPoint } = this;
+        const { _tempHitResult, _tempPoint } = InputManager;
         _tempPoint.setValue((posX - vpX) / vpW, (posY - vpY) / vpH);
         // TODO: Only check which colliders have listened to the input.
-        if (this._physicsMgr.raycast(camera.viewportPointToRay(_tempPoint, this._tempRay), _tempHitResult)) {
-          return _tempHitResult.collider.entity;
-        }
+        return this._physicsMgr.raycast(camera.viewportPointToRay(_tempPoint, InputManager._tempRay), _tempHitResult)
+          ? _tempHitResult.collider.entity
+          : null;
       }
     }
     return null;
