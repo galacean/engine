@@ -73,11 +73,7 @@ export class InputManager {
    *  @remarks The returned Pointer should be considered deep-read-only.
    */
   getTouch(idx: number): Readonly<Pointer> {
-    if (idx < this._actPointerCount) {
-      return this._pointerList[idx];
-    } else {
-      return null;
-    }
+    return idx < this._actPointerCount ? this._pointerList[idx] : null;
   }
 
   /**
@@ -102,7 +98,7 @@ export class InputManager {
    * Remove the script that listen to input.
    */
   off() {
-    if (this._regScriptCount-- == 0) {
+    if (--this._regScriptCount == 0) {
       this._updateListener();
     }
   }
@@ -126,7 +122,7 @@ export class InputManager {
       /** Get the entity hit by the ray. */
       /** @ts-ignore */
       const { offsetLeft = 0, offsetTop = 0, clientWidth, clientHeight } = this._canvas;
-      const curEntity = this._pointerRayCast(
+      const curEntity = this._pointerRaycast(
         (_input.pageX - offsetLeft) / clientWidth,
         (_input.pageY - offsetTop) / clientHeight
       );
@@ -207,7 +203,7 @@ export class InputManager {
    * @param posY - The Y coordinate of the pointer on the screen, specified in normalized
    * @returns The Entity to which the ray is cast
    */
-  private _pointerRayCast(posX: number, posY: number): Entity {
+  private _pointerRaycast(posX: number, posY: number): Entity {
     const cameras = this._sceneMgr.activeScene._activeCameras;
     for (let i = cameras.length - 1; i >= 0; i--) {
       const camera = cameras[i];

@@ -42,7 +42,6 @@ export class Engine extends EventDispatcher {
   readonly physicsManager: PhysicsManager = new PhysicsManager(this);
 
   _componentsManager: ComponentsManager = new ComponentsManager();
-  _inputManager: InputManager;
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
@@ -66,6 +65,8 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _spriteMaskManager: SpriteMaskManager;
+  /** @internal */
+  _inputManager: InputManager;
 
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
@@ -247,10 +248,8 @@ export class Engine extends EventDispatcher {
     const componentsManager = this._componentsManager;
     if (scene) {
       const cameras = scene._activeCameras;
-      if (cameras.length > 0) {
-        /** Sort on priority. */
-        cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
-      }
+      /** Sort on priority. */
+      cameras.length > 0 && cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
 
       componentsManager.callScriptOnStart();
       componentsManager.callScriptOnUpdate(deltaTime);
