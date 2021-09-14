@@ -10,15 +10,15 @@ import { Pointer } from "./Pointer";
 
 /** @internal */
 enum PointerEventType {
-  PointDown = 0,
-  PointUp = 1,
-  PointMove = 2
+  PointDown,
+  PointUp,
+  PointMove
 }
 
 /** @internal */
 enum PointerChangeType {
-  Update = 0,
-  Remove = 1
+  Update,
+  Remove
 }
 
 /**
