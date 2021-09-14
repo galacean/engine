@@ -8,13 +8,15 @@ import { Script } from "../Script";
 import { Input } from "./Input";
 import { Pointer } from "./Pointer";
 
-export enum PointerEventType {
+/** @internal */
+enum PointerEventType {
   PointDown = 0,
   PointUp = 1,
   PointMove = 2
 }
 
-export enum PointerChangeType {
+/** @internal */
+enum PointerChangeType {
   Update = 0,
   Remove = 1
 }
@@ -52,8 +54,6 @@ export class InputManager {
   private _multiTouchEnabled: boolean = false;
   /** Number of scripts registered to listen. */
   private _regScriptCount: number = 0;
-  /** Is it currently listening. */
-  private _hadListener: boolean = false;
 
   /**
    * Whether to support multi-touch.
@@ -112,6 +112,25 @@ export class InputManager {
     if (--this._regScriptCount == 0) {
       this._updateListener();
     }
+  }
+
+  /**
+   * Called when the engine is destroyed.
+   */
+  destroy() {
+    const { _canvas: canvas } = this;
+    canvas.removeEventListener("pointerdown", this._onPointerDown);
+    canvas.removeEventListener("pointerup", this._onPointerUp);
+    canvas.removeEventListener("pointermove", this._onPointerMove);
+    canvas.removeEventListener("pointercancel", this._onPointerCancelOrOut);
+    canvas.removeEventListener("pointerout", this._onPointerCancelOrOut);
+    this._eventList.length = 0;
+    this._pointerList.length = 0;
+    this._input = null;
+    this._pointerIdToIndex = null;
+    this._sceneMgr = null;
+    this._physicsMgr = null;
+    this._canvas = null;
   }
 
   /**
@@ -336,15 +355,14 @@ export class InputManager {
    * Update the current listening status.
    */
   private _updateListener() {
-    const { _regScriptCount, _hadListener, _canvas: canvas } = this;
-    if (_regScriptCount > 0 && !_hadListener) {
+    const { _regScriptCount, _canvas: canvas } = this;
+    if (_regScriptCount > 0) {
       canvas.addEventListener("pointerdown", this._onPointerDown);
       canvas.addEventListener("pointerup", this._onPointerUp);
       canvas.addEventListener("pointermove", this._onPointerMove);
       canvas.addEventListener("pointercancel", this._onPointerCancelOrOut);
       canvas.addEventListener("pointerout", this._onPointerCancelOrOut);
-      this._hadListener = true;
-    } else if (_regScriptCount <= 0 && _hadListener) {
+    } else {
       canvas.removeEventListener("pointerdown", this._onPointerDown);
       canvas.removeEventListener("pointerup", this._onPointerUp);
       canvas.removeEventListener("pointermove", this._onPointerMove);
@@ -352,7 +370,6 @@ export class InputManager {
       canvas.removeEventListener("pointerout", this._onPointerCancelOrOut);
       this._eventLen = 0;
       this._actPointerCount = 0;
-      this._hadListener = false;
     }
   }
 }

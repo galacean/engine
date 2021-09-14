@@ -23,12 +23,12 @@ export class Script extends Component {
   _onPreRenderIndex: number = -1;
   /** @internal */
   @ignoreClone
-  _listenInput: boolean = false;
-  /** @internal */
-  @ignoreClone
   _onPostRenderIndex: number = -1;
   @ignoreClone
   _entityCacheIndex: number = -1;
+
+  /** Whether the script is listening to input. */
+  private _listenInput: boolean = false;
 
   /**
    * Called when be enabled first time, only once.
@@ -165,10 +165,8 @@ export class Script extends Component {
       this.onPointerEnter !== prototype.onPointerEnter ||
       this.onPointerExit !== prototype.onPointerExit
     ) {
-      if (!this._listenInput) {
-        engine._inputManager.on();
-        this._listenInput = true;
-      }
+      engine._inputManager.on();
+      this._listenInput = true;
     }
 
     this._entity._addScript(this);
