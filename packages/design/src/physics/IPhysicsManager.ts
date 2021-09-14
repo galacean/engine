@@ -2,12 +2,21 @@ import { Ray, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
 
 export interface IPhysicsManager {
+  /**
+   * add Collider into the manager
+   * @param actor StaticCollider or DynamicCollider.
+   */
   addCollider(actor: ICollider);
 
-  removeCollider(collider: ICollider): void;
+  /**
+   * remove Collider
+   * @param actor StaticCollider or DynamicCollider.
+   */
+  removeCollider(actor: ICollider): void;
 
   /**
-   * call on every frame to update pose of objects
+   * call on every frame to update pose of objects.
+   * @param elapsedTime step time of update.
    */
   update(elapsedTime: number);
 

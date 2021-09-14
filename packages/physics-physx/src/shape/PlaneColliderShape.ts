@@ -14,9 +14,7 @@ export class PlaneColliderShape extends ColliderShape implements IPlaneColliderS
    * @remarks must call after this component add to Entity.
    */
   constructor(index: number, material: PhysicsMaterial, position: Vector3, rotation: Quaternion) {
-    super();
-    position.cloneTo(this._position);
-    Quaternion.rotateZ(rotation, Math.PI * 0.5, this._rotation);
+    super(position, rotation);
 
     // alloc Physx object
     this._allocGeometry();
@@ -25,7 +23,6 @@ export class PlaneColliderShape extends ColliderShape implements IPlaneColliderS
     this.setID(index);
   }
 
-  //----------------------------------------------------------------------------
   private _allocGeometry() {
     this._pxGeometry = new PhysXManager.PhysX.PxPlaneGeometry();
   }

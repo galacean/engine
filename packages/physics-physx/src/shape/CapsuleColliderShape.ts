@@ -4,19 +4,8 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./ColliderShape";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 
-/** PhysXPhysics Shape for Capsule */
+/** PhysX Shape for Capsule */
 export class CapsuleColliderShape extends ColliderShape implements ICapsuleColliderShape {
-  /** radius of capsule */
-  setRadius(value: number) {
-    this._pxGeometry.radius = value;
-    this._pxShape.setGeometry(this._pxGeometry);
-  }
-
-  setHeight(value: number) {
-    this._pxGeometry.halfHeight = value / 2.0;
-    this._pxShape.setGeometry(this._pxGeometry);
-  }
-
   /**
    * init Collider and alloc PhysX objects.
    * @param index index mark collider
@@ -35,9 +24,7 @@ export class CapsuleColliderShape extends ColliderShape implements ICapsuleColli
     position: Vector3,
     rotation: Quaternion
   ) {
-    super();
-    position.cloneTo(this._position);
-    Quaternion.rotateZ(rotation, Math.PI * 0.5, this._rotation);
+    super(position, rotation);
 
     // alloc Physx object
     this._allocGeometry(radius, height);
@@ -46,7 +33,24 @@ export class CapsuleColliderShape extends ColliderShape implements ICapsuleColli
     this.setID(index);
   }
 
-  //----------------------------------------------------------------------------
+  /**
+   * radius of capsule
+   * @param value the radius
+   */
+  setRadius(value: number) {
+    this._pxGeometry.radius = value;
+    this._pxShape.setGeometry(this._pxGeometry);
+  }
+
+  /**
+   * height of capsule
+   * @param value the height
+   */
+  setHeight(value: number) {
+    this._pxGeometry.halfHeight = value / 2.0;
+    this._pxShape.setGeometry(this._pxGeometry);
+  }
+
   private _allocGeometry(radius: number, height: number) {
     this._pxGeometry = new PhysXManager.PhysX.PxCapsuleGeometry(radius, height / 2.0);
   }

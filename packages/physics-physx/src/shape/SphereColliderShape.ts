@@ -6,11 +6,6 @@ import { PhysicsMaterial } from "../PhysicsMaterial";
 
 /** PhysXPhysics Shape for Sphere */
 export class SphereColliderShape extends ColliderShape implements ISphereColliderShape {
-  setRadius(value: number) {
-    this._pxGeometry.radius = value;
-    this._pxShape.setGeometry(this._pxGeometry);
-  }
-
   /**
    * init Collider and alloc PhysX objects.
    * @param index index mark collider
@@ -21,9 +16,7 @@ export class SphereColliderShape extends ColliderShape implements ISphereCollide
    * @remarks must call after this component add to Entity.
    */
   constructor(index: number, radius: number, material: PhysicsMaterial, position: Vector3, rotation: Quaternion) {
-    super();
-    position.cloneTo(this._position);
-    Quaternion.rotateZ(rotation, Math.PI * 0.5, this._rotation);
+    super(position, rotation);
 
     // alloc Physx object
     this._allocGeometry(radius);
@@ -32,7 +25,15 @@ export class SphereColliderShape extends ColliderShape implements ISphereCollide
     this.setID(index);
   }
 
-  //----------------------------------------------------------------------------
+  /**
+   * set radius of sphere
+   * @param value the radius
+   */
+  setRadius(value: number) {
+    this._pxGeometry.radius = value;
+    this._pxShape.setGeometry(this._pxGeometry);
+  }
+
   private _allocGeometry(radius: number) {
     this._pxGeometry = new PhysXManager.PhysX.PxSphereGeometry(radius);
   }

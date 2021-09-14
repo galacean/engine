@@ -51,31 +51,48 @@ export class ColliderShape implements IColliderShape {
     this._pxShape.setFlags(new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags));
   }
 
-  /** local position */
+  constructor(position: Vector3, rotation: Quaternion) {
+    position.cloneTo(this._position);
+    Quaternion.rotateZ(rotation, Math.PI * 0.5, this._rotation);
+  }
+
+  /**
+   * set local position
+   * @param value the local position
+   */
   setPosition(value: Vector3) {
     value.cloneTo(this._position);
     this._setLocalPose();
   }
 
-  /** local rotation */
+  /**
+   * set local rotation
+   * @param value the local rotation
+   */
   setRotation(value: Quaternion) {
     Quaternion.rotateZ(value, Math.PI * 0.5, this._rotation);
     this._setLocalPose();
   }
 
-  /** physics material on shape */
+  /**
+   * set physics material on shape
+   * @param value the material
+   */
   setMaterial(value: PhysicsMaterial) {
     this._pxShape.setMaterials([value._pxMaterial]);
   }
 
-  /** physics shape marker */
+  /**
+   * set physics shape marker
+   * @param index the unique index
+   */
   setID(index: number) {
     this._id = index;
     this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
   }
 
   /**
-   * Set Trigger or not
+   * set Trigger or not
    * @param value true for TriggerShape, false for SimulationShape
    */
   isTrigger(value: boolean) {
@@ -85,7 +102,7 @@ export class ColliderShape implements IColliderShape {
   }
 
   /**
-   * Set Scene Query or not
+   * set Scene Query or not
    * @param value true for Query, false for not Query
    */
   isSceneQuery(value: boolean) {
@@ -93,9 +110,6 @@ export class ColliderShape implements IColliderShape {
     this.shapeFlags = this._shapeFlags;
   }
 
-  /**
-   * Set Local Pose for the Shape
-   */
   protected _setLocalPose(position: Vector3 = this._position, rotation: Quaternion = this._rotation) {
     this._position = position;
     this._rotation = rotation;
