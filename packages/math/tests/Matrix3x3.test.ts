@@ -2,7 +2,6 @@ import { Matrix3x3 } from "../src/Matrix3x3";
 import { Matrix } from "../src/Matrix";
 import { Quaternion } from "../src/Quaternion";
 import { Vector2 } from "../src/Vector2";
-import { Vector3 } from "../src/Vector3";
 
 describe("Matrix3x3 test", () => {
   it("static add", () => {
@@ -39,6 +38,16 @@ describe("Matrix3x3 test", () => {
 
     expect(Matrix3x3.equals(a, b)).toEqual(true);
     expect(Matrix3x3.equals(a, c)).toEqual(false);
+  });
+
+  it("static lerp", () => {
+    const a = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    const b = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
+    const c = new Matrix3x3();
+    Matrix3x3.lerp(a, b, 0.78, c);
+
+    expect(Matrix3x3.equals(a, b)).toEqual(true);
+    expect(Matrix3x3.equals(a, c)).toEqual(true);
   });
 
   it("static fromXXX", () => {
@@ -135,6 +144,21 @@ describe("Matrix3x3 test", () => {
     a.setValue(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
     expect(Matrix3x3.equals(a, new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9))).toEqual(true);
+  });
+
+  it("setValueByxxx", () => {
+    const a = new Matrix3x3();
+    a.setValueByArray([1, 2, 3, 4, 5, 6, 7, 8, 9]);
+    const b = new Matrix3x3();
+    b.setValueByMatrix(new Matrix(1, 2, 3, 0, 4, 5, 6, 0, 7, 8, 9, 0, 0, 0, 0, 1));
+    const c = new Matrix3x3();
+    const arr = [];
+    a.toArray(arr);
+    c.setValueByArray(arr);
+
+    expect(Matrix3x3.equals(a, b)).toEqual(true);
+    expect(Matrix3x3.equals(a, c)).toEqual(true);
+    expect(Matrix3x3.equals(b, c)).toEqual(true);
   });
 
   it("clone", () => {

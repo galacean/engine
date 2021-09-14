@@ -43,8 +43,8 @@ export class BlendShape {
   addFrame(
     weight: number,
     deltaPositions: Vector3[],
-    deltaNormals: Vector3[] | null,
-    deltaTangents: Vector3[] | null
+    deltaNormals?: Vector3[],
+    deltaTangents?: Vector3[]
   ): BlendShapeFrame;
 
   /**
@@ -56,8 +56,8 @@ export class BlendShape {
   addFrame(
     frameOrWeight: BlendShapeFrame | number,
     deltaPositions?: Vector3[],
-    deltaNormals?: Vector3[] | null,
-    deltaTangents?: Vector3[] | null
+    deltaNormals?: Vector3[],
+    deltaTangents?: Vector3[]
   ): void | BlendShapeFrame {
     if (typeof frameOrWeight === "number") {
       const frame = new BlendShapeFrame(frameOrWeight, deltaPositions, deltaNormals, deltaTangents);

@@ -12,11 +12,11 @@ export class Keyframe<V> {
 }
 
 /**
- * InterpolaKeyframe.
+ * InterpolableKeyframe.
  * @typeParam T - Type of Tangent value
  * @typeParam V - Type of Keyframe value
  */
-export class InterpolaKeyframe<T, V> extends Keyframe<V> {
+export class InterpolableKeyframe<T, V> extends Keyframe<V> {
   /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
   inTangent?: T;
   /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
@@ -24,14 +24,14 @@ export class InterpolaKeyframe<T, V> extends Keyframe<V> {
 }
 
 export type ObjectKeyframe = Keyframe<Object>;
-export type FloatKeyframe = InterpolaKeyframe<number, number>;
-export type FloatArrayKeyframe = InterpolaKeyframe<Float32Array, Float32Array>;
-export type Vector2Keyframe = InterpolaKeyframe<Vector2, Vector2>;
-export type Vector3Keyframe = InterpolaKeyframe<Vector3, Vector3>;
-export type Vector4Keyframe = InterpolaKeyframe<Vector4, Vector4>;
-export type QuaternionKeyframe = InterpolaKeyframe<Vector4, Quaternion>;
+export type FloatKeyframe = InterpolableKeyframe<number, number>;
+export type FloatArrayKeyframe = InterpolableKeyframe<Float32Array, Float32Array>;
+export type Vector2Keyframe = InterpolableKeyframe<Vector2, Vector2>;
+export type Vector3Keyframe = InterpolableKeyframe<Vector3, Vector3>;
+export type Vector4Keyframe = InterpolableKeyframe<Vector4, Vector4>;
+export type QuaternionKeyframe = InterpolableKeyframe<Vector4, Quaternion>;
 
-export type UnionInterpolaKeyframe =
+export type UnionInterpolableKeyframe =
   | FloatKeyframe
   | FloatArrayKeyframe
   | Vector2Keyframe

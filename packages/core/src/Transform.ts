@@ -677,10 +677,7 @@ export class Transform extends Component {
 
   private _translate(translation: Vector3, relativeToLocal: boolean = true): void {
     if (relativeToLocal) {
-      const rotationMat = Transform._tempMat40;
-      Matrix.rotationQuaternion(this.rotationQuaternion, rotationMat);
-      Vector3.transformCoordinate(translation, rotationMat, Transform._tempVec3);
-      this.position = this._position.add(Transform._tempVec3);
+      this.position = this._position.add(translation);
     } else {
       this.worldPosition = this._worldPosition.add(translation);
     }

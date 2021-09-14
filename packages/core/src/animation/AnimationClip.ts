@@ -2,7 +2,7 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
-import { AnimationClipCurveData } from "./AnimationClipCurveData";
+import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
 import { AnimationProperty } from "./enums/AnimationProperty";
@@ -13,19 +13,28 @@ import { Motion } from "./Motion";
  */
 export class AnimationClip extends Motion {
   /** @internal */
-  _curves: AnimationClipCurveData<Component>[] = [];
+  _curveBindings: AnimationClipCurveBinding[] = [];
 
   private _length: number = 0;
   private _events: AnimationEvent[] = [];
 
   /**
-   * Animation Events for this animation clip.
+   * Animation events for this animation clip.
    */
   get events(): Readonly<AnimationEvent[]> {
     return this._events;
   }
 
-  /** Animation length in seconds. */
+  /**
+   * Animation curve bindings for this animation clip.
+   */
+  get curveBindings(): Readonly<AnimationClipCurveBinding[]> {
+    return this._curveBindings;
+  }
+
+  /**
+   * Animation length in seconds.
+   */
   get length(): number {
     return this._length;
   }
@@ -33,7 +42,7 @@ export class AnimationClip extends Motion {
   /**
    * @param name - The AnimationClip's name
    */
-  constructor(public readonly name: string) {
+  constructor (public readonly name: string) {
     super();
   }
 
@@ -54,13 +63,13 @@ export class AnimationClip extends Motion {
   }
 
   /**
-   * Assigns the curve to animate a specific property.
+   * Add curve binding for the clip.
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type- The class type of the component that is animated
    * @param propertyName - The name to the property being animated
    * @param curve - The animation curve
    */
-  setCurve<T extends Component>(
+  addCurveBinding<T extends Component>(
     relativePath: string,
     type: new (entity: Entity) => T,
     propertyName: string,
@@ -82,23 +91,22 @@ export class AnimationClip extends Motion {
         break;
       default:
     }
-    const curveData: AnimationClipCurveData<Component> = {
-      relativePath,
-      type,
-      property,
-      curve
-    };
+    const curveBinding = new AnimationClipCurveBinding();
+    curveBinding.relativePath = relativePath;
+    curveBinding.type = type;
+    curveBinding.property = property;
+    curveBinding.curve = curve;
     if (curve.length > this._length) {
       this._length = curve.length;
     }
-    this._curves.push(curveData);
+    this._curveBindings.push(curveBinding);
   }
 
   /**
-   * Clears all curves from the clip.
+   * Clears all curve bindings from the clip.
    */
-  clearCurves(): void {
-    this._curves.length = 0;
+  clearCurveBindings(): void {
+    this._curveBindings.length = 0;
     this._length = 0;
   }
 
@@ -109,9 +117,9 @@ export class AnimationClip extends Motion {
    * @param time - The time to sample an animation
    */
   _sampleAnimation(entity: Entity, time: number): void {
-    const { length } = this._curves;
+    const { length } = this._curveBindings;
     for (let i = length - 1; i >= 0; i--) {
-      const curveData = this._curves[i];
+      const curveData = this._curveBindings[i];
       const { curve, property, relativePath, type } = curveData;
       const val = curve.evaluate(time);
       const target = entity.findByName(relativePath);

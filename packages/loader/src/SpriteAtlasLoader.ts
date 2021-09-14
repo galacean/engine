@@ -11,6 +11,7 @@ import {
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
 import { Rect, Vector2 } from "@oasis-engine/math";
+import { GLTFUtil } from "./gltf/GLTFUtil";
 
 @resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
 class SpriteAtlasLoader extends Loader<SpriteAtlas> {
@@ -25,19 +26,19 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           const atlasItemsLen = atlasItems.length;
           Promise.all(
             atlasItems.map(({ img }) =>
-              this.request<HTMLImageElement>(img, {
+              this.request<HTMLImageElement>(GLTFUtil.parseRelativeUrl(item.url, img), {
                 ...item,
                 type: "image"
               })
             )
           ).then((imgs) => {
             const { engine } = resourceManager;
-            // Generate a SpriteAtlas object
+            // Generate a SpriteAtlas object.
             const tempRect = new Rect();
-            const tempPivot = new Vector2();
+            const tempVect2 = new Vector2();
             const spriteAtlas = new SpriteAtlas(engine);
             for (let i = 0; i < atlasItemsLen; i++) {
-              // Generate Texture2D according to configuration
+              // Generate Texture2D according to configuration.
               const originalImg = imgs[i];
               const { width, height } = originalImg;
               const texture = new Texture2D(engine, width, height, format);
@@ -50,12 +51,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const sourceHeightReciprocal = 1.0 / height;
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
-                const { region, pivot, atlasRegionOffset, atlasRegion } = atlasSprite;
+                const { region, pivot, atlasRegionOffset, atlasRegion, id } = atlasSprite;
                 const sprite = new Sprite(
                   engine,
                   texture,
                   region ? tempRect.setValue(region.x, region.y, region.w, region.h) : undefined,
-                  pivot ? tempPivot.setValue(pivot.x, pivot.y) : undefined,
+                  pivot ? tempVect2.setValue(pivot.x, pivot.y) : undefined,
                   atlasSprite.pixelsPerUnit || undefined,
                   atlasSprite.name
                 );
@@ -65,8 +66,29 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   atlasRegion.w * sourceWidthReciprocal,
                   atlasRegion.h * sourceHeightReciprocal
                 );
-                atlasRegionOffset && sprite.atlasRegionOffset.setValue(atlasRegionOffset.x, atlasRegionOffset.y);
-                /** @ts-ignore */
+                atlasSprite.atlasRotated && (sprite.atlasRotated = true);
+                if (atlasRegionOffset) {
+                  const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+                  let originalWReciprocal: number, originalHReciprocal: number;
+                  if (atlasSprite.atlasRotated) {
+                    originalWReciprocal = 1 / (offsetLeft + atlasRegion.h + offsetRight);
+                    originalHReciprocal = 1 / (offsetTop + atlasRegion.w + offsetBottom);
+                  } else {
+                    originalWReciprocal = 1 / (offsetLeft + atlasRegion.w + offsetRight);
+                    originalHReciprocal = 1 / (offsetTop + atlasRegion.h + offsetBottom);
+                  }
+                  sprite.atlasRegionOffset.setValue(
+                    offsetLeft * originalWReciprocal,
+                    offsetTop * originalHReciprocal,
+                    offsetRight * originalWReciprocal,
+                    offsetBottom * originalHReciprocal
+                  );
+                }
+                if (id !== undefined) {
+                  // @ts-ignore
+                  sprite._assetID = id;
+                }
+                // @ts-ignore
                 spriteAtlas._addSprite(sprite);
               }
             }

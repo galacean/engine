@@ -1,4 +1,5 @@
 import { Engine } from "../Engine";
+import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
 
@@ -6,32 +7,30 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Metallic-Roughness Workflow) Material.
  */
 export class PBRMaterial extends PBRBaseMaterial {
-  private _metallic: number = 1;
-  private _roughness: number = 1;
-  private _roughnessMetallicTexture: Texture2D;
+  private static _metallicProp = Shader.getPropertyByName("u_metal");
+  private static _roughnessProp = Shader.getPropertyByName("u_roughness");
+  private static _metallicRoughnessTextureProp = Shader.getPropertyByName("u_metallicRoughnessSampler");
 
   /**
    * Metallic.
    */
   get metallic(): number {
-    return this._metallic;
+    return this.shaderData.getFloat(PBRMaterial._metallicProp);
   }
 
   set metallic(value: number) {
-    this._metallic = value;
-    this.shaderData.setFloat("u_metal", value);
+    this.shaderData.setFloat(PBRMaterial._metallicProp, value);
   }
 
   /**
    * Roughness.
    */
   get roughness(): number {
-    return this._roughness;
+    return this.shaderData.getFloat(PBRMaterial._roughnessProp);
   }
 
   set roughness(value: number) {
-    this._roughness = value;
-    this.shaderData.setFloat("u_roughness", value);
+    this.shaderData.setFloat(PBRMaterial._roughnessProp, value);
   }
 
   /**
@@ -39,15 +38,13 @@ export class PBRMaterial extends PBRBaseMaterial {
    * @remarks G channel is roughness, B channel is metallic
    */
   get roughnessMetallicTexture(): Texture2D {
-    return this._roughnessMetallicTexture;
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._metallicRoughnessTextureProp);
   }
 
   set roughnessMetallicTexture(value: Texture2D) {
-    this._roughnessMetallicTexture = value;
-
+    this.shaderData.setTexture(PBRMaterial._metallicRoughnessTextureProp, value);
     if (value) {
       this.shaderData.enableMacro("HAS_METALROUGHNESSMAP");
-      this.shaderData.setTexture("u_metallicRoughnessSampler", value);
     } else {
       this.shaderData.disableMacro("HAS_METALROUGHNESSMAP");
     }
@@ -60,9 +57,8 @@ export class PBRMaterial extends PBRBaseMaterial {
   constructor(engine: Engine) {
     super(engine);
     this.shaderData.enableMacro("IS_METALLIC_WORKFLOW");
-
-    this.metallic = this._metallic;
-    this.roughness = this._roughness;
+    this.shaderData.setFloat(PBRMaterial._metallicProp, 1.0);
+    this.shaderData.setFloat(PBRMaterial._roughnessProp, 1.0);
   }
 
   /**

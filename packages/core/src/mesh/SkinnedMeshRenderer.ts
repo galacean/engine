@@ -77,8 +77,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
 
     const mesh = <ModelMesh>this.mesh;
-    const blendShapes = mesh.blendShapes;
-    if (blendShapes && blendShapes.length > 0) {
+    if (mesh._hasBlendShape) {
       shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
 

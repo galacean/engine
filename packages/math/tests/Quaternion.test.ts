@@ -39,6 +39,7 @@ describe("Quaternion test", () => {
     const b = new Quaternion(-4, 5, 1, 1);
 
     expect(Quaternion.dot(a, b)).toEqual(9);
+    expect(a.dot(b)).toEqual(9);
   });
 
   it("static equals", () => {
@@ -119,6 +120,8 @@ describe("Quaternion test", () => {
 
     Quaternion.lerp(a, b, 0.5, out);
     expect(Quaternion.equals(out, normal.normalize())).toEqual(true);
+    a.lerp(b, 0.5);
+    expect(Quaternion.equals(a, normal.normalize())).toEqual(true);
   });
 
   it("static slerp", () => {
@@ -151,6 +154,29 @@ describe("Quaternion test", () => {
     expect(Quaternion.equals(out, new Quaternion(0, 0, 0.6816387600233341, 0.7316888688738209))).toEqual(true);
   });
 
+  it("static rotate", () => {
+    const a = new Quaternion();
+    const b = new Quaternion();
+    const out = new Quaternion();
+
+    Quaternion.rotateX(a, 1.5, out);
+    b.rotateX(1.5);
+    expect(Quaternion.equals(out, new Quaternion(0.6816387600233341, 0, 0, 0.7316888688738209))).toEqual(true);
+    expect(Quaternion.equals(out, b)).toEqual(true);
+
+    Quaternion.rotateY(a, 1.5, out);
+    b.setValue(0, 0, 0, 1);
+    b.rotateY(1.5);
+    expect(Quaternion.equals(out, new Quaternion(0, 0.6816387600233341, 0, 0.7316888688738209))).toEqual(true);
+    expect(Quaternion.equals(out, b)).toEqual(true);
+
+    Quaternion.rotateZ(a, 1.5, out);
+    b.setValue(0, 0, 0, 1);
+    b.rotateZ(1.5);
+    expect(Quaternion.equals(out, new Quaternion(0, 0, 0.6816387600233341, 0.7316888688738209))).toEqual(true);
+    expect(Quaternion.equals(out, b)).toEqual(true);
+  });
+
   it("static scale", () => {
     const a = new Quaternion(3, 4, 5, 0);
     const out = new Quaternion();
@@ -166,6 +192,20 @@ describe("Quaternion test", () => {
     const ypr = a.toYawPitchRoll(new Vector3());
     expect(Vector3.equals(euler, new Vector3(0, Math.PI / 3, 0))).toEqual(true);
     expect(Vector3.equals(ypr, new Vector3(Math.PI / 3, 0, 0))).toEqual(true);
+  });
+
+  it("setValue", () => {
+    const a = new Quaternion();
+    a.setValue(1, 1, 1, 1);
+    const b = new Quaternion();
+    b.setValueByArray([1, 1, 1, 1]);
+    expect(Quaternion.equals(a, b)).toEqual(true);
+    
+    const c = [];
+    b.toArray(c);
+    const d = new Quaternion();
+    d.setValueByArray(c);
+    expect(Quaternion.equals(a, d)).toEqual(true);
   });
 
   it("clone", () => {

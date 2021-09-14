@@ -1,6 +1,6 @@
 import { AnimatorState } from "../AnimatorState";
 import { WrapMode } from "../enums/WrapMode";
-import { AnimatorStateData } from "./AnimatorStataData";
+import { AnimatorStateData } from "./AnimatorStateData";
 
 /**
  * @internal

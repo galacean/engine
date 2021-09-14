@@ -139,6 +139,8 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this);
     this._capability = new GLCapability(this);
+    // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
+    gl.activeTexture(WebGLRenderingContext.TEXTURE0);
 
     this._options = null;
   }

@@ -21,12 +21,16 @@ export interface AtlasConfig {
  * The original data type of each sprite.
  */
 export interface AtlasSprite {
+  /** Temp solution. */
+  id: number;
   /** The name the sprite. */
   name: string;
+  /** Whether to rotate 90 degrees clockwise. */
+  atlasRotated: boolean;
   /** The range of the sprites on the big picture. */
   atlasRegion: { x: number; y: number; w: number; h: number };
-  /** If there is trimming, the offset of the sprite relative to the original sprite. */
-  atlasRegionOffset: { x: number; y: number };
+  /** If there is trimming, the size of the blank area on the four sides. */
+  atlasRegionOffset: { x: number; y: number; z: number; w: number };
   region: { x: number; y: number; w: number; h: number };
   pivot: { x: number; y: number };
   pixelsPerUnit: number;

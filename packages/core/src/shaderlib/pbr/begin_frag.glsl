@@ -20,15 +20,7 @@
     #endif
 
     #ifdef O3_HAS_VERTEXCOLOR
-
-        diffuseColor.rgb *= v_color.rgb;
-
-        #ifdef O3_HAS_VERTEXALPHA
-
-            diffuseColor.a *= v_color.a;
-
-        #endif
-
+        diffuseColor *= v_color;
     #endif
 
 

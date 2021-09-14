@@ -1,6 +1,6 @@
 import { Vector2, Vector3, Vector4, Color } from "@oasis-engine/math";
 import { WebGLEngine } from "../../rhi-webgl/src";
-import { IndexFormat } from "../src";
+import { BlendShape, IndexFormat } from "../src";
 import { ModelMesh } from "../src/mesh/ModelMesh";
 
 describe("ModelMesh Test", function () {
@@ -18,6 +18,9 @@ describe("ModelMesh Test", function () {
   const indices = new Uint8Array([0, 1, 2]);
   const indices16 = new Uint16Array([0, 1, 2]);
   const indices32 = new Uint32Array([0, 1, 2]);
+  const deltaPositions = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
+  const deltaNormals = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
+  const deltaTangents = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
 
   const falsyColors = [new Color()];
   const falsyNormals = [new Vector3()];
@@ -46,6 +49,18 @@ describe("ModelMesh Test", function () {
     modelMesh.setIndices(indices32);
     // @ts-ignore
     expect(modelMesh._indicesFormat).toBe(IndexFormat.UInt32);
+  });
+
+  it("set blendShape data", () => {
+    const blendShape = new BlendShape("BlendShape");
+    blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
+    modelMesh.addBlendShape(blendShape);
+
+    const frame0 = modelMesh.blendShapes[0].frames[0];
+    expect(frame0.weight).toBe(1.0);
+    expect(frame0.deltaPositions.length).toBe(3);
+    expect(frame0.deltaNormals.length).toBe(3);
+    expect(frame0.deltaTangents.length).toBe(3);
   });
 
   it("set data correct", () => {
@@ -80,6 +95,11 @@ describe("ModelMesh Test", function () {
     expect(modelMesh.getUVs(7)).toBe(uvs);
 
     expect(modelMesh._vertexElements.length).toBe(0);
+
+    const frame0 = modelMesh.blendShapes[0].frames[0];
+    expect(frame0.deltaPositions).toBe(deltaPositions);
+    expect(frame0.deltaNormals).toBe(deltaNormals);
+    expect(frame0.deltaTangents).toBe(deltaTangents);
   });
 
   it("set data not same size", () => {
@@ -142,6 +162,11 @@ describe("ModelMesh Test", function () {
     expect(modelMesh.getUVs(6)).toBe(uvs);
     expect(modelMesh.getUVs(7)).toBe(uvs);
 
+    const frame0 = modelMesh.blendShapes[0].frames[0];
+    expect(frame0.deltaPositions).toBe(deltaPositions);
+    expect(frame0.deltaNormals).toBe(deltaNormals);
+    expect(frame0.deltaTangents).toBe(deltaTangents);
+
     modelMesh.setPositions(positionsX);
     expect(modelMesh.vertexCount).toBe(4);
     // @ts-ignore
@@ -159,6 +184,9 @@ describe("ModelMesh Test", function () {
 
     modelMesh.setIndices(null);
     modelMesh.setPositions(positions);
+
+    modelMesh.clearBlendShapes();
+    expect(modelMesh.blendShapes.length).toBe(0);
   });
   it("upload data with no longer used", () => {
     modelMesh.uploadData(true);
@@ -209,6 +237,9 @@ describe("ModelMesh Test", function () {
     }).toThrow("Not allowed to access data while accessible is false.");
     expect(() => {
       modelMesh.getUVs();
+    }).toThrow("Not allowed to access data while accessible is false.");
+    expect(() => {
+      modelMesh.blendShapes;
     }).toThrow("Not allowed to access data while accessible is false.");
   });
 });

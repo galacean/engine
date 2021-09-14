@@ -29,6 +29,14 @@ export class PhysicsManager {
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray, outHitResult: HitResult): Boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
    * @param distance - The max distance the ray should check
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
@@ -38,7 +46,16 @@ export class PhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param layerMask- Layer mask that is used to selectively ignore Colliders when casting
+   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
+   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   */
+  raycast(ray: Ray, distance: number, outHitResult: HitResult): Boolean;
+
+  /**
+   * Casts a ray through the Scene and returns the first hit.
+   * @param ray - The ray
+   * @param distance - The max distance the ray should check
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
   raycast(ray: Ray, distance: number, layerMask: Layer): Boolean;
@@ -47,7 +64,7 @@ export class PhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param layerMask- Layer mask that is used to selectively ignore Colliders when casting
+   * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a Collider, otherwise false.
    */
@@ -55,14 +72,35 @@ export class PhysicsManager {
 
   raycast(
     ray: Ray,
-    distance: number = Number.MAX_VALUE,
-    layerMask: Layer = Layer.Everything,
+    distanceOrResult?: number | HitResult,
+    layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
   ): Boolean {
     const cf = this._engine.sceneManager.activeScene.findFeature(ColliderFeature);
     const colliders = cf.colliders;
 
-    let curHit = PhysicsManager._currentHit;
+    let hitResult: HitResult;
+
+    let distance = Number.MAX_VALUE;
+    if (typeof distanceOrResult === "number") {
+      distance = distanceOrResult;
+    } else if (distanceOrResult != undefined) {
+      hitResult = distanceOrResult;
+    }
+
+    let layerMask = Layer.Everything;
+    if (typeof layerMaskOrResult === "number") {
+      layerMask = layerMaskOrResult;
+    } else if (layerMaskOrResult != undefined) {
+      hitResult = layerMaskOrResult;
+    }
+
+    if (outHitResult) {
+      hitResult = outHitResult;
+    }
+
+    let isHit = false;
+    const curHit = PhysicsManager._currentHit;
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
 
@@ -71,12 +109,13 @@ export class PhysicsManager {
       }
 
       if (collider._raycast(ray, curHit)) {
+        isHit = true;
         if (curHit.distance < distance) {
-          if (outHitResult) {
-            curHit.normal.cloneTo(outHitResult.normal);
-            curHit.point.cloneTo(outHitResult.point);
-            outHitResult.distance = curHit.distance;
-            outHitResult.collider = curHit.collider;
+          if (hitResult) {
+            curHit.normal.cloneTo(hitResult.normal);
+            curHit.point.cloneTo(hitResult.point);
+            hitResult.distance = curHit.distance;
+            hitResult.collider = curHit.collider;
           } else {
             return true;
           }
@@ -85,10 +124,12 @@ export class PhysicsManager {
       }
     }
 
-    if (outHitResult) {
-      return outHitResult.collider != null;
-    } else {
-      return false;
+    if (!isHit && hitResult) {
+      hitResult.collider = null;
+      hitResult.distance = 0;
+      hitResult.point.setValue(0, 0, 0);
+      hitResult.normal.setValue(0, 0, 0);
     }
+    return isHit;
   }
 }

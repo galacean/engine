@@ -126,6 +126,15 @@ describe("Vector2 test", () => {
     expect(toString(a.setValue(5, 6))).toEqual("vec2(5, 6)");
   });
 
+  it("setValueByArray", () => {
+    const a = new Vector2(3, 4);
+    expect(toString(a.setValueByArray([5, 6]))).toEqual("vec2(5, 6)");
+    const b = [];
+    a.toArray(b);
+    expect(b[0]).toEqual(5);
+    expect(b[1]).toEqual(6);
+  });
+
   it("clone", () => {
     const a = new Vector2(3, 4);
     const b = a.clone();

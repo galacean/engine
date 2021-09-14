@@ -136,6 +136,17 @@ describe("Vector4 test", () => {
     expect(toString(a.setValue(5, 6, 7, 1))).toEqual("vec4(5, 6, 7, 1)");
   });
 
+  it("setValueByArray", () => {
+    const a = new Vector4(3, 4, 3, 8);
+    expect(toString(a.setValueByArray([5, 6, 4, 1]))).toEqual("vec4(5, 6, 4, 1)");
+    const b = [];
+    a.toArray(b);
+    expect(b[0]).toEqual(5);
+    expect(b[1]).toEqual(6);
+    expect(b[2]).toEqual(4);
+    expect(b[3]).toEqual(1);
+  });
+
   it("clone", () => {
     const a = new Vector4(3, 4, 5, 0);
     const b = a.clone();

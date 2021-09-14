@@ -157,6 +157,16 @@ describe("Vector3 test", () => {
     expect(toString(a.setValue(5, 6, 7))).toEqual("vec3(5, 6, 7)");
   });
 
+  it("setValueByArray", () => {
+    const a = new Vector3(3, 4, 3);
+    expect(toString(a.setValueByArray([5, 6, 4]))).toEqual("vec3(5, 6, 4)");
+    const b = [];
+    a.toArray(b);
+    expect(b[0]).toEqual(5);
+    expect(b[1]).toEqual(6);
+    expect(b[2]).toEqual(4);
+  });
+
   it("clone", () => {
     const a = new Vector3(3, 4, 5);
     const b = a.clone();
@@ -220,5 +230,35 @@ describe("Vector3 test", () => {
     const a = new Vector3(3, 4, 0);
     expect(toString(a.scale(2))).toEqual(toString(a));
     expect(toString(a)).toEqual("vec3(6, 8, 0)");
+  });
+
+  it("transformToVec3", () => {
+    const a = new Vector3(2, 3, 4);
+    const out = new Vector3(2, 3, 5);
+    const m = new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1);
+    a.transformToVec3(m);
+    expect(a.x).toEqual(out.x);
+    expect(a.y).toEqual(out.y);
+    expect(a.z).toEqual(out.z);
+  });
+
+  it("transformCoordinate", () => {
+    const a = new Vector3(2, 3, 4);
+    const out = new Vector3();
+    const b = new Vector4(2, 3, 4, 1);
+    const out4 = new Vector4();
+    const m4 = new Matrix();
+    m4.setValue(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 1);
+    Vector3.transformCoordinate(a, m4, out);
+    Vector4.transform(b, m4, out4);
+    expect(out.x).toEqual(out4.x / out4.w);
+    expect(out.y).toEqual(out4.y / out4.w);
+    expect(out.z).toEqual(out4.z / out4.w);
+  });
+
+  it("transformByQuat", () => {
+    const a = new Vector3(2, 3, 4);
+    a.transformByQuat(new Quaternion(2, 3, 4, 5));
+    expect(toString(a)).toEqual("vec3(108, 162, 216)");
   });
 });

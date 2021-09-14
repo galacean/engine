@@ -15,4 +15,14 @@ describe("Plane test", () => {
     plane2.normalize();
     expect(Vector3.equals(plane1.normal, plane2.normal)).toEqual(true);
   });
+
+  it("clone", () => {
+    const plane1 = new Plane(new Vector3(0, 1, 0), -1);
+    const plane2 = plane1.clone();
+    expect(plane1.distance - plane2.distance).toEqual(0);
+
+    const plane3 = new Plane();
+    plane1.cloneTo(plane3);
+    expect(plane1.distance - plane3.distance).toEqual(0);
+  });
 });

@@ -19,6 +19,8 @@ import { TextureFilterMode, TextureFormat } from "../texture";
  */
 export class ModelMesh extends Mesh {
   /** @internal */
+  _hasBlendShape: boolean = false;
+  /** @internal */
   _useBlendShapeNormal: boolean = false;
   /** @internal */
   _useBlendShapeTangent: boolean = false;
@@ -72,6 +74,9 @@ export class ModelMesh extends Mesh {
    * BlendShape count of this ModelMesh.
    */
   get blendShapes(): Readonly<BlendShape[]> {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
     return this._blendShapes;
   }
 
@@ -391,6 +396,9 @@ export class ModelMesh extends Mesh {
    * Get indices for the mesh.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
     return this._indices;
   }
 
@@ -408,12 +416,16 @@ export class ModelMesh extends Mesh {
     this._useBlendShapeTangent = this._useBlendShapeTangent || blendShape._useBlendShapeTangent;
     this._blendShapes.push(blendShape);
     this._blendShapeUpdateFlags.push(blendShape._registerChangeFlag());
+    this._hasBlendShape = true;
   }
 
   /**
    * Clear all BlendShapes.
    */
   clearBlendShapes(): void {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
     this._vertexChangeFlag |= ValueChanged.BlendShape;
     this._useBlendShapeNormal = false;
     this._useBlendShapeTangent = false;
@@ -423,6 +435,7 @@ export class ModelMesh extends Mesh {
       blendShapeUpdateFlags[i].destroy();
     }
     blendShapeUpdateFlags.length = 0;
+    this._hasBlendShape = false;
   }
 
   /**
@@ -501,8 +514,8 @@ export class ModelMesh extends Mesh {
    * @internal
    */
   _onDestroy(): void {
-    super.destroy();
-    this.clearBlendShapes();
+    super._onDestroy();
+    this._accessible && this._releaseCache();
   }
 
   private _updateVertexElements(): VertexElement[] {
@@ -883,6 +896,11 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
+    const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
+    for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
+      blendShapeUpdateFlags[i].destroy();
+    }
+
     this._verticesUint8 = null;
     this._indices = null;
     this._verticesFloat32 = null;
@@ -898,6 +916,8 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
+    this._blendShapes = null;
+    this._blendShapeUpdateFlags = null;
   }
 }
 
