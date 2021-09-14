@@ -27,9 +27,6 @@ export class Script extends Component {
   @ignoreClone
   _entityCacheIndex: number = -1;
 
-  /** Whether the script is listening to input. */
-  private _listenInput: boolean = false;
-
   /**
    * Called when be enabled first time, only once.
    */
@@ -156,19 +153,6 @@ export class Script extends Component {
     if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.addOnLateUpdateScript(this);
     }
-    // Input callback.
-    if (
-      this.onPointerDown !== prototype.onPointerDown ||
-      this.onPointerUp !== prototype.onPointerUp ||
-      this.onPointerClick !== prototype.onPointerClick ||
-      this.onPointerDrag !== prototype.onPointerDrag ||
-      this.onPointerEnter !== prototype.onPointerEnter ||
-      this.onPointerExit !== prototype.onPointerExit
-    ) {
-      engine._inputManager.on();
-      this._listenInput = true;
-    }
-
     this._entity._addScript(this);
     this.onEnable();
   }
@@ -191,10 +175,6 @@ export class Script extends Component {
     }
     if (this._onLateUpdateIndex !== -1) {
       componentsManager.removeOnLateUpdateScript(this);
-    }
-    if (this._listenInput) {
-      engine._inputManager.off();
-      this._listenInput = false;
     }
     if (this._entityCacheIndex !== -1) {
       this._entity._removeScript(this);

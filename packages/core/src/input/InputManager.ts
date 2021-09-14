@@ -44,6 +44,8 @@ export class InputManager {
   private _pointerList: Pointer[] = [];
   /** 'PointerId' to 'index' mapping. */
   private _pointerIdToIndex: Record<number, number> = {};
+  /** Output Pointer list. */
+  private _outputPointerList: Pointer[] = [];
 
   /** Temporary variables. */
   private static _tempRay: Ray = new Ray();
@@ -52,8 +54,6 @@ export class InputManager {
 
   /** Whether to support multi-touch. */
   private _multiTouchEnabled: boolean = false;
-  /** Number of scripts registered to listen. */
-  private _regScriptCount: number = 0;
 
   /**
    * Whether to support multi-touch.
@@ -71,10 +71,16 @@ export class InputManager {
    * @param engine - The current engine instance
    */
   constructor(engine: Engine) {
-    // @ts-ignore
-    this._canvas = engine.canvas._webCanvas;
     this._sceneMgr = engine.sceneManager;
     this._physicsMgr = engine.physicsManager;
+
+    // @ts-ignore
+    const canvas = (this._canvas = engine.canvas._webCanvas);
+    canvas.addEventListener("pointerdown", this._onPointerDown);
+    canvas.addEventListener("pointerup", this._onPointerUp);
+    canvas.addEventListener("pointermove", this._onPointerMove);
+    canvas.addEventListener("pointercancel", this._onPointerCancelOrOut);
+    canvas.addEventListener("pointerout", this._onPointerCancelOrOut);
   }
 
   /**
@@ -83,8 +89,8 @@ export class InputManager {
    * 	@return Touch pointer
    *  @remarks The returned Pointer should be considered deep-read-only.
    */
-  getTouch(idx: number): Readonly<Pointer> {
-    return idx < this._actPointerCount ? this._pointerList[idx] : null;
+  getPointers(): Readonly<Pointer[]> {
+    return this._outputPointerList;
   }
 
   /**
@@ -94,24 +100,6 @@ export class InputManager {
    */
   getInput(): Readonly<Input> {
     return this._input;
-  }
-
-  /**
-   * Add the script that listen to input.
-   */
-  on() {
-    if (this._regScriptCount++ == 0) {
-      this._updateListener();
-    }
-  }
-
-  /**
-   * Remove the script that listen to input.
-   */
-  off() {
-    if (--this._regScriptCount == 0) {
-      this._updateListener();
-    }
   }
 
   /**
@@ -138,9 +126,14 @@ export class InputManager {
    * @internal
    */
   _update() {
-    const { _eventLen } = this;
-    if (_eventLen > 0 || this._actPointerCount > 0) {
-      const { _eventList, _input } = this;
+    const { _eventLen, _actPointerCount } = this;
+    if (_eventLen > 0 || _actPointerCount > 0) {
+      /** Sync _outPointerList and _pointerList. */
+      const { _outputPointerList: _outPointerList, _pointerList, _eventList, _input } = this;
+      _outPointerList.length = _actPointerCount;
+      for (let i = 0; i < _actPointerCount; i++) {
+        _outPointerList[i] = _pointerList[i];
+      }
       let prePressedEntity = _input.pressedEntity;
       if (prePressedEntity) {
         /** Pointer Drag. */
@@ -213,6 +206,8 @@ export class InputManager {
       }
       _input.pressedEntity = prePressedEntity;
       this._eventLen = 0;
+    } else {
+      this._outputPointerList.length = 0;
     }
   }
 
@@ -350,26 +345,4 @@ export class InputManager {
   private _onPointerCancelOrOut = (evt: PointerEvent) => {
     this._changePointer(PointerChangeType.Remove, evt.pointerId);
   };
-
-  /**
-   * Update the current listening status.
-   */
-  private _updateListener() {
-    const { _regScriptCount, _canvas: canvas } = this;
-    if (_regScriptCount > 0) {
-      canvas.addEventListener("pointerdown", this._onPointerDown);
-      canvas.addEventListener("pointerup", this._onPointerUp);
-      canvas.addEventListener("pointermove", this._onPointerMove);
-      canvas.addEventListener("pointercancel", this._onPointerCancelOrOut);
-      canvas.addEventListener("pointerout", this._onPointerCancelOrOut);
-    } else {
-      canvas.removeEventListener("pointerdown", this._onPointerDown);
-      canvas.removeEventListener("pointerup", this._onPointerUp);
-      canvas.removeEventListener("pointermove", this._onPointerMove);
-      canvas.removeEventListener("pointercancel", this._onPointerCancelOrOut);
-      canvas.removeEventListener("pointerout", this._onPointerCancelOrOut);
-      this._eventLen = 0;
-      this._actPointerCount = 0;
-    }
-  }
 }
