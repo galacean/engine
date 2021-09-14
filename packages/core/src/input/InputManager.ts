@@ -128,11 +128,11 @@ export class InputManager {
   _update() {
     const { _eventLen, _actPointerCount } = this;
     if (_eventLen > 0 || _actPointerCount > 0) {
-      /** Sync _outPointerList and _pointerList. */
-      const { _outputPointerList: _outPointerList, _pointerList, _eventList, _input } = this;
-      _outPointerList.length = _actPointerCount;
+      /** Sync _outputPointerList and _pointerList. */
+      const { _outputPointerList, _pointerList, _eventList, _input } = this;
+      _outputPointerList.length = _actPointerCount;
       for (let i = 0; i < _actPointerCount; i++) {
-        _outPointerList[i] = _pointerList[i];
+        _outputPointerList[i] = _pointerList[i];
       }
       let prePressedEntity = _input.pressedEntity;
       if (prePressedEntity) {
