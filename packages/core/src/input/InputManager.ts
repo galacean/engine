@@ -26,7 +26,7 @@ enum PointerChangeType {
  */
 export class InputManager {
   /** Canvas to listen for input. */
-  private _canvas: HTMLCanvasElement | OffscreenCanvas;
+  private _canvas: HTMLCanvasElement;
   /** SceneManager. */
   private _sceneMgr: SceneManager;
   /** PhysicsManager. */
@@ -143,7 +143,6 @@ export class InputManager {
         }
       }
       /** Get the entity hit by the ray. */
-      /** @ts-ignore */
       const { offsetLeft = 0, offsetTop = 0, clientWidth, clientHeight } = this._canvas;
       const curEntity = this._pointerRaycast(
         (_input.pageX - offsetLeft) / clientWidth,
