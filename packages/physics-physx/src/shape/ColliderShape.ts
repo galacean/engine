@@ -15,8 +15,8 @@ export enum ShapeFlag {
 
 /** Abstract class for collision shapes. */
 export class ColliderShape implements IColliderShape {
-  protected _position: Vector3;
-  protected _rotation: Quaternion;
+  protected _position: Vector3 = new Vector3();
+  protected _rotation: Quaternion = new Quaternion();
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
@@ -53,13 +53,13 @@ export class ColliderShape implements IColliderShape {
 
   /** local position */
   setPosition(value: Vector3) {
-    this._position = value;
+    value.cloneTo(this._position);
     this._setLocalPose();
   }
 
   /** local rotation */
   setRotation(value: Quaternion) {
-    this._rotation = value;
+    Quaternion.rotateZ(value, Math.PI * 0.5, this._rotation);
     this._setLocalPose();
   }
 

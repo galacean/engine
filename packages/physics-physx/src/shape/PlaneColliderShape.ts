@@ -15,13 +15,13 @@ export class PlaneColliderShape extends ColliderShape implements IPlaneColliderS
    */
   constructor(index: number, material: PhysicsMaterial, position: Vector3, rotation: Quaternion) {
     super();
-    this._position = position;
-    this._rotation = rotation;
+    position.cloneTo(this._position);
+    Quaternion.rotateZ(rotation, Math.PI * 0.5, this._rotation);
 
     // alloc Physx object
     this._allocGeometry();
     this._allocShape(material);
-    this._setLocalPose(position, rotation);
+    this._setLocalPose(this._position, this._rotation);
     this.setID(index);
   }
 

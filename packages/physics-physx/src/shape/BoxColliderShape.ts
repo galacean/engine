@@ -35,8 +35,8 @@ export class BoxColliderShape extends ColliderShape implements IBoxColliderShape
    */
   constructor(index: number, extents: Vector3, material: PhysicsMaterial, position: Vector3, rotation: Quaternion) {
     super();
-    this._position = position;
-    this._rotation = rotation;
+    position.cloneTo(this._position);
+    Quaternion.rotateZ(rotation, Math.PI * 0.5, this._rotation);
 
     // alloc Physx object
     this._allocGeometry(extents);
