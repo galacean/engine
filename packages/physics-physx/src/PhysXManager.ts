@@ -1,5 +1,8 @@
 import { PHYSX } from "./physx.release";
 
+/**
+ * PhysX wasm compiler target
+ */
 enum PhysXTarget {
   release,
   profile,

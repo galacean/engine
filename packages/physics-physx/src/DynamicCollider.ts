@@ -37,14 +37,19 @@ export enum DynamicColliderConstraints {
   FreezeAll
 }
 
-/** Control of an object's position through physics simulation. */
+/**
+ * A dynamic collider can act with self-defined movement or physical force
+ */
 export class DynamicCollider extends Collider implements IDynamicCollider {
+  /** The linear damping of the dynamic collider. */
   private _drag: number;
+  /** The angular damping of the dynamic collider. */
   private _angularDrag: number;
-
+  /** The linear velocity vector of the dynamic collider measured in world unit per second. */
   private _velocity: Vector3;
+  /** The angular velocity vector of the dynamic collider measured in radians per second. */
   private _angularVelocity: Vector3;
-
+  /** The mass of the dynamic collider. */
   private _mass: number;
   private _centerOfMass: Vector3;
   private _inertiaTensor: Vector3;
@@ -56,6 +61,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   private _solverIterations: number;
 
   private _collisionDetectionMode: CollisionDetectionMode;
+  /** Controls whether physics affects the dynamic collider. */
   private _isKinematic: boolean;
 
   private _constraints: DynamicColliderConstraints;

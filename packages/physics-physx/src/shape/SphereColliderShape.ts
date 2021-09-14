@@ -4,7 +4,9 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./ColliderShape";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 
-/** PhysXPhysics Shape for Sphere */
+/**
+ * PhysX Shape for Sphere
+ */
 export class SphereColliderShape extends ColliderShape implements ISphereColliderShape {
   /**
    * init Collider and alloc PhysX objects.

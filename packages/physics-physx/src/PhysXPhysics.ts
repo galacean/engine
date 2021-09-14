@@ -21,8 +21,14 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PlaneColliderShape } from "./shape/PlaneColliderShape";
 
+/**
+ * physics object creation.
+ */
 @StaticInterfaceImplement<IPhysics>()
 export class PhysXPhysics {
+  /**
+   * Async initializer
+   */
   static init(): Promise<void> {
     return new Promise((resolve) => {
       PhysXManager.init().then(() => {
@@ -31,6 +37,15 @@ export class PhysXPhysics {
     });
   }
 
+  /**
+   * create physics manager
+   * @param onContactBegin function called when contact begin
+   * @param onContactEnd function called when contact end
+   * @param onContactPersist function called when contact stay
+   * @param onTriggerBegin function called when trigger begin
+   * @param onTriggerEnd function called when trigger end
+   * @param onTriggerPersist function called when trigger staty
+   */
   static createPhysicsManager(
     onContactBegin?: Function,
     onContactEnd?: Function,
@@ -49,14 +64,32 @@ export class PhysXPhysics {
     );
   }
 
+  /**
+   * create dynamic collider
+   * @param position the global position
+   * @param rotation the global rotation
+   */
   static createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider {
     return new StaticCollider(position, rotation);
   }
 
+  /**
+   * create static collider
+   * @param position the global position
+   * @param rotation the global rotation
+   */
   static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
     return new DynamicCollider(position, rotation);
   }
 
+  /**
+   * create physics material
+   * @param staticFriction static friction
+   * @param dynamicFriction dynamic friction
+   * @param bounciness restitution
+   * @param frictionCombine the mode to combine the friction of collider
+   * @param bounceCombine the mode to combine the bounce of collider
+   */
   static createPhysicsMaterial(
     staticFriction: number,
     dynamicFriction: number,
@@ -67,6 +100,14 @@ export class PhysXPhysics {
     return new PhysicsMaterial(staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine);
   }
 
+  /**
+   * create box collider shape
+   * @param index unique index to mark the shape
+   * @param extents extents of the box
+   * @param material the material of this shape
+   * @param position the local position
+   * @param rotation the local rotation
+   */
   static createBoxColliderShape(
     index: number,
     extents: Vector3,
@@ -77,6 +118,14 @@ export class PhysXPhysics {
     return new BoxColliderShape(index, extents, material, position, rotation);
   }
 
+  /**
+   * create sphere collider shape
+   * @param index unique index to mark the shape
+   * @param radius radius of the sphere
+   * @param material the material of this shape
+   * @param position the local position
+   * @param rotation the local rotation
+   */
   static createSphereColliderShape(
     index: number,
     radius: number,
@@ -87,6 +136,13 @@ export class PhysXPhysics {
     return new SphereColliderShape(index, radius, material, position, rotation);
   }
 
+  /**
+   * create plane collider shape
+   * @param index unique index to mark the shape
+   * @param material the material of this shape
+   * @param position the local position
+   * @param rotation the local rotation
+   */
   static createPlaneColliderShape(
     index: number,
     material: PhysicsMaterial,
@@ -96,6 +152,15 @@ export class PhysXPhysics {
     return new PlaneColliderShape(index, material, position, rotation);
   }
 
+  /**
+   * create capsule collider shape
+   * @param index unique index to mark the shape
+   * @param radius radius of capsule
+   * @param height height of capsule
+   * @param material the material of this shape
+   * @param position the local position
+   * @param rotation the local rotation
+   */
   static createCapsuleColliderShape(
     index: number,
     radius: number,

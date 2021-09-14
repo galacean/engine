@@ -13,7 +13,9 @@ export enum ShapeFlag {
   TRIGGER_SHAPE = 1 << 2
 }
 
-/** Abstract class for collision shapes. */
+/**
+ * Abstract class for collider shapes.
+ */
 export class ColliderShape implements IColliderShape {
   protected _position: Vector3 = new Vector3();
   protected _rotation: Quaternion = new Quaternion();

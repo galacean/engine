@@ -2,9 +2,12 @@ import { ICollider } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./shape/ColliderShape";
 
+/**
+ * physical collider
+ */
 export abstract class Collider implements ICollider {
   /**
-   * PhysX static actor object
+   * PhysX actor object
    * @internal
    */
   _pxActor: any;
@@ -12,11 +15,19 @@ export abstract class Collider implements ICollider {
   /** @internal */
   _shapes: ColliderShape[] = [];
 
+  /**
+   * attach collider shape on collider
+   * @param shape The collider shape attached
+   */
   addShape(shape: ColliderShape) {
     this._shapes.push(shape);
     this._pxActor.attachShape(shape._pxShape);
   }
 
+  /**
+   * remove collider shape on collider
+   * @param shape The collider shape attached
+   */
   removeShape(shape: ColliderShape): void {
     this._pxActor.detachShape(shape._pxShape);
     let removeID = this._shapes.findIndex((value) => {
@@ -25,14 +36,24 @@ export abstract class Collider implements ICollider {
     this._shapes.splice(removeID, 1);
   }
 
+  /**
+   * set global pose of collider
+   * @param position the global position
+   * @param rotation the global rotation
+   */
   setGlobalPose(position: Vector3, rotation: Quaternion) {
     const transform = this._transform(position, rotation);
     this._pxActor.setGlobalPose(transform, true);
   }
 
-  getGlobalPose(translation: Vector3, rotation: Quaternion) {
+  /**
+   * get global pose of collider
+   * @param position the global position
+   * @param rotation the global rotation
+   */
+  getGlobalPose(position: Vector3, rotation: Quaternion) {
     const transform = this._pxActor.getGlobalPose();
-    translation.setValue(transform.translation.x, transform.translation.y, transform.translation.z);
+    position.setValue(transform.translation.x, transform.translation.y, transform.translation.z);
     rotation.setValue(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
   }
 

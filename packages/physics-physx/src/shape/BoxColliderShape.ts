@@ -4,7 +4,9 @@ import { PhysXManager } from "../PhysXManager";
 import { ColliderShape } from "./ColliderShape";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 
-/** PhysX Shape for Box */
+/**
+ * PhysX Shape for Box
+ */
 export class BoxColliderShape extends ColliderShape implements IBoxColliderShape {
   private _tempHalfExtents: Vector3 = new Vector3();
 

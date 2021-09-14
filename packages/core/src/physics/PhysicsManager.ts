@@ -90,26 +90,26 @@ export class PhysicsManager {
   //--------------physics manager APIs------------------------------------------
   /**
    * add Collider into the manager
-   * @param actor StaticCollider or DynamicCollider.
+   * @param collider StaticCollider or DynamicCollider.
    */
-  addCollider(actor: Collider) {
-    const shapes = actor.shapes;
+  addCollider(collider: Collider) {
+    const shapes = collider.shapes;
     for (let i = 0, len = shapes.length; i < len; i++) {
       this._physicalObjectsMap.set(shapes[i].id, shapes[i]);
     }
-    this._nativePhysicsManager.addCollider(actor._nativeStaticCollider);
+    this._nativePhysicsManager.addCollider(collider._nativeStaticCollider);
   }
 
   /**
    * remove Collider
-   * @param actor StaticCollider or DynamicCollider.
+   * @param collider StaticCollider or DynamicCollider.
    */
-  removeCollider(actor: Collider) {
-    const shapes = actor.shapes;
+  removeCollider(collider: Collider) {
+    const shapes = collider.shapes;
     for (let i = 0, len = shapes.length; i < len; i++) {
       this._physicalObjectsMap.delete(shapes[i].id);
     }
-    this._nativePhysicsManager.removeCollider(actor._nativeStaticCollider);
+    this._nativePhysicsManager.removeCollider(collider._nativeStaticCollider);
   }
 
   /**

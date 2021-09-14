@@ -21,27 +21,25 @@ export enum PhysicsState {
   TOUCH_NONE
 }
 
-/** A scene is a collection of bodies and constraints which can interact. */
+/**
+ * A manager is a collection of bodies and constraints which can interact.
+ */
 export class PhysXPhysicsManager implements IPhysicsManager {
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _pxRaycastHit: any;
   private static _pxFilterData: any;
 
-  /**
-   * PhysX Scene object
-   * @internal
-   */
-  _pxScene: any;
+  private _pxScene: any;
 
-  onContactBegin?: Function;
-  onContactEnd?: Function;
-  onContactPersist?: Function;
-  onTriggerBegin?: Function;
-  onTriggerEnd?: Function;
-  onTriggerPersist?: Function;
+  private readonly _onContactBegin?: Function;
+  private readonly _onContactEnd?: Function;
+  private readonly _onContactPersist?: Function;
+  private readonly _onTriggerBegin?: Function;
+  private readonly _onTriggerEnd?: Function;
+  private readonly _onTriggerPersist?: Function;
 
-  eventMap: Map<number, [number, PhysicsState]> = new Map();
+  private _eventMap: Map<number, [number, PhysicsState]> = new Map();
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
@@ -63,24 +61,30 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onTriggerEnd?: Function,
     onTriggerPersist?: Function
   ) {
-    this.onContactBegin = onContactBegin;
-    this.onContactEnd = onContactEnd;
-    this.onContactPersist = onContactPersist;
-    this.onTriggerBegin = onTriggerBegin;
-    this.onTriggerEnd = onTriggerEnd;
-    this.onTriggerPersist = onTriggerPersist;
+    this._onContactBegin = onContactBegin;
+    this._onContactEnd = onContactEnd;
+    this._onContactPersist = onContactPersist;
+    this._onTriggerBegin = onTriggerBegin;
+    this._onTriggerEnd = onTriggerEnd;
+    this._onTriggerPersist = onTriggerPersist;
 
     const triggerCallback = {
       onContactBegin: (obj1, obj2) => {},
       onContactEnd: (obj1, obj2) => {},
       onContactPersist: (obj1, obj2) => {},
       onTriggerBegin: (obj1, obj2) => {
-        this.eventMap.set(obj1.getQueryFilterData().word0, [obj2.getQueryFilterData().word0, PhysicsState.TOUCH_FOUND]);
-        this.eventMap.set(obj2.getQueryFilterData().word0, [obj1.getQueryFilterData().word0, PhysicsState.TOUCH_FOUND]);
+        this._eventMap.set(obj1.getQueryFilterData().word0, [
+          obj2.getQueryFilterData().word0,
+          PhysicsState.TOUCH_FOUND
+        ]);
+        this._eventMap.set(obj2.getQueryFilterData().word0, [
+          obj1.getQueryFilterData().word0,
+          PhysicsState.TOUCH_FOUND
+        ]);
       },
       onTriggerEnd: (obj1, obj2) => {
-        this.eventMap.set(obj1.getQueryFilterData().word0, [obj2.getQueryFilterData().word0, PhysicsState.TOUCH_LOST]);
-        this.eventMap.set(obj2.getQueryFilterData().word0, [obj1.getQueryFilterData().word0, PhysicsState.TOUCH_LOST]);
+        this._eventMap.set(obj1.getQueryFilterData().word0, [obj2.getQueryFilterData().word0, PhysicsState.TOUCH_LOST]);
+        this._eventMap.set(obj2.getQueryFilterData().word0, [obj1.getQueryFilterData().word0, PhysicsState.TOUCH_LOST]);
       }
     };
 
@@ -96,48 +100,29 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     PhysXPhysicsManager._pxFilterData = new PhysXManager.PhysX.PxQueryFilterData();
   }
 
-  //--------------adding to the scene-------------------------------------------
-  /** add Static Actor, i.e Collider and Trigger. */
+  //--------------public APIs--------------------------------------------------
+  /**
+   * add Collider into the manager
+   * @param collider StaticCollider or DynamicCollider.
+   */
   addCollider(collider: Collider) {
     this._pxScene.addActor(collider._pxActor, null);
     for (let i = 0, len = collider._shapes.length; i < len; i++) {
       const shape = collider._shapes[i];
-      this.eventMap.set(shape._id, [null, PhysicsState.TOUCH_NONE]);
+      this._eventMap.set(shape._id, [null, PhysicsState.TOUCH_NONE]);
     }
   }
 
+  /**
+   * remove Collider
+   * @param collider StaticCollider or DynamicCollider.
+   */
   removeCollider(collider: Collider) {
     this._pxScene.removeActor(collider._pxActor, true);
     for (let i = 0, len = collider._shapes.length; i < len; i++) {
       const shape = collider._shapes[i];
-      this.eventMap.delete(shape._id);
+      this._eventMap.delete(shape._id);
     }
-  }
-
-  //--------------simulation ---------------------------------------------------
-  /** call PhysX simulate */
-  private _simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
-    this._pxScene.simulate(elapsedTime, controlSimulation);
-  }
-
-  /** call PhysX fetchResults */
-  private _fetchResults(block: boolean = true) {
-    this._pxScene.fetchResults(block);
-  }
-
-  /** call PhysX advance */
-  private _advance() {
-    this._pxScene.advance();
-  }
-
-  /** call PhysX fetchCollision */
-  private _fetchCollision(block: boolean = true) {
-    this._pxScene.fetchCollision(block);
-  }
-
-  /** call PhysX collide */
-  private _collide(elapsedTime: number = 1 / 60) {
-    this._pxScene.collide(elapsedTime);
   }
 
   /**
@@ -146,24 +131,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   update(elapsedTime: number) {
     this._simulate(elapsedTime);
     this._fetchResults();
-    this.resolveEvent();
+    this._resolveEvent();
   }
 
-  resolveEvent() {
-    this.eventMap.forEach((value, key) => {
-      if (value[1] == PhysicsState.TOUCH_FOUND) {
-        this.onTriggerBegin(key, value[0]);
-        this.eventMap.set(key, [value[0], PhysicsState.TOUCH_PERSISTS]);
-      } else if (value[1] == PhysicsState.TOUCH_PERSISTS) {
-        this.onTriggerPersist(key, value[0]);
-      } else if (value[1] == PhysicsState.TOUCH_LOST) {
-        this.onTriggerEnd(key, value[0]);
-        this.eventMap.set(key, [null, PhysicsState.TOUCH_NONE]);
-      }
-    });
-  }
-
-  //----------------raycast-----------------------------------------------------
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
@@ -220,5 +190,45 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       hit(hitResult.getShape().getQueryFilterData().word0, hitResult.distance, position, normal);
     }
     return result;
+  }
+
+  //--------------private APIs -------------------------------------------------
+  /** call PhysX simulate */
+  private _simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
+    this._pxScene.simulate(elapsedTime, controlSimulation);
+  }
+
+  /** call PhysX fetchResults */
+  private _fetchResults(block: boolean = true) {
+    this._pxScene.fetchResults(block);
+  }
+
+  /** call PhysX advance */
+  private _advance() {
+    this._pxScene.advance();
+  }
+
+  /** call PhysX fetchCollision */
+  private _fetchCollision(block: boolean = true) {
+    this._pxScene.fetchCollision(block);
+  }
+
+  /** call PhysX collide */
+  private _collide(elapsedTime: number = 1 / 60) {
+    this._pxScene.collide(elapsedTime);
+  }
+
+  private _resolveEvent() {
+    this._eventMap.forEach((value, key) => {
+      if (value[1] == PhysicsState.TOUCH_FOUND) {
+        this._onTriggerBegin(key, value[0]);
+        this._eventMap.set(key, [value[0], PhysicsState.TOUCH_PERSISTS]);
+      } else if (value[1] == PhysicsState.TOUCH_PERSISTS) {
+        this._onTriggerPersist(key, value[0]);
+      } else if (value[1] == PhysicsState.TOUCH_LOST) {
+        this._onTriggerEnd(key, value[0]);
+        this._eventMap.set(key, [null, PhysicsState.TOUCH_NONE]);
+      }
+    });
   }
 }

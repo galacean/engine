@@ -4,6 +4,9 @@ import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXManager } from "../PhysXManager";
 
+/**
+ * PhysX Shape for Plane
+ */
 export class PlaneColliderShape extends ColliderShape implements IPlaneColliderShape {
   /**
    * init Collider and alloc PhysX objects.
