@@ -7,7 +7,9 @@ import { DisorderedArray } from "../DisorderedArray";
 import { UpdateFlag } from "../UpdateFlag";
 import { Entity } from "../Entity";
 
-/** Abstract class for collider shapes. */
+/**
+ * Abstract class for collider shapes.
+ */
 export abstract class Collider extends Component {
   /** @internal */
   @ignoreClone

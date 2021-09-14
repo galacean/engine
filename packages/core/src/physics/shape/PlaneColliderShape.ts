@@ -1,7 +1,9 @@
 import { ColliderShape } from "./ColliderShape";
 import { PhysicsManager } from "../PhysicsManager";
 
-/** physical collider shape plane */
+/**
+ * physical collider shape plane.
+ */
 export class PlaneColliderShape extends ColliderShape {
   constructor() {
     super();

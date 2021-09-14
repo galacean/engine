@@ -4,7 +4,9 @@ import { Collider } from "./Collider";
 import { PhysicsManager } from "./PhysicsManager";
 import { Vector3 } from "@oasis-engine/math";
 
-/** A dynamic collider can act with self-defined movement or physical force */
+/**
+ * A dynamic collider can act with self-defined movement or physical force
+ */
 export class DynamicCollider extends Collider {
   private readonly _nativeDynamicCollider: IDynamicCollider;
 

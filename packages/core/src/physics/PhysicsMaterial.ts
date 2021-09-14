@@ -2,6 +2,9 @@ import { IPhysicsMaterial } from "@oasis-engine/design";
 import { PhysicsManager } from "./PhysicsManager";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
+/**
+ * Material class to represent a set of surface properties.
+ */
 export class PhysicsMaterial {
   private _bounciness: number = 0.1;
   private _dynamicFriction: number = 0.1;

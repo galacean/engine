@@ -4,7 +4,9 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ignoreClone } from "../../clone/CloneManager";
 import { Collider } from "../Collider";
 
-/** Abstract class for collider shapes. */
+/**
+ * Abstract class for collider shapes.
+ */
 export abstract class ColliderShape {
   static idGenerator: number = 0;
 

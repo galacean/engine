@@ -5,7 +5,9 @@ import { Collider } from "./Collider";
 import { Layer } from "../Layer";
 import { ColliderShape } from "./shape/ColliderShape";
 
-/** Filtering flags for scene queries. */
+/**
+ * Filtering flags for scene queries.
+ */
 export enum QueryFlag {
   STATIC = 1 << 0,
   DYNAMIC = 1 << 1,
@@ -13,21 +15,23 @@ export enum QueryFlag {
   NO_BLOCK = 1 << 5
 }
 
+/** a physics manager is a collection of bodies and constraints which can interact. */
 export class PhysicsManager {
+  /** query flag for raycast */
+  static _queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
   /** @internal */
   static nativePhysics: IPhysics;
+
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap = new Map<number, ColliderShape>();
 
-  queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
+  private _onContactBegin = (obj1: number, obj2: number) => {};
 
-  onContactBegin = (obj1: number, obj2: number) => {};
+  private _onContactEnd = (obj1: number, obj2: number) => {};
 
-  onContactEnd = (obj1: number, obj2: number) => {};
+  private _onContactPersist = (obj1: number, obj2: number) => {};
 
-  onContactPersist = (obj1: number, obj2: number) => {};
-
-  onTriggerBegin = (obj1: number, obj2: number) => {
+  private _onTriggerBegin = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap.get(obj1);
     const shape2 = this._physicalObjectsMap.get(obj2);
 
@@ -42,7 +46,7 @@ export class PhysicsManager {
     }
   };
 
-  onTriggerEnd = (obj1: number, obj2: number) => {
+  private _onTriggerEnd = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap.get(obj1);
     const shape2 = this._physicalObjectsMap.get(obj2);
 
@@ -57,7 +61,7 @@ export class PhysicsManager {
     }
   };
 
-  onTriggerPersist = (obj1: number, obj2: number) => {
+  private _onTriggerPersist = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap.get(obj1);
     const shape2 = this._physicalObjectsMap.get(obj2);
 
@@ -74,17 +78,20 @@ export class PhysicsManager {
 
   constructor() {
     this._nativePhysicsManager = PhysicsManager.nativePhysics.createPhysicsManager(
-      this.onContactBegin,
-      this.onContactEnd,
-      this.onContactPersist,
-      this.onTriggerBegin,
-      this.onTriggerEnd,
-      this.onTriggerPersist
+      this._onContactBegin,
+      this._onContactEnd,
+      this._onContactPersist,
+      this._onTriggerBegin,
+      this._onTriggerEnd,
+      this._onTriggerPersist
     );
   }
 
   //--------------physics manager APIs------------------------------------------
-  /** add Collider, i.e StaticCollider and DynamicCollider. */
+  /**
+   * add Collider into the manager
+   * @param actor StaticCollider or DynamicCollider.
+   */
   addCollider(actor: Collider) {
     const shapes = actor.shapes;
     for (let i = 0, len = shapes.length; i < len; i++) {
@@ -93,7 +100,10 @@ export class PhysicsManager {
     this._nativePhysicsManager.addCollider(actor._nativeStaticCollider);
   }
 
-  /** remove Collider, i.e StaticCollider and DynamicCollider. */
+  /**
+   * remove Collider
+   * @param actor StaticCollider or DynamicCollider.
+   */
   removeCollider(actor: Collider) {
     const shapes = actor.shapes;
     for (let i = 0, len = shapes.length; i < len; i++) {
@@ -190,7 +200,7 @@ export class PhysicsManager {
       const result = this._nativePhysicsManager.raycast(
         ray,
         distance,
-        this.queryFlag,
+        PhysicsManager._queryFlag,
         (idx, distance, position, normal) => {
           hitResult.entity = this._physicalObjectsMap.get(idx)._collider.entity;
           hitResult.distance = distance;
@@ -212,7 +222,7 @@ export class PhysicsManager {
       }
       return false;
     } else {
-      return this._nativePhysicsManager.raycast(ray, distance, this.queryFlag);
+      return this._nativePhysicsManager.raycast(ray, distance, PhysicsManager._queryFlag);
     }
   }
 }
