@@ -84,10 +84,9 @@ export class InputManager {
   }
 
   /**
-   *	Get touch pointer.
-   * 	@param	idx - Index of touch pointer
-   * 	@return Touch pointer
-   *  @remarks The returned Pointer should be considered deep-read-only.
+   *	Get List of touch pointers.
+   * 	@return List of touch pointers
+   *  @remarks The returned list should be considered deep-read-only.
    */
   getPointers(): Readonly<Pointer[]> {
     return this._outputPointerList;
