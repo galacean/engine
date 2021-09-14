@@ -68,19 +68,19 @@ export class Script extends Component {
   onEndRender(camera: Camera): void {}
 
   /**
-   * OnCollisionEnter is called when this collider/rigidbody has begun touching another rigidbody/collider.
+   * OnCollisionEnter is called when this collider has begun touching another collider.
    * @param other The Collision data associated with this collision event.
    */
   onCollisionEnter(other: Collision): void {}
 
   /**
-   * OnCollisionStay is called once per frame for every collider/rigidbody that is touching rigidbody/collider.
+   * OnCollisionStay is called once per frame for every collider that is touching collider.
    * @param other The Collision data associated with this collision event.
    */
   onCollisionStay(other: Collision): void {}
 
   /**
-   * OnCollisionExit is called when this collider/rigidbody has stopped touching another rigidbody/collider.
+   * OnCollisionExit is called when this collider has stopped touching another collider.
    * @param other The Collision data associated with this collision event.
    */
   onCollisionExit(other: Collision): void {}

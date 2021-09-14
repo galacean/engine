@@ -4,7 +4,7 @@ import { Collider } from "./Collider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 export class StaticCollider extends Collider implements IStaticCollider {
-  /** alloc RigidActor */
+  /** alloc PhysX object */
   constructor(position: Vector3, rotation: Quaternion) {
     super();
     const transform = this._transform(position, rotation);

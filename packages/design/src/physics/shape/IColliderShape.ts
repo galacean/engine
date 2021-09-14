@@ -1,7 +1,9 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
-/** Interface for PhysXPhysics Shape */
+/**
+ * Interface for physical shape
+ */
 export interface IColliderShape {
   /** local position */
   setPosition(position: Vector3): void;

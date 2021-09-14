@@ -10,17 +10,17 @@ import { Vector3 } from "@oasis-engine/math";
 export class DynamicCollider extends Collider {
   private readonly _nativeDynamicCollider: IDynamicCollider;
 
-  /** The linear velocity vector of the RigidBody measured in world unit per second. */
+  /** The linear velocity vector of the dynamic collider measured in world unit per second. */
   linearVelocity: Vector3;
-  /** The angular velocity vector of the RigidBody measured in radians per second. */
+  /** The angular velocity vector of the dynamic collider measured in radians per second. */
   angularVelocity: Vector3;
-  /** The linear damping of the RigidBody. */
+  /** The linear damping of the dynamic collider. */
   linearDamping: number;
-  /** The angular damping of the RigidBody. */
+  /** The angular damping of the dynamic collider. */
   angularDamping: number;
-  /** The mass of the RigidBody. */
+  /** The mass of the dynamic collider. */
   mass: number;
-  /** Controls whether physics affects the RigidBody. */
+  /** Controls whether physics affects the dynamic collider. */
   isKinematic: boolean;
 
   /** The collider attached */

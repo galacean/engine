@@ -1,3 +1,6 @@
+/**
+ * interface of physics material
+ */
 export interface IPhysicsMaterial {
   /** the coefficient of restitution */
   setBounciness(value: number): void;

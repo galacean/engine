@@ -3,9 +3,9 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IDynamicCollider } from "@oasis-engine/design";
 import { Collider } from "./Collider";
 
-/** The collision detection mode constants used for Rigidbody.collisionDetectionMode. */
+/** The collision detection mode constants used for DynamicCollider.collisionDetectionMode. */
 export enum CollisionDetectionMode {
-  /** Continuous collision detection is off for this Rigidbody. */
+  /** Continuous collision detection is off for this dynamic collider. */
   Discrete,
   /** Continuous collision detection is on for colliding with static mesh geometry. */
   Continuous,
@@ -15,8 +15,8 @@ export enum CollisionDetectionMode {
   ContinuousSpeculative
 }
 
-/** Use these flags to constrain motion of Rigidbodies. */
-export enum RigidbodyConstraints {
+/** Use these flags to constrain motion of dynamic collider. */
+export enum DynamicColliderConstraints {
   /** Freeze motion along the X-axis. */
   FreezePositionX,
   /** Freeze motion along the Y-axis. */
@@ -58,7 +58,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   private _collisionDetectionMode: CollisionDetectionMode;
   private _isKinematic: boolean;
 
-  private _constraints: RigidbodyConstraints;
+  private _constraints: DynamicColliderConstraints;
   private _freezeRotation: boolean;
 
   /** The drag of the object. */
@@ -81,7 +81,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     this._pxActor.setAngularDamping(value);
   }
 
-  /** The velocity vector of the rigidbody. It represents the rate of change of Rigidbody position. */
+  /** The velocity vector of the collider. It represents the rate of change of collider position. */
   get linearVelocity(): Vector3 {
     return this._velocity;
   }
@@ -92,7 +92,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     this._pxActor.setLinearVelocity(vel, true);
   }
 
-  /** The angular velocity vector of the rigidbody measured in radians per second. */
+  /** The angular velocity vector of the collider measured in radians per second. */
   get angularVelocity(): Vector3 {
     return this._angularVelocity;
   }
@@ -102,7 +102,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     this._pxActor.setAngularVelocity({ x: value.x, y: value.y, z: value.z }, true);
   }
 
-  /** The mass of the rigidbody. */
+  /** The mass of the collider. */
   get mass(): number {
     return this._mass;
   }
@@ -145,7 +145,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     this._pxActor.setMassSpaceInertiaTensor({ x: value.x, y: value.y, z: value.z });
   }
 
-  /** The maximum angular velocity of the rigidbody measured in radians per second. (Default 7) range { 0, infinity }. */
+  /** The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }. */
   get maxAngularVelocity(): number {
     return this._maxAngularVelocity;
   }
@@ -155,7 +155,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     this._pxActor.setMaxAngularVelocity(value);
   }
 
-  /** Maximum velocity of a rigidbody when moving out of penetrating state. */
+  /** Maximum velocity of a collider when moving out of penetrating state. */
   get maxDepenetrationVelocity(): number {
     return this._maxDepenetrationVelocity;
   }
@@ -175,7 +175,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     this._pxActor.setSleepThreshold(value);
   }
 
-  /** The solverIterations determines how accurately Rigidbody joints and collision contacts are resolved.
+  /** The solverIterations determines how accurately collider joints and collision contacts are resolved.
    * Overrides Physics.defaultSolverIterations. Must be positive.
    */
   get solverIterations(): number {
@@ -187,7 +187,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     this._pxActor.setSolverIterationCounts(value, 1);
   }
 
-  /** The Rigidbody's collision detection mode. */
+  /** The colliders' collision detection mode. */
   get collisionDetectionMode(): CollisionDetectionMode {
     return this._collisionDetectionMode;
   }
@@ -212,7 +212,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     }
   }
 
-  /** Controls whether physics affects the rigidbody. */
+  /** Controls whether physics affects the collider. */
   get isKinematic(): boolean {
     return this._isKinematic;
   }
@@ -226,42 +226,42 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     }
   }
 
-  /** Controls which degrees of freedom are allowed for the simulation of this Rigidbody. */
-  get constraints(): RigidbodyConstraints {
+  /** Controls which degrees of freedom are allowed for the simulation of this collider. */
+  get constraints(): DynamicColliderConstraints {
     return this._constraints;
   }
 
-  /** alloc RigidActor */
+  /** alloc PhysX object */
   constructor(position: Vector3, rotation: Quaternion) {
     super();
     const transform = this._transform(position, rotation);
     this._pxActor = PhysXManager.physics.createRigidDynamic(transform);
   }
 
-  setConstraints(flag: RigidbodyConstraints, value: boolean) {
+  setConstraints(flag: DynamicColliderConstraints, value: boolean) {
     if (value) this._constraints = this._constraints | flag;
     else this._constraints = this._constraints & ~flag;
 
     switch (flag) {
-      case RigidbodyConstraints.FreezePositionX:
+      case DynamicColliderConstraints.FreezePositionX:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
         break;
-      case RigidbodyConstraints.FreezePositionY:
+      case DynamicColliderConstraints.FreezePositionY:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
-      case RigidbodyConstraints.FreezePositionZ:
+      case DynamicColliderConstraints.FreezePositionZ:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
-      case RigidbodyConstraints.FreezeRotationX:
+      case DynamicColliderConstraints.FreezeRotationX:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
         break;
-      case RigidbodyConstraints.FreezeRotationY:
+      case DynamicColliderConstraints.FreezeRotationY:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
         break;
-      case RigidbodyConstraints.FreezeRotationZ:
+      case DynamicColliderConstraints.FreezeRotationZ:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
-      case RigidbodyConstraints.FreezeAll:
+      case DynamicColliderConstraints.FreezeAll:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
@@ -269,12 +269,12 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
-      case RigidbodyConstraints.FreezePosition:
+      case DynamicColliderConstraints.FreezePosition:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
-      case RigidbodyConstraints.FreezeRotation:
+      case DynamicColliderConstraints.FreezeRotation:
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
         this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
@@ -289,12 +289,12 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
 
   set freezeRotation(value: boolean) {
     this._freezeRotation = value;
-    this.setConstraints(RigidbodyConstraints.FreezeRotation, value);
+    this.setConstraints(DynamicColliderConstraints.FreezeRotation, value);
   }
 
   //----------------------------------------------------------------------------
   /**
-   * Adds a force to the Rigidbody.
+   * Adds a force to the collider.
    * @param force Force vector in world coordinates.
    * @remark addForce must called after add into scene.
    */
@@ -303,7 +303,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   }
 
   /**
-   * Adds a torque to the rigidbody.
+   * Adds a torque to the collider.
    * @param torque Torque vector in world coordinates.
    * @remark addTorque must called after add into scene.
    */
@@ -321,7 +321,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   }
 
   /**
-   * The velocity of the rigidbody at the point worldPoint in global space.
+   * The velocity of the collider at the point worldPoint in global space.
    * @param pos The point in global space.
    */
   getPointVelocity(pos: Vector3): Vector3 {
@@ -330,7 +330,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   }
 
   /**
-   * The velocity relative to the rigidbody at the point relativePoint.
+   * The velocity relative to the collider at the point relativePoint.
    * @param pos The relative point
    */
   getRelativePointVelocity(pos: Vector3): Vector3 {
@@ -339,8 +339,8 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   }
 
   /**
-   * Moves the kinematic Rigidbody towards position.
-   * @param value Provides the new position for the Rigidbody object.
+   * Moves the kinematic collider towards position.
+   * @param value Provides the new position for the collider object.
    */
   MovePosition(value: Vector3) {
     const transform = {
@@ -360,8 +360,8 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   }
 
   /**
-   * Rotates the rigidbody to rotation.
-   * @param value The new rotation for the Rigidbody.
+   * Rotates the collider to rotation.
+   * @param value The new rotation for the collider.
    */
   MoveRotation(value: Quaternion) {
     const transform = {
@@ -381,21 +381,21 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   }
 
   /**
-   * Is the rigidbody sleeping?
+   * Is the collider sleeping?
    */
   isSleeping(): boolean {
     return this._pxActor.isSleeping();
   }
 
   /**
-   * Forces a rigidbody to sleep at least one frame.
+   * Forces a collider to sleep at least one frame.
    */
   sleep() {
     return this._pxActor.putToSleep();
   }
 
   /**
-   * Forces a rigidbody to wake up.
+   * Forces a collider to wake up.
    */
   wakeUp() {
     return this._pxActor.wakeUp();
