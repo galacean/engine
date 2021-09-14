@@ -413,27 +413,6 @@ export class Quaternion implements IClone {
     out.w = a.w * s;
   }
 
-  /**
-   * finds the shortest rotation between two vectors.
-   * @param v0 the vector to start from
-   * @param v1 the vector to rotate to
-   * @param out a rotation about an axis normal to the two vectors which takes one to the other via the shortest path
-   */
-  static shortestRotation(v0: Vector3, v1: Vector3, out: Quaternion) {
-    const d = Vector3.dot(v0, v1);
-    const cross = Quaternion._tempVector3;
-    Vector3.cross(v0, v1, cross);
-
-    const q =
-      d > -1
-        ? out.setValue(cross.x, cross.y, cross.z, 1 + d)
-        : Math.abs(v0.x) < 0.1
-        ? out.setValue(0.0, v0.z, -v0.y, 0.0)
-        : out.setValue(v0.y, -v0.x, 0.0, 0.0);
-
-    return q.normalize();
-  }
-
   /** The x component of the quaternion. */
   x: number;
   /** The y component of the quaternion. */

@@ -80,28 +80,6 @@ export class Plane implements IClone {
     return this;
   }
 
-  transformFromPlaneEquation(outPosition: Vector3, outRotation: Quaternion) {
-    this.normalize();
-    const q = outRotation;
-    const t = outPosition;
-
-    // special case handling for axis aligned planes
-    const halfsqrt2 = 0.707106781;
-    // special handling for axis aligned planes
-    if (2 == (this.normal.x == 0.0 ? 1 : 0) + (this.normal.y == 0.0 ? 1 : 0) + (this.normal.z == 0.0 ? 1 : 0)) {
-      if (this.normal.x > 0) {
-        q.setValue(0, 0, 0, 1);
-      } else if (this.normal.x < 0) {
-        q.setValue(0, 0, 1, 0);
-      } else {
-        q.setValue(0, -this.normal.z * halfsqrt2, -this.normal.y * halfsqrt2, halfsqrt2);
-      }
-    } else {
-      Quaternion.shortestRotation(new Vector3(1.0, 0, 0), this.normal, q);
-    }
-    Vector3.scale(this.normal, -this.distance, t);
-  }
-
   /**
    * Creates a clone of this plane.
    * @returns A clone of this plane
