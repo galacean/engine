@@ -4,13 +4,12 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ignoreClone } from "../../clone/CloneManager";
 import { Collider } from "../Collider";
 
-/** Abstract class for collision shapes. */
+/** Abstract class for collider shapes. */
 export abstract class ColliderShape {
   static idGenerator: number = 0;
 
   /** @internal */
   _collider: Collider;
-
   /** @internal */
   @ignoreClone
   _index: number = -1;
@@ -22,15 +21,17 @@ export abstract class ColliderShape {
   protected _rotation: Quaternion = new Quaternion();
   protected _material: PhysicsMaterial;
 
+  /** collider owner of this shape */
   get collider(): Collider {
     return this._collider;
   }
 
+  /** unique id for this shape */
   get id(): number {
     return this._id;
   }
 
-  /** PhysXPhysics Material */
+  /** physical material */
   get material(): PhysicsMaterial {
     return this._material;
   }
@@ -40,7 +41,7 @@ export abstract class ColliderShape {
     this._nativeShape.setMaterial(value._nativeMaterial);
   }
 
-  /** The position of this ColliderShape. */
+  /** The local position of this ColliderShape. */
   get position(): Vector3 {
     return this._position;
   }
@@ -50,6 +51,7 @@ export abstract class ColliderShape {
     this._nativeShape.setPosition(value);
   }
 
+  /** The local rotation of this ColliderShape. */
   get rotation(): Quaternion {
     return this._rotation;
   }

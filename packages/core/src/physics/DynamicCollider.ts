@@ -1,13 +1,12 @@
 import { IDynamicCollider } from "@oasis-engine/design";
-import { UpdateFlag } from "../UpdateFlag";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { PhysicsManager } from "./PhysicsManager";
 import { Vector3 } from "@oasis-engine/math";
 
+/** A dynamic collider can act with self-defined movement or physical force */
 export class DynamicCollider extends Collider {
-  private readonly _dynamicCollider: IDynamicCollider;
-  private _updateFlag: UpdateFlag;
+  private readonly _nativeDynamicCollider: IDynamicCollider;
 
   /** The linear velocity vector of the RigidBody measured in world unit per second. */
   linearVelocity: Vector3;
@@ -22,33 +21,30 @@ export class DynamicCollider extends Collider {
   /** Controls whether physics affects the RigidBody. */
   isKinematic: boolean;
 
-  /** The Collider attached */
+  /** The collider attached */
   get collider(): IDynamicCollider {
-    return this._dynamicCollider;
+    return this._nativeDynamicCollider;
   }
 
   constructor(entity: Entity) {
     super(entity);
-    this._dynamicCollider = PhysicsManager.nativePhysics.createDynamicCollider(this._position, this._rotation);
-    this._nativeStaticCollider = this._dynamicCollider;
-    this._updateFlag = this.entity.transform.registerWorldChangeFlag();
-    this._updateFlag.flag = false;
+    this._nativeDynamicCollider = PhysicsManager.nativePhysics.createDynamicCollider(this._position, this._rotation);
+    this._nativeStaticCollider = this._nativeDynamicCollider;
   }
 
-  /** apply a force to the DynamicCollider. */
+  /**
+   * apply a force to the DynamicCollider.
+   * @param force the force make the collider move
+   */
   applyForce(force: Vector3): void {
-    this._dynamicCollider.addForce(force);
+    this._nativeDynamicCollider.addForce(force);
   }
 
-  /** apply a torque to the DynamicCollider. */
+  /**
+   * apply a torque to the DynamicCollider.
+   * @param torque the force make the collider rotate
+   */
   applyTorque(torque: Vector3): void {
-    this._dynamicCollider.addTorque(torque);
-  }
-
-  onUpdate() {
-    if (this._updateFlag.flag) {
-      this._dynamicCollider.setGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
-      this._updateFlag.flag = false;
-    }
+    this._nativeDynamicCollider.addTorque(torque);
   }
 }

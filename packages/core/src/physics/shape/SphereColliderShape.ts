@@ -2,7 +2,7 @@ import { ColliderShape } from "./ColliderShape";
 import { ISphereColliderShape } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 
-/** PhysXPhysics Shape for Sphere */
+/** physical collider shape for sphere */
 export class SphereColliderShape extends ColliderShape {
   private _radius: number = 1;
 

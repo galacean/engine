@@ -242,7 +242,7 @@ export class ComponentsManager {
   callColliderOnStart() {
     const elements = this._colliders._elements;
     for (let i = this._colliders.length - 1; i >= 0; --i) {
-      elements[i].onUpdate();
+      elements[i]._onUpdate();
     }
   }
 

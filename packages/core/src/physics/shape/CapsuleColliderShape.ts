@@ -2,7 +2,7 @@ import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 
-/** PhysXPhysics Shape for Capsule */
+/** physical collider shape for capsule */
 export class CapsuleColliderShape extends ColliderShape {
   private _radius: number = 1;
   private _height: number = 2;
