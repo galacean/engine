@@ -70,7 +70,7 @@ export class SchemaResourceManager {
   load(asset: AssetConfig): Promise<SchemaResource> {
     // TODO 临时解决文件化问题
     if (asset.type === "bin") {
-      this.engineResourceManager.load({ url: asset.url, type: AssetType.EditorFile }).then((res) => {
+      this.engineResourceManager.load({ url: asset.url, type: AssetType.Oasis }).then((res) => {
         const resource = {
           resource: res
         };

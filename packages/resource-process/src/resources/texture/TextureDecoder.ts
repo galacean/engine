@@ -1,7 +1,9 @@
 import { Engine, Texture2D } from "@oasis-engine/core";
-import { loadImageBuffer } from "../Util";
-import { BufferReader } from "./utils/BufferReader";
+import { BufferReader } from "../../utils/BufferReader";
+import { decoder } from "../../utils/Decorator";
+import { loadImageBuffer } from "../../utils/Utils";
 
+@decoder("Texture2D")
 export class Texture2DDecoder {
   static decode(
     engine: Engine,

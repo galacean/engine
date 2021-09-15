@@ -13,5 +13,8 @@
     "dist/**/*",
     "types/**/*"
   ],
-  "dependencies": {}
+  "dependencies": {
+    "@oasis-engine/core": "0.5.2",
+    "@oasis-engine/math": "0.5.2"
+  }
 }

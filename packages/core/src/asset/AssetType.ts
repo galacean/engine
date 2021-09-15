@@ -35,6 +35,6 @@ export enum AssetType {
   KTXCube = "ktx-cube",
   /** Sprite Atlas. */
   SpriteAtlas = "sprite-atlas",
-  /** EditorFile */
-  EditorFile = "editor-file"
+  /** Oasis specific file. */
+  Oasis = "oasis"
 }

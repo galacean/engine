@@ -7,9 +7,9 @@ import {
   Texture2D,
   ResourceManager
 } from "@oasis-engine/core";
-import { decode } from "./custom-file-loaders";
+import { decode } from "@oasis-engine/resource-process";
 
-@resourceLoader(AssetType.EditorFile, ["oasis"], false)
+@resourceLoader(AssetType.Oasis, ["oasis"], false)
 class EditorFileLoader<T> extends Loader<T> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T> {
     return new AssetPromise((resolve, reject) => {

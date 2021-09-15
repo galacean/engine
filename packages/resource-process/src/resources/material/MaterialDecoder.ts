@@ -1,22 +1,10 @@
-import { AssetType, Engine, Material, ResourceManager, Shader, Texture, Texture2D } from "@oasis-engine/core";
-import { ShaderData } from "@oasis-engine/core/types/shader/ShaderData";
-import { Color, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { parseRelativeUrl } from "../Util";
-import { BufferReader } from "./utils/BufferReader";
+import { AssetType, Engine, Material, Shader } from "@oasis-engine/core";
+import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BufferReader } from "../../utils/BufferReader";
+import { decoder } from "../../utils/Decorator";
+import { UniformType } from "./type";
 
-enum UniformType {
-  Number,
-  Vector2,
-  Vector3,
-  Vector4,
-  Color,
-  Texture
-}
-interface UniformValue {
-  type: UniformType;
-  value: any; // 详细查看 UniformType 到 Value 的映射
-}
-
+@decoder("Material")
 export class MaterialDecoder {
   public static decode(
     engine: Engine,
@@ -24,7 +12,7 @@ export class MaterialDecoder {
     byteOffset?: number,
     byteLength?: number
   ): Promise<Material> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       const bufferReader = new BufferReader(arraybuffer, byteOffset, byteLength);
       // init material
       const objectId = bufferReader.nextStr();
@@ -91,7 +79,7 @@ export class MaterialDecoder {
               engine.resourceManager
                 .load({
                   url: path,
-                  type: AssetType.EditorFile
+                  type: AssetType.Oasis
                 })
                 .then(() => {
                   // @ts-ignore
@@ -99,6 +87,24 @@ export class MaterialDecoder {
                 });
             }
             break;
+        }
+      }
+      const renderStateString = bufferReader.nextStr();
+      if (renderStateString.length > 0) {
+        const renderState = JSON.parse(renderStateString);
+        const { blendState, depthState, rasterState, stencilState } = renderState;
+        const materialRenderState = material.renderState;
+        if (blendState) {
+          Object.keys(blendState).forEach((key) => (materialRenderState.blendState[key] = blendState[key]));
+        }
+        if (depthState) {
+          Object.keys(depthState).forEach((key) => (materialRenderState.depthState[key] = depthState[key]));
+        }
+        if (rasterState) {
+          Object.keys(rasterState).forEach((key) => (materialRenderState.rasterState[key] = rasterState[key]));
+        }
+        if (stencilState) {
+          Object.keys(stencilState).forEach((key) => (materialRenderState.stencilState[key] = stencilState[key]));
         }
       }
       // @ts-ignore

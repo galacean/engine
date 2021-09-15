@@ -1,5 +1,3 @@
-import { ab2str } from "./Utils";
-
 const textDecode = new TextDecoder();
 
 export class FileHeader {
