@@ -1,13 +1,13 @@
 import {
-  IPhysics,
-  IPhysicsMaterial,
-  IPhysicsManager,
   IBoxColliderShape,
-  ISphereColliderShape,
   ICapsuleColliderShape,
   IDynamicCollider,
-  IStaticCollider,
-  IPlaneColliderShape
+  IPhysics,
+  IPhysicsManager,
+  IPhysicsMaterial,
+  IPlaneColliderShape,
+  ISphereColliderShape,
+  IStaticCollider
 } from "@oasis-engine/design";
 import { PhysicsMaterial } from "./PhysicsMaterial";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
@@ -19,6 +19,7 @@ import { StaticCollider } from "./StaticCollider";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PlaneColliderShape } from "./shape/PlaneColliderShape";
+import { RuntimeMode } from "./enum/RuntimeMode";
 
 /**
  * physics object creation.
@@ -31,15 +32,40 @@ export class PhysXPhysics {
   static physics: any;
 
   /**
-   * Initialize PhysX Object.
-   * */
-  public static init(): Promise<void> {
+   * Initialize PhysXPhysics.
+   * @param runtimeMode - Runtime mode
+   * @returns Promise object
+   */
+  public static init(runtimeMode: RuntimeMode = RuntimeMode.Auto): Promise<void> {
     const scriptPromise = new Promise((resolve) => {
       const script = document.createElement("script");
       document.body.appendChild(script);
       script.async = true;
       script.onload = resolve;
-      script.src = "http://30.50.28.4:8000/physx.release.js";
+
+      const supported = (() => {
+        try {
+          if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
+            const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+            if (module instanceof WebAssembly.Module)
+              return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
+          }
+        } catch (e) {}
+        return false;
+      })();
+      if (runtimeMode == RuntimeMode.Auto) {
+        if (supported) {
+          runtimeMode = RuntimeMode.WebAssembly;
+        } else {
+          runtimeMode = RuntimeMode.JavaScript;
+        }
+      }
+
+      if (runtimeMode == RuntimeMode.JavaScript) {
+        script.src = "http://30.50.28.4:8000/physx.release.js";
+      } else if (runtimeMode == RuntimeMode.WebAssembly) {
+        script.src = "http://30.50.28.4:8000/physx.release.js";
+      }
     });
 
     return new Promise((resolve) => {

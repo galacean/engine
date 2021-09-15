@@ -1,4 +1,5 @@
 export { PhysXPhysics } from "./PhysXPhysics";
+export { RuntimeMode } from "./enum/RuntimeMode";
 export { PhysXPhysicsManager, QueryFlag } from "./PhysXPhysicsManager";
 
 export { PhysicsMaterial, PhysicsCombineMode } from "./PhysicsMaterial";
