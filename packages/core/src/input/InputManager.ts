@@ -2,61 +2,50 @@ import { Ray, Vector2 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Entity } from "../Entity";
 import { HitResult } from "../HitResult";
-import { PhysicsManager } from "../PhysicsManager";
-import { SceneManager } from "../SceneManager";
 import { Script } from "../Script";
 import { Input } from "./Input";
 import { Pointer } from "./Pointer";
-
-/** @internal */
-enum PointerEventType {
-  PointDown,
-  PointUp,
-  PointMove
-}
-
-/** @internal */
-enum PointerChangeType {
-  Update,
-  Remove
-}
 
 /**
  * Input Manager.
  */
 export class InputManager {
-  /** Canvas to listen for input. */
-  private _canvas: HTMLCanvasElement;
-  /** SceneManager. */
-  private _sceneMgr: SceneManager;
-  /** PhysicsManager. */
-  private _physicsMgr: PhysicsManager;
-
-  /** Current simulated input. */
-  private _input: Input = new Input();
-  /** The number of events received in the current frame monitor. */
-  private _eventLen: number = 0;
-  /** Event list. */
-  private _eventList: PointerEventType[] = [];
-  /** The number of pointers currently active. */
-  private _actPointerCount: number = 0;
-  /** Pointer list. */
-  private _pointerList: Pointer[] = [];
-  /** 'PointerId' to 'index' mapping. */
-  private _pointerIdToIndex: Record<number, number> = {};
-  /** Output Pointer list. */
-  private _outputPointerList: Pointer[] = [];
-
-  /** Temporary variables. */
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
   private static _tempHitResult: HitResult = new HitResult();
 
-  /** Whether to support multi-touch. */
+  private _engine: Engine;
+  private _canvas: HTMLCanvasElement;
+
   private _multiTouchEnabled: boolean = false;
+  /** Current simulated input. */
+  private _input: Input = new Input();
+  private _eventList: PointerEvent[] = [];
+  private _activePointerCount: number = 0;
+  private _pointerList: Pointer[] = [];
+  private _pointers: Pointer[] = [];
+  private _pointerIdToIndexMap: Record<number, number> = {};
 
   /**
-   * Whether to support multi-touch.
+   *	Get pointers.
+   *  @remarks The returned list should be considered deep-read-only.
+   * 	@return Pointers
+   */
+  get pointers(): Readonly<Pointer[]> {
+    return this._pointers;
+  }
+
+  /**
+   *	Get input.
+   *  @remarks The returned list should be considered deep-read-only.
+   * 	@return Input
+   */
+  get input(): Readonly<Input> {
+    return this._input;
+  }
+
+  /**
+   *  Whether to handle multi-touch.
    */
   get multiTouchEnabled(): boolean {
     return this._multiTouchEnabled;
@@ -71,163 +60,175 @@ export class InputManager {
    * @param engine - The current engine instance
    */
   constructor(engine: Engine) {
-    this._sceneMgr = engine.sceneManager;
-    this._physicsMgr = engine.physicsManager;
-
+    this._engine = engine;
     // @ts-ignore
     const canvas = (this._canvas = engine.canvas._webCanvas);
-    canvas.addEventListener("pointerdown", this._onPointerDown);
-    canvas.addEventListener("pointerup", this._onPointerUp);
-    canvas.addEventListener("pointermove", this._onPointerMove);
-    canvas.addEventListener("pointercancel", this._onPointerCancelOrOut);
-    canvas.addEventListener("pointerout", this._onPointerCancelOrOut);
-  }
-
-  /**
-   *	Get List of touch pointers.
-   * 	@return List of touch pointers
-   *  @remarks The returned list should be considered deep-read-only.
-   */
-  getPointers(): Readonly<Pointer[]> {
-    return this._outputPointerList;
-  }
-
-  /**
-   *	Get input.
-   * 	@return Input
-   *  @remarks The returned Input should be considered deep-read-only.
-   */
-  getInput(): Readonly<Input> {
-    return this._input;
+    canvas.addEventListener("pointerdown", this._pushEventList);
+    canvas.addEventListener("pointerup", this._pushEventList);
+    canvas.addEventListener("pointermove", this._pushEventList);
+    canvas.addEventListener("pointercancel", this._pushEventList);
+    canvas.addEventListener("pointerout", this._pushEventList);
   }
 
   /**
    * Called when the engine is destroyed.
    */
-  destroy() {
+  destroy(): void {
     const { _canvas: canvas } = this;
-    canvas.removeEventListener("pointerdown", this._onPointerDown);
-    canvas.removeEventListener("pointerup", this._onPointerUp);
-    canvas.removeEventListener("pointermove", this._onPointerMove);
-    canvas.removeEventListener("pointercancel", this._onPointerCancelOrOut);
-    canvas.removeEventListener("pointerout", this._onPointerCancelOrOut);
+    canvas.removeEventListener("pointerdown", this._pushEventList);
+    canvas.removeEventListener("pointerup", this._pushEventList);
+    canvas.removeEventListener("pointermove", this._pushEventList);
+    canvas.removeEventListener("pointercancel", this._pushEventList);
+    canvas.removeEventListener("pointerout", this._pushEventList);
     this._eventList.length = 0;
     this._pointerList.length = 0;
+    this._pointers.length = 0;
     this._input = null;
-    this._pointerIdToIndex = null;
-    this._sceneMgr = null;
-    this._physicsMgr = null;
-    this._canvas = null;
+    this._pointerIdToIndexMap = null;
   }
 
   /**
    * Update pointer event, will be executed every frame.
    * @internal
    */
-  _update() {
-    const { _eventLen, _actPointerCount } = this;
-    if (_eventLen > 0 || _actPointerCount > 0) {
-      /** Sync _outputPointerList and _pointerList. */
-      const { _outputPointerList, _pointerList, _eventList, _input } = this;
-      _outputPointerList.length = _actPointerCount;
-      for (let i = 0; i < _actPointerCount; i++) {
-        _outputPointerList[i] = _pointerList[i];
-      }
-      let prePressedEntity = _input.pressedEntity;
-      if (prePressedEntity) {
-        /** Pointer Drag. */
-        const preScripts = prePressedEntity._scripts._elements;
-        for (let i = preScripts.length - 1; i >= 0; i--) {
-          preScripts[i].onPointerDrag();
-        }
-      }
-      /** Get the entity hit by the ray. */
-      const { offsetLeft = 0, offsetTop = 0, clientWidth, clientHeight } = this._canvas;
-      const curEntity = this._pointerRaycast(
-        (_input.pageX - offsetLeft) / clientWidth,
-        (_input.pageY - offsetTop) / clientHeight
-      );
-      const preEnteredEntity = _input.enteredEntity;
-      /** 80% of operations are on curEntity, so we cache his scripts. */
-      let curEntityScripts: Script[];
-      let curEntityScriptsLen = 0;
-      if (curEntity) {
-        curEntityScripts = curEntity._scripts._elements;
-        curEntityScriptsLen = curEntityScripts.length;
-      }
-      // Cache curEntity's Scripts.
-      if (preEnteredEntity != curEntity) {
-        if (curEntity) {
-          for (let i = 0; i < curEntityScriptsLen; i++) {
-            curEntityScripts[i].onPointerEnter();
-          }
-        }
-        if (preEnteredEntity) {
-          const scripts = preEnteredEntity._scripts;
-          const scriptsArr = scripts._elements;
-          for (let i = scripts.length - 1; i >= 0; i--) {
-            scriptsArr[i].onPointerExit();
-          }
-        }
-        _input.enteredEntity = curEntity;
-      }
-      for (let i = 0; i < _eventLen; i++) {
-        switch (_eventList[i]) {
-          case PointerEventType.PointDown:
-            if (curEntity) {
-              for (let j = 0; j < curEntityScriptsLen; j++) {
-                curEntityScripts[j].onPointerDown();
-              }
-            }
-            prePressedEntity = curEntity;
+  _update(): void {
+    /** Simulate a combined pointer. */
+    const { _eventList } = this;
+    const eventLen = _eventList.length;
+    /** Expressed in binary. */
+    let evtTypeList = 1;
+    if (eventLen > 0) {
+      for (let l = 0; l < eventLen; l++) {
+        const evt = _eventList[l];
+        switch (evt.type) {
+          case "pointerdown":
+            this._changePointer(PointerOperationType.Update, evt.pointerId, evt.pageX, evt.pageY);
+            /** this._activePointerCount === 1 && (evtTypeList = (evtTypeList << 1) | PointerEventType.Down); */
+            this._activePointerCount === 1 && (evtTypeList <<= 1);
             break;
-          case PointerEventType.PointUp:
-            if (prePressedEntity) {
-              if (prePressedEntity == curEntity) {
-                for (let j = 0; j < curEntityScriptsLen; j++) {
-                  const script = curEntityScripts[j];
-                  script.onPointerUp();
-                  script.onPointerClick();
-                }
-              } else {
-                const preScripts = prePressedEntity._scripts._elements;
-                for (let j = preScripts.length - 1; j >= 0; j--) {
-                  preScripts[j].onPointerUp();
-                }
-              }
-            }
-            prePressedEntity = null;
+          case "pointerup":
+            this._activePointerCount === 1 && (evtTypeList = (evtTypeList << 1) | PointerEventType.Up);
+            break;
+          case "pointermove":
+            this._changePointer(PointerOperationType.Update, evt.pointerId, evt.pageX, evt.pageY);
+            break;
+          case "pointercancel":
+          case "pointerout":
+            this._changePointer(PointerOperationType.Remove, evt.pointerId);
             break;
           default:
             break;
         }
       }
-      _input.pressedEntity = prePressedEntity;
-      this._eventLen = 0;
-    } else {
-      this._outputPointerList.length = 0;
+      /** Reset event list. */
+      _eventList.length = 0;
     }
+
+    /** Sync _pointers and _pointerList. */
+    const { _pointers: pointers, _pointerList: pointerList, _input: input, _activePointerCount } = this;
+    pointers.length = _activePointerCount;
+    if (evtTypeList <= 1 && _activePointerCount === 0) {
+      return;
+    } else {
+      for (let i = 0; i < _activePointerCount; i++) {
+        pointers[i] = pointerList[i];
+      }
+    }
+
+    /** Check whether pressed events are triggered. */
+    let prePressedEntity = input.pressedEntity;
+    if (prePressedEntity) {
+      const preScripts = prePressedEntity._scripts._elements;
+      for (let i = preScripts.length - 1; i >= 0; i--) {
+        preScripts[i].onPointerDrag();
+      }
+    }
+    /** Get the entity hit by the ray. */
+    const curEntity = this._pointerRaycast(input.x, input.y);
+    const preEnteredEntity = input.enteredEntity;
+    /** 80% of operations are on curEntity, so we cache his scripts. */
+    let curEntityScripts: Script[];
+    let curEntityScriptsLen = 0;
+    if (curEntity) {
+      curEntityScripts = curEntity._scripts._elements;
+      curEntityScriptsLen = curEntityScripts.length;
+    }
+    /** Check whether enter and exit events are triggered. */
+    if (preEnteredEntity != curEntity) {
+      if (curEntity) {
+        for (let i = 0; i < curEntityScriptsLen; i++) {
+          curEntityScripts[i].onPointerEnter();
+        }
+      }
+      if (preEnteredEntity) {
+        const scripts = preEnteredEntity._scripts;
+        const scriptsArr = scripts._elements;
+        for (let i = scripts.length - 1; i >= 0; i--) {
+          scriptsArr[i].onPointerExit();
+        }
+      }
+      input.enteredEntity = curEntity;
+    }
+    /** Check whether down up and click events are triggered. */
+    while (evtTypeList > 1) {
+      switch (evtTypeList % 2) {
+        case PointerEventType.Down:
+          if (curEntity) {
+            for (let j = 0; j < curEntityScriptsLen; j++) {
+              curEntityScripts[j].onPointerDown();
+            }
+          }
+          prePressedEntity = curEntity;
+          break;
+        case PointerEventType.Up:
+          if (prePressedEntity) {
+            if (prePressedEntity == curEntity) {
+              for (let j = 0; j < curEntityScriptsLen; j++) {
+                const script = curEntityScripts[j];
+                script.onPointerUp();
+                script.onPointerClick();
+              }
+            } else {
+              const preScripts = prePressedEntity._scripts._elements;
+              for (let j = preScripts.length - 1; j >= 0; j--) {
+                preScripts[j].onPointerUp();
+              }
+            }
+          }
+          prePressedEntity = null;
+          break;
+      }
+      evtTypeList >>= 1;
+    }
+    input.pressedEntity = prePressedEntity;
   }
 
   /**
    * Get the Entity to which the ray is cast.
-   * @param posX - The X coordinate of the pointer on the screen, specified in normalized
-   * @param posY - The Y coordinate of the pointer on the screen, specified in normalized
+   * @param x - The X coordinate of the pointer on the screen, specified in normalized
+   * @param y - The Y coordinate of the pointer on the screen, specified in normalized
    * @returns The Entity to which the ray is cast
    */
-  private _pointerRaycast(posX: number, posY: number): Entity {
-    const cameras = this._sceneMgr.activeScene._activeCameras;
+  private _pointerRaycast(x: number, y: number): Entity {
+    const { _engine: engine, _canvas: canvas } = this;
+    /** Convert screen coordinates to viewport coordinates. */
+    x = (x - canvas.offsetLeft) / canvas.clientWidth;
+    y = (y - canvas.offsetTop) / canvas.clientHeight;
+    const cameras = engine.sceneManager.activeScene._activeCameras;
     for (let i = cameras.length - 1; i >= 0; i--) {
       const camera = cameras[i];
       if (!camera.enabled || camera.renderTarget) {
         continue;
       }
       const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
-      if (posX >= vpX && posY >= vpY && posX - vpX <= vpW && posY - vpY <= vpH) {
+      if (x >= vpX && y >= vpY && x - vpX <= vpW && y - vpY <= vpH) {
         const { _tempHitResult, _tempPoint } = InputManager;
-        _tempPoint.setValue((posX - vpX) / vpW, (posY - vpY) / vpH);
+        _tempPoint.setValue((x - vpX) / vpW, (y - vpY) / vpH);
         // TODO: Only check which colliders have listened to the input.
-        return this._physicsMgr.raycast(camera.viewportPointToRay(_tempPoint, InputManager._tempRay), _tempHitResult)
+        return engine.physicsManager.raycast(
+          camera.viewportPointToRay(_tempPoint, InputManager._tempRay),
+          _tempHitResult
+        )
           ? _tempHitResult.collider.entity
           : null;
       }
@@ -239,54 +240,57 @@ export class InputManager {
    * Update pointers info.
    * @param type - Pointer change type
    * @param pointerId - Pointer ID
-   * @param pageX - The pageX of Pointer
-   * @param pageY - The pageY of Pointer
+   * @param x - The x coordinate of Pointer
+   * @param y - The y coordinate of Pointer
    */
-  private _changePointer(type: PointerChangeType, pointerId: number, pageX?: number, pageY?: number) {
-    const { _pointerIdToIndex, _pointerList, _actPointerCount: lastCount, _input } = this;
+  private _changePointer(type: PointerOperationType, pointerId: number, x?: number, y?: number): void {
+    const {
+      _pointerIdToIndexMap: _pointerIdToIndex,
+      _pointerList: pointerList,
+      _activePointerCount: lastCount,
+      _input: input
+    } = this;
     let idx = _pointerIdToIndex[pointerId];
     switch (type) {
-      case PointerChangeType.Remove:
+      case PointerOperationType.Remove:
         if (idx === undefined) {
           return;
         } else {
-          const nowCount = (this._actPointerCount = lastCount - 1);
+          const nowCount = (this._activePointerCount = lastCount - 1);
           if (nowCount != 0) {
-            const removedTouch = _pointerList[idx];
+            const removedTouch = pointerList[idx];
             if (idx !== lastCount) {
-              _pointerList[idx] = _pointerList[lastCount];
-              _pointerList[lastCount] = removedTouch;
+              pointerList[idx] = pointerList[lastCount];
+              pointerList[lastCount] = removedTouch;
             }
-            _input.pageX = (_input.pageX * lastCount - removedTouch.pageX) / nowCount;
-            _input.pageY = (_input.pageY * lastCount - removedTouch.pageY) / nowCount;
+            input.x = (input.x * lastCount - removedTouch.position.x) / nowCount;
+            input.y = (input.y * lastCount - removedTouch.position.y) / nowCount;
           }
           delete _pointerIdToIndex[pointerId];
         }
         break;
-      case PointerChangeType.Update:
+      case PointerOperationType.Update:
         if (idx === undefined) {
           if (lastCount > 0 && !this._multiTouchEnabled) {
             return;
           }
           let touch: Pointer;
-          if (!_pointerList[lastCount]) {
-            touch = _pointerList[lastCount] = new Pointer(pointerId, pageX, pageY, lastCount);
+          if (!pointerList[lastCount]) {
+            touch = pointerList[lastCount] = new Pointer(pointerId, x, y, lastCount);
           } else {
-            touch = _pointerList[lastCount];
-            touch.pageX = pageX;
-            touch.pageY = pageY;
-            touch.indexInList = lastCount;
+            touch = pointerList[lastCount];
+            touch.position.setValue(x, y);
+            touch._indexInList = lastCount;
           }
           _pointerIdToIndex[pointerId] = lastCount;
-          const nowCount = (this._actPointerCount = lastCount + 1);
-          _input.pageX = (_input.pageX * lastCount + pageX) / nowCount;
-          _input.pageY = (_input.pageY * lastCount + pageY) / nowCount;
+          const nowCount = (this._activePointerCount = lastCount + 1);
+          input.x = (input.x * lastCount + x) / nowCount;
+          input.y = (input.y * lastCount + y) / nowCount;
         } else {
-          const touch = _pointerList[idx];
-          _input.pageX += (pageX - touch.pageX) / lastCount;
-          _input.pageY += (pageY - touch.pageY) / lastCount;
-          touch.pageX = pageX;
-          touch.pageY = pageY;
+          const { position } = pointerList[idx];
+          input.x += (x - position.x) / lastCount;
+          input.y += (y - position.y) / lastCount;
+          position.setValue(x, y);
         }
         break;
       default:
@@ -295,52 +299,22 @@ export class InputManager {
   }
 
   /**
-   * Push event types into an ordered queue.
+   * Push pointerEvent into an ordered queue.
    * @param type - Pointer event type
    */
-  private _pushEventList(type: PointerEventType) {
-    const { _eventList } = this;
-    if (_eventList.length == this._eventLen) {
-      _eventList.push(type);
-    } else {
-      _eventList[this._eventLen] = type;
-    }
-    ++this._eventLen;
-  }
-
-  /**
-   * On pointer down.
-   * @param evt - Pointer Event
-   */
-  private _onPointerDown = (evt: PointerEvent) => {
-    this._changePointer(PointerChangeType.Update, evt.pointerId, evt.pageX, evt.pageY);
-    if (this._actPointerCount == 1) {
-      this._pushEventList(PointerEventType.PointDown);
-    }
+  private _pushEventList = (event: PointerEvent): void => {
+    this._eventList.push(event);
   };
+}
 
-  /**
-   * On pointer up.
-   */
-  private _onPointerUp = () => {
-    if (this._actPointerCount == 1) {
-      this._pushEventList(PointerEventType.PointUp);
-    }
-  };
+/** @internal */
+enum PointerEventType {
+  Down,
+  Up
+}
 
-  /**
-   * On pointer move.
-   * @param evt - Pointer Event
-   */
-  private _onPointerMove = (evt: PointerEvent) => {
-    this._changePointer(PointerChangeType.Update, evt.pointerId, evt.pageX, evt.pageY);
-  };
-
-  /**
-   * On pointer cancel or out.
-   * @param evt - Pointer Event
-   */
-  private _onPointerCancelOrOut = (evt: PointerEvent) => {
-    this._changePointer(PointerChangeType.Remove, evt.pointerId);
-  };
+/** @internal */
+enum PointerOperationType {
+  Update,
+  Remove
 }
