@@ -1,5 +1,3 @@
-import { PHYSX } from "./physx.release";
-
 /**
  * Store and Init the foundation of PhysX Object
  * @internal
@@ -14,13 +12,22 @@ export class PhysXManager {
    * Initialize PhysX Object.
    * */
   public static init(): Promise<void> {
-    return new Promise((resolve) => {
-      PHYSX().then(function (PHYSX) {
-        PhysXManager.PhysX = PHYSX;
-        PhysXManager._setup();
-        console.log("PHYSX loaded");
+    const scriptPromise = new Promise((resolve) => {
+      const script = document.createElement("script");
+      document.body.appendChild(script);
+      script.async = true;
+      script.onload = resolve;
+      script.src = "http://30.50.28.4:8000/physx.release.js";
+    });
 
-        resolve();
+    return new Promise((resolve) => {
+      scriptPromise.then(() => {
+        (<any>window).PHYSX().then((PHYSX) => {
+          PhysXManager.PhysX = PHYSX;
+          PhysXManager._setup();
+          console.log("PHYSX loaded");
+          resolve();
+        });
       });
     });
   }
