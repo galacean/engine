@@ -1,4 +1,4 @@
-import { PhysXManager } from "./PhysXManager";
+import { PhysXPhysics } from "./PhysXPhysics";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
 import { Collider } from "./Collider";
@@ -88,16 +88,16 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       }
     };
 
-    const PHYSXSimulationCallbackInstance = PhysXManager.PhysX.PxSimulationEventCallback.implement(triggerCallback);
-    const sceneDesc = PhysXManager.PhysX.getDefaultSceneDesc(
-      PhysXManager.physics.getTolerancesScale(),
+    const PHYSXSimulationCallbackInstance = PhysXPhysics.PhysX.PxSimulationEventCallback.implement(triggerCallback);
+    const sceneDesc = PhysXPhysics.PhysX.getDefaultSceneDesc(
+      PhysXPhysics.physics.getTolerancesScale(),
       0,
       PHYSXSimulationCallbackInstance
     );
-    this._pxScene = PhysXManager.physics.createScene(sceneDesc);
+    this._pxScene = PhysXPhysics.physics.createScene(sceneDesc);
 
-    PhysXPhysicsManager._pxRaycastHit = new PhysXManager.PhysX.PxRaycastHit();
-    PhysXPhysicsManager._pxFilterData = new PhysXManager.PhysX.PxQueryFilterData();
+    PhysXPhysicsManager._pxRaycastHit = new PhysXPhysics.PhysX.PxRaycastHit();
+    PhysXPhysicsManager._pxFilterData = new PhysXPhysics.PhysX.PxQueryFilterData();
   }
 
   //--------------public APIs--------------------------------------------------
@@ -159,7 +159,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     queryFlag: QueryFlag,
     hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    PhysXPhysicsManager._pxFilterData.flags = new PhysXManager.PhysX.PxQueryFlags(queryFlag);
+    PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics.PhysX.PxQueryFlags(queryFlag);
     const result = this._pxScene.raycastSingle(
       { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
       { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },

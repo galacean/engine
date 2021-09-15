@@ -1,4 +1,3 @@
-export { PhysXManager } from "./PhysXManager";
 export { PhysXPhysics } from "./PhysXPhysics";
 export { PhysXPhysicsManager, QueryFlag } from "./PhysXPhysicsManager";
 

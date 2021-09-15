@@ -1,4 +1,4 @@
-import { PhysXManager } from "./PhysXManager";
+import { PhysXPhysics } from "./PhysXPhysics";
 import { IPhysicsMaterial } from "@oasis-engine/design";
 
 /**
@@ -32,7 +32,7 @@ export class PhysicsMaterial implements IPhysicsMaterial {
     frictionCombine: PhysicsCombineMode,
     bounceCombine: PhysicsCombineMode
   ) {
-    this._pxMaterial = PhysXManager.physics.createMaterial(staticFriction, dynamicFriction, bounciness);
+    this._pxMaterial = PhysXPhysics.physics.createMaterial(staticFriction, dynamicFriction, bounciness);
     this._pxMaterial.setFrictionCombineMode(frictionCombine);
     this._pxMaterial.setRestitutionCombineMode(bounceCombine);
   }

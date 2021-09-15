@@ -1,4 +1,4 @@
-import { PhysXManager } from "../PhysXManager";
+import { PhysXPhysics } from "../PhysXPhysics";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./ColliderShape";
@@ -54,6 +54,6 @@ export class CapsuleColliderShape extends ColliderShape implements ICapsuleColli
   }
 
   private _allocGeometry(radius: number, height: number) {
-    this._pxGeometry = new PhysXManager.PhysX.PxCapsuleGeometry(radius, height / 2.0);
+    this._pxGeometry = new PhysXPhysics.PhysX.PxCapsuleGeometry(radius, height / 2.0);
   }
 }

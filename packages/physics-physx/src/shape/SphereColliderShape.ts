@@ -1,4 +1,4 @@
-import { PhysXManager } from "../PhysXManager";
+import { PhysXPhysics } from "../PhysXPhysics";
 import { ISphereColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./ColliderShape";
@@ -37,6 +37,6 @@ export class SphereColliderShape extends ColliderShape implements ISphereCollide
   }
 
   private _allocGeometry(radius: number) {
-    this._pxGeometry = new PhysXManager.PhysX.PxSphereGeometry(radius);
+    this._pxGeometry = new PhysXPhysics.PhysX.PxSphereGeometry(radius);
   }
 }

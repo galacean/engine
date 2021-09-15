@@ -2,7 +2,7 @@ import { ColliderShape } from "./ColliderShape";
 import { IPlaneColliderShape } from "@oasis-engine/design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PhysXManager } from "../PhysXManager";
+import { PhysXPhysics } from "../PhysXPhysics";
 
 /**
  * PhysX Shape for Plane
@@ -27,6 +27,6 @@ export class PlaneColliderShape extends ColliderShape implements IPlaneColliderS
   }
 
   private _allocGeometry() {
-    this._pxGeometry = new PhysXManager.PhysX.PxPlaneGeometry();
+    this._pxGeometry = new PhysXPhysics.PhysX.PxPlaneGeometry();
   }
 }

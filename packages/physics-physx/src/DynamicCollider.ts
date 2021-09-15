@@ -1,4 +1,4 @@
-import { PhysXManager } from "./PhysXManager";
+import { PhysXPhysics } from "./PhysXPhysics";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IDynamicCollider } from "@oasis-engine/design";
 import { Collider } from "./Collider";
@@ -202,18 +202,18 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
     this._collisionDetectionMode = value;
     switch (value) {
       case CollisionDetectionMode.Continuous:
-        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD, true);
+        this._pxActor.setRigidBodyFlag(PhysXPhysics.PhysX.PxRigidBodyFlag.eENABLE_CCD, true);
         break;
       case CollisionDetectionMode.ContinuousDynamic:
-        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
+        this._pxActor.setRigidBodyFlag(PhysXPhysics.PhysX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
         break;
       case CollisionDetectionMode.ContinuousSpeculative:
-        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
+        this._pxActor.setRigidBodyFlag(PhysXPhysics.PhysX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
         break;
       case CollisionDetectionMode.Discrete:
-        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD, false);
-        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
-        this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
+        this._pxActor.setRigidBodyFlag(PhysXPhysics.PhysX.PxRigidBodyFlag.eENABLE_CCD, false);
+        this._pxActor.setRigidBodyFlag(PhysXPhysics.PhysX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
+        this._pxActor.setRigidBodyFlag(PhysXPhysics.PhysX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
         break;
     }
   }
@@ -226,9 +226,9 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   set isKinematic(value: boolean) {
     this._isKinematic = value;
     if (value) {
-      this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eKINEMATIC, true);
+      this._pxActor.setRigidBodyFlag(PhysXPhysics.PhysX.PxRigidBodyFlag.eKINEMATIC, true);
     } else {
-      this._pxActor.setRigidBodyFlag(PhysXManager.PhysX.PxRigidBodyFlag.eKINEMATIC, false);
+      this._pxActor.setRigidBodyFlag(PhysXPhysics.PhysX.PxRigidBodyFlag.eKINEMATIC, false);
     }
   }
 
@@ -241,7 +241,7 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
   constructor(position: Vector3, rotation: Quaternion) {
     super();
     const transform = this._transform(position, rotation);
-    this._pxActor = PhysXManager.physics.createRigidDynamic(transform);
+    this._pxActor = PhysXPhysics.physics.createRigidDynamic(transform);
   }
 
   setConstraints(flag: DynamicColliderConstraints, value: boolean) {
@@ -250,40 +250,40 @@ export class DynamicCollider extends Collider implements IDynamicCollider {
 
     switch (flag) {
       case DynamicColliderConstraints.FreezePositionX:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
         break;
       case DynamicColliderConstraints.FreezePositionY:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
       case DynamicColliderConstraints.FreezePositionZ:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
       case DynamicColliderConstraints.FreezeRotationX:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
         break;
       case DynamicColliderConstraints.FreezeRotationY:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
         break;
       case DynamicColliderConstraints.FreezeRotationZ:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
       case DynamicColliderConstraints.FreezeAll:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
       case DynamicColliderConstraints.FreezePosition:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_LINEAR_Y, value);
         break;
       case DynamicColliderConstraints.FreezeRotation:
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
-        this._pxActor.setRigidDynamicLockFlag(PhysXManager.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_X, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Y, value);
+        this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
     }
   }

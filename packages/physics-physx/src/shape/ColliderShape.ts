@@ -1,7 +1,7 @@
 import { IColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysicsMaterial } from "../PhysicsMaterial";
-import { PhysXManager } from "../PhysXManager";
+import { PhysXPhysics } from "../PhysXPhysics";
 
 /** Flags which affect the behavior of Shapes. */
 export enum ShapeFlag {
@@ -50,7 +50,7 @@ export class ColliderShape implements IColliderShape {
 
   set shapeFlags(flags: ShapeFlag) {
     this._shapeFlags = flags;
-    this._pxShape.setFlags(new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags));
+    this._pxShape.setFlags(new PhysXPhysics.PhysX.PxShapeFlags(this._shapeFlags));
   }
 
   constructor(position: Vector3, rotation: Quaternion) {
@@ -90,7 +90,7 @@ export class ColliderShape implements IColliderShape {
    */
   setID(index: number) {
     this._id = index;
-    this._pxShape.setQueryFilterData(new PhysXManager.PhysX.PxFilterData(index, 0, 0, 0));
+    this._pxShape.setQueryFilterData(new PhysXPhysics.PhysX.PxFilterData(index, 0, 0, 0));
   }
 
   /**
@@ -133,11 +133,11 @@ export class ColliderShape implements IColliderShape {
   }
 
   protected _allocShape(material: PhysicsMaterial) {
-    this._pxShape = PhysXManager.physics.createShape(
+    this._pxShape = PhysXPhysics.physics.createShape(
       this._pxGeometry,
       material._pxMaterial,
       false,
-      new PhysXManager.PhysX.PxShapeFlags(this._shapeFlags)
+      new PhysXPhysics.PhysX.PxShapeFlags(this._shapeFlags)
     );
   }
 

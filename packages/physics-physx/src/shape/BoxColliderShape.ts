@@ -1,6 +1,6 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PhysXManager } from "../PhysXManager";
+import { PhysXPhysics } from "../PhysXPhysics";
 import { ColliderShape } from "./ColliderShape";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 
@@ -50,6 +50,6 @@ export class BoxColliderShape extends ColliderShape implements IBoxColliderShape
 
   private _allocGeometry(extents: Vector3) {
     const halfExtents = this._halfExtents(extents);
-    this._pxGeometry = new PhysXManager.PhysX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
+    this._pxGeometry = new PhysXPhysics.PhysX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
   }
 }
