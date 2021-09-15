@@ -8,7 +8,7 @@ export function str2ab(str: string = ""): ArrayBuffer {
 }
 
 /**
- * arraybuffer 转 string
+ * Array buffer to string.
  * @param buf
  */
 export function ab2str(buf: ArrayBuffer) {
@@ -16,12 +16,9 @@ export function ab2str(buf: ArrayBuffer) {
 }
 
 /**
- * Creates a new Uint8Array based on two different ArrayBuffers
- *
- * @private
- * @param {ArrayBuffers} buffer1 The first buffer.
- * @param {ArrayBuffers} buffer2 The second buffer.
- * @return {ArrayBuffers} The new ArrayBuffer created out of the two.
+ * Creates a new Uint8Array based on two different ArrayBuffers.
+ * @param buffers - The buffer which concat
+ * @return The new ArrayBuffer created out of the two
  */
 export function arrayBufferConcat(...buffers: ArrayBuffer[]): ArrayBuffer {
   const totalLen = buffers.reduce((pre, curr) => pre + curr.byteLength, 0);
@@ -46,10 +43,9 @@ export function ab2Image(arrayBuffer: ArrayBuffer): Promise<HTMLImageElement> {
 }
 
 /**
- * Load image buffer
- * @param imageBuffer
- * @param type
- * @param callback
+ * Load image buffer.
+ * @param imageBuffer - image array buffer
+ * @param type - image type(png/jpg/webp)
  */
 export function loadImageBuffer(imageBuffer: ArrayBuffer, type: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {

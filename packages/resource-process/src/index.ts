@@ -3,6 +3,8 @@ import { BufferWriter } from "./utils/BufferWriter";
 import { decoderMap, encoderMap } from "./utils/Decorator";
 import { FileHeader } from "./utils/FileHeader";
 
+export { encoder, decoder } from "./utils/Decorator";
+
 /**
  * Decode engine binary resource.
  * @param arrayBuffer - array buffer of decode binary file

@@ -7,6 +7,11 @@ export const decoderMap: Record<
   }
 > = {};
 
+/**
+ * Decoder decorator generator.
+ * @param type - resource file type.
+ * @returns Decoder decorator
+ */
 export function decoder(type: string): ClassDecorator {
   return (target: any) => {
     decoderMap[type] = target.decode;
@@ -15,6 +20,11 @@ export function decoder(type: string): ClassDecorator {
 
 export const encoderMap = {};
 
+/**
+ * Encoder decorator generator.
+ * @param type - resource file type.
+ * @returns Encoder decorator
+ */
 export function encoder(type: string): ClassDecorator {
   return (target: any) => {
     encoderMap[type] = target.encode;
