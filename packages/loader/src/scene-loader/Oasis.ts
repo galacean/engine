@@ -66,7 +66,7 @@ export class Oasis extends EventDispatcher {
     const loadingPromises = ObjectValues(assets)
       .filter((asset) => {
         // TODO 临时解决过度问题
-        if (RESOURCE_CLASS[asset.type] || asset.type === "bin") {
+        if (RESOURCE_CLASS[asset.type] || asset.type === "oasis") {
           return true;
         }
         console.warn(`${asset.type} loader is not defined. the ${asset.type} type will be ignored.`);
