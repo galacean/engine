@@ -141,8 +141,7 @@ export class Script extends Component {
    * @override
    */
   _onEnable(): void {
-    const { engine } = this;
-    const { _componentsManager: componentsManager } = engine;
+    const componentsManager = this.engine._componentsManager;
     const prototype = Script.prototype;
     if (!this._started) {
       componentsManager.addOnStartScript(this);
@@ -163,8 +162,7 @@ export class Script extends Component {
    * @override
    */
   _onDisable(): void {
-    const { engine } = this;
-    const { _componentsManager: componentsManager } = engine;
+    const componentsManager = this.engine._componentsManager;
     // Use "xxIndex" is more safe.
     // When call onDisable it maybe it still not in script queue,for example write "entity.isActive = false" in onWake().
     if (this._onStartIndex !== -1) {
