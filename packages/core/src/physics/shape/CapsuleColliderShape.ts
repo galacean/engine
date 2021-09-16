@@ -9,7 +9,9 @@ export class CapsuleColliderShape extends ColliderShape {
   private _radius: number = 1;
   private _height: number = 2;
 
-  /** radius of capsule */
+  /**
+   * radius of capsule.
+   */
   get radius(): number {
     return this._radius;
   }
@@ -18,7 +20,9 @@ export class CapsuleColliderShape extends ColliderShape {
     (<ICapsuleColliderShape>this._nativeShape).setRadius(value);
   }
 
-  /** height of capsule */
+  /**
+   * height of capsule.
+   */
   get height(): number {
     return this._height;
   }

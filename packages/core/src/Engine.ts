@@ -38,7 +38,7 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
-  /** PhysXPhysics manager of Engine. */
+  /** physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
 
   _componentsManager: ComponentsManager = new ComponentsManager();
@@ -158,7 +158,7 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
-   * @param nativePhysics - PhysXPhysics Engine
+   * @param nativePhysics - native physics Engine
    */
   constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, nativePhysics?: IPhysics) {
     super(null);

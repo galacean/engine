@@ -8,7 +8,9 @@ import { PhysicsManager } from "../PhysicsManager";
 export class SphereColliderShape extends ColliderShape {
   private _radius: number = 1;
 
-  /** radius of sphere shape */
+  /**
+   * radius of sphere shape.
+   */
   get radius(): number {
     return this._radius;
   }

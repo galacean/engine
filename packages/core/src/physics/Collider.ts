@@ -23,7 +23,9 @@ export abstract class Collider extends Component {
   protected _position: Vector3 = this.entity.transform.position;
   protected _rotation: Quaternion = this.entity.transform.rotationQuaternion;
 
-  /** The shapes of this collider. */
+  /**
+   * The shapes of this collider.
+   */
   get shapes(): Readonly<ColliderShape[]> {
     return this._shapes._elements;
   }
@@ -35,8 +37,8 @@ export abstract class Collider extends Component {
   }
 
   /**
-   * add collider shape on this collider
-   * @param shape collider shape
+   * add collider shape on this collider.
+   * @param shape collider shape.
    */
   addShape(shape: ColliderShape): void {
     shape._collider = this;

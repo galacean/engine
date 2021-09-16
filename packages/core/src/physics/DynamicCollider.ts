@@ -23,7 +23,9 @@ export class DynamicCollider extends Collider {
   /** Controls whether physics affects the dynamic collider. */
   isKinematic: boolean;
 
-  /** The collider attached */
+  /**
+   * The collider attached
+   */
   get collider(): IDynamicCollider {
     return this._nativeDynamicCollider;
   }
@@ -35,7 +37,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * apply a force to the PhysXDynamicCollider.
+   * apply a force to the DynamicCollider.
    * @param force the force make the collider move
    */
   applyForce(force: Vector3): void {
@@ -43,7 +45,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * apply a torque to the PhysXDynamicCollider.
+   * apply a torque to the DynamicCollider.
    * @param torque the force make the collider rotate
    */
   applyTorque(torque: Vector3): void {

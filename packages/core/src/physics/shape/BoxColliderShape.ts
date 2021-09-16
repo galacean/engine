@@ -9,7 +9,9 @@ import { PhysicsManager } from "../PhysicsManager";
 export class BoxColliderShape extends ColliderShape {
   private _size: Vector3 = new Vector3(1, 1, 1);
 
-  /** extents of box shape */
+  /**
+   * size of box shape.
+   */
   get size(): Vector3 {
     return this._size;
   }
