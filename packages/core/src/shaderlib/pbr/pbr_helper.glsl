@@ -39,3 +39,11 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
     return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
 
 }
+
+
+#include <pbr_brdf>
+
+// direct + indirect
+#include <pbr_direct_irradiance_frag_define>
+#include <pbr_ibl_diffuse_frag_define>
+#include <pbr_ibl_specular_frag_define>
