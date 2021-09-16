@@ -97,7 +97,7 @@ export class PhysicsManager {
     for (let i = 0, len = shapes.length; i < len; i++) {
       this._physicalObjectsMap.set(shapes[i].id, shapes[i]);
     }
-    this._nativePhysicsManager.addCollider(collider._nativeStaticCollider);
+    this._nativePhysicsManager.addCollider(collider._nativeCollider);
   }
 
   /**
@@ -109,7 +109,7 @@ export class PhysicsManager {
     for (let i = 0, len = shapes.length; i < len; i++) {
       this._physicalObjectsMap.delete(shapes[i].id);
     }
-    this._nativePhysicsManager.removeCollider(collider._nativeStaticCollider);
+    this._nativePhysicsManager.removeCollider(collider._nativeCollider);
   }
 
   /**

@@ -25,9 +25,7 @@ export class BoxColliderShape extends ColliderShape {
     this._nativeShape = PhysicsManager.nativePhysics.createBoxColliderShape(
       this._id,
       this._size,
-      this._material._nativeMaterial,
-      this._position,
-      this._rotation
+      this._material._nativeMaterial
     );
   }
 }

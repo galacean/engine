@@ -62,46 +62,23 @@ export interface IPhysics {
    * @param index unique index to mark the shape
    * @param extents extents of the box
    * @param material the material of this shape
-   * @param position the local position
-   * @param rotation the local rotation
    */
-  createBoxColliderShape(
-    index: number,
-    extents: Vector3,
-    material: IPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ): IBoxColliderShape;
+  createBoxColliderShape(index: number, extents: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
 
   /**
    * create sphere collider shape
    * @param index unique index to mark the shape
    * @param radius radius of the sphere
    * @param material the material of this shape
-   * @param position the local position
-   * @param rotation the local rotation
    */
-  createSphereColliderShape(
-    index: number,
-    radius: number,
-    material: IPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ): ISphereColliderShape;
+  createSphereColliderShape(index: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
 
   /**
    * create plane collider shape
    * @param index unique index to mark the shape
    * @param material the material of this shape
-   * @param position the local position
-   * @param rotation the local rotation
    */
-  createPlaneColliderShape(
-    index: number,
-    material: IPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ): IPlaneColliderShape;
+  createPlaneColliderShape(index: number, material: IPhysicsMaterial): IPlaneColliderShape;
 
   /**
    * create capsule collider shape
@@ -109,15 +86,11 @@ export interface IPhysics {
    * @param radius radius of capsule
    * @param height height of capsule
    * @param material the material of this shape
-   * @param position the local position
-   * @param rotation the local rotation
    */
   createCapsuleColliderShape(
     index: number,
     radius: number,
     height: number,
-    material: IPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
+    material: IPhysicsMaterial
   ): ICapsuleColliderShape;
 }

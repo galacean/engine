@@ -15,7 +15,7 @@ export abstract class Collider extends Component {
   @ignoreClone
   _index: number = -1;
   /** @internal */
-  _nativeStaticCollider: ICollider;
+  _nativeCollider: ICollider;
 
   private _shapes: DisorderedArray<ColliderShape> = new DisorderedArray();
   private _updateFlag: UpdateFlag;
@@ -42,7 +42,7 @@ export abstract class Collider extends Component {
    */
   addShape(shape: ColliderShape): void {
     shape._collider = this;
-    this._nativeStaticCollider.addShape(shape._nativeShape);
+    this._nativeCollider.addShape(shape._nativeShape);
     shape._index = this._shapes.length;
     this._shapes.add(shape);
   }
@@ -52,7 +52,7 @@ export abstract class Collider extends Component {
    * @param shape - The collider shape.
    */
   removeShape(shape: ColliderShape): void {
-    this._nativeStaticCollider.removeShape(shape._nativeShape);
+    this._nativeCollider.removeShape(shape._nativeShape);
     const replaced = this._shapes.deleteByIndex(shape._index);
     replaced && (replaced._index = shape._index);
     shape._index = -1;
@@ -71,13 +71,13 @@ export abstract class Collider extends Component {
   /** @internal */
   _onUpdate() {
     if (this._updateFlag.flag) {
-      this._nativeStaticCollider.setGlobalPose(
+      this._nativeCollider.setGlobalPose(
         this.entity.transform.position,
         this.entity.transform.rotationQuaternion
       );
       this._updateFlag.flag = false;
     }
-    this._nativeStaticCollider.getGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
+    this._nativeCollider.getGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
   }
 
   /**

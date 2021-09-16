@@ -165,17 +165,9 @@ export class PhysXPhysics {
    * @param index unique index to mark the shape
    * @param extents extents of the box
    * @param material the material of this shape
-   * @param position the local position
-   * @param rotation the local rotation
    */
-  static createBoxColliderShape(
-    index: number,
-    extents: Vector3,
-    material: PhysXPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ): IBoxColliderShape {
-    return new PhysXBoxColliderShape(index, extents, material, position, rotation);
+  static createBoxColliderShape(index: number, extents: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
+    return new PhysXBoxColliderShape(index, extents, material);
   }
 
   /**
@@ -183,33 +175,22 @@ export class PhysXPhysics {
    * @param index unique index to mark the shape
    * @param radius radius of the sphere
    * @param material the material of this shape
-   * @param position the local position
-   * @param rotation the local rotation
    */
   static createSphereColliderShape(
     index: number,
     radius: number,
-    material: PhysXPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
+    material: PhysXPhysicsMaterial
   ): ISphereColliderShape {
-    return new PhysXSphereColliderShape(index, radius, material, position, rotation);
+    return new PhysXSphereColliderShape(index, radius, material);
   }
 
   /**
    * create plane collider shape
    * @param index unique index to mark the shape
    * @param material the material of this shape
-   * @param position the local position
-   * @param rotation the local rotation
    */
-  static createPlaneColliderShape(
-    index: number,
-    material: PhysXPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ): IPlaneColliderShape {
-    return new PhysXPlaneColliderShape(index, material, position, rotation);
+  static createPlaneColliderShape(index: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
+    return new PhysXPlaneColliderShape(index, material);
   }
 
   /**
@@ -218,17 +199,13 @@ export class PhysXPhysics {
    * @param radius radius of capsule
    * @param height height of capsule
    * @param material the material of this shape
-   * @param position the local position
-   * @param rotation the local rotation
    */
   static createCapsuleColliderShape(
     index: number,
     radius: number,
     height: number,
-    material: PhysXPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
+    material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
-    return new PhysXCapsuleColliderShape(index, radius, height, material, position, rotation);
+    return new PhysXCapsuleColliderShape(index, radius, height, material);
   }
 }

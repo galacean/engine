@@ -7,11 +7,6 @@ import { PhysicsManager } from "../PhysicsManager";
 export class PlaneColliderShape extends ColliderShape {
   constructor() {
     super();
-    this._nativeShape = PhysicsManager.nativePhysics.createPlaneColliderShape(
-      this._id,
-      this._material._nativeMaterial,
-      this._position,
-      this._rotation
-    );
+    this._nativeShape = PhysicsManager.nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
   }
 }

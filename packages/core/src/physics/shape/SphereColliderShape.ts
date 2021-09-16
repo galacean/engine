@@ -25,9 +25,7 @@ export class SphereColliderShape extends ColliderShape {
     this._nativeShape = PhysicsManager.nativePhysics.createSphereColliderShape(
       this._id,
       this._radius,
-      this._material._nativeMaterial,
-      this._position,
-      this._rotation
+      this._material._nativeMaterial
     );
   }
 }

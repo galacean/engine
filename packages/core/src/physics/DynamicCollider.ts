@@ -8,8 +8,6 @@ import { Vector3 } from "@oasis-engine/math";
  * A dynamic collider can act with self-defined movement or physical force
  */
 export class DynamicCollider extends Collider {
-  private readonly _nativeDynamicCollider: IDynamicCollider;
-
   /** The linear velocity vector of the dynamic collider measured in world unit per second. */
   linearVelocity: Vector3;
   /** The angular velocity vector of the dynamic collider measured in radians per second. */
@@ -23,17 +21,9 @@ export class DynamicCollider extends Collider {
   /** Controls whether physics affects the dynamic collider. */
   isKinematic: boolean;
 
-  /**
-   * The collider attached
-   */
-  get collider(): IDynamicCollider {
-    return this._nativeDynamicCollider;
-  }
-
   constructor(entity: Entity) {
     super(entity);
-    this._nativeDynamicCollider = PhysicsManager.nativePhysics.createDynamicCollider(this._position, this._rotation);
-    this._nativeStaticCollider = this._nativeDynamicCollider;
+    this._nativeCollider = PhysicsManager.nativePhysics.createDynamicCollider(this._position, this._rotation);
   }
 
   /**
@@ -41,7 +31,7 @@ export class DynamicCollider extends Collider {
    * @param force the force make the collider move
    */
   applyForce(force: Vector3): void {
-    this._nativeDynamicCollider.addForce(force);
+    (<IDynamicCollider>this._nativeCollider).addForce(force);
   }
 
   /**
@@ -49,6 +39,6 @@ export class DynamicCollider extends Collider {
    * @param torque the force make the collider rotate
    */
   applyTorque(torque: Vector3): void {
-    this._nativeDynamicCollider.addTorque(torque);
+    (<IDynamicCollider>this._nativeCollider).addTorque(torque);
   }
 }

@@ -1,5 +1,5 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
@@ -13,22 +13,14 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * @param index index mark Shape
    * @param extents size of Shape
    * @param material material of PhysXCollider
-   * @param position position of Shape
-   * @param rotation rotation of Shape
    * @remarks must call after this component add to Entity.
    */
-  constructor(
-    index: number,
-    extents: Vector3,
-    material: PhysXPhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ) {
-    super(position, rotation);
+  constructor(index: number, extents: Vector3, material: PhysXPhysicsMaterial) {
+    super();
     this._pxGeometry = new PhysXPhysics.PhysX.PxBoxGeometry(extents.x * 0.5, extents.y * 0.5, extents.z * 0.5);
 
     this._allocShape(material);
-    this._setLocalPose(this._position, this._rotation);
+    this._setLocalPose();
     this.setID(index);
   }
 

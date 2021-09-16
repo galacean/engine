@@ -17,8 +17,13 @@ export enum ShapeFlag {
  * Abstract class for collider shapes.
  */
 export class PhysXColliderShape implements IColliderShape {
+  static transform = {
+    translation: { x: 0, y: 0, z: 0 },
+    rotation: { w: Math.sqrt(2) * 0.5, x: 0, y: 0, z: Math.sqrt(2) * 0.5 }
+  };
+
   protected _position: Vector3 = new Vector3();
-  protected _rotation: Quaternion = new Quaternion();
+  protected _rotation: Quaternion = new Quaternion(Math.sqrt(2) * 0.5, 0, 0, Math.sqrt(2) * 0.5);
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
@@ -53,17 +58,17 @@ export class PhysXColliderShape implements IColliderShape {
     this._pxShape.setFlags(new PhysXPhysics.PhysX.PxShapeFlags(this._shapeFlags));
   }
 
-  constructor(position: Vector3, rotation: Quaternion) {
-    position.cloneTo(this._position);
-    Quaternion.rotateZ(rotation, Math.PI * 0.5, this._rotation);
-  }
-
   /**
    * set local position
    * @param value the local position
    */
-  setPosition(value: Vector3) {
+  setPosition(value: Vector3): void {
     value.cloneTo(this._position);
+    const { translation } = PhysXColliderShape.transform;
+    translation.x = this._position.x;
+    translation.y = this._position.y;
+    translation.z = this._position.z;
+
     this._setLocalPose();
   }
 
@@ -71,8 +76,15 @@ export class PhysXColliderShape implements IColliderShape {
    * set local rotation
    * @param value the local rotation
    */
-  setRotation(value: Quaternion) {
+  setRotation(value: Quaternion): void {
     Quaternion.rotateZ(value, Math.PI * 0.5, this._rotation);
+    this._rotation.normalize();
+    const { rotation } = PhysXColliderShape.transform;
+    rotation.x = this._rotation.x;
+    rotation.y = this._rotation.y;
+    rotation.z = this._rotation.z;
+    rotation.w = this._rotation.w;
+
     this._setLocalPose();
   }
 
@@ -80,7 +92,7 @@ export class PhysXColliderShape implements IColliderShape {
    * set physics material on shape
    * @param value the material
    */
-  setMaterial(value: PhysXPhysicsMaterial) {
+  setMaterial(value: PhysXPhysicsMaterial): void {
     this._pxShape.setMaterials([value._pxMaterial]);
   }
 
@@ -88,7 +100,7 @@ export class PhysXColliderShape implements IColliderShape {
    * set physics shape marker
    * @param index the unique index
    */
-  setID(index: number) {
+  setID(index: number): void {
     this._id = index;
     this._pxShape.setQueryFilterData(new PhysXPhysics.PhysX.PxFilterData(index, 0, 0, 0));
   }
@@ -97,7 +109,7 @@ export class PhysXColliderShape implements IColliderShape {
    * set Trigger or not
    * @param value true for TriggerShape, false for SimulationShape
    */
-  isTrigger(value: boolean) {
+  isTrigger(value: boolean): void {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
     this.shapeFlags = this._shapeFlags;
@@ -107,32 +119,16 @@ export class PhysXColliderShape implements IColliderShape {
    * set Scene Query or not
    * @param value true for Query, false for not Query
    */
-  isSceneQuery(value: boolean) {
+  isSceneQuery(value: boolean): void {
     this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
     this.shapeFlags = this._shapeFlags;
   }
 
-  protected _setLocalPose(position: Vector3 = this._position, rotation: Quaternion = this._rotation) {
-    this._position = position;
-    this._rotation = rotation;
-    const quat = this._rotation.normalize();
-    const transform = {
-      translation: {
-        x: this._position.x,
-        y: this._position.y,
-        z: this._position.z
-      },
-      rotation: {
-        w: quat.w,
-        x: quat.x,
-        y: quat.y,
-        z: quat.z
-      }
-    };
-    this._pxShape.setLocalPose(transform);
+  protected _setLocalPose() {
+    this._pxShape.setLocalPose(PhysXColliderShape.transform);
   }
 
-  protected _allocShape(material: PhysXPhysicsMaterial) {
+  protected _allocShape(material: PhysXPhysicsMaterial): void {
     this._pxShape = PhysXPhysics.physics.createShape(
       this._pxGeometry,
       material._pxMaterial,
@@ -141,7 +137,7 @@ export class PhysXColliderShape implements IColliderShape {
     );
   }
 
-  private _modifyFlag(flag: ShapeFlag, value: boolean) {
+  private _modifyFlag(flag: ShapeFlag, value: boolean): void {
     this._shapeFlags = value ? this._shapeFlags | flag : this._shapeFlags & ~flag;
   }
 }

@@ -1,6 +1,5 @@
 import { PhysXPhysics } from "../PhysXPhysics";
 import { ISphereColliderShape } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
@@ -13,17 +12,15 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
    * @param index index mark collider
    * @param radius size of SphereCollider
    * @param material material of PhysXCollider
-   * @param position position of PhysXCollider
-   * @param rotation rotation of PhysXCollider
    * @remarks must call after this component add to Entity.
    */
-  constructor(index: number, radius: number, material: PhysXPhysicsMaterial, position: Vector3, rotation: Quaternion) {
-    super(position, rotation);
+  constructor(index: number, radius: number, material: PhysXPhysicsMaterial) {
+    super();
 
     // alloc Physx object
     this._pxGeometry = new PhysXPhysics.PhysX.PxSphereGeometry(radius);
     this._allocShape(material);
-    this._setLocalPose(this._position, this._rotation);
+    this._setLocalPose();
     this.setID(index);
   }
 
