@@ -47,8 +47,7 @@ export abstract class PhysXCollider implements ICollider {
    * @param rotation the global rotation
    */
   setGlobalPose(position: Vector3, rotation: Quaternion) {
-    const transform = this._transform(position, rotation);
-    this._pxActor.setGlobalPose(transform, true);
+    this._pxActor.setGlobalPose(this._transform(position, rotation), true);
   }
 
   /**

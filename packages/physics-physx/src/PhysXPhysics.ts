@@ -125,7 +125,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * Create dynamic collider
+   * Create static collider
    * @param position the global position
    * @param rotation the global rotation
    */
@@ -134,7 +134,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * Create static collider
+   * Create dynamic collider
    * @param position the global position
    * @param rotation the global rotation
    */

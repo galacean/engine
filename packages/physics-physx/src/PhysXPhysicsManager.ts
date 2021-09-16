@@ -110,8 +110,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   addCollider(collider: PhysXCollider) {
     this._pxScene.addActor(collider._pxActor, null);
     for (let i = 0, len = collider._shapes.length; i < len; i++) {
-      const shape = collider._shapes[i];
-      this._eventMap.set(shape._id, [null, PhysicsState.TOUCH_NONE]);
+      this._eventMap.set(collider._shapes[i]._id, [null, PhysicsState.TOUCH_NONE]);
     }
   }
 
@@ -122,8 +121,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   removeCollider(collider: PhysXCollider) {
     this._pxScene.removeActor(collider._pxActor, true);
     for (let i = 0, len = collider._shapes.length; i < len; i++) {
-      const shape = collider._shapes[i];
-      this._eventMap.delete(shape._id);
+      this._eventMap.delete(collider._shapes[i]._id);
     }
   }
 
@@ -176,17 +174,18 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
     if (hit != undefined) {
       const hitResult = PhysXPhysicsManager._pxRaycastHit;
+      const { position: pos, normal: nor } = hitResult;
       const position = PhysXPhysicsManager._tempPosition;
       {
-        position.x = hitResult.position.x;
-        position.y = hitResult.position.y;
-        position.z = hitResult.position.z;
+        position.x = pos.x;
+        position.y = pos.y;
+        position.z = pos.z;
       }
       const normal = PhysXPhysicsManager._tempNormal;
       {
-        normal.x = hitResult.normal.x;
-        normal.y = hitResult.normal.y;
-        normal.z = hitResult.normal.z;
+        normal.x = nor.x;
+        normal.y = nor.y;
+        normal.z = nor.z;
       }
 
       hit(hitResult.getShape().getQueryFilterData().word0, hitResult.distance, position, normal);
