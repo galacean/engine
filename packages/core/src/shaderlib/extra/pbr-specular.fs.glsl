@@ -1,4 +1,3 @@
-#define IS_METALLIC_WORKFLOW
 #include <common>
 #include <common_frag>
 

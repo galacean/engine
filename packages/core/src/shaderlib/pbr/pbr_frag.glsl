@@ -65,7 +65,7 @@
     geometry.viewDir = normalize( u_cameraPos - v_pos );
 
 
-#include <pbr_direct_irradiance_frag>
+#include <direct_irradiance_frag>
 
 // IBL diffuse
 #ifdef O3_USE_SH

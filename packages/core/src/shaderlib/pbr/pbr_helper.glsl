@@ -41,9 +41,9 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
 }
 
 
-#include <pbr_brdf>
+#include <brdf>
 
 // direct + indirect
-#include <pbr_direct_irradiance_frag_define>
-#include <pbr_ibl_diffuse_frag_define>
-#include <pbr_ibl_specular_frag_define>
+#include <direct_irradiance_frag_define>
+#include <ibl_diffuse_frag_define>
+#include <ibl_specular_frag_define>
