@@ -670,6 +670,151 @@ export class PrimitiveMesh {
     return mesh;
   }
 
+  /**
+   * Create a capsule mesh.
+   * @param engine - Engine
+   * @param radius - The radius of cap
+   * @param height - The height of capsule
+   * @param radialSegments - Cap radial segments
+   * @param heightSegments - Capsule height segments
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Capsule model mesh
+   */
+  static createCapsule(
+    engine: Engine,
+    radius: number = 0.5,
+    height: number = 2,
+    radialSegments: number = 6,
+    heightSegments: number = 1,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+
+    radialSegments = Math.max(2, Math.floor(radialSegments));
+    heightSegments = Math.floor(heightSegments);
+
+    const radialCount = radialSegments + 1;
+    const verticalCount = heightSegments + 1;
+    const halfHeight = height * 0.5;
+    const unitHeight = height / heightSegments;
+    const torsoVertexCount = radialCount * verticalCount;
+    const torsoRectangleCount = radialSegments * heightSegments;
+
+    const capVertexCount = radialCount * radialCount;
+    const capRectangleCount = radialSegments * radialSegments;
+
+    const totalVertexCount = torsoVertexCount + 2 * capVertexCount;
+    const totalRectangleCount = torsoRectangleCount + 2 * capRectangleCount;
+
+    const torsoThetaStart = Math.PI / 2;
+    const torsoThetaRange = Math.PI * 2;
+
+    const capTopAlphaRange = Math.PI * 2;
+    const capBottomAlphaRange = -Math.PI * 2;
+    const capThetaRange = Math.PI / 2;
+
+    const radialCountReciprocal = 1.0 / radialCount;
+    const radialSegmentsReciprocal = 1.0 / radialSegments;
+    const heightSegmentsReciprocal = 1.0 / heightSegments;
+    const indices = PrimitiveMesh._generateIndices(engine, totalVertexCount, totalRectangleCount * 6);
+
+    const positions: Vector3[] = new Array(totalVertexCount);
+    const normals: Vector3[] = new Array(totalVertexCount);
+    const uvs: Vector2[] = new Array(totalVertexCount);
+
+    let indicesOffset = 0;
+
+    // create torso
+    for (let i = 0; i < torsoVertexCount; ++i) {
+      const x = i % radialCount;
+      const y = (i * radialCountReciprocal) | 0;
+      const u = x * radialSegmentsReciprocal;
+      const v = y * heightSegmentsReciprocal;
+      const theta = torsoThetaStart + u * torsoThetaRange;
+      const sinTheta = Math.sin(theta);
+      const cosTheta = Math.cos(theta);
+
+      let posX = radius * sinTheta;
+      let posY = y * unitHeight - halfHeight;
+      let posZ = radius * cosTheta;
+
+      // Position
+      positions[i] = new Vector3(posX, posY, posZ);
+      // Normal
+      normals[i] = new Vector3(sinTheta, 0, cosTheta);
+      // Texcoord
+      uvs[i] = new Vector2(u, 1 - v);
+    }
+
+    for (let i = 0; i < torsoRectangleCount; ++i) {
+      const x = i % radialSegments;
+      const y = (i * radialSegmentsReciprocal) | 0;
+
+      const a = y * radialCount + x;
+      const b = a + 1;
+      const c = a + radialCount;
+      const d = c + 1;
+
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = c;
+      indices[indicesOffset++] = a;
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = d;
+      indices[indicesOffset++] = c;
+    }
+
+    // create cap
+    const createCap = function (capAlphaRange: number, offset: number, posIndex: number) {
+      for (let i = 0; i < capVertexCount; ++i) {
+        const x = i % radialCount;
+        const y = (i * radialCountReciprocal) | 0;
+        const u = x * radialSegmentsReciprocal;
+        const v = y * radialSegmentsReciprocal;
+        const alphaDelta = u * capAlphaRange;
+        const thetaDelta = v * capThetaRange;
+        const sinTheta = Math.sin(thetaDelta);
+
+        let posX = -radius * Math.cos(alphaDelta) * sinTheta;
+        let posY = (radius * Math.cos(thetaDelta) + halfHeight) * posIndex;
+        let posZ = radius * Math.sin(alphaDelta) * sinTheta;
+
+        // Position
+        positions[i + offset] = new Vector3(posX, posY, posZ);
+        // Normal
+        normals[i + offset] = new Vector3(posX, posY, posZ);
+        // Texcoord
+        uvs[i + offset] = new Vector2(u, v);
+      }
+
+      for (let i = 0; i < capRectangleCount; ++i) {
+        const x = i % radialSegments;
+        const y = (i * radialSegmentsReciprocal) | 0;
+
+        const a = y * radialCount + x + offset;
+        const b = a + 1;
+        const c = a + radialCount;
+        const d = c + 1;
+
+        indices[indicesOffset++] = b;
+        indices[indicesOffset++] = a;
+        indices[indicesOffset++] = d;
+        indices[indicesOffset++] = a;
+        indices[indicesOffset++] = c;
+        indices[indicesOffset++] = d;
+      }
+    };
+
+    createCap(capTopAlphaRange, torsoVertexCount, 1);
+    createCap(capBottomAlphaRange, torsoVertexCount + capVertexCount, -1);
+
+    const { bounds } = mesh;
+    bounds.min.setValue(-radius, -radius - halfHeight, -radius);
+    bounds.max.setValue(radius, radius + halfHeight, radius);
+
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
+    return mesh;
+  }
+
   private static _initialize(
     mesh: ModelMesh,
     positions: Vector3[],
