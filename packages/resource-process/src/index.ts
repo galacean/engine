@@ -6,6 +6,8 @@ import { FileHeader } from "./utils/FileHeader";
 
 export { MaterialDecoder } from "./resources/material/MaterialDecoder";
 export { MaterialEncoder } from "./resources/material/MaterialEncoder";
+export { MeshDecoder } from "./resources/mesh/MeshDecoder";
+export { MeshEncoder } from "./resources/mesh/MeshEncoder";
 export { encoder, decoder } from "./utils/Decorator";
 export { UniformType } from "./resources/material/type";
 
