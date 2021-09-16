@@ -3,14 +3,14 @@ import { ICollider } from "./ICollider";
 
 export interface IPhysicsManager {
   /**
-   * add Collider into the manager
-   * @param actor StaticCollider or DynamicCollider.
+   * add PhysXCollider into the manager
+   * @param actor PhysXStaticCollider or PhysXDynamicCollider.
    */
   addCollider(actor: ICollider);
 
   /**
-   * remove Collider
-   * @param actor StaticCollider or DynamicCollider.
+   * remove PhysXCollider
+   * @param actor PhysXStaticCollider or PhysXDynamicCollider.
    */
   removeCollider(actor: ICollider): void;
 
@@ -25,7 +25,7 @@ export interface IPhysicsManager {
    * @param ray - The ray
    * @param distance - The max distance the ray should check
    * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
-   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false.
    */
   raycast(ray: Ray, distance: number, queryFlag: number): Boolean;
 
@@ -35,7 +35,7 @@ export interface IPhysicsManager {
    * @param distance - The max distance the ray should check
    * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false.
    */
   raycast(
     ray: Ray,

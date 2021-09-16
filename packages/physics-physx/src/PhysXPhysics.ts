@@ -9,17 +9,17 @@ import {
   ISphereColliderShape,
   IStaticCollider
 } from "@oasis-engine/design";
-import { PhysicsMaterial } from "./PhysicsMaterial";
+import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
-import { BoxColliderShape } from "./shape/BoxColliderShape";
-import { SphereColliderShape } from "./shape/SphereColliderShape";
-import { CapsuleColliderShape } from "./shape/CapsuleColliderShape";
-import { DynamicCollider } from "./DynamicCollider";
-import { StaticCollider } from "./StaticCollider";
+import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
+import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
+import { PhysXStaticCollider } from "./PhysXStaticCollider";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PlaneColliderShape } from "./shape/PlaneColliderShape";
-import { RuntimeMode } from "./enum/RuntimeMode";
+import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
+import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 
 /**
  * physics object creation.
@@ -36,7 +36,7 @@ export class PhysXPhysics {
    * @param runtimeMode - Runtime mode
    * @returns Promise object
    */
-  public static init(runtimeMode: RuntimeMode = RuntimeMode.Auto): Promise<void> {
+  public static init(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto): Promise<void> {
     const scriptPromise = new Promise((resolve) => {
       const script = document.createElement("script");
       document.body.appendChild(script);
@@ -53,17 +53,17 @@ export class PhysXPhysics {
         } catch (e) {}
         return false;
       })();
-      if (runtimeMode == RuntimeMode.Auto) {
+      if (runtimeMode == PhysXRuntimeMode.Auto) {
         if (supported) {
-          runtimeMode = RuntimeMode.WebAssembly;
+          runtimeMode = PhysXRuntimeMode.WebAssembly;
         } else {
-          runtimeMode = RuntimeMode.JavaScript;
+          runtimeMode = PhysXRuntimeMode.JavaScript;
         }
       }
 
-      if (runtimeMode == RuntimeMode.JavaScript) {
+      if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src = "http://30.50.28.4:8000/physx.release.js";
-      } else if (runtimeMode == RuntimeMode.WebAssembly) {
+      } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
         script.src = "http://30.50.28.4:8000/physx.release.js";
       }
     });
@@ -130,7 +130,7 @@ export class PhysXPhysics {
    * @param rotation the global rotation
    */
   static createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider {
-    return new StaticCollider(position, rotation);
+    return new PhysXStaticCollider(position, rotation);
   }
 
   /**
@@ -139,7 +139,7 @@ export class PhysXPhysics {
    * @param rotation the global rotation
    */
   static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
-    return new DynamicCollider(position, rotation);
+    return new PhysXDynamicCollider(position, rotation);
   }
 
   /**
@@ -157,7 +157,7 @@ export class PhysXPhysics {
     frictionCombine: number,
     bounceCombine: number
   ): IPhysicsMaterial {
-    return new PhysicsMaterial(staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine);
+    return new PhysXPhysicsMaterial(staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine);
   }
 
   /**
@@ -171,11 +171,11 @@ export class PhysXPhysics {
   static createBoxColliderShape(
     index: number,
     extents: Vector3,
-    material: PhysicsMaterial,
+    material: PhysXPhysicsMaterial,
     position: Vector3,
     rotation: Quaternion
   ): IBoxColliderShape {
-    return new BoxColliderShape(index, extents, material, position, rotation);
+    return new PhysXBoxColliderShape(index, extents, material, position, rotation);
   }
 
   /**
@@ -189,11 +189,11 @@ export class PhysXPhysics {
   static createSphereColliderShape(
     index: number,
     radius: number,
-    material: PhysicsMaterial,
+    material: PhysXPhysicsMaterial,
     position: Vector3,
     rotation: Quaternion
   ): ISphereColliderShape {
-    return new SphereColliderShape(index, radius, material, position, rotation);
+    return new PhysXSphereColliderShape(index, radius, material, position, rotation);
   }
 
   /**
@@ -205,11 +205,11 @@ export class PhysXPhysics {
    */
   static createPlaneColliderShape(
     index: number,
-    material: PhysicsMaterial,
+    material: PhysXPhysicsMaterial,
     position: Vector3,
     rotation: Quaternion
   ): IPlaneColliderShape {
-    return new PlaneColliderShape(index, material, position, rotation);
+    return new PhysXPlaneColliderShape(index, material, position, rotation);
   }
 
   /**
@@ -225,10 +225,10 @@ export class PhysXPhysics {
     index: number,
     radius: number,
     height: number,
-    material: PhysicsMaterial,
+    material: PhysXPhysicsMaterial,
     position: Vector3,
     rotation: Quaternion
   ): ICapsuleColliderShape {
-    return new CapsuleColliderShape(index, radius, height, material, position, rotation);
+    return new PhysXCapsuleColliderShape(index, radius, height, material, position, rotation);
   }
 }

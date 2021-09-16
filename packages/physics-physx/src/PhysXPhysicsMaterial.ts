@@ -18,7 +18,7 @@ export enum PhysicsCombineMode {
 /**
  * Physics material describes how to handle colliding objects (friction, bounciness).
  */
-export class PhysicsMaterial implements IPhysicsMaterial {
+export class PhysXPhysicsMaterial implements IPhysicsMaterial {
   /**
    * PhysX material object
    * @internal

@@ -1,28 +1,28 @@
 import { PhysXPhysics } from "../PhysXPhysics";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { ColliderShape } from "./ColliderShape";
-import { PhysicsMaterial } from "../PhysicsMaterial";
+import { PhysXColliderShape } from "./PhysXColliderShape";
+import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
 /**
  * PhysX Shape for Capsule
  */
-export class CapsuleColliderShape extends ColliderShape implements ICapsuleColliderShape {
+export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
   /**
-   * init Collider and alloc PhysX objects.
+   * init PhysXCollider and alloc PhysX objects.
    * @param index index mark collider
    * @param radius radius of CapsuleCollider
    * @param height height of CapsuleCollider
-   * @param material material of Collider
-   * @param position position of Collider
-   * @param rotation rotation of Collider
+   * @param material material of PhysXCollider
+   * @param position position of PhysXCollider
+   * @param rotation rotation of PhysXCollider
    * @remarks must call after this component add to Entity.
    */
   constructor(
     index: number,
     radius: number,
     height: number,
-    material: PhysicsMaterial,
+    material: PhysXPhysicsMaterial,
     position: Vector3,
     rotation: Quaternion
   ) {

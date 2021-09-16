@@ -1,25 +1,25 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXPhysics } from "../PhysXPhysics";
-import { ColliderShape } from "./ColliderShape";
-import { PhysicsMaterial } from "../PhysicsMaterial";
+import { PhysXColliderShape } from "./PhysXColliderShape";
+import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
 /**
  * PhysX Shape for Box
  */
-export class BoxColliderShape extends ColliderShape implements IBoxColliderShape {
+export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
   private _tempHalfExtents: Vector3 = new Vector3();
 
   /**
    * init Box Shape and alloc PhysX objects.
    * @param index index mark Shape
    * @param extents size of Shape
-   * @param material material of Collider
+   * @param material material of PhysXCollider
    * @param position position of Shape
    * @param rotation rotation of Shape
    * @remarks must call after this component add to Entity.
    */
-  constructor(index: number, extents: Vector3, material: PhysicsMaterial, position: Vector3, rotation: Quaternion) {
+  constructor(index: number, extents: Vector3, material: PhysXPhysicsMaterial, position: Vector3, rotation: Quaternion) {
     super(position, rotation);
     // alloc Physx object
     this._allocGeometry(extents);

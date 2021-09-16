@@ -1,11 +1,11 @@
 import { ICollider } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { ColliderShape } from "./shape/ColliderShape";
+import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
  * physical collider
  */
-export abstract class Collider implements ICollider {
+export abstract class PhysXCollider implements ICollider {
   /**
    * PhysX actor object
    * @internal
@@ -13,13 +13,13 @@ export abstract class Collider implements ICollider {
   _pxActor: any;
 
   /** @internal */
-  _shapes: ColliderShape[] = [];
+  _shapes: PhysXColliderShape[] = [];
 
   /**
    * attach collider shape on collider
    * @param shape The collider shape attached
    */
-  addShape(shape: ColliderShape) {
+  addShape(shape: PhysXColliderShape) {
     this._shapes.push(shape);
     this._pxActor.attachShape(shape._pxShape);
   }
@@ -28,7 +28,7 @@ export abstract class Collider implements ICollider {
    * remove collider shape on collider
    * @param shape The collider shape attached
    */
-  removeShape(shape: ColliderShape): void {
+  removeShape(shape: PhysXColliderShape): void {
     this._pxActor.detachShape(shape._pxShape);
     let removeID = this._shapes.findIndex((value) => {
       return value == shape;

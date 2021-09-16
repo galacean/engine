@@ -1,13 +1,13 @@
 export { PhysXPhysics } from "./PhysXPhysics";
-export { RuntimeMode } from "./enum/RuntimeMode";
+export { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 export { PhysXPhysicsManager, QueryFlag } from "./PhysXPhysicsManager";
 
-export { PhysicsMaterial, PhysicsCombineMode } from "./PhysicsMaterial";
-export { ColliderShape, ShapeFlag } from "./shape/ColliderShape";
-export { BoxColliderShape } from "./shape/BoxColliderShape";
-export { SphereColliderShape } from "./shape/SphereColliderShape";
-export { CapsuleColliderShape } from "./shape/CapsuleColliderShape";
-export { PlaneColliderShape } from "./shape/PlaneColliderShape";
+export { PhysXPhysicsMaterial, PhysicsCombineMode } from "./PhysXPhysicsMaterial";
+export { PhysXColliderShape, ShapeFlag } from "./shape/PhysXColliderShape";
+export { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
+export { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+export { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+export { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 
-export { StaticCollider } from "./StaticCollider";
-export { DynamicCollider } from "./DynamicCollider";
+export { PhysXStaticCollider } from "./PhysXStaticCollider";
+export { PhysXDynamicCollider } from "./PhysXDynamicCollider";

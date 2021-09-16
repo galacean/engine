@@ -43,7 +43,7 @@ export abstract class ColliderShape {
     this._nativeShape.setMaterial(value._nativeMaterial);
   }
 
-  /** The local position of this ColliderShape. */
+  /** The local position of this PhysXColliderShape. */
   get position(): Vector3 {
     return this._position;
   }
@@ -53,7 +53,7 @@ export abstract class ColliderShape {
     this._nativeShape.setPosition(value);
   }
 
-  /** The local rotation of this ColliderShape. */
+  /** The local rotation of this PhysXColliderShape. */
   get rotation(): Quaternion {
     return this._rotation;
   }

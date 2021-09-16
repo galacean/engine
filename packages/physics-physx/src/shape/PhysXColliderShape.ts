@@ -1,6 +1,6 @@
 import { IColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { PhysicsMaterial } from "../PhysicsMaterial";
+import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXPhysics } from "../PhysXPhysics";
 
 /** Flags which affect the behavior of Shapes. */
@@ -16,7 +16,7 @@ export enum ShapeFlag {
 /**
  * Abstract class for collider shapes.
  */
-export class ColliderShape implements IColliderShape {
+export class PhysXColliderShape implements IColliderShape {
   protected _position: Vector3 = new Vector3();
   protected _rotation: Quaternion = new Quaternion();
 
@@ -80,7 +80,7 @@ export class ColliderShape implements IColliderShape {
    * set physics material on shape
    * @param value the material
    */
-  setMaterial(value: PhysicsMaterial) {
+  setMaterial(value: PhysXPhysicsMaterial) {
     this._pxShape.setMaterials([value._pxMaterial]);
   }
 
@@ -132,7 +132,7 @@ export class ColliderShape implements IColliderShape {
     this._pxShape.setLocalPose(transform);
   }
 
-  protected _allocShape(material: PhysicsMaterial) {
+  protected _allocShape(material: PhysXPhysicsMaterial) {
     this._pxShape = PhysXPhysics.physics.createShape(
       this._pxGeometry,
       material._pxMaterial,

@@ -1,7 +1,7 @@
 import { PhysXPhysics } from "./PhysXPhysics";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
-import { Collider } from "./Collider";
+import { PhysXCollider } from "./PhysXCollider";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -102,10 +102,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   //--------------public APIs--------------------------------------------------
   /**
-   * add Collider into the manager
-   * @param collider StaticCollider or DynamicCollider.
+   * add PhysXCollider into the manager
+   * @param collider PhysXStaticCollider or PhysXDynamicCollider.
    */
-  addCollider(collider: Collider) {
+  addCollider(collider: PhysXCollider) {
     this._pxScene.addActor(collider._pxActor, null);
     for (let i = 0, len = collider._shapes.length; i < len; i++) {
       const shape = collider._shapes[i];
@@ -114,10 +114,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * remove Collider
-   * @param collider StaticCollider or DynamicCollider.
+   * remove PhysXCollider
+   * @param collider PhysXStaticCollider or PhysXDynamicCollider.
    */
-  removeCollider(collider: Collider) {
+  removeCollider(collider: PhysXCollider) {
     this._pxScene.removeActor(collider._pxActor, true);
     for (let i = 0, len = collider._shapes.length; i < len; i++) {
       const shape = collider._shapes[i];
@@ -139,7 +139,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * @param ray - The ray
    * @param distance - The max distance the ray should check
    * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
-   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false.
    */
   raycast(ray: Ray, distance: number, queryFlag: QueryFlag): Boolean;
 
@@ -149,7 +149,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * @param distance - The max distance the ray should check
    * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false.
    */
   raycast(ray: Ray, distance: number, queryFlag: QueryFlag, outHitResult: Function): Boolean;
 

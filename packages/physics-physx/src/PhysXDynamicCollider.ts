@@ -1,9 +1,9 @@
 import { PhysXPhysics } from "./PhysXPhysics";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IDynamicCollider } from "@oasis-engine/design";
-import { Collider } from "./Collider";
+import { PhysXCollider } from "./PhysXCollider";
 
-/** The collision detection mode constants used for DynamicCollider.collisionDetectionMode. */
+/** The collision detection mode constants used for PhysXDynamicCollider.collisionDetectionMode. */
 export enum CollisionDetectionMode {
   /** Continuous collision detection is off for this dynamic collider. */
   Discrete,
@@ -40,7 +40,7 @@ export enum DynamicColliderConstraints {
 /**
  * A dynamic collider can act with self-defined movement or physical force
  */
-export class DynamicCollider extends Collider implements IDynamicCollider {
+export class PhysXDynamicCollider extends PhysXCollider implements IDynamicCollider {
   /** The linear damping of the dynamic collider. */
   private _drag: number;
   /** The angular damping of the dynamic collider. */

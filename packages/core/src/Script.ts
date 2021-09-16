@@ -87,30 +87,30 @@ export class Script extends Component {
 
   /**
    * Called when the collision enter.
-   * @param other Collider
+   * @param other PhysXCollider
    */
   onTriggerEnter(other: ColliderShape): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
-   * @param other Collider
+   * @param other PhysXCollider
    */
   onTriggerExit(other: ColliderShape): void {}
 
   /**
    * Called when the collision exit.
-   * @param other Collider
+   * @param other PhysXCollider
    */
   onTriggerStay(other: ColliderShape): void {}
 
   /**
-   * Called when the pointer is down while over the Collider.
+   * Called when the pointer is down while over the PhysXCollider.
    */
   onPointerDown(): void {}
 
   /**
-   * Called when the pointer is up while over the Collider.
+   * Called when the pointer is up while over the PhysXCollider.
    */
   onPointerUp(): void {}
 
@@ -120,17 +120,17 @@ export class Script extends Component {
   onPointerClick(): void {}
 
   /**
-   * Called when the pointer is enters the Collider.
+   * Called when the pointer is enters the PhysXCollider.
    */
   onPointerEnter(): void {}
 
   /**
-   * Called when the pointer is no longer over the Collider.
+   * Called when the pointer is no longer over the PhysXCollider.
    */
   onPointerExit(): void {}
 
   /**
-   * Called when the pointer is down while over the Collider and is still holding down.
+   * Called when the pointer is down while over the PhysXCollider and is still holding down.
    * @remarks onPointerDrag is called every frame while the pointer is down.
    */
   onPointerDrag(): void {}
