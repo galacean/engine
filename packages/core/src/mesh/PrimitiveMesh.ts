@@ -706,7 +706,8 @@ export class PrimitiveMesh {
     const torsoThetaStart = Math.PI / 2;
     const torsoThetaRange = Math.PI * 2;
 
-    const capAlphaRange = Math.PI * 2;
+    const capTopAlphaRange = Math.PI * 2;
+    const capBottomAlphaRange = - Math.PI * 2;
     const capThetaRange = Math.PI / 2;
 
     const radialCountReciprocal = 1.0 / radialCount;
@@ -764,7 +765,7 @@ export class PrimitiveMesh {
       const y = (i * radialCountReciprocal) | 0;
       const u = x * radialSegmentsReciprocal;
       const v = y * radialSegmentsReciprocal;
-      const alphaDelta = u * capAlphaRange;
+      const alphaDelta = u * capTopAlphaRange;
       const thetaDelta = v * capThetaRange;
       const sinTheta = Math.sin(thetaDelta);
 
@@ -803,7 +804,7 @@ export class PrimitiveMesh {
       const y = (i * radialCountReciprocal) | 0;
       const u = x * radialSegmentsReciprocal;
       const v = y * radialSegmentsReciprocal;
-      const alphaDelta = u * capAlphaRange;
+      const alphaDelta = u * capBottomAlphaRange;
       const thetaDelta = v * capThetaRange;
       const sinTheta = Math.sin(thetaDelta);
 
