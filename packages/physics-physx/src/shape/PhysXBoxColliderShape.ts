@@ -19,7 +19,13 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * @param rotation rotation of Shape
    * @remarks must call after this component add to Entity.
    */
-  constructor(index: number, extents: Vector3, material: PhysXPhysicsMaterial, position: Vector3, rotation: Quaternion) {
+  constructor(
+    index: number,
+    extents: Vector3,
+    material: PhysXPhysicsMaterial,
+    position: Vector3,
+    rotation: Quaternion
+  ) {
     super(position, rotation);
     // alloc Physx object
     this._allocGeometry(extents);
@@ -29,10 +35,10 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   }
 
   /**
-   * set extents of Box Shape
+   * set size of Box Shape
    * @param value the extents
    */
-  setExtents(value: Vector3) {
+  setSize(value: Vector3) {
     const halfExtents = this._halfExtents(value);
 
     this._pxGeometry.halfExtents = {
