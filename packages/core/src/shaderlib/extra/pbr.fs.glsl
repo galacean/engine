@@ -8,7 +8,6 @@
 #include <color_share>
 #include <worldpos_share>
 
-// light
 #include <light_frag>
 
 
@@ -17,11 +16,7 @@
 #include <normal_get>
 
 void main() {
-    #include <pbr_begin_frag>
-    #include <pbr_direct_irradiance_frag>
-    #include <pbr_ibl_diffuse_frag>
-    #include <pbr_ibl_specular_frag>
-    #include <pbr_end_frag>
+    #include <pbr_frag>
     #include <gamma_frag>
     #include <fog_frag>
 }

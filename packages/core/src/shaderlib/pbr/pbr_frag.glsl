@@ -63,3 +63,54 @@
     geometry.position = v_pos;
     geometry.normal = normal;
     geometry.viewDir = normalize( u_cameraPos - v_pos );
+
+
+#include <pbr_direct_irradiance_frag>
+
+// IBL diffuse
+#ifdef O3_USE_SH
+   vec3 irradiance = getLightProbeIrradiance(u_env_sh, normal) * u_envMapLight.diffuseIntensity;
+#else
+   vec3 irradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
+#endif
+
+#ifndef PHYSICALLY_CORRECT_LIGHTS
+   irradiance *= PI;
+#endif
+
+RE_IndirectDiffuse_Physical( irradiance, geometry, material, reflectedLight );
+
+
+// IBL specular
+vec3 radiance = getLightProbeIndirectRadiance( geometry, GGXRoughnessToBlinnExponent( material.specularRoughness ), int(u_envMapLight.mipMapLevel) );
+
+RE_IndirectSpecular_Physical( radiance, geometry, material, reflectedLight );
+
+
+// occlusion
+#ifdef HAS_OCCLUSIONMAP
+
+    float ambientOcclusion = (texture2D(u_occlusionSampler, v_uv).r - 1.0) * u_occlusionStrength + 1.0;
+    reflectedLight.indirectDiffuse *= ambientOcclusion;
+
+    #if defined(O3_USE_SPECULAR_ENV)
+
+        float dotNV = saturate(dot(geometry.normal, geometry.viewDir));
+        reflectedLight.indirectSpecular *= computeSpecularOcclusion(dotNV, ambientOcclusion, material.specularRoughness);
+
+    #endif
+
+#endif
+
+// emissive
+#ifdef HAS_EMISSIVEMAP
+
+    vec4 emissiveMapColor = texture2D(u_emissiveSampler, v_uv);
+    emissiveMapColor = SRGBtoLINEAR(emissiveMapColor);
+    totalEmissiveRadiance *= emissiveMapColor.rgb;
+
+#endif
+
+vec3 outgoingLight = reflectedLight.directDiffuse + reflectedLight.indirectDiffuse + reflectedLight.directSpecular + reflectedLight.indirectSpecular + totalEmissiveRadiance;
+gl_FragColor = vec4(outgoingLight, diffuseColor.a);
+
