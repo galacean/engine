@@ -1,9 +1,6 @@
 import pbr_common_frag_define from "./common_frag_define.glsl";
 import pbr_util_frag_define from "./util_frag_define.glsl";
 
-/** IBL define */
-import pbr_envmap_light_frag_define from "./envmap_light_frag_define.glsl";
-
 /** prop & texture */
 import pbr_base_frag_define from "./base_frag_define.glsl";
 import pbr_texture_frag_define from "./texture_frag_define.glsl";
@@ -28,9 +25,7 @@ import pbr_end_frag from "./end_frag.glsl";
 export default {
   pbr_common_frag_define,
   pbr_util_frag_define,
-
-  pbr_envmap_light_frag_define,
-
+  
   pbr_base_frag_define,
   pbr_texture_frag_define,
 

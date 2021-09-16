@@ -11,10 +11,7 @@
 #include <worldpos_share>
 
 // light
-#include <direct_light_frag>
-#include <point_light_frag>
-#include <spot_light_frag>
-#include <pbr_envmap_light_frag_define>
+#include <light_frag>
 
 // prop & texture
 #include <pbr_base_frag_define>
