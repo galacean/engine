@@ -43,7 +43,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
-  /** Global gravity in the physical scene */
+  /**
+   * Global gravity in the physical scene
+   */
   get gravity(): Vector3 {
     return this._gravity;
   }

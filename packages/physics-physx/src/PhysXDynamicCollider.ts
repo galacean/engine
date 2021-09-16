@@ -67,7 +67,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   private _constraints: DynamicColliderConstraints;
   private _freezeRotation: boolean;
 
-  /** The drag of the object. */
+  /**
+   * The drag of the object.
+   */
   get linearDamping(): number {
     return this._drag;
   }
@@ -77,7 +79,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setLinearDamping(value);
   }
 
-  /** The angular drag of the object. */
+  /**
+   * The angular drag of the object.
+   */
   get angularDamping(): number {
     return this._angularDrag;
   }
@@ -87,7 +91,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setAngularDamping(value);
   }
 
-  /** The velocity vector of the collider. It represents the rate of change of collider position. */
+  /**
+   * The velocity vector of the collider. It represents the rate of change of collider position.
+   */
   get linearVelocity(): Vector3 {
     return this._velocity;
   }
@@ -98,7 +104,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setLinearVelocity(vel, true);
   }
 
-  /** The angular velocity vector of the collider measured in radians per second. */
+  /**
+   * The angular velocity vector of the collider measured in radians per second.
+   */
   get angularVelocity(): Vector3 {
     return this._angularVelocity;
   }
@@ -108,7 +116,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setAngularVelocity({ x: value.x, y: value.y, z: value.z }, true);
   }
 
-  /** The mass of the collider. */
+  /**
+   * The mass of the collider.
+   */
   get mass(): number {
     return this._mass;
   }
@@ -118,7 +128,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setMass(value);
   }
 
-  /** The center of mass relative to the transform's origin. */
+  /**
+   * The center of mass relative to the transform's origin.
+   */
   get centerOfMass(): Vector3 {
     return this._centerOfMass;
   }
@@ -141,7 +153,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setCMassLocalPose(transform);
   }
 
-  /** The diagonal inertia tensor of mass relative to the center of mass. */
+  /**
+   * The diagonal inertia tensor of mass relative to the center of mass.
+   */
   get inertiaTensor(): Vector3 {
     return this._inertiaTensor;
   }
@@ -151,7 +165,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setMassSpaceInertiaTensor({ x: value.x, y: value.y, z: value.z });
   }
 
-  /** The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }. */
+  /**
+   * The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }.
+   */
   get maxAngularVelocity(): number {
     return this._maxAngularVelocity;
   }
@@ -161,7 +177,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setMaxAngularVelocity(value);
   }
 
-  /** Maximum velocity of a collider when moving out of penetrating state. */
+  /**
+   * Maximum velocity of a collider when moving out of penetrating state.
+   */
   get maxDepenetrationVelocity(): number {
     return this._maxDepenetrationVelocity;
   }
@@ -171,7 +189,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setMaxDepenetrationVelocity(value);
   }
 
-  /** The mass-normalized energy threshold, below which objects start going to sleep. */
+  /**
+   * The mass-normalized energy threshold, below which objects start going to sleep.
+   */
   get sleepThreshold(): number {
     return this._sleepThreshold;
   }
@@ -181,7 +201,8 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setSleepThreshold(value);
   }
 
-  /** The solverIterations determines how accurately collider joints and collision contacts are resolved.
+  /**
+   * The solverIterations determines how accurately collider joints and collision contacts are resolved.
    * Overrides Physics.defaultSolverIterations. Must be positive.
    */
   get solverIterations(): number {
@@ -193,7 +214,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     this._pxActor.setSolverIterationCounts(value, 1);
   }
 
-  /** The colliders' collision detection mode. */
+  /**
+   * The colliders' collision detection mode.
+   */
   get collisionDetectionMode(): CollisionDetectionMode {
     return this._collisionDetectionMode;
   }
@@ -218,7 +241,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     }
   }
 
-  /** Controls whether physics affects the collider. */
+  /**
+   * Controls whether physics affects the collider.
+   */
   get isKinematic(): boolean {
     return this._isKinematic;
   }
@@ -232,18 +257,36 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     }
   }
 
-  /** Controls which degrees of freedom are allowed for the simulation of this collider. */
+  /**
+   * Controls which degrees of freedom are allowed for the simulation of this collider.
+   */
   get constraints(): DynamicColliderConstraints {
     return this._constraints;
   }
 
-  /** alloc PhysX object */
+  /**
+   * Controls whether physics will change the rotation of the object.
+   */
+  get freezeRotation(): boolean {
+    return this._freezeRotation;
+  }
+
+  set freezeRotation(value: boolean) {
+    this._freezeRotation = value;
+    this.setConstraints(DynamicColliderConstraints.FreezeRotation, value);
+  }
+
   constructor(position: Vector3, rotation: Quaternion) {
     super();
     const transform = this._transform(position, rotation);
     this._pxActor = PhysXPhysics.physics.createRigidDynamic(transform);
   }
 
+  /**
+   * Set constraint flags
+   * @param flag Collider Constraint
+   * @param value true or false
+   */
   setConstraints(flag: DynamicColliderConstraints, value: boolean) {
     if (value) this._constraints = this._constraints | flag;
     else this._constraints = this._constraints & ~flag;
@@ -286,16 +329,6 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
         this._pxActor.setRigidDynamicLockFlag(PhysXPhysics.PhysX.PxRigidDynamicLockFlag.eLOCK_ANGULAR_Z, value);
         break;
     }
-  }
-
-  /** Controls whether physics will change the rotation of the object. */
-  get freezeRotation(): boolean {
-    return this._freezeRotation;
-  }
-
-  set freezeRotation(value: boolean) {
-    this._freezeRotation = value;
-    this.setConstraints(DynamicColliderConstraints.FreezeRotation, value);
   }
 
   //----------------------------------------------------------------------------
