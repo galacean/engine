@@ -6,7 +6,7 @@ import { PhysXColliderShape } from "./shape/PhysXColliderShape";
  * physical collider
  */
 export abstract class PhysXCollider implements ICollider {
-  static _tempTransform = {
+  private static _tempTransform = {
     translation: { x: 0, y: 0, z: 0 },
     rotation: { w: 0, x: 0, y: 0, z: 1 }
   };
