@@ -7,7 +7,9 @@ import "./Texture2DLoader";
 import "./TextureCubeLoader";
 import "./SpriteAtlasLoader";
 import "./gltf/extensions/index";
+import "./OasisAssetLoader";
 
+export { decode, decoder } from "@oasis-engine/resource-process";
 export { GLTFResource } from "./gltf/GLTFResource";
 export { GLTFModel } from "./scene-loader/GLTFModel";
 export { Model } from "./scene-loader/Model";

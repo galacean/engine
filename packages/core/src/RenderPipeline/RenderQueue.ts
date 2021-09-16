@@ -124,7 +124,7 @@ export class RenderQueue {
           } else if (switchProgram) {
             program.uploadTextures(program.rendererUniformBlock, rendererData);
           }
-
+          
           if (program._uploadMaterial !== material) {
             program.uploadAll(program.materialUniformBlock, materialData);
             program._uploadMaterial = material;

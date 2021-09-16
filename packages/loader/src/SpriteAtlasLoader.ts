@@ -51,6 +51,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const sourceHeightReciprocal = 1.0 / height;
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
+                // @ts-ignore
                 const { region, pivot, atlasRegionOffset, atlasRegion, id } = atlasSprite;
                 const sprite = new Sprite(
                   engine,

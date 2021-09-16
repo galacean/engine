@@ -35,6 +35,10 @@ export class ResourceManager {
   retryInterval: number = 0;
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = 20000;
+  /** @internal */
+  _objectPool: { [key: string]: any } = Object.create(null);
+  /** @internal */
+  _urlMap: Record<string, string> = Object.create(null);
 
   /** Asset path pool, key is asset ID, value is asset path */
   private _assetPool: { [key: number]: string } = Object.create(null);
@@ -44,6 +48,8 @@ export class ResourceManager {
   private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
   /** Loading assets. */
   private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
+  /** Root directory of loader. */
+  baseUrl: string = "";
 
   /**
    * Create a ResourceManager.
@@ -143,6 +149,23 @@ export class ResourceManager {
   }
 
   /**
+   * Get resource from objectId.
+   * @param objectId - object id
+   */
+  getResourceFromObjectId<T>(objectId: string): T {
+    return this._objectPool[objectId];
+  }
+
+  /**
+   * Add resource to object pool.
+   * @param objectId - object id
+   * @param resource - resource
+   */
+  addToResourceMap(objectId: string, resource: any): void {
+    this._objectPool[objectId] = resource;
+  }
+
+  /**
    * @internal
    */
   _addAsset(path: string, asset: RefObject): void {
@@ -190,7 +213,9 @@ export class ResourceManager {
 
   private _loadSingleItem<T>(item: LoadItem | string): AssetPromise<T> {
     const info = this._assignDefaultOptions(typeof item === "string" ? { url: item } : item);
-    const url = info.url;
+    const infoUrl = info.url;
+    // check url mapping
+    const url = this._urlMap[infoUrl] ? this._urlMap[infoUrl] : infoUrl;
     // has cache
     if (this._assetUrlPool[url]) {
       return new AssetPromise((resolve) => {
