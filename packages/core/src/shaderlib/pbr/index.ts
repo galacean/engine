@@ -1,11 +1,6 @@
 import pbr_util_frag_define from "./util_frag_define.glsl";
 
-/** prop & texture */
-import pbr_base_frag_define from "./base_frag_define.glsl";
-import pbr_texture_frag_define from "./texture_frag_define.glsl";
-
-/** runtime context */
-import pbr_runtime_frag_define from "./runtime_frag_define.glsl";
+import pbr_frag_define from "./pbr_frag_define.glsl";
 
 // todo: BxDF
 import pbr_brdf_cook_torrance_frag_define from "./brdf_cook_torrance_frag_define.glsl";
@@ -24,11 +19,7 @@ import pbr_end_frag from "./end_frag.glsl";
 export default {
   pbr_util_frag_define,
 
-  pbr_base_frag_define,
-  pbr_texture_frag_define,
-
-  pbr_runtime_frag_define,
-
+  pbr_frag_define,
   pbr_brdf_cook_torrance_frag_define,
 
   pbr_direct_irradiance_frag_define,

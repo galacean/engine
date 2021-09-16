@@ -12,14 +12,9 @@
 // light
 #include <light_frag>
 
-// prop & texture
-#include <pbr_base_frag_define>
-#include <pbr_texture_frag_define>
-
-// runtime context
-#include <pbr_runtime_frag_define>
 
 #include <normal_get>
+#include <pbr_frag_define>
 
 // todo: BxDF
 #include <pbr_brdf_cook_torrance_frag_define>
