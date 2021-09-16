@@ -16,7 +16,7 @@ export abstract class PhysXCollider implements ICollider {
   _shapes: PhysXColliderShape[] = [];
 
   /**
-   * attach collider shape on collider
+   * Attach collider shape on collider
    * @param shape The collider shape attached
    */
   addShape(shape: PhysXColliderShape) {
@@ -25,7 +25,7 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * remove collider shape on collider
+   * Remove collider shape on collider
    * @param shape The collider shape attached
    */
   removeShape(shape: PhysXColliderShape): void {
@@ -37,7 +37,7 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * set global pose of collider
+   * Set global pose of collider
    * @param position the global position
    * @param rotation the global rotation
    */
@@ -47,7 +47,7 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * get global pose of collider
+   * Get global pose of collider
    * @param position the global position
    * @param rotation the global rotation
    */

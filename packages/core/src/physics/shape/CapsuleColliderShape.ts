@@ -3,14 +3,14 @@ import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 
 /**
- * physical collider shape for capsule.
+ * Physical collider shape for capsule.
  */
 export class CapsuleColliderShape extends ColliderShape {
   private _radius: number = 1;
   private _height: number = 2;
 
   /**
-   * radius of capsule.
+   * Radius of capsule.
    */
   get radius(): number {
     return this._radius;
@@ -21,7 +21,7 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   /**
-   * height of capsule.
+   * Height of capsule.
    */
   get height(): number {
     return this._height;

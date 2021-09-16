@@ -15,9 +15,9 @@ export enum QueryFlag {
   NO_BLOCK = 1 << 5
 }
 
-/** a physics manager is a collection of bodies and constraints which can interact. */
+/** A physics manager is a collection of bodies and constraints which can interact. */
 export class PhysicsManager {
-  /** query flag for raycast */
+  /** Query flag for raycast */
   static _queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
   /** @internal */
   static nativePhysics: IPhysics;
@@ -89,7 +89,7 @@ export class PhysicsManager {
 
   //--------------physics manager APIs------------------------------------------
   /**
-   * add collider into the manager
+   * Add collider into the manager
    * @param collider StaticCollider or DynamicCollider.
    */
   addCollider(collider: Collider) {
@@ -101,7 +101,7 @@ export class PhysicsManager {
   }
 
   /**
-   * remove collider
+   * Remove collider
    * @param collider StaticCollider or DynamicCollider.
    */
   removeCollider(collider: Collider) {
@@ -113,7 +113,7 @@ export class PhysicsManager {
   }
 
   /**
-   * call on every frame to update pose of objects
+   * Call on every frame to update pose of objects
    */
   update(deltaTime: number) {
     this._nativePhysicsManager.update(deltaTime);

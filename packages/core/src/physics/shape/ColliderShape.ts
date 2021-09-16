@@ -8,13 +8,13 @@ import { Collider } from "../Collider";
  * Abstract class for collider shapes.
  */
 export abstract class ColliderShape {
-  static idGenerator: number = 0;
+  private static _idGenerator: number = 0;
 
-  /** @internal */
-  _collider: Collider;
   /** @internal */
   @ignoreClone
   _index: number = -1;
+  /** @internal */
+  _collider: Collider;
   /** @internal */
   _nativeShape: IColliderShape;
 
@@ -22,23 +22,25 @@ export abstract class ColliderShape {
   protected _position: Vector3 = new Vector3();
   protected _rotation: Quaternion = new Quaternion();
   protected _material: PhysicsMaterial;
+  protected _isTrigger: boolean = false;
+  protected _isSceneQuery: boolean = true;
 
   /**
-   * collider owner of this shape.
+   * Collider owner of this shape.
    */
   get collider(): Collider {
     return this._collider;
   }
 
   /**
-   * unique id for this shape.
+   * Unique id for this shape.
    */
   get id(): number {
     return this._id;
   }
 
   /**
-   * physical material.
+   * Physical material.
    */
   get material(): PhysicsMaterial {
     return this._material;
@@ -73,24 +75,32 @@ export abstract class ColliderShape {
     this._nativeShape.setRotation(value);
   }
 
-  protected constructor() {
-    this._material = new PhysicsMaterial();
-    this._id = ColliderShape.idGenerator++;
+  /**
+   * True for TriggerShape, false for SimulationShape
+   */
+  get isTrigger(): boolean {
+    return this._isTrigger;
   }
 
-  /**
-   * Set Trigger or not
-   * @param value true for TriggerShape, false for SimulationShape
-   */
-  isTrigger(value: boolean) {
+  set isTrigger(value: boolean) {
+    this._isTrigger = value;
     this._nativeShape.isTrigger(value);
   }
 
   /**
    * Set Scene Query or not
-   * @param value true for Query, false for not Query
    */
-  isSceneQuery(value: boolean) {
+  get isSceneQuery(): boolean {
+    return this._isSceneQuery;
+  }
+
+  set isSceneQuery(value: boolean) {
+    this._isSceneQuery = value;
     this._nativeShape.isSceneQuery(value);
+  }
+
+  protected constructor() {
+    this._material = new PhysicsMaterial();
+    this._id = ColliderShape._idGenerator++;
   }
 }

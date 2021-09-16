@@ -4,13 +4,13 @@ import { Vector3 } from "@oasis-engine/math";
 import { PhysicsManager } from "../PhysicsManager";
 
 /**
- * physical collider shape for box.
+ * Physical collider shape for box.
  */
 export class BoxColliderShape extends ColliderShape {
   private _size: Vector3 = new Vector3(1, 1, 1);
 
   /**
-   * size of box shape.
+   * Size of box shape.
    */
   get size(): Vector3 {
     return this._size;

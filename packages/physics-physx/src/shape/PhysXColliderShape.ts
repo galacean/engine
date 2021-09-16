@@ -40,7 +40,7 @@ export class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
 
   /**
-   * mark physx object
+   * Index mark physx object
    * @internal
    */
   _id: number;
@@ -59,7 +59,7 @@ export class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * set local position
+   * Set local position
    * @param value the local position
    */
   setPosition(value: Vector3): void {
@@ -73,7 +73,7 @@ export class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * set local rotation
+   * Set local rotation
    * @param value the local rotation
    */
   setRotation(value: Quaternion): void {
@@ -89,7 +89,7 @@ export class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * set physics material on shape
+   * Set physics material on shape
    * @param value the material
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
@@ -97,7 +97,7 @@ export class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * set physics shape marker
+   * Set physics shape marker
    * @param index the unique index
    */
   setID(index: number): void {
@@ -106,7 +106,7 @@ export class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * set Trigger or not
+   * Set Trigger or not
    * @param value true for TriggerShape, false for SimulationShape
    */
   isTrigger(value: boolean): void {
@@ -116,7 +116,7 @@ export class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * set Scene Query or not
+   * Set Scene Query or not
    * @param value true for Query, false for not Query
    */
   isSceneQuery(value: boolean): void {

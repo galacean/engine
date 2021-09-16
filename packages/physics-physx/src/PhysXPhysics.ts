@@ -22,7 +22,7 @@ import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 
 /**
- * physics object creation.
+ * PhysX object creation.
  */
 @StaticInterfaceImplement<IPhysics>()
 export class PhysXPhysics {
@@ -98,7 +98,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * create physics manager
+   * Create physics manager
    * @param onContactBegin function called when contact begin
    * @param onContactEnd function called when contact end
    * @param onContactPersist function called when contact stay
@@ -125,7 +125,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * create dynamic collider
+   * Create dynamic collider
    * @param position the global position
    * @param rotation the global rotation
    */
@@ -134,7 +134,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * create static collider
+   * Create static collider
    * @param position the global position
    * @param rotation the global rotation
    */
@@ -143,7 +143,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * create physics material
+   * Create physics material
    * @param staticFriction static friction
    * @param dynamicFriction dynamic friction
    * @param bounciness restitution
@@ -161,7 +161,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * create box collider shape
+   * Create box collider shape
    * @param index unique index to mark the shape
    * @param extents extents of the box
    * @param material the material of this shape
@@ -171,7 +171,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * create sphere collider shape
+   * Create sphere collider shape
    * @param index unique index to mark the shape
    * @param radius radius of the sphere
    * @param material the material of this shape
@@ -185,7 +185,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * create plane collider shape
+   * Create plane collider shape
    * @param index unique index to mark the shape
    * @param material the material of this shape
    */
@@ -194,7 +194,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * create capsule collider shape
+   * Create capsule collider shape
    * @param index unique index to mark the shape
    * @param radius radius of capsule
    * @param height height of capsule

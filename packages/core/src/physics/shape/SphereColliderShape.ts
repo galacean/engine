@@ -3,13 +3,13 @@ import { ISphereColliderShape } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 
 /**
- * physical collider shape for sphere.
+ * Physical collider shape for sphere.
  */
 export class SphereColliderShape extends ColliderShape {
   private _radius: number = 1;
 
   /**
-   * radius of sphere shape.
+   * Radius of sphere shape.
    */
   get radius(): number {
     return this._radius;

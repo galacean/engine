@@ -8,7 +8,7 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
   /**
-   * init PhysXCollider and alloc PhysX objects.
+   * Init PhysXCollider and alloc PhysX objects.
    * @param index index mark collider
    * @param radius radius of CapsuleCollider
    * @param height height of CapsuleCollider
@@ -26,7 +26,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   }
 
   /**
-   * radius of capsule
+   * Radius of capsule
    * @param value the radius
    */
   setRadius(value: number) {
@@ -35,7 +35,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   }
 
   /**
-   * height of capsule
+   * Height of capsule
    * @param value the height
    */
   setHeight(value: number) {

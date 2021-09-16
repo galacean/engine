@@ -20,8 +20,8 @@ export abstract class Collider extends Component {
   private _shapes: DisorderedArray<ColliderShape> = new DisorderedArray();
   private _updateFlag: UpdateFlag;
 
-  protected _position: Vector3 = this.entity.transform.position;
-  protected _rotation: Quaternion = this.entity.transform.rotationQuaternion;
+  protected _position: Vector3 = this.entity.transform.worldPosition;
+  protected _rotation: Quaternion = this.entity.transform.worldRotationQuaternion;
 
   /**
    * The shapes of this collider.
@@ -37,7 +37,7 @@ export abstract class Collider extends Component {
   }
 
   /**
-   * add collider shape on this collider.
+   * Add collider shape on this collider.
    * @param shape collider shape.
    */
   addShape(shape: ColliderShape): void {
@@ -68,13 +68,12 @@ export abstract class Collider extends Component {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _onUpdate() {
     if (this._updateFlag.flag) {
-      this._nativeCollider.setGlobalPose(
-        this.entity.transform.position,
-        this.entity.transform.rotationQuaternion
-      );
+      this._nativeCollider.setGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
       this._updateFlag.flag = false;
     }
     this._nativeCollider.getGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
@@ -85,7 +84,6 @@ export abstract class Collider extends Component {
    * @internal
    */
   _onEnable() {
-    super._onEnable();
     this.engine._componentsManager.addCollider(this);
   }
 
@@ -94,7 +92,6 @@ export abstract class Collider extends Component {
    * @internal
    */
   _onDisable() {
-    super._onDisable();
     this.engine._componentsManager.removeCollider(this);
   }
 }

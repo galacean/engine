@@ -27,7 +27,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * apply a force to the DynamicCollider.
+   * Apply a force to the DynamicCollider.
    * @param force the force make the collider move
    */
   applyForce(force: Vector3): void {
@@ -35,7 +35,7 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * apply a torque to the DynamicCollider.
+   * Apply a torque to the DynamicCollider.
    * @param torque the force make the collider rotate
    */
   applyTorque(torque: Vector3): void {

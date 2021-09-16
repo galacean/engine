@@ -104,7 +104,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   //--------------public APIs--------------------------------------------------
   /**
-   * add PhysXCollider into the manager
+   * Add PhysXCollider into the manager
    * @param collider PhysXStaticCollider or PhysXDynamicCollider.
    */
   addCollider(collider: PhysXCollider) {
@@ -116,7 +116,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * remove PhysXCollider
+   * Remove PhysXCollider
    * @param collider PhysXStaticCollider or PhysXDynamicCollider.
    */
   removeCollider(collider: PhysXCollider) {
@@ -128,7 +128,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * call on every frame to update pose of objects
+   * Call on every frame to update pose of objects
    */
   update(elapsedTime: number) {
     this._simulate(elapsedTime);
@@ -195,27 +195,22 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   //--------------private APIs -------------------------------------------------
-  /** call PhysX simulate */
   private _simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true) {
     this._pxScene.simulate(elapsedTime, controlSimulation);
   }
 
-  /** call PhysX fetchResults */
   private _fetchResults(block: boolean = true) {
     this._pxScene.fetchResults(block);
   }
 
-  /** call PhysX advance */
   private _advance() {
     this._pxScene.advance();
   }
 
-  /** call PhysX fetchCollision */
   private _fetchCollision(block: boolean = true) {
     this._pxScene.fetchCollision(block);
   }
 
-  /** call PhysX collide */
   private _collide(elapsedTime: number = 1 / 60) {
     this._pxScene.collide(elapsedTime);
   }

@@ -8,7 +8,7 @@ import { PhysXPhysics } from "../PhysXPhysics";
  */
 export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlaneColliderShape {
   /**
-   * init PhysXCollider and alloc PhysX objects.
+   * Init PhysXCollider and alloc PhysX objects.
    * @param index index mark collider
    * @param material material of PhysXCollider
    * @remarks must call after this component add to Entity.

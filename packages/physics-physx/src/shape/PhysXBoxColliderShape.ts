@@ -9,7 +9,7 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
   /**
-   * init Box Shape and alloc PhysX objects.
+   * Init Box Shape and alloc PhysX objects.
    * @param index index mark Shape
    * @param extents size of Shape
    * @param material material of PhysXCollider
@@ -25,7 +25,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   }
 
   /**
-   * set size of Box Shape
+   * Set size of Box Shape
    * @param value the extents
    */
   setSize(value: Vector3) {

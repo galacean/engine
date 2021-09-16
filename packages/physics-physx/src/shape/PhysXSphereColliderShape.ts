@@ -8,7 +8,7 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
  */
 export class PhysXSphereColliderShape extends PhysXColliderShape implements ISphereColliderShape {
   /**
-   * init PhysXCollider and alloc PhysX objects.
+   * Init PhysXCollider and alloc PhysX objects.
    * @param index index mark collider
    * @param radius size of SphereCollider
    * @param material material of PhysXCollider
@@ -25,7 +25,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   }
 
   /**
-   * set radius of sphere
+   * Set radius of sphere
    * @param value the radius
    */
   setRadius(value: number) {
