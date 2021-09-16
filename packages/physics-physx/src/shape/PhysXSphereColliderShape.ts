@@ -21,7 +21,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
     super(position, rotation);
 
     // alloc Physx object
-    this._allocGeometry(radius);
+    this._pxGeometry = new PhysXPhysics.PhysX.PxSphereGeometry(radius);
     this._allocShape(material);
     this._setLocalPose(this._position, this._rotation);
     this.setID(index);
@@ -34,9 +34,5 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   setRadius(value: number) {
     this._pxGeometry.radius = value;
     this._pxShape.setGeometry(this._pxGeometry);
-  }
-
-  private _allocGeometry(radius: number) {
-    this._pxGeometry = new PhysXPhysics.PhysX.PxSphereGeometry(radius);
   }
 }

@@ -20,13 +20,9 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
     super(position, rotation);
 
     // alloc Physx object
-    this._allocGeometry();
+    this._pxGeometry = new PhysXPhysics.PhysX.PxPlaneGeometry();
     this._allocShape(material);
     this._setLocalPose(this._position, this._rotation);
     this.setID(index);
-  }
-
-  private _allocGeometry() {
-    this._pxGeometry = new PhysXPhysics.PhysX.PxPlaneGeometry();
   }
 }

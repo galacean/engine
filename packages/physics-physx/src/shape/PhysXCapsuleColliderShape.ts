@@ -29,7 +29,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     super(position, rotation);
 
     // alloc Physx object
-    this._allocGeometry(radius, height);
+    this._pxGeometry = new PhysXPhysics.PhysX.PxCapsuleGeometry(radius, height * 0.5);
     this._allocShape(material);
     this._setLocalPose(this._position, this._rotation);
     this.setID(index);
@@ -51,9 +51,5 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   setHeight(value: number) {
     this._pxGeometry.halfHeight = value / 2.0;
     this._pxShape.setGeometry(this._pxGeometry);
-  }
-
-  private _allocGeometry(radius: number, height: number) {
-    this._pxGeometry = new PhysXPhysics.PhysX.PxCapsuleGeometry(radius, height / 2.0);
   }
 }

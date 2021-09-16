@@ -8,8 +8,6 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
  * PhysX Shape for Box
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
-  private _tempHalfExtents: Vector3 = new Vector3();
-
   /**
    * init Box Shape and alloc PhysX objects.
    * @param index index mark Shape
@@ -27,8 +25,8 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     rotation: Quaternion
   ) {
     super(position, rotation);
-    // alloc Physx object
-    this._allocGeometry(extents);
+    this._pxGeometry = new PhysXPhysics.PhysX.PxBoxGeometry(extents.x * 0.5, extents.y * 0.5, extents.z * 0.5);
+
     this._allocShape(material);
     this._setLocalPose(this._position, this._rotation);
     this.setID(index);
@@ -39,23 +37,11 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * @param value the extents
    */
   setSize(value: Vector3) {
-    const halfExtents = this._halfExtents(value);
+    const { halfExtents } = this._pxGeometry;
+    halfExtents.x = value.x * 0.5;
+    halfExtents.y = value.y * 0.5;
+    halfExtents.z = value.z * 0.5;
 
-    this._pxGeometry.halfExtents = {
-      x: halfExtents.x,
-      y: halfExtents.y,
-      z: halfExtents.z
-    };
     this._pxShape.setGeometry(this._pxGeometry);
-  }
-
-  private _halfExtents(extents: Vector3): Vector3 {
-    Vector3.scale(extents, 0.5, this._tempHalfExtents);
-    return this._tempHalfExtents;
-  }
-
-  private _allocGeometry(extents: Vector3) {
-    const halfExtents = this._halfExtents(extents);
-    this._pxGeometry = new PhysXPhysics.PhysX.PxBoxGeometry(halfExtents.x, halfExtents.y, halfExtents.z);
   }
 }
