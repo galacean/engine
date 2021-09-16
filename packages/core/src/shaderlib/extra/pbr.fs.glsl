@@ -1,6 +1,5 @@
 #include <common>
 #include <common_frag>
-#include <pbr_common_frag_define>
 #include <pbr_util_frag_define>
 
 #include <fog_share>

@@ -1,4 +1,3 @@
-import pbr_common_frag_define from "./common_frag_define.glsl";
 import pbr_util_frag_define from "./util_frag_define.glsl";
 
 /** prop & texture */
@@ -23,9 +22,8 @@ import pbr_ibl_specular_frag from "./ibl_specular_frag.glsl";
 import pbr_end_frag from "./end_frag.glsl";
 
 export default {
-  pbr_common_frag_define,
   pbr_util_frag_define,
-  
+
   pbr_base_frag_define,
   pbr_texture_frag_define,
 

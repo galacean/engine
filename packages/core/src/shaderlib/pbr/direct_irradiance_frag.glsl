@@ -1,4 +1,4 @@
-        #if defined( O3_DIRECT_LIGHT_COUNT ) && defined( RE_Direct )
+        #ifdef O3_DIRECT_LIGHT_COUNT
 
             DirectLight directionalLight;
 
@@ -9,13 +9,13 @@
                 
                 getDirectionalDirectLightIrradiance( directionalLight, geometry, directLight );
 
-                RE_Direct( directLight, geometry, material, reflectedLight );
+                RE_Direct_Physical( directLight, geometry, material, reflectedLight );
 
             }
 
         #endif
 
-        #if defined( O3_POINT_LIGHT_COUNT ) && defined( RE_Direct )
+        #ifdef O3_POINT_LIGHT_COUNT
 
             PointLight pointLight;
 
@@ -27,13 +27,13 @@
 
                 getPointDirectLightIrradiance( pointLight, geometry, directLight );
 
-                RE_Direct( directLight, geometry, material, reflectedLight );
+                RE_Direct_Physical( directLight, geometry, material, reflectedLight );
 
             }
 
         #endif
 
-        #if defined( O3_SPOT_LIGHT_COUNT ) && defined( RE_Direct )
+        #ifdef O3_SPOT_LIGHT_COUNT
 
             SpotLight spotLight;
 
@@ -48,7 +48,7 @@
 
                 getSpotDirectLightIrradiance( spotLight, geometry, directLight );
 
-                RE_Direct( directLight, geometry, material, reflectedLight );
+                RE_Direct_Physical( directLight, geometry, material, reflectedLight );
 
             }
 
