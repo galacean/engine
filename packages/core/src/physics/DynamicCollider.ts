@@ -23,7 +23,10 @@ export class DynamicCollider extends Collider {
 
   constructor(entity: Entity) {
     super(entity);
-    this._nativeCollider = PhysicsManager.nativePhysics.createDynamicCollider(this._position, this._rotation);
+    this._nativeCollider = PhysicsManager.nativePhysics.createDynamicCollider(
+      this.entity.transform.worldPosition,
+      this.entity.transform.worldRotationQuaternion
+    );
   }
 
   /**
@@ -40,5 +43,20 @@ export class DynamicCollider extends Collider {
    */
   applyTorque(torque: Vector3): void {
     (<IDynamicCollider>this._nativeCollider).addTorque(torque);
+  }
+
+  _onUpdate() {
+    if (this._updateFlag.flag) {
+      this._nativeCollider.setGlobalPose(
+        this.entity.transform.worldPosition,
+        this.entity.transform.worldRotationQuaternion
+      );
+      this._updateFlag.flag = false;
+    } else {
+      this._nativeCollider.getGlobalPose(
+        this.entity.transform.worldPosition,
+        this.entity.transform.worldRotationQuaternion
+      );
+    }
   }
 }

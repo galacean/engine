@@ -18,10 +18,7 @@ export abstract class Collider extends Component {
   _nativeCollider: ICollider;
 
   private _shapes: DisorderedArray<ColliderShape> = new DisorderedArray();
-  private _updateFlag: UpdateFlag;
-
-  protected _position: Vector3 = this.entity.transform.worldPosition;
-  protected _rotation: Quaternion = this.entity.transform.worldRotationQuaternion;
+  protected _updateFlag: UpdateFlag;
 
   /**
    * The shapes of this collider.
@@ -71,13 +68,7 @@ export abstract class Collider extends Component {
   /**
    * @internal
    */
-  _onUpdate() {
-    if (this._updateFlag.flag) {
-      this._nativeCollider.setGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
-      this._updateFlag.flag = false;
-    }
-    this._nativeCollider.getGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
-  }
+  abstract _onUpdate();
 
   /**
    * @override

@@ -9,6 +9,16 @@ import { PhysicsManager } from "./PhysicsManager";
 export class StaticCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
-    this._nativeCollider = PhysicsManager.nativePhysics.createStaticCollider(this._position, this._rotation);
+    this._nativeCollider = PhysicsManager.nativePhysics.createStaticCollider(
+      this.entity.transform.worldPosition,
+      this.entity.transform.worldRotationQuaternion
+    );
+  }
+
+  _onUpdate() {
+    if (this._updateFlag.flag) {
+      this._nativeCollider.setGlobalPose(this.entity.transform.position, this.entity.transform.rotationQuaternion);
+      this._updateFlag.flag = false;
+    }
   }
 }
