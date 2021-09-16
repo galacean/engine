@@ -6,6 +6,11 @@ import { PhysXColliderShape } from "./shape/PhysXColliderShape";
  * physical collider
  */
 export abstract class PhysXCollider implements ICollider {
+  static _tempTransform = {
+    translation: { x: 0, y: 0, z: 0 },
+    rotation: { w: 0, x: 0, y: 0, z: 1 }
+  };
+
   /**
    * PhysX actor object
    * @internal
@@ -61,20 +66,20 @@ export abstract class PhysXCollider implements ICollider {
    * PhysX transform object
    * @internal
    */
-  _transform(position: Vector3, rotation: Quaternion): any {
-    const quat = rotation.normalize();
-    return {
-      translation: {
-        x: position.x,
-        y: position.y,
-        z: position.z
-      },
-      rotation: {
-        w: quat.w,
-        x: quat.x,
-        y: quat.y,
-        z: quat.z
-      }
-    };
+  _transform(
+    pos: Vector3,
+    rot: Quaternion
+  ): { translation: { x: number; y: number; z: number }; rotation: { w: number; x: number; y: number; z: number } } {
+    const quat = rot.normalize();
+    const { translation, rotation } = PhysXCollider._tempTransform;
+    translation.x = pos.x;
+    translation.y = pos.y;
+    translation.z = pos.z;
+
+    rotation.x = quat.x;
+    rotation.y = quat.y;
+    rotation.z = quat.z;
+    rotation.w = quat.w;
+    return PhysXCollider._tempTransform;
   }
 }
