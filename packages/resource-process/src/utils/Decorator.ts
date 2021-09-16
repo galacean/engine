@@ -1,9 +1,10 @@
 import { Engine } from "@oasis-engine/core";
+import type { BufferReader } from "./BufferReader";
 
 export const decoderMap: Record<
   string,
   {
-    decode: (engine: Engine, arraybuffer: ArrayBuffer, byteOffset?: number, byteLength?: number) => Promise<any>;
+    decode: (engine: Engine, bufferReader: BufferReader) => Promise<any>;
   }
 > = {};
 
@@ -14,7 +15,7 @@ export const decoderMap: Record<
  */
 export function decoder(type: string): ClassDecorator {
   return (target: any) => {
-    decoderMap[type] = target.decode;
+    decoderMap[type] = target;
   };
 }
 
@@ -27,6 +28,6 @@ export const encoderMap = {};
  */
 export function encoder(type: string): ClassDecorator {
   return (target: any) => {
-    encoderMap[type] = target.encode;
+    encoderMap[type] = target;
   };
 }

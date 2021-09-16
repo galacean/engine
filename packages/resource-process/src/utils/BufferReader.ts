@@ -19,9 +19,9 @@ export class BufferReader {
     3: "ktx"
   };
 
-  constructor(private _buffer: ArrayBuffer, byteOffset: number = 0, byteLength?: number, littleEndian: boolean = true) {
+  constructor(public buffer: ArrayBuffer, byteOffset: number = 0, byteLength?: number, littleEndian: boolean = true) {
     // byteLength = byteLength ?? _buffer.byteLength;
-    this._dataView = new DataView(_buffer);
+    this._dataView = new DataView(buffer);
     this._littleEndian = littleEndian;
     this._offset = byteOffset;
   }
@@ -55,7 +55,7 @@ export class BufferReader {
   }
 
   nextInt32Array(len: number) {
-    const value = new Int32Array(this._buffer, this._offset, len);
+    const value = new Int32Array(this.buffer, this._offset, len);
     this._offset += 4 * len;
     return value;
   }
@@ -67,19 +67,19 @@ export class BufferReader {
   }
 
   nextFloat32Array(len: number) {
-    const value = new Float32Array(this._buffer, this._offset, len);
+    const value = new Float32Array(this.buffer, this._offset, len);
     this._offset += 4 * len;
     return value;
   }
 
   nextUint32Array(len: number) {
-    const value = new Uint32Array(this._buffer, this._offset, len);
+    const value = new Uint32Array(this.buffer, this._offset, len);
     this._offset += 4 * len;
     return value;
   }
 
   nextUint8Array(len: number) {
-    const value = new Uint8Array(this._buffer, this._offset, len);
+    const value = new Uint8Array(this.buffer, this._offset, len);
     this._offset += len;
     return value;
   }
@@ -94,7 +94,7 @@ export class BufferReader {
 
   nextStr(): string {
     const strByteLength = this.nextUint16();
-    const uint8Array = new Uint8Array(this._buffer, this._offset, strByteLength);
+    const uint8Array = new Uint8Array(this.buffer, this._offset, strByteLength);
     this._offset += strByteLength;
     return textDecode.decode(uint8Array);
   }
@@ -105,7 +105,7 @@ export class BufferReader {
   nextImageData(count: number = 0): ImageData {
     const imageData = new ImageData();
     imageData.type = BufferReader.imageMapping[this.nextUint8()];
-    imageData.buffer = this._buffer.slice(this._offset);
+    imageData.buffer = this.buffer.slice(this._offset);
     return imageData;
   }
 
@@ -118,7 +118,7 @@ export class BufferReader {
       const len = imagesLen[i];
       const imageData = new ImageData();
       imageData.type = BufferReader.imageMapping[imagesType[i]];
-      imageData.buffer = this._buffer.slice(this._offset, this._offset + len);
+      imageData.buffer = this.buffer.slice(this._offset, this._offset + len);
       this._offset += len;
       imagesData.push(imageData);
     }

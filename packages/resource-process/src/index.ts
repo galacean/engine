@@ -1,9 +1,15 @@
 import { Engine } from "@oasis-engine/core";
+import { BufferReader } from "./utils/BufferReader";
 import { BufferWriter } from "./utils/BufferWriter";
 import { decoderMap, encoderMap } from "./utils/Decorator";
 import { FileHeader } from "./utils/FileHeader";
 
+export { MaterialDecoder } from "./resources/material/MaterialDecoder";
+export { MaterialEncoder } from "./resources/material/MaterialEncoder";
+export { MeshDecoder } from "./resources/mesh/MeshDecoder";
+export { MeshEncoder } from "./resources/mesh/MeshEncoder";
 export { encoder, decoder } from "./utils/Decorator";
+export { UniformType } from "./resources/material/type";
 
 /**
  * Decode engine binary resource.
@@ -13,7 +19,8 @@ export { encoder, decoder } from "./utils/Decorator";
  */
 export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine): Promise<T> {
   const header = FileHeader.decode(arrayBuffer);
-  return decoderMap[header.type].decode(engine, arrayBuffer, header.headerLength, header.dataLength).then((object) => {
+  const bufferReader = new BufferReader(arrayBuffer, header.headerLength, header.dataLength);
+  return decoderMap[header.type].decode(engine, bufferReader).then((object) => {
     object.name = header.name;
     return object;
   });

@@ -149,6 +149,23 @@ export class ResourceManager {
   }
 
   /**
+   * Get resource from objectId.
+   * @param objectId - object id
+   */
+  getResourceFromObjectId<T>(objectId: string): T {
+    return this._objectPool[objectId];
+  }
+
+  /**
+   * Add resource to object pool.
+   * @param objectId - object id
+   * @param resource - resource
+   */
+  addToResourceMap(objectId: string, resource: any): void {
+    this._objectPool[objectId] = resource;
+  }
+
+  /**
    * @internal
    */
   _addAsset(path: string, asset: RefObject): void {

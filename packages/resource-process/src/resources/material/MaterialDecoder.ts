@@ -1,19 +1,13 @@
 import { AssetType, Engine, Material, Shader } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 import { UniformType } from "./type";
+import type { BufferReader } from "../../utils/BufferReader";
 
 @decoder("Material")
 export class MaterialDecoder {
-  public static decode(
-    engine: Engine,
-    arraybuffer: ArrayBuffer,
-    byteOffset?: number,
-    byteLength?: number
-  ): Promise<Material> {
+  public static decode(engine: Engine, bufferReader: BufferReader): Promise<Material> {
     return new Promise((resolve) => {
-      const bufferReader = new BufferReader(arraybuffer, byteOffset, byteLength);
       // init material
       const objectId = bufferReader.nextStr();
       const renderQueueType = bufferReader.nextUint16();
