@@ -2,6 +2,7 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * The up axis of the collider shape.
@@ -19,6 +20,10 @@ export enum ColliderShapeUpAxis {
  * PhysX Shape for Capsule
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
+  private _radius: number;
+  private _halfHeight: number;
+  private _direction: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
+
   /**
    * Init PhysXCollider and alloc PhysX objects.
    * @param index index mark collider
@@ -30,8 +35,11 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   constructor(index: number, radius: number, height: number, material: PhysXPhysicsMaterial) {
     super();
 
+    this._radius = radius;
+    this._halfHeight = height * 0.5;
+
     // alloc Physx object
-    this._pxGeometry = new PhysXPhysics.PhysX.PxCapsuleGeometry(radius, height * 0.5);
+    this._pxGeometry = new PhysXPhysics.PhysX.PxCapsuleGeometry(this._radius, this._halfHeight);
     this._allocShape(material);
     this._setLocalPose();
     this.setID(index);
@@ -42,7 +50,18 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * @param value the radius
    */
   setRadius(value: number) {
-    this._pxGeometry.radius = value;
+    this._radius = value;
+    switch (this._direction) {
+      case ColliderShapeUpAxis.X:
+        this._pxGeometry.radius = this._radius * Math.max(this._scale.y, this._scale.z);
+        break;
+      case ColliderShapeUpAxis.Y:
+        this._pxGeometry.radius = this._radius * Math.max(this._scale.x, this._scale.z);
+        break;
+      case ColliderShapeUpAxis.Z:
+        this._pxGeometry.radius = this._radius * Math.max(this._scale.x, this._scale.y);
+        break;
+    }
     this._pxShape.setGeometry(this._pxGeometry);
   }
 
@@ -51,7 +70,18 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * @param value the height
    */
   setHeight(value: number) {
-    this._pxGeometry.halfHeight = value / 2.0;
+    this._halfHeight = value * 0.5;
+    switch (this._direction) {
+      case ColliderShapeUpAxis.X:
+        this._pxGeometry.halfHeight = this._halfHeight * this._scale.x;
+        break;
+      case ColliderShapeUpAxis.Y:
+        this._pxGeometry.halfHeight = this._halfHeight * this._scale.y;
+        break;
+      case ColliderShapeUpAxis.Z:
+        this._pxGeometry.halfHeight = this._halfHeight * this._scale.z;
+        break;
+    }
     this._pxShape.setGeometry(this._pxGeometry);
   }
 
@@ -60,7 +90,8 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * @param dir the up axis
    */
   setDirection(dir: ColliderShapeUpAxis): void {
-    switch (dir) {
+    this._direction = dir;
+    switch (this._direction) {
       case ColliderShapeUpAxis.X:
         this._rotation.setValue(0, 0, 0, 1);
         break;
@@ -77,5 +108,28 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     rotation.z = this._rotation.z;
     rotation.w = this._rotation.w;
     this._setLocalPose();
+  }
+
+  /**
+   * scale of shape
+   * @param scale the scale
+   * @remark scale have no effect on plane.
+   */
+  setWorldScale(scale: Vector3): void {
+    switch (this._direction) {
+      case ColliderShapeUpAxis.X:
+        this._pxGeometry.radius = this._radius * Math.max(scale.y, scale.z);
+        this._pxGeometry.halfHeight = this._halfHeight * scale.x;
+        break;
+      case ColliderShapeUpAxis.Y:
+        this._pxGeometry.radius = this._radius * Math.max(scale.x, scale.z);
+        this._pxGeometry.halfHeight = this._halfHeight * scale.y;
+        break;
+      case ColliderShapeUpAxis.Z:
+        this._pxGeometry.radius = this._radius * Math.max(scale.x, scale.y);
+        this._pxGeometry.halfHeight = this._halfHeight * scale.z;
+        break;
+    }
+    this._pxShape.setGeometry(this._pxGeometry);
   }
 }

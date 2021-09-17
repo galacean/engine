@@ -30,11 +30,4 @@ export class PlaneColliderShape extends ColliderShape {
     this._rotation.setValue(yaw, pitch, roll);
     (<IPlaneColliderShape>this._nativeShape).setRotation(this._rotation);
   }
-
-  /**
-   * Scale the collider shape
-   * @param relativeScale
-   * @remark scale on plane is useless
-   */
-  scale(relativeScale: Vector3) {}
 }

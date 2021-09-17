@@ -16,7 +16,7 @@ export enum ShapeFlag {
 /**
  * Abstract class for collider shapes.
  */
-export class PhysXColliderShape implements IColliderShape {
+export abstract class PhysXColliderShape implements IColliderShape {
   static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
     translation: { x: 0, y: 0, z: 0 },
@@ -25,6 +25,7 @@ export class PhysXColliderShape implements IColliderShape {
 
   protected _position: Vector3 = new Vector3();
   protected _rotation: Quaternion = new Quaternion(PhysXColliderShape.halfSqrt, 0, 0, PhysXColliderShape.halfSqrt);
+  protected _scale: Vector3 = new Vector3(1, 1, 1);
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
@@ -72,6 +73,12 @@ export class PhysXColliderShape implements IColliderShape {
 
     this._setLocalPose();
   }
+
+  /**
+   * scale of shape
+   * @param scale the scale
+   */
+  abstract setWorldScale(scale: Vector3): void;
 
   /**
    * Set physics material on shape

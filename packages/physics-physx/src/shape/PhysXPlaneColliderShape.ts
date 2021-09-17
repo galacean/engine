@@ -40,4 +40,11 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
 
     this._setLocalPose();
   }
+
+  /**
+   * scale of shape
+   * @param scale the scale
+   * @remark scale have no effect on plane.
+   */
+  setWorldScale(scale: Vector3): void {}
 }

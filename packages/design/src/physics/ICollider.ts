@@ -18,16 +18,16 @@ export interface ICollider {
   removeShape(shape: IColliderShape): void;
 
   /**
-   * set global pose of collider
+   * set global transform of collider
    * @param position the global position
    * @param rotation the global rotation
    */
-  setGlobalPose(position: Vector3, rotation: Quaternion);
+  setWorldTransform(position: Vector3, rotation: Quaternion): void;
 
   /**
-   * get global pose of collider
-   * @param position the global position
-   * @param rotation the global rotation
+   * get global transform of collider
+   * @param outPosition the global position
+   * @param outRotation the global rotation
    */
-  getGlobalPose(position: Vector3, rotation: Quaternion);
+  getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void;
 }

@@ -8,6 +8,9 @@ export interface IColliderShape {
   /** local position */
   setPosition(position: Vector3): void;
 
+  /** scale of shape */
+  setWorldScale(scale: Vector3): void;
+
   /** physics material on shape */
   setMaterial(material: IPhysicsMaterial): void;
 
