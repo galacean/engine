@@ -8,7 +8,7 @@
 #include <color_share>
 #include <worldpos_share>
 
-#include <light_frag>
+#include <light_frag_define>
 
 
 #include <pbr_frag_define>

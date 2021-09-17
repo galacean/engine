@@ -23,7 +23,7 @@ import worldpos_vert from "./worldpos_vert.glsl";
 import shadow_vert from "./shadow_vert.glsl";
 import fog_vert from "./fog_vert.glsl";
 
-import light_frag from "./light_frag.glsl";
+import light_frag_define from "./light_frag_define.glsl";
 import mobile_material_frag from "./mobile_material_frag.glsl";
 import fog_frag from "./fog_frag.glsl";
 
@@ -81,7 +81,7 @@ export const ShaderLib = {
   shadow_vert,
   fog_vert,
 
-  light_frag,
+  light_frag_define,
   mobile_material_frag,
   fog_frag,
 

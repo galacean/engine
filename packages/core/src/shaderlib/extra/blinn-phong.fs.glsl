@@ -6,7 +6,7 @@
 #include <color_share>
 #include <worldpos_share>
 
-#include <light_frag>
+#include <light_frag_define>
 #include <mobile_material_frag>
 
 #include <fog_share>
