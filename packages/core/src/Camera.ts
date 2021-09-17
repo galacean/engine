@@ -435,8 +435,6 @@ export class Camera extends Component {
       this._globalShaderMacro
     );
 
-      mipLevel = 0;
-    }
     this._renderPipeline.render(context, cubeFace, mipLevel);
     this._engine._renderCount++;
   }
