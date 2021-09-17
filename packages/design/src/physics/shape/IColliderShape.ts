@@ -8,9 +8,6 @@ export interface IColliderShape {
   /** local position */
   setPosition(position: Vector3): void;
 
-  /** local rotation */
-  setRotation(rotation: Vector3): void;
-
   /** physics material on shape */
   setMaterial(material: IPhysicsMaterial): void;
 
@@ -18,8 +15,8 @@ export interface IColliderShape {
   setID(id: number): void;
 
   /** Set Trigger or not */
-  isTrigger(value: boolean);
+  setIsTrigger(value: boolean);
 
   /** Set Scene Query or not */
-  isSceneQuery(value: boolean);
+  setIsSceneQuery(value: boolean);
 }

@@ -20,7 +20,6 @@ export abstract class ColliderShape {
 
   protected _id: number;
   protected _position: Vector3 = new Vector3();
-  protected _rotation: Vector3 = new Vector3();
   protected _material: PhysicsMaterial;
   protected _isTrigger: boolean = false;
   protected _isSceneQuery: boolean = true;
@@ -64,18 +63,6 @@ export abstract class ColliderShape {
   }
 
   /**
-   * The local rotation of this ColliderShape.
-   */
-  get rotation(): Vector3 {
-    return this._rotation;
-  }
-
-  set rotation(value: Vector3) {
-    this._rotation = value;
-    this._nativeShape.setRotation(value);
-  }
-
-  /**
    * True for TriggerShape, false for SimulationShape
    */
   get isTrigger(): boolean {
@@ -84,7 +71,7 @@ export abstract class ColliderShape {
 
   set isTrigger(value: boolean) {
     this._isTrigger = value;
-    this._nativeShape.isTrigger(value);
+    this._nativeShape.setIsTrigger(value);
   }
 
   /**
@@ -96,7 +83,7 @@ export abstract class ColliderShape {
 
   set isSceneQuery(value: boolean) {
     this._isSceneQuery = value;
-    this._nativeShape.isSceneQuery(value);
+    this._nativeShape.setIsSceneQuery(value);
   }
 
   protected constructor() {

@@ -1,6 +1,5 @@
 import { IClone } from "./IClone";
 import { Vector3 } from "./Vector3";
-import { Quaternion } from "./Quaternion";
 
 /**
  * Represents a plane in three dimensional space.

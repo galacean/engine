@@ -4,6 +4,18 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
 /**
+ * The up axis of the collider shape.
+ */
+export enum ColliderShapeUpAxis {
+  /** Up axis is X. */
+  X,
+  /** Up axis is Y. */
+  Y,
+  /** Up axis is Z. */
+  Z
+}
+
+/**
  * PhysX Shape for Capsule
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
@@ -41,5 +53,29 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   setHeight(value: number) {
     this._pxGeometry.halfHeight = value / 2.0;
     this._pxShape.setGeometry(this._pxGeometry);
+  }
+
+  /**
+   * direction of capsule
+   * @param dir the up axis
+   */
+  setDirection(dir: ColliderShapeUpAxis): void {
+    switch (dir) {
+      case ColliderShapeUpAxis.X:
+        this._rotation.setValue(0, 0, 0, 1);
+        break;
+      case ColliderShapeUpAxis.Y:
+        this._rotation.setValue(PhysXColliderShape.halfSqrt, 0, 0, PhysXColliderShape.halfSqrt);
+        break;
+      case ColliderShapeUpAxis.Z:
+        this._rotation.setValue(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
+        break;
+    }
+    const { rotation } = PhysXColliderShape.transform;
+    rotation.x = this._rotation.x;
+    rotation.y = this._rotation.y;
+    rotation.z = this._rotation.z;
+    rotation.w = this._rotation.w;
+    this._setLocalPose();
   }
 }

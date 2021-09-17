@@ -8,7 +8,6 @@ import { PhysicsManager } from "../PhysicsManager";
  */
 export class BoxColliderShape extends ColliderShape {
   private _size: Vector3 = new Vector3(1, 1, 1);
-
   /**
    * Size of box shape.
    */
@@ -17,6 +16,7 @@ export class BoxColliderShape extends ColliderShape {
   }
 
   set size(value: Vector3) {
+    this._size = value;
     (<IBoxColliderShape>this._nativeShape).setSize(value);
   }
 
@@ -27,5 +27,18 @@ export class BoxColliderShape extends ColliderShape {
       this._size,
       this._material._nativeMaterial
     );
+  }
+
+  /**
+   * Set size of box
+   * @param x size of x-axis.
+   * @param y size of y-axis.
+   * @param z size of z-axis.
+   */
+  setSize(x: number, y: number, z: number) {
+    this._size.x = x;
+    this._size.y = y;
+    this._size.z = z;
+    (<IBoxColliderShape>this._nativeShape).setSize(this._size);
   }
 }

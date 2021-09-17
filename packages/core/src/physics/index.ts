@@ -1,6 +1,7 @@
 export { Collision } from "./Collision";
 export { HitResult } from "./HitResult";
 export { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
+export { ColliderShapeUpAxis } from "./enums/ColliderShapeUpAxis";
 
 export { PhysicsManager } from "./PhysicsManager";
 export { PhysicsMaterial } from "./PhysicsMaterial";

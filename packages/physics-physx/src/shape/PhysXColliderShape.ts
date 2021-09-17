@@ -17,13 +17,14 @@ export enum ShapeFlag {
  * Abstract class for collider shapes.
  */
 export class PhysXColliderShape implements IColliderShape {
+  static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
     translation: { x: 0, y: 0, z: 0 },
-    rotation: { w: Math.sqrt(2) * 0.5, x: 0, y: 0, z: Math.sqrt(2) * 0.5 }
+    rotation: { w: PhysXColliderShape.halfSqrt, x: 0, y: 0, z: PhysXColliderShape.halfSqrt }
   };
 
   protected _position: Vector3 = new Vector3();
-  protected _rotation: Quaternion = new Quaternion(Math.sqrt(2) * 0.5, 0, 0, Math.sqrt(2) * 0.5);
+  protected _rotation: Quaternion = new Quaternion(PhysXColliderShape.halfSqrt, 0, 0, PhysXColliderShape.halfSqrt);
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
@@ -73,23 +74,6 @@ export class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * Set local rotation
-   * @param value the local rotation
-   */
-  setRotation(value: Vector3): void {
-    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._rotation);
-    Quaternion.rotateZ(this._rotation, Math.PI * 0.5, this._rotation);
-    this._rotation.normalize();
-    const { rotation } = PhysXColliderShape.transform;
-    rotation.x = this._rotation.x;
-    rotation.y = this._rotation.y;
-    rotation.z = this._rotation.z;
-    rotation.w = this._rotation.w;
-
-    this._setLocalPose();
-  }
-
-  /**
    * Set physics material on shape
    * @param value the material
    */
@@ -110,7 +94,7 @@ export class PhysXColliderShape implements IColliderShape {
    * Set Trigger or not
    * @param value true for TriggerShape, false for SimulationShape
    */
-  isTrigger(value: boolean): void {
+  setIsTrigger(value: boolean): void {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
     this.shapeFlags = this._shapeFlags;
@@ -120,7 +104,7 @@ export class PhysXColliderShape implements IColliderShape {
    * Set Scene Query or not
    * @param value true for Query, false for not Query
    */
-  isSceneQuery(value: boolean): void {
+  setIsSceneQuery(value: boolean): void {
     this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
     this.shapeFlags = this._shapeFlags;
   }

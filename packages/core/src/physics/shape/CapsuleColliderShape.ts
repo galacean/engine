@@ -1,6 +1,7 @@
 import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
+import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
 
 /**
  * Physical collider shape for capsule.
@@ -8,6 +9,7 @@ import { PhysicsManager } from "../PhysicsManager";
 export class CapsuleColliderShape extends ColliderShape {
   private _radius: number = 1;
   private _height: number = 2;
+  private _direction: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   /**
    * Radius of capsule.
@@ -29,6 +31,18 @@ export class CapsuleColliderShape extends ColliderShape {
 
   set height(value: number) {
     (<ICapsuleColliderShape>this._nativeShape).setHeight(value);
+  }
+
+  /**
+   * Direction of capsule
+   */
+  get direction(): ColliderShapeUpAxis {
+    return this._direction;
+  }
+
+  set direction(value: ColliderShapeUpAxis) {
+    this._direction = value;
+    (<ICapsuleColliderShape>this._nativeShape).setDirection(value);
   }
 
   constructor() {

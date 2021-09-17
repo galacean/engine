@@ -9,4 +9,7 @@ export interface ICapsuleColliderShape extends IColliderShape {
 
   /** height of capsule */
   setHeight(height: number): void;
+
+  /** direction of capsule */
+  setDirection(dir: number): void;
 }
