@@ -18,19 +18,11 @@ float pow2( const in float x ) {
     return x * x;
 }
 
-vec3 inverseTransformDirection( in vec3 dir, in mat4 matrix ) {
-    return normalize( ( vec4( dir, 0.0 ) * matrix ).xyz );
-}
 
 vec3 BRDF_Diffuse_Lambert( const in vec3 diffuseColor ) {
 
 	return RECIPROCAL_PI * diffuseColor;
 
-}
-
-// source: http://simonstechblog.blogspot.ca/2011/12/microfacet-brdf.html
-float GGXRoughnessToBlinnExponent( const in float ggxRoughness ) {
-    return ( 2.0 / pow2( ggxRoughness + 0.0001 ) - 2.0 );
 }
 
 
@@ -41,9 +33,7 @@ float computeSpecularOcclusion( const in float dotNV, const in float ambientOccl
 }
 
 
-#include <brdf>
-
 // direct + indirect
+#include <brdf>
 #include <direct_irradiance_frag_define>
-#include <ibl_diffuse_frag_define>
-#include <ibl_specular_frag_define>
+#include <ibl_frag_define>
