@@ -414,7 +414,7 @@ export class Camera extends Component {
   /**
    * Manually call the rendering of the camera.
    * @param cubeFace - Cube rendering surface collection
-   * @param mipLevel - Set mip level the data want to write
+   * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
     // compute cull frustum.
@@ -435,6 +435,8 @@ export class Camera extends Component {
       this._globalShaderMacro
     );
 
+      mipLevel = 0;
+    }
     this._renderPipeline.render(context, cubeFace, mipLevel);
     this._engine._renderCount++;
   }
