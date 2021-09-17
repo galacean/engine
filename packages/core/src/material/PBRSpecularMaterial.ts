@@ -9,7 +9,7 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  */
 export class PBRSpecularMaterial extends PBRBaseMaterial {
   private static _specularColorProp = Shader.getPropertyByName("u_specularColor");
-  private static _glossinessProp = Shader.getPropertyByName("u_glossinessFactor");
+  private static _glossinessProp = Shader.getPropertyByName("u_glossiness");
   private static _specularGlossinessTextureProp = Shader.getPropertyByName("u_specularGlossinessSampler");
 
   /**

@@ -6,7 +6,6 @@ import brdf from "./brdf.glsl";
 import direct_irradiance_frag_define from "./direct_irradiance_frag_define.glsl";
 import ibl_frag_define from "./ibl_frag_define.glsl";
 
-import direct_irradiance_frag from "./direct_irradiance_frag.glsl";
 import pbr_frag from "./pbr_frag.glsl";
 
 export default {
@@ -17,6 +16,5 @@ export default {
   direct_irradiance_frag_define,
   ibl_frag_define,
 
-  pbr_frag,
-  direct_irradiance_frag
+  pbr_frag
 };

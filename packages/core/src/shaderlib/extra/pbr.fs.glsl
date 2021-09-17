@@ -14,7 +14,6 @@
 
 #include <pbr_frag_define>
 #include <pbr_helper>
-#include <normal_get>
 
 void main() {
     #include <pbr_frag>
