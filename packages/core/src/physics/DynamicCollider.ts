@@ -23,9 +23,10 @@ export class DynamicCollider extends Collider {
 
   constructor(entity: Entity) {
     super(entity);
+    const { transform } = this.entity;
     this._nativeCollider = PhysicsManager.nativePhysics.createDynamicCollider(
-      this.entity.transform.worldPosition,
-      this.entity.transform.worldRotationQuaternion
+      transform.worldPosition,
+      transform.worldRotationQuaternion
     );
   }
 
@@ -46,24 +47,25 @@ export class DynamicCollider extends Collider {
   }
 
   _onUpdate() {
+    const { transform } = this.entity;
     if (this._updateFlag.flag) {
       this._nativeCollider.setGlobalPose(
-        this.entity.transform.worldPosition,
-        this.entity.transform.worldRotationQuaternion
+        transform.worldPosition,
+        transform.worldRotationQuaternion
       );
       this._updateFlag.flag = false;
 
       const relativeScale = DynamicCollider._tempScale;
       this._lastScale.cloneTo(relativeScale);
-      this.entity.transform.worldMatrix.getScaling(this._lastScale);
+      transform.worldMatrix.getScaling(this._lastScale);
       Vector3.divide(this._lastScale, relativeScale, relativeScale);
       for (let i = 0, n = this.shapes.length; i < n; i++) {
         this.shapes[i].scale(relativeScale);
       }
     } else {
       this._nativeCollider.getGlobalPose(
-        this.entity.transform.worldPosition,
-        this.entity.transform.worldRotationQuaternion
+        transform.worldPosition,
+        transform.worldRotationQuaternion
       );
     }
   }

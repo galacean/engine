@@ -12,15 +12,17 @@ import { Entity } from "../Entity";
  */
 export abstract class Collider extends Component {
   protected static _tempScale: Vector3 = new Vector3();
+
   /** @internal */
   @ignoreClone
   _index: number = -1;
   /** @internal */
   _nativeCollider: ICollider;
 
-  private _shapes: DisorderedArray<ColliderShape> = new DisorderedArray();
   protected _updateFlag: UpdateFlag;
   protected _lastScale: Vector3 = new Vector3();
+
+  private _shapes: DisorderedArray<ColliderShape> = new DisorderedArray();
 
   /**
    * The shapes of this collider.
