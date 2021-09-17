@@ -9,7 +9,7 @@ export interface IColliderShape {
   setPosition(position: Vector3): void;
 
   /** local rotation */
-  setRotation(rotation: Quaternion): void;
+  setRotation(rotation: Vector3): void;
 
   /** physics material on shape */
   setMaterial(material: IPhysicsMaterial): void;

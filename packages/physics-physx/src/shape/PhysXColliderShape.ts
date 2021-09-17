@@ -76,8 +76,9 @@ export class PhysXColliderShape implements IColliderShape {
    * Set local rotation
    * @param value the local rotation
    */
-  setRotation(value: Quaternion): void {
-    Quaternion.rotateZ(value, Math.PI * 0.5, this._rotation);
+  setRotation(value: Vector3): void {
+    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._rotation);
+    Quaternion.rotateZ(this._rotation, Math.PI * 0.5, this._rotation);
     this._rotation.normalize();
     const { rotation } = PhysXColliderShape.transform;
     rotation.x = this._rotation.x;
