@@ -113,7 +113,6 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   /**
    * scale of shape
    * @param scale the scale
-   * @remark scale have no effect on plane.
    */
   setWorldScale(scale: Vector3): void {
     switch (this._direction) {

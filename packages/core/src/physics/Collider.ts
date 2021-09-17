@@ -30,7 +30,6 @@ export abstract class Collider extends Component {
   protected constructor(entity: Entity) {
     super(entity);
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
-    this._updateFlag.flag = false;
   }
 
   /**

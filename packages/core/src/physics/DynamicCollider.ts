@@ -54,7 +54,7 @@ export class DynamicCollider extends Collider {
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = this.shapes.length; i < n; i++) {
-        this.shapes[i].worldScale = worldScale;
+        this.shapes[i]._nativeShape.setWorldScale(worldScale);
       }
     } else {
       this._nativeCollider.getWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);

@@ -20,7 +20,6 @@ export abstract class ColliderShape {
 
   protected _id: number;
   protected _position: Vector3 = new Vector3();
-  protected _worldScale: Vector3 = new Vector3(1, 1, 1);
   protected _material: PhysicsMaterial;
   protected _isTrigger: boolean = false;
   protected _isSceneQuery: boolean = true;
@@ -90,23 +89,6 @@ export abstract class ColliderShape {
   set isSceneQuery(value: boolean) {
     this._isSceneQuery = value;
     this._nativeShape.setIsSceneQuery(value);
-  }
-
-  /**
-   * Scale the collider shape
-   */
-  get worldScale(): Vector3 {
-    return this._worldScale;
-  }
-
-  set worldScale(value: Vector3) {
-    this._worldScale = value;
-    this._nativeShape.setWorldScale(value);
-  }
-
-  setWorldScale(x: number, y: number, z: number) {
-    this._worldScale.setValue(x, y, z);
-    this._nativeShape.setWorldScale(this._worldScale);
   }
 
   protected constructor() {
