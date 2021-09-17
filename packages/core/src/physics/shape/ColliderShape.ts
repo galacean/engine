@@ -90,4 +90,10 @@ export abstract class ColliderShape {
     this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
   }
+
+  /**
+   * Scale the collider shape
+   * @param relativeScale
+   */
+  abstract scale(relativeScale: Vector3)
 }

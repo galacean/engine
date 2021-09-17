@@ -2,6 +2,7 @@ import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * Physical collider shape for capsule.
@@ -53,5 +54,32 @@ export class CapsuleColliderShape extends ColliderShape {
       this._height,
       this._material._nativeMaterial
     );
+  }
+
+  /**
+   * Scale the collider shape
+   * @param relativeScale
+   */
+  scale(relativeScale: Vector3) {
+    switch (this._direction) {
+      case ColliderShapeUpAxis.X:
+        this._height *= relativeScale.x;
+        (<ICapsuleColliderShape>this._nativeShape).setHeight(this._height);
+        this._radius *= Math.max(relativeScale.y, relativeScale.z);
+        (<ICapsuleColliderShape>this._nativeShape).setRadius(this._radius);
+        break;
+      case ColliderShapeUpAxis.Y:
+        this._height *= relativeScale.y;
+        (<ICapsuleColliderShape>this._nativeShape).setHeight(this._height);
+        this._radius *= Math.max(relativeScale.x, relativeScale.z);
+        (<ICapsuleColliderShape>this._nativeShape).setRadius(this._radius);
+        break;
+      case ColliderShapeUpAxis.Z:
+        this._height *= relativeScale.z;
+        (<ICapsuleColliderShape>this._nativeShape).setHeight(this._height);
+        this._radius *= Math.max(relativeScale.y, relativeScale.z);
+        (<ICapsuleColliderShape>this._nativeShape).setRadius(this._radius);
+        break;
+    }
   }
 }

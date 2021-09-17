@@ -1,7 +1,7 @@
 import { Component } from "../Component";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { ColliderShape } from "./shape/ColliderShape";
 import { DisorderedArray } from "../DisorderedArray";
 import { UpdateFlag } from "../UpdateFlag";
@@ -11,6 +11,7 @@ import { Entity } from "../Entity";
  * Abstract class for collider shapes.
  */
 export abstract class Collider extends Component {
+  protected static _tempScale: Vector3 = new Vector3();
   /** @internal */
   @ignoreClone
   _index: number = -1;
@@ -19,6 +20,7 @@ export abstract class Collider extends Component {
 
   private _shapes: DisorderedArray<ColliderShape> = new DisorderedArray();
   protected _updateFlag: UpdateFlag;
+  protected _lastScale: Vector3 = new Vector3();
 
   /**
    * The shapes of this collider.
@@ -31,6 +33,7 @@ export abstract class Collider extends Component {
     super(entity);
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
     this._updateFlag.flag = false;
+    this.entity.transform.worldMatrix.getScaling(this._lastScale);
   }
 
   /**

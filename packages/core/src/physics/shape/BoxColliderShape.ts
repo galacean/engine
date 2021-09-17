@@ -41,4 +41,13 @@ export class BoxColliderShape extends ColliderShape {
     this._size.z = z;
     (<IBoxColliderShape>this._nativeShape).setSize(this._size);
   }
+
+  /**
+   * Scale the collider shape
+   * @param relativeScale
+   */
+  scale(relativeScale: Vector3) {
+    Vector3.multiply(this._size, relativeScale, this._size);
+    (<IBoxColliderShape>this._nativeShape).setSize(this._size);
+  }
 }

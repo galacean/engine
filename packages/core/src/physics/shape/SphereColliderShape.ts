@@ -1,6 +1,7 @@
 import { ColliderShape } from "./ColliderShape";
 import { ISphereColliderShape } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * Physical collider shape for sphere.
@@ -27,5 +28,15 @@ export class SphereColliderShape extends ColliderShape {
       this._radius,
       this._material._nativeMaterial
     );
+  }
+
+  /**
+   * Scale the collider shape
+   * @param relativeScale
+   */
+  scale(relativeScale: Vector3) {
+    const maxScale = Math.max(Math.max(relativeScale.x, relativeScale.y), relativeScale.z);
+    this._radius *= maxScale;
+    (<ISphereColliderShape>this._nativeShape).setRadius(this._radius);
   }
 }

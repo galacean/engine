@@ -52,6 +52,14 @@ export class DynamicCollider extends Collider {
         this.entity.transform.worldRotationQuaternion
       );
       this._updateFlag.flag = false;
+
+      const relativeScale = DynamicCollider._tempScale;
+      this._lastScale.cloneTo(relativeScale);
+      this.entity.transform.worldMatrix.getScaling(this._lastScale);
+      Vector3.divide(this._lastScale, relativeScale, relativeScale);
+      for (let i = 0, n = this.shapes.length; i < n; i++) {
+        this.shapes[i].scale(relativeScale);
+      }
     } else {
       this._nativeCollider.getGlobalPose(
         this.entity.transform.worldPosition,
