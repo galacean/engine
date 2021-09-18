@@ -1,7 +1,6 @@
 import { IColliderShape } from "@oasis-engine/design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { Vector3 } from "@oasis-engine/math";
-import { ignoreClone } from "../../clone/CloneManager";
 import { Collider } from "../Collider";
 
 /**
@@ -10,9 +9,6 @@ import { Collider } from "../Collider";
 export abstract class ColliderShape {
   private static _idGenerator: number = 0;
 
-  /** @internal */
-  @ignoreClone
-  _index: number = -1;
   /** @internal */
   _collider: Collider;
   /** @internal */

@@ -2,7 +2,6 @@ import { Component } from "../Component";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICollider } from "@oasis-engine/design";
 import { ColliderShape } from "./shape/ColliderShape";
-import { DisorderedArray } from "../DisorderedArray";
 import { UpdateFlag } from "../UpdateFlag";
 import { Entity } from "../Entity";
 
@@ -18,13 +17,13 @@ export abstract class Collider extends Component {
 
   protected _updateFlag: UpdateFlag;
 
-  private _shapes: DisorderedArray<ColliderShape> = new DisorderedArray();
+  private _shapes: ColliderShape[] = [];
 
   /**
    * The shapes of this collider.
    */
   get shapes(): Readonly<ColliderShape[]> {
-    return this._shapes._elements;
+    return this._shapes;
   }
 
   protected constructor(entity: Entity) {
@@ -39,8 +38,7 @@ export abstract class Collider extends Component {
   addShape(shape: ColliderShape): void {
     shape._collider = this;
     this._nativeCollider.addShape(shape._nativeShape);
-    shape._index = this._shapes.length;
-    this._shapes.add(shape);
+    this._shapes.push(shape);
   }
 
   /**
@@ -49,9 +47,8 @@ export abstract class Collider extends Component {
    */
   removeShape(shape: ColliderShape): void {
     this._nativeCollider.removeShape(shape._nativeShape);
-    const replaced = this._shapes.deleteByIndex(shape._index);
-    replaced && (replaced._index = shape._index);
-    shape._index = -1;
+    const index = this._shapes.indexOf(shape);
+    index != -1 && this._shapes.splice(index, 1);
   }
 
   /**
