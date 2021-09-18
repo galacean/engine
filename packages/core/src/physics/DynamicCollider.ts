@@ -46,17 +46,13 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).addTorque(torque);
   }
 
-  _onUpdate() {
-    const { transform } = this.entity;
-    if (this._updateFlag.flag) {
-      this._nativeCollider.setWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);
-      this._updateFlag.flag = false;
-
-      const worldScale = transform.lossyWorldScale;
-      for (let i = 0, n = this.shapes.length; i < n; i++) {
-        this.shapes[i]._nativeShape.setWorldScale(worldScale);
-      }
-    } else {
+  /**
+   * @override
+   * @internal
+   */
+  _onLateUpdate() {
+    if (!this._updateFlag.flag) {
+      const { transform } = this.entity;
       this._nativeCollider.getWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);
     }
   }

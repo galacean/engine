@@ -15,17 +15,4 @@ export class StaticCollider extends Collider {
       transform.worldRotationQuaternion
     );
   }
-
-  _onUpdate() {
-    if (this._updateFlag.flag) {
-      const { transform } = this.entity;
-      this._nativeCollider.setWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);
-      this._updateFlag.flag = false;
-
-      const worldScale = transform.lossyWorldScale;
-      for (let i = 0, n = this.shapes.length; i < n; i++) {
-        this.shapes[i]._nativeShape.setWorldScale(worldScale);
-      }
-    }
-  }
 }
