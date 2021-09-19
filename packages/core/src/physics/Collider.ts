@@ -64,7 +64,7 @@ export abstract class Collider extends Component {
   /**
    * @internal
    */
-  _onStart() {
+  _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
       this._nativeCollider.setWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);

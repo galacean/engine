@@ -51,9 +51,8 @@ export class DynamicCollider extends Collider {
    * @internal
    */
   _onLateUpdate() {
-    if (!this._updateFlag.flag) {
-      const { transform } = this.entity;
-      this._nativeCollider.getWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);
-    }
+    const { transform } = this.entity;
+    this._nativeCollider.getWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);
+    this._updateFlag.flag = false;
   }
 }
