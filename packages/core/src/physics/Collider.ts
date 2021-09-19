@@ -54,11 +54,12 @@ export abstract class Collider extends Component {
   /**
    * Remove all shape attached.
    */
-  clearAllShape(): void {
-    let shapes = this._shapes;
-    for (let i = 0, len = shapes.length; i < len; i++) {
-      this.removeShape(shapes[i]);
+  clearShapes(): void {
+    const shapes = this._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._nativeCollider.removeShape(shapes[i]._nativeShape);
     }
+    shapes.length = 0;
   }
 
   /**
