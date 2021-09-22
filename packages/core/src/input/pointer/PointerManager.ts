@@ -331,9 +331,9 @@ export class PointerManager {
   private _exeDrag() {
     /** Check whether pressed events are triggered. */
     if (this._curFramePressedEntity) {
-      const preScripts = this._curFramePressedEntity._scripts._elements;
-      for (let i = preScripts.length - 1; i >= 0; i--) {
-        preScripts[i].onPointerDrag();
+      const scripts = this._curFramePressedEntity._scripts;
+      for (let i = scripts.length - 1; i >= 0; i--) {
+        scripts.get(i).onPointerDrag();
       }
     }
   }
@@ -346,16 +346,15 @@ export class PointerManager {
     /** Check whether enter and exit events are triggered. */
     if (this._curFrameEnteredEntity !== curEnteredEntity) {
       if (curEnteredEntity) {
-        const curEntityScripts = curEnteredEntity._scripts._elements;
-        for (let i = curEntityScripts.length - 1; i >= 0; i--) {
-          curEntityScripts[i].onPointerEnter();
+        const scripts = curEnteredEntity._scripts;
+        for (let i = scripts.length - 1; i >= 0; i--) {
+          scripts.get(i).onPointerEnter();
         }
       }
       if (this._curFrameEnteredEntity) {
         const scripts = this._curFrameEnteredEntity._scripts;
-        const scriptsArr = scripts._elements;
         for (let i = scripts.length - 1; i >= 0; i--) {
-          scriptsArr[i].onPointerExit();
+          scripts.get(i).onPointerExit();
         }
       }
       this._curFrameEnteredEntity = curEnteredEntity;
@@ -369,9 +368,8 @@ export class PointerManager {
   private _exeDown(curEnteredEntity: Entity) {
     if (curEnteredEntity) {
       const scripts = curEnteredEntity._scripts;
-      const scriptsArr = scripts._elements;
       for (let i = scripts.length - 1; i >= 0; i--) {
-        scriptsArr[i].onPointerDown();
+        scripts.get(i).onPointerDown();
       }
     }
     this._curFramePressedEntity = curEnteredEntity;
@@ -385,9 +383,8 @@ export class PointerManager {
     if (curEnteredEntity) {
       const operateOneTarget = this._curFramePressedEntity === curEnteredEntity;
       const scripts = curEnteredEntity._scripts;
-      const scriptsArr = scripts._elements;
       for (let i = scripts.length - 1; i >= 0; i--) {
-        const script = scriptsArr[i];
+        const script = scripts.get(i);
         operateOneTarget && script.onPointerClick();
         script.onPointerUp();
       }
