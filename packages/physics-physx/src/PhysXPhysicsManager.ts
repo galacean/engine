@@ -11,6 +11,21 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private static _tempNormal: Vector3 = new Vector3();
   private static _pxRaycastHit: any;
   private static _pxFilterData: any;
+  private static _tempGravity = {
+    x: 0,
+    y: -9.81,
+    z: 0
+  };
+  private static _tempOrigin = {
+    x: 0,
+    y: 0,
+    z: 0
+  };
+  private static _tempDirection = {
+    x: 0,
+    y: 0,
+    z: 0
+  };
 
   private _queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
   private _pxScene: any;
@@ -37,7 +52,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     if (this._gravity !== value) {
       value.cloneTo(this._gravity);
     }
-    this._pxScene.setGravity({ x: value.x, y: value.y, z: value.z });
+    PhysXPhysicsManager._tempGravity.x = value.x;
+    PhysXPhysicsManager._tempGravity.y = value.y;
+    PhysXPhysicsManager._tempGravity.z = value.z;
+    this._pxScene.setGravity(PhysXPhysicsManager._tempGravity);
   }
 
   constructor(
@@ -142,9 +160,18 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics.PhysX.PxQueryFlags(this._queryFlag);
+
+    const { origin, direction } = ray;
+    PhysXPhysicsManager._tempOrigin.x = origin.x;
+    PhysXPhysicsManager._tempOrigin.y = origin.y;
+    PhysXPhysicsManager._tempOrigin.z = origin.z;
+    PhysXPhysicsManager._tempDirection.x = direction.x;
+    PhysXPhysicsManager._tempDirection.y = direction.y;
+    PhysXPhysicsManager._tempDirection.z = direction.z;
+
     const result = this._pxScene.raycastSingle(
-      { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
-      { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
+      PhysXPhysicsManager._tempOrigin,
+      PhysXPhysicsManager._tempDirection,
       distance,
       PhysXPhysicsManager._pxRaycastHit,
       PhysXPhysicsManager._pxFilterData
