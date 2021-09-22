@@ -17,7 +17,7 @@ export class PhysicsMaterial {
   _nativeMaterial: IPhysicsMaterial;
 
   constructor() {
-    this._nativeMaterial = PhysicsManager.nativePhysics.createPhysicsMaterial(
+    this._nativeMaterial = PhysicsManager._nativePhysics.createPhysicsMaterial(
       this._staticFriction,
       this._dynamicFriction,
       this._bounciness,

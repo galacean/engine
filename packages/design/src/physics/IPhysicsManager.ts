@@ -24,23 +24,20 @@ export interface IPhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
    * @returns Returns true if the ray intersects with a collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, queryFlag: number): Boolean;
+  raycast(ray: Ray, distance: number): Boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a collider, otherwise false.
    */
   raycast(
     ray: Ray,
     distance: number,
-    queryFlag: number,
     outHitResult: (colliderShapeID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): Boolean;
 }

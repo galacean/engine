@@ -62,9 +62,9 @@ export class PhysXPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = "http://192.168.31.204:8000/physx.release.js";
+        script.src = "http://30.50.28.1:8000/physx.release.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = "http://192.168.31.204:8000/physx.release.js";
+        script.src = "http://30.50.28.1:8000/physx.release.js";
       }
     });
 
@@ -107,12 +107,12 @@ export class PhysXPhysics {
    * @param onTriggerPersist function called when trigger stay
    */
   static createPhysicsManager(
-    onContactBegin?: Function,
-    onContactEnd?: Function,
-    onContactPersist?: Function,
-    onTriggerBegin?: Function,
-    onTriggerEnd?: Function,
-    onTriggerPersist?: Function
+    onContactBegin?: (obj1: number, obj2: number) => void,
+    onContactEnd?: (obj1: number, obj2: number) => void,
+    onContactPersist?: (obj1: number, obj2: number) => void,
+    onTriggerBegin?: (obj1: number, obj2: number) => void,
+    onTriggerEnd?: (obj1: number, obj2: number) => void,
+    onTriggerPersist?: (obj1: number, obj2: number) => void
   ): IPhysicsManager {
     return new PhysXPhysicsManager(
       onContactBegin,

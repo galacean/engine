@@ -23,7 +23,7 @@ export class PlaneColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = PhysicsManager.nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
+    this._nativeShape = PhysicsManager._nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
   }
 
   setRotation(yaw: number, pitch: number, roll: number) {

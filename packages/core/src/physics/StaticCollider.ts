@@ -10,7 +10,7 @@ export class StaticCollider extends Collider {
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
-    this._nativeCollider = PhysicsManager.nativePhysics.createStaticCollider(
+    this._nativeCollider = PhysicsManager._nativePhysics.createStaticCollider(
       transform.worldPosition,
       transform.worldRotationQuaternion
     );

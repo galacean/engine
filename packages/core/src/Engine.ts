@@ -165,7 +165,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     if (nativePhysics) {
-      PhysicsManager.nativePhysics = nativePhysics;
+      PhysicsManager._nativePhysics = nativePhysics;
       this.physicsManager = new PhysicsManager();
     }
     this._canvas = canvas;

@@ -3,24 +3,6 @@ import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
 
-/** Filtering flags for scene queries. */
-export enum QueryFlag {
-  STATIC = 1 << 0,
-  DYNAMIC = 1 << 1,
-  ANY_HIT = 1 << 4,
-  NO_BLOCK = 1 << 5
-}
-
-/**
- * Physics state
- */
-export enum PhysicsState {
-  TOUCH_FOUND,
-  TOUCH_PERSISTS,
-  TOUCH_LOST,
-  TOUCH_NONE
-}
-
 /**
  * A manager is a collection of bodies and constraints which can interact.
  */
@@ -30,6 +12,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private static _pxRaycastHit: any;
   private static _pxFilterData: any;
 
+  private _queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
   private _pxScene: any;
 
   private readonly _onContactBegin?: Function;
@@ -44,24 +27,26 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
   /**
-   * Global gravity in the physical scene
+   * Global gravity in the physical scene.
    */
   get gravity(): Vector3 {
     return this._gravity;
   }
 
   set gravity(value: Vector3) {
-    this._gravity = value;
+    if (this._gravity !== value) {
+      value.cloneTo(this._gravity);
+    }
     this._pxScene.setGravity({ x: value.x, y: value.y, z: value.z });
   }
 
   constructor(
-    onContactBegin?: Function,
-    onContactEnd?: Function,
-    onContactPersist?: Function,
-    onTriggerBegin?: Function,
-    onTriggerEnd?: Function,
-    onTriggerPersist?: Function
+    onContactBegin?: (obj1: number, obj2: number) => void,
+    onContactEnd?: (obj1: number, obj2: number) => void,
+    onContactPersist?: (obj1: number, obj2: number) => void,
+    onTriggerBegin?: (obj1: number, obj2: number) => void,
+    onTriggerEnd?: (obj1: number, obj2: number) => void,
+    onTriggerPersist?: (obj1: number, obj2: number) => void
   ) {
     this._onContactBegin = onContactBegin;
     this._onContactEnd = onContactEnd;
@@ -105,7 +90,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   //--------------public APIs--------------------------------------------------
   /**
    * Add PhysXCollider into the manager
-   * @param collider PhysXStaticCollider or PhysXDynamicCollider.
+   * @param collider - PhysXStaticCollider or PhysXDynamicCollider
    */
   addCollider(collider: PhysXCollider) {
     this._pxScene.addActor(collider._pxActor, null);
@@ -116,7 +101,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   /**
    * Remove PhysXCollider
-   * @param collider PhysXStaticCollider or PhysXDynamicCollider.
+   * @param collider - PhysXStaticCollider or PhysXDynamicCollider
    */
   removeCollider(collider: PhysXCollider) {
     this._pxScene.removeActor(collider._pxActor, true);
@@ -126,7 +111,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Call on every frame to update pose of objects
+   * Call on every frame to update pose of objects.
    */
   update(elapsedTime: number) {
     this._simulate(elapsedTime);
@@ -138,28 +123,25 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
-   * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false.
+   * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false
    */
-  raycast(ray: Ray, distance: number, queryFlag: QueryFlag): Boolean;
+  raycast(ray: Ray, distance: number): Boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, queryFlag: QueryFlag, outHitResult: Function): Boolean;
+  raycast(ray: Ray, distance: number, outHitResult: Function): Boolean;
 
   raycast(
     ray: Ray,
     distance: number,
-    queryFlag: QueryFlag,
     hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics.PhysX.PxQueryFlags(queryFlag);
+    PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics.PhysX.PxQueryFlags(this._queryFlag);
     const result = this._pxScene.raycastSingle(
       { x: ray.origin.x, y: ray.origin.y, z: ray.origin.z },
       { x: ray.direction.x, y: ray.direction.y, z: ray.direction.z },
@@ -175,18 +157,12 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     if (hit != undefined) {
       const hitResult = PhysXPhysicsManager._pxRaycastHit;
       const { position: pos, normal: nor } = hitResult;
+
       const position = PhysXPhysicsManager._tempPosition;
-      {
-        position.x = pos.x;
-        position.y = pos.y;
-        position.z = pos.z;
-      }
+      position.setValue(pos.x, pos.y, pos.z);
+
       const normal = PhysXPhysicsManager._tempNormal;
-      {
-        normal.x = nor.x;
-        normal.y = nor.y;
-        normal.z = nor.z;
-      }
+      normal.setValue(nor.x, nor.y, nor.z);
 
       hit(hitResult.getShape().getQueryFilterData().word0, hitResult.distance, position, normal);
     }
@@ -227,4 +203,24 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       }
     });
   }
+}
+
+/**
+ * Filtering flags for scene queries.
+ */
+enum QueryFlag {
+  STATIC = 1 << 0,
+  DYNAMIC = 1 << 1,
+  ANY_HIT = 1 << 4,
+  NO_BLOCK = 1 << 5
+}
+
+/**
+ * Physics state
+ */
+enum PhysicsState {
+  TOUCH_FOUND,
+  TOUCH_PERSISTS,
+  TOUCH_LOST,
+  TOUCH_NONE
 }

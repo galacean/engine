@@ -47,7 +47,7 @@ export class CapsuleColliderShape extends ColliderShape {
 
   constructor() {
     super();
-    this._nativeShape = PhysicsManager.nativePhysics.createCapsuleColliderShape(
+    this._nativeShape = PhysicsManager._nativePhysics.createCapsuleColliderShape(
       this._id,
       this._radius,
       this._height,

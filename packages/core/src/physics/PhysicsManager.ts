@@ -5,22 +5,10 @@ import { Collider } from "./Collider";
 import { Layer } from "../Layer";
 import { ColliderShape } from "./shape/ColliderShape";
 
-/**
- * Filtering flags for scene queries.
- */
-export enum QueryFlag {
-  STATIC = 1 << 0,
-  DYNAMIC = 1 << 1,
-  ANY_HIT = 1 << 4,
-  NO_BLOCK = 1 << 5
-}
-
 /** A physics manager is a collection of bodies and constraints which can interact. */
 export class PhysicsManager {
-  /** Query flag for raycast */
-  static _queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
   /** @internal */
-  static nativePhysics: IPhysics;
+  static _nativePhysics: IPhysics;
 
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap = new Map<number, ColliderShape>();
@@ -77,7 +65,7 @@ export class PhysicsManager {
   };
 
   constructor() {
-    this._nativePhysicsManager = PhysicsManager.nativePhysics.createPhysicsManager(
+    this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
       this._onContactBegin,
       this._onContactEnd,
       this._onContactPersist,
@@ -197,17 +185,12 @@ export class PhysicsManager {
     }
 
     if (hitResult != undefined) {
-      const result = this._nativePhysicsManager.raycast(
-        ray,
-        distance,
-        PhysicsManager._queryFlag,
-        (idx, distance, position, normal) => {
-          hitResult.entity = this._physicalObjectsMap.get(idx)._collider.entity;
-          hitResult.distance = distance;
-          normal.cloneTo(hitResult.normal);
-          position.cloneTo(hitResult.point);
-        }
-      );
+      const result = this._nativePhysicsManager.raycast(ray, distance, (idx, distance, position, normal) => {
+        hitResult.entity = this._physicalObjectsMap.get(idx)._collider.entity;
+        hitResult.distance = distance;
+        normal.cloneTo(hitResult.normal);
+        position.cloneTo(hitResult.point);
+      });
 
       if (result) {
         if (hitResult.entity.layer & layerMask) {
@@ -222,7 +205,7 @@ export class PhysicsManager {
       }
       return false;
     } else {
-      return this._nativePhysicsManager.raycast(ray, distance, PhysicsManager._queryFlag);
+      return this._nativePhysicsManager.raycast(ray, distance);
     }
   }
 }

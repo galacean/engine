@@ -1,6 +1,6 @@
 export { PhysXPhysics } from "./PhysXPhysics";
 export { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
-export { PhysXPhysicsManager, QueryFlag } from "./PhysXPhysicsManager";
+export { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 
 export { PhysXPhysicsMaterial, PhysicsCombineMode } from "./PhysXPhysicsMaterial";
 export { PhysXColliderShape, ShapeFlag } from "./shape/PhysXColliderShape";

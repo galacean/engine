@@ -19,12 +19,12 @@ export interface IPhysics {
    * @param onTriggerPersist function called when trigger staty
    */
   createPhysicsManager(
-    onContactBegin?: Function,
-    onContactEnd?: Function,
-    onContactPersist?: Function,
-    onTriggerBegin?: Function,
-    onTriggerEnd?: Function,
-    onTriggerPersist?: Function
+    onContactBegin?: (obj1: number, obj2: number) => void,
+    onContactEnd?: (obj1: number, obj2: number) => void,
+    onContactPersist?: (obj1: number, obj2: number) => void,
+    onTriggerBegin?: (obj1: number, obj2: number) => void,
+    onTriggerEnd?: (obj1: number, obj2: number) => void,
+    onTriggerPersist?: (obj1: number, obj2: number) => void
   ): IPhysicsManager;
 
   /**
