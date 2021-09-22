@@ -223,11 +223,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private _getTrigger(index1: number, index2: number): TriggerEvent {
     const eventMap = this._eventMap;
     if (eventMap[index1][index2] == undefined) {
-      if (this._eventPool.length == 0) {
-        return (eventMap[index1][index2] = new TriggerEvent(PhysicsState.TOUCH_NONE, index1, index2));
-      } else {
-        return (eventMap[index1][index2] = this._eventPool.pop());
-      }
+      const event = this._eventPool.length ? new TriggerEvent(index1, index2) : this._eventPool.pop();
+      eventMap[index1][index2] = event;
+      return event;
     } else {
       throw "location have already been set!";
     }
@@ -278,8 +276,7 @@ class TriggerEvent {
   index1: number;
   index2: number;
 
-  constructor(state: PhysicsState, index1: number, index2: number) {
-    this.state = state;
+  constructor(index1: number, index2: number) {
     this.index1 = index1;
     this.index2 = index2;
   }
