@@ -3,6 +3,7 @@ import blinnPhongVs from "../shaderlib/extra/blinn-phong.vs.glsl";
 import particleFs from "../shaderlib/extra/particle.fs.glsl";
 import particleVs from "../shaderlib/extra/particle.vs.glsl";
 import pbrFs from "../shaderlib/extra/pbr.fs.glsl";
+import pbrSpecularFs from "../shaderlib/extra/pbr-specular.fs.glsl";
 import pbrVs from "../shaderlib/extra/pbr.vs.glsl";
 import shadowMapFs from "../shaderlib/extra/shadow-map.fs.glsl";
 import shadowMapVs from "../shaderlib/extra/shadow-map.vs.glsl";
@@ -27,6 +28,7 @@ export class ShaderPool {
   static init(): void {
     Shader.create("blinn-phong", blinnPhongVs, blinnPhongFs);
     Shader.create("pbr", pbrVs, pbrFs);
+    Shader.create("pbr-specular", pbrVs, pbrSpecularFs);
     Shader.create("unlit", unlitVs, unlitFs);
     Shader.create("shadow-map", shadowMapVs, shadowMapFs);
     Shader.create("shadow", shadowMapVs, shadowFs);
