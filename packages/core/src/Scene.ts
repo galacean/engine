@@ -20,10 +20,11 @@ export class Scene extends EngineObject {
 
   /** Scene name. */
   name: string;
+  /** Ambient light. */
+  ambientLight: AmbientLight;
   /** The background of the scene. */
   readonly background: Background = new Background(this._engine);
-  /** Ambient light. */
-  readonly ambientLight: AmbientLight;
+
   /** Scene-related shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
 
