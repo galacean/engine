@@ -1,4 +1,4 @@
-import { Engine, textureCube, TextureCubeFace, TextureCubeMap } from "@oasis-engine/core";
+import { Engine, TextureCubeFace, TextureCubeMap } from "@oasis-engine/core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 
@@ -9,7 +9,7 @@ export class textureCubeDecoder {
     arraybuffer: ArrayBuffer,
     byteOffset?: number,
     byteLength?: number
-  ): Promise<textureCube> {
+  ): Promise<TextureCubeMap> {
     return new Promise((resolve, reject) => {
       const bufferReader = new BufferReader(arraybuffer, byteOffset, byteLength);
 
