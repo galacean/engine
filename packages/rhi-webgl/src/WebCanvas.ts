@@ -9,6 +9,7 @@ export class WebCanvas implements Canvas {
 
   private _width: number;
   private _height: number;
+  private _pixelRatio: number;
   private _scale: Vector2 = new Vector2();
 
   /**
@@ -37,6 +38,10 @@ export class WebCanvas implements Canvas {
       this._webCanvas.height = value;
       this._height = value;
     }
+  }
+
+  get pixelRatio(): number {
+    return this._pixelRatio;
   }
 
   /**
@@ -69,10 +74,9 @@ export class WebCanvas implements Canvas {
   resizeByClientSize(pixelRatio: number = window.devicePixelRatio): void {
     const webCanvas = this._webCanvas;
     if (webCanvas instanceof HTMLCanvasElement) {
-      const width = webCanvas.clientWidth;
-      const height = webCanvas.clientHeight;
-      this.width = width * pixelRatio;
-      this.height = height * pixelRatio;
+      this._pixelRatio = pixelRatio;
+      this.width = webCanvas.clientWidth * pixelRatio;
+      this.height = webCanvas.clientHeight * pixelRatio;
     }
   }
 
