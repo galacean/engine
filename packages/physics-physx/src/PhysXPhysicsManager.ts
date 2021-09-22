@@ -2,6 +2,7 @@ import { PhysXPhysics } from "./PhysXPhysics";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
+import { DisorderedArray } from "./DisorderedArray";
 
 /**
  * A manager is a collection of bodies and constraints which can interact.
@@ -37,7 +38,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private readonly _onTriggerEnd?: Function;
   private readonly _onTriggerPersist?: Function;
 
-  private _eventMap: Map<number, [number, PhysicsState]> = new Map();
+  private _eventMap: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
+  private _triggerPool: Object = {};
+  private _internalTriggerPool: TriggerEvent[] = [];
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
@@ -74,22 +77,37 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._onTriggerPersist = onTriggerPersist;
 
     const triggerCallback = {
-      onContactBegin: (obj1, obj2) => {},
-      onContactEnd: (obj1, obj2) => {},
-      onContactPersist: (obj1, obj2) => {},
+      onContactBegin: (obj1, obj2) => {
+      },
+      onContactEnd: (obj1, obj2) => {
+      },
+      onContactPersist: (obj1, obj2) => {
+      },
       onTriggerBegin: (obj1, obj2) => {
-        this._eventMap.set(obj1.getQueryFilterData().word0, [
-          obj2.getQueryFilterData().word0,
-          PhysicsState.TOUCH_FOUND
-        ]);
-        this._eventMap.set(obj2.getQueryFilterData().word0, [
-          obj1.getQueryFilterData().word0,
-          PhysicsState.TOUCH_FOUND
-        ]);
+        const index1 = obj1.getQueryFilterData().word0;
+        const index2 = obj2.getQueryFilterData().word0;
+        if (index1 < index2) {
+          const event = this._obtainTrigger(index1, index2);
+          event.state = PhysicsState.TOUCH_FOUND;
+          this._eventMap.add(event);
+        } else {
+          const event = this._obtainTrigger(index2, index1);
+          event.state = PhysicsState.TOUCH_FOUND;
+          this._eventMap.add(event);
+        }
       },
       onTriggerEnd: (obj1, obj2) => {
-        this._eventMap.set(obj1.getQueryFilterData().word0, [obj2.getQueryFilterData().word0, PhysicsState.TOUCH_LOST]);
-        this._eventMap.set(obj2.getQueryFilterData().word0, [obj1.getQueryFilterData().word0, PhysicsState.TOUCH_LOST]);
+        const index1 = obj1.getQueryFilterData().word0;
+        const index2 = obj2.getQueryFilterData().word0;
+        if (index1 < index2) {
+          const event = this._triggerPool[index1][index2];
+          event.state = PhysicsState.TOUCH_LOST;
+          this._triggerPool[index1][index2] = undefined;
+        } else {
+          const event = this._triggerPool[index2][index1];
+          event.state = PhysicsState.TOUCH_LOST;
+          this._triggerPool[index1][index2] = undefined;
+        }
       }
     };
 
@@ -105,6 +123,18 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     PhysXPhysicsManager._pxFilterData = new PhysXPhysics.PhysX.PxQueryFilterData();
   }
 
+  private _obtainTrigger(index1: number, index2: number): TriggerEvent {
+    if (this._triggerPool[index1][index2] == undefined) {
+      if (this._internalTriggerPool.length == 0) {
+        return (this._triggerPool[index1][index2] = new TriggerEvent(PhysicsState.TOUCH_NONE, index1, index2));
+      } else {
+        return (this._triggerPool[index1][index2] = this._internalTriggerPool.pop());
+      }
+    } else {
+      throw "location have already been set!";
+    }
+  }
+
   //--------------public APIs--------------------------------------------------
   /**
    * Add PhysXCollider into the manager
@@ -113,7 +143,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   addCollider(collider: PhysXCollider) {
     this._pxScene.addActor(collider._pxActor, null);
     for (let i = 0, len = collider._shapes.length; i < len; i++) {
-      this._eventMap.set(collider._shapes[i]._id, [null, PhysicsState.TOUCH_NONE]);
+      this._triggerPool[collider._shapes[i]._id] = {};
     }
   }
 
@@ -124,7 +154,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   removeCollider(collider: PhysXCollider) {
     this._pxScene.removeActor(collider._pxActor, true);
     for (let i = 0, len = collider._shapes.length; i < len; i++) {
-      this._eventMap.delete(collider._shapes[i]._id);
+      delete this._triggerPool[collider._shapes[i]._id];
     }
   }
 
@@ -218,17 +248,21 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   private _resolveEvent() {
-    this._eventMap.forEach((value, key) => {
-      if (value[1] == PhysicsState.TOUCH_FOUND) {
-        this._onTriggerBegin(key, value[0]);
-        this._eventMap.set(key, [value[0], PhysicsState.TOUCH_PERSISTS]);
-      } else if (value[1] == PhysicsState.TOUCH_PERSISTS) {
-        this._onTriggerPersist(key, value[0]);
-      } else if (value[1] == PhysicsState.TOUCH_LOST) {
-        this._onTriggerEnd(key, value[0]);
-        this._eventMap.set(key, [null, PhysicsState.TOUCH_NONE]);
+    for (let i = 0, n = this._eventMap.length; i < n; ) {
+      const event = this._eventMap.get(i);
+      if (event.state == PhysicsState.TOUCH_FOUND) {
+        this._onTriggerBegin(event.index1, event.index2);
+        event.state = PhysicsState.TOUCH_PERSISTS;
+        i++;
+      } else if (event.state == PhysicsState.TOUCH_PERSISTS) {
+        this._onTriggerPersist(event.index1, event.index2);
+        i++;
+      } else if (event.state == PhysicsState.TOUCH_LOST) {
+        this._onTriggerEnd(event.index1, event.index2);
+        this._eventMap.deleteByIndex(i);
+        n--;
       }
-    });
+    }
   }
 }
 
@@ -250,4 +284,16 @@ enum PhysicsState {
   TOUCH_PERSISTS,
   TOUCH_LOST,
   TOUCH_NONE
+}
+
+class TriggerEvent {
+  state: PhysicsState;
+  index1: number;
+  index2: number;
+
+  constructor(state: PhysicsState, index1: number, index2: number) {
+    this.state = state;
+    this.index1 = index1;
+    this.index2 = index2;
+  }
 }
