@@ -22,8 +22,8 @@ export class Texture2DDecoder {
       const format = bufferReader.nextUint8();
       const width = bufferReader.nextUint16();
       const height = bufferReader.nextUint16();
-      const imageDataCount = bufferReader.nextUint8();
-      const imagesData = bufferReader.nextImagesData(imageDataCount);
+      const mipCount = bufferReader.nextUint8();
+      const imagesData = bufferReader.nextImagesData(mipCount);
 
       const texture2D = new Texture2D(engine, width, height, format, mipmap);
       texture2D.filterMode = filterMode;
@@ -36,7 +36,7 @@ export class Texture2DDecoder {
 
       if (mipmap) {
         texture2D.generateMipmaps();
-        for (let i = 1; i < imageDataCount; i++) {
+        for (let i = 1; i < mipCount; i++) {
           const pixelBuffer = new Uint8Array(imagesData[i].buffer);
           texture2D.setPixelBuffer(pixelBuffer, i);
         }

@@ -3,7 +3,7 @@ import { BufferWriter } from "../../utils/BufferWriter";
 
 @encoder("Texture2D")
 export class Texture2DEncoder {
-  static encode(bufferWriter: BufferWriter, data: ArrayBuffer | ArrayBuffer[], meta: any) {
+  static encode(bufferWriter: BufferWriter, data: ArrayBuffer[], meta: any) {
     const {
       type,
       objectId,
@@ -28,9 +28,6 @@ export class Texture2DEncoder {
     bufferWriter.writeUint16(width);
     bufferWriter.writeUint16(height);
 
-    if (!Array.isArray(data)) {
-      data = [data];
-    }
     // convert to ImageData
     const imagesData = data.map((buffer) => ({ type, buffer }));
     bufferWriter.writeUint8(imagesData.length);
