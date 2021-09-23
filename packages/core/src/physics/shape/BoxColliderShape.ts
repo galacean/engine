@@ -16,7 +16,9 @@ export class BoxColliderShape extends ColliderShape {
   }
 
   set size(value: Vector3) {
-    this._size = value;
+    if (this._size != value) {
+      value.cloneTo(this._size);
+    }
     (<IBoxColliderShape>this._nativeShape).setSize(value);
   }
 
@@ -30,10 +32,10 @@ export class BoxColliderShape extends ColliderShape {
   }
 
   /**
-   * Set size of box
-   * @param x size of x-axis.
-   * @param y size of y-axis.
-   * @param z size of z-axis.
+   * Set size of box.
+   * @param x - Size of x-axis
+   * @param y - Size of y-axis
+   * @param z - Size of z-axis
    */
   setSize(x: number, y: number, z: number) {
     this._size.x = x;

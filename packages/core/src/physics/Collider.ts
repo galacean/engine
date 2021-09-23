@@ -33,7 +33,7 @@ export abstract class Collider extends Component {
 
   /**
    * Add collider shape on this collider.
-   * @param shape collider shape.
+   * @param shape - Collider shape
    */
   addShape(shape: ColliderShape): void {
     shape._collider = this;

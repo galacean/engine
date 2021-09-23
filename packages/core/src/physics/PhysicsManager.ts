@@ -5,20 +5,18 @@ import { Collider } from "./Collider";
 import { Layer } from "../Layer";
 import { ColliderShape } from "./shape/ColliderShape";
 
-/** A physics manager is a collection of bodies and constraints which can interact. */
+/**
+ * A physics manager is a collection of bodies and constraints which can interact.
+ */
 export class PhysicsManager {
   /** @internal */
   static _nativePhysics: IPhysics;
 
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap = new Map<number, ColliderShape>();
-
   private _onContactBegin = (obj1: number, obj2: number) => {};
-
   private _onContactEnd = (obj1: number, obj2: number) => {};
-
   private _onContactPersist = (obj1: number, obj2: number) => {};
-
   private _onTriggerBegin = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap.get(obj1);
     const shape2 = this._physicalObjectsMap.get(obj2);
@@ -75,10 +73,9 @@ export class PhysicsManager {
     );
   }
 
-  //--------------physics manager APIs------------------------------------------
   /**
-   * Add collider into the manager
-   * @param collider StaticCollider or DynamicCollider.
+   * Add collider into the manager.
+   * @param collider - StaticCollider or DynamicCollider.
    */
   addCollider(collider: Collider) {
     const shapes = collider.shapes;
@@ -89,8 +86,8 @@ export class PhysicsManager {
   }
 
   /**
-   * Remove collider
-   * @param collider StaticCollider or DynamicCollider.
+   * Remove collider.
+   * @param collider - StaticCollider or DynamicCollider.
    */
   removeCollider(collider: Collider) {
     const shapes = collider.shapes;
@@ -101,7 +98,7 @@ export class PhysicsManager {
   }
 
   /**
-   * Call on every frame to update pose of objects
+   * Call on every frame to update pose of objects.
    */
   update(deltaTime: number) {
     this._nativePhysicsManager.update(deltaTime);
@@ -110,7 +107,7 @@ export class PhysicsManager {
   /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
-   * @returns Returns true if the ray intersects with a collider, otherwise false.
+   * @returns Returns True if the ray intersects with a collider, otherwise false
    */
   raycast(ray: Ray): Boolean;
 
@@ -118,7 +115,7 @@ export class PhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the ray intersects with a collider, otherwise false.
+   * @returns Returns True if the ray intersects with a collider, otherwise false
    */
   raycast(ray: Ray, outHitResult: HitResult): Boolean;
 
@@ -126,7 +123,7 @@ export class PhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @returns Returns true if the ray intersects with a collider, otherwise false.
+   * @returns Returns True if the ray intersects with a collider, otherwise false
    */
   raycast(ray: Ray, distance: number): Boolean;
 
@@ -135,7 +132,7 @@ export class PhysicsManager {
    * @param ray - The ray
    * @param distance - The max distance the ray should check
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the ray intersects with a collider, otherwise false.
+   * @returns Returns True if the ray intersects with a collider, otherwise false
    */
   raycast(ray: Ray, distance: number, outHitResult: HitResult): Boolean;
 
@@ -144,7 +141,7 @@ export class PhysicsManager {
    * @param ray - The ray
    * @param distance - The max distance the ray should check
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting
-   * @returns Returns true if the ray intersects with a collider, otherwise false.
+   * @returns Returns True if the ray intersects with a collider, otherwise false
    */
   raycast(ray: Ray, distance: number, layerMask: Layer): Boolean;
 
@@ -154,7 +151,7 @@ export class PhysicsManager {
    * @param distance - The max distance the ray should check
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the ray intersects with a collider, otherwise false.
+   * @returns Returns True if the ray intersects with a collider, otherwise false.
    */
   raycast(ray: Ray, distance: number, layerMask: Layer, outHitResult: HitResult): Boolean;
 

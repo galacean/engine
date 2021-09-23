@@ -17,15 +17,26 @@ export class PlaneColliderShape extends ColliderShape {
   }
 
   set rotation(value: Vector3) {
-    this._rotation = value;
+    if (this._rotation != value) {
+      value.cloneTo(this._rotation);
+    }
     (<IPlaneColliderShape>this._nativeShape).setRotation(value);
   }
 
   constructor() {
     super();
-    this._nativeShape = PhysicsManager._nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
+    this._nativeShape = PhysicsManager._nativePhysics.createPlaneColliderShape(
+      this._id,
+      this._material._nativeMaterial
+    );
   }
 
+  /**
+   * Set the local rotation of this plane.
+   * @param yaw - Radian of yaw
+   * @param pitch - Radian of pitch
+   * @param roll - Radian of roll
+   */
   setRotation(yaw: number, pitch: number, roll: number) {
     this._rotation.setValue(yaw, pitch, roll);
     (<IPlaneColliderShape>this._nativeShape).setRotation(this._rotation);

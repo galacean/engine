@@ -64,7 +64,7 @@ export abstract class ColliderShape {
   }
 
   /**
-   * True for TriggerShape, false for SimulationShape
+   * True for TriggerShape, false for SimulationShape.
    */
   get isTrigger(): boolean {
     return this._isTrigger;
@@ -76,7 +76,7 @@ export abstract class ColliderShape {
   }
 
   /**
-   * Set Scene Query or not
+   * Set Scene Query or not.
    */
   get isSceneQuery(): boolean {
     return this._isSceneQuery;

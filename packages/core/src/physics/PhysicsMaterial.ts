@@ -9,7 +9,6 @@ export class PhysicsMaterial {
   private _bounciness: number = 0.1;
   private _dynamicFriction: number = 0.1;
   private _staticFriction: number = 0.1;
-
   private _bounceCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
   private _frictionCombine: PhysicsMaterialCombineMode = PhysicsMaterialCombineMode.Average;
 
