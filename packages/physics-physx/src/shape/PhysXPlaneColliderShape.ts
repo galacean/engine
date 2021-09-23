@@ -16,7 +16,7 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
   constructor(uniqueID: number, material: PhysXPhysicsMaterial) {
     super();
 
-    this._pxGeometry = new PhysXPhysics.PhysX.PxPlaneGeometry();
+    this._pxGeometry = new PhysXPhysics._physX.PxPlaneGeometry();
     this._allocShape(material);
     this._setLocalPose();
     this.setUniqueID(uniqueID);
@@ -29,12 +29,6 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
     Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._rotation);
     Quaternion.rotateZ(this._rotation, Math.PI * 0.5, this._rotation);
     this._rotation.normalize();
-    const { rotation } = PhysXColliderShape.transform;
-    rotation.x = this._rotation.x;
-    rotation.y = this._rotation.y;
-    rotation.z = this._rotation.z;
-    rotation.w = this._rotation.w;
-
     this._setLocalPose();
   }
 

@@ -26,10 +26,10 @@ import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
  */
 @StaticInterfaceImplement<IPhysics>()
 export class PhysXPhysics {
-  /** PhysX wasm object */
-  static PhysX: any;
-  /** Physx physics object */
-  static physics: any;
+  /** @internal PhysX wasm object */
+  static _physX: any;
+  /** @internal Physx physics object */
+  static _pxPhysics: any;
 
   /**
    * Initialize PhysXPhysics.
@@ -71,30 +71,12 @@ export class PhysXPhysics {
     return new Promise((resolve) => {
       scriptPromise.then(() => {
         (<any>window).PHYSX().then((PHYSX) => {
-          PhysXPhysics.PhysX = PHYSX;
-          PhysXPhysics._setup();
-          console.log("PHYSX loaded");
+          PhysXPhysics._init(PHYSX);
+          console.log("PhysX loaded.");
           resolve();
         });
       });
     });
-  }
-
-  private static _setup() {
-    const version = PhysXPhysics.PhysX.PX_PHYSICS_VERSION;
-    const defaultErrorCallback = new PhysXPhysics.PhysX.PxDefaultErrorCallback();
-    const allocator = new PhysXPhysics.PhysX.PxDefaultAllocator();
-    const foundation = PhysXPhysics.PhysX.PxCreateFoundation(version, allocator, defaultErrorCallback);
-
-    this.physics = PhysXPhysics.PhysX.PxCreatePhysics(
-      version,
-      foundation,
-      new PhysXPhysics.PhysX.PxTolerancesScale(),
-      false,
-      null
-    );
-
-    PhysXPhysics.PhysX.PxInitExtensions(this.physics, null);
   }
 
   /**
@@ -180,5 +162,23 @@ export class PhysXPhysics {
     material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
     return new PhysXCapsuleColliderShape(uniqueID, radius, height, material);
+  }
+
+  private static _init(PHYSX: any): void {
+    PhysXPhysics._physX = PHYSX;
+    const version = PhysXPhysics._physX.PX_PHYSICS_VERSION;
+    const defaultErrorCallback = new PhysXPhysics._physX.PxDefaultErrorCallback();
+    const allocator = new PhysXPhysics._physX.PxDefaultAllocator();
+    const foundation = PhysXPhysics._physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
+
+    this._pxPhysics = PhysXPhysics._physX.PxCreatePhysics(
+      version,
+      foundation,
+      new PhysXPhysics._physX.PxTolerancesScale(),
+      false,
+      null
+    );
+
+    PhysXPhysics._physX.PxInitExtensions(this._pxPhysics, null);
   }
 }

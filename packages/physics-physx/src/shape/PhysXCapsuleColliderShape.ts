@@ -37,7 +37,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     this._radius = radius;
     this._halfHeight = height * 0.5;
 
-    this._pxGeometry = new PhysXPhysics.PhysX.PxCapsuleGeometry(this._radius, this._halfHeight);
+    this._pxGeometry = new PhysXPhysics._physX.PxCapsuleGeometry(this._radius, this._halfHeight);
     this._allocShape(material);
     this._setLocalPose();
     this.setUniqueID(uniqueID);
@@ -91,17 +91,12 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
         this._rotation.setValue(0, 0, 0, 1);
         break;
       case ColliderShapeUpAxis.Y:
-        this._rotation.setValue(PhysXColliderShape.halfSqrt, 0, 0, PhysXColliderShape.halfSqrt);
+        this._rotation.setValue(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
         break;
       case ColliderShapeUpAxis.Z:
         this._rotation.setValue(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
         break;
     }
-    const { rotation } = PhysXColliderShape.transform;
-    rotation.x = this._rotation.x;
-    rotation.y = this._rotation.y;
-    rotation.z = this._rotation.z;
-    rotation.w = this._rotation.w;
     this._setLocalPose();
   }
 

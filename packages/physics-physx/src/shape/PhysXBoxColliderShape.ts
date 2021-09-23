@@ -8,11 +8,7 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
  * PhysX Shape for Box.
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
-  private static _tempHalfExtents = {
-    x: 0,
-    y: 0,
-    z: 0
-  };
+  private static _tempHalfExtents = new Vector3();
   private _halfSize: Vector3 = new Vector3();
 
   /**
@@ -26,7 +22,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
 
     this._halfSize.setValue(size.x * 0.5, size.y * 0.5, size.z * 0.5);
 
-    this._pxGeometry = new PhysXPhysics.PhysX.PxBoxGeometry(
+    this._pxGeometry = new PhysXPhysics._physX.PxBoxGeometry(
       this._halfSize.x * this._scale.x,
       this._halfSize.y * this._scale.y,
       this._halfSize.z * this._scale.z
@@ -41,10 +37,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    */
   setSize(value: Vector3) {
     this._halfSize.setValue(value.x * 0.5, value.y * 0.5, value.z * 0.5);
-    PhysXBoxColliderShape._tempHalfExtents.x = this._halfSize.x * this._scale.x;
-    PhysXBoxColliderShape._tempHalfExtents.y = this._halfSize.y * this._scale.y;
-    PhysXBoxColliderShape._tempHalfExtents.z = this._halfSize.z * this._scale.z;
-
+    Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
     this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
     this._pxShape.setGeometry(this._pxGeometry);
   }
@@ -54,10 +47,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    */
   setWorldScale(scale: Vector3): void {
     scale.cloneTo(this._scale);
-    PhysXBoxColliderShape._tempHalfExtents.x = this._halfSize.x * this._scale.x;
-    PhysXBoxColliderShape._tempHalfExtents.y = this._halfSize.y * this._scale.y;
-    PhysXBoxColliderShape._tempHalfExtents.z = this._halfSize.z * this._scale.z;
-
+    Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
     this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
     this._pxShape.setGeometry(this._pxGeometry);
   }

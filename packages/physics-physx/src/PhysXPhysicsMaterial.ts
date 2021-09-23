@@ -29,7 +29,7 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
     frictionCombine: PhysicsCombineMode,
     bounceCombine: PhysicsCombineMode
   ) {
-    this._pxMaterial = PhysXPhysics.physics.createMaterial(staticFriction, dynamicFriction, bounciness);
+    this._pxMaterial = PhysXPhysics._pxPhysics.createMaterial(staticFriction, dynamicFriction, bounciness);
     this._pxMaterial.setFrictionCombineMode(frictionCombine);
     this._pxMaterial.setRestitutionCombineMode(bounceCombine);
   }

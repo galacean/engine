@@ -21,12 +21,11 @@ export enum ShapeFlag {
 export abstract class PhysXColliderShape implements IColliderShape {
   static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
-    translation: { x: 0, y: 0, z: 0 },
-    rotation: { w: PhysXColliderShape.halfSqrt, x: 0, y: 0, z: PhysXColliderShape.halfSqrt }
+    translation: null,
+    rotation: null
   };
-
   protected _position: Vector3 = new Vector3();
-  protected _rotation: Quaternion = new Quaternion(PhysXColliderShape.halfSqrt, 0, 0, PhysXColliderShape.halfSqrt);
+  protected _rotation: Quaternion = new Quaternion(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
   protected _scale: Vector3 = new Vector3(1, 1, 1);
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
@@ -47,7 +46,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   set shapeFlags(flags: ShapeFlag) {
     this._shapeFlags = flags;
-    this._pxShape.setFlags(new PhysXPhysics.PhysX.PxShapeFlags(this._shapeFlags));
+    this._pxShape.setFlags(new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags));
   }
 
   /**
@@ -55,11 +54,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   setPosition(value: Vector3): void {
     value.cloneTo(this._position);
-    const { translation } = PhysXColliderShape.transform;
-    translation.x = this._position.x;
-    translation.y = this._position.y;
-    translation.z = this._position.z;
-
     this._setLocalPose();
   }
 
@@ -80,7 +74,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   setUniqueID(index: number): void {
     this._id = index;
-    this._pxShape.setQueryFilterData(new PhysXPhysics.PhysX.PxFilterData(index, 0, 0, 0));
+    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(index, 0, 0, 0));
   }
 
   /**
@@ -101,15 +95,18 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   protected _setLocalPose() {
+    const transform = PhysXColliderShape.transform;
+    transform.translation = this._position;
+    transform.rotation = this._rotation;
     this._pxShape.setLocalPose(PhysXColliderShape.transform);
   }
 
   protected _allocShape(material: PhysXPhysicsMaterial): void {
-    this._pxShape = PhysXPhysics.physics.createShape(
+    this._pxShape = PhysXPhysics._pxPhysics.createShape(
       this._pxGeometry,
       material._pxMaterial,
       false,
-      new PhysXPhysics.PhysX.PxShapeFlags(this._shapeFlags)
+      new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags)
     );
   }
 

@@ -15,6 +15,6 @@ export class PhysXStaticCollider extends PhysXCollider implements IStaticCollide
    */
   constructor(position: Vector3, rotation: Quaternion) {
     super();
-    this._pxActor = PhysXPhysics.physics.createRigidStatic(this._transform(position, rotation));
+    this._pxActor = PhysXPhysics._pxPhysics.createRigidStatic(this._transform(position, rotation));
   }
 }
