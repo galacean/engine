@@ -86,9 +86,17 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       onTriggerEnd: (obj1, obj2) => {
         const index1 = obj1.getQueryFilterData().word0;
         const index2 = obj2.getQueryFilterData().word0;
-        const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
+        let event: TriggerEvent;
+        if (index1 < index2) {
+          const subMap = this._eventMap[index1];
+          event = subMap[index2];
+          subMap[index2] = undefined;
+        } else {
+          const subMap = this._eventMap[index2];
+          event = subMap[index1];
+          subMap[index1] = undefined;
+        }
         event.state = PhysicsState.TOUCH_LOST;
-        this._eventMap[index1][index2] = undefined;
       }
     };
 
@@ -201,7 +209,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private _getTrigger(index1: number, index2: number): TriggerEvent {
     const eventMap = this._eventMap;
     if (eventMap[index1][index2] == undefined) {
-      const event = this._eventPool.length ? new TriggerEvent(index1, index2) : this._eventPool.pop();
+      const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
       eventMap[index1][index2] = event;
       return event;
     } else {
