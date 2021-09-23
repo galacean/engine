@@ -13,46 +13,41 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private static _pxRaycastHit: any;
   private static _pxFilterData: any;
 
-  private _queryFlag: QueryFlag = QueryFlag.STATIC | QueryFlag.DYNAMIC;
+  static _init() {
+    PhysXPhysicsManager._pxRaycastHit = new PhysXPhysics._physX.PxRaycastHit();
+    PhysXPhysicsManager._pxFilterData = new PhysXPhysics._physX.PxQueryFilterData();
+    PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics._physX.PxQueryFlags(
+      QueryFlag.STATIC | QueryFlag.DYNAMIC
+    );
+  }
+
   private _pxScene: any;
 
-  private readonly _onContactBegin?: Function;
-  private readonly _onContactEnd?: Function;
-  private readonly _onContactPersist?: Function;
-  private readonly _onTriggerBegin?: Function;
-  private readonly _onTriggerEnd?: Function;
-  private readonly _onTriggerPersist?: Function;
+  private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
+  private readonly _onContactExit?: (obj1: number, obj2: number) => void;
+  private readonly _onContactStay?: (obj1: number, obj2: number) => void;
+  private readonly _onTriggerEnter?: (obj1: number, obj2: number) => void;
+  private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
+  private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
 
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
   private _eventPool: TriggerEvent[] = [];
 
-  private _gravity: Vector3 = new Vector3(0, -9.81, 0);
-
-  /**
-   * {@inheritDoc IPhysicsManager.setGravity }
-   */
-  setGravity(value: Vector3) {
-    if (this._gravity !== value) {
-      value.cloneTo(this._gravity);
-    }
-    this._pxScene.setGravity(value);
-  }
-
   constructor(
-    onContactBegin?: (obj1: number, obj2: number) => void,
-    onContactEnd?: (obj1: number, obj2: number) => void,
-    onContactPersist?: (obj1: number, obj2: number) => void,
-    onTriggerBegin?: (obj1: number, obj2: number) => void,
-    onTriggerEnd?: (obj1: number, obj2: number) => void,
-    onTriggerPersist?: (obj1: number, obj2: number) => void
+    onContactEnter?: (obj1: number, obj2: number) => void,
+    onContactExit?: (obj1: number, obj2: number) => void,
+    onContactStay?: (obj1: number, obj2: number) => void,
+    onTriggerEnter?: (obj1: number, obj2: number) => void,
+    onTriggerExit?: (obj1: number, obj2: number) => void,
+    onTriggerStay?: (obj1: number, obj2: number) => void
   ) {
-    this._onContactBegin = onContactBegin;
-    this._onContactEnd = onContactEnd;
-    this._onContactPersist = onContactPersist;
-    this._onTriggerBegin = onTriggerBegin;
-    this._onTriggerEnd = onTriggerEnd;
-    this._onTriggerPersist = onTriggerPersist;
+    this._onContactEnter = onContactEnter;
+    this._onContactExit = onContactExit;
+    this._onContactStay = onContactStay;
+    this._onTriggerEnter = onTriggerEnter;
+    this._onTriggerExit = onTriggerExit;
+    this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
       onContactBegin: (obj1, obj2) => {},
@@ -62,7 +57,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
         const index1 = obj1.getQueryFilterData().word0;
         const index2 = obj2.getQueryFilterData().word0;
         const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
-        event.state = PhysicsState.TOUCH_FOUND;
+        event.state = TriggerEventState.Enter;
         this._currentEvents.add(event);
       },
       onTriggerEnd: (obj1, obj2) => {
@@ -78,7 +73,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
           event = subMap[index1];
           subMap[index1] = undefined;
         }
-        event.state = PhysicsState.TOUCH_LOST;
+        event.state = TriggerEventState.Exit;
       }
     };
 
@@ -89,9 +84,13 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       PHYSXSimulationCallbackInstance
     );
     this._pxScene = PhysXPhysics._pxPhysics.createScene(sceneDesc);
+  }
 
-    PhysXPhysicsManager._pxRaycastHit = new PhysXPhysics._physX.PxRaycastHit();
-    PhysXPhysicsManager._pxFilterData = new PhysXPhysics._physX.PxQueryFilterData();
+  /**
+   * {@inheritDoc IPhysicsManager.setGravity }
+   */
+  setGravity(value: Vector3) {
+    this._pxScene.setGravity(value);
   }
 
   /**
@@ -99,8 +98,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    */
   addCollider(collider: PhysXCollider): void {
     this._pxScene.addActor(collider._pxActor, null);
-    for (let i = 0, len = collider._shapes.length; i < len; i++) {
-      this._eventMap[collider._shapes[i]._id] = {};
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      this._eventMap[shapes[i]._id] = {};
     }
   }
 
@@ -109,8 +109,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    */
   removeCollider(collider: PhysXCollider): void {
     this._pxScene.removeActor(collider._pxActor, true);
-    for (let i = 0, len = collider._shapes.length; i < len; i++) {
-      delete this._eventMap[collider._shapes[i]._id];
+    const shapes = collider._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      delete this._eventMap[shapes[i]._id];
     }
   }
 
@@ -120,7 +121,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   update(elapsedTime: number): void {
     this._simulate(elapsedTime);
     this._fetchResults();
-    this._resolveEvent();
+    this._fireEvent();
   }
 
   /**
@@ -131,13 +132,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     distance: number,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics._physX.PxQueryFlags(this._queryFlag);
-
-    const { origin, direction } = ray;
-
     const result = this._pxScene.raycastSingle(
-      origin,
-      direction,
+      ray.origin,
+      ray.direction,
       distance,
       PhysXPhysicsManager._pxRaycastHit,
       PhysXPhysicsManager._pxFilterData
@@ -183,30 +180,26 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
-    const eventMap = this._eventMap;
-    if (eventMap[index1][index2] == undefined) {
-      const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
-      eventMap[index1][index2] = event;
-      return event;
-    } else {
-      throw "location have already been set!";
-    }
+    const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    this._eventMap[index1][index2] = event;
+    return event;
   }
 
-  private _resolveEvent(): void {
-    for (let i = 0, n = this._currentEvents.length; i < n; ) {
-      const event = this._currentEvents.get(i);
-      if (event.state == PhysicsState.TOUCH_FOUND) {
-        this._onTriggerBegin(event.index1, event.index2);
-        event.state = PhysicsState.TOUCH_PERSISTS;
+  private _fireEvent(): void {
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    for (let i = 0, n = currentEvents.length; i < n; ) {
+      const event = currentEvents.get(i);
+      if (event.state == TriggerEventState.Enter) {
+        this._onTriggerEnter(event.index1, event.index2);
+        event.state = TriggerEventState.Stay;
         i++;
-      } else if (event.state == PhysicsState.TOUCH_PERSISTS) {
-        this._onTriggerPersist(event.index1, event.index2);
+      } else if (event.state == TriggerEventState.Stay) {
+        this._onTriggerStay(event.index1, event.index2);
         i++;
-      } else if (event.state == PhysicsState.TOUCH_LOST) {
-        this._onTriggerEnd(event.index1, event.index2);
-        this._currentEvents.deleteByIndex(i);
-        this._eventPool.push(event);
+      } else if (event.state == TriggerEventState.Exit) {
+        this._onTriggerExit(event.index1, event.index2);
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
         n--;
       }
     }
@@ -226,18 +219,17 @@ enum QueryFlag {
 /**
  * Physics state
  */
-enum PhysicsState {
-  TOUCH_FOUND,
-  TOUCH_PERSISTS,
-  TOUCH_LOST,
-  TOUCH_NONE
+enum TriggerEventState {
+  Enter,
+  Stay,
+  Exit
 }
 
 /**
  * Trigger event to store interactive object ids and state.
  */
 class TriggerEvent {
-  state: PhysicsState;
+  state: TriggerEventState;
   index1: number;
   index2: number;
 

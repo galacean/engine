@@ -5,7 +5,7 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
 /**
- * PhysX Shape for Box.
+ * Box collider shape in PhysX.
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
   private static _tempHalfExtents = new Vector3();
@@ -35,7 +35,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   /**
    * {@inheritDoc IBoxColliderShape.setSize }
    */
-  setSize(value: Vector3) {
+  setSize(value: Vector3): void {
     this._halfSize.setValue(value.x * 0.5, value.y * 0.5, value.z * 0.5);
     Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
     this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;

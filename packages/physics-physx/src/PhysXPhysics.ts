@@ -72,6 +72,7 @@ export class PhysXPhysics {
       scriptPromise.then(() => {
         (<any>window).PHYSX().then((PHYSX) => {
           PhysXPhysics._init(PHYSX);
+          PhysXPhysicsManager._init();
           console.log("PhysX loaded.");
           resolve();
         });
@@ -85,18 +86,18 @@ export class PhysXPhysics {
   static createPhysicsManager(
     onContactBegin?: (obj1: number, obj2: number) => void,
     onContactEnd?: (obj1: number, obj2: number) => void,
-    onContactPersist?: (obj1: number, obj2: number) => void,
+    onContactStay?: (obj1: number, obj2: number) => void,
     onTriggerBegin?: (obj1: number, obj2: number) => void,
     onTriggerEnd?: (obj1: number, obj2: number) => void,
-    onTriggerPersist?: (obj1: number, obj2: number) => void
+    onTriggerStay?: (obj1: number, obj2: number) => void
   ): IPhysicsManager {
     return new PhysXPhysicsManager(
       onContactBegin,
       onContactEnd,
-      onContactPersist,
+      onContactStay,
       onTriggerBegin,
       onTriggerEnd,
-      onTriggerPersist
+      onTriggerStay
     );
   }
 

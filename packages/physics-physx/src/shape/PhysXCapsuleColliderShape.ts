@@ -5,19 +5,7 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { Vector3 } from "@oasis-engine/math";
 
 /**
- * The up axis of the collider shape.
- */
-export enum ColliderShapeUpAxis {
-  /** Up axis is X. */
-  X,
-  /** Up axis is Y. */
-  Y,
-  /** Up axis is Z. */
-  Z
-}
-
-/**
- * PhysX Shape for Capsule.
+ * Capsule collider shape in PhysX.
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
   private _radius: number;
@@ -46,7 +34,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   /**
    * {@inheritDoc ICapsuleColliderShape.setRadius }
    */
-  setRadius(value: number) {
+  setRadius(value: number): void {
     this._radius = value;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
@@ -65,7 +53,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   /**
    * {@inheritDoc ICapsuleColliderShape.setHeight }
    */
-  setHeight(value: number) {
+  setHeight(value: number): void {
     this._halfHeight = value * 0.5;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
@@ -120,4 +108,16 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     }
     this._pxShape.setGeometry(this._pxGeometry);
   }
+}
+
+/**
+ * The up axis of the collider shape.
+ */
+enum ColliderShapeUpAxis {
+  /** Up axis is X. */
+  X,
+  /** Up axis is Y. */
+  Y,
+  /** Up axis is Z. */
+  Z
 }

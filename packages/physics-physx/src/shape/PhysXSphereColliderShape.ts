@@ -5,7 +5,7 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { Vector3 } from "@oasis-engine/math";
 
 /**
- * PhysX Shape for Sphere.
+ * Sphere collider shape in PhysX.
  */
 export class PhysXSphereColliderShape extends PhysXColliderShape implements ISphereColliderShape {
   private _radius: number;
@@ -32,7 +32,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   /**
    * {@inheritDoc ISphereColliderShape.setRadius }
    */
-  setRadius(value: number) {
+  setRadius(value: number): void {
     this._radius = value;
     this._pxGeometry.radius = value * this._maxScale;
     this._pxShape.setGeometry(this._pxGeometry);

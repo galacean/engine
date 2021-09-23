@@ -11,20 +11,20 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 export interface IPhysics {
   /**
    * Create physics manager.
-   * @param onContactBegin - Function called when contact begin
-   * @param onContactEnd - Function called when contact end
-   * @param onContactPersist - Function called when contact stay
-   * @param onTriggerBegin - Function called when trigger begin
-   * @param onTriggerEnd - Function called when trigger end
-   * @param onTriggerPersist - Function called when trigger stay
+   * @param onContactEnter - Function called when contact begin
+   * @param onContactExit - Function called when contact end
+   * @param onContactStay - Function called when contact stay
+   * @param onTriggerEnter - Function called when trigger begin
+   * @param onTriggerExit - Function called when trigger end
+   * @param onTriggerStay - Function called when trigger stay
    */
   createPhysicsManager(
-    onContactBegin?: (obj1: number, obj2: number) => void,
-    onContactEnd?: (obj1: number, obj2: number) => void,
-    onContactPersist?: (obj1: number, obj2: number) => void,
-    onTriggerBegin?: (obj1: number, obj2: number) => void,
-    onTriggerEnd?: (obj1: number, obj2: number) => void,
-    onTriggerPersist?: (obj1: number, obj2: number) => void
+    onContactEnter?: (obj1: number, obj2: number) => void,
+    onContactExit?: (obj1: number, obj2: number) => void,
+    onContactStay?: (obj1: number, obj2: number) => void,
+    onTriggerEnter?: (obj1: number, obj2: number) => void,
+    onTriggerExit?: (obj1: number, obj2: number) => void,
+    onTriggerStay?: (obj1: number, obj2: number) => void
   ): IPhysicsManager;
 
   /**

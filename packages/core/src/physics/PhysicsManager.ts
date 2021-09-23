@@ -16,7 +16,7 @@ export class PhysicsManager {
   private _physicalObjectsMap = new Map<number, ColliderShape>();
   private _onContactBegin = (obj1: number, obj2: number) => {};
   private _onContactEnd = (obj1: number, obj2: number) => {};
-  private _onContactPersist = (obj1: number, obj2: number) => {};
+  private _onContactStay = (obj1: number, obj2: number) => {};
   private _onTriggerBegin = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap.get(obj1);
     const shape2 = this._physicalObjectsMap.get(obj2);
@@ -47,7 +47,7 @@ export class PhysicsManager {
     }
   };
 
-  private _onTriggerPersist = (obj1: number, obj2: number) => {
+  private _onTriggerStay = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap.get(obj1);
     const shape2 = this._physicalObjectsMap.get(obj2);
 
@@ -66,10 +66,10 @@ export class PhysicsManager {
     this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
       this._onContactBegin,
       this._onContactEnd,
-      this._onContactPersist,
+      this._onContactStay,
       this._onTriggerBegin,
       this._onTriggerEnd,
-      this._onTriggerPersist
+      this._onTriggerStay
     );
   }
 

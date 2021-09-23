@@ -5,7 +5,7 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /**
- * PhysX Shape for Plane.
+ * Plane collider shape in PhysX.
  */
 export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlaneColliderShape {
   /**

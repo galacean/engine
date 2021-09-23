@@ -29,6 +29,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   protected _scale: Vector3 = new Vector3(1, 1, 1);
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
+  private _pxMaterials: any[] = new Array(1);
 
   /** @internal */
   _pxShape: any;
@@ -36,18 +37,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
   /** @internal */
   _id: number;
-
-  /**
-   *  @internal
-   */
-  get shapeFlags(): ShapeFlag {
-    return this._shapeFlags;
-  }
-
-  set shapeFlags(flags: ShapeFlag) {
-    this._shapeFlags = flags;
-    this._pxShape.setFlags(new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags));
-  }
 
   /**
    * {@inheritDoc IColliderShape.setPosition }
@@ -66,7 +55,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
-    this._pxShape.setMaterials([value._pxMaterial]);
+    this._pxMaterials[0] = value._pxMaterial;
+    this._pxShape.setMaterials(this._pxMaterials);
   }
 
   /**
@@ -83,7 +73,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   setIsTrigger(value: boolean): void {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
-    this.shapeFlags = this._shapeFlags;
+    this._setShapeFlags(this._shapeFlags);
   }
 
   /**
@@ -91,10 +81,18 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   setIsSceneQuery(value: boolean): void {
     this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
-    this.shapeFlags = this._shapeFlags;
+    this._setShapeFlags(this._shapeFlags);
   }
 
-  protected _setLocalPose() {
+  /**
+   *  @internal
+   */
+  _setShapeFlags(flags: ShapeFlag) {
+    this._shapeFlags = flags;
+    this._pxShape.setFlags(new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags));
+  }
+
+  protected _setLocalPose(): void {
     const transform = PhysXColliderShape.transform;
     transform.translation = this._position;
     transform.rotation = this._rotation;
