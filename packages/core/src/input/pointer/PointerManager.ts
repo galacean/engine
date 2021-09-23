@@ -182,7 +182,7 @@ export class PointerManager {
       /** Update and add pointer. */
       const touch = pointerPool[i];
       touch.pointerId = pointerId;
-      touch.type = pointerType;
+      touch.pointerType = pointerType;
       touch.position.setValue(x, y);
       touch.phase = phase;
       touch.timeStamp = timeStamp;
