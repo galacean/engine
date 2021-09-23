@@ -3,7 +3,6 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
-  AnimatorState,
   AnimationClip,
   AnimatorStateTransition,
   AssetType
@@ -16,7 +15,9 @@ export class AnimatorControllerDecoder {
   public static decode(engine: Engine, bufferReader: BufferReader): Promise<AnimatorController> {
     return new Promise(async (resolve) => {
       const animatorController = new AnimatorController();
+      const objectId = bufferReader.nextUint16();
       const layersLen = bufferReader.nextUint16();
+      const clipLoadPromises = [];
 
       for (let i = 0; i < layersLen; ++i) {
         const name = bufferReader.nextStr();
@@ -35,10 +36,13 @@ export class AnimatorControllerDecoder {
           const clipEndNormalizedTime = bufferReader.nextFloat32();
           const clipPath = bufferReader.nextStr();
           const clipObjectId = bufferReader.nextStr();
-          const clip = await AnimatorControllerDecoder.loadAndSetClip(engine, clipPath, clipObjectId);
-          state.clip = clip;
-          state.clipStartTime = clip.length * clipStartNormalizedTime;
-          state.clipEndTime = clip.length * clipEndNormalizedTime;
+          clipLoadPromises.push(
+            AnimatorControllerDecoder.loadAndSetClip(engine, clipPath, clipObjectId).then((clip) => {
+              state.clip = clip;
+              state.clipStartTime = clip.length * clipStartNormalizedTime;
+              state.clipEndTime = clip.length * clipEndNormalizedTime;
+            })
+          );
           // @ts-ignore
           isDefaultState && (stateMachine._defaultState = state);
 
@@ -50,14 +54,18 @@ export class AnimatorControllerDecoder {
             transition.exitTime = bufferReader.nextFloat32();
             transition.exitTime = bufferReader.nextFloat32();
             transition.destinationState = stateMachine.findStateByName(bufferReader.nextStr());
-            state.addTransition(transition)
+            state.addTransition(transition);
           }
         }
         layer.stateMachine = stateMachine;
         animatorController.addLayer(layer);
       }
 
-      resolve(animatorController);
+      Promise.all(clipLoadPromises).then(() => {
+        // @ts-ignore
+        engine.resourceManager._objectPool[objectId] = animatorController;
+        resolve(animatorController);
+      });
     });
   }
 
@@ -67,7 +75,7 @@ export class AnimatorControllerDecoder {
         .load({
           url: path,
           // @ts-ignore
-          type: AssetType.BinaryFile
+          type: AssetType.Oasis
         })
         .then(() => {
           // 从缓存池获取对象

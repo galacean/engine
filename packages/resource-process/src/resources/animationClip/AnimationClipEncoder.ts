@@ -6,8 +6,9 @@ import type { IAnimationClipAsset } from "./type";
 @encoder("AnimationClip")
 export class AnimationClipEncoder {
   static encode(bufferWriter: BufferWriter, data: IAnimationClipAsset) {
-    const { name, events, curveBindings } = data;
+    const { objectId, name, events, curveBindings } = data;
 
+    bufferWriter.writeStr(objectId);
     bufferWriter.writeStr(name);
     bufferWriter.writeUint16(events.length);
     events.forEach((event) => {

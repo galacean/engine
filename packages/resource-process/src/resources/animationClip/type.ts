@@ -17,6 +17,7 @@ export enum ComponentClass {
 export const PropertyNameMap = ['position', 'rotation', 'scale', 'blendShapeWeights'];
 
 export interface IAnimationClipAsset {
+  objectId: string;
   name: string;
   events: Array<{
     time: number;

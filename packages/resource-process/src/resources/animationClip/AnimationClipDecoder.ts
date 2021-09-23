@@ -19,6 +19,7 @@ import { ComponentClass, KeyframeValueType, PropertyNameMap } from "./type";
 export class AnimationClipDecoder {
   public static decode(engine: Engine, bufferReader: BufferReader): Promise<AnimationClip> {
     return new Promise((resolve) => {
+      const objectId = bufferReader.nextStr();
       const name = bufferReader.nextStr();
       const clip = new AnimationClip(name);
       const eventsLen = bufferReader.nextUint16();
@@ -162,6 +163,8 @@ export class AnimationClipDecoder {
         clip.addCurveBinding(relativePath, compType, PropertyNameMap[property], curve);
       }
 
+      // @ts-ignore
+      engine.resourceManager._objectPool[objectId] = clip;
       resolve(clip);
     });
   }

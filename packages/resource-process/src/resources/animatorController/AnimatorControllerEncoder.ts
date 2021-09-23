@@ -5,8 +5,9 @@ import type { IAnimatorControllerAsset } from "./type";
 @encoder("AnimatorController")
 export class AnimatorControllerEncoder {
   static encode(bufferWriter: BufferWriter, data: IAnimatorControllerAsset) {
-    const { layers } = data;
+    const { objectId, layers } = data;
 
+    bufferWriter.writeStr(objectId);
     bufferWriter.writeUint16(layers.length);
     layers.forEach((layer) => {
       const { stateMachine: {states}} = layer;
