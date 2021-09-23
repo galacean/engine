@@ -328,7 +328,7 @@ export class PointerManager {
   /**
    * Execute drag event.
    */
-  private _exeDrag() {
+  private _exeDrag(): void {
     /** Check whether pressed events are triggered. */
     if (this._curFramePressedEntity) {
       const scripts = this._curFramePressedEntity._scripts;
@@ -342,7 +342,7 @@ export class PointerManager {
    * Execute enter and exit events.
    * @param curEnteredEntity - Which entity the pointer is currently on
    */
-  private _exeEnterAndExit(curEnteredEntity: Entity) {
+  private _exeEnterAndExit(curEnteredEntity: Entity): void {
     /** Check whether enter and exit events are triggered. */
     if (this._curFrameEnteredEntity !== curEnteredEntity) {
       if (curEnteredEntity) {
@@ -365,7 +365,7 @@ export class PointerManager {
    * Execute down events.
    * @param curEnteredEntity - Which entity the pointer is currently on
    */
-  private _exeDown(curEnteredEntity: Entity) {
+  private _exeDown(curEnteredEntity: Entity): void {
     if (curEnteredEntity) {
       const scripts = curEnteredEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
@@ -379,7 +379,7 @@ export class PointerManager {
    * Execute up and click events.
    * @param curEnteredEntity - Which entity the pointer is currently on
    */
-  private _exeUpAndClick(curEnteredEntity: Entity) {
+  private _exeUpAndClick(curEnteredEntity: Entity): void {
     if (curEnteredEntity) {
       const operateOneTarget = this._curFramePressedEntity === curEnteredEntity;
       const scripts = curEnteredEntity._scripts;

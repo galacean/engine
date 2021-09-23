@@ -1,5 +1,16 @@
 import { Vector2 } from "@oasis-engine/math";
 
+export enum PointerPhase {
+  /** A Pointer pressed on the screen. */
+  Down,
+  /** A pointer moved on the screen. */
+  Move,
+  /** A pointer was lifted from the screen. */
+  Up,
+  /** The system cancelled tracking for the pointer. */
+  Leave
+}
+
 /**
  * Pointer.
  */
@@ -16,15 +27,4 @@ export class Pointer {
    * @param id - The id for the pointer
    */
   constructor(public id: number) {}
-}
-
-export enum PointerPhase {
-  /** A Pointer pressed on the screen. */
-  Down,
-  /** A pointer moved on the screen. */
-  Move,
-  /** A pointer was lifted from the screen. */
-  Up,
-  /** The system cancelled tracking for the pointer. */
-  Leave
 }
