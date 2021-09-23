@@ -3,7 +3,7 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
- * physical collider
+ * Abstract class of physical collider.
  */
 export abstract class PhysXCollider implements ICollider {
   private static _tempTransform = {
@@ -11,18 +11,13 @@ export abstract class PhysXCollider implements ICollider {
     rotation: { w: 0, x: 0, y: 0, z: 1 }
   };
 
-  /**
-   * PhysX actor object
-   * @internal
-   */
+  /** @internal */
   _pxActor: any;
-
   /** @internal */
   _shapes: PhysXColliderShape[] = [];
 
   /**
-   * Attach collider shape on collider
-   * @param shape The collider shape attached
+   * {@inheritDoc ICollider.addShape }
    */
   addShape(shape: PhysXColliderShape) {
     this._shapes.push(shape);
@@ -30,8 +25,7 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * Remove collider shape on collider
-   * @param shape The collider shape attached
+   * {@inheritDoc ICollider.removeShape }
    */
   removeShape(shape: PhysXColliderShape): void {
     this._pxActor.detachShape(shape._pxShape);
@@ -42,18 +36,14 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * Set global pose of collider
-   * @param position the global position
-   * @param rotation the global rotation
+   * {@inheritDoc ICollider.setWorldTransform }
    */
   setWorldTransform(position: Vector3, rotation: Quaternion) {
     this._pxActor.setGlobalPose(this._transform(position, rotation), true);
   }
 
   /**
-   * Get global pose of collider
-   * @param outPosition the global position
-   * @param outRotation the global rotation
+   * {@inheritDoc ICollider.getWorldTransform }
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion) {
     const transform = this._pxActor.getGlobalPose();

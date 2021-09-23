@@ -5,7 +5,7 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
 /**
- * PhysX Shape for Box
+ * PhysX Shape for Box.
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
   private static _tempHalfExtents = {
@@ -17,17 +17,15 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
 
   /**
    * Init Box Shape and alloc PhysX objects.
-   * @param index index mark Shape
-   * @param size size of Shape
-   * @param material material of PhysXCollider
-   * @remarks must call after this component add to Entity.
+   * @param index - Index mark Shape.
+   * @param size - Size of Shape.
+   * @param material - Material of PhysXCollider.
    */
   constructor(index: number, size: Vector3, material: PhysXPhysicsMaterial) {
     super();
 
     this._halfSize.setValue(size.x * 0.5, size.y * 0.5, size.z * 0.5);
 
-    // alloc Physx object
     this._pxGeometry = new PhysXPhysics.PhysX.PxBoxGeometry(
       this._halfSize.x * this._scale.x,
       this._halfSize.y * this._scale.y,
@@ -39,8 +37,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   }
 
   /**
-   * Set size of Box Shape
-   * @param value the extents
+   * {@inheritDoc IBoxColliderShape.setSize }
    */
   setSize(value: Vector3) {
     this._halfSize.setValue(value.x * 0.5, value.y * 0.5, value.z * 0.5);
@@ -53,8 +50,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   }
 
   /**
-   * scale of shape
-   * @param scale the scale
+   * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
     scale.cloneTo(this._scale);

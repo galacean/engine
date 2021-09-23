@@ -6,17 +6,17 @@ import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /**
- * the interface of physics creation.
+ * The interface of physics creation.
  */
 export interface IPhysics {
   /**
-   * create physics manager
-   * @param onContactBegin function called when contact begin
-   * @param onContactEnd function called when contact end
-   * @param onContactPersist function called when contact stay
-   * @param onTriggerBegin function called when trigger begin
-   * @param onTriggerEnd function called when trigger end
-   * @param onTriggerPersist function called when trigger staty
+   * Create physics manager.
+   * @param onContactBegin - Function called when contact begin
+   * @param onContactEnd - Function called when contact end
+   * @param onContactPersist - Function called when contact stay
+   * @param onTriggerBegin - Function called when trigger begin
+   * @param onTriggerEnd - Function called when trigger end
+   * @param onTriggerPersist - Function called when trigger stay
    */
   createPhysicsManager(
     onContactBegin?: (obj1: number, obj2: number) => void,
@@ -28,26 +28,26 @@ export interface IPhysics {
   ): IPhysicsManager;
 
   /**
-   * create dynamic collider
-   * @param position the global position
-   * @param rotation the global rotation
+   * Create dynamic collider.
+   * @param position - The global position
+   * @param rotation - The global rotation
    */
   createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider;
 
   /**
-   * create static collider
-   * @param position the global position
-   * @param rotation the global rotation
+   * Create static collider.
+   * @param position - The global position
+   * @param rotation - The global rotation
    */
   createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider;
 
   /**
-   * create physics material
-   * @param staticFriction static friction
-   * @param dynamicFriction dynamic friction
-   * @param bounciness restitution
-   * @param frictionCombine the mode to combine the friction of collider
-   * @param bounceCombine the mode to combine the bounce of collider
+   * Create physics material.
+   * @param staticFriction - Static friction
+   * @param dynamicFriction - Dynamic friction
+   * @param bounciness - Restitution
+   * @param frictionCombine - The mode to combine the friction of collider
+   * @param bounceCombine - The mode to combine the bounce of collider
    */
   createPhysicsMaterial(
     staticFriction: number,
@@ -58,34 +58,34 @@ export interface IPhysics {
   ): IPhysicsMaterial;
 
   /**
-   * create box collider shape
-   * @param index unique index to mark the shape
-   * @param extents extents of the box
-   * @param material the material of this shape
+   * Create box collider shape.
+   * @param index - Unique index to mark the shape
+   * @param extents - Extents of the box
+   * @param material - The material of this shape
    */
   createBoxColliderShape(index: number, extents: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
 
   /**
-   * create sphere collider shape
-   * @param index unique index to mark the shape
-   * @param radius radius of the sphere
-   * @param material the material of this shape
+   * Create sphere collider shape.
+   * @param index - Unique index to mark the shape
+   * @param radius - Radius of the sphere
+   * @param material - The material of this shape
    */
   createSphereColliderShape(index: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
 
   /**
-   * create plane collider shape
-   * @param index unique index to mark the shape
-   * @param material the material of this shape
+   * Create plane collider shape.
+   * @param index - Unique index to mark the shape
+   * @param material - The material of this shape
    */
   createPlaneColliderShape(index: number, material: IPhysicsMaterial): IPlaneColliderShape;
 
   /**
-   * create capsule collider shape
-   * @param index unique index to mark the shape
-   * @param radius radius of capsule
-   * @param height height of capsule
-   * @param material the material of this shape
+   * Create capsule collider shape.
+   * @param index - Unique index to mark the shape
+   * @param radius - Radius of capsule
+   * @param height - Height of capsule
+   * @param material - The material of this shape
    */
   createCapsuleColliderShape(
     index: number,

@@ -5,7 +5,7 @@ import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { Vector3 } from "@oasis-engine/math";
 
 /**
- * PhysX Shape for Sphere
+ * PhysX Shape for Sphere.
  */
 export class PhysXSphereColliderShape extends PhysXColliderShape implements ISphereColliderShape {
   private _radius: number;
@@ -13,10 +13,9 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
 
   /**
    * Init PhysXCollider and alloc PhysX objects.
-   * @param index index mark collider
-   * @param radius size of SphereCollider
-   * @param material material of PhysXCollider
-   * @remarks must call after this component add to Entity.
+   * @param index - Index mark collider
+   * @param radius - Size of SphereCollider
+   * @param material - Material of PhysXCollider
    */
   constructor(index: number, radius: number, material: PhysXPhysicsMaterial) {
     super();
@@ -31,8 +30,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   }
 
   /**
-   * Set radius of sphere
-   * @param value the radius
+   * {@inheritDoc ISphereColliderShape.setRadius }
    */
   setRadius(value: number) {
     this._radius = value;
@@ -41,8 +39,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   }
 
   /**
-   * scale of shape
-   * @param scale the scale
+   * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
     this._maxScale = Math.max(scale.x, Math.max(scale.x, scale.y));

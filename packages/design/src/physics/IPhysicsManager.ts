@@ -3,6 +3,12 @@ import { ICollider } from "./ICollider";
 
 export interface IPhysicsManager {
   /**
+   * Set gravity.
+   * @param gravity - Physics gravity
+   */
+  setGravity(gravity: Vector3): void;
+
+  /**
    * add ICollider into the manager
    * @param actor StaticCollider or DynamicCollider.
    */
@@ -24,20 +30,12 @@ export interface IPhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @returns Returns true if the ray intersects with a collider, otherwise false.
-   */
-  raycast(ray: Ray, distance: number): Boolean;
-
-  /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns true if the ray intersects with a collider, otherwise false.
    */
   raycast(
     ray: Ray,
     distance: number,
-    outHitResult: (colliderShapeID: number, distance: number, point: Vector3, normal: Vector3) => void
+    outHitResult?: (colliderShapeID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): Boolean;
 }

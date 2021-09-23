@@ -1,9 +1,12 @@
 import { IColliderShape } from "./IColliderShape";
 
 /**
- * Interface of physical shape for Sphere
+ * Interface of physical shape for Sphere.
  */
 export interface ISphereColliderShape extends IColliderShape {
-  /** radius of sphere shape */
+  /**
+   * Set radius of sphere.
+   * @param radius the radius
+   */
   setRadius(radius: number): void;
 }

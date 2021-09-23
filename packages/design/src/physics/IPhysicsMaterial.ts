@@ -1,19 +1,19 @@
 /**
- * interface of physics material
+ * interface of physics material.
  */
 export interface IPhysicsMaterial {
-  /** the coefficient of restitution */
+  /** Set the coefficient of restitution. */
   setBounciness(value: number): void;
 
-  /** the coefficient of dynamic friction. */
+  /** Set the coefficient of dynamic friction. */
   setDynamicFriction(value: number): void;
 
-  /** Retrieves the coefficient of static friction. */
+  /** Set the coefficient of static friction. */
   setStaticFriction(value: number): void;
 
-  /** the restitution combine mode. */
+  /** Set the restitution combine mode. */
   setBounceCombine(value: number): void;
 
-  /** the friction combine mode. */
+  /** Set the friction combine mode. */
   setFrictionCombine(value: number): void;
 }

@@ -62,9 +62,9 @@ export class PhysXPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = "http://30.50.28.1:8000/physx.release.js";
+        script.src = "http://30.50.24.134:8000/physx.release.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = "http://30.50.28.1:8000/physx.release.js";
+        script.src = "http://30.50.24.134:8000/physx.release.js";
       }
     });
 
@@ -98,13 +98,7 @@ export class PhysXPhysics {
   }
 
   /**
-   * Create physics manager
-   * @param onContactBegin function called when contact begin
-   * @param onContactEnd function called when contact end
-   * @param onContactPersist function called when contact stay
-   * @param onTriggerBegin function called when trigger begin
-   * @param onTriggerEnd function called when trigger end
-   * @param onTriggerPersist function called when trigger stay
+   * {@inheritDoc IPhysics.createPhysicsManager }
    */
   static createPhysicsManager(
     onContactBegin?: (obj1: number, obj2: number) => void,
@@ -125,30 +119,21 @@ export class PhysXPhysics {
   }
 
   /**
-   * Create static collider
-   * @param position the global position
-   * @param rotation the global rotation
+   * {@inheritDoc IPhysics.createStaticCollider }
    */
   static createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider {
     return new PhysXStaticCollider(position, rotation);
   }
 
   /**
-   * Create dynamic collider
-   * @param position the global position
-   * @param rotation the global rotation
+   * {@inheritDoc IPhysics.createDynamicCollider }
    */
   static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
     return new PhysXDynamicCollider(position, rotation);
   }
 
   /**
-   * Create physics material
-   * @param staticFriction static friction
-   * @param dynamicFriction dynamic friction
-   * @param bounciness restitution
-   * @param frictionCombine the mode to combine the friction of collider
-   * @param bounceCombine the mode to combine the bounce of collider
+   * {@inheritDoc IPhysics.createPhysicsMaterial }
    */
   static createPhysicsMaterial(
     staticFriction: number,
@@ -161,20 +146,14 @@ export class PhysXPhysics {
   }
 
   /**
-   * Create box collider shape
-   * @param index unique index to mark the shape
-   * @param extents extents of the box
-   * @param material the material of this shape
+   * {@inheritDoc IPhysics.createBoxColliderShape }
    */
   static createBoxColliderShape(index: number, extents: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
     return new PhysXBoxColliderShape(index, extents, material);
   }
 
   /**
-   * Create sphere collider shape
-   * @param index unique index to mark the shape
-   * @param radius radius of the sphere
-   * @param material the material of this shape
+   * {@inheritDoc IPhysics.createSphereColliderShape }
    */
   static createSphereColliderShape(
     index: number,
@@ -185,20 +164,14 @@ export class PhysXPhysics {
   }
 
   /**
-   * Create plane collider shape
-   * @param index unique index to mark the shape
-   * @param material the material of this shape
+   * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
   static createPlaneColliderShape(index: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
     return new PhysXPlaneColliderShape(index, material);
   }
 
   /**
-   * Create capsule collider shape
-   * @param index unique index to mark the shape
-   * @param radius radius of capsule
-   * @param height height of capsule
-   * @param material the material of this shape
+   * {@inheritDoc IPhysics.createCapsuleColliderShape }
    */
   static createCapsuleColliderShape(
     index: number,

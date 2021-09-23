@@ -2,7 +2,7 @@ import { Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
 
 /**
- * Interface of physical dynamic collider
+ * Interface of physical dynamic collider.
  */
 export interface IDynamicCollider extends ICollider {
   /** The linear velocity vector of the dynamic collider measured in world unit per second. */
@@ -19,14 +19,14 @@ export interface IDynamicCollider extends ICollider {
   isKinematic: boolean;
 
   /**
-   * apply a force to the dynamic collider.
-   * @param force the force make the collider move
+   * Apply a force to the dynamic collider.
+   * @param force - The force make the collider move
    */
   addForce(force: Vector3): void;
 
   /**
-   * apply a torque to the dynamic collider.
-   * @param torque the force make the collider rotate
+   * Apply a torque to the dynamic collider.
+   * @param torque - The force make the collider rotate
    */
   addTorque(torque: Vector3): void;
 }

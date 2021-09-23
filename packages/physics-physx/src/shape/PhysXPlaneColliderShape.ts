@@ -5,19 +5,17 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /**
- * PhysX Shape for Plane
+ * PhysX Shape for Plane.
  */
 export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlaneColliderShape {
   /**
    * Init PhysXCollider and alloc PhysX objects.
-   * @param index index mark collider
-   * @param material material of PhysXCollider
-   * @remarks must call after this component add to Entity.
+   * @param index - Index mark collider
+   * @param material - Material of PhysXCollider
    */
   constructor(index: number, material: PhysXPhysicsMaterial) {
     super();
 
-    // alloc Physx object
     this._pxGeometry = new PhysXPhysics.PhysX.PxPlaneGeometry();
     this._allocShape(material);
     this._setLocalPose();
@@ -25,8 +23,7 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
   }
 
   /**
-   * Set local rotation
-   * @param value the local rotation
+   * {@inheritDoc IPlaneColliderShape.setRotation }
    */
   setRotation(value: Vector3): void {
     Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._rotation);
@@ -42,9 +39,7 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
   }
 
   /**
-   * scale of shape
-   * @param scale the scale
-   * @remark scale have no effect on plane.
+   * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {}
 }

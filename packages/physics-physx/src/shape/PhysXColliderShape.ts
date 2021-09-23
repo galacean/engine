@@ -3,7 +3,9 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXPhysics } from "../PhysXPhysics";
 
-/** Flags which affect the behavior of Shapes. */
+/**
+ * Flags which affect the behavior of Shapes.
+ */
 export enum ShapeFlag {
   /** The shape will partake in collision in the physical simulation. */
   SIMULATION_SHAPE = 1 << 0,
@@ -29,26 +31,14 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
-  /**
-   * PhysX shape object
-   * @internal
-   */
+  /** @internal */
   _pxShape: any;
-
-  /**
-   * PhysX geometry object
-   * @internal
-   */
+  /** @internal */
   _pxGeometry: any;
-
-  /**
-   * Index mark physx object
-   * @internal
-   */
+  /** @internal */
   _id: number;
 
   /**
-   *  Shape Flags
    *  @internal
    */
   get shapeFlags(): ShapeFlag {
@@ -61,8 +51,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * Set local position
-   * @param value the local position
+   * {@inheritDoc IColliderShape.setPosition }
    */
   setPosition(value: Vector3): void {
     value.cloneTo(this._position);
@@ -75,22 +64,19 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * scale of shape
-   * @param scale the scale
+   * {@inheritDoc IColliderShape.setWorldScale }
    */
   abstract setWorldScale(scale: Vector3): void;
 
   /**
-   * Set physics material on shape
-   * @param value the material
+   * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
     this._pxShape.setMaterials([value._pxMaterial]);
   }
 
   /**
-   * Set physics shape marker
-   * @param index the unique index
+   * {@inheritDoc IColliderShape.setID }
    */
   setID(index: number): void {
     this._id = index;
@@ -98,8 +84,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * Set Trigger or not
-   * @param value true for TriggerShape, false for SimulationShape
+   * {@inheritDoc IColliderShape.setIsTrigger }
    */
   setIsTrigger(value: boolean): void {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
@@ -108,8 +93,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * Set Scene Query or not
-   * @param value true for Query, false for not Query
+   * {@inheritDoc IColliderShape.setIsSceneQuery }
    */
   setIsSceneQuery(value: boolean): void {
     this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);

@@ -45,13 +45,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
 
   /**
-   * Global gravity in the physical scene.
+   * {@inheritDoc IPhysicsManager.setGravity }
    */
-  get gravity(): Vector3 {
-    return this._gravity;
-  }
-
-  set gravity(value: Vector3) {
+  setGravity(value: Vector3) {
     if (this._gravity !== value) {
       value.cloneTo(this._gravity);
     }
@@ -108,10 +104,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     PhysXPhysicsManager._pxFilterData = new PhysXPhysics.PhysX.PxQueryFilterData();
   }
 
-  //--------------public APIs--------------------------------------------------
   /**
-   * Add PhysXCollider into the manager
-   * @param collider - PhysXStaticCollider or PhysXDynamicCollider
+   * {@inheritDoc IPhysicsManager.addCollider }
    */
   addCollider(collider: PhysXCollider): void {
     this._pxScene.addActor(collider._pxActor, null);
@@ -121,8 +115,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Remove PhysXCollider
-   * @param collider - PhysXStaticCollider or PhysXDynamicCollider
+   * {@inheritDoc IPhysicsManager.removeCollider }
    */
   removeCollider(collider: PhysXCollider): void {
     this._pxScene.removeActor(collider._pxActor, true);
@@ -132,7 +125,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Call on every frame to update pose of objects.
+   * {@inheritDoc IPhysicsManager.update }
    */
   update(elapsedTime: number): void {
     this._simulate(elapsedTime);
@@ -141,22 +134,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false
+   * {@inheritDoc IPhysicsManager.raycast }
    */
-  raycast(ray: Ray, distance: number): Boolean;
-
-  /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the ray intersects with a PhysXCollider, otherwise false.
-   */
-  raycast(ray: Ray, distance: number, outHitResult: Function): Boolean;
-
   raycast(
     ray: Ray,
     distance: number,
@@ -199,7 +178,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     return result;
   }
 
-  //--------------private APIs -------------------------------------------------
   private _simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true): void {
     this._pxScene.simulate(elapsedTime, controlSimulation);
   }

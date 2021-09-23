@@ -1,15 +1,24 @@
 import { IColliderShape } from "./IColliderShape";
 
 /**
- * Interface of physical shape for capsule
+ * Interface of physical shape for capsule.
  */
 export interface ICapsuleColliderShape extends IColliderShape {
-  /** radius of capsule */
+  /**
+   * Set radius of capsule.
+   * @param radius - The radius
+   */
   setRadius(radius: number): void;
 
-  /** height of capsule */
+  /**
+   * Set height of capsule.
+   * @param height - The height
+   */
   setHeight(height: number): void;
 
-  /** direction of capsule */
+  /**
+   * Set direction of capsule.
+   * @param dir - The up axis
+   */
   setDirection(dir: number): void;
 }

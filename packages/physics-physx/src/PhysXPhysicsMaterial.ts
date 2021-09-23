@@ -19,10 +19,7 @@ export enum PhysicsCombineMode {
  * Physics material describes how to handle colliding objects (friction, bounciness).
  */
 export class PhysXPhysicsMaterial implements IPhysicsMaterial {
-  /**
-   * PhysX material object
-   * @internal
-   */
+  /** @internal */
   _pxMaterial: any;
 
   constructor(
@@ -37,36 +34,36 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
     this._pxMaterial.setRestitutionCombineMode(bounceCombine);
   }
 
-  /** Sets the coefficient of restitution
-   * @param value Coefficient of restitution.
+  /**
+   * {@inheritDoc IPhysicsMaterial.setBounciness }
    */
   setBounciness(value: number) {
     this._pxMaterial.setRestitution(value);
   }
 
-  /** Sets the coefficient of dynamic friction.
-   * @param value Coefficient of dynamic friction.
+  /**
+   * {@inheritDoc IPhysicsMaterial.setDynamicFriction }
    */
   setDynamicFriction(value: number) {
     this._pxMaterial.setDynamicFriction(value);
   }
 
-  /** Sets the coefficient of static friction
-   * @param value Coefficient of static friction.
+  /**
+   * {@inheritDoc IPhysicsMaterial.setStaticFriction }
    */
   setStaticFriction(value: number) {
     this._pxMaterial.setStaticFriction(value);
   }
 
-  /** Sets the restitution combine mode.
-   * @param value Restitution combine mode for this material.
+  /**
+   * {@inheritDoc IPhysicsMaterial.setBounceCombine }
    */
   setBounceCombine(value: PhysicsCombineMode) {
     this._pxMaterial.setRestitutionCombineMode(value);
   }
 
-  /** Sets the friction combine mode.
-   * @param value Friction combine mode to set for this material.
+  /**
+   * {@inheritDoc IPhysicsMaterial.setFrictionCombine }
    */
   setFrictionCombine(value: PhysicsCombineMode) {
     this._pxMaterial.setFrictionCombineMode(value);

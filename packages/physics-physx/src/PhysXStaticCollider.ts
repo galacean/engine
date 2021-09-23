@@ -8,7 +8,11 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
  * @remarks Mostly used for object which always stays at the same place and never moves around.
  */
 export class PhysXStaticCollider extends PhysXCollider implements IStaticCollider {
-  /** alloc PhysX object */
+  /**
+   * Initialize PhysX static actor.
+   * @param position - The global position
+   * @param rotation - The global rotation
+   */
   constructor(position: Vector3, rotation: Quaternion) {
     super();
     this._pxActor = PhysXPhysics.physics.createRigidStatic(this._transform(position, rotation));
