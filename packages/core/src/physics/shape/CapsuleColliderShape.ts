@@ -34,7 +34,7 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   /**
-   * Direction of capsule
+   * Up axis of capsule.
    */
   get upAxis(): ColliderShapeUpAxis {
     return this._upAxis;

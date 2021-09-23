@@ -26,7 +26,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Retrieves the coefficient of restitution.
+   * The coefficient of bounciness.
    */
   get bounciness(): number {
     return this._bounciness;
@@ -38,7 +38,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Retrieves the DynamicFriction value.
+   * The DynamicFriction value.
    */
   get dynamicFriction(): number {
     return this._dynamicFriction;
@@ -50,7 +50,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Retrieves the coefficient of static friction.
+   * The coefficient of static friction.
    */
   get staticFriction(): number {
     return this._staticFriction;
@@ -62,7 +62,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Retrieves the restitution combine mode.
+   * The restitution combine mode.
    */
   get bounceCombine(): PhysicsMaterialCombineMode {
     return this._bounceCombine;
@@ -74,7 +74,7 @@ export class PhysicsMaterial {
   }
 
   /**
-   * Retrieves the friction combine mode.
+   * The friction combine mode.
    */
   get frictionCombine(): PhysicsMaterialCombineMode {
     return this._frictionCombine;

@@ -54,13 +54,10 @@ export abstract class ColliderShape {
   }
 
   set position(value: Vector3) {
-    this._position = value;
+    if (this._position !== value) {
+      value.cloneTo(this._position);
+    }
     this._nativeShape.setPosition(value);
-  }
-
-  setPosition(x: number, y: number, z: number) {
-    this._position.setValue(x, y, z);
-    this._nativeShape.setPosition(this._position);
   }
 
   /**
@@ -75,20 +72,19 @@ export abstract class ColliderShape {
     this._nativeShape.setIsTrigger(value);
   }
 
-  /**
-   * Set Scene Query or not.
-   */
-  get isSceneQuery(): boolean {
-    return this._isSceneQuery;
-  }
-
-  set isSceneQuery(value: boolean) {
-    this._isSceneQuery = value;
-    this._nativeShape.setIsSceneQuery(value);
-  }
-
   protected constructor() {
     this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
+  }
+
+  /**
+   * Set local position of collider shape
+   * @param x - The x component of the vector, default 0
+   * @param y - The y component of the vector, default 0
+   * @param z - The z component of the vector, default 0
+   */
+  setPosition(x: number, y: number, z: number) {
+    this._position.setValue(x, y, z);
+    this._nativeShape.setPosition(this._position);
   }
 }
