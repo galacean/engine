@@ -148,37 +148,37 @@ export class PhysXPhysics {
   /**
    * {@inheritDoc IPhysics.createBoxColliderShape }
    */
-  static createBoxColliderShape(index: number, extents: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
-    return new PhysXBoxColliderShape(index, extents, material);
+  static createBoxColliderShape(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial): IBoxColliderShape {
+    return new PhysXBoxColliderShape(uniqueID, size, material);
   }
 
   /**
    * {@inheritDoc IPhysics.createSphereColliderShape }
    */
   static createSphereColliderShape(
-    index: number,
+    uniqueID: number,
     radius: number,
     material: PhysXPhysicsMaterial
   ): ISphereColliderShape {
-    return new PhysXSphereColliderShape(index, radius, material);
+    return new PhysXSphereColliderShape(uniqueID, radius, material);
   }
 
   /**
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
-  static createPlaneColliderShape(index: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
-    return new PhysXPlaneColliderShape(index, material);
+  static createPlaneColliderShape(uniqueID: number, material: PhysXPhysicsMaterial): IPlaneColliderShape {
+    return new PhysXPlaneColliderShape(uniqueID, material);
   }
 
   /**
    * {@inheritDoc IPhysics.createCapsuleColliderShape }
    */
   static createCapsuleColliderShape(
-    index: number,
+    uniqueID: number,
     radius: number,
     height: number,
     material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
-    return new PhysXCapsuleColliderShape(index, radius, height, material);
+    return new PhysXCapsuleColliderShape(uniqueID, radius, height, material);
   }
 }

@@ -2,7 +2,7 @@ import { Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
 
 /**
- * Interface of physical dynamic collider.
+ * Interface of physics dynamic collider.
  */
 export interface IDynamicCollider extends ICollider {
   /** The linear velocity vector of the dynamic collider measured in world unit per second. */

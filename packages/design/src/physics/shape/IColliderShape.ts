@@ -2,9 +2,15 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
 /**
- * Interface for physical shape.
+ * Interface for physics collider shape.
  */
 export interface IColliderShape {
+  /**
+   * Set unique id of the collider shape.
+   * @param id - The unique index
+   */
+  setUniqueID(id: number): void;
+
   /**
    * Set local position.
    * @param position - The local position
@@ -12,7 +18,7 @@ export interface IColliderShape {
   setPosition(position: Vector3): void;
 
   /**
-   * Set scale of shape.
+   * Set world scale of shape.
    * @param scale - The scale
    */
   setWorldScale(scale: Vector3): void;
@@ -24,20 +30,14 @@ export interface IColliderShape {
   setMaterial(material: IPhysicsMaterial): void;
 
   /**
-   * Set physics shape marker.
-   * @param id - The unique index
-   */
-  setID(id: number): void;
-
-  /**
-   * Set Trigger or not.
+   * Set trigger or not.
    * @param value - True for TriggerShape, false for SimulationShape
    */
-  setIsTrigger(value: boolean);
+  setIsTrigger(value: boolean): void;
 
   /**
-   * Set Scene Query or not.
+   * Set scene query or not.
    * @param value - True for Query, false for not Query
    */
-  setIsSceneQuery(value: boolean);
+  setIsSceneQuery(value: boolean): void;
 }

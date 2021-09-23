@@ -1,6 +1,6 @@
 import { ICollider } from "./ICollider";
 
 /**
- * Interface of physical static collider.
+ * Interface of physics static collider.
  */
 export interface IStaticCollider extends ICollider {}

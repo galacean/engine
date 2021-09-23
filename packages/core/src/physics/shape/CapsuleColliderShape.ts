@@ -9,7 +9,7 @@ import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
 export class CapsuleColliderShape extends ColliderShape {
   private _radius: number = 1;
   private _height: number = 2;
-  private _direction: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
+  private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   /**
    * Radius of capsule.
@@ -36,13 +36,13 @@ export class CapsuleColliderShape extends ColliderShape {
   /**
    * Direction of capsule
    */
-  get direction(): ColliderShapeUpAxis {
-    return this._direction;
+  get upAxis(): ColliderShapeUpAxis {
+    return this._upAxis;
   }
 
-  set direction(value: ColliderShapeUpAxis) {
-    this._direction = value;
-    (<ICapsuleColliderShape>this._nativeShape).setDirection(value);
+  set upAxis(value: ColliderShapeUpAxis) {
+    this._upAxis = value;
+    (<ICapsuleColliderShape>this._nativeShape).setUpAxis(value);
   }
 
   constructor() {

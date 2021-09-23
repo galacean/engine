@@ -59,36 +59,36 @@ export interface IPhysics {
 
   /**
    * Create box collider shape.
-   * @param index - Unique index to mark the shape
-   * @param extents - Extents of the box
+   * @param uniqueID - Shape unique id
+   * @param size - Size of the box
    * @param material - The material of this shape
    */
-  createBoxColliderShape(index: number, extents: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
+  createBoxColliderShape(uniqueID: number, size: Vector3, material: IPhysicsMaterial): IBoxColliderShape;
 
   /**
    * Create sphere collider shape.
-   * @param index - Unique index to mark the shape
+   * @param uniqueID - Shape unique id
    * @param radius - Radius of the sphere
    * @param material - The material of this shape
    */
-  createSphereColliderShape(index: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
+  createSphereColliderShape(uniqueID: number, radius: number, material: IPhysicsMaterial): ISphereColliderShape;
 
   /**
    * Create plane collider shape.
-   * @param index - Unique index to mark the shape
+   * @param uniqueID - Shape unique id
    * @param material - The material of this shape
    */
-  createPlaneColliderShape(index: number, material: IPhysicsMaterial): IPlaneColliderShape;
+  createPlaneColliderShape(uniqueID: number, material: IPhysicsMaterial): IPlaneColliderShape;
 
   /**
    * Create capsule collider shape.
-   * @param index - Unique index to mark the shape
+   * @param uniqueID - Shape unique id
    * @param radius - Radius of capsule
    * @param height - Height of capsule
    * @param material - The material of this shape
    */
   createCapsuleColliderShape(
-    index: number,
+    uniqueID: number,
     radius: number,
     height: number,
     material: IPhysicsMaterial

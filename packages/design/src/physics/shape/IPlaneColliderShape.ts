@@ -2,7 +2,7 @@ import { IColliderShape } from "./IColliderShape";
 import { Vector3 } from "@oasis-engine/math";
 
 /**
- * Interface of physical shape for plane.
+ * Interface of physics plane collider shape.
  */
 export interface IPlaneColliderShape extends IColliderShape {
   /**

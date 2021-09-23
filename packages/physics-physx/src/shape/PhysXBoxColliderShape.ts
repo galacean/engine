@@ -17,11 +17,11 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
 
   /**
    * Init Box Shape and alloc PhysX objects.
-   * @param index - Index mark Shape.
+   * @param uniqueID - UniqueID mark Shape.
    * @param size - Size of Shape.
    * @param material - Material of PhysXCollider.
    */
-  constructor(index: number, size: Vector3, material: PhysXPhysicsMaterial) {
+  constructor(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
     super();
 
     this._halfSize.setValue(size.x * 0.5, size.y * 0.5, size.z * 0.5);
@@ -33,7 +33,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     );
     this._allocShape(material);
     this._setLocalPose();
-    this.setID(index);
+    this.setUniqueID(uniqueID);
   }
 
   /**

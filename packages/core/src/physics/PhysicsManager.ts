@@ -109,7 +109,7 @@ export class PhysicsManager {
    * @param ray - The ray
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
-  raycast(ray: Ray): Boolean;
+  raycast(ray: Ray): boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
@@ -117,7 +117,7 @@ export class PhysicsManager {
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
-  raycast(ray: Ray, outHitResult: HitResult): Boolean;
+  raycast(ray: Ray, outHitResult: HitResult): boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
@@ -125,7 +125,7 @@ export class PhysicsManager {
    * @param distance - The max distance the ray should check
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
-  raycast(ray: Ray, distance: number): Boolean;
+  raycast(ray: Ray, distance: number): boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
@@ -134,7 +134,7 @@ export class PhysicsManager {
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
-  raycast(ray: Ray, distance: number, outHitResult: HitResult): Boolean;
+  raycast(ray: Ray, distance: number, outHitResult: HitResult): boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
@@ -143,7 +143,7 @@ export class PhysicsManager {
    * @param layerMask - Layer mask that is used to selectively ignore Colliders when casting
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
-  raycast(ray: Ray, distance: number, layerMask: Layer): Boolean;
+  raycast(ray: Ray, distance: number, layerMask: Layer): boolean;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
@@ -153,14 +153,14 @@ export class PhysicsManager {
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the ray intersects with a collider, otherwise false.
    */
-  raycast(ray: Ray, distance: number, layerMask: Layer, outHitResult: HitResult): Boolean;
+  raycast(ray: Ray, distance: number, layerMask: Layer, outHitResult: HitResult): boolean;
 
   raycast(
     ray: Ray,
     distanceOrResult?: number | HitResult,
     layerMaskOrResult?: Layer | HitResult,
     outHitResult?: HitResult
-  ): Boolean {
+  ): boolean {
     let hitResult: HitResult;
 
     let distance = Number.MAX_VALUE;

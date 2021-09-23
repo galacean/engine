@@ -13,11 +13,11 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
 
   /**
    * Init PhysXCollider and alloc PhysX objects.
-   * @param index - Index mark collider
+   * @param uniqueID - UniqueID mark collider
    * @param radius - Size of SphereCollider
    * @param material - Material of PhysXCollider
    */
-  constructor(index: number, radius: number, material: PhysXPhysicsMaterial) {
+  constructor(uniqueID: number, radius: number, material: PhysXPhysicsMaterial) {
     super();
 
     this._radius = radius;
@@ -26,7 +26,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
     this._pxGeometry = new PhysXPhysics.PhysX.PxSphereGeometry(this._radius * this._maxScale);
     this._allocShape(material);
     this._setLocalPose();
-    this.setID(index);
+    this.setUniqueID(uniqueID);
   }
 
   /**

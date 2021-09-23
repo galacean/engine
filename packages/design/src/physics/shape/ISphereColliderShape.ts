@@ -1,7 +1,7 @@
 import { IColliderShape } from "./IColliderShape";
 
 /**
- * Interface of physical shape for Sphere.
+ * Interface of physics sphere collider shape.
  */
 export interface ISphereColliderShape extends IColliderShape {
   /**

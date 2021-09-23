@@ -13,21 +13,21 @@ export interface IPhysicsManager {
 
   /**
    * Add ICollider into the manager.
-   * @param actor - StaticCollider or DynamicCollider.
+   * @param collider - StaticCollider or DynamicCollider.
    */
-  addCollider(actor: ICollider);
+  addCollider(collider: ICollider): void;
 
   /**
    * Remove ICollider.
-   * @param actor - StaticCollider or DynamicCollider.
+   * @param collider - StaticCollider or DynamicCollider.
    */
-  removeCollider(actor: ICollider): void;
+  removeCollider(collider: ICollider): void;
 
   /**
    * Call on every frame to update pose of objects.
    * @param elapsedTime - Step time of update.
    */
-  update(elapsedTime: number);
+  update(elapsedTime: number): void;
 
   /**
    * Casts a ray through the Scene and returns the first hit.
@@ -39,6 +39,6 @@ export interface IPhysicsManager {
   raycast(
     ray: Ray,
     distance: number,
-    outHitResult?: (colliderShapeID: number, distance: number, point: Vector3, normal: Vector3) => void
-  ): Boolean;
+    outHitResult?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
+  ): boolean;
 }

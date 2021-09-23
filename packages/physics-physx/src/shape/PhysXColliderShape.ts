@@ -76,9 +76,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * {@inheritDoc IColliderShape.setID }
+   * {@inheritDoc IColliderShape.setUniqueID }
    */
-  setID(index: number): void {
+  setUniqueID(index: number): void {
     this._id = index;
     this._pxShape.setQueryFilterData(new PhysXPhysics.PhysX.PxFilterData(index, 0, 0, 0));
   }

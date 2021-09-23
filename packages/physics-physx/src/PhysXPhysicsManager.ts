@@ -147,8 +147,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   raycast(
     ray: Ray,
     distance: number,
-    hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
-  ): Boolean {
+    hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
+  ): boolean {
     PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics.PhysX.PxQueryFlags(this._queryFlag);
 
     const { origin, direction } = ray;
