@@ -36,13 +36,15 @@ export class AnimatorControllerDecoder {
           const clipEndNormalizedTime = bufferReader.nextFloat32();
           const clipPath = bufferReader.nextStr();
           const clipObjectId = bufferReader.nextStr();
-          clipLoadPromises.push(
-            AnimatorControllerDecoder.loadAndSetClip(engine, clipPath, clipObjectId).then((clip) => {
-              state.clip = clip;
-              state.clipStartTime = clip.length * clipStartNormalizedTime;
-              state.clipEndTime = clip.length * clipEndNormalizedTime;
-            })
-          );
+          ((state) => {
+            clipLoadPromises.push(
+              AnimatorControllerDecoder.loadAndSetClip(engine, clipPath, clipObjectId).then((clip) => {
+                state.clip = clip;
+                state.clipStartTime = clip.length * clipStartNormalizedTime;
+                state.clipEndTime = clip.length * clipEndNormalizedTime;
+              })
+            );
+          })(state);
           // @ts-ignore
           isDefaultState && (stateMachine._defaultState = state);
 
