@@ -36,7 +36,7 @@ export class AnimatorControllerDecoder {
           const clipEndNormalizedTime = bufferReader.nextFloat32();
           const clipPath = bufferReader.nextStr();
           const clipObjectId = bufferReader.nextStr();
-          ((state) => {
+          ((state, clipStartNormalizedTime, clipEndNormalizedTime) => {
             clipLoadPromises.push(
               AnimatorControllerDecoder.loadAndSetClip(engine, clipPath, clipObjectId).then((clip) => {
                 state.clip = clip;
@@ -44,7 +44,7 @@ export class AnimatorControllerDecoder {
                 state.clipEndTime = clip.length * clipEndNormalizedTime;
               })
             );
-          })(state);
+          })(state, clipStartNormalizedTime, clipEndNormalizedTime);
           // @ts-ignore
           isDefaultState && (stateMachine._defaultState = state);
 
