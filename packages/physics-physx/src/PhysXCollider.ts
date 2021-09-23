@@ -52,7 +52,6 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
-   * PhysX transform object
    * @internal
    */
   _transform(

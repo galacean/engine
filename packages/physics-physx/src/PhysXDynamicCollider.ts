@@ -331,20 +331,15 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
     }
   }
 
-  //----------------------------------------------------------------------------
   /**
-   * Adds a force to the collider.
-   * @param force Force vector in world coordinates.
-   * @remark addForce must called after add into scene.
+   * {@inheritDoc IDynamicCollider.addForce }
    */
   addForce(force: Vector3) {
     this._pxActor.addForce({ x: force.x, y: force.y, z: force.z });
   }
 
   /**
-   * Adds a torque to the collider.
-   * @param torque Torque vector in world coordinates.
-   * @remark addTorque must called after add into scene.
+   * {@inheritDoc IDynamicCollider.addTorque }
    */
   addTorque(torque: Vector3) {
     this._pxActor.addTorque({ x: torque.x, y: torque.y, z: torque.z });

@@ -1,6 +1,9 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
 
+/**
+ * Interface for physics manager.
+ */
 export interface IPhysicsManager {
   /**
    * Set gravity.
@@ -9,20 +12,20 @@ export interface IPhysicsManager {
   setGravity(gravity: Vector3): void;
 
   /**
-   * add ICollider into the manager
-   * @param actor StaticCollider or DynamicCollider.
+   * Add ICollider into the manager.
+   * @param actor - StaticCollider or DynamicCollider.
    */
   addCollider(actor: ICollider);
 
   /**
-   * remove ICollider
-   * @param actor StaticCollider or DynamicCollider.
+   * Remove ICollider.
+   * @param actor - StaticCollider or DynamicCollider.
    */
   removeCollider(actor: ICollider): void;
 
   /**
-   * call on every frame to update pose of objects.
-   * @param elapsedTime step time of update.
+   * Call on every frame to update pose of objects.
+   * @param elapsedTime - Step time of update.
    */
   update(elapsedTime: number);
 
@@ -31,7 +34,7 @@ export interface IPhysicsManager {
    * @param ray - The ray
    * @param distance - The max distance the ray should check
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the ray intersects with a collider, otherwise false.
+   * @returns Returns True if the ray intersects with a collider, otherwise false
    */
   raycast(
     ray: Ray,

@@ -249,6 +249,9 @@ enum PhysicsState {
   TOUCH_NONE
 }
 
+/**
+ * Trigger event to store interactive object ids and state.
+ */
 class TriggerEvent {
   state: PhysicsState;
   index1: number;
