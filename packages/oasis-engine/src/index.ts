@@ -4,13 +4,11 @@ export * from "@oasis-engine/math";
 export * from "@oasis-engine/rhi-webgl";
 import {
   AmbientLight,
-  BoxCollider,
   Camera,
   Component,
   DirectLight,
   ParticleRenderer,
   PointLight,
-  SphereCollider,
   SpriteRenderer,
   SpriteMask,
   Animator
@@ -25,11 +23,9 @@ Parser.registerComponents("o3", {
   AmbientLight,
   DirectLight,
   ParticleRenderer,
-  BoxCollider,
   Camera,
   Model,
   Component,
-  SphereCollider,
   Animator
 });
 
