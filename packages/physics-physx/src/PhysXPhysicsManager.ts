@@ -50,9 +50,12 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
-      onContactBegin: (obj1, obj2) => {},
-      onContactEnd: (obj1, obj2) => {},
-      onContactPersist: (obj1, obj2) => {},
+      onContactBegin: (obj1, obj2) => {
+      },
+      onContactEnd: (obj1, obj2) => {
+      },
+      onContactPersist: (obj1, obj2) => {
+      },
       onTriggerBegin: (obj1, obj2) => {
         const index1 = obj1.getQueryFilterData().word0;
         const index2 = obj2.getQueryFilterData().word0;
@@ -132,51 +135,33 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     distance: number,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
+    const { _pxRaycastHit: pxHitResult } = PhysXPhysicsManager;
+
     const result = this._pxScene.raycastSingle(
       ray.origin,
       ray.direction,
       distance,
-      PhysXPhysicsManager._pxRaycastHit,
+      pxHitResult,
       PhysXPhysicsManager._pxFilterData
     );
 
-    if (result == false) {
-      return false;
-    }
+    if (result && hit != undefined) {
+      const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsManager;
+      const { position: pxPosition, normal: pxNormal } = pxHitResult;
+      position.setValue(pxPosition.x, pxPosition.y, pxPosition.z);
+      normal.setValue(pxNormal.x, pxNormal.y, pxNormal.z);
 
-    if (hit != undefined) {
-      const hitResult = PhysXPhysicsManager._pxRaycastHit;
-      const { position: pos, normal: nor } = hitResult;
-
-      const position = PhysXPhysicsManager._tempPosition;
-      position.setValue(pos.x, pos.y, pos.z);
-
-      const normal = PhysXPhysicsManager._tempNormal;
-      normal.setValue(nor.x, nor.y, nor.z);
-
-      hit(hitResult.getShape().getQueryFilterData().word0, hitResult.distance, position, normal);
+      hit(pxHitResult.getShape().getQueryFilterData().word0, pxHitResult.distance, position, normal);
     }
     return result;
   }
 
-  private _simulate(elapsedTime: number = 1 / 60, controlSimulation: boolean = true): void {
-    this._pxScene.simulate(elapsedTime, controlSimulation);
+  private _simulate(elapsedTime: number): void {
+    this._pxScene.simulate(elapsedTime, true);
   }
 
   private _fetchResults(block: boolean = true): void {
     this._pxScene.fetchResults(block);
-  }
-
-  private _advance(): void {
-    this._pxScene.advance();
-  }
-
-  private _fetchCollision(block: boolean = true): void {
-    this._pxScene.fetchCollision(block);
-  }
-
-  private _collide(elapsedTime: number = 1 / 60): void {
-    this._pxScene.collide(elapsedTime);
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
@@ -187,7 +172,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = 0, n = currentEvents.length; i < n;) {
       const event = currentEvents.get(i);
       if (event.state == TriggerEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);

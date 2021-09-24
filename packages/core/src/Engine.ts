@@ -38,7 +38,7 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
-  /** physics manager of Engine. */
+  /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
 
   _componentsManager: ComponentsManager = new ComponentsManager();
@@ -158,14 +158,14 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
-   * @param nativePhysics - native physics Engine
+   * @param physics - native physics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, nativePhysics?: IPhysics) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
-    if (nativePhysics) {
-      PhysicsManager._nativePhysics = nativePhysics;
+    if (physics) {
+      PhysicsManager._nativePhysics = physics;
       this.physicsManager = new PhysicsManager();
     }
     this._canvas = canvas;
@@ -251,7 +251,7 @@ export class Engine extends EventDispatcher {
       componentsManager.callScriptOnStart();
       if (this.physicsManager) {
         componentsManager.callColliderOnUpdate();
-        this.physicsManager.update(deltaTime);
+        this.physicsManager._update(deltaTime);
         componentsManager.callColliderOnLateUpdate();
       }
       componentsManager.callScriptOnUpdate(deltaTime);

@@ -10,19 +10,19 @@ export class WebGLEngine extends Engine {
   /**
    * Create an engine suitable for the WebGL platform.
    * @param canvas - Native web canvas
-   * @param physicsEngine - Physics Engine
+   * @param physics - Physics Engine
    * @param webGLRendererOptions - WebGL renderer options
    */
   constructor(
     canvas: string | HTMLCanvasElement | OffscreenCanvas,
-    physicsEngine?: IPhysics,
+    physics?: IPhysics,
     webGLRendererOptions?: WebGLRendererOptions
   ) {
     const webCanvas = new WebCanvas(
       <HTMLCanvasElement | OffscreenCanvas>(typeof canvas === "string" ? document.getElementById(canvas) : canvas)
     );
     const hardwareRenderer = new WebGLRenderer(webGLRendererOptions);
-    super(webCanvas, hardwareRenderer, physicsEngine);
+    super(webCanvas, hardwareRenderer, physics);
   }
 
   /**

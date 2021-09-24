@@ -83,7 +83,7 @@ export abstract class ColliderShape {
    * @param y - The y component of the vector, default 0
    * @param z - The z component of the vector, default 0
    */
-  setPosition(x: number, y: number, z: number) {
+  setPosition(x: number, y: number, z: number): void {
     this._position.setValue(x, y, z);
     this._nativeShape.setPosition(this._position);
   }

@@ -37,7 +37,7 @@ export class BoxColliderShape extends ColliderShape {
    * @param y - Size of y-axis
    * @param z - Size of z-axis
    */
-  setSize(x: number, y: number, z: number) {
+  setSize(x: number, y: number, z: number): void {
     this._size.x = x;
     this._size.y = y;
     this._size.z = z;

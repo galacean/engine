@@ -33,12 +33,12 @@ export class PlaneColliderShape extends ColliderShape {
 
   /**
    * Set the local rotation of this plane.
-   * @param yaw - Radian of yaw
-   * @param pitch - Radian of pitch
-   * @param roll - Radian of roll
+   * @param x - Radian of yaw
+   * @param y - Radian of pitch
+   * @param z - Radian of roll
    */
-  setRotation(yaw: number, pitch: number, roll: number) {
-    this._rotation.setValue(yaw, pitch, roll);
+  setRotation(x: number, y: number, z: number): void {
+    this._rotation.setValue(x, y, z);
     (<IPlaneColliderShape>this._nativeShape).setRotation(this._rotation);
   }
 }
