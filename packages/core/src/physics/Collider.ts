@@ -82,20 +82,4 @@ export abstract class Collider extends Component {
    * @internal
    */
   _onLateUpdate() {}
-
-  /**
-   * @override
-   * @internal
-   */
-  _onEnable() {
-    this.engine._componentsManager.addCollider(this);
-  }
-
-  /**
-   * @override
-   * @internal
-   */
-  _onDisable() {
-    this.engine._componentsManager.removeCollider(this);
-  }
 }
