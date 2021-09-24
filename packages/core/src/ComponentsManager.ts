@@ -32,8 +32,7 @@ export class ComponentsManager {
   private _componentsContainerPool: Component[][] = [];
 
   // Physics
-  private _onStartColliders: DisorderedArray<Collider> = new DisorderedArray();
-  private _onUpdateColliders: DisorderedArray<Collider> = new DisorderedArray();
+  private _colliders: DisorderedArray<Collider> = new DisorderedArray();
 
   addRenderer(renderer: Renderer) {
     renderer._rendererIndex = this._renderers.length;
@@ -58,21 +57,12 @@ export class ComponentsManager {
   }
 
   addCollider(collider: Collider) {
-    collider._index = this._onStartColliders.length;
-    this._onStartColliders.add(collider);
+    collider._index = this._colliders.length;
+    this._colliders.add(collider);
   }
 
   removeCollider(collider: Collider): void {
-    const onStartColliders = this._onStartColliders;
-    if (onStartColliders.length > collider._index) {
-      if (onStartColliders.get(collider._index) === collider) {
-        const replaced = onStartColliders.deleteByIndex(collider._index);
-        replaced && (replaced._index = collider._index);
-        collider._index = -1;
-        return;
-      }
-    }
-    const replaced = this._onUpdateColliders.deleteByIndex(collider._index);
+    const replaced = this._colliders.deleteByIndex(collider._index);
     replaced && (replaced._index = collider._index);
     collider._index = -1;
   }
@@ -249,31 +239,16 @@ export class ComponentsManager {
     }
   }
 
-  callColliderOnStart(): void {
-    const onStartColliders = this._onStartColliders;
-    if (onStartColliders.length > 0) {
-      const elements = onStartColliders._elements;
-      for (let i = 0; i < onStartColliders.length; i++) {
-        const collider = elements[i];
-        collider._onStart();
-
-        collider._index = this._onUpdateColliders.length;
-        this._onUpdateColliders.add(collider);
-      }
-      onStartColliders.length = 0;
-    }
-  }
-
   callColliderOnUpdate() {
-    const elements = this._onUpdateColliders._elements;
-    for (let i = this._onUpdateColliders.length - 1; i >= 0; --i) {
+    const elements = this._colliders._elements;
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onUpdate();
     }
   }
 
   callColliderOnLateUpdate() {
-    const elements = this._onUpdateColliders._elements;
-    for (let i = this._onUpdateColliders.length - 1; i >= 0; --i) {
+    const elements = this._colliders._elements;
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onLateUpdate();
     }
   }

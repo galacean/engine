@@ -3,6 +3,7 @@ import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysicsManager } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
 import { DisorderedArray } from "./DisorderedArray";
+import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
  * A manager is a collection of bodies and constraints which can interact.
@@ -94,14 +95,24 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
+   * {@inheritDoc IPhysicsManager.addColliderShape }
+   */
+  addColliderShape(colliderShape: PhysXColliderShape) {
+    this._eventMap[colliderShape._id] = {};
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeColliderShape }
+   */
+  removeColliderShape(colliderShape: PhysXColliderShape) {
+    delete this._eventMap[colliderShape._id];
+  }
+
+  /**
    * {@inheritDoc IPhysicsManager.addCollider }
    */
   addCollider(collider: PhysXCollider): void {
     this._pxScene.addActor(collider._pxActor, null);
-    const shapes = collider._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      this._eventMap[shapes[i]._id] = {};
-    }
   }
 
   /**
@@ -109,10 +120,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    */
   removeCollider(collider: PhysXCollider): void {
     this._pxScene.removeActor(collider._pxActor, true);
-    const shapes = collider._shapes;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      delete this._eventMap[shapes[i]._id];
-    }
   }
 
   /**

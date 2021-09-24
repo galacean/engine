@@ -28,11 +28,11 @@ export abstract class PhysXCollider implements ICollider {
    * {@inheritDoc ICollider.removeShape }
    */
   removeShape(shape: PhysXColliderShape): void {
-    this._pxActor.detachShape(shape._pxShape);
     let removeID = this._shapes.findIndex((value) => {
       return value == shape;
     });
     this._shapes.splice(removeID, 1);
+    this._pxActor.detachShape(shape._pxShape);
   }
 
   /**

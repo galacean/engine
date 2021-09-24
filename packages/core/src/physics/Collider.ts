@@ -37,8 +37,10 @@ export abstract class Collider extends Component {
    */
   addShape(shape: ColliderShape): void {
     shape._collider = this;
-    this._nativeCollider.addShape(shape._nativeShape);
     this._shapes.push(shape);
+    this._nativeCollider.addShape(shape._nativeShape);
+
+    this.engine.physicsManager._addColliderShape(shape);
   }
 
   /**
@@ -46,9 +48,11 @@ export abstract class Collider extends Component {
    * @param shape - The collider shape.
    */
   removeShape(shape: ColliderShape): void {
-    this._nativeCollider.removeShape(shape._nativeShape);
     const index = this._shapes.indexOf(shape);
     index != -1 && this._shapes.splice(index, 1);
+    this._nativeCollider.removeShape(shape._nativeShape);
+
+    this.engine.physicsManager._removeColliderShape(shape);
   }
 
   /**
@@ -60,13 +64,6 @@ export abstract class Collider extends Component {
       this._nativeCollider.removeShape(shapes[i]._nativeShape);
     }
     shapes.length = 0;
-  }
-
-  /**
-   * @internal
-   */
-  _onStart() {
-    this.engine.physicsManager._addCollider(this);
   }
 
   /**
@@ -95,6 +92,7 @@ export abstract class Collider extends Component {
    * @internal
    */
   _onEnable() {
+    this.engine.physicsManager._addCollider(this);
     this.engine._componentsManager.addCollider(this);
   }
 

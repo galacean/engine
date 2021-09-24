@@ -1,5 +1,6 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
+import { IColliderShape } from "./shape";
 
 /**
  * Interface for physics manager.
@@ -10,6 +11,18 @@ export interface IPhysicsManager {
    * @param gravity - Physics gravity
    */
   setGravity(gravity: Vector3): void;
+
+  /**
+   * Add IColliderShape into the manager.
+   * @param colliderShape - The Collider Shape.
+   */
+  addColliderShape(colliderShape: IColliderShape): void;
+
+  /**
+   * Remove IColliderShape.
+   * @param colliderShape - The Collider Shape.
+   */
+  removeColliderShape(colliderShape: IColliderShape): void;
 
   /**
    * Add ICollider into the manager.

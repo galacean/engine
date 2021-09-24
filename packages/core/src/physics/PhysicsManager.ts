@@ -184,15 +184,31 @@ export class PhysicsManager {
   }
 
   /**
+   * Add ColliderShape into the manager.
+   * @param colliderShape - The Collider Shape.
+   * @internal
+   */
+  _addColliderShape(colliderShape: ColliderShape): void {
+    this._physicalObjectsMap[colliderShape.id] = colliderShape;
+    this._nativePhysicsManager.addColliderShape(colliderShape._nativeShape);
+  }
+
+  /**
+   * Remove ColliderShape.
+   * @param colliderShape - The Collider Shape.
+   * @internal
+   */
+  _removeColliderShape(colliderShape: ColliderShape): void {
+    delete this._physicalObjectsMap[colliderShape.id];
+    this._nativePhysicsManager.removeColliderShape(colliderShape._nativeShape);
+  }
+
+  /**
    * Add collider into the manager.
    * @param collider - StaticCollider or DynamicCollider.
    * @internal
    */
   _addCollider(collider: Collider): void {
-    const shapes = collider.shapes;
-    for (let i = 0, len = shapes.length; i < len; i++) {
-      this._physicalObjectsMap[shapes[i].id] = shapes[i];
-    }
     this._nativePhysicsManager.addCollider(collider._nativeCollider);
   }
 
@@ -202,10 +218,6 @@ export class PhysicsManager {
    * @internal
    */
   _removeCollider(collider: Collider): void {
-    const shapes = collider.shapes;
-    for (let i = 0, len = shapes.length; i < len; i++) {
-      delete this._physicalObjectsMap[shapes[i].id];
-    }
     this._nativePhysicsManager.removeCollider(collider._nativeCollider);
   }
 }
