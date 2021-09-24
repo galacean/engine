@@ -14,12 +14,9 @@ export class PhysicsManager {
 
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap: Record<number, ColliderShape> = {};
-  private _onContactEnter = (obj1: number, obj2: number) => {
-  };
-  private _onContactExit = (obj1: number, obj2: number) => {
-  };
-  private _onContactStay = (obj1: number, obj2: number) => {
-  };
+  private _onContactEnter = (obj1: number, obj2: number) => {};
+  private _onContactExit = (obj1: number, obj2: number) => {};
+  private _onContactStay = (obj1: number, obj2: number) => {};
   private _onTriggerEnter = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap[obj1];
     const shape2 = this._physicalObjectsMap[obj2];
@@ -86,18 +83,6 @@ export class PhysicsManager {
       this._physicalObjectsMap[shapes[i].id] = shapes[i];
     }
     this._nativePhysicsManager.addCollider(collider._nativeCollider);
-  }
-
-  /**
-   * Remove collider.
-   * @param collider - StaticCollider or DynamicCollider.
-   */
-  removeCollider(collider: Collider): void {
-    const shapes = collider.shapes;
-    for (let i = 0, len = shapes.length; i < len; i++) {
-      delete this._physicalObjectsMap[shapes[i].id];
-    }
-    this._nativePhysicsManager.removeCollider(collider._nativeCollider);
   }
 
   /**
@@ -208,5 +193,18 @@ export class PhysicsManager {
    */
   _update(deltaTime: number): void {
     this._nativePhysicsManager.update(deltaTime);
+  }
+
+  /**
+   * Remove collider.
+   * @param collider - StaticCollider or DynamicCollider.
+   * @internal
+   */
+  _removeCollider(collider: Collider): void {
+    const shapes = collider.shapes;
+    for (let i = 0, len = shapes.length; i < len; i++) {
+      delete this._physicalObjectsMap[shapes[i].id];
+    }
+    this._nativePhysicsManager.removeCollider(collider._nativeCollider);
   }
 }

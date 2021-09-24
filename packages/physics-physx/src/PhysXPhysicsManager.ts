@@ -50,12 +50,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
-      onContactBegin: (obj1, obj2) => {
-      },
-      onContactEnd: (obj1, obj2) => {
-      },
-      onContactPersist: (obj1, obj2) => {
-      },
+      onContactBegin: (obj1, obj2) => {},
+      onContactEnd: (obj1, obj2) => {},
+      onContactPersist: (obj1, obj2) => {},
       onTriggerBegin: (obj1, obj2) => {
         const index1 = obj1.getQueryFilterData().word0;
         const index2 = obj2.getQueryFilterData().word0;
@@ -172,7 +169,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n;) {
+    for (let i = 0, n = currentEvents.length; i < n; ) {
       const event = currentEvents.get(i);
       if (event.state == TriggerEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);
