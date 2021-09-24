@@ -65,6 +65,13 @@ export abstract class Collider extends Component {
   /**
    * @internal
    */
+  _onStart() {
+    this.engine.physicsManager._addCollider(this);
+  }
+
+  /**
+   * @internal
+   */
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;

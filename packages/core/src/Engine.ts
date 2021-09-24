@@ -250,6 +250,7 @@ export class Engine extends EventDispatcher {
     if (scene) {
       componentsManager.callScriptOnStart();
       if (this.physicsManager) {
+        componentsManager.callColliderOnStart();
         componentsManager.callColliderOnUpdate();
         this.physicsManager._update(deltaTime);
         componentsManager.callColliderOnLateUpdate();

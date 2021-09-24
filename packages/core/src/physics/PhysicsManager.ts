@@ -74,18 +74,6 @@ export class PhysicsManager {
   }
 
   /**
-   * Add collider into the manager.
-   * @param collider - StaticCollider or DynamicCollider.
-   */
-  addCollider(collider: Collider): void {
-    const shapes = collider.shapes;
-    for (let i = 0, len = shapes.length; i < len; i++) {
-      this._physicalObjectsMap[shapes[i].id] = shapes[i];
-    }
-    this._nativePhysicsManager.addCollider(collider._nativeCollider);
-  }
-
-  /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @returns Returns True if the ray intersects with a collider, otherwise false
@@ -193,6 +181,19 @@ export class PhysicsManager {
    */
   _update(deltaTime: number): void {
     this._nativePhysicsManager.update(deltaTime);
+  }
+
+  /**
+   * Add collider into the manager.
+   * @param collider - StaticCollider or DynamicCollider.
+   * @internal
+   */
+  _addCollider(collider: Collider): void {
+    const shapes = collider.shapes;
+    for (let i = 0, len = shapes.length; i < len; i++) {
+      this._physicalObjectsMap[shapes[i].id] = shapes[i];
+    }
+    this._nativePhysicsManager.addCollider(collider._nativeCollider);
   }
 
   /**
