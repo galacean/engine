@@ -13,14 +13,11 @@ export abstract class PhysXCollider implements ICollider {
 
   /** @internal */
   _pxActor: any;
-  /** @internal */
-  _shapes: PhysXColliderShape[] = [];
 
   /**
    * {@inheritDoc ICollider.addShape }
    */
   addShape(shape: PhysXColliderShape): void {
-    this._shapes.push(shape);
     this._pxActor.attachShape(shape._pxShape);
   }
 
@@ -28,10 +25,6 @@ export abstract class PhysXCollider implements ICollider {
    * {@inheritDoc ICollider.removeShape }
    */
   removeShape(shape: PhysXColliderShape): void {
-    let removeID = this._shapes.findIndex((value) => {
-      return value == shape;
-    });
-    this._shapes.splice(removeID, 1);
     this._pxActor.detachShape(shape._pxShape);
   }
 
