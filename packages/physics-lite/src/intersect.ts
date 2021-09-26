@@ -1,4 +1,4 @@
-import { Vector3 } from "@oasis-engine/math";
+import { BoundingBox, BoundingSphere, Vector3 } from "@oasis-engine/math";
 
 /**
  * AABBox = {
@@ -18,7 +18,7 @@ import { Vector3 } from "@oasis-engine/math";
  * @param boxB - The second box to check
  * @returns True if the boxes intersect, false otherwise
  */
-export function intersectBox2Box(boxA, boxB) {
+export function intersectBox2Box(boxA: BoundingBox, boxB: BoundingBox): boolean {
   return (
     boxA.min.x <= boxB.max.x &&
     boxA.max.x >= boxB.min.x &&
@@ -35,7 +35,7 @@ export function intersectBox2Box(boxA, boxB) {
  * @param sphereB - The second sphere to check
  * @returns True if the spheres intersect, false otherwise
  */
-export function intersectSphere2Sphere(sphereA, sphereB) {
+export function intersectSphere2Sphere(sphereA: BoundingSphere, sphereB: BoundingSphere): boolean {
   const distance = Vector3.distance(sphereA.center, sphereB.center);
   return distance < sphereA.radius + sphereA.radius;
 }
@@ -46,7 +46,7 @@ export function intersectSphere2Sphere(sphereA, sphereB) {
  * @param box - The box to check
  * @returns True if the sphere and the box intersect, false otherwise
  */
-export function intersectSphere2Box(sphere, box) {
+export function intersectSphere2Box(sphere: BoundingSphere, box: BoundingBox): boolean {
   const center: Vector3 = sphere.center;
 
   const closestPoint: Vector3 = new Vector3(
