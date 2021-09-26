@@ -258,11 +258,4 @@ export class Scene extends EngineObject {
   }
 
   features: SceneFeature[] = [];
-
-  /**
-   * Raycast.
-   * @deprecated
-   * @param ray
-   */
-  public raycast(ray: { origin: Vector3; direction: Vector3 }, outPos?: Vector3, tag?: Layer): any {}
 }

@@ -2,7 +2,7 @@ import { Ray, Vector2 } from "@oasis-engine/math";
 import { Canvas } from "../../Canvas";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { HitResult } from "../../HitResult";
+import { HitResult } from "../../physics";
 import { Pointer, PointerPhase } from "./Pointer";
 
 /**
@@ -64,25 +64,25 @@ export class PointerManager {
   _update(): void {
     this._curFrameHasCancel && this._adjustPointers();
     /** Check whether Drag events are triggered. */
-    this._exeDrag();
+    this._executeDrag();
     if (this._eventList.length > 0) {
       this._handlePointerEvent(this._eventList);
       /** Get the entity hit by the ray. */
       const curEnteredEntity = this._pointerRaycast();
       /** Check whether Enter and Exit events are triggered. */
-      this._exeEnterAndExit(curEnteredEntity);
+      this._executeEnterAndExit(curEnteredEntity);
       /** Check whether down, up and click events are triggered. */
       const { _effectiveEventList, _effectiveEventCount } = this;
       for (let i = 0; i < _effectiveEventCount; i++) {
         switch (_effectiveEventList[i]) {
           case PointerEventType.Down:
-            this._exeDown(curEnteredEntity);
+            this._executeDown(curEnteredEntity);
             break;
           case PointerEventType.Up:
-            this._exeUpAndClick(curEnteredEntity);
+            this._executeUpAndClick(curEnteredEntity);
             break;
           case PointerEventType.Leave:
-            this._exeEnterAndExit(null);
+            this._executeEnterAndExit(null);
             this._curFramePressedEntity = null;
             break;
         }
@@ -93,7 +93,7 @@ export class PointerManager {
       for (let i = pointers.length - 1; i >= 0; i--) {
         const pointer = pointers[i];
         if (pointer.phase !== PointerPhase.Leave) {
-          this._exeEnterAndExit(this._pointerRaycast());
+          this._executeEnterAndExit(this._pointerRaycast());
         }
       }
     }
@@ -164,11 +164,11 @@ export class PointerManager {
   ): void {
     const lastCount = this._pointers.length;
     if (lastCount <= 0 || this._multiPointerEnabled) {
+      const { _pointers: pointers, _pointerPool: pointerPool, _curFramePosition: curFramePosition, _canvas } = this;
       // @ts-ignore
-      const pixelRatio = this._canvas.pixelRatio;
-      x *= pixelRatio;
-      y *= pixelRatio;
-      const { _pointers: pointers, _pointerPool: pointerPool, _curFramePosition: curFramePosition } = this;
+      x *= _canvas.width / (_canvas._webCanvas as HTMLCanvasElement).clientWidth;
+      // @ts-ignore
+      y *= _canvas.height / (_canvas._webCanvas as HTMLCanvasElement).clientHeight;
       /** Get Pointer smallest index. */
       let i = 0;
       for (; i < lastCount; i++) {
@@ -221,13 +221,13 @@ export class PointerManager {
    * @param timeStamp - Timestamp when changing phase
    */
   private _updatePointer(pointerIndex: number, x: number, y: number, phase: PointerPhase, timeStamp: number): void {
-    const { _pointers: pointers } = this;
+    const { _pointers: pointers, _canvas: canvas } = this;
     const updatedPointer = pointers[pointerIndex];
     const { position } = updatedPointer;
     // @ts-ignore
-    const pixelRatio = this._canvas.pixelRatio;
-    x *= pixelRatio;
-    y *= pixelRatio;
+    x *= canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
+    // @ts-ignore
+    y *= canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientHeight;
     this._curFramePosition.x += (x - position.x) / pointers.length;
     this._curFramePosition.y += (y - position.y) / pointers.length;
     position.setValue(x, y);
@@ -318,7 +318,7 @@ export class PointerManager {
           camera.viewportPointToRay(PointerManager._tempPoint, PointerManager._tempRay),
           PointerManager._tempHitResult
         )
-          ? PointerManager._tempHitResult.collider.entity
+          ? PointerManager._tempHitResult.entity
           : null;
       }
     }
@@ -328,7 +328,7 @@ export class PointerManager {
   /**
    * Execute drag event.
    */
-  private _exeDrag(): void {
+  private _executeDrag(): void {
     /** Check whether pressed events are triggered. */
     if (this._curFramePressedEntity) {
       const scripts = this._curFramePressedEntity._scripts;
@@ -342,7 +342,7 @@ export class PointerManager {
    * Execute enter and exit events.
    * @param curEnteredEntity - Which entity the pointer is currently on
    */
-  private _exeEnterAndExit(curEnteredEntity: Entity): void {
+  private _executeEnterAndExit(curEnteredEntity: Entity): void {
     /** Check whether enter and exit events are triggered. */
     if (this._curFrameEnteredEntity !== curEnteredEntity) {
       if (curEnteredEntity) {
@@ -365,7 +365,7 @@ export class PointerManager {
    * Execute down events.
    * @param curEnteredEntity - Which entity the pointer is currently on
    */
-  private _exeDown(curEnteredEntity: Entity): void {
+  private _executeDown(curEnteredEntity: Entity): void {
     if (curEnteredEntity) {
       const scripts = curEnteredEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
@@ -379,7 +379,7 @@ export class PointerManager {
    * Execute up and click events.
    * @param curEnteredEntity - Which entity the pointer is currently on
    */
-  private _exeUpAndClick(curEnteredEntity: Entity): void {
+  private _executeUpAndClick(curEnteredEntity: Entity): void {
     if (curEnteredEntity) {
       const operateOneTarget = this._curFramePressedEntity === curEnteredEntity;
       const scripts = curEnteredEntity._scripts;

@@ -25,10 +25,11 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
-import { PhysicsManager } from "./PhysicsManager";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
 import { InputManager } from "./input/InputManager";
+import { IPhysics } from "@oasis-engine/design";
+import { PhysicsManager } from "./physics";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -39,7 +40,7 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** Physics manager of Engine. */
-  readonly physicsManager: PhysicsManager = new PhysicsManager(this);
+  readonly physicsManager: PhysicsManager;
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
@@ -160,11 +161,16 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
+   * @param physics - native physics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
+    if (physics) {
+      PhysicsManager._nativePhysics = physics;
+      this.physicsManager = new PhysicsManager();
+    }
     this._canvas = canvas;
     // @todo delete
     engineFeatureManager.addObject(this);
@@ -251,6 +257,11 @@ export class Engine extends EventDispatcher {
 
       componentsManager.callScriptOnStart();
       this._inputManager._update();
+      if (this.physicsManager) {
+        componentsManager.callColliderOnUpdate();
+        this.physicsManager._update(deltaTime);
+        componentsManager.callColliderOnLateUpdate();
+      }
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
