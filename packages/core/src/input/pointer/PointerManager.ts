@@ -268,7 +268,7 @@ export class PointerManager {
           }
           break;
         case "pointermove":
-          if (_lastMoveHash[evt.pointerId - _minPointerThreshold] == i) {
+          if (_lastMoveHash[evt.pointerId - _minPointerThreshold] === i) {
             if (pointerIndex < 0) {
               this._addPointer(evt.pointerId, evt.type, evt.offsetX, evt.offsetY, PointerPhase.Move, timeStamp);
               ++activePointerCount;
