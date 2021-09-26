@@ -3,10 +3,13 @@ import { Canvas } from "../../Canvas";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { HitResult } from "../../physics";
-import { Pointer, PointerPhase } from "./Pointer";
+import { PointerPhase } from "../enums/PointerPhase";
+import { PointerType } from "../enums/PointerType";
+import { Pointer } from "./Pointer";
 
 /**
  * Pointer Manager.
+ * @internal
  */
 export class PointerManager {
   private static _tempRay: Ray = new Ray();
@@ -138,7 +141,7 @@ export class PointerManager {
   private _getIndexByPointerID(pointerId: number): number {
     const { _pointers: _pointers } = this;
     for (let i = _pointers.length - 1; i >= 0; i--) {
-      if (_pointers[i].pointerId === pointerId) {
+      if (_pointers[i].uniqueID === pointerId) {
         return i;
       }
     }
@@ -181,8 +184,8 @@ export class PointerManager {
       }
       /** Update and add pointer. */
       const touch = pointerPool[i];
-      touch.pointerId = pointerId;
-      touch.pointerType = pointerType;
+      touch.uniqueID = pointerId;
+      touch.pointerType = PointerType[pointerType];
       touch.position.setValue(x, y);
       touch.phase = phase;
       touch.timeStamp = timeStamp;

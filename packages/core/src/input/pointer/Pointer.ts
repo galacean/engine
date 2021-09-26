@@ -1,23 +1,14 @@
 import { Vector2 } from "@oasis-engine/math";
-
-export enum PointerPhase {
-  /** A Pointer pressed on the screen. */
-  Down,
-  /** A pointer moved on the screen. */
-  Move,
-  /** A pointer was lifted from the screen. */
-  Up,
-  /** The system cancelled tracking for the pointer. */
-  Leave
-}
+import { PointerPhase } from "../enums/PointerPhase";
+import { PointerType } from "../enums/PointerType";
 
 /**
  * Pointer.
  */
 export class Pointer {
-  /** PointerId of PointerEvent. */
-  pointerId: number;
-  pointerType: string;
+  /** UniqueID of PointerEvent. */
+  uniqueID: number;
+  pointerType: PointerType;
   /** Timestamp of the most recent phase change. */
   timeStamp: number;
   /** Recent phase. */
