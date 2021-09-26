@@ -1,21 +1,46 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
 import { BoundingBox, Quaternion, Ray, Vector3 } from "@oasis-engine/math";
-import { ColliderShape } from "./ColliderShape";
+import { LiteColliderShape } from "./LiteColliderShape";
 import { HitResult } from "../HitResult";
-import { PhysicsMaterial } from "../PhysicsMaterial";
+import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
 /** LitePhysics Shape for Box */
-export class BoxColliderShape extends ColliderShape implements IBoxColliderShape {
+export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColliderShape {
   private static _tempVec3: Vector3 = new Vector3();
   private static _tempBox: BoundingBox = new BoundingBox();
 
-  public boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
-  public boxMax: Vector3 = new Vector3(0.5, 0.5, 0.5);
-
-  private _center: Vector3 = new Vector3();
   private _size: Vector3 = new Vector3();
 
+  public boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
+  public boxMax: Vector3 = new Vector3(0.5, 0.5, 0.5);
+  private _center: Vector3 = new Vector3();
   private _cornerFlag: boolean = false;
+
+  /**
+   * init Box Shape and alloc PhysX objects.
+   * @param uniqueID index mark Shape
+   * @param size size of Shape
+   * @param material material of LiteCollider
+   * @remarks must call after this component add to Entity.
+   */
+  constructor(uniqueID: number, size: Vector3, material: LitePhysicsMaterial) {
+    super();
+    this.setSize(size);
+    this._id = uniqueID;
+  }
+
+  /**
+   * {@inheritDoc IBoxColliderShape.setSize }
+   */
+  setSize(value: Vector3): void {
+    this._size = value;
+    this.setBoxCenterSize(this._center, this._size);
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.setWorldScale }
+   */
+  setWorldScale(scale: Vector3): void {}
 
   /**
    * Set box from the center point and the size of the bounding box.
@@ -23,7 +48,7 @@ export class BoxColliderShape extends ColliderShape implements IBoxColliderShape
    * @param size - The size of the bounding box
    */
   setBoxCenterSize(center: Vector3, size: Vector3) {
-    const halfSize = BoxColliderShape._tempVec3;
+    const halfSize = LiteBoxColliderShape._tempVec3;
     Vector3.scale(size, 0.5, halfSize);
     Vector3.add(center, halfSize, this.boxMax);
     Vector3.subtract(center, halfSize, this.boxMin);
@@ -36,38 +61,13 @@ export class BoxColliderShape extends ColliderShape implements IBoxColliderShape
     this.setBoxCenterSize(this._center, this._size);
   }
 
-  /** extents of Box Shape */
-  setExtents(size: Vector3): void {
-    this._size = size;
-    this.setBoxCenterSize(this._center, this._size);
-  }
-
-  /**
-   * init Box Shape and alloc PhysX objects.
-   * @param index index mark Shape
-   * @param extents size of Shape
-   * @param material material of Collider
-   * @param position position of Shape
-   * @param rotation rotation of Shape
-   * @remarks must call after this component add to Entity.
-   */
-  constructor(index: number, extents: Vector3, material: PhysicsMaterial, position: Vector3, rotation: Quaternion) {
-    super();
-    this.setCenter(position);
-    this.setExtents(extents);
-    // Todo: Support Rotation
-    this._transform.setPosition(position.x, position.y, position.z);
-    this._inverseWorldMatFlag = this._transform.registerWorldChangeFlag();
-    this._id = index;
-  }
-
   /**
    * @internal
    */
   _raycast(ray: Ray, hit: HitResult): boolean {
     const localRay = this._getLocalRay(ray);
 
-    const boundingBox = BoxColliderShape._tempBox;
+    const boundingBox = LiteBoxColliderShape._tempBox;
     this.boxMin.cloneTo(boundingBox.min);
     this.boxMax.cloneTo(boundingBox.max);
     const intersect = localRay.intersectBox(boundingBox);

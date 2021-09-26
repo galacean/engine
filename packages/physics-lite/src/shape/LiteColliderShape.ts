@@ -2,11 +2,11 @@ import { IColliderShape, IPhysicsMaterial } from "@oasis-engine/design";
 import { Matrix, Quaternion, Ray, Vector3 } from "@oasis-engine/math";
 import { HitResult } from "../HitResult";
 import { Transform } from "../Transform";
-import { Collider } from "../Collider";
+import { LiteCollider } from "../LiteCollider";
 import { UpdateFlag } from "../UpdateFlag";
 
 /** Abstract class for collision shapes. */
-export abstract class ColliderShape implements IColliderShape {
+export abstract class LiteColliderShape implements IColliderShape {
   private static _ray = new Ray();
 
   /** @internal */
@@ -16,37 +16,47 @@ export abstract class ColliderShape implements IColliderShape {
   /** @internal */
   _inverseWorldMatFlag: UpdateFlag;
   /** @internal */
-  _parent: Collider;
+  _parent: LiteCollider;
   /** @internal */
   _transform: Transform = new Transform();
 
-  /** local position */
+  /**
+   * {@inheritDoc IColliderShape.setPosition }
+   */
   setPosition(position: Vector3): void {
     this._transform.setPosition(position.x, position.y, position.z);
   }
 
-  /** local rotation */
-  setRotation(rotation: Quaternion): void {
-    this._transform.setRotationQuaternion(rotation.x, rotation.y, rotation.z, rotation.w);
-  }
+  /**
+   * {@inheritDoc IColliderShape.setWorldScale }
+   */
+  abstract setWorldScale(scale: Vector3): void;
 
-  /** physics material on shape */
+  /**
+   * {@inheritDoc IColliderShape.setMaterial }
+   */
   setMaterial(material: IPhysicsMaterial): void {
     // TODO: Support Material
   }
 
-  /** physics shape marker */
-  setID(id: number): void {
+  /**
+   * {@inheritDoc IColliderShape.setUniqueID }
+   */
+  setUniqueID(id: number): void {
     this._id = id;
   }
 
-  /** Set Trigger or not */
-  isTrigger(value: boolean) {
+  /**
+   * {@inheritDoc IColliderShape.setIsTrigger }
+   */
+  setIsTrigger(value: boolean) {
     // TODO: Support Trigger Flag
   }
 
-  /** Set Scene Query or not */
-  isSceneQuery(value: boolean) {
+  /**
+   * {@inheritDoc IColliderShape.setIsSceneQuery }
+   */
+  setIsSceneQuery(value: boolean) {
     // TODO: Support Scene Query Flag
   }
 
@@ -76,7 +86,7 @@ export abstract class ColliderShape implements IColliderShape {
 
   protected _getLocalRay(ray: Ray): Ray {
     const worldToLocal = this.getInvModelMatrix();
-    const outRay = ColliderShape._ray;
+    const outRay = LiteColliderShape._ray;
 
     Vector3.transformCoordinate(ray.origin, worldToLocal, outRay.origin);
     Vector3.transformNormal(ray.direction, worldToLocal, outRay.direction);

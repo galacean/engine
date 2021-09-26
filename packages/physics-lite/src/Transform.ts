@@ -1,7 +1,7 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { UpdateFlag } from "./UpdateFlag";
-import { ColliderShape } from "./shape/ColliderShape";
+import { LiteColliderShape } from "./shape/LiteColliderShape";
 
 /**
  * Used to implement transformation related functions.
@@ -46,7 +46,7 @@ export class Transform {
 
   private _dirtyFlag: number = TransformFlag.WmWpWeWqWs;
 
-  private _owner: ColliderShape;
+  private _owner: LiteColliderShape;
 
   /**
    * Local position.
@@ -294,7 +294,7 @@ export class Transform {
     this._setDirtyFlagFalse(TransformFlag.WorldMatrix);
   }
 
-  setOwner(owner: ColliderShape) {
+  setOwner(owner: LiteColliderShape) {
     this._owner = owner;
   }
 

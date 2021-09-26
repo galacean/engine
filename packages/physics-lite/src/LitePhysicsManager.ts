@@ -1,11 +1,12 @@
 import { IPhysicsManager } from "@oasis-engine/design";
 import { BoundingBox, Ray, Vector3 } from "@oasis-engine/math";
-import { Collider } from "./Collider";
+import { LiteCollider } from "./LiteCollider";
 import { HitResult } from "./HitResult";
-import { BoxColliderShape } from "./shape/BoxColliderShape";
-import { SphereColliderShape } from "./shape/SphereColliderShape";
+import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
+import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { intersectBox2Box, intersectSphere2Box, intersectSphere2Sphere } from "./intersect";
-import { ColliderShape } from "./shape/ColliderShape";
+import { LiteColliderShape } from "./shape/LiteColliderShape";
+import { PhysXColliderShape } from "../../physics-physx/src/shape/PhysXColliderShape";
 
 /** Filtering flags for scene queries. */
 export enum QueryFlag {
@@ -22,33 +23,26 @@ export class LitePhysicsManager implements IPhysicsManager {
   private static _currentHit: HitResult = new HitResult();
   private static _hitResult: HitResult = new HitResult();
 
-  _colliders: Collider[];
-
-  onContactBegin?: Function;
-  onContactEnd?: Function;
-  onContactPersist?: Function;
-  onTriggerBegin?: Function;
-  onTriggerEnd?: Function;
-  onTriggerPersist?: Function;
-
-  private _overlappedColliderShape: ColliderShape;
+  private _overlappedColliderShape: LiteColliderShape;
   private _sphere;
   private _box: BoundingBox = new BoundingBox();
 
-  /**
-   * The collider that intersects with the collider on the current Entity.
-   */
-  get overlappedColliderShape() {
-    return this._overlappedColliderShape;
-  }
+  _colliders: LiteCollider[];
+
+  onContactBegin?: (obj1: number, obj2: number) => void;
+  onContactEnd?: (obj1: number, obj2: number) => void;
+  onContactPersist?: (obj1: number, obj2: number) => void;
+  onTriggerBegin?: (obj1: number, obj2: number) => void;
+  onTriggerEnd?: (obj1: number, obj2: number) => void;
+  onTriggerPersist?: (obj1: number, obj2: number) => void;
 
   constructor(
-    onContactBegin?: Function,
-    onContactEnd?: Function,
-    onContactPersist?: Function,
-    onTriggerBegin?: Function,
-    onTriggerEnd?: Function,
-    onTriggerPersist?: Function
+    onContactBegin?: (obj1: number, obj2: number) => void,
+    onContactEnd?: (obj1: number, obj2: number) => void,
+    onContactPersist?: (obj1: number, obj2: number) => void,
+    onTriggerBegin?: (obj1: number, obj2: number) => void,
+    onTriggerEnd?: (obj1: number, obj2: number) => void,
+    onTriggerPersist?: (obj1: number, obj2: number) => void
   ) {
     this.onContactBegin = onContactBegin;
     this.onContactEnd = onContactEnd;
@@ -58,11 +52,34 @@ export class LitePhysicsManager implements IPhysicsManager {
     this.onTriggerPersist = onTriggerPersist;
   }
 
-  addCollider(actor: Collider) {
+  /**
+   * {@inheritDoc IPhysicsManager.setGravity }
+   */
+  setGravity(value: Vector3) {
+    throw "unimplemented";
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.addColliderShape }
+   */
+  addColliderShape(colliderShape: PhysXColliderShape) {}
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeColliderShape }
+   */
+  removeColliderShape(colliderShape: PhysXColliderShape) {}
+
+  /**
+   * {@inheritDoc IPhysicsManager.addCollider }
+   */
+  addCollider(actor: LiteCollider) {
     this._colliders.push(actor);
   }
 
-  removeCollider(collider: Collider): void {
+  /**
+   * {@inheritDoc IPhysicsManager.removeCollider }
+   */
+  removeCollider(collider: LiteCollider): void {
     let removeID = this._colliders.findIndex((value) => {
       return value == collider;
     });
@@ -79,13 +96,13 @@ export class LitePhysicsManager implements IPhysicsManager {
     }
   }
 
-  collisionDetection(deltaTime: number, myCollider: Collider) {
-    let overlappedColliderShape: ColliderShape = null;
+  collisionDetection(deltaTime: number, myCollider: LiteCollider) {
+    let overlappedColliderShape: LiteColliderShape = null;
     const colliders = this._colliders;
 
     for (let i = 0, len = myCollider._shape.length; i < len; i++) {
       const myShape = myCollider._shape[i];
-      if (myShape instanceof BoxColliderShape) {
+      if (myShape instanceof LiteBoxColliderShape) {
         this._updateWorldBox(myShape, this._box);
         for (let i = 0, len = colliders.length; i < len; i++) {
           const collider = colliders[i];
@@ -97,7 +114,7 @@ export class LitePhysicsManager implements IPhysicsManager {
             }
           }
         } // end of for
-      } else if (myShape instanceof SphereColliderShape) {
+      } else if (myShape instanceof LiteSphereColliderShape) {
         this._sphere = this._getWorldSphere(myShape);
         for (let i = 0, len = colliders.length; i < len; i++) {
           const collider = colliders[i];
@@ -151,15 +168,15 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Collider and another collider do collision detection.
+   * LiteCollider and another collider do collision detection.
    * @param other - The another collider to collision detection
    */
   _boxCollision(other) {
-    if (other instanceof BoxColliderShape) {
+    if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox2;
       this._updateWorldBox(other, box);
       return intersectBox2Box(box, this._box);
-    } else if (other instanceof SphereColliderShape) {
+    } else if (other instanceof LiteSphereColliderShape) {
       const sphere = this._getWorldSphere(other);
       return intersectSphere2Box(sphere, this._box);
     }
@@ -167,15 +184,15 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Collider and another collider do collision detection.
+   * LiteCollider and another collider do collision detection.
    * @param other - The another collider to collision detection
    */
   _sphereCollision(other) {
-    if (other instanceof BoxColliderShape) {
+    if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox2;
       this._updateWorldBox(other, box);
       return intersectSphere2Box(this._sphere, box);
-    } else if (other instanceof SphereColliderShape) {
+    } else if (other instanceof LiteSphereColliderShape) {
       const sphere = this._getWorldSphere(other);
       return intersectSphere2Sphere(sphere, this._sphere);
     }
@@ -184,29 +201,12 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   //----------------raycast-----------------------------------------------------
   /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
-   * @returns Returns true if the ray intersects with a Collider, otherwise false.
+   * {@inheritDoc IPhysicsManager.raycast }
    */
-  raycast(ray: Ray, distance: number, queryFlag: QueryFlag): Boolean;
-
-  /**
-   * Casts a ray through the Scene and returns the first hit.
-   * @param ray - The ray
-   * @param distance - The max distance the ray should check
-   * @param queryFlag - Flag that is used to selectively ignore Colliders when casting
-   * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
-   * @returns Returns true if the ray intersects with a Collider, otherwise false.
-   */
-  raycast(ray: Ray, distance: number, queryFlag: QueryFlag, outHitResult: Function): Boolean;
-
   raycast(
     ray: Ray,
     distance: number,
-    queryFlag: QueryFlag,
-    hit?: (id: number, distance: number, position: Vector3, normal: Vector3) => void
+    hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const colliders = this._colliders;
 

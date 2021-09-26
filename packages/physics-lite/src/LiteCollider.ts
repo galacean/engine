@@ -1,41 +1,47 @@
 import { ICollider } from "@oasis-engine/design";
 import { Quaternion, Ray, Vector3 } from "@oasis-engine/math";
 import { HitResult } from "./HitResult";
-import { ColliderShape } from "./shape/ColliderShape";
+import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { Transform } from "./Transform";
 
-export abstract class Collider implements ICollider {
+export abstract class LiteCollider implements ICollider {
   /** @internal */
-  _shape: ColliderShape[];
+  _shape: LiteColliderShape[];
   /** @internal */
   _transform: Transform = new Transform();
 
   /**
-   * attach Collider with StaticCollider
-   * @param shape The Collider attached
+   * attach LiteCollider with LiteStaticCollider
+   * @param shape The LiteCollider attached
    * @remark must call after init.
    */
-  addShape(shape: ColliderShape): void {
+  addShape(shape: LiteColliderShape): void {
     shape._parent = this;
     this._shape.push(shape);
   }
 
-  removeShape(shape: ColliderShape): void {
+  removeShape(shape: LiteColliderShape): void {
     let removeID = this._shape.findIndex((value) => {
       return value == shape;
     });
     this._shape.splice(removeID, 1);
   }
 
-  setGlobalPose(position: Vector3, rotation: Quaternion) {
+  /**
+   * {@inheritDoc ICollider.setWorldTransform }
+   */
+  setWorldTransform(position: Vector3, rotation: Quaternion): void {
     this._transform.setPosition(position.x, position.y, position.z);
     this._transform.setRotationQuaternion(rotation.x, rotation.y, rotation.z, rotation.w);
   }
 
-  getGlobalPose(translation: Vector3, rotation: Quaternion) {
+  /**
+   * {@inheritDoc ICollider.getWorldTransform }
+   */
+  getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
     const { position, rotationQuaternion } = this._transform;
-    translation.setValue(position.x, position.y, position.z);
-    rotation.setValue(rotationQuaternion.x, rotationQuaternion.y, rotationQuaternion.z, rotationQuaternion.w);
+    outPosition.setValue(position.x, position.y, position.z);
+    outRotation.setValue(rotationQuaternion.x, rotationQuaternion.y, rotationQuaternion.z, rotationQuaternion.w);
   }
 
   /**

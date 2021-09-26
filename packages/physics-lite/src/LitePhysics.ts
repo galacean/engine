@@ -11,21 +11,24 @@ import {
 } from "@oasis-engine/design";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { StaticCollider } from "./StaticCollider";
-import { PhysicsMaterial } from "./PhysicsMaterial";
-import { BoxColliderShape } from "./shape/BoxColliderShape";
+import { LiteStaticCollider } from "./LiteStaticCollider";
+import { LitePhysicsMaterial } from "./LitePhysicsMaterial";
+import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LitePhysicsManager } from "./LitePhysicsManager";
-import { SphereColliderShape } from "./shape/SphereColliderShape";
+import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 
 @StaticInterfaceImplement<IPhysics>()
 export class LitePhysics {
+  /**
+   * {@inheritDoc IPhysics.createPhysicsManager }
+   */
   static createPhysicsManager(
-    onContactBegin?: Function,
-    onContactEnd?: Function,
-    onContactPersist?: Function,
-    onTriggerBegin?: Function,
-    onTriggerEnd?: Function,
-    onTriggerPersist?: Function
+    onContactBegin?: (obj1: number, obj2: number) => void,
+    onContactEnd?: (obj1: number, obj2: number) => void,
+    onContactPersist?: (obj1: number, obj2: number) => void,
+    onTriggerBegin?: (obj1: number, obj2: number) => void,
+    onTriggerEnd?: (obj1: number, obj2: number) => void,
+    onTriggerPersist?: (obj1: number, obj2: number) => void
   ): IPhysicsManager {
     return new LitePhysicsManager(
       onContactBegin,
@@ -37,14 +40,23 @@ export class LitePhysics {
     );
   }
 
+  /**
+   * {@inheritDoc IPhysics.createStaticCollider }
+   */
   static createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider {
-    return new StaticCollider(position, rotation);
+    return new LiteStaticCollider(position, rotation);
   }
 
+  /**
+   * {@inheritDoc IPhysics.createDynamicCollider }
+   */
   static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
     throw "Not Implemented";
   }
 
+  /**
+   * {@inheritDoc IPhysics.createPhysicsMaterial }
+   */
   static createPhysicsMaterial(
     staticFriction: number,
     dynamicFriction: number,
@@ -52,45 +64,38 @@ export class LitePhysics {
     frictionCombine: number,
     bounceCombine: number
   ): IPhysicsMaterial {
-    return new PhysicsMaterial(staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine);
+    return new LitePhysicsMaterial(staticFriction, dynamicFriction, bounciness, frictionCombine, bounceCombine);
   }
 
-  static createBoxColliderShape(
-    index: number,
-    extents: Vector3,
-    material: PhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ): IBoxColliderShape {
-    return new BoxColliderShape(index, extents, material, position, rotation);
+  /**
+   * {@inheritDoc IPhysics.createBoxColliderShape }
+   */
+  static createBoxColliderShape(uniqueID: number, size: Vector3, material: LitePhysicsMaterial): IBoxColliderShape {
+    return new LiteBoxColliderShape(uniqueID, size, material);
   }
 
-  static createSphereColliderShape(
-    index: number,
-    radius: number,
-    material: PhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ): ISphereColliderShape {
-    return new SphereColliderShape(index, radius, material, position, rotation);
+  /**
+   * {@inheritDoc IPhysics.createSphereColliderShape }
+   */
+  static createSphereColliderShape(uniqueID: number, radius: number, material: LitePhysicsMaterial): ISphereColliderShape {
+    return new LiteSphereColliderShape(uniqueID, radius, material);
   }
 
-  static createPlaneColliderShape(
-    index: number,
-    material: PhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
-  ): IPlaneColliderShape {
+  /**
+   * {@inheritDoc IPhysics.createPlaneColliderShape }
+   */
+  static createPlaneColliderShape(uniqueID: number, material: LitePhysicsMaterial): IPlaneColliderShape {
     throw "Not Implemented";
   }
 
+  /**
+   * {@inheritDoc IPhysics.createCapsuleColliderShape }
+   */
   static createCapsuleColliderShape(
-    index: number,
+    uniqueID: number,
     radius: number,
     height: number,
-    material: PhysicsMaterial,
-    position: Vector3,
-    rotation: Quaternion
+    material: LitePhysicsMaterial
   ): ICapsuleColliderShape {
     throw "Not Implemented";
   }
