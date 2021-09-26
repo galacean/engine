@@ -12,13 +12,14 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _id: number;
   /** @internal */
-  _invModelMatrix: Matrix = new Matrix();
-  /** @internal */
-  _inverseWorldMatFlag: UpdateFlag;
-  /** @internal */
   _parent: LiteCollider;
   /** @internal */
   _transform: Transform = new Transform();
+
+  /** @internal */
+  _invModelMatrix: Matrix = new Matrix();
+  /** @internal */
+  _inverseWorldMatFlag: UpdateFlag;
 
   /**
    * {@inheritDoc IColliderShape.setPosition }
@@ -36,7 +37,7 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(material: IPhysicsMaterial): void {
-    // TODO: Support Material
+    throw "Not Support Material";
   }
 
   /**
@@ -50,14 +51,14 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setIsTrigger }
    */
   setIsTrigger(value: boolean) {
-    // TODO: Support Trigger Flag
+    throw "Not Support Trigger Flag";
   }
 
   /**
    * {@inheritDoc IColliderShape.setIsSceneQuery }
    */
   setIsSceneQuery(value: boolean) {
-    // TODO: Support Scene Query Flag
+    throw "Not Support Scene Query Flag";
   }
 
   getInvModelMatrix(): Matrix {

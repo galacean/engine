@@ -6,15 +6,12 @@ import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
 /** LitePhysics Shape for Box */
 export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColliderShape {
-  private static _tempVec3: Vector3 = new Vector3();
   private static _tempBox: BoundingBox = new BoundingBox();
+  private static _tempHalfExtents = new Vector3();
+  private _halfSize: Vector3 = new Vector3();
 
-  private _size: Vector3 = new Vector3();
-
-  public boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
-  public boxMax: Vector3 = new Vector3(0.5, 0.5, 0.5);
-  private _center: Vector3 = new Vector3();
-  private _cornerFlag: boolean = false;
+  private _boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
+  private _boxMax: Vector3 = new Vector3(0.5, 0.5, 0.5);
 
   /**
    * init Box Shape and alloc PhysX objects.
@@ -25,40 +22,33 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   constructor(uniqueID: number, size: Vector3, material: LitePhysicsMaterial) {
     super();
-    this.setSize(size);
     this._id = uniqueID;
+    this._halfSize.setValue(size.x * 0.5, size.y * 0.5, size.z * 0.5);
+    this.setBondingBox();
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.setPosition }
+   */
+  setPosition(position: Vector3): void {
+    super.setPosition(position);
+    this.setBondingBox();
+  }
+
+  /**
+   * {@inheritDoc IColliderShape.setWorldScale }
+   */
+  setWorldScale(scale: Vector3): void {
+    this._transform.setScale(scale.x, scale.y, scale.z);
+    this.setBondingBox();
   }
 
   /**
    * {@inheritDoc IBoxColliderShape.setSize }
    */
   setSize(value: Vector3): void {
-    this._size = value;
-    this.setBoxCenterSize(this._center, this._size);
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setWorldScale }
-   */
-  setWorldScale(scale: Vector3): void {}
-
-  /**
-   * Set box from the center point and the size of the bounding box.
-   * @param center - The center point
-   * @param size - The size of the bounding box
-   */
-  setBoxCenterSize(center: Vector3, size: Vector3) {
-    const halfSize = LiteBoxColliderShape._tempVec3;
-    Vector3.scale(size, 0.5, halfSize);
-    Vector3.add(center, halfSize, this.boxMax);
-    Vector3.subtract(center, halfSize, this.boxMin);
-
-    this._cornerFlag = true;
-  }
-
-  setCenter(value: Vector3) {
-    this._center = value;
-    this.setBoxCenterSize(this._center, this._size);
+    this._halfSize.setValue(value.x * 0.5, value.y * 0.5, value.z * 0.5);
+    this.setBondingBox();
   }
 
   /**
@@ -68,14 +58,24 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     const localRay = this._getLocalRay(ray);
 
     const boundingBox = LiteBoxColliderShape._tempBox;
-    this.boxMin.cloneTo(boundingBox.min);
-    this.boxMax.cloneTo(boundingBox.max);
+    this._boxMin.cloneTo(boundingBox.min);
+    this._boxMax.cloneTo(boundingBox.max);
     const intersect = localRay.intersectBox(boundingBox);
     if (intersect !== -1) {
       this._updateHitResult(localRay, intersect, hit, ray.origin);
       return true;
     } else {
       return false;
-    } // end of else
+    }
+  }
+
+  private setBondingBox() {
+    const { position: center, scale } = this._transform;
+    const halfSize = this._halfSize;
+
+    const extents = LiteBoxColliderShape._tempHalfExtents;
+    extents.setValue(scale.x * halfSize.x, scale.y * halfSize.y, scale.z * halfSize.z);
+    Vector3.add(center, extents, this._boxMax);
+    Vector3.subtract(center, extents, this._boxMin);
   }
 }

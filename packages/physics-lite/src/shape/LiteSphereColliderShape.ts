@@ -9,6 +9,7 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   private static _tempSphere: BoundingSphere = new BoundingSphere();
 
   private _radius: number = 1;
+  private _maxScale: number = 1;
 
   /**
    * init LiteCollider and alloc PhysX objects.
@@ -19,7 +20,7 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
    */
   constructor(index: number, radius: number, material: LitePhysicsMaterial) {
     super();
-    this.setRadius(radius);
+    this._radius = radius;
     this._id = index;
   }
 
@@ -33,7 +34,9 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {}
+  setWorldScale(scale: Vector3): void {
+    this._maxScale = Math.max(scale.x, Math.max(scale.x, scale.y));
+  }
 
   /**
    * @internal
@@ -42,8 +45,8 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
     const transform = this._transform;
     const boundingSphere = LiteSphereColliderShape._tempSphere;
     Vector3.transformCoordinate(this._transform.position, transform.worldMatrix, boundingSphere.center);
-    const lossyScale = transform.lossyWorldScale;
-    boundingSphere.radius = this._radius * Math.max(lossyScale.x, lossyScale.y, lossyScale.z);
+    LiteSphereColliderShape._tempSphere.radius = this._radius * this._maxScale;
+
     const intersect = ray.intersectSphere(boundingSphere);
     if (intersect !== -1) {
       this._updateHitResult(ray, intersect, hit, ray.origin, true);
