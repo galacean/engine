@@ -35,7 +35,7 @@ reflectedLight.indirectSpecular += radiance * envBRDFApprox(material.specularCol
 // Emissive
 vec3 emissiveRadiance = u_emissiveColor;
 #ifdef HAS_EMISSIVEMAP
-    emissiveRadiance *= texture2D(u_emissiveSampler, v_uv).rgb;
+    emissiveRadiance *= gammaToLinear(texture2D(u_emissiveSampler, v_uv)).rgb;
 #endif
 
 // Total
@@ -45,4 +45,4 @@ vec3 totalRadiance =    reflectedLight.directDiffuse +
                         reflectedLight.indirectSpecular + 
                         emissiveRadiance;
 
-gl_FragColor = vec4(totalRadiance, u_baseColor.a);
+gl_FragColor = linearToGamma (vec4(totalRadiance, u_baseColor.a));

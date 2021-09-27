@@ -49,8 +49,6 @@ import noise_simplex_3D from "./noise_simplex_3D.glsl";
 import noise_simplex_4D from "./noise_simplex_4D.glsl";
 import noise_simplex from "./noise_simplex.glsl";
 
-import gamma_frag from "./gamma_frag.glsl";
-
 import PBRShaderLib from "./pbr";
 
 import normal_get from "./normal_get.glsl";
@@ -106,8 +104,6 @@ export const ShaderLib = {
   noise_simplex_3D,
   noise_simplex_4D,
   noise_simplex,
-
-  gamma_frag,
 
   ...PBRShaderLib,
   normal_get

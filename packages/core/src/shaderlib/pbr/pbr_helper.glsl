@@ -1,26 +1,25 @@
 #include <normal_get>
 
-vec4 SRGBtoLINEAR(vec4 srgbIn)
-{
-    return vec4( pow(srgbIn.xyz, vec3(2.2)), srgbIn.w);;
-}
 
 float pow2(float x ) {
     return x * x;
 }
 
+vec4 gammaToLinear(vec4 srgbIn){
+    return vec4( pow(srgbIn.rgb, vec3(2.2)), srgbIn.a);
+}
+
+vec4 linearToGamma(vec4 linearIn){
+    return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
+}
 
 vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor ) {
-
 	return RECIPROCAL_PI * diffuseColor;
-
 }
 
 
 float computeSpecularOcclusion(float ambientOcclusion, float roughness, float dotNV ) {
-
     return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
-
 }
 
 PhysicalMaterial getPhysicalMaterial(
@@ -34,7 +33,7 @@ PhysicalMaterial getPhysicalMaterial(
         PhysicalMaterial material;
 
         #ifdef HAS_BASECOLORMAP
-            diffuseColor *= texture2D( u_baseColorSampler, v_uv );;
+            diffuseColor *= gammaToLinear(texture2D(u_baseColorSampler, v_uv));
         #endif
 
         #ifdef O3_HAS_VERTEXCOLOR
