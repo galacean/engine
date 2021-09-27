@@ -6,6 +6,7 @@ import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { intersectBox2Box, intersectSphere2Box, intersectSphere2Sphere } from "./intersect";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
+import { DisorderedArray } from "./DisorderedArray";
 
 /** A scene is a collection of bodies and constraints which can interact. */
 export class LitePhysicsManager implements IPhysicsManager {
@@ -14,33 +15,35 @@ export class LitePhysicsManager implements IPhysicsManager {
   private static _currentHit: HitResult = new HitResult();
   private static _hitResult: HitResult = new HitResult();
 
-  private _overlappedColliderShape: LiteColliderShape;
-  private _sphere;
+  private _colliders: LiteCollider[];
+  private _sphere?: BoundingSphere;
   private _box: BoundingBox = new BoundingBox();
 
-  _colliders: LiteCollider[];
+  private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
+  private readonly _onContactExit?: (obj1: number, obj2: number) => void;
+  private readonly _onContactStay?: (obj1: number, obj2: number) => void;
+  private readonly _onTriggerEnter?: (obj1: number, obj2: number) => void;
+  private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
+  private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
 
-  onContactBegin?: (obj1: number, obj2: number) => void;
-  onContactEnd?: (obj1: number, obj2: number) => void;
-  onContactPersist?: (obj1: number, obj2: number) => void;
-  onTriggerBegin?: (obj1: number, obj2: number) => void;
-  onTriggerEnd?: (obj1: number, obj2: number) => void;
-  onTriggerPersist?: (obj1: number, obj2: number) => void;
+  private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
+  private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
+  private _eventPool: TriggerEvent[] = [];
 
   constructor(
-    onContactBegin?: (obj1: number, obj2: number) => void,
-    onContactEnd?: (obj1: number, obj2: number) => void,
-    onContactPersist?: (obj1: number, obj2: number) => void,
-    onTriggerBegin?: (obj1: number, obj2: number) => void,
-    onTriggerEnd?: (obj1: number, obj2: number) => void,
-    onTriggerPersist?: (obj1: number, obj2: number) => void
+    onContactEnter?: (obj1: number, obj2: number) => void,
+    onContactExit?: (obj1: number, obj2: number) => void,
+    onContactStay?: (obj1: number, obj2: number) => void,
+    onTriggerEnter?: (obj1: number, obj2: number) => void,
+    onTriggerExit?: (obj1: number, obj2: number) => void,
+    onTriggerStay?: (obj1: number, obj2: number) => void
   ) {
-    this.onContactBegin = onContactBegin;
-    this.onContactEnd = onContactEnd;
-    this.onContactPersist = onContactPersist;
-    this.onTriggerBegin = onTriggerBegin;
-    this.onTriggerEnd = onTriggerEnd;
-    this.onTriggerPersist = onTriggerPersist;
+    this._onContactEnter = onContactEnter;
+    this._onContactExit = onContactExit;
+    this._onContactStay = onContactStay;
+    this._onTriggerEnter = onTriggerEnter;
+    this._onTriggerExit = onTriggerExit;
+    this._onTriggerStay = onTriggerStay;
   }
 
   /**
@@ -53,12 +56,16 @@ export class LitePhysicsManager implements IPhysicsManager {
   /**
    * {@inheritDoc IPhysicsManager.addColliderShape }
    */
-  addColliderShape(colliderShape: LiteColliderShape): void {}
+  addColliderShape(colliderShape: LiteColliderShape): void {
+    this._eventMap[colliderShape._id] = {};
+  }
 
   /**
    * {@inheritDoc IPhysicsManager.removeColliderShape }
    */
-  removeColliderShape(colliderShape: LiteColliderShape): void {}
+  removeColliderShape(colliderShape: LiteColliderShape): void {
+    delete this._eventMap[colliderShape._id];
+  }
 
   /**
    * {@inheritDoc IPhysicsManager.addCollider }
@@ -71,123 +78,23 @@ export class LitePhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeCollider }
    */
   removeCollider(collider: LiteCollider): void {
-    let removeID = this._colliders.findIndex((value) => {
-      return value == collider;
-    });
-    this._colliders.splice(removeID, 1);
+    const index = this._colliders.indexOf(collider);
+    if (index !== -1) {
+      this._colliders.splice(index, 1);
+    }
   }
 
   /**
-   * call on every frame to update pose of objects
+   * {@inheritDoc IPhysicsManager.update }
    */
   update(deltaTime: number): void {
     let colliders = this._colliders;
     for (let i = 0, len = colliders.length; i < len; i++) {
-      this.collisionDetection(deltaTime, colliders[i]);
+      this._collisionDetection(deltaTime, colliders[i]);
     }
+    this._fireEvent();
   }
 
-  collisionDetection(deltaTime: number, myCollider: LiteCollider): void {
-    let overlappedColliderShape: LiteColliderShape = null;
-    const colliders = this._colliders;
-
-    for (let i = 0, len = myCollider._shapes.length; i < len; i++) {
-      const myShape = myCollider._shapes[i];
-      if (myShape instanceof LiteBoxColliderShape) {
-        this._updateWorldBox(myShape, this._box);
-        for (let i = 0, len = colliders.length; i < len; i++) {
-          const collider = colliders[i];
-          for (let i = 0, len = collider._shapes.length; i < len; i++) {
-            const shape = collider._shapes[i];
-            if (shape != myShape && this._boxCollision(shape)) {
-              overlappedColliderShape = shape;
-              this.onTriggerPersist(myShape._id, shape._id);
-            }
-          }
-        } // end of for
-      } else if (myShape instanceof LiteSphereColliderShape) {
-        this._sphere = this._getWorldSphere(myShape);
-        for (let i = 0, len = colliders.length; i < len; i++) {
-          const collider = colliders[i];
-          for (let i = 0, len = collider._shapes.length; i < len; i++) {
-            const shape = collider._shapes[i];
-            if (shape != myShape && this._sphereCollision(shape)) {
-              overlappedColliderShape = shape;
-              this.onTriggerPersist(myShape._id, shape._id);
-            }
-          }
-        } // end of for
-      }
-
-      //-- overlap events
-      if (overlappedColliderShape != null && this._overlappedColliderShape != overlappedColliderShape) {
-        this.onTriggerBegin(this._overlappedColliderShape._id, overlappedColliderShape._id);
-      }
-
-      if (this._overlappedColliderShape != null && this._overlappedColliderShape != overlappedColliderShape) {
-        this.onTriggerEnd(overlappedColliderShape._id, this._overlappedColliderShape._id);
-      }
-
-      this._overlappedColliderShape = overlappedColliderShape;
-    }
-  }
-
-  /**
-   * Calculate the boundingbox in world space from boxCollider.
-   * @param boxCollider - The boxCollider to calculate
-   * @param out - The calculated boundingBox
-   */
-  _updateWorldBox(boxCollider, out: BoundingBox): void {
-    const mat = boxCollider.entity.transform.worldMatrix;
-    const source = LitePhysicsManager._tempBox1;
-    boxCollider.boxMax.cloneTo(source.max);
-    boxCollider.boxMin.cloneTo(source.min);
-    BoundingBox.transform(source, mat, out);
-  }
-
-  /**
-   * Get the sphere info of the given sphere collider in world space.
-   * @param sphereCollider - The given sphere collider
-   */
-  _getWorldSphere(sphereCollider: LiteSphereColliderShape): BoundingSphere {
-    const center: Vector3 = new Vector3();
-    Vector3.transformCoordinate(sphereCollider._transform.position, sphereCollider._transform.worldMatrix, center);
-    return new BoundingSphere(center, sphereCollider.radius);
-  }
-
-  /**
-   * LiteCollider and another collider do collision detection.
-   * @param other - The another collider to collision detection
-   */
-  _boxCollision(other: LiteColliderShape): boolean {
-    if (other instanceof LiteBoxColliderShape) {
-      const box = LitePhysicsManager._tempBox2;
-      this._updateWorldBox(other, box);
-      return intersectBox2Box(box, this._box);
-    } else if (other instanceof LiteSphereColliderShape) {
-      const sphere = this._getWorldSphere(other);
-      return intersectSphere2Box(sphere, this._box);
-    }
-    return false;
-  }
-
-  /**
-   * LiteCollider and another collider do collision detection.
-   * @param other - The another collider to collision detection
-   */
-  _sphereCollision(other: LiteColliderShape): boolean {
-    if (other instanceof LiteBoxColliderShape) {
-      const box = LitePhysicsManager._tempBox2;
-      this._updateWorldBox(other, box);
-      return intersectSphere2Box(this._sphere, box);
-    } else if (other instanceof LiteSphereColliderShape) {
-      const sphere = this._getWorldSphere(other);
-      return intersectSphere2Sphere(sphere, this._sphere);
-    }
-    return false;
-  }
-
-  //----------------raycast-----------------------------------------------------
   /**
    * {@inheritDoc IPhysicsManager.raycast }
    */
@@ -233,5 +140,175 @@ export class LitePhysicsManager implements IPhysicsManager {
       hit(hitResult.shapeID, hitResult.distance, hitResult.point, hitResult.normal);
     }
     return isHit;
+  }
+
+  /**
+   * Calculate the boundingbox in world space from boxCollider.
+   * @param boxCollider - The boxCollider to calculate
+   * @param out - The calculated boundingBox
+   */
+  private static _updateWorldBox(boxCollider, out: BoundingBox): void {
+    const mat = boxCollider.entity.transform.worldMatrix;
+    const source = LitePhysicsManager._tempBox1;
+    boxCollider.boxMax.cloneTo(source.max);
+    boxCollider.boxMin.cloneTo(source.min);
+    BoundingBox.transform(source, mat, out);
+  }
+
+  /**
+   * Get the sphere info of the given sphere collider in world space.
+   * @param sphereCollider - The given sphere collider
+   */
+  private static _getWorldSphere(sphereCollider: LiteSphereColliderShape): BoundingSphere {
+    const center: Vector3 = new Vector3();
+    Vector3.transformCoordinate(sphereCollider._transform.position, sphereCollider._transform.worldMatrix, center);
+    return new BoundingSphere(center, sphereCollider.radius);
+  }
+
+  private _getTrigger(index1: number, index2: number): TriggerEvent {
+    const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    this._eventMap[index1][index2] = event;
+    return event;
+  }
+
+  private _collisionDetection(deltaTime: number, myCollider: LiteCollider): void {
+    const colliders = this._colliders;
+
+    const myColliderShapes = myCollider._shapes;
+    for (let i = 0, len = myColliderShapes.length; i < len; i++) {
+      const myShape = myColliderShapes[i];
+      if (myShape instanceof LiteBoxColliderShape) {
+        LitePhysicsManager._updateWorldBox(myShape, this._box);
+        for (let i = 0, len = colliders.length; i < len; i++) {
+          const colliderShape = colliders[i]._shapes;
+          for (let i = 0, len = colliderShape.length; i < len; i++) {
+            const shape = colliderShape[i];
+            if (shape != myShape && this._boxCollision(shape)) {
+              const index1 = shape._id;
+              const index2 = myShape._id;
+              const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
+              if (event !== undefined && !event.needUpdate) {
+                continue;
+              }
+
+              if (event === undefined) {
+                const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
+                event.state = TriggerEventState.Enter;
+                this._currentEvents.add(event);
+              } else {
+                if (event.state === TriggerEventState.Enter) {
+                  event.state = TriggerEventState.Stay;
+                  event.needUpdate = false;
+                }
+              }
+            }
+          }
+        }
+      } else if (myShape instanceof LiteSphereColliderShape) {
+        this._sphere = LitePhysicsManager._getWorldSphere(myShape);
+        for (let i = 0, len = colliders.length; i < len; i++) {
+          const colliderShape = colliders[i]._shapes;
+          for (let i = 0, len = colliderShape.length; i < len; i++) {
+            const shape = colliderShape[i];
+            if (shape != myShape && this._sphereCollision(shape)) {
+              const index1 = shape._id;
+              const index2 = myShape._id;
+              const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
+              if (event !== undefined && !event.needUpdate) {
+                continue;
+              }
+
+              if (event === undefined) {
+                const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
+                event.state = TriggerEventState.Enter;
+                this._currentEvents.add(event);
+              } else {
+                if (event.state === TriggerEventState.Enter) {
+                  event.state = TriggerEventState.Stay;
+                  event.needUpdate = false;
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  private _fireEvent(): void {
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    for (let i = 0, n = currentEvents.length; i < n; ) {
+      const event = currentEvents.get(i);
+      if (event.state == TriggerEventState.Enter) {
+        this._onTriggerEnter(event.index1, event.index2);
+        event.needUpdate = true;
+        i++;
+      } else if (event.state == TriggerEventState.Stay) {
+        this._onTriggerStay(event.index1, event.index2);
+        event.needUpdate = true;
+        i++;
+      } else if (event.needUpdate) {
+        this._onTriggerExit(event.index1, event.index2);
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+        n--;
+      }
+    }
+  }
+
+  /**
+   * LiteCollider and another collider do collision detection.
+   * @param other - The another collider to collision detection
+   */
+  private _boxCollision(other: LiteColliderShape): boolean {
+    if (other instanceof LiteBoxColliderShape) {
+      const box = LitePhysicsManager._tempBox2;
+      LitePhysicsManager._updateWorldBox(other, box);
+      return intersectBox2Box(box, this._box);
+    } else if (other instanceof LiteSphereColliderShape) {
+      const sphere = LitePhysicsManager._getWorldSphere(other);
+      return intersectSphere2Box(sphere, this._box);
+    }
+    return false;
+  }
+
+  /**
+   * LiteCollider and another collider do collision detection.
+   * @param other - The another collider to collision detection
+   */
+  private _sphereCollision(other: LiteColliderShape): boolean {
+    if (other instanceof LiteBoxColliderShape) {
+      const box = LitePhysicsManager._tempBox2;
+      LitePhysicsManager._updateWorldBox(other, box);
+      return intersectSphere2Box(this._sphere, box);
+    } else if (other instanceof LiteSphereColliderShape) {
+      const sphere = LitePhysicsManager._getWorldSphere(other);
+      return intersectSphere2Sphere(sphere, this._sphere);
+    }
+    return false;
+  }
+}
+
+/**
+ * Physics state
+ */
+enum TriggerEventState {
+  Enter,
+  Stay,
+  Exit
+}
+
+/**
+ * Trigger event to store interactive object ids and state.
+ */
+class TriggerEvent {
+  state: TriggerEventState;
+  index1: number;
+  index2: number;
+  needUpdate: boolean = false;
+
+  constructor(index1: number, index2: number) {
+    this.index1 = index1;
+    this.index2 = index2;
   }
 }

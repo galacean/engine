@@ -11,9 +11,7 @@ export abstract class LiteCollider implements ICollider {
   _transform: Transform = new Transform();
 
   /**
-   * attach LiteCollider with LiteStaticCollider
-   * @param shape The LiteCollider attached
-   * @remark must call after init.
+   * {@inheritDoc ICollider.addShape }
    */
   addShape(shape: LiteColliderShape): void {
     const oldCollider = shape._collider;
@@ -26,6 +24,9 @@ export abstract class LiteCollider implements ICollider {
     }
   }
 
+  /**
+   * {@inheritDoc ICollider.removeShape }
+   */
   removeShape(shape: LiteColliderShape): void {
     const index = this._shapes.indexOf(shape);
     if (index !== -1) {
