@@ -12,7 +12,7 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _id: number;
   /** @internal */
-  _parent: LiteCollider;
+  _collider: LiteCollider;
   /** @internal */
   _transform: Transform = new Transform();
 

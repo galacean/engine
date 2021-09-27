@@ -91,14 +91,14 @@ export class LitePhysicsManager implements IPhysicsManager {
     let overlappedColliderShape: LiteColliderShape = null;
     const colliders = this._colliders;
 
-    for (let i = 0, len = myCollider._shape.length; i < len; i++) {
-      const myShape = myCollider._shape[i];
+    for (let i = 0, len = myCollider._shapes.length; i < len; i++) {
+      const myShape = myCollider._shapes[i];
       if (myShape instanceof LiteBoxColliderShape) {
         this._updateWorldBox(myShape, this._box);
         for (let i = 0, len = colliders.length; i < len; i++) {
           const collider = colliders[i];
-          for (let i = 0, len = collider._shape.length; i < len; i++) {
-            const shape = collider._shape[i];
+          for (let i = 0, len = collider._shapes.length; i < len; i++) {
+            const shape = collider._shapes[i];
             if (shape != myShape && this._boxCollision(shape)) {
               overlappedColliderShape = shape;
               this.onTriggerPersist(myShape._id, shape._id);
@@ -109,8 +109,8 @@ export class LitePhysicsManager implements IPhysicsManager {
         this._sphere = this._getWorldSphere(myShape);
         for (let i = 0, len = colliders.length; i < len; i++) {
           const collider = colliders[i];
-          for (let i = 0, len = collider._shape.length; i < len; i++) {
-            const shape = collider._shape[i];
+          for (let i = 0, len = collider._shapes.length; i < len; i++) {
+            const shape = collider._shapes[i];
             if (shape != myShape && this._sphereCollision(shape)) {
               overlappedColliderShape = shape;
               this.onTriggerPersist(myShape._id, shape._id);

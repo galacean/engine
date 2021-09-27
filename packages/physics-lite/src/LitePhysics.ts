@@ -16,6 +16,7 @@ import { LitePhysicsMaterial } from "./LitePhysicsMaterial";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LitePhysicsManager } from "./LitePhysicsManager";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
+import { LiteDynamicCollider } from "./LiteDynamicCollider";
 
 @StaticInterfaceImplement<IPhysics>()
 export class LitePhysics {
@@ -51,7 +52,7 @@ export class LitePhysics {
    * {@inheritDoc IPhysics.createDynamicCollider }
    */
   static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
-    throw "Not Implemented";
+    return new LiteDynamicCollider(position, rotation);
   }
 
   /**

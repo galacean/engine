@@ -6,7 +6,7 @@ import { Transform } from "./Transform";
 
 export abstract class LiteCollider implements ICollider {
   /** @internal */
-  _shape: LiteColliderShape[];
+  _shapes: LiteColliderShape[];
   /** @internal */
   _transform: Transform = new Transform();
 
@@ -16,15 +16,22 @@ export abstract class LiteCollider implements ICollider {
    * @remark must call after init.
    */
   addShape(shape: LiteColliderShape): void {
-    shape._parent = this;
-    this._shape.push(shape);
+    const oldCollider = shape._collider;
+    if (oldCollider !== this) {
+      if (oldCollider) {
+        oldCollider.removeShape(shape);
+      }
+      this._shapes.push(shape);
+      shape._collider = this;
+    }
   }
 
   removeShape(shape: LiteColliderShape): void {
-    let removeID = this._shape.findIndex((value) => {
-      return value == shape;
-    });
-    this._shape.splice(removeID, 1);
+    const index = this._shapes.indexOf(shape);
+    if (index !== -1) {
+      this._shapes.splice(index, 1);
+      shape._collider = null;
+    }
   }
 
   /**
@@ -48,11 +55,12 @@ export abstract class LiteCollider implements ICollider {
    * @internal
    */
   _raycast(ray: Ray, hit: HitResult): boolean {
-    this._shape.forEach((shape) => {
-      if (shape._raycast(ray, hit)) {
+    const shapes = this._shapes;
+    for (let i = 0, n = shapes.length; i < n; i++) {
+      if (shapes[i]._raycast(ray, hit)) {
         return true;
       }
-    });
+    }
     return false;
   }
 }

@@ -598,7 +598,7 @@ export class Transform {
       return this._parentTransformCache;
     }
     let parentCache: Transform;
-    let parent = this._owner._parent;
+    let parent = this._owner._collider;
     parentCache = parent._transform;
     this._parentTransformCache = parentCache;
     this._isParentDirty = false;
