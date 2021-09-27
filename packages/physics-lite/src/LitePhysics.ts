@@ -77,7 +77,11 @@ export class LitePhysics {
   /**
    * {@inheritDoc IPhysics.createSphereColliderShape }
    */
-  static createSphereColliderShape(uniqueID: number, radius: number, material: LitePhysicsMaterial): ISphereColliderShape {
+  static createSphereColliderShape(
+    uniqueID: number,
+    radius: number,
+    material: LitePhysicsMaterial
+  ): ISphereColliderShape {
     return new LiteSphereColliderShape(uniqueID, radius, material);
   }
 

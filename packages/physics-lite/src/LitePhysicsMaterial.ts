@@ -31,35 +31,35 @@ export class LitePhysicsMaterial implements IPhysicsMaterial {
   /** Sets the coefficient of restitution
    * @param value Coefficient of restitution.
    */
-  setBounciness(value: number) {
+  setBounciness(value: number): void {
     // Todo
   }
 
   /** Sets the coefficient of dynamic friction.
    * @param value Coefficient of dynamic friction.
    */
-  setDynamicFriction(value: number) {
+  setDynamicFriction(value: number): void {
     // Todo
   }
 
   /** Sets the coefficient of static friction
    * @param value Coefficient of static friction.
    */
-  setStaticFriction(value: number) {
+  setStaticFriction(value: number): void {
     // Todo
   }
 
   /** Sets the restitution combine mode.
    * @param value Restitution combine mode for this material.
    */
-  setBounceCombine(value: PhysicsCombineMode) {
+  setBounceCombine(value: PhysicsCombineMode): void {
     // Todo
   }
 
   /** Sets the friction combine mode.
    * @param value Friction combine mode to set for this material.
    */
-  setFrictionCombine(value: PhysicsCombineMode) {
+  setFrictionCombine(value: PhysicsCombineMode): void {
     // Todo
   }
 }

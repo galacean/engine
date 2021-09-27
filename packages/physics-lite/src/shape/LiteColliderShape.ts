@@ -50,14 +50,14 @@ export abstract class LiteColliderShape implements IColliderShape {
   /**
    * {@inheritDoc IColliderShape.setIsTrigger }
    */
-  setIsTrigger(value: boolean) {
+  setIsTrigger(value: boolean): void {
     throw "Not Support Trigger Flag";
   }
 
   /**
    * {@inheritDoc IColliderShape.setIsSceneQuery }
    */
-  setIsSceneQuery(value: boolean) {
+  setIsSceneQuery(value: boolean): void {
     throw "Not Support Scene Query Flag";
   }
 
@@ -69,13 +69,11 @@ export abstract class LiteColliderShape implements IColliderShape {
     return this._invModelMatrix;
   }
 
-  protected _updateHitResult(
-    ray: Ray,
+  protected _updateHitResult(ray: Ray,
     distance: number,
     outHit: HitResult,
     origin: Vector3,
-    isWorldRay: boolean = false
-  ) {
+    isWorldRay: boolean = false): void {
     ray.getPoint(distance, outHit.point);
     if (!isWorldRay) {
       Vector3.transformCoordinate(outHit.point, this._transform.worldMatrix, outHit.point);

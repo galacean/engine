@@ -62,9 +62,9 @@ export class PhysXPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = "http://30.50.24.12:8000/physx.release.js";
+        script.src = "http://30.46.128.37:8000/physx.release.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = "http://30.50.24.12:8000/physx.release.js";
+        script.src = "http://30.46.128.37:8000/physx.release.js";
       }
     });
 

@@ -11,6 +11,10 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   private _radius: number = 1;
   private _maxScale: number = 1;
 
+  get radius(): number {
+    return this._radius;
+  }
+
   /**
    * init LiteCollider and alloc PhysX objects.
    * @param index index mark collider

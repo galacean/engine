@@ -69,7 +69,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     }
   }
 
-  private setBondingBox() {
+  private setBondingBox(): void {
     const { position: center, scale } = this._transform;
     const halfSize = this._halfSize;
 

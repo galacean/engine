@@ -1,20 +1,11 @@
 import { IPhysicsManager } from "@oasis-engine/design";
-import { BoundingBox, Ray, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, BoundingSphere, Ray, Vector3 } from "@oasis-engine/math";
 import { LiteCollider } from "./LiteCollider";
 import { HitResult } from "./HitResult";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { intersectBox2Box, intersectSphere2Box, intersectSphere2Sphere } from "./intersect";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
-import { PhysXColliderShape } from "../../physics-physx/src/shape/PhysXColliderShape";
-
-/** Filtering flags for scene queries. */
-export enum QueryFlag {
-  STATIC = 1 << 0,
-  DYNAMIC = 1 << 1,
-  ANY_HIT = 1 << 4,
-  NO_BLOCK = 1 << 5
-}
 
 /** A scene is a collection of bodies and constraints which can interact. */
 export class LitePhysicsManager implements IPhysicsManager {
@@ -55,24 +46,24 @@ export class LitePhysicsManager implements IPhysicsManager {
   /**
    * {@inheritDoc IPhysicsManager.setGravity }
    */
-  setGravity(value: Vector3) {
+  setGravity(value: Vector3): void {
     throw "unimplemented";
   }
 
   /**
    * {@inheritDoc IPhysicsManager.addColliderShape }
    */
-  addColliderShape(colliderShape: PhysXColliderShape) {}
+  addColliderShape(colliderShape: LiteColliderShape): void {}
 
   /**
    * {@inheritDoc IPhysicsManager.removeColliderShape }
    */
-  removeColliderShape(colliderShape: PhysXColliderShape) {}
+  removeColliderShape(colliderShape: LiteColliderShape): void {}
 
   /**
    * {@inheritDoc IPhysicsManager.addCollider }
    */
-  addCollider(actor: LiteCollider) {
+  addCollider(actor: LiteCollider): void {
     this._colliders.push(actor);
   }
 
@@ -89,14 +80,14 @@ export class LitePhysicsManager implements IPhysicsManager {
   /**
    * call on every frame to update pose of objects
    */
-  update(deltaTime: number) {
+  update(deltaTime: number): void {
     let colliders = this._colliders;
     for (let i = 0, len = colliders.length; i < len; i++) {
       this.collisionDetection(deltaTime, colliders[i]);
     }
   }
 
-  collisionDetection(deltaTime: number, myCollider: LiteCollider) {
+  collisionDetection(deltaTime: number, myCollider: LiteCollider): void {
     let overlappedColliderShape: LiteColliderShape = null;
     const colliders = this._colliders;
 
@@ -120,7 +111,7 @@ export class LitePhysicsManager implements IPhysicsManager {
           const collider = colliders[i];
           for (let i = 0, len = collider._shape.length; i < len; i++) {
             const shape = collider._shape[i];
-            if (shape != myShape && this._sphereCollision(collider)) {
+            if (shape != myShape && this._sphereCollision(shape)) {
               overlappedColliderShape = shape;
               this.onTriggerPersist(myShape._id, shape._id);
             }
@@ -158,20 +149,17 @@ export class LitePhysicsManager implements IPhysicsManager {
    * Get the sphere info of the given sphere collider in world space.
    * @param sphereCollider - The given sphere collider
    */
-  _getWorldSphere(sphereCollider) {
+  _getWorldSphere(sphereCollider: LiteSphereColliderShape): BoundingSphere {
     const center: Vector3 = new Vector3();
-    Vector3.transformCoordinate(sphereCollider.center, sphereCollider.entity.transform.worldMatrix, center);
-    return {
-      radius: sphereCollider.radius,
-      center
-    };
+    Vector3.transformCoordinate(sphereCollider._transform.position, sphereCollider._transform.worldMatrix, center);
+    return new BoundingSphere(center, sphereCollider.radius);
   }
 
   /**
    * LiteCollider and another collider do collision detection.
    * @param other - The another collider to collision detection
    */
-  _boxCollision(other) {
+  _boxCollision(other: LiteColliderShape): boolean {
     if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox2;
       this._updateWorldBox(other, box);
@@ -187,7 +175,7 @@ export class LitePhysicsManager implements IPhysicsManager {
    * LiteCollider and another collider do collision detection.
    * @param other - The another collider to collision detection
    */
-  _sphereCollision(other) {
+  _sphereCollision(other: LiteColliderShape): boolean {
     if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox2;
       this._updateWorldBox(other, box);
