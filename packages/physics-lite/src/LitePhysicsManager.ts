@@ -52,7 +52,7 @@ export class LitePhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.setGravity }
    */
   setGravity(value: Vector3): void {
-    throw "unimplemented";
+    throw "Physics-lite don't support gravity. Use Physics-PhysX instead!";
   }
 
   /**

@@ -90,7 +90,7 @@ export class LitePhysics {
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
   static createPlaneColliderShape(uniqueID: number, material: LitePhysicsMaterial): IPlaneColliderShape {
-    throw "Not Implemented";
+    throw "Physics-lite don't support PlaneColliderShape. Use Physics-PhysX instead!";
   }
 
   /**
@@ -102,6 +102,6 @@ export class LitePhysics {
     height: number,
     material: LitePhysicsMaterial
   ): ICapsuleColliderShape {
-    throw "Not Implemented";
+    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
   }
 }

@@ -28,13 +28,13 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
    * {@inheritDoc IDynamicCollider.addForce }
    */
   addForce(force: Vector3): void {
-    throw "unimplemented";
+    throw "Physics-lite don't support addForce. Use Physics-PhysX instead!";
   }
 
   /**
    * {@inheritDoc IDynamicCollider.addTorque }
    */
   addTorque(torque: Vector3): void {
-    throw "unimplemented";
+    throw "Physics-lite don't support addTorque. Use Physics-PhysX instead!";
   }
 }

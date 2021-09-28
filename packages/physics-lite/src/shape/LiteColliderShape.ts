@@ -43,7 +43,7 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(material: IPhysicsMaterial): void {
-    throw "Not Support Material";
+    throw "Physics-lite don't support setMaterial. Use Physics-PhysX instead!";
   }
 
   /**
@@ -57,14 +57,14 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setIsTrigger }
    */
   setIsTrigger(value: boolean): void {
-    throw "Not Support Trigger Flag";
+    throw "Physics-lite don't support setIsTrigger. Use Physics-PhysX instead!";
   }
 
   /**
    * {@inheritDoc IColliderShape.setIsSceneQuery }
    */
   setIsSceneQuery(value: boolean): void {
-    throw "Not Support Scene Query Flag";
+    throw "Physics-lite don't support setIsSceneQuery. Use Physics-PhysX instead!";
   }
 
   /**
