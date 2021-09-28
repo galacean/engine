@@ -10,8 +10,8 @@ import { DisorderedArray } from "./DisorderedArray";
 
 /** A scene is a collection of bodies and constraints which can interact. */
 export class LitePhysicsManager implements IPhysicsManager {
-  private static _tempBox1: BoundingBox = new BoundingBox();
-  private static _tempBox2: BoundingBox = new BoundingBox();
+  private static _tempSphere: BoundingSphere = new BoundingSphere();
+  private static _tempBox: BoundingBox = new BoundingBox();
   private static _currentHit: HitResult = new HitResult();
   private static _hitResult: HitResult = new HitResult();
 
@@ -23,7 +23,7 @@ export class LitePhysicsManager implements IPhysicsManager {
   private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
 
   private _colliders: LiteCollider[] = [];
-  private _sphere?: BoundingSphere;
+  private _sphere: BoundingSphere = new BoundingSphere();
   private _box: BoundingBox = new BoundingBox();
 
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
@@ -149,20 +149,19 @@ export class LitePhysicsManager implements IPhysicsManager {
    */
   private static _updateWorldBox(boxCollider: LiteBoxColliderShape, out: BoundingBox): void {
     const mat = boxCollider._transform.worldMatrix;
-    const source = LitePhysicsManager._tempBox1;
-    boxCollider._boxMax.cloneTo(source.max);
-    boxCollider._boxMin.cloneTo(source.min);
-    BoundingBox.transform(source, mat, out);
+    boxCollider._boxMax.cloneTo(out.max);
+    boxCollider._boxMin.cloneTo(out.min);
+    BoundingBox.transform(out, mat, out);
   }
 
   /**
    * Get the sphere info of the given sphere collider in world space.
    * @param sphereCollider - The given sphere collider
+   * @param out - The calculated boundingSphere
    */
-  private static _getWorldSphere(sphereCollider: LiteSphereColliderShape): BoundingSphere {
-    const center: Vector3 = new Vector3();
-    Vector3.transformCoordinate(sphereCollider._transform.position, sphereCollider._transform.worldMatrix, center);
-    return new BoundingSphere(center, sphereCollider.radius);
+  private static _upWorldSphere(sphereCollider: LiteSphereColliderShape, out: BoundingSphere): void {
+    Vector3.transformCoordinate(sphereCollider._transform.position, sphereCollider._transform.worldMatrix, out.center);
+    out.radius = sphereCollider.radius;
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
@@ -205,7 +204,7 @@ export class LitePhysicsManager implements IPhysicsManager {
           }
         }
       } else if (myShape instanceof LiteSphereColliderShape) {
-        this._sphere = LitePhysicsManager._getWorldSphere(myShape);
+        LitePhysicsManager._upWorldSphere(myShape, this._sphere);
         for (let i = 0, len = colliders.length; i < len; i++) {
           const colliderShape = colliders[i]._shapes;
           for (let i = 0, len = colliderShape.length; i < len; i++) {
@@ -268,11 +267,12 @@ export class LitePhysicsManager implements IPhysicsManager {
    */
   private _boxCollision(other: LiteColliderShape): boolean {
     if (other instanceof LiteBoxColliderShape) {
-      const box = LitePhysicsManager._tempBox2;
+      const box = LitePhysicsManager._tempBox;
       LitePhysicsManager._updateWorldBox(other, box);
       return intersectBox2Box(box, this._box);
     } else if (other instanceof LiteSphereColliderShape) {
-      const sphere = LitePhysicsManager._getWorldSphere(other);
+      const sphere = LitePhysicsManager._tempSphere;
+      LitePhysicsManager._upWorldSphere(other, sphere);
       return intersectSphere2Box(sphere, this._box);
     }
     return false;
@@ -284,11 +284,12 @@ export class LitePhysicsManager implements IPhysicsManager {
    */
   private _sphereCollision(other: LiteColliderShape): boolean {
     if (other instanceof LiteBoxColliderShape) {
-      const box = LitePhysicsManager._tempBox2;
+      const box = LitePhysicsManager._tempBox;
       LitePhysicsManager._updateWorldBox(other, box);
       return intersectSphere2Box(this._sphere, box);
     } else if (other instanceof LiteSphereColliderShape) {
-      const sphere = LitePhysicsManager._getWorldSphere(other);
+      const sphere = LitePhysicsManager._tempSphere;
+      LitePhysicsManager._upWorldSphere(other, sphere);
       return intersectSphere2Sphere(sphere, this._sphere);
     }
     return false;
