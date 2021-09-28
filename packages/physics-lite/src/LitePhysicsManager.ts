@@ -15,16 +15,16 @@ export class LitePhysicsManager implements IPhysicsManager {
   private static _currentHit: HitResult = new HitResult();
   private static _hitResult: HitResult = new HitResult();
 
-  private _colliders: LiteCollider[];
-  private _sphere?: BoundingSphere;
-  private _box: BoundingBox = new BoundingBox();
-
   private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
   private readonly _onContactExit?: (obj1: number, obj2: number) => void;
   private readonly _onContactStay?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerEnter?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
+
+  private _colliders: LiteCollider[];
+  private _sphere?: BoundingSphere;
+  private _box: BoundingBox = new BoundingBox();
 
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
   private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
@@ -183,23 +183,20 @@ export class LitePhysicsManager implements IPhysicsManager {
           const colliderShape = colliders[i]._shapes;
           for (let i = 0, len = colliderShape.length; i < len; i++) {
             const shape = colliderShape[i];
+            const index1 = shape._id;
+            const index2 = myShape._id;
+            const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
+            if (event !== undefined && !event.needUpdate) {
+              continue;
+            }
             if (shape != myShape && this._boxCollision(shape)) {
-              const index1 = shape._id;
-              const index2 = myShape._id;
-              const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
-              if (event !== undefined && !event.needUpdate) {
-                continue;
-              }
-
               if (event === undefined) {
                 const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
                 event.state = TriggerEventState.Enter;
                 this._currentEvents.add(event);
-              } else {
-                if (event.state === TriggerEventState.Enter) {
-                  event.state = TriggerEventState.Stay;
-                  event.needUpdate = false;
-                }
+              } else if (event.state === TriggerEventState.Enter) {
+                event.state = TriggerEventState.Stay;
+                event.needUpdate = false;
               }
             }
           }
@@ -210,23 +207,20 @@ export class LitePhysicsManager implements IPhysicsManager {
           const colliderShape = colliders[i]._shapes;
           for (let i = 0, len = colliderShape.length; i < len; i++) {
             const shape = colliderShape[i];
+            const index1 = shape._id;
+            const index2 = myShape._id;
+            const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
+            if (event !== undefined && !event.needUpdate) {
+              continue;
+            }
             if (shape != myShape && this._sphereCollision(shape)) {
-              const index1 = shape._id;
-              const index2 = myShape._id;
-              const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
-              if (event !== undefined && !event.needUpdate) {
-                continue;
-              }
-
               if (event === undefined) {
                 const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
                 event.state = TriggerEventState.Enter;
                 this._currentEvents.add(event);
-              } else {
-                if (event.state === TriggerEventState.Enter) {
-                  event.state = TriggerEventState.Stay;
-                  event.needUpdate = false;
-                }
+              } else if (event.state === TriggerEventState.Enter) {
+                event.state = TriggerEventState.Stay;
+                event.needUpdate = false;
               }
             }
           }
@@ -248,7 +242,11 @@ export class LitePhysicsManager implements IPhysicsManager {
         event.needUpdate = true;
         i++;
       } else if (event.needUpdate) {
+        event.state = TriggerEventState.Exit;
+        this._eventMap[event.index1][event.index2] = undefined;
+
         this._onTriggerExit(event.index1, event.index2);
+
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
         n--;
