@@ -10,31 +10,24 @@ export class Transform {
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempMat42: Matrix = new Matrix();
 
-  // @deepClone
   private _position: Vector3 = new Vector3();
-  // @deepClone
   private _rotation: Vector3 = new Vector3();
-  // @deepClone
   private _rotationQuaternion: Quaternion = new Quaternion();
-  // @deepClone
   private _scale: Vector3 = new Vector3(1, 1, 1);
-  // @deepClone
   private _worldRotationQuaternion: Quaternion = new Quaternion();
-  // @deepClone
   private _localMatrix: Matrix = new Matrix();
-  // @deepClone
   private _worldMatrix: Matrix = new Matrix();
-  // @ignoreClone
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
-  // @ignoreClone
   private _isParentDirty: boolean = true;
-  // @ignoreClone
   private _parentTransformCache: Transform = null;
-
   private _dirtyFlag: number = TransformFlag.WmWpWeWqWs;
 
   /** @internal */
-  owner: LiteColliderShape;
+  _owner: LiteColliderShape;
+
+  set owner(value: LiteColliderShape) {
+    this._owner = value;
+  }
 
   /**
    * Local position.
@@ -272,7 +265,7 @@ export class Transform {
       return this._parentTransformCache;
     }
     let parentCache: Transform;
-    let parent = this.owner._collider;
+    let parent = this._owner._collider;
     parentCache = parent._transform;
     this._parentTransformCache = parentCache;
     this._isParentDirty = false;
