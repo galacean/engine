@@ -22,8 +22,7 @@ export class Transform {
   private _parentTransformCache: Transform = null;
   private _dirtyFlag: number = TransformFlag.WmWpWeWqWs;
 
-  /** @internal */
-  _owner: LiteColliderShape;
+  private _owner: LiteColliderShape;
 
   set owner(value: LiteColliderShape) {
     this._owner = value;
@@ -264,9 +263,12 @@ export class Transform {
     if (!this._isParentDirty) {
       return this._parentTransformCache;
     }
-    let parentCache: Transform;
-    let parent = this._owner._collider;
-    parentCache = parent._transform;
+    let parentCache: Transform = null;
+    if (this._owner) {
+      let parent = this._owner._collider;
+      parentCache = parent._transform;
+    }
+
     this._parentTransformCache = parentCache;
     this._isParentDirty = false;
     return parentCache;

@@ -1,5 +1,5 @@
 import { IColliderShape, IPhysicsMaterial } from "@oasis-engine/design";
-import { Matrix, Quaternion, Ray, Vector3 } from "@oasis-engine/math";
+import { Matrix, Ray, Vector3 } from "@oasis-engine/math";
 import { HitResult } from "../HitResult";
 import { Transform } from "../Transform";
 import { LiteCollider } from "../LiteCollider";
@@ -23,6 +23,7 @@ export abstract class LiteColliderShape implements IColliderShape {
 
   protected constructor() {
     this._transform.owner = this;
+    this._inverseWorldMatFlag = this._transform.registerWorldChangeFlag();
   }
 
   /**

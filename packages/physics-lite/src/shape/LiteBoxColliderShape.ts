@@ -1,5 +1,5 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
-import { BoundingBox, Quaternion, Ray, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Ray, Vector3 } from "@oasis-engine/math";
 import { LiteColliderShape } from "./LiteColliderShape";
 import { HitResult } from "../HitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
@@ -10,8 +10,10 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   private static _tempHalfExtents = new Vector3();
   private _halfSize: Vector3 = new Vector3();
 
-  private _boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
-  private _boxMax: Vector3 = new Vector3(0.5, 0.5, 0.5);
+  /** @internal */
+  _boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
+  /** @internal */
+  _boxMax: Vector3 = new Vector3(0.5, 0.5, 0.5);
 
   /**
    * init Box Shape and alloc PhysX objects.

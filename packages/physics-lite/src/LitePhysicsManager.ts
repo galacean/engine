@@ -22,7 +22,7 @@ export class LitePhysicsManager implements IPhysicsManager {
   private readonly _onTriggerExit?: (obj1: number, obj2: number) => void;
   private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
 
-  private _colliders: LiteCollider[];
+  private _colliders: LiteCollider[] = [];
   private _sphere?: BoundingSphere;
   private _box: BoundingBox = new BoundingBox();
 
@@ -147,11 +147,11 @@ export class LitePhysicsManager implements IPhysicsManager {
    * @param boxCollider - The boxCollider to calculate
    * @param out - The calculated boundingBox
    */
-  private static _updateWorldBox(boxCollider, out: BoundingBox): void {
-    const mat = boxCollider.entity.transform.worldMatrix;
+  private static _updateWorldBox(boxCollider: LiteBoxColliderShape, out: BoundingBox): void {
+    const mat = boxCollider._transform.worldMatrix;
     const source = LitePhysicsManager._tempBox1;
-    boxCollider.boxMax.cloneTo(source.max);
-    boxCollider.boxMin.cloneTo(source.min);
+    boxCollider._boxMax.cloneTo(source.max);
+    boxCollider._boxMin.cloneTo(source.min);
     BoundingBox.transform(source, mat, out);
   }
 

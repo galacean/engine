@@ -6,7 +6,7 @@ import { Transform } from "./Transform";
 
 export abstract class LiteCollider implements ICollider {
   /** @internal */
-  _shapes: LiteColliderShape[];
+  _shapes: LiteColliderShape[] = [];
   /** @internal */
   _transform: Transform = new Transform();
 
