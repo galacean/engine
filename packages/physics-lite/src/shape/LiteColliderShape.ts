@@ -1,9 +1,9 @@
 import { IColliderShape, IPhysicsMaterial } from "@oasis-engine/design";
 import { Matrix, Ray, Vector3 } from "@oasis-engine/math";
-import { HitResult } from "../HitResult";
-import { Transform } from "../Transform";
+import { LiteHitResult } from "../LiteHitResult";
+import { LiteTransform } from "../LiteTransform";
 import { LiteCollider } from "../LiteCollider";
-import { UpdateFlag } from "../UpdateFlag";
+import { LiteUpdateFlag } from "../LiteUpdateFlag";
 
 /**
  * Abstract class for collider shapes.
@@ -16,11 +16,11 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _collider: LiteCollider;
   /** @internal */
-  _transform: Transform = new Transform();
+  _transform: LiteTransform = new LiteTransform();
   /** @internal */
   _invModelMatrix: Matrix = new Matrix();
   /** @internal */
-  _inverseWorldMatFlag: UpdateFlag;
+  _inverseWorldMatFlag: LiteUpdateFlag;
 
   protected constructor() {
     this._transform.owner = this;
@@ -70,12 +70,12 @@ export abstract class LiteColliderShape implements IColliderShape {
   /**
    * @internal
    */
-  abstract _raycast(ray: Ray, hit: HitResult): boolean;
+  abstract _raycast(ray: Ray, hit: LiteHitResult): boolean;
 
   protected _updateHitResult(
     ray: Ray,
     distance: number,
-    outHit: HitResult,
+    outHit: LiteHitResult,
     origin: Vector3,
     isWorldRay: boolean = false
   ): void {

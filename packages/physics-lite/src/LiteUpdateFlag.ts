@@ -19,11 +19,11 @@ export function removeFromArray(array: any[], item: any): boolean {
 /**
  * Used to update tags.
  */
-export class UpdateFlag {
+export class LiteUpdateFlag {
   /** Flag. */
   flag = true;
 
-  constructor(private _flags: UpdateFlag[] = []) {
+  constructor(private _flags: LiteUpdateFlag[] = []) {
     this._flags.push(this);
   }
 

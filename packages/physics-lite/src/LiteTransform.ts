@@ -1,13 +1,13 @@
 import { MathUtil, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
-import { UpdateFlagManager } from "./UpdateFlagManager";
-import { UpdateFlag } from "./UpdateFlag";
+import { LiteUpdateFlagManager } from "./LiteUpdateFlagManager";
+import { LiteUpdateFlag } from "./LiteUpdateFlag";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteCollider } from "./LiteCollider";
 
 /**
  * Used to implement transformation related functions.
  */
-export class Transform {
+export class LiteTransform {
   private static _tempQuat0: Quaternion = new Quaternion();
   private static _tempMat42: Matrix = new Matrix();
 
@@ -18,9 +18,9 @@ export class Transform {
   private _worldRotationQuaternion: Quaternion = new Quaternion();
   private _localMatrix: Matrix = new Matrix();
   private _worldMatrix: Matrix = new Matrix();
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  private _updateFlagManager: LiteUpdateFlagManager = new LiteUpdateFlagManager();
   private _isParentDirty: boolean = true;
-  private _parentTransformCache: Transform = null;
+  private _parentTransformCache: LiteTransform = null;
   private _dirtyFlag: number = TransformFlag.WmWpWeWqWs;
 
   private _owner: LiteColliderShape | LiteCollider;
@@ -94,8 +94,8 @@ export class Transform {
     }
     const parent = this._getParentTransform();
     if (parent) {
-      Quaternion.invert(parent.worldRotationQuaternion, Transform._tempQuat0);
-      Quaternion.multiply(value, Transform._tempQuat0, this._rotationQuaternion);
+      Quaternion.invert(parent.worldRotationQuaternion, LiteTransform._tempQuat0);
+      Quaternion.multiply(value, LiteTransform._tempQuat0, this._rotationQuaternion);
     } else {
       value.cloneTo(this._rotationQuaternion);
     }
@@ -164,8 +164,8 @@ export class Transform {
     }
     const parent = this._getParentTransform();
     if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat42);
-      Matrix.multiply(value, Transform._tempMat42, this._localMatrix);
+      Matrix.invert(parent.worldMatrix, LiteTransform._tempMat42);
+      Matrix.multiply(value, LiteTransform._tempMat42, this._localMatrix);
     } else {
       value.cloneTo(this._localMatrix);
     }
@@ -211,7 +211,7 @@ export class Transform {
    * Register world transform change flag.
    * @returns Change flag
    */
-  registerWorldChangeFlag(): UpdateFlag {
+  registerWorldChangeFlag(): LiteUpdateFlag {
     return this._updateFlagManager.register();
   }
 
@@ -284,11 +284,11 @@ export class Transform {
     }
   }
 
-  private _getParentTransform(): Transform | null {
+  private _getParentTransform(): LiteTransform | null {
     if (!this._isParentDirty) {
       return this._parentTransformCache;
     }
-    let parentCache: Transform = null;
+    let parentCache: LiteTransform = null;
     if (this._owner instanceof LiteColliderShape) {
       let parent = this._owner._collider;
       parentCache = parent._transform;

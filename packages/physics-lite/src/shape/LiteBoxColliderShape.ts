@@ -1,7 +1,7 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
 import { BoundingBox, Ray, Vector3 } from "@oasis-engine/math";
 import { LiteColliderShape } from "./LiteColliderShape";
-import { HitResult } from "../HitResult";
+import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
 /**
@@ -57,7 +57,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   /**
    * @internal
    */
-  _raycast(ray: Ray, hit: HitResult): boolean {
+  _raycast(ray: Ray, hit: LiteHitResult): boolean {
     const localRay = this._getLocalRay(ray);
 
     const boundingBox = LiteBoxColliderShape._tempBox;

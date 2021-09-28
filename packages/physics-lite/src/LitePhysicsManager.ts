@@ -1,10 +1,10 @@
 import { IPhysicsManager } from "@oasis-engine/design";
 import { BoundingBox, BoundingSphere, Ray, Vector3 } from "@oasis-engine/math";
 import { LiteCollider } from "./LiteCollider";
-import { HitResult } from "./HitResult";
+import { LiteHitResult } from "./LiteHitResult";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
-import { intersectBox2Box, intersectSphere2Box, intersectSphere2Sphere } from "./intersect";
+import { intersectBox2Box, intersectSphere2Box, intersectSphere2Sphere } from "./LiteIntersect";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { DisorderedArray } from "./DisorderedArray";
 
@@ -14,8 +14,8 @@ import { DisorderedArray } from "./DisorderedArray";
 export class LitePhysicsManager implements IPhysicsManager {
   private static _tempSphere: BoundingSphere = new BoundingSphere();
   private static _tempBox: BoundingBox = new BoundingBox();
-  private static _currentHit: HitResult = new HitResult();
-  private static _hitResult: HitResult = new HitResult();
+  private static _currentHit: LiteHitResult = new LiteHitResult();
+  private static _hitResult: LiteHitResult = new LiteHitResult();
 
   private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
   private readonly _onContactExit?: (obj1: number, obj2: number) => void;
@@ -107,7 +107,7 @@ export class LitePhysicsManager implements IPhysicsManager {
   ): boolean {
     const colliders = this._colliders;
 
-    let hitResult: HitResult;
+    let hitResult: LiteHitResult;
     if (hit) {
       hitResult = LitePhysicsManager._hitResult;
     }

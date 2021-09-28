@@ -4,7 +4,7 @@ import { Vector3 } from "@oasis-engine/math";
  * Structure used to get information back from a raycast or a sweep.
  * @internal
  */
-export class HitResult {
+export class LiteHitResult {
   /** The collider that was hit. */
   shapeID: number = -1;
   /** The distance from the origin to the hit point. */

@@ -1,8 +1,8 @@
 import { ICollider } from "@oasis-engine/design";
 import { Quaternion, Ray, Vector3 } from "@oasis-engine/math";
-import { HitResult } from "./HitResult";
+import { LiteHitResult } from "./LiteHitResult";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
-import { Transform } from "./Transform";
+import { LiteTransform } from "./LiteTransform";
 
 /**
  * Abstract class of physical collider.
@@ -11,7 +11,7 @@ export abstract class LiteCollider implements ICollider {
   /** @internal */
   _shapes: LiteColliderShape[] = [];
   /** @internal */
-  _transform: Transform = new Transform();
+  _transform: LiteTransform = new LiteTransform();
 
   protected constructor() {
     this._transform.owner = this;
@@ -62,7 +62,7 @@ export abstract class LiteCollider implements ICollider {
   /**
    * @internal
    */
-  _raycast(ray: Ray, hit: HitResult): boolean {
+  _raycast(ray: Ray, hit: LiteHitResult): boolean {
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
       if (shapes[i]._raycast(ray, hit)) {
