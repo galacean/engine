@@ -237,17 +237,19 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n;) {
+    for (let i = 0, n = currentEvents.length; i < n; ) {
       const event = currentEvents.get(i);
-      if (event.state == TriggerEventState.Enter) {
-        this._onTriggerEnter(event.index1, event.index2);
-        event.needUpdate = true;
-        i++;
-      } else if (event.state == TriggerEventState.Stay) {
-        this._onTriggerStay(event.index1, event.index2);
-        event.needUpdate = true;
-        i++;
-      } else if (event.needUpdate) {
+      if (!event.needUpdate) {
+        if (event.state == TriggerEventState.Enter) {
+          this._onTriggerEnter(event.index1, event.index2);
+          event.needUpdate = true;
+          i++;
+        } else if (event.state == TriggerEventState.Stay) {
+          this._onTriggerStay(event.index1, event.index2);
+          event.needUpdate = true;
+          i++;
+        }
+      } else {
         event.state = TriggerEventState.Exit;
         this._eventMap[event.index1][event.index2] = undefined;
 
