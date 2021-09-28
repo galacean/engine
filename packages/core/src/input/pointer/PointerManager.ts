@@ -4,7 +4,6 @@ import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { HitResult } from "../../physics";
 import { PointerPhase } from "../enums/PointerPhase";
-import { PointerType } from "../enums/PointerType";
 import { Pointer } from "./Pointer";
 
 /**
@@ -24,20 +23,14 @@ export class PointerManager {
   private _engine: Engine;
   private _canvas: Canvas;
 
-  /** When pressing and there is only one pointer,
-   * correct the pointerId to the minimum threshold,
-   * so as to prevent _lastMoveHash from becoming too large. */
-  private _minPointerThreshold: number = 0;
-  private _lastMoveHash: number[] = [];
-
-  private _eventList: PointerEvent[] = [];
+  private _events: PointerEvent[] = [];
   private _pointerPool: Pointer[];
-  private _effectiveEventList: number[] = [];
-  private _effectiveEventCount = 0;
-  private _curFrameHasCancel: boolean = false;
-  private _curFramePosition: Vector2 = new Vector2();
-  private _curFramePressedEntity: Entity;
-  private _curFrameEnteredEntity: Entity;
+  private _keyEventList: number[] = [];
+  private _keyEventCount = 0;
+  private _needOverallPointers: boolean = false;
+  private _currentPosition: Vector2 = new Vector2();
+  private _currentPressedEntity: Entity;
+  private _currentEnteredEntity: Entity;
 
   /**
    * Create a PointerManager.
@@ -49,54 +42,52 @@ export class PointerManager {
     // @ts-ignore
     const htmlCanvas = this._canvas._webCanvas as HTMLCanvasElement;
     htmlCanvas.style.touchAction = "none";
-    /** Simultaneous touch contact points are supported by the current device. */
-    this._pointerPool = new Array<Pointer>(navigator.maxTouchPoints + 1);
     // prettier-ignore
-    htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = (evt:PointerEvent)=>{
-      this._eventList.push(evt);
+    htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = (evt:PointerEvent)=>{
+      this._events.push(evt);
     };
-    htmlCanvas.onpointermove = (evt: PointerEvent) => {
-      this._lastMoveHash[evt.pointerId - this._minPointerThreshold] = this._eventList.push(evt) - 1;
-    };
+    this._pointerPool = new Array<Pointer>(navigator.maxTouchPoints + 1);
   }
 
   /**
-   * Update pointer event, will be executed every frame.
    * @internal
    */
   _update(): void {
-    this._curFrameHasCancel && this._adjustPointers();
-    /** Check whether Drag events are triggered. */
-    this._executeDrag();
-    if (this._eventList.length > 0) {
-      this._handlePointerEvent(this._eventList);
+    this._needOverallPointers && this._overallPointers();
+    if (this._events.length > 0) {
+      this._handlePointerEvent(this._events);
       /** Get the entity hit by the ray. */
-      const curEnteredEntity = this._pointerRaycast();
+      const rayCastEntity = this._pointerRayCast();
       /** Check whether Enter and Exit events are triggered. */
-      this._executeEnterAndExit(curEnteredEntity);
+      this._firePointerEnterAndExit(rayCastEntity);
       /** Check whether down, up and click events are triggered. */
-      const { _effectiveEventList, _effectiveEventCount } = this;
-      for (let i = 0; i < _effectiveEventCount; i++) {
-        switch (_effectiveEventList[i]) {
-          case PointerEventType.Down:
-            this._executeDown(curEnteredEntity);
-            break;
-          case PointerEventType.Up:
-            this._executeUpAndClick(curEnteredEntity);
-            break;
-          case PointerEventType.Leave:
-            this._executeEnterAndExit(null);
-            this._curFramePressedEntity = null;
-            break;
+      const { _keyEventList: keyEventList, _keyEventCount: keyEventCount } = this;
+      if (keyEventCount > 0) {
+        for (let i = 0; i < keyEventCount; i++) {
+          switch (keyEventList[i]) {
+            case PointerEventType.Down:
+              this._firePointerDown(rayCastEntity);
+              break;
+            case PointerEventType.Up:
+              this._firePointerUpAndClick(rayCastEntity);
+              break;
+            case PointerEventType.Leave:
+              this._firePointerEnterAndExit(null);
+              this._currentPressedEntity = null;
+              break;
+          }
         }
+        this._keyEventCount = 0;
+      } else {
+        this._firePointerDrag();
       }
-      this._effectiveEventCount = 0;
     } else {
+      this._firePointerDrag();
       const { _pointers: pointers } = this;
       for (let i = pointers.length - 1; i >= 0; i--) {
         const pointer = pointers[i];
         if (pointer.phase !== PointerPhase.Leave) {
-          this._executeEnterAndExit(this._pointerRaycast());
+          this._firePointerEnterAndExit(this._pointerRayCast());
         }
       }
     }
@@ -110,12 +101,12 @@ export class PointerManager {
     // @ts-ignore
     const htmlCanvas = this._canvas._webCanvas as HTMLCanvasElement;
     htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = null;
-    this._eventList.length = 0;
+    this._events.length = 0;
     this._pointerPool.length = 0;
     this._pointers.length = 0;
-    this._curFramePosition = null;
-    this._curFrameEnteredEntity = null;
-    this._curFramePressedEntity = null;
+    this._currentPosition = null;
+    this._currentEnteredEntity = null;
+    this._currentPressedEntity = null;
     this._engine = null;
     this._canvas = null;
   }
@@ -123,14 +114,14 @@ export class PointerManager {
   /**
    * Remove those pointers whose status is "End".
    */
-  private _adjustPointers(): void {
+  private _overallPointers(): void {
     const { _pointers: _pointers } = this;
     for (let i = _pointers.length - 1; i >= 0; i--) {
       if (_pointers[i].phase === PointerPhase.Leave) {
         _pointers.splice(i, 1);
       }
     }
-    this._curFrameHasCancel = false;
+    this._needOverallPointers = false;
   }
 
   /**
@@ -141,7 +132,7 @@ export class PointerManager {
   private _getIndexByPointerID(pointerId: number): number {
     const { _pointers: _pointers } = this;
     for (let i = _pointers.length - 1; i >= 0; i--) {
-      if (_pointers[i].uniqueID === pointerId) {
+      if (_pointers[i]._uniqueID === pointerId) {
         return i;
       }
     }
@@ -157,21 +148,10 @@ export class PointerManager {
    * @param phase - The phase of the pointer
    * @param timeStamp - Timestamp when changing phase
    */
-  public _addPointer(
-    pointerId: number,
-    pointerType: string,
-    x: number,
-    y: number,
-    phase: PointerPhase,
-    timeStamp: number
-  ): void {
+  public _addPointer(pointerId: number, x: number, y: number, phase: PointerPhase): void {
     const lastCount = this._pointers.length;
     if (lastCount <= 0 || this._multiPointerEnabled) {
-      const { _pointers: pointers, _pointerPool: pointerPool, _curFramePosition: curFramePosition, _canvas } = this;
-      // @ts-ignore
-      x *= _canvas.width / (_canvas._webCanvas as HTMLCanvasElement).clientWidth;
-      // @ts-ignore
-      y *= _canvas.height / (_canvas._webCanvas as HTMLCanvasElement).clientHeight;
+      const { _pointers: pointers, _pointerPool: pointerPool } = this;
       /** Get Pointer smallest index. */
       let i = 0;
       for (; i < lastCount; i++) {
@@ -183,109 +163,61 @@ export class PointerManager {
         pointerPool[i] = new Pointer(i);
       }
       /** Update and add pointer. */
-      const touch = pointerPool[i];
-      touch.uniqueID = pointerId;
-      touch.pointerType = PointerType[pointerType];
-      touch.position.setValue(x, y);
-      touch.phase = phase;
-      touch.timeStamp = timeStamp;
-      pointers.splice(i, 0, touch);
-      const nowCount = lastCount + 1;
-      curFramePosition.x = (curFramePosition.x * lastCount + x) / nowCount;
-      curFramePosition.y = (curFramePosition.y * lastCount + y) / nowCount;
+      const pointer = pointerPool[i];
+      pointer._uniqueID = pointerId;
+      pointer.position.setValue(x, y);
+      pointer._needUpdate = true;
+      pointer.phase = phase;
+      pointers.splice(i, 0, pointer);
     }
   }
 
-  /**
-   * Remove pointer.
-   * @param pointerIndex - Index of pointer in pointers
-   * @param timeStamp - Timestamp when changing phase
-   */
-  private _removePointer(pointerIndex: number, timeStamp: number): void {
-    const { _pointers: pointers, _curFramePosition: curFramePosition } = this;
-    const lastCount = pointers.length;
-    const removedPointer = pointers[pointerIndex];
-    if (lastCount > 1) {
-      const nowCount = lastCount - 1;
-      const { position } = removedPointer;
-      curFramePosition.x = (curFramePosition.x * lastCount - position.x) / nowCount;
-      curFramePosition.y = (curFramePosition.y * lastCount - position.y) / nowCount;
-    }
-    removedPointer.phase = PointerPhase.Leave;
-    removedPointer.timeStamp = timeStamp;
+  private _removePointer(pointerIndex: number): void {
+    this._pointers[pointerIndex].phase = PointerPhase.Leave;
   }
 
-  /**
-   * Update pointer.
-   * @param pointerIndex - Index of pointer in pointers
-   * @param x - OffsetX in PointerEvent
-   * @param y - OffsetY in PointerEvent
-   * @param phase - The phase of the pointer
-   * @param timeStamp - Timestamp when changing phase
-   */
-  private _updatePointer(pointerIndex: number, x: number, y: number, phase: PointerPhase, timeStamp: number): void {
-    const { _pointers: pointers, _canvas: canvas } = this;
-    const updatedPointer = pointers[pointerIndex];
-    const { position } = updatedPointer;
-    // @ts-ignore
-    x *= canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
-    // @ts-ignore
-    y *= canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientHeight;
-    this._curFramePosition.x += (x - position.x) / pointers.length;
-    this._curFramePosition.y += (y - position.y) / pointers.length;
-    position.setValue(x, y);
+  private _updatePointer(pointerIndex: number, x: number, y: number, phase: PointerPhase): void {
+    const updatedPointer = this._pointers[pointerIndex];
+    updatedPointer.position.setValue(x, y);
+    updatedPointer._needUpdate = true;
     updatedPointer.phase = phase;
-    updatedPointer.timeStamp = timeStamp;
   }
 
-  /**
-   * Update pointer data and filter out valid event information.
-   * @param eventList - PointerEvent List waiting to be processed
-   * @returns Effective event information
-   */
-  private _handlePointerEvent(eventList: PointerEvent[]): void {
-    const { _pointers, _effectiveEventList, _lastMoveHash, _minPointerThreshold } = this;
-    const timeStamp = this._engine.time.nowTime;
-    let activePointerCount = _pointers.length;
-    for (let i = 0, n = eventList.length; i < n; i++) {
-      const evt = eventList[i];
+  private _handlePointerEvent(events: PointerEvent[]): void {
+    const { _pointers: pointers, _keyEventList: _effectiveEventList } = this;
+    let activePointerCount = pointers.length;
+    for (let i = 0, n = events.length; i < n; i++) {
+      const evt = events[i];
       let pointerIndex = this._getIndexByPointerID(evt.pointerId);
       switch (evt.type) {
         case "pointerdown":
-          if (pointerIndex < 0) {
-            this._addPointer(evt.pointerId, evt.type, evt.offsetX, evt.offsetY, PointerPhase.Down, timeStamp);
+          if (pointerIndex === -1) {
+            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Down);
             ++activePointerCount;
           } else {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down, timeStamp);
+            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down);
           }
-          if (activePointerCount === 1) {
-            _effectiveEventList[this._effectiveEventCount++] = PointerEventType.Down;
-            /** Update pointer's threshold. */
-            this._minPointerThreshold = evt.pointerId;
-          }
+          activePointerCount === 1 && (_effectiveEventList[this._keyEventCount++] = PointerEventType.Down);
           break;
         case "pointerup":
           if (pointerIndex >= 0) {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Up, timeStamp);
-            activePointerCount === 1 && (_effectiveEventList[this._effectiveEventCount++] = PointerEventType.Up);
+            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Up);
+            activePointerCount === 1 && (_effectiveEventList[this._keyEventCount++] = PointerEventType.Up);
           }
           break;
         case "pointermove":
-          if (_lastMoveHash[evt.pointerId - _minPointerThreshold] === i) {
-            if (pointerIndex < 0) {
-              this._addPointer(evt.pointerId, evt.type, evt.offsetX, evt.offsetY, PointerPhase.Move, timeStamp);
-              ++activePointerCount;
-            } else {
-              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Move, timeStamp);
-            }
-            _effectiveEventList[this._effectiveEventCount++] = PointerEventType.Move;
+          if (pointerIndex === -1) {
+            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Move);
+            ++activePointerCount;
+          } else {
+            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Move);
           }
           break;
         case "pointerout":
           if (pointerIndex >= 0) {
-            this._removePointer(pointerIndex, timeStamp);
-            --activePointerCount === 0 && (_effectiveEventList[this._effectiveEventCount++] = PointerEventType.Leave);
-            this._curFrameHasCancel = true;
+            this._removePointer(pointerIndex);
+            --activePointerCount === 0 && (_effectiveEventList[this._keyEventCount++] = PointerEventType.Leave);
+            this._needOverallPointers = true;
           }
           break;
         default:
@@ -293,20 +225,29 @@ export class PointerManager {
       }
     }
     /** Reset event list. */
-    eventList.length = 0;
+    events.length = 0;
+    const { _canvas: canvas, _currentPosition: currentPosition } = this;
+    const pointerCount = pointers.length;
+    currentPosition.setValue(0, 0);
+    if (pointerCount > 0) {
+      // @ts-ignore
+      const pixelRatio = canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
+      for (let i = 0; i < pointerCount; i++) {
+        const pointer = pointers[i];
+        const { position } = pointer;
+        if (pointer._needUpdate) {
+          position.scale(pixelRatio);
+          pointer._needUpdate = false;
+        }
+        currentPosition.add(position);
+      }
+    }
+    currentPosition.scale(1 / pointerCount);
   }
 
-  /**
-   * Get the Entity to which the ray is cast.
-   * @param x - The X coordinate of the pointer on the screen, specified in normalized
-   * @param y - The Y coordinate of the pointer on the screen, specified in normalized
-   * @returns The Entity to which the ray is cast
-   */
-  private _pointerRaycast(): Entity {
-    let { x, y } = this._curFramePosition;
+  private _pointerRayCast(): Entity {
+    let { x, y } = this._currentPosition;
     /** Convert screen coordinates to viewport coordinates. */
-    x /= this._canvas.width;
-    y /= this._canvas.height;
     const cameras = this._engine.sceneManager.activeScene._activeCameras;
     for (let i = cameras.length - 1; i >= 0; i--) {
       const camera = cameras[i];
@@ -328,63 +269,48 @@ export class PointerManager {
     return null;
   }
 
-  /**
-   * Execute drag event.
-   */
-  private _executeDrag(): void {
+  private _firePointerDrag(): void {
     /** Check whether pressed events are triggered. */
-    if (this._curFramePressedEntity) {
-      const scripts = this._curFramePressedEntity._scripts;
+    if (this._currentPressedEntity) {
+      const scripts = this._currentPressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         scripts.get(i).onPointerDrag();
       }
     }
   }
 
-  /**
-   * Execute enter and exit events.
-   * @param curEnteredEntity - Which entity the pointer is currently on
-   */
-  private _executeEnterAndExit(curEnteredEntity: Entity): void {
+  private _firePointerEnterAndExit(curEnteredEntity: Entity): void {
     /** Check whether enter and exit events are triggered. */
-    if (this._curFrameEnteredEntity !== curEnteredEntity) {
+    if (this._currentEnteredEntity !== curEnteredEntity) {
       if (curEnteredEntity) {
         const scripts = curEnteredEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
           scripts.get(i).onPointerEnter();
         }
       }
-      if (this._curFrameEnteredEntity) {
-        const scripts = this._curFrameEnteredEntity._scripts;
+      if (this._currentEnteredEntity) {
+        const scripts = this._currentEnteredEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
           scripts.get(i).onPointerExit();
         }
       }
-      this._curFrameEnteredEntity = curEnteredEntity;
+      this._currentEnteredEntity = curEnteredEntity;
     }
   }
 
-  /**
-   * Execute down events.
-   * @param curEnteredEntity - Which entity the pointer is currently on
-   */
-  private _executeDown(curEnteredEntity: Entity): void {
+  private _firePointerDown(curEnteredEntity: Entity): void {
     if (curEnteredEntity) {
       const scripts = curEnteredEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         scripts.get(i).onPointerDown();
       }
     }
-    this._curFramePressedEntity = curEnteredEntity;
+    this._currentPressedEntity = curEnteredEntity;
   }
 
-  /**
-   * Execute up and click events.
-   * @param curEnteredEntity - Which entity the pointer is currently on
-   */
-  private _executeUpAndClick(curEnteredEntity: Entity): void {
+  private _firePointerUpAndClick(curEnteredEntity: Entity): void {
     if (curEnteredEntity) {
-      const operateOneTarget = this._curFramePressedEntity === curEnteredEntity;
+      const operateOneTarget = this._currentPressedEntity === curEnteredEntity;
       const scripts = curEnteredEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
@@ -392,7 +318,7 @@ export class PointerManager {
         script.onPointerUp();
       }
     }
-    this._curFramePressedEntity = null;
+    this._currentPressedEntity = null;
   }
 }
 

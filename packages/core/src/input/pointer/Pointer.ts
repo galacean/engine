@@ -1,24 +1,29 @@
 import { Vector2 } from "@oasis-engine/math";
 import { PointerPhase } from "../enums/PointerPhase";
-import { PointerType } from "../enums/PointerType";
 
 /**
  * Pointer.
  */
 export class Pointer {
-  /** UniqueID of PointerEvent. */
-  uniqueID: number;
-  pointerType: PointerType;
-  /** Timestamp of the most recent phase change. */
-  timeStamp: number;
-  /** Recent phase. */
+  /**
+   * Unique id.
+   * @remark Start from 0.
+   */
+  readonly id: number;
+  /** The phase of pointer. */
   phase: PointerPhase = PointerPhase.Leave;
   /** The position of the pointer in screen space pixel coordinates. */
   position: Vector2 = new Vector2();
 
+  /** @internal */
+  _uniqueID: number;
+  /** @internal */
+  _needUpdate: boolean = true;
+
   /**
-   * Constructor a Pointer.
-   * @param id - The id for the pointer, start from 0 and automatically fill in.
+   * @internal
    */
-  constructor(public id: number) {}
+  constructor(id: number) {
+    this.id = id;
+  }
 }

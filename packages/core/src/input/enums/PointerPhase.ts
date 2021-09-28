@@ -1,5 +1,5 @@
 /**
- *  The current stage of the pointer.
+ *  The current phase of the pointer.
  */
 export enum PointerPhase {
   /** A Pointer pressed on the screen. */
