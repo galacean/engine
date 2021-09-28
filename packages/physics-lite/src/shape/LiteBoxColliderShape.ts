@@ -4,7 +4,9 @@ import { LiteColliderShape } from "./LiteColliderShape";
 import { HitResult } from "../HitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
-/** LitePhysics Shape for Box */
+/**
+ * Box collider shape in Lite.
+ */
 export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColliderShape {
   private static _tempBox: BoundingBox = new BoundingBox();
   private static _tempHalfExtents = new Vector3();
@@ -16,17 +18,16 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   _boxMax: Vector3 = new Vector3(0.5, 0.5, 0.5);
 
   /**
-   * init Box Shape and alloc PhysX objects.
-   * @param uniqueID index mark Shape
-   * @param size size of Shape
-   * @param material material of LiteCollider
-   * @remarks must call after this component add to Entity.
+   * Init Box Shape.
+   * @param uniqueID - UniqueID mark Shape.
+   * @param size - Size of Shape.
+   * @param material - Material of PhysXCollider.
    */
   constructor(uniqueID: number, size: Vector3, material: LitePhysicsMaterial) {
     super();
     this._id = uniqueID;
     this._halfSize.setValue(size.x * 0.5, size.y * 0.5, size.z * 0.5);
-    this.setBondingBox();
+    this._setBondingBox();
   }
 
   /**
@@ -34,7 +35,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   setPosition(position: Vector3): void {
     super.setPosition(position);
-    this.setBondingBox();
+    this._setBondingBox();
   }
 
   /**
@@ -42,7 +43,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   setWorldScale(scale: Vector3): void {
     this._transform.setScale(scale.x, scale.y, scale.z);
-    this.setBondingBox();
+    this._setBondingBox();
   }
 
   /**
@@ -50,7 +51,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   setSize(value: Vector3): void {
     this._halfSize.setValue(value.x * 0.5, value.y * 0.5, value.z * 0.5);
-    this.setBondingBox();
+    this._setBondingBox();
   }
 
   /**
@@ -71,7 +72,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     }
   }
 
-  private setBondingBox(): void {
+  private _setBondingBox(): void {
     const { position: center, scale } = this._transform;
     const halfSize = this._halfSize;
 

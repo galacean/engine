@@ -4,7 +4,9 @@ import { BoundingSphere, Quaternion, Ray, Vector3 } from "@oasis-engine/math";
 import { HitResult } from "../HitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
-/** LitePhysics Shape for Sphere */
+/**
+ * Sphere collider shape in Lite.
+ */
 export class LiteSphereColliderShape extends LiteColliderShape implements ISphereColliderShape {
   private static _tempSphere: BoundingSphere = new BoundingSphere();
 
@@ -16,16 +18,15 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   }
 
   /**
-   * init LiteCollider and alloc PhysX objects.
-   * @param index index mark collider
-   * @param radius size of SphereCollider
-   * @param material material of LiteCollider
-   * @remarks must call after this component add to Entity.
+   * Init sphere shape.
+   * @param uniqueID - UniqueID mark collider
+   * @param radius - Size of SphereCollider
+   * @param material - Material of PhysXCollider
    */
-  constructor(index: number, radius: number, material: LitePhysicsMaterial) {
+  constructor(uniqueID: number, radius: number, material: LitePhysicsMaterial) {
     super();
     this._radius = radius;
-    this._id = index;
+    this._id = uniqueID;
   }
 
   /**

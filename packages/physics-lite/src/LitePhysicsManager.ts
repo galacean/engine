@@ -8,7 +8,9 @@ import { intersectBox2Box, intersectSphere2Box, intersectSphere2Sphere } from ".
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { DisorderedArray } from "./DisorderedArray";
 
-/** A scene is a collection of bodies and constraints which can interact. */
+/**
+ * A manager is a collection of bodies and constraints which can interact.
+ */
 export class LitePhysicsManager implements IPhysicsManager {
   private static _tempSphere: BoundingSphere = new BoundingSphere();
   private static _tempBox: BoundingBox = new BoundingBox();
@@ -261,10 +263,6 @@ export class LitePhysicsManager implements IPhysicsManager {
     }
   }
 
-  /**
-   * LiteCollider and another collider do collision detection.
-   * @param other - The another collider to collision detection
-   */
   private _boxCollision(other: LiteColliderShape): boolean {
     if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox;
@@ -278,10 +276,6 @@ export class LitePhysicsManager implements IPhysicsManager {
     return false;
   }
 
-  /**
-   * LiteCollider and another collider do collision detection.
-   * @param other - The another collider to collision detection
-   */
   private _sphereCollision(other: LiteColliderShape): boolean {
     if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox;

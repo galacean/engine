@@ -5,7 +5,9 @@ import { Transform } from "../Transform";
 import { LiteCollider } from "../LiteCollider";
 import { UpdateFlag } from "../UpdateFlag";
 
-/** Abstract class for collision shapes. */
+/**
+ * Abstract class for collider shapes.
+ */
 export abstract class LiteColliderShape implements IColliderShape {
   private static _ray = new Ray();
 
@@ -15,7 +17,6 @@ export abstract class LiteColliderShape implements IColliderShape {
   _collider: LiteCollider;
   /** @internal */
   _transform: Transform = new Transform();
-
   /** @internal */
   _invModelMatrix: Matrix = new Matrix();
   /** @internal */

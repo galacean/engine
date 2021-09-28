@@ -3,8 +3,7 @@ import { IDynamicCollider } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /**
- * A static collider component that will not move.
- * @remarks Mostly used for object which always stays at the same place and never moves around.
+ * A dynamic collider can act with self-defined movement or physical force
  */
 export class LiteDynamicCollider extends LiteCollider implements IDynamicCollider {
   angularDamping: number;
@@ -15,7 +14,7 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   mass: number;
 
   /**
-   * Initialize static actor.
+   * Initialize dynamic actor.
    * @param position - The global position
    * @param rotation - The global rotation
    */

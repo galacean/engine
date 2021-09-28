@@ -4,6 +4,9 @@ import { HitResult } from "./HitResult";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { Transform } from "./Transform";
 
+/**
+ * Abstract class of physical collider.
+ */
 export abstract class LiteCollider implements ICollider {
   /** @internal */
   _shapes: LiteColliderShape[] = [];
