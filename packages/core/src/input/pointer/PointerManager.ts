@@ -193,7 +193,7 @@ export class PointerManager {
         case "pointerdown":
           if (pointerIndex === -1) {
             this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Down);
-            ++activePointerCount;
+            activePointerCount++;
           } else {
             this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down);
           }
@@ -208,7 +208,7 @@ export class PointerManager {
         case "pointermove":
           if (pointerIndex === -1) {
             this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Move);
-            ++activePointerCount;
+            activePointerCount++;
           } else {
             this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Move);
           }
