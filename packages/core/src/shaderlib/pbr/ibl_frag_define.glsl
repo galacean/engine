@@ -71,7 +71,7 @@ vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMI
             vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
         #endif
 
-        envMapColor.rgb = gammaToLinear(envMapColor).rgb;
+        envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
         return envMapColor.rgb * specularIntensity;
 
     #endif
