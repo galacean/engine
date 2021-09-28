@@ -265,14 +265,15 @@ export class CollisionUtil {
    * @returns True if the boxes intersect, false otherwise
    */
   static intersectBox2Box(boxA: BoundingBox, boxB: BoundingBox): boolean {
-    return (
-      boxA.min.x <= boxB.max.x &&
-      boxA.max.x >= boxB.min.x &&
-      boxA.min.y <= boxB.max.y &&
-      boxA.max.y >= boxB.min.y &&
-      boxA.min.z <= boxB.max.z &&
-      boxA.max.z >= boxB.min.z
-    );
+    if (boxA.min.x > boxB.max.x || boxB.min.x > boxA.max.x) {
+      return false;
+    }
+
+    if (boxA.min.y > boxB.max.y || boxB.min.y > boxA.max.y) {
+      return false;
+    }
+
+    return !(boxA.min.z > boxB.max.z || boxB.min.z > boxA.max.z);
   }
 
   /**
@@ -282,8 +283,8 @@ export class CollisionUtil {
    * @returns True if the spheres intersect, false otherwise
    */
   static intersectSphere2Sphere(sphereA: BoundingSphere, sphereB: BoundingSphere): boolean {
-    const distance = Vector3.distance(sphereA.center, sphereB.center);
-    return distance < sphereA.radius + sphereA.radius;
+    const radiisum = sphereA.radius + sphereA.radius;
+    return Vector3.distanceSquared(sphereA.center, sphereB.center) < radiisum * radiisum;
   }
 
   /**
@@ -294,15 +295,18 @@ export class CollisionUtil {
    */
   static intersectSphere2Box(sphere: BoundingSphere, box: BoundingBox): boolean {
     const center: Vector3 = sphere.center;
+    const max = box.max;
+    const min = box.min;
 
-    const closestPoint: Vector3 = new Vector3(
-      Math.max(box.min.x, Math.min(center.x, box.max.x)),
-      Math.max(box.min.y, Math.min(center.y, box.max.y)),
-      Math.max(box.min.z, Math.min(center.z, box.max.z))
+    const closestPoint = CollisionUtil._tempVec30;
+    closestPoint.setValue(
+      Math.max(min.x, Math.min(center.x, max.x)),
+      Math.max(min.y, Math.min(center.y, max.y)),
+      Math.max(min.z, Math.min(center.z, max.z))
     );
 
-    const distance = Vector3.distance(center, closestPoint);
-    return distance < sphere.radius;
+    const distance = Vector3.distanceSquared(center, closestPoint);
+    return distance < sphere.radius * sphere.radius;
   }
 
   /**
