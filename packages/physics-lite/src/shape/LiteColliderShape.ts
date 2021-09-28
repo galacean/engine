@@ -65,13 +65,10 @@ export abstract class LiteColliderShape implements IColliderShape {
     throw "Not Support Scene Query Flag";
   }
 
-  getInvModelMatrix(): Matrix {
-    if (this._inverseWorldMatFlag.flag) {
-      Matrix.invert(this._transform.worldMatrix, this._invModelMatrix);
-      this._inverseWorldMatFlag.flag = false;
-    }
-    return this._invModelMatrix;
-  }
+  /**
+   * @internal
+   */
+  abstract _raycast(ray: Ray, hit: HitResult): boolean;
 
   protected _updateHitResult(
     ray: Ray,
@@ -90,7 +87,7 @@ export abstract class LiteColliderShape implements IColliderShape {
   }
 
   protected _getLocalRay(ray: Ray): Ray {
-    const worldToLocal = this.getInvModelMatrix();
+    const worldToLocal = this._getInvModelMatrix();
     const outRay = LiteColliderShape._ray;
 
     Vector3.transformCoordinate(ray.origin, worldToLocal, outRay.origin);
@@ -100,8 +97,11 @@ export abstract class LiteColliderShape implements IColliderShape {
     return outRay;
   }
 
-  /**
-   * @internal
-   */
-  abstract _raycast(ray: Ray, hit: HitResult): boolean;
+  private _getInvModelMatrix(): Matrix {
+    if (this._inverseWorldMatFlag.flag) {
+      Matrix.invert(this._transform.worldMatrix, this._invModelMatrix);
+      this._inverseWorldMatFlag.flag = false;
+    }
+    return this._invModelMatrix;
+  }
 }
