@@ -21,6 +21,10 @@ export abstract class LiteColliderShape implements IColliderShape {
   /** @internal */
   _inverseWorldMatFlag: UpdateFlag;
 
+  protected constructor() {
+    this._transform.owner = this;
+  }
+
   /**
    * {@inheritDoc IColliderShape.setPosition }
    */
@@ -69,11 +73,13 @@ export abstract class LiteColliderShape implements IColliderShape {
     return this._invModelMatrix;
   }
 
-  protected _updateHitResult(ray: Ray,
+  protected _updateHitResult(
+    ray: Ray,
     distance: number,
     outHit: HitResult,
     origin: Vector3,
-    isWorldRay: boolean = false): void {
+    isWorldRay: boolean = false
+  ): void {
     ray.getPoint(distance, outHit.point);
     if (!isWorldRay) {
       Vector3.transformCoordinate(outHit.point, this._transform.worldMatrix, outHit.point);
