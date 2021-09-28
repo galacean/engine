@@ -10,6 +10,10 @@ export abstract class LiteCollider implements ICollider {
   /** @internal */
   _transform: Transform = new Transform();
 
+  protected constructor() {
+    this._transform.owner = this;
+  }
+
   /**
    * {@inheritDoc ICollider.addShape }
    */

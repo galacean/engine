@@ -2,6 +2,7 @@ import { MathUtil, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 import { UpdateFlag } from "./UpdateFlag";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
+import { LiteCollider } from "./LiteCollider";
 
 /**
  * Used to implement transformation related functions.
@@ -22,9 +23,9 @@ export class Transform {
   private _parentTransformCache: Transform = null;
   private _dirtyFlag: number = TransformFlag.WmWpWeWqWs;
 
-  private _owner: LiteColliderShape;
+  private _owner: LiteColliderShape | LiteCollider;
 
-  set owner(value: LiteColliderShape) {
+  set owner(value: LiteColliderShape | LiteCollider) {
     this._owner = value;
   }
 
@@ -222,6 +223,12 @@ export class Transform {
   private _updateWorldPositionFlag(): void {
     if (!this._isContainDirtyFlags(TransformFlag.WmWp)) {
       this._worldAssociatedChange(TransformFlag.WmWp);
+      if (this._owner instanceof LiteCollider) {
+        const shapes = this._owner._shapes;
+        for (let i: number = 0, n: number = shapes.length; i < n; i++) {
+          shapes[i]._transform._updateWorldPositionFlag();
+        }
+      }
     }
   }
 
@@ -235,6 +242,12 @@ export class Transform {
   private _updateWorldRotationFlag() {
     if (!this._isContainDirtyFlags(TransformFlag.WmWeWq)) {
       this._worldAssociatedChange(TransformFlag.WmWeWq);
+      if (this._owner instanceof LiteCollider) {
+        const shapes = this._owner._shapes;
+        for (let i: number = 0, n: number = shapes.length; i < n; i++) {
+          shapes[i]._transform._updateWorldRotationFlag();
+        }
+      }
     }
   }
 
@@ -247,6 +260,12 @@ export class Transform {
   private _updateWorldScaleFlag() {
     if (!this._isContainDirtyFlags(TransformFlag.WmWs)) {
       this._worldAssociatedChange(TransformFlag.WmWs);
+      if (this._owner instanceof LiteCollider) {
+        const shapes = this._owner._shapes;
+        for (let i: number = 0, n: number = shapes.length; i < n; i++) {
+          shapes[i]._transform._updateWorldScaleFlag();
+        }
+      }
     }
   }
 
@@ -256,6 +275,12 @@ export class Transform {
   private _updateAllWorldFlag(): void {
     if (!this._isContainDirtyFlags(TransformFlag.WmWpWeWqWs)) {
       this._worldAssociatedChange(TransformFlag.WmWpWeWqWs);
+      if (this._owner instanceof LiteCollider) {
+        const shapes = this._owner._shapes;
+        for (let i: number = 0, n: number = shapes.length; i < n; i++) {
+          shapes[i]._transform._updateAllWorldFlag();
+        }
+      }
     }
   }
 
@@ -264,7 +289,7 @@ export class Transform {
       return this._parentTransformCache;
     }
     let parentCache: Transform = null;
-    if (this._owner) {
+    if (this._owner instanceof LiteColliderShape) {
       let parent = this._owner._collider;
       parentCache = parent._transform;
     }

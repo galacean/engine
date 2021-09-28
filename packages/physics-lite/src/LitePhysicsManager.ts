@@ -193,9 +193,12 @@ export class LitePhysicsManager implements IPhysicsManager {
               if (event === undefined) {
                 const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
                 event.state = TriggerEventState.Enter;
+                event.needUpdate = false;
                 this._currentEvents.add(event);
               } else if (event.state === TriggerEventState.Enter) {
                 event.state = TriggerEventState.Stay;
+                event.needUpdate = false;
+              } else if (event.state === TriggerEventState.Stay) {
                 event.needUpdate = false;
               }
             }
@@ -217,9 +220,12 @@ export class LitePhysicsManager implements IPhysicsManager {
               if (event === undefined) {
                 const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
                 event.state = TriggerEventState.Enter;
+                event.needUpdate = false;
                 this._currentEvents.add(event);
               } else if (event.state === TriggerEventState.Enter) {
                 event.state = TriggerEventState.Stay;
+                event.needUpdate = false;
+              } else if (event.state === TriggerEventState.Stay) {
                 event.needUpdate = false;
               }
             }
@@ -231,7 +237,7 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = 0, n = currentEvents.length; i < n;) {
       const event = currentEvents.get(i);
       if (event.state == TriggerEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);
