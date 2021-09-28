@@ -1,10 +1,9 @@
 import { IPhysicsManager } from "@oasis-engine/design";
-import { BoundingBox, BoundingSphere, Ray, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "@oasis-engine/math";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
-import { intersectBox2Box, intersectSphere2Box, intersectSphere2Sphere } from "./LiteIntersect";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { DisorderedArray } from "./DisorderedArray";
 
@@ -267,11 +266,11 @@ export class LitePhysicsManager implements IPhysicsManager {
     if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox;
       LitePhysicsManager._updateWorldBox(other, box);
-      return intersectBox2Box(box, this._box);
+      return CollisionUtil.intersectBox2Box(box, this._box);
     } else if (other instanceof LiteSphereColliderShape) {
       const sphere = LitePhysicsManager._tempSphere;
       LitePhysicsManager._upWorldSphere(other, sphere);
-      return intersectSphere2Box(sphere, this._box);
+      return CollisionUtil.intersectSphere2Box(sphere, this._box);
     }
     return false;
   }
@@ -280,11 +279,11 @@ export class LitePhysicsManager implements IPhysicsManager {
     if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox;
       LitePhysicsManager._updateWorldBox(other, box);
-      return intersectSphere2Box(this._sphere, box);
+      return CollisionUtil.intersectSphere2Box(this._sphere, box);
     } else if (other instanceof LiteSphereColliderShape) {
       const sphere = LitePhysicsManager._tempSphere;
       LitePhysicsManager._upWorldSphere(other, sphere);
-      return intersectSphere2Sphere(sphere, this._sphere);
+      return CollisionUtil.intersectSphere2Sphere(sphere, this._sphere);
     }
     return false;
   }
