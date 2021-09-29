@@ -63,15 +63,15 @@ export class PointerManager {
         this._firePointerExitAndEnter(rayCastEntity);
         for (let i = 0; i < keyEventCount; i++) {
           switch (keyEventList[i]) {
-            case PointerEventType.Down:
+            case PointerKeyEvent.Down:
               this._firePointerDown(rayCastEntity);
               break;
-            case PointerEventType.Up:
+            case PointerKeyEvent.Up:
               this._firePointerUpAndClick(rayCastEntity);
               break;
           }
         }
-        if (keyEventList[keyEventCount - 1] === PointerEventType.Leave) {
+        if (keyEventList[keyEventCount - 1] === PointerKeyEvent.Leave) {
           this._firePointerExitAndEnter(null);
           this._currentPressedEntity = null;
         }
@@ -179,12 +179,12 @@ export class PointerManager {
           } else {
             this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down);
           }
-          activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerEventType.Down);
+          activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
           break;
         case "pointerup":
           if (pointerIndex >= 0) {
             this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Up);
-            activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerEventType.Up);
+            activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
           }
           break;
         case "pointermove":
@@ -198,24 +198,26 @@ export class PointerManager {
         case "pointerout":
           if (pointerIndex >= 0) {
             this._removePointer(pointerIndex);
-            --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerEventType.Leave);
+            --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Leave);
             this._needOverallPointers = true;
           }
           break;
       }
     }
     nativeEvents.length = 0;
-    const { _canvas: canvas, _currentPosition: currentPosition } = this;
     const pointerCount = pointers.length;
     if (pointerCount > 0) {
+      const { _canvas: canvas, _currentPosition: currentPosition } = this;
       // @ts-ignore
-      const pixelRatio = canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
+      const pixelRatioWidth = canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
+      // @ts-ignore
+      const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
       currentPosition.setValue(0, 0);
       for (let i = 0; i < pointerCount; i++) {
         const pointer = pointers[i];
         const { position } = pointer;
         if (pointer._needUpdate) {
-          position.scale(pixelRatio);
+          position.setValue(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
           pointer._needUpdate = false;
         }
         currentPosition.add(position);
@@ -241,10 +243,8 @@ export class PointerManager {
           // TODO: Only check which colliders have listened to the input.
           if (this._engine.physicsManager.raycast(camera.viewportPointToRay(_tempPoint, _tempRay), _tempHitResult)) {
             return PointerManager._tempHitResult.entity;
-          } else {
-            if (camera.clearFlags === CameraClearFlags.DepthColor) {
-              return null;
-            }
+          } else if (camera.clearFlags === CameraClearFlags.DepthColor) {
+            return null;
           }
         }
       }
@@ -262,13 +262,13 @@ export class PointerManager {
   }
 
   private _firePointerExitAndEnter(rayCastEntity: Entity): void {
-    if (this._currentEnteredEntity) {
-      const scripts = this._currentEnteredEntity._scripts;
-      for (let i = scripts.length - 1; i >= 0; i--) {
-        scripts.get(i).onPointerExit();
-      }
-    }
     if (this._currentEnteredEntity !== rayCastEntity) {
+      if (this._currentEnteredEntity) {
+        const scripts = this._currentEnteredEntity._scripts;
+        for (let i = scripts.length - 1; i >= 0; i--) {
+          scripts.get(i).onPointerExit();
+        }
+      }
       if (rayCastEntity) {
         const scripts = rayCastEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
@@ -303,10 +303,11 @@ export class PointerManager {
   }
 }
 
-/** @internal */
-enum PointerEventType {
+/**
+ * @internal
+ */
+enum PointerKeyEvent {
   Down,
   Up,
-  Move,
   Leave
 }
