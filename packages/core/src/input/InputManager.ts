@@ -8,7 +8,9 @@ import { PointerManager } from "./pointer/PointerManager";
 export class InputManager {
   private _pointerManager: PointerManager;
 
-  /** Pointer List. */
+  /**
+   * Pointer List.
+   */
   get pointers(): Readonly<Pointer[]> {
     return this._pointerManager._pointers;
   }
@@ -24,18 +26,24 @@ export class InputManager {
     this._pointerManager._multiPointerEnabled = enabled;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   constructor(engine: Engine) {
     // @ts-ignore
     this._pointerManager = new PointerManager(engine, engine.canvas._webCanvas);
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _update(): void {
     this._pointerManager._update();
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _destroy(): void {
     this._pointerManager._destroy();
   }
