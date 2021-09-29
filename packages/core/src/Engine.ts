@@ -27,6 +27,7 @@ import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
+import { InputManager } from "./input/InputManager";
 import { IPhysics } from "@oasis-engine/design";
 import { PhysicsManager } from "./physics";
 
@@ -65,6 +66,8 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _spriteMaskManager: SpriteMaskManager;
+  /** @internal */
+  _inputManager: InputManager;
 
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
@@ -177,6 +180,8 @@ export class Engine extends EventDispatcher {
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
 
+    this._inputManager = new InputManager(this);
+
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
 
     const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
@@ -248,7 +253,10 @@ export class Engine extends EventDispatcher {
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;
     if (scene) {
+      scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
+
       componentsManager.callScriptOnStart();
+      this._inputManager._update();
       if (this.physicsManager) {
         componentsManager.callColliderOnUpdate();
         this.physicsManager._update(deltaTime);
@@ -283,7 +291,7 @@ export class Engine extends EventDispatcher {
     if (this._sceneManager) {
       this._whiteTexture2D.destroy(true);
       this._whiteTextureCube.destroy(true);
-
+      this._inputManager._destroy();
       this.trigger(new Event("shutdown", this));
       engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 
@@ -339,9 +347,6 @@ export class Engine extends EventDispatcher {
     scene._updateShaderData();
 
     if (cameras.length > 0) {
-      // Sort on priority
-      //@ts-ignore
-      cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
         const cameraEntity = camera.entity;
