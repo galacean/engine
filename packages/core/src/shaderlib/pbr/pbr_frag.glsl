@@ -13,10 +13,6 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
    vec3 irradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
 #endif
 
-#ifndef PHYSICALLY_CORRECT_LIGHTS
-   irradiance *= PI;
-#endif
-
 reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 // IBL specular
