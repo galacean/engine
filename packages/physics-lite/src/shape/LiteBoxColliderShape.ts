@@ -61,9 +61,9 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     const boundingBox = LiteBoxColliderShape._tempBox;
     this._boxMin.cloneTo(boundingBox.min);
     this._boxMax.cloneTo(boundingBox.max);
-    const intersect = localRay.intersectBox(boundingBox);
-    if (intersect !== -1) {
-      this._updateHitResult(localRay, intersect, hit, ray.origin);
+    const rayDistance = localRay.intersectBox(boundingBox);
+    if (rayDistance !== -1) {
+      this._updateHitResult(localRay, rayDistance, hit, ray.origin);
       return true;
     } else {
       return false;

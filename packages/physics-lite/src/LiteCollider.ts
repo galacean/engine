@@ -63,12 +63,12 @@ export abstract class LiteCollider implements ICollider {
    * @internal
    */
   _raycast(ray: Ray, hit: LiteHitResult): boolean {
+    hit.distance = Number.MAX_VALUE;
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      if (shapes[i]._raycast(ray, hit)) {
-        return true;
-      }
+      shapes[i]._raycast(ray, hit);
     }
-    return false;
+
+    return hit.distance != Number.MAX_VALUE;
   }
 }

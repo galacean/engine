@@ -52,9 +52,9 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
     Vector3.transformCoordinate(this._transform.position, transform.worldMatrix, boundingSphere.center);
     LiteSphereColliderShape._tempSphere.radius = this.worldRadius;
 
-    const intersect = ray.intersectSphere(boundingSphere);
-    if (intersect !== -1) {
-      this._updateHitResult(ray, intersect, hit, ray.origin, true);
+    const rayDistance = ray.intersectSphere(boundingSphere);
+    if (rayDistance !== -1) {
+      this._updateHitResult(ray, rayDistance, hit, ray.origin, true);
       return true;
     } else {
       return false;

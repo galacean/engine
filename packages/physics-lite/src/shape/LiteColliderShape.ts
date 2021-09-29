@@ -10,6 +10,7 @@ import { LiteUpdateFlag } from "../LiteUpdateFlag";
  */
 export abstract class LiteColliderShape implements IColliderShape {
   private static _ray = new Ray();
+  private static _tempPoint = new Vector3();
 
   /** @internal */
   _id: number;
@@ -74,18 +75,24 @@ export abstract class LiteColliderShape implements IColliderShape {
 
   protected _updateHitResult(
     ray: Ray,
-    distance: number,
+    rayDistance: number,
     outHit: LiteHitResult,
     origin: Vector3,
     isWorldRay: boolean = false
   ): void {
-    ray.getPoint(distance, outHit.point);
+    const hitPoint = LiteColliderShape._tempPoint;
+    ray.getPoint(rayDistance, hitPoint);
     if (!isWorldRay) {
-      Vector3.transformCoordinate(outHit.point, this._transform.worldMatrix, outHit.point);
+      Vector3.transformCoordinate(hitPoint, this._transform.worldMatrix, hitPoint);
     }
 
-    outHit.distance = Vector3.distance(origin, outHit.point);
-    outHit.shapeID = this._id;
+    const distance = Vector3.distance(origin, hitPoint);
+
+    if (distance < outHit.distance) {
+      hitPoint.cloneTo(outHit.point);
+      outHit.distance = distance;
+      outHit.shapeID = this._id;
+    }
   }
 
   protected _getLocalRay(ray: Ray): Ray {
