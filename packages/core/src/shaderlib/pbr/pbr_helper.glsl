@@ -9,7 +9,7 @@ vec4 gammaToLinear(vec4 srgbIn){
     return vec4( pow(srgbIn.rgb, vec3(2.2)), srgbIn.a);
 }
 
-vec4 RGBMToLinear( in vec4 value, in float maxRange ) {
+vec4 RGBMToLinear(vec4 value, float maxRange ) {
     return vec4( value.rgb * value.a * maxRange, 1.0 );
 }
 
