@@ -162,7 +162,7 @@ export class LitePhysicsManager implements IPhysicsManager {
    */
   private static _upWorldSphere(sphereCollider: LiteSphereColliderShape, out: BoundingSphere): void {
     Vector3.transformCoordinate(sphereCollider._transform.position, sphereCollider._transform.worldMatrix, out.center);
-    out.radius = sphereCollider.radius;
+    out.radius = sphereCollider.worldRadius;
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {

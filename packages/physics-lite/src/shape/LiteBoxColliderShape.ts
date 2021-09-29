@@ -9,7 +9,6 @@ import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
  */
 export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColliderShape {
   private static _tempBox: BoundingBox = new BoundingBox();
-  private static _tempHalfExtents = new Vector3();
   private _halfSize: Vector3 = new Vector3();
 
   /** @internal */
@@ -43,7 +42,6 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   setWorldScale(scale: Vector3): void {
     this._transform.setScale(scale.x, scale.y, scale.z);
-    this._setBondingBox();
   }
 
   /**
@@ -73,12 +71,10 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   }
 
   private _setBondingBox(): void {
-    const { position: center, scale } = this._transform;
+    const { position: center } = this._transform;
     const halfSize = this._halfSize;
 
-    const extents = LiteBoxColliderShape._tempHalfExtents;
-    extents.setValue(scale.x * halfSize.x, scale.y * halfSize.y, scale.z * halfSize.z);
-    Vector3.add(center, extents, this._boxMax);
-    Vector3.subtract(center, extents, this._boxMin);
+    Vector3.add(center, halfSize, this._boxMax);
+    Vector3.subtract(center, halfSize, this._boxMin);
   }
 }

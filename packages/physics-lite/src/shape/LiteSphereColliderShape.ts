@@ -13,8 +13,8 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
   private _radius: number = 1;
   private _maxScale: number = 1;
 
-  get radius(): number {
-    return this._radius;
+  get worldRadius(): number {
+    return this._radius * this._maxScale;
   }
 
   /**
@@ -50,7 +50,7 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
     const transform = this._transform;
     const boundingSphere = LiteSphereColliderShape._tempSphere;
     Vector3.transformCoordinate(this._transform.position, transform.worldMatrix, boundingSphere.center);
-    LiteSphereColliderShape._tempSphere.radius = this._radius * this._maxScale;
+    LiteSphereColliderShape._tempSphere.radius = this.worldRadius;
 
     const intersect = ray.intersectSphere(boundingSphere);
     if (intersect !== -1) {
