@@ -9,7 +9,7 @@ export interface IEnvAsset {
   diffuseIntensity: number;
   specularIntensity: number;
   specularTexture: {
-    path: string;
-    objectId: string;
+    size: number;
+    data: ArrayBuffer[][];
   };
 }

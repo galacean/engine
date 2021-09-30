@@ -1,9 +1,9 @@
-import { AmbientLight, AssetType, DiffuseMode, Engine } from "@oasis-engine/core";
+import { AmbientLight, DiffuseMode, Engine, TextureCubeFace, TextureCubeMap } from "@oasis-engine/core";
 import { SphericalHarmonics3 } from "@oasis-engine/math";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 
-@decoder("Environment")
+@decoder("AmbientLight")
 export class EnvDecoder {
   static decode(
     engine: Engine,
@@ -35,17 +35,18 @@ export class EnvDecoder {
       const specularIntensity = bufferReader.nextFloat32();
       const hasSpecularTexture = !!bufferReader.nextUint8();
       if (hasSpecularTexture) {
-        const path = bufferReader.nextStr();
-        const objectId = bufferReader.nextStr();
-        engine.resourceManager
-          .load({
-            url: path,
-            type: AssetType.Oasis
-          })
-          .then(() => {
-            // @ts-ignore
-            ambientLight.specularTexture = engine.resourceManager._objectPool[objectId];
-          });
+        const size = bufferReader.nextUint16();
+        const mipCount = bufferReader.nextUint8();
+        const imagesData = bufferReader.nextImagesData(mipCount);
+
+        const textureCube = new TextureCubeMap(engine, size);
+        for (let i = 1; i < mipCount; i++) {
+          for (let j = 0; j < 6; j++) {
+            const pixelBuffer = new Uint8Array(imagesData[6 * i + j].buffer);
+            textureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, pixelBuffer);
+          }
+        }
+        ambientLight.specularTexture = textureCube;
       }
 
       ambientLight.diffuseMode = diffuseMode;
@@ -53,7 +54,7 @@ export class EnvDecoder {
       ambientLight.specularIntensity = specularIntensity;
 
       // @ts-ignore
-      engine.resourceManager._objectPool[objectId] = texture2D;
+      engine.resourceManager._objectPool[objectId] = ambientLight;
 
       resolve(ambientLight);
     });

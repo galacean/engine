@@ -4,7 +4,7 @@ import { encoder } from "../..";
 import { BufferWriter } from "../../utils/BufferWriter";
 import { IEnvAsset } from "./type";
 
-@encoder("Environment")
+@encoder("AmbientLight")
 export class EnvEncoder {
   static encode(bufferWriter: BufferWriter, data: IEnvAsset) {
     const {
@@ -35,8 +35,15 @@ export class EnvEncoder {
     bufferWriter.writeUint8(specularTexture ? 1 : 0);
 
     if (specularTexture) {
-      bufferWriter.writeStr(specularTexture.path);
-      bufferWriter.writeStr(specularTexture.objectId);
+      const { size, data } = specularTexture;
+      bufferWriter.writeUint16(size);
+      const flatData: ArrayBuffer[] = [];
+      data.forEach((mipData) => {
+        flatData.push(...mipData);
+      });
+      const imagesData = flatData.map((buffer) => ({ type: "image/jpg", buffer }));
+      bufferWriter.writeUint8(imagesData.length);
+      bufferWriter.writeImagesData(imagesData);
     }
 
     return bufferWriter.buffer;
