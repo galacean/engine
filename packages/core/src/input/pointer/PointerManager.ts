@@ -20,6 +20,7 @@ export class PointerManager {
   _pointers: Pointer[] = [];
   /** @internal */
   _multiPointerEnabled: boolean = true;
+  _enablePhysics: boolean = false;
 
   private _engine: Engine;
   private _canvas: Canvas;
@@ -48,6 +49,7 @@ export class PointerManager {
     };
     // MaxTouchCount + MouseCount(1)
     this._pointerPool = new Array<Pointer>(navigator.maxTouchPoints + 1);
+    this._enablePhysics = engine.physicsManager ? true : false;
   }
 
   /**
@@ -55,11 +57,12 @@ export class PointerManager {
    */
   _update(): void {
     this._needOverallPointers && this._overallPointers();
-    if (this._nativeEvents.length > 0) {
-      this._handlePointerEvent(this._nativeEvents);
+    this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents);
+    if (this._enablePhysics) {
       const rayCastEntity = this._pointerRayCast();
-      const { _keyEventCount: keyEventCount, _keyEventList: keyEventList } = this;
+      const { _keyEventCount: keyEventCount } = this;
       if (keyEventCount > 0) {
+        const { _keyEventList: keyEventList } = this;
         this._firePointerExitAndEnter(rayCastEntity);
         for (let i = 0; i < keyEventCount; i++) {
           switch (keyEventList[i]) {
@@ -80,9 +83,6 @@ export class PointerManager {
         this._firePointerDrag();
         this._firePointerExitAndEnter(rayCastEntity);
       }
-    } else {
-      this._firePointerDrag();
-      this._firePointerExitAndEnter(this._pointerRayCast());
     }
   }
 
@@ -143,12 +143,12 @@ export class PointerManager {
         }
       }
       let pointer = pointerPool[i];
-      if (pointer) {
+      if (!pointer) {
         pointer = pointerPool[i] = new Pointer(i);
       }
       pointer._uniqueID = pointerId;
-      pointer.position.setValue(x, y);
       pointer._needUpdate = true;
+      pointer.position.setValue(x, y);
       pointer.phase = phase;
       pointers.splice(i, 0, pointer);
     }
