@@ -11,6 +11,7 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
    vec3 irradiance = getLightProbeIrradiance(u_env_sh, geometry.normal) * u_envMapLight.diffuseIntensity;
 #else
    vec3 irradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
+   irradiance *= PI;
 #endif
 
 reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
