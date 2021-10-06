@@ -63,7 +63,6 @@ export class PointerManager {
       const { _keyEventCount: keyEventCount } = this;
       if (keyEventCount > 0) {
         const { _keyEventList: keyEventList } = this;
-        this._firePointerExitAndEnter(rayCastEntity);
         for (let i = 0; i < keyEventCount; i++) {
           switch (keyEventList[i]) {
             case PointerKeyEvent.Down:
@@ -74,10 +73,8 @@ export class PointerManager {
               break;
           }
         }
-        if (keyEventList[keyEventCount - 1] === PointerKeyEvent.Leave) {
-          this._firePointerExitAndEnter(null);
-          this._currentPressedEntity = null;
-        }
+        this._firePointerExitAndEnter(rayCastEntity);
+        keyEventList[keyEventCount - 1] === PointerKeyEvent.Leave && (this._currentPressedEntity = null);
         this._keyEventCount = 0;
       } else {
         this._firePointerDrag();
@@ -168,7 +165,8 @@ export class PointerManager {
   private _handlePointerEvent(nativeEvents: PointerEvent[]): void {
     const { _pointers: pointers, _keyEventList: keyEventList } = this;
     let activePointerCount = pointers.length;
-    for (let i = 0, n = nativeEvents.length; i < n; i++) {
+    const nativeEventsLen = nativeEvents.length;
+    for (let i = 0; i < nativeEventsLen; i++) {
       const evt = nativeEvents[i];
       let pointerIndex = this._getIndexByPointerID(evt.pointerId);
       switch (evt.type) {
@@ -212,17 +210,22 @@ export class PointerManager {
       const pixelRatioWidth = canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
       // @ts-ignore
       const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
-      currentPosition.setValue(0, 0);
-      for (let i = 0; i < pointerCount; i++) {
-        const pointer = pointers[i];
-        const { position } = pointer;
-        if (pointer._needUpdate) {
-          position.setValue(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
-          pointer._needUpdate = false;
+      if (activePointerCount === 0) {
+        const lastNativeEvent = nativeEvents[nativeEventsLen - 1];
+        currentPosition.setValue(lastNativeEvent.offsetX * pixelRatioWidth, lastNativeEvent.offsetY * pixelRatioHeight);
+      } else {
+        currentPosition.setValue(0, 0);
+        for (let i = 0; i < pointerCount; i++) {
+          const pointer = pointers[i];
+          const { position } = pointer;
+          if (pointer._needUpdate) {
+            position.setValue(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
+            pointer._needUpdate = false;
+          }
+          currentPosition.add(position);
         }
-        currentPosition.add(position);
+        currentPosition.scale(1 / pointerCount);
       }
-      currentPosition.scale(1 / pointerCount);
     }
   }
 
