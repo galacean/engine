@@ -310,6 +310,23 @@ export class Quaternion implements IClone {
     out.w = a.w;
   }
 
+  /**
+   * Calculate the inverse of the specified quaternion.
+   * @param a - The quaternion whose inverse is to be calculated
+   * @param out - The inverse of the specified quaternion
+   */
+  static invert(a: Quaternion, out: Quaternion): void {
+    const { x, y, z, w } = a;
+    const dot = x * x + y * y + z * z + w * w;
+    if (dot > MathUtil.zeroTolerance) {
+      const invDot = 1.0 / dot;
+      out.x = -x * invDot;
+      out.y = -y * invDot;
+      out.z = -z * invDot;
+      out.w = w * invDot;
+    }
+  }
+
   /** The x component of the quaternion. */
   x: number;
   /** The y component of the quaternion. */
@@ -641,26 +658,9 @@ export class Quaternion implements IClone {
    * Invert this quaternion.
    * @returns This quaternion after invert
    */
-  invert(): Quaternion;
-
-  /**
-   * Invert this quaternion.
-   * @param out - The inverse of the specified quaternion
-   * @returns This quaternion after invert
-   */
-  invert(out: Quaternion): Quaternion;
-
-  invert(out: Quaternion = this): Quaternion {
-    const { x, y, z, w } = this;
-    const dot = x * x + y * y + z * z + w * w;
-    if (dot > MathUtil.zeroTolerance) {
-      const invDot = 1.0 / dot;
-      out.x = -x * invDot;
-      out.y = -y * invDot;
-      out.z = -z * invDot;
-      out.w = w * invDot;
-    }
-    return out;
+  invert(): Quaternion {
+    Quaternion.invert(this, this);
+    return this;
   }
 
   /**
