@@ -202,14 +202,13 @@ export class PointerManager {
           break;
       }
     }
-    nativeEvents.length = 0;
     const pointerCount = pointers.length;
     if (pointerCount > 0) {
       const { _canvas: canvas, _currentPosition: currentPosition } = this;
       // @ts-ignore
       const pixelRatioWidth = canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
       // @ts-ignore
-      const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
+      const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientHeight;
       if (activePointerCount === 0) {
         const lastNativeEvent = nativeEvents[nativeEventsLen - 1];
         currentPosition.setValue(lastNativeEvent.offsetX * pixelRatioWidth, lastNativeEvent.offsetY * pixelRatioHeight);
@@ -227,6 +226,7 @@ export class PointerManager {
         currentPosition.scale(1 / pointerCount);
       }
     }
+    nativeEvents.length = 0;
   }
 
   private _pointerRayCast(): Entity {
@@ -293,9 +293,10 @@ export class PointerManager {
   }
 
   private _firePointerUpAndClick(rayCastEntity: Entity): void {
-    if (this._currentPressedEntity) {
-      const sameTarget = this._currentPressedEntity === rayCastEntity;
-      const scripts = rayCastEntity._scripts;
+    const { _currentPressedEntity } = this;
+    if (_currentPressedEntity) {
+      const sameTarget = _currentPressedEntity === rayCastEntity;
+      const scripts = _currentPressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
         sameTarget && script.onPointerClick();
