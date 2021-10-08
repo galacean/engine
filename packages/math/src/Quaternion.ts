@@ -204,6 +204,19 @@ export class Quaternion implements IClone {
   }
 
   /**
+   * Scale a quaternion by a given number.
+   * @param a - The quaternion
+   * @param s - The given number
+   * @param out - The scaled quaternion
+   */
+  static scale(a: Quaternion, s: number, out: Quaternion): void {
+    out.x = a.x * s;
+    out.y = a.y * s;
+    out.z = a.z * s;
+    out.w = a.w * s;
+  }
+
+  /**
    * Determines the dot product of two quaternions.
    * @param left - The first quaternion to dot
    * @param right - The second quaternion to dot
@@ -283,6 +296,18 @@ export class Quaternion implements IClone {
     out.y = scale0 * ay + scale1 * by;
     out.z = scale0 * az + scale1 * bz;
     out.w = scale0 * aw + scale1 * bw;
+  }
+
+  /**
+   * Calculate quaternion that contains conjugated version of the specified quaternion.
+   * @param a - The specified quaternion
+   * @param out - The conjugate version of the specified quaternion
+   */
+  static conjugate(a: Quaternion, out: Quaternion): void {
+    out.x = -a.x;
+    out.y = -a.y;
+    out.z = -a.z;
+    out.w = a.w;
   }
 
   /** The x component of the quaternion. */
@@ -581,20 +606,14 @@ export class Quaternion implements IClone {
 
   /**
    * Transforms this quaternion into its conjugated version.
+   * @returns This quaternion
    */
-  conjugate(): void;
+  conjugate(): Quaternion {
+    this.x *= -1;
+    this.y *= -1;
+    this.z *= -1;
 
-  /**
-   * Transforms this quaternion into its conjugated version.
-   * @param out - The conjugate version of the specified quaternion
-   */
-  conjugate(out: Quaternion): void;
-
-  conjugate(out: Quaternion = this): void {
-    out.x = -this.x;
-    out.y = -this.y;
-    out.z = -this.z;
-    out.w = this.w;
+    return this;
   }
 
   /**
@@ -667,21 +686,11 @@ export class Quaternion implements IClone {
   /**
    * Scale a quaternion by a given number.
    * @param s - The given number
+   * @returns The scaled quaternion
    */
-  scale(s: number): void;
-
-  /**
-   * Scale a quaternion by a given number.
-   * @param s - The given number
-   * @param out - The scaled quaternion
-   */
-  scale(s: number, out: Quaternion): void;
-
-  scale(s: number, out: Quaternion = this): void {
-    out.x = this.x * s;
-    out.y = this.y * s;
-    out.z = this.z * s;
-    out.w = this.w * s;
+  scale(s: number): Quaternion {
+    Quaternion.scale(this, s, this);
+    return this;
   }
 
   /**
