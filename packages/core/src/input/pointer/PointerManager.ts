@@ -20,6 +20,8 @@ export class PointerManager {
   _pointers: Pointer[] = [];
   /** @internal */
   _multiPointerEnabled: boolean = true;
+  /** @internal */
+  _enablePhysics: boolean = false;
 
   private _engine: Engine;
   private _canvas: Canvas;
@@ -48,6 +50,7 @@ export class PointerManager {
     };
     // MaxTouchCount + MouseCount(1)
     this._pointerPool = new Array<Pointer>(navigator.maxTouchPoints + 1);
+    this._enablePhysics = engine.physicsManager ? true : false;
   }
 
   /**
@@ -55,12 +58,12 @@ export class PointerManager {
    */
   _update(): void {
     this._needOverallPointers && this._overallPointers();
-    if (this._nativeEvents.length > 0) {
-      this._handlePointerEvent(this._nativeEvents);
+    this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents);
+    if (this._enablePhysics) {
       const rayCastEntity = this._pointerRayCast();
-      const { _keyEventCount: keyEventCount, _keyEventList: keyEventList } = this;
+      const { _keyEventCount: keyEventCount } = this;
       if (keyEventCount > 0) {
-        this._firePointerExitAndEnter(rayCastEntity);
+        const { _keyEventList: keyEventList } = this;
         for (let i = 0; i < keyEventCount; i++) {
           switch (keyEventList[i]) {
             case PointerKeyEvent.Down:
@@ -71,18 +74,13 @@ export class PointerManager {
               break;
           }
         }
-        if (keyEventList[keyEventCount - 1] === PointerKeyEvent.Leave) {
-          this._firePointerExitAndEnter(null);
-          this._currentPressedEntity = null;
-        }
+        this._firePointerExitAndEnter(rayCastEntity);
+        keyEventList[keyEventCount - 1] === PointerKeyEvent.Leave && (this._currentPressedEntity = null);
         this._keyEventCount = 0;
       } else {
         this._firePointerDrag();
         this._firePointerExitAndEnter(rayCastEntity);
       }
-    } else {
-      this._firePointerDrag();
-      this._firePointerExitAndEnter(this._pointerRayCast());
     }
   }
 
@@ -143,12 +141,12 @@ export class PointerManager {
         }
       }
       let pointer = pointerPool[i];
-      if (pointer) {
+      if (!pointer) {
         pointer = pointerPool[i] = new Pointer(i);
       }
       pointer._uniqueID = pointerId;
-      pointer.position.setValue(x, y);
       pointer._needUpdate = true;
+      pointer.position.setValue(x, y);
       pointer.phase = phase;
       pointers.splice(i, 0, pointer);
     }
@@ -168,7 +166,8 @@ export class PointerManager {
   private _handlePointerEvent(nativeEvents: PointerEvent[]): void {
     const { _pointers: pointers, _keyEventList: keyEventList } = this;
     let activePointerCount = pointers.length;
-    for (let i = 0, n = nativeEvents.length; i < n; i++) {
+    const nativeEventsLen = nativeEvents.length;
+    for (let i = 0; i < nativeEventsLen; i++) {
       const evt = nativeEvents[i];
       let pointerIndex = this._getIndexByPointerID(evt.pointerId);
       switch (evt.type) {
@@ -204,34 +203,40 @@ export class PointerManager {
           break;
       }
     }
-    nativeEvents.length = 0;
     const pointerCount = pointers.length;
     if (pointerCount > 0) {
       const { _canvas: canvas, _currentPosition: currentPosition } = this;
       // @ts-ignore
       const pixelRatioWidth = canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
       // @ts-ignore
-      const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
-      currentPosition.setValue(0, 0);
-      for (let i = 0; i < pointerCount; i++) {
-        const pointer = pointers[i];
-        const { position } = pointer;
-        if (pointer._needUpdate) {
-          position.setValue(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
-          pointer._needUpdate = false;
+      const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientHeight;
+      if (activePointerCount === 0) {
+        // Get the pointer coordinates when leaving, and use it to correctly dispatch the click event.
+        const lastNativeEvent = nativeEvents[nativeEventsLen - 1];
+        currentPosition.setValue(lastNativeEvent.offsetX * pixelRatioWidth, lastNativeEvent.offsetY * pixelRatioHeight);
+      } else {
+        currentPosition.setValue(0, 0);
+        for (let i = 0; i < pointerCount; i++) {
+          const pointer = pointers[i];
+          const { position } = pointer;
+          if (pointer._needUpdate) {
+            position.setValue(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
+            pointer._needUpdate = false;
+          }
+          currentPosition.add(position);
         }
-        currentPosition.add(position);
+        currentPosition.scale(1 / pointerCount);
       }
-      currentPosition.scale(1 / pointerCount);
     }
+    nativeEvents.length = 0;
   }
 
   private _pointerRayCast(): Entity {
     if (this._pointers.length > 0) {
-      let x = this._currentPosition.x / this._canvas.width;
-      let y = this._currentPosition.y / this._canvas.height;
-      const cameras = this._engine.sceneManager.activeScene._activeCameras;
-      const { _tempPoint, _tempRay, _tempHitResult } = PointerManager;
+      const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
+      const { _activeCameras: cameras } = this._engine.sceneManager.activeScene;
+      const x = this._currentPosition.x / this._canvas.width;
+      const y = this._currentPosition.y / this._canvas.height;
       for (let i = cameras.length - 1; i >= 0; i--) {
         const camera = cameras[i];
         if (!camera.enabled || camera.renderTarget) {
@@ -239,10 +244,10 @@ export class PointerManager {
         }
         const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
         if (x >= vpX && y >= vpY && x - vpX <= vpW && y - vpY <= vpH) {
-          PointerManager._tempPoint.setValue((x - vpX) / vpW, (y - vpY) / vpH);
+          point.setValue((x - vpX) / vpW, (y - vpY) / vpH);
           // TODO: Only check which colliders have listened to the input.
-          if (this._engine.physicsManager.raycast(camera.viewportPointToRay(_tempPoint, _tempRay), _tempHitResult)) {
-            return PointerManager._tempHitResult.entity;
+          if (this._engine.physicsManager.raycast(camera.viewportPointToRay(point, ray), hitResult)) {
+            return hitResult.entity;
           } else if (camera.clearFlags === CameraClearFlags.DepthColor) {
             return null;
           }
@@ -290,9 +295,10 @@ export class PointerManager {
   }
 
   private _firePointerUpAndClick(rayCastEntity: Entity): void {
-    if (this._currentPressedEntity) {
-      const sameTarget = this._currentPressedEntity === rayCastEntity;
-      const scripts = rayCastEntity._scripts;
+    const { _currentPressedEntity: pressedEntity } = this;
+    if (pressedEntity) {
+      const sameTarget = pressedEntity === rayCastEntity;
+      const scripts = pressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
         sameTarget && script.onPointerClick();
