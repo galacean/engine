@@ -211,6 +211,7 @@ export class PointerManager {
       // @ts-ignore
       const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientHeight;
       if (activePointerCount === 0) {
+        // Get the pointer coordinates when leaving, and use it to correctly dispatch the click event.
         const lastNativeEvent = nativeEvents[nativeEventsLen - 1];
         currentPosition.setValue(lastNativeEvent.offsetX * pixelRatioWidth, lastNativeEvent.offsetY * pixelRatioHeight);
       } else {
@@ -232,10 +233,10 @@ export class PointerManager {
 
   private _pointerRayCast(): Entity {
     if (this._pointers.length > 0) {
-      let x = this._currentPosition.x / this._canvas.width;
-      let y = this._currentPosition.y / this._canvas.height;
-      const cameras = this._engine.sceneManager.activeScene._activeCameras;
-      const { _tempPoint, _tempRay, _tempHitResult } = PointerManager;
+      const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
+      const { _activeCameras: cameras } = this._engine.sceneManager.activeScene;
+      const x = this._currentPosition.x / this._canvas.width;
+      const y = this._currentPosition.y / this._canvas.height;
       for (let i = cameras.length - 1; i >= 0; i--) {
         const camera = cameras[i];
         if (!camera.enabled || camera.renderTarget) {
@@ -243,10 +244,10 @@ export class PointerManager {
         }
         const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
         if (x >= vpX && y >= vpY && x - vpX <= vpW && y - vpY <= vpH) {
-          PointerManager._tempPoint.setValue((x - vpX) / vpW, (y - vpY) / vpH);
+          point.setValue((x - vpX) / vpW, (y - vpY) / vpH);
           // TODO: Only check which colliders have listened to the input.
-          if (this._engine.physicsManager.raycast(camera.viewportPointToRay(_tempPoint, _tempRay), _tempHitResult)) {
-            return PointerManager._tempHitResult.entity;
+          if (this._engine.physicsManager.raycast(camera.viewportPointToRay(point, ray), hitResult)) {
+            return hitResult.entity;
           } else if (camera.clearFlags === CameraClearFlags.DepthColor) {
             return null;
           }
