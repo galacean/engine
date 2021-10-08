@@ -11,6 +11,63 @@ export class Quaternion implements IClone {
   static readonly _tempVector3 = new Vector3();
 
   /**
+   * Determines the sum of two quaternions.
+   * @param left - The first quaternion to add
+   * @param right - The second quaternion to add
+   * @param out - The sum of two quaternions
+   */
+  static add(left: Quaternion, right: Quaternion, out: Quaternion): void {
+    out.x = left.x + right.x;
+    out.y = left.y + right.y;
+    out.z = left.z + right.z;
+    out.w = left.w + right.w;
+  }
+
+  /**
+   * Determines the product of two quaternions.
+   * @param left - The first quaternion to multiply
+   * @param right - The second quaternion to multiply
+   * @param out - The product of two quaternions
+   */
+  static multiply(left: Quaternion, right: Quaternion, out: Quaternion): void {
+    const ax = left.x,
+      ay = left.y,
+      az = left.z,
+      aw = left.w;
+    const bx = right.x,
+      by = right.y,
+      bz = right.z,
+      bw = right.w;
+
+    out.x = ax * bw + aw * bx + ay * bz - az * by;
+    out.y = ay * bw + aw * by + az * bx - ax * bz;
+    out.z = az * bw + aw * bz + ax * by - ay * bx;
+    out.w = aw * bw - ax * bx - ay * by - az * bz;
+  }
+
+  /**
+   * Calculate quaternion that contains conjugated version of the specified quaternion.
+   * @param a - The specified quaternion
+   * @param out - The conjugate version of the specified quaternion
+   */
+  static conjugate(a: Quaternion, out: Quaternion): void {
+    out.x = -a.x;
+    out.y = -a.y;
+    out.z = -a.z;
+    out.w = a.w;
+  }
+
+  /**
+   * Determines the dot product of two quaternions.
+   * @param left - The first quaternion to dot
+   * @param right - The second quaternion to dot
+   * @returns The dot product of two quaternions
+   */
+  static dot(left: Quaternion, right: Quaternion): number {
+    return left.x * right.x + left.y * right.y + left.z * right.z + left.w * right.w;
+  }
+
+  /**
    * Calculate a quaternion rotates around an arbitrary axis.
    * @param axis - The axis
    * @param rad - The rotation angle in radians
@@ -121,109 +178,20 @@ export class Quaternion implements IClone {
   }
 
   /**
-   * Calculate a quaternion rotate around X axis.
-   * @param rad - The rotation angle in radians
-   * @param out - The calculated quaternion
+   * Calculate the inverse of the specified quaternion.
+   * @param a - The quaternion whose inverse is to be calculated
+   * @param out - The inverse of the specified quaternion
    */
-  static rotationX(rad: number, out: Quaternion): void {
-    rad *= 0.5;
-    const s = Math.sin(rad);
-    const c = Math.cos(rad);
-
-    out.x = s;
-    out.y = 0;
-    out.z = 0;
-    out.w = c;
-  }
-
-  /**
-   * Calculate a quaternion rotate around Y axis.
-   * @param rad - The rotation angle in radians
-   * @param out - The calculated quaternion
-   */
-  static rotationY(rad: number, out: Quaternion): void {
-    rad *= 0.5;
-    const s = Math.sin(rad);
-    const c = Math.cos(rad);
-
-    out.x = 0;
-    out.y = s;
-    out.z = 0;
-    out.w = c;
-  }
-
-  /**
-   * Calculate a quaternion rotate around Z axis.
-   * @param rad - The rotation angle in radians
-   * @param out - The calculated quaternion
-   */
-  static rotationZ(rad: number, out: Quaternion): void {
-    rad *= 0.5;
-    const s = Math.sin(rad);
-    const c = Math.cos(rad);
-
-    out.x = 0;
-    out.y = 0;
-    out.z = s;
-    out.w = c;
-  }
-
-  /**
-   * Determines the sum of two quaternions.
-   * @param left - The first quaternion to add
-   * @param right - The second quaternion to add
-   * @param out - The sum of two quaternions
-   */
-  static add(left: Quaternion, right: Quaternion, out: Quaternion): void {
-    out.x = left.x + right.x;
-    out.y = left.y + right.y;
-    out.z = left.z + right.z;
-    out.w = left.w + right.w;
-  }
-
-  /**
-   * Determines the product of two quaternions.
-   * @param left - The first quaternion to multiply
-   * @param right - The second quaternion to multiply
-   * @param out - The product of two quaternions
-   */
-  static multiply(left: Quaternion, right: Quaternion, out: Quaternion): void {
-    const ax = left.x,
-      ay = left.y,
-      az = left.z,
-      aw = left.w;
-    const bx = right.x,
-      by = right.y,
-      bz = right.z,
-      bw = right.w;
-
-    out.x = ax * bw + aw * bx + ay * bz - az * by;
-    out.y = ay * bw + aw * by + az * bx - ax * bz;
-    out.z = az * bw + aw * bz + ax * by - ay * bx;
-    out.w = aw * bw - ax * bx - ay * by - az * bz;
-  }
-
-  /**
-   * Scale a quaternion by a given number.
-   * @param a - The quaternion
-   * @param s - The given number
-   * @param out - The scaled quaternion
-   */
-  static scale(a: Quaternion, s: number, out: Quaternion): void {
-    out.x = a.x * s;
-    out.y = a.y * s;
-    out.z = a.z * s;
-    out.w = a.w * s;
-  }
-
-  /**
-   * Determines the dot product of two quaternions.
-   * @param left - The first quaternion to dot
-   * @param right - The second quaternion to dot
-   * @returns The dot product of two quaternions
-   */
-  static dot(left: Quaternion, right: Quaternion): number {
-    return left.x * right.x + left.y * right.y + left.z * right.z + left.w * right.w;
+  static invert(a: Quaternion, out: Quaternion): void {
+    const { x, y, z, w } = a;
+    const dot = x * x + y * y + z * z + w * w;
+    if (dot > MathUtil.zeroTolerance) {
+      const invDot = 1.0 / dot;
+      out.x = -x * invDot;
+      out.y = -y * invDot;
+      out.z = -z * invDot;
+      out.w = w * invDot;
+    }
   }
 
   /**
@@ -299,32 +267,135 @@ export class Quaternion implements IClone {
   }
 
   /**
-   * Calculate quaternion that contains conjugated version of the specified quaternion.
+   * Scales the specified quaternion magnitude to unit length.
    * @param a - The specified quaternion
-   * @param out - The conjugate version of the specified quaternion
+   * @param out - The normalized quaternion
    */
-  static conjugate(a: Quaternion, out: Quaternion): void {
-    out.x = -a.x;
-    out.y = -a.y;
-    out.z = -a.z;
-    out.w = a.w;
+  static normalize(a: Quaternion, out: Quaternion): void {
+    const { x, y, z, w } = a;
+    let len: number = Math.sqrt(x * x + y * y + z * z + w * w);
+    if (len > MathUtil.zeroTolerance) {
+      len = 1 / len;
+      out.x = x * len;
+      out.y = y * len;
+      out.z = z * len;
+      out.w = w * len;
+    }
   }
 
   /**
-   * Calculate the inverse of the specified quaternion.
-   * @param a - The quaternion whose inverse is to be calculated
-   * @param out - The inverse of the specified quaternion
+   * Calculate a quaternion rotate around X axis.
+   * @param rad - The rotation angle in radians
+   * @param out - The calculated quaternion
    */
-  static invert(a: Quaternion, out: Quaternion): void {
-    const { x, y, z, w } = a;
-    const dot = x * x + y * y + z * z + w * w;
-    if (dot > MathUtil.zeroTolerance) {
-      const invDot = 1.0 / dot;
-      out.x = -x * invDot;
-      out.y = -y * invDot;
-      out.z = -z * invDot;
-      out.w = w * invDot;
-    }
+  static rotationX(rad: number, out: Quaternion): void {
+    rad *= 0.5;
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
+
+    out.x = s;
+    out.y = 0;
+    out.z = 0;
+    out.w = c;
+  }
+
+  /**
+   * Calculate a quaternion rotate around Y axis.
+   * @param rad - The rotation angle in radians
+   * @param out - The calculated quaternion
+   */
+  static rotationY(rad: number, out: Quaternion): void {
+    rad *= 0.5;
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
+
+    out.x = 0;
+    out.y = s;
+    out.z = 0;
+    out.w = c;
+  }
+
+  /**
+   * Calculate a quaternion rotate around Z axis.
+   * @param rad - The rotation angle in radians
+   * @param out - The calculated quaternion
+   */
+  static rotationZ(rad: number, out: Quaternion): void {
+    rad *= 0.5;
+    const s = Math.sin(rad);
+    const c = Math.cos(rad);
+
+    out.x = 0;
+    out.y = 0;
+    out.z = s;
+    out.w = c;
+  }
+
+  /**
+   * Calculate a quaternion that the specified quaternion rotate around X axis.
+   * @param quaternion - The specified quaternion
+   * @param rad - The rotation angle in radians
+   * @param out - The calculated quaternion
+   */
+  static rotateX(quaternion: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = quaternion;
+    rad *= 0.5;
+    const bx = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw + w * bx;
+    out.y = y * bw + z * bx;
+    out.z = z * bw - y * bx;
+    out.w = w * bw - x * bx;
+  }
+
+  /**
+   * Calculate a quaternion that the specified quaternion rotate around Y axis.
+   * @param quaternion - The specified quaternion
+   * @param rad - The rotation angle in radians
+   * @param out - The calculated quaternion
+   */
+  static rotateY(quaternion: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = quaternion;
+    rad *= 0.5;
+    const by = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw - z * by;
+    out.y = y * bw + w * by;
+    out.z = z * bw + x * by;
+    out.w = w * bw - y * by;
+  }
+
+  /**
+   * Calculate a quaternion that the specified quaternion rotate around Z axis.
+   * @param quaternion - The specified quaternion
+   * @param rad - The rotation angle in radians
+   * @param out - The calculated quaternion
+   */
+  static rotateZ(quaternion: Quaternion, rad: number, out: Quaternion): void {
+    const { x, y, z, w } = quaternion;
+    rad *= 0.5;
+    const bz = Math.sin(rad);
+    const bw = Math.cos(rad);
+
+    out.x = x * bw + y * bz;
+    out.y = y * bw - x * bz;
+    out.z = z * bw + w * bz;
+    out.w = w * bw - z * bz;
+  }
+
+  /**
+   * Scale a quaternion by a given number.
+   * @param a - The quaternion
+   * @param s - The given number
+   * @param out - The scaled quaternion
+   */
+  static scale(a: Quaternion, s: number, out: Quaternion): void {
+    out.x = a.x * s;
+    out.y = a.y * s;
+    out.z = a.z * s;
+    out.w = a.w * s;
   }
 
   /** The x component of the quaternion. */
@@ -378,6 +449,15 @@ export class Quaternion implements IClone {
     this.y = array[offset + 1];
     this.z = array[offset + 2];
     this.w = array[offset + 3];
+    return this;
+  }
+
+  /**
+   * Transforms this quaternion into its conjugated version.
+   * @returns This quaternion
+   */
+  conjugate(): Quaternion {
+    Quaternion.conjugate(this, this);
     return this;
   }
 
@@ -440,26 +520,9 @@ export class Quaternion implements IClone {
    * Converts this quaternion into a unit quaternion.
    * @returns This quaternion
    */
-  normalize(): Quaternion;
-
-  /**
-   * Converts this quaternion into a unit quaternion.
-   * @param out - The normalized quaternion
-   * @returns This quaternion
-   */
-  normalize(out: Quaternion): Quaternion;
-
-  normalize(out: Quaternion = this): Quaternion {
-    const { x, y, z, w } = this;
-    let len: number = Math.sqrt(x * x + y * y + z * z + w * w);
-    if (len > MathUtil.zeroTolerance) {
-      len = 1 / len;
-      out.x = x * len;
-      out.y = y * len;
-      out.z = z * len;
-      out.w = w * len;
-    }
-    return out;
+  normalize(): Quaternion {
+    Quaternion.normalize(this, this);
+    return this;
   }
 
   /**
@@ -538,98 +601,32 @@ export class Quaternion implements IClone {
   }
 
   /**
-   * Rotate this quaternion rotate around X axis.
+   * Calculate this quaternion rotate around X axis.
    * @param rad - The rotation angle in radians
    * @returns This quaternion
    */
-  rotateX(rad: number): Quaternion;
-
-  /**
-   * Rotate this quaternion rotate around X axis.
-   * @param rad - The rotation angle in radians
-   * @param out - The calculated quaternion
-   * @returns This quaternion
-   */
-  rotateX(rad: number, out: Quaternion): Quaternion;
-
-  rotateX(rad: number, out: Quaternion = this): Quaternion {
-    const { x, y, z, w } = this;
-    rad *= 0.5;
-    const bx = Math.sin(rad);
-    const bw = Math.cos(rad);
-
-    out.x = x * bw + w * bx;
-    out.y = y * bw + z * bx;
-    out.z = z * bw - y * bx;
-    out.w = w * bw - x * bx;
-    return out;
+  rotateX(rad: number): Quaternion {
+    Quaternion.rotateX(this, rad, this);
+    return this;
   }
 
   /**
-   * Rotate this quaternion rotate around Y axis.
+   * Calculate this quaternion rotate around Y axis.
    * @param rad - The rotation angle in radians
    * @returns This quaternion
    */
-  rotateY(rad: number): Quaternion;
-
-  /**
-   * Rotate a quaternion that the specified quaternion rotate around Y axis.
-   * @param quaternion - The specified quaternion
-   * @param rad - The rotation angle in radians
-   * @param out - The calculated quaternion
-   */
-  rotateY(rad: number, out: Quaternion): Quaternion;
-
-  rotateY(rad: number, out: Quaternion = this): Quaternion {
-    const { x, y, z, w } = this;
-    rad *= 0.5;
-    const by = Math.sin(rad);
-    const bw = Math.cos(rad);
-
-    out.x = x * bw - z * by;
-    out.y = y * bw + w * by;
-    out.z = z * bw + x * by;
-    out.w = w * bw - y * by;
-    return out;
+  rotateY(rad: number): Quaternion {
+    Quaternion.rotateY(this, rad, this);
+    return this;
   }
 
   /**
-   * Rotate this quaternion rotate around Z axis.
+   * Calculate this quaternion rotate around Z axis.
    * @param rad - The rotation angle in radians
    * @returns This quaternion
    */
-  rotateZ(rad: number): Quaternion;
-
-  /**
-   * Rotate a quaternion that the specified quaternion rotate around Z axis.
-   * @param quaternion - The specified quaternion
-   * @param rad - The rotation angle in radians
-   * @param out - The calculated quaternion
-   */
-  rotateZ(rad: number, out: Quaternion): Quaternion;
-
-  rotateZ(rad: number, out: Quaternion = this): Quaternion {
-    const { x, y, z, w } = this;
-    rad *= 0.5;
-    const bz = Math.sin(rad);
-    const bw = Math.cos(rad);
-
-    out.x = x * bw + y * bz;
-    out.y = y * bw - x * bz;
-    out.z = z * bw + w * bz;
-    out.w = w * bw - z * bz;
-    return out;
-  }
-
-  /**
-   * Transforms this quaternion into its conjugated version.
-   * @returns This quaternion
-   */
-  conjugate(): Quaternion {
-    this.x *= -1;
-    this.y *= -1;
-    this.z *= -1;
-
+  rotateZ(rad: number): Quaternion {
+    Quaternion.rotateZ(this, rad, this);
     return this;
   }
 
