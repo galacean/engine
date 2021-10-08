@@ -704,23 +704,22 @@ export class PrimitiveMesh {
     const capRectangleCount = radialSegments * radialSegments;
 
     const totalVertexCount = torsoVertexCount + 2 * capVertexCount;
-    const totalRectangleCount = torsoRectangleCount + 2 * capRectangleCount;
-
-    const torsoThetaStart = Math.PI / 2;
-    const torsoThetaRange = Math.PI * 2;
-
-    const capTopAlphaRange = Math.PI * 2;
-    const capBottomAlphaRange = -Math.PI * 2;
-    const capThetaRange = Math.PI / 2;
+    const indices = PrimitiveMesh._generateIndices(
+      engine,
+      totalVertexCount,
+      (torsoRectangleCount + 2 * capRectangleCount) * 6
+    );
 
     const radialCountReciprocal = 1.0 / radialCount;
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
-    const indices = PrimitiveMesh._generateIndices(engine, totalVertexCount, totalRectangleCount * 6);
 
-    const positions: Vector3[] = new Array(totalVertexCount);
-    const normals: Vector3[] = new Array(totalVertexCount);
-    const uvs: Vector2[] = new Array(totalVertexCount);
+    const halfPI = Math.PI / 2;
+    const doublePI = Math.PI * 2;
+
+    const positions = new Array<Vector3>(totalVertexCount);
+    const normals = new Array<Vector3>(totalVertexCount);
+    const uvs = new Array<Vector2>(totalVertexCount);
 
     let indicesOffset = 0;
 
@@ -730,19 +729,12 @@ export class PrimitiveMesh {
       const y = (i * radialCountReciprocal) | 0;
       const u = x * radialSegmentsReciprocal;
       const v = y * heightSegmentsReciprocal;
-      const theta = torsoThetaStart + u * torsoThetaRange;
+      const theta = -halfPI + u * doublePI;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
 
-      let posX = radius * sinTheta;
-      let posY = y * unitHeight - halfHeight;
-      let posZ = radius * cosTheta;
-
-      // Position
-      positions[i] = new Vector3(posX, posY, posZ);
-      // Normal
+      positions[i] = new Vector3(radius * sinTheta, y * unitHeight - halfHeight, radius * cosTheta);
       normals[i] = new Vector3(sinTheta, 0, cosTheta);
-      // Texcoord
       uvs[i] = new Vector2(u, 1 - v);
     }
 
@@ -763,49 +755,33 @@ export class PrimitiveMesh {
       indices[indicesOffset++] = c;
     }
 
-    // create cap
-    const createCap = function (capAlphaRange: number, offset: number, posIndex: number) {
-      for (let i = 0; i < capVertexCount; ++i) {
-        const x = i % radialCount;
-        const y = (i * radialCountReciprocal) | 0;
-        const u = x * radialSegmentsReciprocal;
-        const v = y * radialSegmentsReciprocal;
-        const alphaDelta = u * capAlphaRange;
-        const thetaDelta = v * capThetaRange;
-        const sinTheta = Math.sin(thetaDelta);
+    PrimitiveMesh._createCapsuleCap(
+      radius,
+      height,
+      radialSegments,
+      doublePI,
+      torsoVertexCount,
+      1,
+      positions,
+      normals,
+      uvs,
+      indices,
+      indicesOffset
+    );
 
-        let posX = -radius * Math.cos(alphaDelta) * sinTheta;
-        let posY = (radius * Math.cos(thetaDelta) + halfHeight) * posIndex;
-        let posZ = radius * Math.sin(alphaDelta) * sinTheta;
-
-        // Position
-        positions[i + offset] = new Vector3(posX, posY, posZ);
-        // Normal
-        normals[i + offset] = new Vector3(posX, posY, posZ);
-        // Texcoord
-        uvs[i + offset] = new Vector2(u, v);
-      }
-
-      for (let i = 0; i < capRectangleCount; ++i) {
-        const x = i % radialSegments;
-        const y = (i * radialSegmentsReciprocal) | 0;
-
-        const a = y * radialCount + x + offset;
-        const b = a + 1;
-        const c = a + radialCount;
-        const d = c + 1;
-
-        indices[indicesOffset++] = b;
-        indices[indicesOffset++] = a;
-        indices[indicesOffset++] = d;
-        indices[indicesOffset++] = a;
-        indices[indicesOffset++] = c;
-        indices[indicesOffset++] = d;
-      }
-    };
-
-    createCap(capTopAlphaRange, torsoVertexCount, 1);
-    createCap(capBottomAlphaRange, torsoVertexCount + capVertexCount, -1);
+    PrimitiveMesh._createCapsuleCap(
+      radius,
+      height,
+      radialSegments,
+      -doublePI,
+      torsoVertexCount + capVertexCount,
+      -1,
+      positions,
+      normals,
+      uvs,
+      indices,
+      indicesOffset + 6 * capRectangleCount
+    );
 
     const { bounds } = mesh;
     bounds.min.setValue(-radius, -radius - halfHeight, -radius);
@@ -844,5 +820,62 @@ export class PrimitiveMesh {
       indices = new Uint16Array(indexCount);
     }
     return indices;
+  }
+
+  private static _createCapsuleCap(
+    radius: number,
+    height: number,
+    radialSegments: number,
+    capAlphaRange: number,
+    offset: number,
+    posIndex: number,
+    positions: Vector3[],
+    normals: Vector3[],
+    uvs: Vector2[],
+    indices: Uint16Array | Uint32Array,
+    indicesOffset: number
+  ) {
+    const radialCount = radialSegments + 1;
+    const halfHeight = height * 0.5;
+    const capVertexCount = radialCount * radialCount;
+    const capRectangleCount = radialSegments * radialSegments;
+    const radialCountReciprocal = 1.0 / radialCount;
+    const radialSegmentsReciprocal = 1.0 / radialSegments;
+
+    for (let i = 0; i < capVertexCount; ++i) {
+      const x = i % radialCount;
+      const y = (i * radialCountReciprocal) | 0;
+      const u = x * radialSegmentsReciprocal;
+      const v = y * radialSegmentsReciprocal;
+      const alphaDelta = u * capAlphaRange;
+      const thetaDelta = (v * Math.PI) / 2;
+      const sinTheta = Math.sin(thetaDelta);
+
+      const posX = -radius * Math.cos(alphaDelta) * sinTheta;
+      const posY = (radius * Math.cos(thetaDelta) + halfHeight) * posIndex;
+      const posZ = radius * Math.sin(alphaDelta) * sinTheta;
+
+      const index = i + offset;
+      positions[index] = new Vector3(posX, posY, posZ);
+      normals[index] = new Vector3(posX, posY, posZ);
+      uvs[index] = new Vector2(u, v);
+    }
+
+    for (let i = 0; i < capRectangleCount; ++i) {
+      const x = i % radialSegments;
+      const y = (i * radialSegmentsReciprocal) | 0;
+
+      const a = y * radialCount + x + offset;
+      const b = a + 1;
+      const c = a + radialCount;
+      const d = c + 1;
+
+      indices[indicesOffset++] = b;
+      indices[indicesOffset++] = a;
+      indices[indicesOffset++] = d;
+      indices[indicesOffset++] = a;
+      indices[indicesOffset++] = c;
+      indices[indicesOffset++] = d;
+    }
   }
 }
