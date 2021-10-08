@@ -673,10 +673,10 @@ export class PrimitiveMesh {
   /**
    * Create a capsule mesh.
    * @param engine - Engine
-   * @param radius - The radius of cap
-   * @param height - The height of capsule
-   * @param radialSegments - Cap radial segments
-   * @param heightSegments - Capsule height segments
+   * @param radius - The radius of the two hemispherical ends
+   * @param height - The height of the cylindrical part, measured between the centers of the hemispherical ends
+   * @param radialSegments - Hemispherical end radial segments
+   * @param heightSegments - Cylindrical part height segments
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Capsule model mesh
    */
