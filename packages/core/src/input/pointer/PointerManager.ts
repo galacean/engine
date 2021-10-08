@@ -20,6 +20,7 @@ export class PointerManager {
   _pointers: Pointer[] = [];
   /** @internal */
   _multiPointerEnabled: boolean = true;
+  /** @internal */
   _enablePhysics: boolean = false;
 
   private _engine: Engine;
@@ -293,10 +294,10 @@ export class PointerManager {
   }
 
   private _firePointerUpAndClick(rayCastEntity: Entity): void {
-    const { _currentPressedEntity } = this;
-    if (_currentPressedEntity) {
-      const sameTarget = _currentPressedEntity === rayCastEntity;
-      const scripts = _currentPressedEntity._scripts;
+    const { _currentPressedEntity: pressedEntity } = this;
+    if (pressedEntity) {
+      const sameTarget = pressedEntity === rayCastEntity;
+      const scripts = pressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
         sameTarget && script.onPointerClick();
