@@ -264,7 +264,7 @@ export class CollisionUtil {
    * @param boxB - The second box to check
    * @returns True if the boxes intersect, false otherwise
    */
-  static intersectBoxAndBox(boxA: BoundingBox, boxB: BoundingBox): boolean {
+  static intersectsBoxAndBox(boxA: BoundingBox, boxB: BoundingBox): boolean {
     if (boxA.min.x > boxB.max.x || boxB.min.x > boxA.max.x) {
       return false;
     }
@@ -282,8 +282,8 @@ export class CollisionUtil {
    * @param sphereB - The second sphere to check
    * @returns True if the spheres intersect, false otherwise
    */
-  static intersectSphereAndSphere(sphereA: BoundingSphere, sphereB: BoundingSphere): boolean {
-    const radiisum = sphereA.radius + sphereA.radius;
+  static intersectsSphereAndSphere(sphereA: BoundingSphere, sphereB: BoundingSphere): boolean {
+    const radiisum = sphereA.radius + sphereB.radius;
     return Vector3.distanceSquared(sphereA.center, sphereB.center) < radiisum * radiisum;
   }
 
@@ -293,7 +293,7 @@ export class CollisionUtil {
    * @param box - The box to check
    * @returns True if the sphere and the box intersect, false otherwise
    */
-  static intersectSphereAndBox(sphere: BoundingSphere, box: BoundingBox): boolean {
+  static intersectsSphereAndBox(sphere: BoundingSphere, box: BoundingBox): boolean {
     const center: Vector3 = sphere.center;
     const max = box.max;
     const min = box.min;

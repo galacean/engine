@@ -266,11 +266,11 @@ export class LitePhysicsManager implements IPhysicsManager {
     if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox;
       LitePhysicsManager._updateWorldBox(other, box);
-      return CollisionUtil.intersectBoxAndBox(box, this._box);
+      return CollisionUtil.intersectsBoxAndBox(box, this._box);
     } else if (other instanceof LiteSphereColliderShape) {
       const sphere = LitePhysicsManager._tempSphere;
       LitePhysicsManager._upWorldSphere(other, sphere);
-      return CollisionUtil.intersectSphereAndBox(sphere, this._box);
+      return CollisionUtil.intersectsSphereAndBox(sphere, this._box);
     }
     return false;
   }
@@ -279,11 +279,11 @@ export class LitePhysicsManager implements IPhysicsManager {
     if (other instanceof LiteBoxColliderShape) {
       const box = LitePhysicsManager._tempBox;
       LitePhysicsManager._updateWorldBox(other, box);
-      return CollisionUtil.intersectSphereAndBox(this._sphere, box);
+      return CollisionUtil.intersectsSphereAndBox(this._sphere, box);
     } else if (other instanceof LiteSphereColliderShape) {
       const sphere = LitePhysicsManager._tempSphere;
       LitePhysicsManager._upWorldSphere(other, sphere);
-      return CollisionUtil.intersectSphereAndSphere(sphere, this._sphere);
+      return CollisionUtil.intersectsSphereAndSphere(sphere, this._sphere);
     }
     return false;
   }
