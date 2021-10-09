@@ -294,7 +294,7 @@ export class CollisionUtil {
    * @returns True if the sphere and the box intersect, false otherwise
    */
   static intersectsSphereAndBox(sphere: BoundingSphere, box: BoundingBox): boolean {
-    const center: Vector3 = sphere.center;
+    const center = sphere.center;
     const max = box.max;
     const min = box.min;
 
@@ -306,7 +306,7 @@ export class CollisionUtil {
     );
 
     const distance = Vector3.distanceSquared(center, closestPoint);
-    return distance < sphere.radius * sphere.radius;
+    return distance <= sphere.radius * sphere.radius;
   }
 
   /**
