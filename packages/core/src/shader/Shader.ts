@@ -162,13 +162,9 @@ export class Shader {
     #ifdef GL_FRAGMENT_PRECISION_HIGH
       precision highp float;
       precision highp int;
-      #define O3_VERTEX_PRECISION highp
-      #define O3_FRAGMENT_PRECISION highp
     #else
       precision mediump float;
       precision mediump int;
-      #define O3_VERTEX_PRECISION mediump
-      #define O3_FRAGMENT_PRECISION mediump
     #endif
     `;
 

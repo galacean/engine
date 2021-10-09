@@ -104,7 +104,7 @@ export class AmbientLight {
 
     if (value) {
       shaderData.setTexture(AmbientLight._specularTextureProperty, value);
-      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount);
+      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount - 1);
       shaderData.enableMacro(AmbientLight._specularMacro);
     } else {
       shaderData.disableMacro(AmbientLight._specularMacro);
