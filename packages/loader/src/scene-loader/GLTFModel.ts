@@ -87,9 +87,13 @@ export class GLTFModel extends Component {
   set clipPreview(value: string) {
     if (this._animator) {
       if (value) {
-        this._animator.play(value, 0);
+        if (value === "_default") {
+          this._playDefaultState();
+        } else {
+          this._animator.play(value, 0);
+        }
       } else {
-        this._playDefaultState();
+        this._animator.reset();
       }
     }
     this._clipPreview = value;
@@ -104,7 +108,7 @@ export class GLTFModel extends Component {
    * @param props - Init props
    */
   init(props): void {
-    const { asset = null, speed, animatorController, clipPreview,  isClone } = props;
+    const { asset = null, speed, animatorController, clipPreview, isClone } = props;
     if (isClone) {
       const rootName = (props as any).gltfRootName;
       if (rootName) {
@@ -153,12 +157,16 @@ export class GLTFModel extends Component {
   _playState() {
     const playStateName = this._clipPreview;
     if (playStateName) {
-      this._animator.play(playStateName, 0);
-      if (this._controllerUpdateFlag?.flag) {
-        this._controllerUpdateFlag.flag = false;
+      if (playStateName === "_default") {
+        this._playDefaultState();
+      } else {
+        this._animator.play(playStateName, 0);
       }
     } else {
-      this._playDefaultState();
+      this._animator.reset();
+    }
+    if (this._controllerUpdateFlag?.flag) {
+      this._controllerUpdateFlag.flag = false;
     }
   }
 
@@ -169,13 +177,15 @@ export class GLTFModel extends Component {
       const { layers } = animatorController;
       for (let i = 0, length = layers.length; i < length; ++i) {
         //@ts-ignore
-        const defaultState = layers[i]?.stateMachine?._defaultState ?? layers[i]?.stateMachine?.states[0];
+        const defaultState = layers[i]?.stateMachine?._defaultState;
         const defaultStateName = defaultState?.name;
         if (defaultStateName) {
           animator.play(defaultStateName, i);
-          if (this._controllerUpdateFlag?.flag) {
-            this._controllerUpdateFlag.flag = false;
-          }
+        } else {
+          animator.reset();
+        }
+        if (this._controllerUpdateFlag?.flag) {
+          this._controllerUpdateFlag.flag = false;
         }
       }
     }

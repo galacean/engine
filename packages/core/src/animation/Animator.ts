@@ -118,6 +118,23 @@ export class Animator extends Component {
     this._saveDefaultValues(animatorStateData);
   }
 
+  reset() {
+    const { _animatorController: animatorController } = this;
+    if (animatorController) {
+      const layers = animatorController.layers;
+      for (let i = 0, n = layers.length; i < n; ++i) {
+        const {states} = layers[i].stateMachine
+        const animatorLayerData = this._getAnimatorLayerData(i);
+        for (let j = 0, m = states.length; j < m; ++j) {
+          const state = states[j];
+          const animatorStateData = this._getAnimatorStateData(state.name, state, animatorLayerData);
+          this._revertOriginValue(state, animatorStateData);
+        }
+      }
+    }
+    this._clearPlayData();
+  }
+  
   /**
    * Create a cross fade from the current state to another state.
    * @param stateName - The state name
@@ -561,6 +578,12 @@ export class Animator extends Component {
           break;
         }
       }
+    } else if (owner.type === SkinnedMeshRenderer) {
+      switch (owner.property) {
+        case AnimationProperty.BlendShapeWeights:
+          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          break;
+      }
     }
 
     if (additive) {
@@ -656,6 +679,42 @@ export class Animator extends Component {
             break;
           case AnimationProperty.Scale:
             transform.scale = <Vector3>owner.defaultValue;
+            break;
+            case AnimationProperty.BlendShapeWeights:
+              const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+              for (let j = 0, length = blendShapeWeights.length; j < length; ++j) {
+                (<SkinnedMeshRenderer>owner.component).blendShapeWeights[j] = owner.defaultValue[j];
+              }
+              break;
+        }
+      }
+    }
+  }
+
+  private _revertOriginValue(state: AnimatorState, stateData: AnimatorStateData) {
+    const { clip } = state;
+    if (clip) {
+      const curves = clip._curveBindings;
+      const { curveOwners } = stateData;
+      for (let i = curves.length - 1; i >= 0; i--) {
+        const owner = curveOwners[i];
+        if (!owner.hasSavedOriginValue) return;
+        const { transform } = owner.target;
+        switch (owner.property) {
+          case AnimationProperty.Position:
+            transform.position = <Vector3>owner.originValue;
+            break;
+          case AnimationProperty.Rotation:
+            transform.rotationQuaternion = <Quaternion>owner.originValue;
+            break;
+          case AnimationProperty.Scale:
+            transform.scale = <Vector3>owner.originValue;
+            break;
+          case AnimationProperty.BlendShapeWeights:
+            const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+            for (let j = 0, length = blendShapeWeights.length; j < length; ++j) {
+              (<SkinnedMeshRenderer>owner.component).blendShapeWeights[j] = owner.originValue[j];
+            }
             break;
         }
       }
@@ -769,6 +828,8 @@ export class Animator extends Component {
     this._animatorLayersData.length = 0;
     this._crossCurveDataCollection.length = 0;
     this._animationCurveOwners.length = 0;
-    this._controllerUpdateFlag.flag = false;
+    if (this._controllerUpdateFlag) {
+      this._controllerUpdateFlag.flag = false;
+    }
   }
 }
