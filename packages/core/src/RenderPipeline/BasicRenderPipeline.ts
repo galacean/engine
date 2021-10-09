@@ -258,6 +258,7 @@ export class BasicRenderPipeline {
 
     const program = shader._getShaderProgram(engine, compileMacros);
     program.bind();
+    program.groupingOtherUniformBlock();
     program.uploadAll(program.materialUniformBlock, shaderData);
     program.uploadUngroupTextures();
 

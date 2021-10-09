@@ -340,7 +340,9 @@ export class PrimitiveMesh {
     // Create torso
     const thetaStart = Math.PI;
     const thetaRange = Math.PI * 2;
-    const slope = (radiusBottom - radiusTop) / height;
+    const radiusDiff = radiusBottom - radiusTop;
+    const slope = radiusDiff / height;
+    const radiusSlope = radiusDiff / heightSegments;
 
     for (let i = 0; i < torsoVertexCount; ++i) {
       const x = i % radialCount;
@@ -350,7 +352,7 @@ export class PrimitiveMesh {
       const theta = thetaStart + u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
-      const radius = radiusBottom - y * (radiusBottom - radiusTop);
+      const radius = radiusBottom - y * radiusSlope;
 
       let posX = radius * sinTheta;
       let posY = y * unitHeight - halfHeight;

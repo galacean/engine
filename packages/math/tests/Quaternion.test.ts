@@ -177,6 +177,14 @@ describe("Quaternion test", () => {
     expect(Quaternion.equals(out, b)).toEqual(true);
   });
 
+  it("static rotatAxisAngle", () => {
+    const a = new Vector3(0, 5, 0);
+    const b = 0.5 * Math.PI;
+    const out = new Quaternion(0, 0, 0, 1);
+    out.rotateAxisAngle(a, b);
+    expect(Quaternion.equals(out, new Quaternion(0, 0.7071067811865475, 0, 0.7071067811865476))).toEqual(true);
+  });
+
   it("static scale", () => {
     const a = new Quaternion(3, 4, 5, 0);
     const out = new Quaternion();
@@ -200,7 +208,7 @@ describe("Quaternion test", () => {
     const b = new Quaternion();
     b.setValueByArray([1, 1, 1, 1]);
     expect(Quaternion.equals(a, b)).toEqual(true);
-    
+
     const c = [];
     b.toArray(c);
     const d = new Quaternion();

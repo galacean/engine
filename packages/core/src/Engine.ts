@@ -25,9 +25,11 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
-import { PhysicsManager } from "./PhysicsManager";
 import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { CompareFunction } from "./shader";
+import { InputManager } from "./input/InputManager";
+import { IPhysics } from "@oasis-engine/design";
+import { PhysicsManager } from "./physics";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -38,7 +40,7 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** Physics manager of Engine. */
-  readonly physicsManager: PhysicsManager = new PhysicsManager(this);
+  readonly physicsManager: PhysicsManager;
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
@@ -64,6 +66,8 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _spriteMaskManager: SpriteMaskManager;
+  /** @internal */
+  _inputManager: InputManager;
 
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
@@ -157,11 +161,16 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
+   * @param physics - native physics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
+    if (physics) {
+      PhysicsManager._nativePhysics = physics;
+      this.physicsManager = new PhysicsManager();
+    }
     this._canvas = canvas;
     // @todo delete
     engineFeatureManager.addObject(this);
@@ -170,6 +179,8 @@ export class Engine extends EventDispatcher {
     this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
+
+    this._inputManager = new InputManager(this);
 
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
 
@@ -242,7 +253,15 @@ export class Engine extends EventDispatcher {
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;
     if (scene) {
+      scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
+
       componentsManager.callScriptOnStart();
+      if (this.physicsManager) {
+        componentsManager.callColliderOnUpdate();
+        this.physicsManager._update(deltaTime);
+        componentsManager.callColliderOnLateUpdate();
+      }
+      this._inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
@@ -272,7 +291,7 @@ export class Engine extends EventDispatcher {
     if (this._sceneManager) {
       this._whiteTexture2D.destroy(true);
       this._whiteTextureCube.destroy(true);
-
+      this._inputManager._destroy();
       this.trigger(new Event("shutdown", this));
       engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 
@@ -328,9 +347,6 @@ export class Engine extends EventDispatcher {
     scene._updateShaderData();
 
     if (cameras.length > 0) {
-      // Sort on priority
-      //@ts-ignore
-      cameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       for (let i = 0, l = cameras.length; i < l; i++) {
         const camera = cameras[i];
         const cameraEntity = camera.entity;
