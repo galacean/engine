@@ -108,8 +108,13 @@ export class Sprite extends RefObject {
   }
 
   set pivot(value: Vector2) {
-    this._pivot.setValue(MathUtil.clamp(value.x, 0, 1), MathUtil.clamp(value.y, 0, 1));
-    this._setDirtyFlagTrue(DirtyFlag.positions);
+    const pivot = this._pivot;
+    const x = MathUtil.clamp(value.x, 0, 1);
+    const y = MathUtil.clamp(value.y, 0, 1);
+    if (pivot === value || pivot.x !== x || pivot.y !== y) {
+      pivot.setValue(x, y);
+      this._setDirtyFlagTrue(DirtyFlag.positions);
+    }
   }
 
   /**
@@ -139,6 +144,26 @@ export class Sprite extends RefObject {
       this._pixelsPerUnit = value;
       this._setDirtyFlagTrue(DirtyFlag.positions);
     }
+  }
+
+  /**
+   * Clone.
+   * @returns Cloned sprite.
+   */
+  clone(): Sprite {
+    const cloneSprite = new Sprite(
+      this._engine,
+      this._texture,
+      this._region,
+      this._pivot,
+      this._pixelsPerUnit,
+      this.name
+    );
+    cloneSprite._assetID = this._assetID;
+    cloneSprite._atlasRotated = this._atlasRotated;
+    this._atlasRegion.cloneTo(cloneSprite._atlasRegion);
+    this._atlasRegionOffset.cloneTo(cloneSprite._atlasRegionOffset);
+    return cloneSprite;
   }
 
   /**

@@ -19,21 +19,21 @@ export class SpriteAtlas extends RefObject {
   /**
    * Get the last sprite named 'name' from the atlas.
    * @param name - The name of the sprite you want to find
-   * @returns The sprite you want to find
+   * @returns The sprite you want to find (clone)
    */
   getSprite(name: string): Sprite {
     const sprite = this._sprites[this._spriteNamesToIndex[name]];
     if (!sprite) {
       console.warn("There is no sprite named " + name + " in the atlas.");
     }
-    return sprite;
+    return sprite.clone();
   }
 
   /**
    * Get all the sprite named 'name' from the atlas.
    * @param name - The name of the sprites you want to find
    * @param outSprites - This array holds the sprites found
-   * @returns The sprites you want to find
+   * @returns The sprites you want to find (clone)
    */
   getSprites(name: string, outSprites: Sprite[]): Sprite[] {
     outSprites.length = 0;
@@ -42,7 +42,7 @@ export class SpriteAtlas extends RefObject {
       const { _sprites } = this;
       for (; i >= 0; i--) {
         const sprite = _sprites[i];
-        sprite.name === name && outSprites.push(sprite);
+        sprite.name === name && outSprites.push(sprite.clone());
       }
     } else {
       console.warn("The name of the sprite you want to find is not exit in SpriteAtlas.");
