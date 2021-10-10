@@ -148,7 +148,7 @@ export class Sprite extends RefObject {
 
   /**
    * Clone.
-   * @returns Cloned sprite.
+   * @returns Cloned sprite
    */
   clone(): Sprite {
     const cloneSprite = new Sprite(
