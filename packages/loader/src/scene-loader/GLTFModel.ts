@@ -12,7 +12,7 @@ export class GLTFModel extends Component {
   private _animator: Animator;
   private _asset: GLTFResource;
   private _glTFEntity: Entity;
-  private _autoPlay: string;
+  private _clipPreview: string;
   private _hasBuiltNode: boolean = false;
   private _controllerUpdateFlag: UpdateFlag;
 
@@ -80,11 +80,11 @@ export class GLTFModel extends Component {
     return this._animator;
   }
 
-  get autoPlay() {
-    return this._autoPlay;
+  get clipPreview() {
+    return this._clipPreview;
   }
 
-  set autoPlay(value: string) {
+  set clipPreview(value: string) {
     if (this._animator) {
       if (value) {
         if (value === "_default") {
@@ -96,7 +96,7 @@ export class GLTFModel extends Component {
         this._animator.reset();
       }
     }
-    this._autoPlay = value;
+    this._clipPreview = value;
   }
 
   constructor(entity) {
@@ -155,7 +155,7 @@ export class GLTFModel extends Component {
   }
 
   _playState() {
-    const playStateName = this._autoPlay;
+    const playStateName = this._clipPreview;
     if (playStateName) {
       if (playStateName === "_default") {
         this._playDefaultState();
