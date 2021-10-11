@@ -159,6 +159,7 @@ export class GLTextureCubeMap extends GLTexture implements IPlatformTextureCubeM
    * @param y - Y coordinate of area start
    * @param width - Area width
    * @param height - Area height
+   * @param mipLevel - Set mip level the data want to get from
    * @param out - Color buffer
    */
   getPixelBuffer(
@@ -167,11 +168,12 @@ export class GLTextureCubeMap extends GLTexture implements IPlatformTextureCubeM
     y: number,
     width: number,
     height: number,
+    mipLevel: number,
     out: ArrayBufferView
   ): void {
     if (this._formatDetail.isCompressed) {
       throw new Error("Unable to read compressed texture");
     }
-    super._getPixelBuffer(face, x, y, width, height, out);
+    super._getPixelBuffer(face, x, y, width, height, mipLevel, out);
   }
 }
