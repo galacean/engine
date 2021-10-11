@@ -570,8 +570,8 @@ export class GLTexture implements IPlatformTexture {
     y: number,
     width: number,
     height: number,
-    out: ArrayBufferView,
-    mipLevel: number
+    mipLevel: number,
+    out: ArrayBufferView
   ): void {
     const gl = this._gl;
     const { baseFormat, dataType } = this._formatDetail;
@@ -581,6 +581,11 @@ export class GLTexture implements IPlatformTexture {
     }
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, GLTexture._readFrameBuffer);
+
+    if (mipLevel > 0 && !this._isWebGL2) {
+      mipLevel = 0;
+      Logger.error("mipLevel only take effect in WebGL2.0");
+    }
 
     if (face != null) {
       gl.framebufferTexture2D(

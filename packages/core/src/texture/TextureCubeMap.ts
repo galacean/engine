@@ -95,14 +95,25 @@ export class TextureCubeMap extends Texture {
   }
 
   /**
-   * Get the pixel color buffer according to the specified cube face and area.
-   * @param face - You can choose which cube face to read
+   * Get pixel color buffer.
+   * @param out - Color buffer
+   */
+  getPixelBuffer(face: TextureCubeFace, out: ArrayBufferView): void;
+
+  /**
+   * Get the pixel color buffer according to the specified mip level.
+   * @param mipLevel - Tet mip level want to get
+   * @param out - Color buffer
+   */
+  getPixelBuffer(face: TextureCubeFace, mipLevel: number, out: ArrayBufferView): void;
+
+  /**
+   * Get the pixel color buffer according to the specified area.
    * @param x - X coordinate of area start
    * @param y - Y coordinate of area start
    * @param width - Area width
    * @param height - Area height
    * @param out - Color buffer
-   * @param mipLevel - Set mip level the data want to get from
    */
   getPixelBuffer(
     face: TextureCubeFace,
@@ -110,9 +121,78 @@ export class TextureCubeMap extends Texture {
     y: number,
     width: number,
     height: number,
-    out: ArrayBufferView,
-    mipLevel: number = 0
+    out: ArrayBufferView
+  ): void;
+
+  /**
+   * Get the pixel color buffer according to the specified area and mip level.
+   * @param x - X coordinate of area start
+   * @param y - Y coordinate of area start
+   * @param width - Area width
+   * @param height - Area height
+   * @param mipLevel - Tet mip level want to get
+   * @param out - Color buffer
+   */
+  getPixelBuffer(
+    face: TextureCubeFace,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    mipLevel: number,
+    out: ArrayBufferView
+  ): void;
+
+  getPixelBuffer(
+    face: TextureCubeFace,
+    xOrMipLevelOrOut: number | ArrayBufferView,
+    yOrMipLevel?: number | ArrayBufferView,
+    width?: number,
+    height?: number,
+    mipLevelOrOut?: number | ArrayBufferView,
+    out?: ArrayBufferView
   ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(face, x, y, width, height, out, mipLevel);
+    const argsLength = arguments.length;
+    if (argsLength === 2) {
+      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+        face,
+        0,
+        0,
+        this._width,
+        this._height,
+        0,
+        <ArrayBufferView>xOrMipLevelOrOut
+      );
+    } else if (argsLength === 3) {
+      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+        face,
+        0,
+        0,
+        this._width,
+        this._height,
+        <number>xOrMipLevelOrOut,
+        <ArrayBufferView>yOrMipLevel
+      );
+    } else if (argsLength === 6) {
+      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+        face,
+        <number>xOrMipLevelOrOut,
+        <number>yOrMipLevel,
+        width,
+        height,
+        0,
+        <ArrayBufferView>mipLevelOrOut
+      );
+    } else if (argsLength === 7) {
+      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+        face,
+        <number>xOrMipLevelOrOut,
+        <number>yOrMipLevel,
+        width,
+        height,
+        <number>mipLevelOrOut,
+        out
+      );
+    }
   }
 }
