@@ -9,7 +9,7 @@ export interface IPlatformRenderTarget {
    * @param faceIndex - Cube texture face
    * @param mipLevel - Set mip level the data want to write
    */
-  setRenderTargetInfo(faceIndex: TextureCubeFace, miplevel: number): void;
+  setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void;
 
   /**
    * Blit FBO.

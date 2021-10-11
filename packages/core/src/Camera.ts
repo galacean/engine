@@ -1,4 +1,5 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
@@ -435,6 +436,10 @@ export class Camera extends Component {
       this._globalShaderMacro
     );
 
+    if (mipLevel > 0 && !this.engine._hardwareRenderer.isWebGL2) {
+      mipLevel = 0;
+      Logger.error("mipLevel only take effect in WebGL2.0");
+    }
     this._renderPipeline.render(context, cubeFace, mipLevel);
     this._engine._renderCount++;
   }
