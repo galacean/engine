@@ -108,7 +108,7 @@ export class GLTFModel extends Component {
    * @param props - Init props
    */
   init(props): void {
-    const { asset = null, speed, animatorController, autoPlay, isClone } = props;
+    const { asset = null, speed, animatorController, clipPreview, isClone } = props;
     if (isClone) {
       const rootName = (props as any).gltfRootName;
       if (rootName) {
@@ -127,7 +127,7 @@ export class GLTFModel extends Component {
     this.asset = asset;
     this.animatorController = animatorController;
     this.speed = speed;
-    this.autoPlay = autoPlay;
+    this.clipPreview = clipPreview;
   }
 
   update() {
