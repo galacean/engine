@@ -92,72 +92,47 @@ export class GLRenderTarget implements IPlatformRenderTarget {
    * @param mipLevel - Set mip level the data want to write
    */
   setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void {
-    const gl = this._gl;
-    const colorTexture = this._target.getColorTexture(0);
-    const { width, height, depthTexture } = this._target;
+    const { _gl: gl, _target: target } = this;
+    const { depthTexture } = target;
+    const colorTexture = target.getColorTexture(0);
+    const mipChanged = mipLevel !== this._curMipLevel;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
-    // bind render color cube texture
-    if (colorTexture?.isCube) {
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-        /** @ts-ignore */
-        (colorTexture._platformTexture as GLRenderColorTexture)._glTexture,
-        mipLevel
-      );
-    }
-
-    // bind depth cube texture
-    if (depthTexture?.isCube) {
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        /** @ts-ignore */
-        (depthTexture._platformTexture as GLRenderDepthTexture)._formatDetail.attachment,
-        gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-        /** @ts-ignore */
-        (depthTexture._platformTexture as GLRenderDepthTexture)._glTexture,
-        mipLevel
-      );
-    }
-
-    // height and width of the attachment with mip level should be same
-    if (mipLevel !== this._curMipLevel) {
-      if (colorTexture && !colorTexture.isCube) {
+    if (colorTexture) {
+      const isCube = colorTexture.isCube;
+      if (mipChanged || isCube) {
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
           gl.COLOR_ATTACHMENT0,
-          gl.TEXTURE_2D,
+          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
           /** @ts-ignore */
           (colorTexture._platformTexture as GLRenderColorTexture)._glTexture,
           mipLevel
         );
       }
-
-      if (depthTexture && !depthTexture.isCube) {
+    }
+    if (depthTexture) {
+      const isCube = depthTexture.isCube;
+      if (mipChanged || isCube) {
+        /** @ts-ignore */
+        const { _platformTexture: platformTexture } = depthTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
-          /** @ts-ignore */
-          (depthTexture._platformTexture as GLRenderDepthTexture)._formatDetail.attachment,
-          gl.TEXTURE_2D,
-          /** @ts-ignore */
-          (depthTexture._platformTexture as GLRenderDepthTexture)._glTexture,
+          platformTexture._formatDetail.attachment,
+          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
+          platformTexture._glTexture,
           mipLevel
         );
       }
-
-      if (!depthTexture) {
+    } else {
+      if (mipChanged) {
         // @ts-ignore
-        const _depth = this._target._depth;
-        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, this._isWebGL2);
-
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._isWebGL2);
         gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
-        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, width >> mipLevel, height >> mipLevel);
+        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
       }
     }
-
     this._curMipLevel = mipLevel;
 
     // revert current activated render target
