@@ -570,8 +570,8 @@ export class GLTexture implements IPlatformTexture {
     y: number,
     width: number,
     height: number,
-    out: ArrayBufferView,
-    mipLevel: number
+    mipLevel: number,
+    out: ArrayBufferView
   ): void {
     const gl = this._gl;
     const { baseFormat, dataType } = this._formatDetail;

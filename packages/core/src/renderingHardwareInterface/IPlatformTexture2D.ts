@@ -47,8 +47,8 @@ export interface IPlatformTexture2D extends IPlatformTexture {
    * @param y - Y coordinate of area start
    * @param width - Area width
    * @param height - Area height
-   * @param out - Color buffer
    * @param mipLevel - Set mip level the data want to get from
+   * @param out - Color buffer
    */
-  getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView, mipLevel: number): void;
+  getPixelBuffer(x: number, y: number, width: number, height: number, mipLevel: number, out: ArrayBufferView): void;
 }
