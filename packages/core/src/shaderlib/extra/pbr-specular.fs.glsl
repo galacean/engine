@@ -16,6 +16,5 @@
 
 void main() {
     #include <pbr_frag>
-    #include <gamma_frag>
     #include <fog_frag>
 }

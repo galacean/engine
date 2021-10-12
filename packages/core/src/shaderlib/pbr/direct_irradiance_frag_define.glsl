@@ -2,15 +2,8 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
     float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
 
     vec3 irradiance = dotNL * color;
-
-    #ifndef PHYSICALLY_CORRECT_LIGHTS
-
-        irradiance *= PI; 
-
-    #endif
-
-
-
+    irradiance *= PI;
+    
     reflectedLight.directSpecular += irradiance * BRDF_Specular_GGX( incidentDirection, geometry, material.specularColor, material.roughness);
 
     reflectedLight.directDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
