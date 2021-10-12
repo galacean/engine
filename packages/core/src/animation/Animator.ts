@@ -508,7 +508,6 @@ export class Animator extends Component {
     const destClipTime = destPlayData.clipTime;
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
-      if (destCurveIndex >= curves.length) debugger
       const destValue =
         destCurveIndex >= 0
           ? this._evaluateCurve(curveOwner.property, curves[destCurveIndex].curve, destClipTime, additive)
