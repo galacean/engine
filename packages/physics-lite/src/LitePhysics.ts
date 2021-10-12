@@ -17,6 +17,7 @@ import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LitePhysicsManager } from "./LitePhysicsManager";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
+import { LitePlaneColliderShape } from "./shape/LitePlaneColliderShape";
 
 @StaticInterfaceImplement<IPhysics>()
 export class LitePhysics {
@@ -90,7 +91,7 @@ export class LitePhysics {
    * {@inheritDoc IPhysics.createPlaneColliderShape }
    */
   static createPlaneColliderShape(uniqueID: number, material: LitePhysicsMaterial): IPlaneColliderShape {
-    throw "Physics-lite don't support PlaneColliderShape. Use Physics-PhysX instead!";
+    return new LitePlaneColliderShape(uniqueID, material);
   }
 
   /**
