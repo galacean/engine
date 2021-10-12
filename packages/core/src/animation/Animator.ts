@@ -356,6 +356,7 @@ export class Animator extends Component {
         saveFixed && owner.saveFixedPoseValue();
         owner.crossCurveMark = crossCurveMark;
         owner.crossCurveIndex = crossCurveData.length;
+        // if (i === 45) debugger
         this._addCrossCurveData(crossCurveData, owner, -1, i);
       }
     }
@@ -508,10 +509,10 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
-      const destCurve = curves[destCurveIndex].curve;
+      console.log(333, curves.length, destCurveIndex)
       const destValue =
         destCurveIndex >= 0
-          ? this._evaluateCurve(curveOwner.property, destCurve, destClipTime, additive)
+          ? this._evaluateCurve(curveOwner.property, curves[destCurveIndex].curve, destClipTime, additive)
           : curveOwner.defaultValue;
 
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
