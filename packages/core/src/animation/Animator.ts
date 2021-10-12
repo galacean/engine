@@ -192,7 +192,7 @@ export class Animator extends Component {
     if (animatorController) {
       const layers = animatorController.layers;
       if (layerIndex === -1) {
-        for (let i = 0, n = layers.length; i < n; i--) {
+        for (let i = 0, n = layers.length; i < n; i++) {
           state = layers[i].stateMachine.findStateByName(stateName);
           if (state) {
             layerIndex = i;
