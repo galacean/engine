@@ -127,12 +127,10 @@ export class AnimationCurve {
         case InterpolationType.Linear:
           value = this._evaluateLinear(curIndex, nextIndex, t);
           break;
-        case InterpolationType.CubicSpine:
-          value = this._evaluateCubicSpline(curIndex, nextIndex, t);
-          break;
         case InterpolationType.Step:
           value = this._evaluateStep(nextIndex);
           break;
+        case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
           value = this._evaluateHermite(curIndex, nextIndex, t, dur);
       }
@@ -204,24 +202,6 @@ export class AnimationCurve {
         );
         return this._currentValue;
     }
-  }
-
-  private _evaluateCubicSpline(frameIndex: number, nextFrameIndex: number, t: number): Vector3 {
-    const { keys } = this;
-    const squared = t * t;
-    const cubed = t * squared;
-    const part1 = 2.0 * cubed - 3.0 * squared + 1.0;
-    const part2 = -2.0 * cubed + 3.0 * squared;
-    const part3 = cubed - 2.0 * squared + t;
-    const part4 = cubed - squared;
-
-    const t1: Vector3 = (<Vector3Keyframe>keys[frameIndex]).value;
-    const v1: Vector3 = (<Vector3Keyframe>keys[frameIndex + 1]).value;
-    const t2: Vector3 = (<Vector3Keyframe>keys[frameIndex + 2]).value;
-    const v2: Vector3 = (<Vector3Keyframe>keys[nextFrameIndex + 1]).value;
-
-    //CM:clone
-    return v1.scale(part1).add(v2.scale(part2)).add(t1.scale(part3)).add(t2.scale(part4)).clone();
   }
 
   private _evaluateStep(nextFrameIndex: number): InterpolableValue {
