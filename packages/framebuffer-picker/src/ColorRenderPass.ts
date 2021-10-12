@@ -76,7 +76,7 @@ class ColorRenderPass extends RenderPass {
     const bottom = Math.floor((1 - ny) * (this.renderTarget.height - 1));
     const pixel = new Uint8Array(4);
 
-    this.renderTarget.getColorTexture().getPixelBuffer(null, left, bottom, 1, 1, pixel);
+    this.renderTarget.getColorTexture().getPixelBuffer(null, left, bottom, 1, 1, 0, pixel);
     return pixel;
   }
 }
