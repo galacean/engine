@@ -316,7 +316,10 @@ export class Animator extends Component {
 
     // Save current cross curve data owner fixed pose.
     for (let i = crossCurveData.length - 1; i >= 0; i--) {
-      crossCurveData[i].curveOwner.saveFixedPoseValue();
+      const item = crossCurveData[i];
+      item.curveOwner.saveFixedPoseValue();
+      // Reset destCurveIndex When fixed pose crossFading again.
+      item.destCurveIndex = -1;
     }
     // prepare dest AnimatorState cross data.
     this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, animatorLayerData.crossCurveMark, true);
@@ -329,7 +332,6 @@ export class Animator extends Component {
     saveFixed: boolean
   ): void {
     const { curveOwners } = srcPlayData.stateData;
-
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
       owner.crossCurveMark = crossCurveMark;
@@ -346,7 +348,6 @@ export class Animator extends Component {
     saveFixed: boolean
   ): void {
     const { curveOwners } = destPlayData.stateData;
-
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
       // Not include in previous AnimatorState.
@@ -356,7 +357,6 @@ export class Animator extends Component {
         saveFixed && owner.saveFixedPoseValue();
         owner.crossCurveMark = crossCurveMark;
         owner.crossCurveIndex = crossCurveData.length;
-        // if (i === 45) debugger
         this._addCrossCurveData(crossCurveData, owner, -1, i);
       }
     }
@@ -506,10 +506,9 @@ export class Animator extends Component {
     destPlayData.update();
 
     const destClipTime = destPlayData.clipTime;
-
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
-      console.log(333, curves.length, destCurveIndex)
+      if (destCurveIndex >= curves.length) debugger
       const destValue =
         destCurveIndex >= 0
           ? this._evaluateCurve(curveOwner.property, curves[destCurveIndex].curve, destClipTime, additive)
