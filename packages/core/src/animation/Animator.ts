@@ -335,7 +335,7 @@ export class Animator extends Component {
       owner.crossCurveMark = crossCurveMark;
       owner.crossCurveIndex = crossCurveData.length;
       saveFixed && owner.saveFixedPoseValue();
-      this._addCrossCurveData(crossCurveData, owner, i, null);
+      this._addCrossCurveData(crossCurveData, owner, i, -1);
     }
   }
 
@@ -355,7 +355,8 @@ export class Animator extends Component {
       } else {
         saveFixed && owner.saveFixedPoseValue();
         owner.crossCurveMark = crossCurveMark;
-        this._addCrossCurveData(crossCurveData, owner, null, i);
+        owner.crossCurveIndex = crossCurveData.length;
+        this._addCrossCurveData(crossCurveData, owner, -1, i);
       }
     }
   }
@@ -473,13 +474,14 @@ export class Animator extends Component {
       const { curveOwner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
       const { property, defaultValue } = curveOwner;
 
-      const srcCurve = srcCurves[srcCurveIndex].curve;
-      const destCurve = destCurves[destCurveIndex].curve;
-
       const srcValue =
-        srcCurveIndex >= 0 ? this._evaluateCurve(property, srcCurve, srcClipTime, additive) : defaultValue;
+        srcCurveIndex >= 0
+          ? this._evaluateCurve(property, srcCurves[srcCurveIndex].curve, srcClipTime, additive)
+          : defaultValue;
       const destValue =
-        destCurveIndex >= 0 ? this._evaluateCurve(property, destCurve, destClipTime, additive) : defaultValue;
+        destCurveIndex >= 0
+          ? this._evaluateCurve(property, destCurves[destCurveIndex].curve, destClipTime, additive)
+          : defaultValue;
 
       this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
     }
