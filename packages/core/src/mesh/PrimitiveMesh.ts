@@ -254,14 +254,14 @@ export class PrimitiveMesh {
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;
-      const y = (i * horizontalCountReciprocal) | 0;
+      const z = (i * horizontalCountReciprocal) | 0;
 
       // Position
-      positions[i] = new Vector3(x * gridWidth - halfWidth, y * gridHeight - halfHeight, 0);
+      positions[i] = new Vector3(x * gridWidth - halfWidth, 0, z * gridHeight - halfHeight);
       // Normal
-      normals[i] = new Vector3(0, 0, 1);
+      normals[i] = new Vector3(0, 1, 0);
       // Texcoord
-      uvs[i] = new Vector2(x * horizontalSegmentsReciprocal, 1 - y * verticalSegmentsReciprocal);
+      uvs[i] = new Vector2(x * horizontalSegmentsReciprocal, 1 - z * verticalSegmentsReciprocal);
     }
 
     let offset = 0;
