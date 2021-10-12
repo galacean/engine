@@ -274,12 +274,12 @@ export class PrimitiveMesh {
       const c = a + horizontalCount;
       const d = c + 1;
 
-      indices[offset++] = b;
-      indices[offset++] = c;
       indices[offset++] = a;
-      indices[offset++] = b;
-      indices[offset++] = d;
       indices[offset++] = c;
+      indices[offset++] = b;
+      indices[offset++] = c;
+      indices[offset++] = d;
+      indices[offset++] = b;
     }
 
     const { bounds } = mesh;
