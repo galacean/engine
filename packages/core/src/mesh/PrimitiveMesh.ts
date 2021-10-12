@@ -283,8 +283,8 @@ export class PrimitiveMesh {
     }
 
     const { bounds } = mesh;
-    bounds.min.setValue(-halfWidth, -halfHeight, 0);
-    bounds.max.setValue(halfWidth, halfHeight, 0);
+    bounds.min.setValue(-halfWidth, 0, -halfHeight);
+    bounds.max.setValue(halfWidth, 0, halfHeight);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
