@@ -1,3 +1,4 @@
+import { IPhysics } from "@oasis-engine/design";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
@@ -5,8 +6,11 @@ import { ComponentsManager } from "./ComponentsManager";
 import { EngineFeature } from "./EngineFeature";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
+import { InputManager } from "./input/InputManager";
 import { RenderQueueType } from "./material/enums/RenderQueueType";
 import { Material } from "./material/Material";
+import { ModelMesh, PrimitiveMesh } from "./mesh";
+import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { ClassPool } from "./RenderPipeline/ClassPool";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -14,8 +18,10 @@ import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteElement } from "./RenderPipeline/SpriteElement";
 import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
+import { EngineSettings } from "./EngineSettings";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
+import { CompareFunction } from "./shader";
 import { BlendFactor } from "./shader/enums/BlendFactor";
 import { BlendOperation } from "./shader/enums/BlendOperation";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
@@ -25,11 +31,6 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
-import { ModelMesh, PrimitiveMesh } from "./mesh";
-import { CompareFunction } from "./shader";
-import { InputManager } from "./input/InputManager";
-import { IPhysics } from "@oasis-engine/design";
-import { PhysicsManager } from "./physics";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -39,6 +40,8 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
+  /** Settings of Engine. */
+  readonly settings: EngineSettings = new EngineSettings();
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
 

@@ -15,6 +15,8 @@ export { dependencies } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";
+export { EngineSettings} from "./EngineSettings";
+
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
@@ -39,6 +41,7 @@ Scene.registerFeature(LightFeature);
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
+export { ColorSpace } from "./enums/ColorSpace";
 export * from "./lighting/index";
 export * from "./material/index";
 export * from "./texture/index";
