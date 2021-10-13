@@ -46,7 +46,7 @@ describe("Quaternion test", () => {
     const a = new Quaternion(1, 2, 3, 4);
     const b = new Quaternion(1 + MathUtil.zeroTolerance * 0.9, 2, 3, 4);
 
-    expect(Quaternion.equals(a, b)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
   });
 
   it("static rotationAxisAngle", () => {
@@ -80,22 +80,16 @@ describe("Quaternion test", () => {
     const out = new Quaternion();
 
     Quaternion.rotationMatrix3x3(a1, out);
-    expect(Quaternion.equals(out, new Quaternion(-0.25, 0.5, -0.25, 2))).toEqual(true);
+    expect(out.equals(new Quaternion(-0.25, 0.5, -0.25, 2))).toEqual(true);
     Quaternion.rotationMatrix3x3(a2, out);
-    expect(Quaternion.equals(out, new Quaternion(2, 0.75, 1.25, -0.25))).toEqual(true);
+    expect(out.equals(new Quaternion(2, 0.75, 1.25, -0.25))).toEqual(true);
     Quaternion.rotationMatrix3x3(a3, out);
     expect(
-      Quaternion.equals(
-        out,
-        new Quaternion(0.8017837257372732, 1.8708286933869707, 1.8708286933869709, 0.5345224838248488)
-      )
+      out.equals(new Quaternion(0.8017837257372732, 1.8708286933869707, 1.8708286933869709, 0.5345224838248488))
     ).toEqual(true);
     Quaternion.rotationMatrix3x3(a4, out);
     expect(
-      Quaternion.equals(
-        out,
-        new Quaternion(1.066003581778052, 1.4924050144892729, 2.345207879911715, -0.21320071635561041)
-      )
+      out.equals(new Quaternion(1.066003581778052, 1.4924050144892729, 2.345207879911715, -0.21320071635561041))
     ).toEqual(true);
   });
 
@@ -105,10 +99,7 @@ describe("Quaternion test", () => {
 
     Quaternion.invert(a, out);
     expect(
-      Quaternion.equals(
-        out,
-        new Quaternion(-0.3076923076923077, -0.3076923076923077, -0.3076923076923077, 0.15384615384615385)
-      )
+      out.equals(new Quaternion(-0.3076923076923077, -0.3076923076923077, -0.3076923076923077, 0.15384615384615385))
     ).toEqual(true);
   });
 
@@ -119,9 +110,9 @@ describe("Quaternion test", () => {
     const out = new Quaternion();
 
     Quaternion.lerp(a, b, 0.5, out);
-    expect(Quaternion.equals(out, normal.normalize())).toEqual(true);
+    expect(out.equals(normal.normalize())).toEqual(true);
     a.lerp(b, 0.5);
-    expect(Quaternion.equals(a, normal.normalize())).toEqual(true);
+    expect(a.equals(normal.normalize())).toEqual(true);
   });
 
   it("static slerp", () => {
@@ -138,20 +129,20 @@ describe("Quaternion test", () => {
     const out = new Quaternion();
 
     Quaternion.normalize(a, out);
-    expect(Quaternion.equals(out, new Quaternion(0.6, 0.8, 0, 0))).toEqual(true);
+    expect(out.equals(new Quaternion(0.6, 0.8, 0, 0))).toEqual(true);
   });
 
   it("static rotation", () => {
     const out = new Quaternion();
 
     Quaternion.rotationX(1.5, out);
-    expect(Quaternion.equals(out, new Quaternion(0.6816387600233341, 0, 0, 0.7316888688738209))).toEqual(true);
+    expect(out.equals(new Quaternion(0.6816387600233341, 0, 0, 0.7316888688738209))).toEqual(true);
 
     Quaternion.rotationY(1.5, out);
-    expect(Quaternion.equals(out, new Quaternion(0, 0.6816387600233341, 0, 0.7316888688738209))).toEqual(true);
+    expect(out.equals(new Quaternion(0, 0.6816387600233341, 0, 0.7316888688738209))).toEqual(true);
 
     Quaternion.rotationZ(1.5, out);
-    expect(Quaternion.equals(out, new Quaternion(0, 0, 0.6816387600233341, 0.7316888688738209))).toEqual(true);
+    expect(out.equals(new Quaternion(0, 0, 0.6816387600233341, 0.7316888688738209))).toEqual(true);
   });
 
   it("static rotate", () => {
@@ -161,20 +152,20 @@ describe("Quaternion test", () => {
 
     Quaternion.rotateX(a, 1.5, out);
     b.rotateX(1.5);
-    expect(Quaternion.equals(out, new Quaternion(0.6816387600233341, 0, 0, 0.7316888688738209))).toEqual(true);
-    expect(Quaternion.equals(out, b)).toEqual(true);
+    expect(out.equals(new Quaternion(0.6816387600233341, 0, 0, 0.7316888688738209))).toEqual(true);
+    expect(out.equals(b)).toEqual(true);
 
     Quaternion.rotateY(a, 1.5, out);
     b.setValue(0, 0, 0, 1);
     b.rotateY(1.5);
-    expect(Quaternion.equals(out, new Quaternion(0, 0.6816387600233341, 0, 0.7316888688738209))).toEqual(true);
-    expect(Quaternion.equals(out, b)).toEqual(true);
+    expect(out.equals(new Quaternion(0, 0.6816387600233341, 0, 0.7316888688738209))).toEqual(true);
+    expect(out.equals(b)).toEqual(true);
 
     Quaternion.rotateZ(a, 1.5, out);
     b.setValue(0, 0, 0, 1);
     b.rotateZ(1.5);
-    expect(Quaternion.equals(out, new Quaternion(0, 0, 0.6816387600233341, 0.7316888688738209))).toEqual(true);
-    expect(Quaternion.equals(out, b)).toEqual(true);
+    expect(out.equals(new Quaternion(0, 0, 0.6816387600233341, 0.7316888688738209))).toEqual(true);
+    expect(out.equals(b)).toEqual(true);
   });
 
   it("static rotatAxisAngle", () => {
@@ -182,13 +173,14 @@ describe("Quaternion test", () => {
     const b = 0.5 * Math.PI;
     const out = new Quaternion(0, 0, 0, 1);
     out.rotateAxisAngle(a, b);
-    expect(Quaternion.equals(out, new Quaternion(0, 0.7071067811865475, 0, 0.7071067811865476))).toEqual(true);
+    expect(out.equals(new Quaternion(0, 0.7071067811865475, 0, 0.7071067811865476))).toEqual(true);
   });
 
   it("static scale", () => {
     const a = new Quaternion(3, 4, 5, 0);
-    const out = new Quaternion();
-
+    const out = a.clone();
+    out.scale(3);
+    expect(toString(out)).toEqual("quat(9, 12, 15, 0)");
     Quaternion.scale(a, 3, out);
     expect(toString(out)).toEqual("quat(9, 12, 15, 0)");
   });
@@ -207,13 +199,13 @@ describe("Quaternion test", () => {
     a.setValue(1, 1, 1, 1);
     const b = new Quaternion();
     b.setValueByArray([1, 1, 1, 1]);
-    expect(Quaternion.equals(a, b)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
 
     const c = [];
     b.toArray(c);
     const d = new Quaternion();
     d.setValueByArray(c);
-    expect(Quaternion.equals(a, d)).toEqual(true);
+    expect(a.equals(d)).toEqual(true);
   });
 
   it("clone", () => {

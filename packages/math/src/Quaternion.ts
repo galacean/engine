@@ -70,21 +70,6 @@ export class Quaternion implements IClone {
   }
 
   /**
-   * Determines whether the specified quaternions are equals.
-   * @param left - The first quaternion to compare
-   * @param right - The second quaternion to compare
-   * @returns True if the specified quaternions are equals, false otherwise
-   */
-  static equals(left: Quaternion, right: Quaternion): boolean {
-    return (
-      MathUtil.equals(left.x, right.x) &&
-      MathUtil.equals(left.y, right.y) &&
-      MathUtil.equals(left.z, right.z) &&
-      MathUtil.equals(left.w, right.w)
-    );
-  }
-
-  /**
    * Calculate a quaternion rotates around an arbitrary axis.
    * @param axis - The axis
    * @param rad - The rotation angle in radians
@@ -470,14 +455,34 @@ export class Quaternion implements IClone {
   }
 
   /**
+   * Determines whether the specified quaternion and this quaternion are equals.
+   * @param q - The specified quaternion to compare
+   * @returns True if the specified quaternion and this quaternion are equals, false otherwise
+   */
+  equals(q: Quaternion): boolean {
+    return (
+      MathUtil.equals(this.x, q.x) &&
+      MathUtil.equals(this.y, q.y) &&
+      MathUtil.equals(this.z, q.z) &&
+      MathUtil.equals(this.w, q.w)
+    );
+  }
+
+  /**
+   * Scale this quaternion by a given number.
+   * @param s - The given number
+   */
+  scale(s: number): Quaternion {
+    Quaternion.scale(this, s, this);
+    return this;
+  }
+
+  /**
    * Transforms this quaternion into its conjugated version.
    * @returns This quaternion
    */
   conjugate(): Quaternion {
-    this.x *= -1;
-    this.y *= -1;
-    this.z *= -1;
-
+    Quaternion.conjugate(this, this);
     return this;
   }
 

@@ -372,10 +372,7 @@ describe("Matrix test", () => {
     a.decompose(pos, quat, scale);
     expect(Vector3.equals(pos, new Vector3(13, 14, 15))).toEqual(true);
     expect(
-      Quaternion.equals(
-        quat,
-        new Quaternion(0.01879039477474769, -0.09554131404261303, 0.01844761344901482, 0.783179537258594)
-      )
+      quat.equals(new Quaternion(0.01879039477474769, -0.09554131404261303, 0.01844761344901482, 0.783179537258594))
     ).toEqual(true);
     expect(Vector3.equals(scale, new Vector3(3.7416573867739413, 10.488088481701515, 17.91116946723357))).toEqual(true);
   });
@@ -387,10 +384,7 @@ describe("Matrix test", () => {
     const quat = new Quaternion();
     a.getRotation(quat);
     expect(
-      Quaternion.equals(
-        quat,
-        new Quaternion(-0.44736068104759547, 0.6882472016116852, -0.3441236008058426, 2.179449471770337)
-      )
+      quat.equals(new Quaternion(-0.44736068104759547, 0.6882472016116852, -0.3441236008058426, 2.179449471770337))
     ).toEqual(true);
 
     // getScaling
