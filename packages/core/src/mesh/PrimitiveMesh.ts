@@ -261,7 +261,7 @@ export class PrimitiveMesh {
       // Normal
       normals[i] = new Vector3(0, 1, 0);
       // Texcoord
-      uvs[i] = new Vector2(x * horizontalSegmentsReciprocal, 1 - z * verticalSegmentsReciprocal);
+      uvs[i] = new Vector2(x * horizontalSegmentsReciprocal, z * verticalSegmentsReciprocal);
     }
 
     let offset = 0;
