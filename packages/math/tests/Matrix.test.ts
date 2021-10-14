@@ -10,27 +10,24 @@ describe("Matrix test", () => {
 
     Matrix.multiply(a, b, out);
     expect(
-      Matrix.equals(
-        out,
-        new Matrix(
-          386,
-          456.6,
-          506.8,
-          560,
-          274,
-          325,
-          361.6,
-          400,
-          162.88,
-          195.16000000000003,
-          219.304,
-          243.52,
-          50,
-          61.8,
-          71.2,
-          80
-        )
-      )
+      out.equals(new Matrix(
+        386,
+        456.6,
+        506.8,
+        560,
+        274,
+        325,
+        361.6,
+        400,
+        162.88,
+        195.16000000000003,
+        219.304,
+        243.52,
+        50,
+        61.8,
+        71.2,
+        80
+      ))
     ).toEqual(true);
   });
 
@@ -39,8 +36,8 @@ describe("Matrix test", () => {
     const b = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
     const c = new Matrix(16, 15, 14, 13, 12, 11, 10, 9, 8.88, 7, 6, 5, 4, 3, 2, 1);
 
-    expect(Matrix.equals(a, b)).toEqual(true);
-    expect(Matrix.equals(a, c)).toEqual(false);
+    expect(a.equals(b)).toEqual(true);
+    expect(a.equals(c)).toEqual(false);
   });
 
   it("static lerp", () => {
@@ -49,8 +46,8 @@ describe("Matrix test", () => {
     const c = new Matrix();
     Matrix.lerp(a, b, 0.7, c);
 
-    expect(Matrix.equals(a, c)).toEqual(true);
-    expect(Matrix.equals(b, c)).toEqual(true);
+    expect(a.equals(c)).toEqual(true);
+    expect(b.equals(c)).toEqual(true);
   });
 
   it("static rotationQuaternion", () => {
@@ -58,7 +55,7 @@ describe("Matrix test", () => {
     const out = new Matrix();
 
     Matrix.rotationQuaternion(q, out);
-    expect(Matrix.equals(out, new Matrix(-25, 28, -10, 0, -20, -19, 20, 0, 22, 4, -9, 0, 0, 0, 0, 1))).toEqual(true);
+    expect(out.equals(new Matrix(-25, 28, -10, 0, -20, -19, 20, 0, 22, 4, -9, 0, 0, 0, 0, 1))).toEqual(true);
   });
 
   it("static rotationAxisAngle", () => {
@@ -66,27 +63,24 @@ describe("Matrix test", () => {
 
     Matrix.rotationAxisAngle(new Vector3(0, 1, 0), Math.PI / 3, out);
     expect(
-      Matrix.equals(
-        out,
-        new Matrix(
-          0.5000000000000001,
-          0,
-          -0.8660254037844386,
-          0,
-          0,
-          1,
-          0,
-          0,
-          0.8660254037844386,
-          0,
-          0.5000000000000001,
-          0,
-          0,
-          0,
-          0,
-          1
-        )
-      )
+      out.equals(new Matrix(
+        0.5000000000000001,
+        0,
+        -0.8660254037844386,
+        0,
+        0,
+        1,
+        0,
+        0,
+        0.8660254037844386,
+        0,
+        0.5000000000000001,
+        0,
+        0,
+        0,
+        0,
+        1
+      ))
     ).toEqual(true);
   });
 
@@ -96,7 +90,7 @@ describe("Matrix test", () => {
     const out = new Matrix();
 
     Matrix.rotationTranslation(q, v, out);
-    expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -3, -9, 4, 0, 5, 0, -1.5, 0, 1, 1, 1, 1))).toEqual(true);
+    expect(out.equals(new Matrix(-7.5, 5, 3, 0, -3, -9, 4, 0, 5, 0, -1.5, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
   it("static affineTransformation", () => {
@@ -106,7 +100,7 @@ describe("Matrix test", () => {
     const out = new Matrix();
 
     Matrix.affineTransformation(s, q, v, out);
-    expect(Matrix.equals(out, new Matrix(-7.5, 5, 3, 0, -1.5, -4.5, 2, 0, 10, 0, -3, 0, 1, 1, 1, 1))).toEqual(true);
+    expect(out.equals(new Matrix(-7.5, 5, 3, 0, -1.5, -4.5, 2, 0, 10, 0, -3, 0, 1, 1, 1, 1))).toEqual(true);
   });
 
   it("static scaling", () => {
@@ -114,7 +108,7 @@ describe("Matrix test", () => {
     const out = new Matrix();
 
     Matrix.scale(a, new Vector3(1, 2, 0.5), out);
-    expect(Matrix.equals(out, new Matrix(1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1))).toEqual(true);
+    expect(out.equals(new Matrix(1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0.5, 0, 0, 0, 0, 1))).toEqual(true);
   });
 
   it("static translation", () => {
@@ -122,7 +116,7 @@ describe("Matrix test", () => {
     const v = new Vector3(1, 2, 0.5);
 
     Matrix.translation(v, out);
-    expect(Matrix.equals(out, new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 2, 0.5, 1))).toEqual(true);
+    expect(out.equals(new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 2, 0.5, 1))).toEqual(true);
   });
 
   it("static invert", () => {
@@ -131,27 +125,24 @@ describe("Matrix test", () => {
 
     Matrix.invert(a, out);
     expect(
-      Matrix.equals(
-        out,
-        new Matrix(
-          -1.1111111111111172,
-          1.3703703703703825,
-          -0.7407407407407528,
-          0.1481481481481532,
-          0,
-          -0.5555555555555607,
-          1.1111111111111214,
-          -0.5555555555555607,
-          3.3333333333333863,
-          -5.000000000000064,
-          0,
-          1.6666666666666867,
-          -2.222222222222265,
-          4.0601851851852375,
-          -0.3703703703703687,
-          -1.134259259259275
-        )
-      )
+      out.equals(new Matrix(
+        -1.1111111111111172,
+        1.3703703703703825,
+        -0.7407407407407528,
+        0.1481481481481532,
+        0,
+        -0.5555555555555607,
+        1.1111111111111214,
+        -0.5555555555555607,
+        3.3333333333333863,
+        -5.000000000000064,
+        0,
+        1.6666666666666867,
+        -2.222222222222265,
+        4.0601851851852375,
+        -0.3703703703703687,
+        -1.134259259259275
+      ))
     ).toEqual(true);
   });
 
@@ -162,34 +153,31 @@ describe("Matrix test", () => {
     const up = new Vector3(0, 1, 0);
 
     Matrix.lookAt(eye, target, up, out);
-    expect(Matrix.equals(out, new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
+    expect(out.equals(new Matrix(-1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -1, 0, 0, 0, -8, 1))).toEqual(true);
 
     eye.setValue(0, 0, 0);
     target.setValue(0, 1, -1);
     up.setValue(0, 1, 0);
     Matrix.lookAt(eye, target, up, out);
     expect(
-      Matrix.equals(
-        out,
-        new Matrix(
-          1,
-          0,
-          0,
-          0,
-          0,
-          0.7071067690849304,
-          -0.7071067690849304,
-          0,
-          0,
-          0.7071067690849304,
-          0.7071067690849304,
-          0,
-          0,
-          0,
-          0,
-          1
-        )
-      )
+      out.equals(new Matrix(
+        1,
+        0,
+        0,
+        0,
+        0,
+        0.7071067690849304,
+        -0.7071067690849304,
+        0,
+        0,
+        0.7071067690849304,
+        0.7071067690849304,
+        0,
+        0,
+        0,
+        0,
+        1
+      ))
     ).toEqual(true);
   });
 
@@ -197,10 +185,7 @@ describe("Matrix test", () => {
     const out = new Matrix();
     Matrix.ortho(0, 2, -1, 1, 0.1, 100, out);
     expect(
-      Matrix.equals(
-        out,
-        new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -0.02002002002002002, 0, -1, 0, -1.002002002002002, 1)
-      )
+      out.equals(new Matrix(1, 0, 0, 0, 0, 1, 0, 0, 0, 0, -0.02002002002002002, 0, -1, 0, -1.002002002002002, 1))
     ).toEqual(true);
   });
 
@@ -208,27 +193,24 @@ describe("Matrix test", () => {
     const out = new Matrix();
     Matrix.perspective(1, 1.5, 0.1, 100, out);
     expect(
-      Matrix.equals(
-        out,
-        new Matrix(
-          1.2203251478083013,
-          0,
-          0,
-          0,
-          0,
-          1.830487721712452,
-          0,
-          0,
-          0,
-          0,
-          -1.002002002002002,
-          -1,
-          0,
-          0,
-          -0.20020020020020018,
-          0
-        )
-      )
+      out.equals(new Matrix(
+        1.2203251478083013,
+        0,
+        0,
+        0,
+        0,
+        1.830487721712452,
+        0,
+        0,
+        0,
+        0,
+        -1.002002002002002,
+        -1,
+        0,
+        0,
+        -0.20020020020020018,
+        0
+      ))
     ).toEqual(true);
   });
 
@@ -238,27 +220,24 @@ describe("Matrix test", () => {
 
     Matrix.rotateAxisAngle(a, new Vector3(0, 1, 0), Math.PI / 3, out);
     expect(
-      Matrix.equals(
-        out,
-        new Matrix(
-          -7.294228634059947,
-          -8.439676901250381,
-          -7.876279441628824,
-          -8.392304845413264,
-          5,
-          6,
-          7,
-          8,
-          5.366025403784439,
-          7.182050807568878,
-          8.357883832488648,
-          9.464101615137757,
-          13,
-          14,
-          15,
-          16
-        )
-      )
+      out.equals(new Matrix(
+        -7.294228634059947,
+        -8.439676901250381,
+        -7.876279441628824,
+        -8.392304845413264,
+        5,
+        6,
+        7,
+        8,
+        5.366025403784439,
+        7.182050807568878,
+        8.357883832488648,
+        9.464101615137757,
+        13,
+        14,
+        15,
+        16
+      ))
     ).toEqual(true);
   });
 
@@ -267,7 +246,7 @@ describe("Matrix test", () => {
     const out = new Matrix();
 
     Matrix.scale(a, new Vector3(1, 2, 0.5), out);
-    expect(Matrix.equals(out, new Matrix(1, 2, 3, 4, 10, 12, 14, 16, 4.5, 5, 5.5, 6, 13, 14, 15, 16))).toEqual(true);
+    expect(out.equals(new Matrix(1, 2, 3, 4, 10, 12, 14, 16, 4.5, 5, 5.5, 6, 13, 14, 15, 16))).toEqual(true);
   });
 
   it("static translate", () => {
@@ -275,7 +254,7 @@ describe("Matrix test", () => {
     const out = new Matrix();
 
     Matrix.translate(a, new Vector3(1, 2, 0.5), out);
-    expect(Matrix.equals(out, new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 28.5, 33.45, 37.8, 42))).toEqual(
+    expect(out.equals(new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 28.5, 33.45, 37.8, 42))).toEqual(
       true
     );
   });
@@ -285,21 +264,21 @@ describe("Matrix test", () => {
     const out = new Matrix();
 
     Matrix.transpose(a, out);
-    expect(Matrix.equals(out, new Matrix(1, 5, 9, 13, 2, 6, 10.9, 14, 3.3, 7, 11, 15, 4, 8, 12, 16))).toEqual(true);
+    expect(out.equals(new Matrix(1, 5, 9, 13, 2, 6, 10.9, 14, 3.3, 7, 11, 15, 4, 8, 12, 16))).toEqual(true);
   });
 
   it("setValue", () => {
     const a = new Matrix();
     a.setValue(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
-    expect(Matrix.equals(a, new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16))).toEqual(true);
+    expect(a.equals(new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16))).toEqual(true);
   });
 
   it("setValueByArray", () => {
     const a = new Matrix();
     a.setValueByArray([1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16]);
 
-    expect(Matrix.equals(a, new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16))).toEqual(true);
+    expect(a.equals(new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16))).toEqual(true);
   });
 
   it("toArray", () => {
@@ -309,14 +288,14 @@ describe("Matrix test", () => {
     const c = new Matrix();
     c.setValueByArray(b);
 
-    expect(Matrix.equals(a, c)).toEqual(true);
+    expect(a.equals(c)).toEqual(true);
   });
 
   it("clone", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
     const b = a.clone();
 
-    expect(Matrix.equals(a, b)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
   });
 
   it("cloneTo", () => {
@@ -324,7 +303,7 @@ describe("Matrix test", () => {
     const out = new Matrix();
 
     a.cloneTo(out);
-    expect(Matrix.equals(a, out)).toEqual(true);
+    expect(a.equals(out)).toEqual(true);
   });
 
   it("multiply", () => {
@@ -333,27 +312,24 @@ describe("Matrix test", () => {
 
     a.multiply(b);
     expect(
-      Matrix.equals(
-        a,
-        new Matrix(
-          386,
-          456.6,
-          506.8,
-          560,
-          274,
-          325,
-          361.6,
-          400,
-          162.88,
-          195.16000000000003,
-          219.304,
-          243.52,
-          50,
-          61.8,
-          71.2,
-          80
-        )
-      )
+      a.equals(new Matrix(
+        386,
+        456.6,
+        506.8,
+        560,
+        274,
+        325,
+        361.6,
+        400,
+        162.88,
+        195.16000000000003,
+        219.304,
+        243.52,
+        50,
+        61.8,
+        71.2,
+        80
+      ))
     ).toEqual(true);
   });
 
@@ -411,27 +387,24 @@ describe("Matrix test", () => {
 
     a.invert();
     expect(
-      Matrix.equals(
-        a,
-        new Matrix(
-          -1.1111111111111172,
-          1.3703703703703825,
-          -0.7407407407407528,
-          0.1481481481481532,
-          0,
-          -0.5555555555555607,
-          1.1111111111111214,
-          -0.5555555555555607,
-          3.3333333333333863,
-          -5.000000000000064,
-          0,
-          1.6666666666666867,
-          -2.222222222222265,
-          4.0601851851852375,
-          -0.3703703703703687,
-          -1.134259259259275
-        )
-      )
+      a.equals(new Matrix(
+        -1.1111111111111172,
+        1.3703703703703825,
+        -0.7407407407407528,
+        0.1481481481481532,
+        0,
+        -0.5555555555555607,
+        1.1111111111111214,
+        -0.5555555555555607,
+        3.3333333333333863,
+        -5.000000000000064,
+        0,
+        1.6666666666666867,
+        -2.222222222222265,
+        4.0601851851852375,
+        -0.3703703703703687,
+        -1.134259259259275
+      ))
     ).toEqual(true);
   });
 
@@ -440,27 +413,24 @@ describe("Matrix test", () => {
 
     a.rotateAxisAngle(new Vector3(0, 1, 0), Math.PI / 3);
     expect(
-      Matrix.equals(
-        a,
-        new Matrix(
-          -7.294228634059947,
-          -8.439676901250381,
-          -7.876279441628824,
-          -8.392304845413264,
-          5,
-          6,
-          7,
-          8,
-          5.366025403784439,
-          7.182050807568878,
-          8.357883832488648,
-          9.464101615137757,
-          13,
-          14,
-          15,
-          16
-        )
-      )
+      a.equals(new Matrix(
+        -7.294228634059947,
+        -8.439676901250381,
+        -7.876279441628824,
+        -8.392304845413264,
+        5,
+        6,
+        7,
+        8,
+        5.366025403784439,
+        7.182050807568878,
+        8.357883832488648,
+        9.464101615137757,
+        13,
+        14,
+        15,
+        16
+      ))
     ).toEqual(true);
   });
 
@@ -468,14 +438,14 @@ describe("Matrix test", () => {
     const a = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16);
 
     a.scale(new Vector3(1, 2, 0.5));
-    expect(Matrix.equals(a, new Matrix(1, 2, 3, 4, 10, 12, 14, 16, 4.5, 5, 5.5, 6, 13, 14, 15, 16))).toEqual(true);
+    expect(a.equals(new Matrix(1, 2, 3, 4, 10, 12, 14, 16, 4.5, 5, 5.5, 6, 13, 14, 15, 16))).toEqual(true);
   });
 
   it("translate", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
     a.translate(new Vector3(1, 2, 0.5));
-    expect(Matrix.equals(a, new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 28.5, 33.45, 37.8, 42))).toEqual(
+    expect(a.equals(new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 28.5, 33.45, 37.8, 42))).toEqual(
       true
     );
   });
@@ -484,6 +454,6 @@ describe("Matrix test", () => {
     const a = new Matrix(1, 2, 3.3, 4, 5, 6, 7, 8, 9, 10.9, 11, 12, 13, 14, 15, 16);
 
     a.transpose();
-    expect(Matrix.equals(a, new Matrix(1, 5, 9, 13, 2, 6, 10.9, 14, 3.3, 7, 11, 15, 4, 8, 12, 16))).toEqual(true);
+    expect(a.equals(new Matrix(1, 5, 9, 13, 2, 6, 10.9, 14, 3.3, 7, 11, 15, 4, 8, 12, 16))).toEqual(true);
   });
 });
