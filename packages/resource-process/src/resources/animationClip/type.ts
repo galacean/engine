@@ -1,17 +1,9 @@
-import { AnimationProperty } from "@oasis-engine/core";
-export enum KeyframeValueType {
-  Number,
-  Float32Array,
-  Vector2,
-  Vector3,
-  Vector4,
-  Quaternion,
-  Object
-}
+import { AnimationProperty, InterpolableValueType } from "@oasis-engine/core";
 
 export enum ComponentClass {
   Transform,
   SkinnedMeshRenderer,
+  Other
 }
 
 export const PropertyNameMap = ['position', 'rotation', 'scale', 'blendShapeWeights'];
@@ -26,17 +18,16 @@ export interface IAnimationClipAsset {
   }>;
   curveBindings: Array<{
     relativePath: string;
-    componentClass: ComponentClass;
     property: AnimationProperty;
     curve: {
       interpolation: number;
       keys: Array<{
-        type: KeyframeValueType;
         time: number;
         value: any; // 详细查看 KeyframeValueType的映射
         inTangent: any; // 详细查看 KeyframeValueType的映射
         outTangent: any; // 详细查看 KeyframeValueType的映射
       }>;
+      valueType: InterpolableValueType;
     };
   }>;
 }

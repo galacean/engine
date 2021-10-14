@@ -7,13 +7,14 @@ import {
   Engine,
   Entity,
   InterpolableKeyframe,
+  InterpolableValueType,
   SkinnedMeshRenderer,
   Transform
 } from "@oasis-engine/core";
 import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
-import { ComponentClass, KeyframeValueType, PropertyNameMap } from "./type";
+import { ComponentClass, PropertyNameMap } from "./type";
 
 @decoder("AnimationClip")
 export class AnimationClipDecoder {
@@ -23,7 +24,6 @@ export class AnimationClipDecoder {
       const name = bufferReader.nextStr();
       const clip = new AnimationClip(name);
       const eventsLen = bufferReader.nextUint16();
-
       for (let i = 0; i < eventsLen; ++i) {
         const event = new AnimationEvent();
         event.time = bufferReader.nextFloat32();
@@ -49,10 +49,10 @@ export class AnimationClipDecoder {
         const curve = new AnimationCurve();
         curve.interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
-        for (let j = 0; i < keysLen; ++j) {
+        for (let j = 0; j < keysLen; ++j) {
           const type = bufferReader.nextUint8();
           switch (type) {
-            case KeyframeValueType.Number: {
+            case InterpolableValueType.Float: {
               const keyframe = new InterpolableKeyframe<number, number>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = bufferReader.nextFloat32();
@@ -61,7 +61,7 @@ export class AnimationClipDecoder {
               curve.addKey(keyframe);
               break;
             }
-            case KeyframeValueType.Float32Array: {
+            case InterpolableValueType.FloatArray: {
               const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
               keyframe.time = bufferReader.nextFloat32();
               const len = bufferReader.nextUint16();
@@ -71,7 +71,7 @@ export class AnimationClipDecoder {
               curve.addKey(keyframe);
               break;
             }
-            case KeyframeValueType.Vector2: {
+            case InterpolableValueType.Vector2: {
               const keyframe = new InterpolableKeyframe<Vector2, Vector2>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
@@ -80,7 +80,7 @@ export class AnimationClipDecoder {
               curve.addKey(keyframe);
               break;
             }
-            case KeyframeValueType.Vector3: {
+            case InterpolableValueType.Vector3: {
               const keyframe = new InterpolableKeyframe<Vector3, Vector3>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector3(
@@ -101,7 +101,7 @@ export class AnimationClipDecoder {
               curve.addKey(keyframe);
               break;
             }
-            case KeyframeValueType.Vector4: {
+            case InterpolableValueType.Vector4: {
               const keyframe = new InterpolableKeyframe<Vector4, Vector4>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector4(
@@ -125,7 +125,7 @@ export class AnimationClipDecoder {
               curve.addKey(keyframe);
               break;
             }
-            case KeyframeValueType.Quaternion: {
+            case InterpolableValueType.Quaternion: {
               const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Quaternion(
@@ -146,15 +146,6 @@ export class AnimationClipDecoder {
                 bufferReader.nextFloat32(),
                 bufferReader.nextFloat32()
               );
-              curve.addKey(keyframe);
-              break;
-            }
-            case KeyframeValueType.Object: {
-              const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
-              keyframe.time = bufferReader.nextFloat32();
-              keyframe.value = JSON.parse(bufferReader.nextStr()).val;
-              keyframe.inTangent = JSON.parse(bufferReader.nextStr()).val;
-              keyframe.outTangent = JSON.parse(bufferReader.nextStr()).val;
               curve.addKey(keyframe);
               break;
             }

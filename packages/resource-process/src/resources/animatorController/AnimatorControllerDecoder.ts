@@ -15,7 +15,7 @@ export class AnimatorControllerDecoder {
   public static decode(engine: Engine, bufferReader: BufferReader): Promise<AnimatorController> {
     return new Promise(async (resolve) => {
       const animatorController = new AnimatorController();
-      const objectId = bufferReader.nextUint16();
+      const objectId = bufferReader.nextStr();
       const layersLen = bufferReader.nextUint16();
       const clipLoadPromises = [];
 
@@ -70,18 +70,20 @@ export class AnimatorControllerDecoder {
   }
 
   public static loadAndSetClip(engine: Engine, path: string, objectId: string): Promise<AnimationClip> {
-    return new Promise((resolve) => {
-      engine.resourceManager
-        .load({
-          url: path,
-          // @ts-ignore
-          type: AssetType.Oasis
-        })
-        .then(() => {
-          // 从缓存池获取对象
-          // @ts-ignore
-          resolve(engine.resourceManager._objectPool[clipObjectId]);
-        });
-    });
+    // @ts-ignore
+    return Promise.resolve(engine.resourceManager._objectPool[objectId]);
+    // return new Promise((resolve) => {
+    //   engine.resourceManager
+    //     .load({
+    //       url: path,
+    //       // @ts-ignore
+    //       type: AssetType.Oasis
+    //     })
+    //     .then(() => {
+    //       // 从缓存池获取对象
+    //       // @ts-ignore
+    //       resolve(engine.resourceManager._objectPool[objectId]);
+    //     });
+    // });
   }
 }

@@ -1,7 +1,7 @@
+import { AnimationProperty, InterpolableValueType } from "@oasis-engine/core";
 import { BufferWriter } from "../../utils/BufferWriter";
 import { encoder } from "../../utils/Decorator";
-import { KeyframeValueType } from "./type";
-import type { IAnimationClipAsset } from "./type";
+import { ComponentClass, IAnimationClipAsset } from "./type";
 
 @encoder("AnimationClip")
 export class AnimationClipEncoder {
@@ -19,30 +19,44 @@ export class AnimationClipEncoder {
 
     bufferWriter.writeUint16(curveBindings.length);
     curveBindings.forEach((curveBinding) => {
-      const { curve } = curveBinding
+      const { curve, property } = curveBinding
       bufferWriter.writeStr(curveBinding.relativePath);
-      bufferWriter.writeUint8(curveBinding.componentClass);
-      bufferWriter.writeUint8(curveBinding.property);
+      let componentClass;
+      switch (property) {
+        case AnimationProperty.Position:
+        case AnimationProperty.Rotation:
+        case AnimationProperty.Scale:
+          componentClass = ComponentClass.Transform;
+          break;
+        case AnimationProperty.BlendShapeWeights:
+          componentClass = ComponentClass.SkinnedMeshRenderer;
+        default:
+          componentClass = ComponentClass.Other;
+          break;
+      }
+
+      bufferWriter.writeUint8(componentClass);
+      bufferWriter.writeUint8(property);
       bufferWriter.writeUint8(curve.interpolation);
-      const { keys } = curve;
+      const { valueType, keys } = curve;
       bufferWriter.writeUint16(keys.length);
       keys.forEach((key) => {
-        const { type, time, value, inTangent, outTangent } = key;
-        bufferWriter.writeUint8(type);
+        const { time, value, inTangent, outTangent } = key;
+        bufferWriter.writeUint8(valueType);
         bufferWriter.writeFloat32(time);
-        switch (type) {
-          case KeyframeValueType.Number:
+        switch (valueType) {
+          case InterpolableValueType.Float:
             bufferWriter.writeFloat32(value);
             bufferWriter.writeFloat32(inTangent);
             bufferWriter.writeFloat32(outTangent);
             break;
-          case KeyframeValueType.Float32Array:
+          case InterpolableValueType.FloatArray:
             bufferWriter.writeFloat32Array(value);
             bufferWriter.writeUint16(value.length);
             bufferWriter.writeFloat32Array(inTangent);
             bufferWriter.writeFloat32Array(outTangent);
             break;
-          case KeyframeValueType.Vector2:
+          case InterpolableValueType.Vector2:
             bufferWriter.writeFloat32(value.x);
             bufferWriter.writeFloat32(value.y);
             bufferWriter.writeFloat32(inTangent.x);
@@ -50,7 +64,7 @@ export class AnimationClipEncoder {
             bufferWriter.writeFloat32(outTangent.x);
             bufferWriter.writeFloat32(outTangent.y);
             break;
-          case KeyframeValueType.Vector3:
+          case InterpolableValueType.Vector3:
             bufferWriter.writeFloat32(value.x);
             bufferWriter.writeFloat32(value.y);
             bufferWriter.writeFloat32(value.z);
@@ -61,8 +75,8 @@ export class AnimationClipEncoder {
             bufferWriter.writeFloat32(outTangent.y);
             bufferWriter.writeFloat32(outTangent.z);
             break;
-          case KeyframeValueType.Vector4:
-          case KeyframeValueType.Quaternion:
+          case InterpolableValueType.Vector4:
+          case InterpolableValueType.Quaternion:
             bufferWriter.writeFloat32(value.x);
             bufferWriter.writeFloat32(value.y);
             bufferWriter.writeFloat32(value.z);
@@ -76,13 +90,10 @@ export class AnimationClipEncoder {
             bufferWriter.writeFloat32(outTangent.z);
             bufferWriter.writeFloat32(outTangent.w);
             break;
-          case KeyframeValueType.Object:
-            bufferWriter.writeStr(JSON.stringify({ val: value }));
-            bufferWriter.writeStr(JSON.stringify({ val: inTangent }));
-            bufferWriter.writeStr(JSON.stringify({ val: outTangent }));
-            break;
         }
       });
     });
+
+    return bufferWriter.buffer;
   }
 }

@@ -34,5 +34,7 @@ export class AnimatorControllerEncoder {
         })
       })
     });
+    
+    return bufferWriter.buffer;
   }
 }
