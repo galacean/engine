@@ -101,29 +101,6 @@ export class Matrix3x3 implements IClone {
   }
 
   /**
-   * Determines whether the specified matrices are equals.
-   * @param left - The first matrix to compare
-   * @param right - The second matrix to compare
-   * @returns True if the specified matrices are equals, false otherwise
-   */
-  static equals(left: Matrix3x3, right: Matrix3x3): boolean {
-    const le = left.elements;
-    const re = right.elements;
-
-    return (
-      MathUtil.equals(le[0], re[0]) &&
-      MathUtil.equals(le[1], re[1]) &&
-      MathUtil.equals(le[2], re[2]) &&
-      MathUtil.equals(le[3], re[3]) &&
-      MathUtil.equals(le[4], re[4]) &&
-      MathUtil.equals(le[5], re[5]) &&
-      MathUtil.equals(le[6], re[6]) &&
-      MathUtil.equals(le[7], re[7]) &&
-      MathUtil.equals(le[8], re[8])
-    );
-  }
-
-  /**
    * Performs a linear interpolation between two matrices.
    * @param start - The first matrix
    * @param end - The second matrix
@@ -633,6 +610,28 @@ export class Matrix3x3 implements IClone {
     oe[8] = e[8];
 
     return out;
+  }
+
+  /**
+   * Determines whether the specified matrix and this matrix are equals.
+   * @param right - The second matrix to compare
+   * @returns True if the specified matrices are equals, false otherwise
+   */
+  equals(right: Matrix3x3): boolean {
+    const le = this.elements;
+    const re = right.elements;
+
+    return (
+      MathUtil.equals(le[0], re[0]) &&
+      MathUtil.equals(le[1], re[1]) &&
+      MathUtil.equals(le[2], re[2]) &&
+      MathUtil.equals(le[3], re[3]) &&
+      MathUtil.equals(le[4], re[4]) &&
+      MathUtil.equals(le[5], re[5]) &&
+      MathUtil.equals(le[6], re[6]) &&
+      MathUtil.equals(le[7], re[7]) &&
+      MathUtil.equals(le[8], re[8])
+    );
   }
 
   /**

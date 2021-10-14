@@ -10,7 +10,7 @@ describe("Matrix3x3 test", () => {
     const out = new Matrix3x3();
 
     Matrix3x3.add(a, b, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(10, 10, 10, 10, 10, 10, 10, 10, 10))).toEqual(true);
+    expect(out.equals(new Matrix3x3(10, 10, 10, 10, 10, 10, 10, 10, 10))).toEqual(true);
   });
 
   it("static subtract", () => {
@@ -19,7 +19,7 @@ describe("Matrix3x3 test", () => {
     const out = new Matrix3x3();
 
     Matrix3x3.subtract(a, b, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(-8, -6, -4, -2, 0, 2, 4, 6, 8))).toEqual(true);
+    expect(out.equals(new Matrix3x3(-8, -6, -4, -2, 0, 2, 4, 6, 8))).toEqual(true);
   });
 
   it("static multiply", () => {
@@ -28,7 +28,7 @@ describe("Matrix3x3 test", () => {
     const out = new Matrix3x3();
 
     Matrix3x3.multiply(a, b, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(90, 114, 138, 54, 69, 84, 18, 24, 30))).toEqual(true);
+    expect(out.equals(new Matrix3x3(90, 114, 138, 54, 69, 84, 18, 24, 30))).toEqual(true);
   });
 
   it("static equals", () => {
@@ -36,8 +36,8 @@ describe("Matrix3x3 test", () => {
     const b = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
     const c = new Matrix3x3(9, 8, 7, 6, 5, 4, 3, 2, 1);
 
-    expect(Matrix3x3.equals(a, b)).toEqual(true);
-    expect(Matrix3x3.equals(a, c)).toEqual(false);
+    expect(a.equals(b)).toEqual(true);
+    expect(a.equals(c)).toEqual(false);
   });
 
   it("static lerp", () => {
@@ -46,8 +46,8 @@ describe("Matrix3x3 test", () => {
     const c = new Matrix3x3();
     Matrix3x3.lerp(a, b, 0.78, c);
 
-    expect(Matrix3x3.equals(a, b)).toEqual(true);
-    expect(Matrix3x3.equals(a, c)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
+    expect(a.equals(c)).toEqual(true);
   });
 
   it("static fromXXX", () => {
@@ -56,22 +56,22 @@ describe("Matrix3x3 test", () => {
 
     // Matrix
     out.setValueByMatrix(a);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, 2, 3, 5, 6, 7, 9, 10, 11))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, 2, 3, 5, 6, 7, 9, 10, 11))).toEqual(true);
 
     // quat
     const q = new Quaternion(1, 2, 3, 4);
     Matrix3x3.rotationQuaternion(q, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(-25, 28, -10, -20, -19, 20, 22, 4, -9))).toEqual(true);
+    expect(out.equals(new Matrix3x3(-25, 28, -10, -20, -19, 20, 22, 4, -9))).toEqual(true);
 
     // scaling
     const scale = new Vector2(1, 2);
     Matrix3x3.scaling(scale, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, 0, 0, 0, 2, 0, 0, 0, 1))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, 0, 0, 0, 2, 0, 0, 0, 1))).toEqual(true);
 
     // translation
     const translation = new Vector2(2, 3);
     Matrix3x3.translation(translation, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, 0, 0, 0, 1, 0, 2, 3, 1))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, 0, 0, 0, 1, 0, 2, 3, 1))).toEqual(true);
   });
 
   it("static invert", () => {
@@ -79,7 +79,7 @@ describe("Matrix3x3 test", () => {
     const mat3 = new Matrix3x3(1, 2, 3, 2, 2, 4, 3, 1, 3);
 
     Matrix3x3.invert(mat3, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, -1.5, 1, 3, -3, 1, -2, 2.5, -1))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, -1.5, 1, 3, -3, 1, -2, 2.5, -1))).toEqual(true);
   });
 
   it("static normalMatrix", () => {
@@ -87,7 +87,7 @@ describe("Matrix3x3 test", () => {
     const mat4 = new Matrix(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12);
 
     Matrix3x3.normalMatrix(mat4, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, 0, 0, 0, 1, 0, 0, 0, 1))).toEqual(true);
   });
 
   it("static rotate", () => {
@@ -96,20 +96,17 @@ describe("Matrix3x3 test", () => {
 
     Matrix3x3.rotate(mat3, Math.PI / 3, out);
     expect(
-      Matrix3x3.equals(
-        out,
-        new Matrix3x3(
-          3.964101552963257,
-          5.330127239227295,
-          6.696152210235596,
-          1.133974552154541,
-          0.7679491639137268,
-          0.4019237756729126,
-          7,
-          8,
-          9
-        )
-      )
+      out.equals(new Matrix3x3(
+        3.964101552963257,
+        5.330127239227295,
+        6.696152210235596,
+        1.133974552154541,
+        0.7679491639137268,
+        0.4019237756729126,
+        7,
+        8,
+        9
+      ))
     ).toEqual(true);
   });
 
@@ -118,7 +115,7 @@ describe("Matrix3x3 test", () => {
     const mat3 = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
     Matrix3x3.scale(mat3, new Vector2(1, 2), out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, 2, 3, 8, 10, 12, 7, 8, 9))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, 2, 3, 8, 10, 12, 7, 8, 9))).toEqual(true);
   });
 
   it("static translate", () => {
@@ -126,7 +123,7 @@ describe("Matrix3x3 test", () => {
     const mat3 = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
     Matrix3x3.translate(mat3, new Vector2(1, 2), out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, 2, 3, 4, 5, 6, 16, 20, 24))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, 2, 3, 4, 5, 6, 16, 20, 24))).toEqual(true);
   });
 
   it("static transpose", () => {
@@ -134,16 +131,16 @@ describe("Matrix3x3 test", () => {
     const mat3 = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
     Matrix3x3.transpose(mat3, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, 4, 7, 2, 5, 8, 3, 6, 9))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, 4, 7, 2, 5, 8, 3, 6, 9))).toEqual(true);
     Matrix3x3.transpose(out, out);
-    expect(Matrix3x3.equals(out, new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9))).toEqual(true);
+    expect(out.equals(new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9))).toEqual(true);
   });
 
   it("setValue", () => {
     const a = new Matrix3x3();
     a.setValue(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
-    expect(Matrix3x3.equals(a, new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9))).toEqual(true);
+    expect(a.equals(new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9))).toEqual(true);
   });
 
   it("setValueByxxx", () => {
@@ -156,16 +153,16 @@ describe("Matrix3x3 test", () => {
     a.toArray(arr);
     c.setValueByArray(arr);
 
-    expect(Matrix3x3.equals(a, b)).toEqual(true);
-    expect(Matrix3x3.equals(a, c)).toEqual(true);
-    expect(Matrix3x3.equals(b, c)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
+    expect(a.equals(c)).toEqual(true);
+    expect(b.equals(c)).toEqual(true);
   });
 
   it("clone", () => {
     const a = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
     const b = a.clone();
 
-    expect(Matrix3x3.equals(a, b)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
   });
 
   it("cloneTo", () => {
@@ -173,7 +170,7 @@ describe("Matrix3x3 test", () => {
     const out = new Matrix3x3();
 
     a.cloneTo(out);
-    expect(Matrix3x3.equals(a, out)).toEqual(true);
+    expect(a.equals(out)).toEqual(true);
   });
 
   it("add", () => {
@@ -181,7 +178,7 @@ describe("Matrix3x3 test", () => {
     const b = new Matrix3x3(9, 8, 7, 6, 5, 4, 3, 2, 1);
 
     a.add(b);
-    expect(Matrix3x3.equals(a, new Matrix3x3(10, 10, 10, 10, 10, 10, 10, 10, 10))).toEqual(true);
+    expect(a.equals(new Matrix3x3(10, 10, 10, 10, 10, 10, 10, 10, 10))).toEqual(true);
   });
 
   it("static subtract", () => {
@@ -189,7 +186,7 @@ describe("Matrix3x3 test", () => {
     const b = new Matrix3x3(9, 8, 7, 6, 5, 4, 3, 2, 1);
 
     a.subtract(b);
-    expect(Matrix3x3.equals(a, new Matrix3x3(-8, -6, -4, -2, 0, 2, 4, 6, 8))).toEqual(true);
+    expect(a.equals(new Matrix3x3(-8, -6, -4, -2, 0, 2, 4, 6, 8))).toEqual(true);
   });
 
   it("multiply", () => {
@@ -197,7 +194,7 @@ describe("Matrix3x3 test", () => {
     const b = new Matrix3x3(9, 8, 7, 6, 5, 4, 3, 2, 1);
 
     a.multiply(b);
-    expect(Matrix3x3.equals(a, new Matrix3x3(90, 114, 138, 54, 69, 84, 18, 24, 30))).toEqual(true);
+    expect(a.equals(new Matrix3x3(90, 114, 138, 54, 69, 84, 18, 24, 30))).toEqual(true);
   });
 
   it("determinant", () => {
@@ -209,7 +206,7 @@ describe("Matrix3x3 test", () => {
     const a = new Matrix3x3(1, 2, 3, 2, 2, 4, 3, 1, 3);
 
     a.invert();
-    expect(Matrix3x3.equals(a, new Matrix3x3(1, -1.5, 1, 3, -3, 1, -2, 2.5, -1))).toEqual(true);
+    expect(a.equals(new Matrix3x3(1, -1.5, 1, 3, -3, 1, -2, 2.5, -1))).toEqual(true);
   });
 
   it("rotate", () => {
@@ -217,20 +214,17 @@ describe("Matrix3x3 test", () => {
 
     a.rotate(Math.PI / 3);
     expect(
-      Matrix3x3.equals(
-        a,
-        new Matrix3x3(
-          3.964101552963257,
-          5.330127239227295,
-          6.696152210235596,
-          1.133974552154541,
-          0.7679491639137268,
-          0.4019237756729126,
-          7,
-          8,
-          9
-        )
-      )
+      a.equals(new Matrix3x3(
+        3.964101552963257,
+        5.330127239227295,
+        6.696152210235596,
+        1.133974552154541,
+        0.7679491639137268,
+        0.4019237756729126,
+        7,
+        8,
+        9
+      ))
     ).toEqual(true);
   });
 
@@ -238,22 +232,22 @@ describe("Matrix3x3 test", () => {
     const a = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
     a.scale(new Vector2(1, 2));
-    expect(Matrix3x3.equals(a, new Matrix3x3(1, 2, 3, 8, 10, 12, 7, 8, 9))).toEqual(true);
+    expect(a.equals(new Matrix3x3(1, 2, 3, 8, 10, 12, 7, 8, 9))).toEqual(true);
   });
 
   it("translate", () => {
     const a = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
     a.translate(new Vector2(1, 2));
-    expect(Matrix3x3.equals(a, new Matrix3x3(1, 2, 3, 4, 5, 6, 16, 20, 24))).toEqual(true);
+    expect(a.equals(new Matrix3x3(1, 2, 3, 4, 5, 6, 16, 20, 24))).toEqual(true);
   });
 
   it("transpose", () => {
     const a = new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9);
 
     a.transpose();
-    expect(Matrix3x3.equals(a, new Matrix3x3(1, 4, 7, 2, 5, 8, 3, 6, 9))).toEqual(true);
+    expect(a.equals(new Matrix3x3(1, 4, 7, 2, 5, 8, 3, 6, 9))).toEqual(true);
     a.transpose();
-    expect(Matrix3x3.equals(a, new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9))).toEqual(true);
+    expect(a.equals(new Matrix3x3(1, 2, 3, 4, 5, 6, 7, 8, 9))).toEqual(true);
   });
 });
