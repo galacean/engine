@@ -32,6 +32,6 @@ describe("Ray test", () => {
     const out = new Vector3();
     ray.getPoint(10, out);
 
-    expect(Vector3.equals(out, new Vector3(0, 10, 0))).toEqual(true);
+    expect(out.equals(new Vector3(0, 10, 0))).toEqual(true);
   });
 });

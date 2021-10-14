@@ -370,14 +370,14 @@ describe("Matrix test", () => {
     const scale = new Vector3();
 
     a.decompose(pos, quat, scale);
-    expect(Vector3.equals(pos, new Vector3(13, 14, 15))).toEqual(true);
+    expect(pos.equals(new Vector3(13, 14, 15))).toEqual(true);
     expect(
       Quaternion.equals(
         quat,
         new Quaternion(0.01879039477474769, -0.09554131404261303, 0.01844761344901482, 0.783179537258594)
       )
     ).toEqual(true);
-    expect(Vector3.equals(scale, new Vector3(3.7416573867739413, 10.488088481701515, 17.91116946723357))).toEqual(true);
+    expect(scale.equals(new Vector3(3.7416573867739413, 10.488088481701515, 17.91116946723357))).toEqual(true);
   });
 
   it("getXXX", () => {
@@ -396,14 +396,14 @@ describe("Matrix test", () => {
     // getScaling
     const scale = new Vector3();
     a.getScaling(scale);
-    expect(Vector3.equals(scale, new Vector3(3.7416573867739413, 10.488088481701515, 17.911169699380327))).toEqual(
+    expect(scale.equals(new Vector3(3.7416573867739413, 10.488088481701515, 17.911169699380327))).toEqual(
       true
     );
 
     // getTranslation
     const translation = new Vector3();
     a.getTranslation(translation);
-    expect(Vector3.equals(translation, new Vector3(13, 14, 15))).toEqual(true);
+    expect(translation.equals(new Vector3(13, 14, 15))).toEqual(true);
   });
 
   it("invert", () => {

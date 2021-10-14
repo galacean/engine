@@ -67,7 +67,7 @@ describe("Vector2 test", () => {
     const a = new Vector2(1, 2);
     const b = new Vector2(1 + MathUtil.zeroTolerance * 0.9, 2);
 
-    expect(Vector2.equals(a, b)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
   });
 
   it("static lerp", () => {
@@ -110,7 +110,7 @@ describe("Vector2 test", () => {
     const out = new Vector2();
 
     Vector2.normalize(a, out);
-    expect(Vector2.equals(out, new Vector2(0.6, 0.8))).toEqual(true);
+    expect(out.equals(new Vector2(0.6, 0.8))).toEqual(true);
   });
 
   it("static scale", () => {
@@ -195,7 +195,7 @@ describe("Vector2 test", () => {
   it("normalize", () => {
     const a = new Vector2(3, 4);
     expect(toString(a.normalize())).toEqual(toString(a));
-    expect(Vector2.equals(a, new Vector2(0.6, 0.8))).toEqual(true);
+    expect(a.equals(new Vector2(0.6, 0.8))).toEqual(true);
   });
 
   it("scale", () => {

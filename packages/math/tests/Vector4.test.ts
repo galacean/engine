@@ -63,7 +63,7 @@ describe("Vector4 test", () => {
     const a = new Vector4(1, 2, 3, 4);
     const b = new Vector4(1 + MathUtil.zeroTolerance * 0.9, 2, 3, 4);
 
-    expect(Vector4.equals(a, b)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
   });
 
   it("static lerp", () => {
@@ -106,7 +106,7 @@ describe("Vector4 test", () => {
     const out = new Vector4();
 
     Vector4.normalize(a, out);
-    expect(Vector4.equals(out, new Vector4(0.6, 0.8, 0, 0))).toEqual(true);
+    expect(out.equals(new Vector4(0.6, 0.8, 0, 0))).toEqual(true);
   });
 
   it("static scale", () => {
@@ -203,7 +203,7 @@ describe("Vector4 test", () => {
   it("normalize", () => {
     const a = new Vector4(3, 4, 0, 0);
     expect(toString(a.normalize())).toEqual(toString(a));
-    expect(Vector4.equals(a, new Vector4(0.6, 0.8, 0, 0))).toEqual(true);
+    expect(a.equals(new Vector4(0.6, 0.8, 0, 0))).toEqual(true);
   });
 
   it("scale", () => {

@@ -57,7 +57,7 @@ describe("Quaternion test", () => {
     const rad = out.getAxisAngle(b);
 
     expect(MathUtil.equals(rad, Math.PI / 3)).toEqual(true);
-    expect(Vector3.equals(b.normalize(), a.normalize())).toEqual(true);
+    expect(b.normalize().equals(a.normalize())).toEqual(true);
   });
 
   it("static rotationEuler | rotationYawPitchRoll", () => {
@@ -68,8 +68,8 @@ describe("Quaternion test", () => {
 
     const a = out1.toEuler(new Vector3());
     const b = out2.toYawPitchRoll(new Vector3());
-    expect(Vector3.equals(a, new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
-    expect(Vector3.equals(b, new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
+    expect(a.equals(new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
+    expect(b.equals(new Vector3(0, Math.PI / 3, Math.PI / 2))).toEqual(true);
   });
 
   it("static rotationMatrix3x3", () => {
@@ -198,8 +198,8 @@ describe("Quaternion test", () => {
     Quaternion.rotationEuler(0, Math.PI / 3, 0, a);
     const euler = a.toEuler(new Vector3());
     const ypr = a.toYawPitchRoll(new Vector3());
-    expect(Vector3.equals(euler, new Vector3(0, Math.PI / 3, 0))).toEqual(true);
-    expect(Vector3.equals(ypr, new Vector3(Math.PI / 3, 0, 0))).toEqual(true);
+    expect(euler.equals(new Vector3(0, Math.PI / 3, 0))).toEqual(true);
+    expect(ypr.equals(new Vector3(Math.PI / 3, 0, 0))).toEqual(true);
   });
 
   it("setValue", () => {

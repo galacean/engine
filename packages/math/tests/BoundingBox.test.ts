@@ -33,12 +33,12 @@ describe("BoundingBox test", () => {
     const { min: min2, max: max2 } = box2;
     const { min: min3, max: max3 } = box3;
 
-    expect(Vector3.equals(min1, min2)).toEqual(true);
-    expect(Vector3.equals(max1, max2)).toEqual(true);
-    expect(Vector3.equals(min1, min3)).toEqual(true);
-    expect(Vector3.equals(max1, max3)).toEqual(true);
-    expect(Vector3.equals(min2, min3)).toEqual(true);
-    expect(Vector3.equals(max2, max3)).toEqual(true);
+    expect(min1.equals(min2)).toEqual(true);
+    expect(max1.equals(max2)).toEqual(true);
+    expect(min1.equals(min3)).toEqual(true);
+    expect(max1.equals(max3)).toEqual(true);
+    expect(min2.equals(min3)).toEqual(true);
+    expect(max2.equals(max3)).toEqual(true);
   });
 
   it("transform", () => {
@@ -50,10 +50,10 @@ describe("BoundingBox test", () => {
 
     const newMin = new Vector3(-1, -1.5, -3);
     const newMax = new Vector3(3, 2.5, 1);
-    expect(Vector3.equals(newBox.min, newMin)).toEqual(true);
-    expect(Vector3.equals(newBox.max, newMax)).toEqual(true);
-    expect(Vector3.equals(box.min, newMin)).toEqual(true);
-    expect(Vector3.equals(box.max, newMax)).toEqual(true);
+    expect(newBox.min.equals(newMin)).toEqual(true);
+    expect(newBox.max.equals(newMax)).toEqual(true);
+    expect(box.min.equals(newMin)).toEqual(true);
+    expect(box.max.equals(newMax)).toEqual(true);
   });
 
   it("merge", () => {
@@ -62,8 +62,8 @@ describe("BoundingBox test", () => {
     const box = new BoundingBox();
 
     BoundingBox.merge(box1, box2, box);
-    expect(Vector3.equals(new Vector3(-2, -1, -2), box.min)).toEqual(true);
-    expect(Vector3.equals(new Vector3(3, 2, 3), box.max)).toEqual(true);
+    expect(box.min.equals(new Vector3(-2, -1, -2))).toEqual(true);
+    expect(box.max.equals(new Vector3(3, 2, 3))).toEqual(true);
   });
 
   it("getCenter", () => {
@@ -71,7 +71,7 @@ describe("BoundingBox test", () => {
     const center = new Vector3();
 
     box.getCenter(center);
-    expect(Vector3.equals(new Vector3(1, 1, 1), center)).toEqual(true);
+    expect(center.equals(new Vector3(1, 1, 1))).toEqual(true);
   });
 
   it("getExtent", () => {
@@ -79,7 +79,7 @@ describe("BoundingBox test", () => {
     const extent = new Vector3();
 
     box.getExtent(extent);
-    expect(Vector3.equals(new Vector3(2, 2, 2), extent)).toEqual(true);
+    expect(extent.equals(new Vector3(2, 2, 2))).toEqual(true);
   });
 
   it("getCorners", () => {
@@ -120,22 +120,22 @@ describe("BoundingBox test", () => {
 
     box.getCorners(corners);
     for (let i = 0; i < 8; ++i) {
-      expect(Vector3.equals(corners[i], expectedCorners[i])).toEqual(true);
+      expect(expectedCorners[i].equals(corners[i])).toEqual(true);
     }
   });
 
   it("clone", () => {
     const a = new BoundingBox(new Vector3(0, 0, 0), new Vector3(1, 1, 1));
     const b = a.clone();
-    expect(Vector3.equals(a.min, b.min)).toEqual(true);
-    expect(Vector3.equals(a.max, b.max)).toEqual(true);
+    expect(a.min.equals(b.min)).toEqual(true);
+    expect(a.max.equals(b.max)).toEqual(true);
   });
 
   it("cloneTo", () => {
     const a = new BoundingBox(new Vector3(0, 0, 0), new Vector3(1, 1, 1));
     const out = new BoundingBox();
     a.cloneTo(out);
-    expect(Vector3.equals(a.min, out.min)).toEqual(true);
-    expect(Vector3.equals(a.max, out.max)).toEqual(true);
+    expect(a.min.equals(out.min)).toEqual(true);
+    expect(a.max.equals(out.max)).toEqual(true);
   });
 });

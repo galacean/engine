@@ -27,14 +27,14 @@ describe("BoundingSphere", () => {
 
     const { center: center1, radius: radius1 } = sphere1;
     const { center: center2, radius: radius2 } = sphere2;
-    expect(Vector3.equals(center1, center2)).toEqual(true);
+    expect(center1.equals(center2)).toEqual(true);
     expect(radius1).toEqual(radius2);
   });
 
   it("clone", () => {
     const a = new BoundingSphere(new Vector3(0, 0, 0), 3);
     const b = a.clone();
-    expect(Vector3.equals(a.center, b.center)).toEqual(true);
+    expect(a.center.equals(b.center)).toEqual(true);
     expect(a.radius).toEqual(b.radius);
   });
 
@@ -42,7 +42,7 @@ describe("BoundingSphere", () => {
     const a = new BoundingSphere(new Vector3(0, 0, 0), 3);
     const out = new BoundingSphere();
     a.cloneTo(out);
-    expect(Vector3.equals(a.center, out.center)).toEqual(true);
+    expect(a.center.equals(out.center)).toEqual(true);
     expect(a.radius).toEqual(out.radius);
   });
 });

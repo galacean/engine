@@ -61,7 +61,7 @@ describe("BoundingFrustum test", () => {
       const bPlane = b.getPlane(i);
 
       expect(aPlane.distance).toEqual(bPlane.distance);
-      expect(Vector3.equals(aPlane.normal, bPlane.normal)).toEqual(true);
+      expect(aPlane.normal.equals(bPlane.normal)).toEqual(true);
     }
   });
 
@@ -75,7 +75,7 @@ describe("BoundingFrustum test", () => {
       const outPlane = out.getPlane(i);
 
       expect(aPlane.distance).toEqual(outPlane.distance);
-      expect(Vector3.equals(aPlane.normal, outPlane.normal)).toEqual(true);
+      expect(aPlane.normal.equals(outPlane.normal)).toEqual(true);
     }
   });
 
@@ -88,7 +88,7 @@ describe("BoundingFrustum test", () => {
       const bPlane = frustum.getPlane(i);
 
       expect(aPlane.distance).toEqual(bPlane.distance);
-      expect(Vector3.equals(aPlane.normal, bPlane.normal)).toEqual(true);
+      expect(aPlane.normal.equals(bPlane.normal)).toEqual(true);
     }
   });
 });

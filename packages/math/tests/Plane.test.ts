@@ -13,7 +13,7 @@ describe("Plane test", () => {
     expect(plane1.distance - plane2.distance).toEqual(0);
     plane1.normalize();
     plane2.normalize();
-    expect(Vector3.equals(plane1.normal, plane2.normal)).toEqual(true);
+    expect(plane1.normal.equals(plane2.normal)).toEqual(true);
   });
 
   it("clone", () => {

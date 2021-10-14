@@ -74,7 +74,7 @@ describe("Vector3 test", () => {
     const a = new Vector3(1, 2, 3);
     const b = new Vector3(1 + MathUtil.zeroTolerance * 0.9, 2, 3);
 
-    expect(Vector3.equals(a, b)).toEqual(true);
+    expect(a.equals(b)).toEqual(true);
   });
 
   it("static lerp", () => {
@@ -117,7 +117,7 @@ describe("Vector3 test", () => {
     const out = new Vector3();
 
     Vector3.normalize(a, out);
-    expect(Vector3.equals(out, new Vector3(0.6, 0.8, 0))).toEqual(true);
+    expect(out.equals(new Vector3(0.6, 0.8, 0))).toEqual(true);
   });
 
   it("static scale", () => {
@@ -223,7 +223,7 @@ describe("Vector3 test", () => {
   it("normalize", () => {
     const a = new Vector3(3, 4, 0);
     expect(toString(a.normalize())).toEqual(toString(a));
-    expect(Vector3.equals(a, new Vector3(0.6, 0.8, 0))).toEqual(true);
+    expect(a.equals(new Vector3(0.6, 0.8, 0))).toEqual(true);
   });
 
   it("scale", () => {

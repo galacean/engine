@@ -117,16 +117,6 @@ export class Vector3 implements IClone {
   }
 
   /**
-   * Determines whether the specified vectors are equals.
-   * @param left - The first vector to compare
-   * @param right - The second vector to compare
-   * @returns True if the specified vectors are equals, false otherwise
-   */
-  static equals(left: Vector3, right: Vector3): boolean {
-    return MathUtil.equals(left.x, right.x) && MathUtil.equals(left.y, right.y) && MathUtil.equals(left.z, right.z);
-  }
-
-  /**
    * Performs a linear interpolation between two vectors.
    * @param start - The first vector
    * @param end - The second vector
@@ -345,6 +335,15 @@ export class Vector3 implements IClone {
     this.y = array[offset + 1];
     this.z = array[offset + 2];
     return this;
+  }
+
+  /**
+   * Determines whether the specified vector and this vector are equals.
+   * @param right - The vector to compare
+   * @returns True if the specified vector and this vector are equals, false otherwise
+   */
+  equals(right: Vector3): boolean {
+    return MathUtil.equals(this.x, right.x) && MathUtil.equals(this.y, right.y) && MathUtil.equals(this.z, right.z);
   }
 
   /**
