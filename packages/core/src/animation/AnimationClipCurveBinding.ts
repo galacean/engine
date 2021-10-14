@@ -1,4 +1,3 @@
-
 import { AnimationProperty } from "./enums/AnimationProperty";
 import { Entity } from "../Entity";
 import { Component } from "../Component";
