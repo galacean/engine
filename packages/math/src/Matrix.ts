@@ -960,7 +960,7 @@ export class Matrix implements IClone {
 
   /**
    * Determines whether the specified matrix and this matrix are equals.
-   * @param right - The second matrix to compare
+   * @param right - The matrix to compare
    * @returns True if the specified matrix and this matrix are equals, false otherwise
    */
   equals(right: Matrix): boolean {
