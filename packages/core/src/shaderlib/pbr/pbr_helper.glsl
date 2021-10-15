@@ -39,7 +39,7 @@ PhysicalMaterial getPhysicalMaterial(
         #ifdef HAS_BASECOLORMAP
             vec4 baseColor = texture2D(u_baseColorSampler, v_uv);
             #ifndef OASIS_COLORSPACE_GAMMA
-                baseColor *= gammaToLinear(baseColor);
+                baseColor = gammaToLinear(baseColor);
             #endif
             diffuseColor *= baseColor;
         #endif
