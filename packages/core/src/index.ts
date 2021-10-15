@@ -15,7 +15,7 @@ export { dependencies } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";
-export { EngineSettings} from "./EngineSettings";
+export type { EngineSettings } from "./EngineSettings";
 
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
