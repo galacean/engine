@@ -259,6 +259,57 @@ export class CollisionUtil {
   }
 
   /**
+   * Check whether the boxes intersect.
+   * @param boxA - The first box to check
+   * @param boxB - The second box to check
+   * @returns True if the boxes intersect, false otherwise
+   */
+  static intersectsBoxAndBox(boxA: BoundingBox, boxB: BoundingBox): boolean {
+    if (boxA.min.x > boxB.max.x || boxB.min.x > boxA.max.x) {
+      return false;
+    }
+
+    if (boxA.min.y > boxB.max.y || boxB.min.y > boxA.max.y) {
+      return false;
+    }
+
+    return !(boxA.min.z > boxB.max.z || boxB.min.z > boxA.max.z);
+  }
+
+  /**
+   * Check whether the spheres intersect.
+   * @param sphereA - The first sphere to check
+   * @param sphereB - The second sphere to check
+   * @returns True if the spheres intersect, false otherwise
+   */
+  static intersectsSphereAndSphere(sphereA: BoundingSphere, sphereB: BoundingSphere): boolean {
+    const radiisum = sphereA.radius + sphereB.radius;
+    return Vector3.distanceSquared(sphereA.center, sphereB.center) < radiisum * radiisum;
+  }
+
+  /**
+   * Check whether the sphere and the box intersect.
+   * @param sphere - The sphere to check
+   * @param box - The box to check
+   * @returns True if the sphere and the box intersect, false otherwise
+   */
+  static intersectsSphereAndBox(sphere: BoundingSphere, box: BoundingBox): boolean {
+    const center = sphere.center;
+    const max = box.max;
+    const min = box.min;
+
+    const closestPoint = CollisionUtil._tempVec30;
+    closestPoint.setValue(
+      Math.max(min.x, Math.min(center.x, max.x)),
+      Math.max(min.y, Math.min(center.y, max.y)),
+      Math.max(min.z, Math.min(center.z, max.z))
+    );
+
+    const distance = Vector3.distanceSquared(center, closestPoint);
+    return distance <= sphere.radius * sphere.radius;
+  }
+
+  /**
    * Get whether or not a specified bounding box intersects with this frustum (Contains or Intersects).
    * @param frustum - The frustum
    * @param box - The box

@@ -1,0 +1,45 @@
+GeometricContext geometry = GeometricContext(v_pos, getNormal(), normalize(u_cameraPos - v_pos));
+PhysicalMaterial material = getPhysicalMaterial(u_baseColor, u_metal, u_roughness, u_specularColor, u_glossiness, u_alphaCutoff);
+ReflectedLight reflectedLight = ReflectedLight( vec3( 0 ), vec3( 0 ), vec3( 0 ), vec3( 0 ) );
+float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
+
+// Direct Light
+addTotalDirectRadiance(geometry, material, reflectedLight);
+
+// IBL diffuse
+#ifdef O3_USE_SH
+   vec3 irradiance = getLightProbeIrradiance(u_env_sh, geometry.normal) * u_envMapLight.diffuseIntensity;
+#else
+   vec3 irradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
+   irradiance *= PI;
+#endif
+
+reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+
+// IBL specular
+vec3 radiance = getLightProbeRadiance( geometry, material.roughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity);
+reflectedLight.indirectSpecular += radiance * envBRDFApprox(material.specularColor, material.roughness, dotNV );
+
+// Occlusion
+#ifdef HAS_OCCLUSIONMAP
+    float ambientOcclusion = (texture2D(u_occlusionSampler, v_uv).r - 1.0) * u_occlusionStrength + 1.0;
+    reflectedLight.indirectDiffuse *= ambientOcclusion;
+    #ifdef O3_USE_SPECULAR_ENV
+        reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, dotNV);
+    #endif
+#endif
+
+// Emissive
+vec3 emissiveRadiance = u_emissiveColor;
+#ifdef HAS_EMISSIVEMAP
+    emissiveRadiance *= gammaToLinear(texture2D(u_emissiveSampler, v_uv)).rgb;
+#endif
+
+// Total
+vec3 totalRadiance =    reflectedLight.directDiffuse + 
+                        reflectedLight.indirectDiffuse + 
+                        reflectedLight.directSpecular + 
+                        reflectedLight.indirectSpecular + 
+                        emissiveRadiance;
+
+gl_FragColor = linearToGamma (vec4(totalRadiance, u_baseColor.a));
