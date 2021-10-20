@@ -18,6 +18,7 @@ export class AnimatorStatePlayData {
     this.frameTime = offsetFrameTime;
     this.stateData = stateData;
     this.finished = false;
+    this.clipTime = this.state.clipStartTime;
     this.currentEventIndex = 0;
   }
 
