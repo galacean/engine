@@ -77,6 +77,13 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
+      case TextureFormat.LuminanceAlpha:
+        return {
+          internalFormat: gl.LUMINANCE_ALPHA,
+          baseFormat: gl.LUMINANCE_ALPHA,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false
+        };
       case TextureFormat.R32G32B32A32:
         return {
           internalFormat: gl.RGBA32F,
@@ -511,7 +518,7 @@ export class GLTexture implements IPlatformTexture {
 
     this._bind();
 
-    if (isWebGL2) {
+    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA)) {
       gl.texStorage2D(this._target, mipmapCount, internalFormat, width, height);
     } else {
       // In WebGL 1, internalformat must be the same as baseFormat

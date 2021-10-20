@@ -98,8 +98,9 @@ export class AnimatorControllerResource extends SchemaResource {
   }
 
   _initAnimatorController(animatorControllerData) {
-    const { animations } = this.gltf;
+    const { animations } = this.gltf || {};
     const { layers } = animatorControllerData;
+    if (!animations || !layers) return;
     this._resource.clearLayers();
     for (let i = 0, length = layers.length; i < length; ++i) {
       const { name, blending, weight, stateMachine: stateMachineData } = layers[i];

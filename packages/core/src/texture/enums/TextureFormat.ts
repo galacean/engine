@@ -14,6 +14,8 @@ export enum TextureFormat {
   R5G6B5,
   /** Transparent format,8 bits. */
   Alpha8,
+  /** Luminance/alpha in RGB channel, alpha in A channel. */
+  LuminanceAlpha,
   /** RGBA format,32 bits per channel. */
   R32G32B32A32,
   /** RGB compressed format。*/
