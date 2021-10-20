@@ -42,7 +42,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const originalImg = imgs[i];
               const { width, height } = originalImg;
               const texture = new Texture2D(engine, width, height, format);
-              texture.setImageSource(originalImg);
+              texture.setImageSource(originalImg, 0, false, true);
               texture.generateMipmaps();
               // Generate all the sprites on this texture.
               const atlasItem = atlasItems[i];

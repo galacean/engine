@@ -352,7 +352,7 @@ export class Engine extends EventDispatcher {
     const renderState = material.renderState;
     const target = renderState.blendState.targetBlendState;
     target.enabled = true;
-    target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
+    target.sourceColorBlendFactor = BlendFactor.One;
     target.destinationColorBlendFactor = BlendFactor.OneMinusSourceAlpha;
     target.sourceAlphaBlendFactor = BlendFactor.One;
     target.destinationAlphaBlendFactor = BlendFactor.OneMinusSourceAlpha;
