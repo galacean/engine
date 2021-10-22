@@ -32,7 +32,7 @@ export abstract class PhysXCollider implements ICollider {
       return value == shape;
     });
     this._shapes.splice(removeID, 1);
-    this._pxActor.detachShape(shape._pxShape);
+    this._pxActor.detachShape(shape._pxShape, true);
   }
 
   /**
