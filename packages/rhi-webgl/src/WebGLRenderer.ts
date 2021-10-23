@@ -72,8 +72,8 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _activeTextures: GLTexture[] = new Array(32);
 
   // cache value
-  private _lastViewport: Vector4 = new Vector4(undefined, undefined, undefined, undefined);
-  private _lastClearColor: Color = new Color(undefined, undefined, undefined, undefined);
+  private _lastViewport: Vector4 = new Vector4(null, null, null, null);
+  private _lastClearColor: Color = new Color(null, null, null, null);
 
   get isWebGL2() {
     return this._isWebGL2;
