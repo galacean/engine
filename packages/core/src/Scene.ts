@@ -1,16 +1,15 @@
-import { Vector3 } from "@oasis-engine/math";
 import { Background } from "./Background";
-import { EngineObject, GLCapabilityType, Logger } from "./base";
+import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
-import { Layer } from "./Layer";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightFeature } from "./lighting/LightFeature";
 import { SceneFeature } from "./SceneFeature";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
+import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 /**
  * Scene.
@@ -33,6 +32,8 @@ export class Scene extends EngineObject {
   _activeCameras: Camera[] = [];
   /** @internal */
   _isActiveInEngine: boolean = false;
+  /** @internal */
+  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
 
   private _destroyed: boolean = false;
   private _rootEntities: Entity[] = [];
@@ -239,7 +240,14 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _updateShaderData() {
+  _updateShaderData(): void {
+    // union scene and camera macro.
+    ShaderMacroCollection.unionCollection(
+      this.engine._macroCollection,
+      this.shaderData._macroCollection,
+      this._globalShaderMacro
+    );
+
     const lightMgr = this.findFeature(LightFeature);
 
     lightMgr._updateShaderData(this.shaderData);
