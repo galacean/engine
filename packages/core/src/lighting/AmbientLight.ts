@@ -92,6 +92,7 @@ export class AmbientLight {
 
   /**
    * Specular reflection texture.
+   * @remarks This texture must be baked from @oasis-engine/baker
    */
   get specularTexture(): TextureCubeMap {
     return this._specularReflection;
@@ -104,7 +105,7 @@ export class AmbientLight {
 
     if (value) {
       shaderData.setTexture(AmbientLight._specularTextureProperty, value);
-      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount);
+      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount - 1);
       shaderData.enableMacro(AmbientLight._specularMacro);
     } else {
       shaderData.disableMacro(AmbientLight._specularMacro);

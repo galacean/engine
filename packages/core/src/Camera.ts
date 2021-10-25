@@ -1,4 +1,5 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Logger } from "./base";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
@@ -414,8 +415,9 @@ export class Camera extends Component {
   /**
    * Manually call the rendering of the camera.
    * @param cubeFace - Cube rendering surface collection
+   * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
    */
-  render(cubeFace?: TextureCubeFace): void {
+  render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
     // compute cull frustum.
     const context = this.engine._renderContext;
     context._setContext(this);
@@ -429,12 +431,16 @@ export class Camera extends Component {
 
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
-      this.scene.shaderData._macroCollection,
+      this.scene._globalShaderMacro,
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );
 
-    this._renderPipeline.render(context, cubeFace);
+    if (mipLevel > 0 && !this.engine._hardwareRenderer.isWebGL2) {
+      mipLevel = 0;
+      Logger.error("mipLevel only take effect in WebGL2.0");
+    }
+    this._renderPipeline.render(context, cubeFace, mipLevel);
     this._engine._renderCount++;
   }
 

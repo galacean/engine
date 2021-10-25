@@ -6,10 +6,7 @@
 #include <color_share>
 #include <worldpos_share>
 
-#include <pbr_envmap_light_frag_define>
-#include <direct_light_frag>
-#include <point_light_frag>
-#include <spot_light_frag>
+#include <light_frag_define>
 #include <mobile_material_frag>
 
 #include <fog_share>

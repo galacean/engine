@@ -31,6 +31,7 @@ export class ShaderData implements IRefObject, IClone {
   _properties: Record<number, ShaderPropertyValueType> = Object.create(null);
   /** @internal */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  
 
   private _variableMacros: Record<string, string> = Object.create(null);
   private _refCount: number = 0;

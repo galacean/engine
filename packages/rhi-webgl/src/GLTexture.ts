@@ -562,6 +562,7 @@ export class GLTexture implements IPlatformTexture {
    * @param width - Area width
    * @param height - Area height
    * @param out - Color buffer
+   * @param mipLevel - Set mip level the data want to get from
    */
   protected _getPixelBuffer(
     face: TextureCubeFace | null,
@@ -569,6 +570,7 @@ export class GLTexture implements IPlatformTexture {
     y: number,
     width: number,
     height: number,
+    mipLevel: number,
     out: ArrayBufferView
   ): void {
     const gl = this._gl;
@@ -580,16 +582,21 @@ export class GLTexture implements IPlatformTexture {
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, GLTexture._readFrameBuffer);
 
+    if (mipLevel > 0 && !this._isWebGL2) {
+      mipLevel = 0;
+      Logger.error("mipLevel only take effect in WebGL2.0");
+    }
+
     if (face != null) {
       gl.framebufferTexture2D(
         gl.FRAMEBUFFER,
         gl.COLOR_ATTACHMENT0,
         gl.TEXTURE_CUBE_MAP_POSITIVE_X + face,
         this._glTexture,
-        0
+        mipLevel
       );
     } else {
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture, 0);
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this._glTexture, mipLevel);
     }
     gl.readPixels(x, y, width, height, baseFormat, dataType, out);
 
