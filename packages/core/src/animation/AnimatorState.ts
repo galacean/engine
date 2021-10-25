@@ -1,3 +1,4 @@
+import { StateMachineScript } from './StateMachineScript';
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
@@ -11,6 +12,8 @@ export class AnimatorState {
   /** The wrap mode used in the state. */
   wrapMode: WrapMode = WrapMode.Loop;
 
+  _scripts: StateMachineScript[] = [];
+  
   private _clipStartTime: number = 0;
   private _clipEndTime: number = Infinity;
   private _clip: AnimationClip;
@@ -80,6 +83,17 @@ export class AnimatorState {
   removeTransition(transition: AnimatorStateTransition): void {
     const index = this._transitions.indexOf(transition);
     index !== -1 && this._transitions.splice(index, 1);
+  }
+
+  addStateMachineScript<T extends StateMachineScript>(type: new () => T): T {
+    const script = new type();
+    this._scripts.push(script);
+    return script;
+  }
+
+  removeStateMachineScript(stateMachineScript: StateMachineScript) {
+    const index = this._scripts.indexOf(stateMachineScript);
+    index !== -1 && this._scripts.splice(index, 1);
   }
 
   /**

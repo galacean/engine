@@ -1,3 +1,4 @@
+import { StateMachineScript } from './StateMachineScript';
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
@@ -224,6 +225,7 @@ export class Animator extends Component {
       animatorStateDataCollection[stateName] = animatorStateData;
       this._saveAnimatorStateData(animatorState, animatorStateData);
       this._saveAnimatorEventHandlers(animatorState, animatorStateData);
+      this._saveAnimatorStateScripts(animatorState, animatorStateData);
     }
     return animatorStateData;
   }
@@ -266,6 +268,31 @@ export class Animator extends Component {
         handler && handlers.push(handler);
       }
       eventHandlers.push(eventHandler);
+    }
+  }
+
+  private _saveAnimatorStateScripts(state: AnimatorState, animatorStateData: AnimatorStateData): void {
+    const { _scripts: scripts } = state;
+    const {prototype} = StateMachineScript
+    const { onStartScripts, onStateEnterScripts, onStateUpdateScripts, onStateExitScripts }  = animatorStateData;
+    onStartScripts.length = 0;
+    onStateEnterScripts.length = 0;
+    onStateUpdateScripts.length = 0;
+    onStateExitScripts.length = 0;
+    for (let i = 0, n = scripts.length; i < n; i++) {
+      const script = scripts[i];
+      if (script.onStart !== prototype.onStart) {
+        onStartScripts.push(script)
+      }
+      if (script.onStateEnter !== prototype.onStateEnter) {
+        onStateEnterScripts.push(script)
+      }
+      if (script.onStateUpdate !== prototype.onStateUpdate) {
+        onStateUpdateScripts.push(script)
+      }
+      if (script.onStateExit !== prototype.onStateExit) {
+        onStateEnterScripts.push(script)
+      }
     }
   }
 
@@ -419,7 +446,7 @@ export class Animator extends Component {
     delta: number,
     additive: boolean
   ): void {
-    const { curveOwners, eventHandlers } = playData.stateData;
+    const { curveOwners, eventHandlers, onStartScripts } = playData.stateData;
     const { state } = playData;
     const { _curveBindings: curves } = state.clip;
     const lastClipTime = playData.clipTime;
@@ -429,6 +456,7 @@ export class Animator extends Component {
     const clipTime = playData.clipTime;
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
+    // this._callScriptOnStart();
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];

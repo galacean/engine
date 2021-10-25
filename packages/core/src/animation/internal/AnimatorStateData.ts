@@ -1,3 +1,4 @@
+import { StateMachineScript } from '../StateMachineScript';
 import { AnimationEventHandler } from "./AnimationEventHandler";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
@@ -7,4 +8,8 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
 export class AnimatorStateData {
   curveOwners: AnimationCurveOwner[] = [];
   eventHandlers: AnimationEventHandler[] = [];
+  onStartScripts: StateMachineScript[] = [];
+  onStateEnterScripts: StateMachineScript[] = [];
+  onStateUpdateScripts: StateMachineScript[] = [];
+  onStateExitScripts: StateMachineScript[] = [];
 }
