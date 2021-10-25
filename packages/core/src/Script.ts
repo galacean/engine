@@ -1,7 +1,8 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { ACollider } from "./collider";
+import { ColliderShape } from "./physics";
+
 /**
  * Script class, used for logic writing.
  */
@@ -68,30 +69,30 @@ export class Script extends Component {
 
   /**
    * Called when the collision enter.
-   * @param other Collider
+   * @param other ColliderShape
    */
-  onTriggerEnter(other: ACollider): void {}
+  onTriggerEnter(other: ColliderShape): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
-   * @param other Collider
+   * @param other ColliderShape
    */
-  onTriggerStay(other: ACollider): void {}
+  onTriggerExit(other: ColliderShape): void {}
 
   /**
    * Called when the collision exit.
-   * @param other Collider
+   * @param other ColliderShape
    */
-  onTriggerExit(other: ACollider): void {}
+  onTriggerStay(other: ColliderShape): void {}
 
   /**
-   * Called when the pointer is down while over the Collider.
+   * Called when the pointer is down while over the ColliderShape.
    */
   onPointerDown(): void {}
 
   /**
-   * Called when the pointer is up while over the Collider.
+   * Called when the pointer is up while over the ColliderShape.
    */
   onPointerUp(): void {}
 
@@ -101,17 +102,17 @@ export class Script extends Component {
   onPointerClick(): void {}
 
   /**
-   * Called when the pointer is enters the Collider.
+   * Called when the pointer is enters the ColliderShape.
    */
   onPointerEnter(): void {}
 
   /**
-   * Called when the pointer is no longer over the Collider.
+   * Called when the pointer is no longer over the ColliderShape.
    */
   onPointerExit(): void {}
 
   /**
-   * Called when the pointer is down while over the Collider and is still holding down.
+   * Called when the pointer is down while over the ColliderShape and is still holding down.
    * @remarks onPointerDrag is called every frame while the pointer is down.
    */
   onPointerDrag(): void {}
