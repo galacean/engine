@@ -1,11 +1,13 @@
-# Ant Graphics Engine
+# Oasis Engine (Ant Graphics Engine)
+
+<p align="center"><a href="https://oasis-engine.github.io" target="_blank" rel="noopener noreferrer"><img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*f1pVTpPvzA8AAAAAAAAAAAAAARQnAQ" alt="Oasis logo"></a></p>
 
 <a href="https://www.npmjs.com/package/oasis-engine"><img src="https://img.shields.io/npm/v/oasis-engine"/></a>
 ![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
 [![codecov](https://codecov.io/gh/oasis-engine/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/oasis-engine/engine)
 
-This is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
+Oasis is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. This repository is the core engine of Oasis. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ## Features
 
@@ -49,13 +51,13 @@ engine.run();
 
 ## npm
 
-The engine is published on npm with full typing support. To install, use:
+Oasis Engine are published on npm with full typing support. To install, use:
 
 ```sh
 npm install oasis-engine
 ```
 
-This will allow you to import engine entirely using:
+This will allow you to import Oasis Engine entirely using:
 
 ```javascript
 import * as OASIS from "oasis-engine";
@@ -96,4 +98,4 @@ npm run b:all
 
 
 ## License 
-The engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.
+The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.

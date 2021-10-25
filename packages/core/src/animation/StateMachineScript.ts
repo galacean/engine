@@ -1,13 +1,8 @@
-import { AnimatorState } from '../animation/AnimatorState';
 import { Animator } from "../animation/Animator";
 /**
  * Script class, used for logic writing.
  */
 export class StateMachineScript {
-  constructor(animatorState: AnimatorState) {
-  }
-  // Start is called before the first frame update
-  onStart() {}
   // onStateEnter is called when a transition starts and the state machine starts to evaluate this state
   onStateEnter(animator: Animator, stateInfo: any, layerIndex: number) {}
 

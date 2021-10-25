@@ -9,6 +9,7 @@ export class AnimatorStatePlayData {
   state: AnimatorState;
   stateData: AnimatorStateData;
   frameTime: number;
+  started: boolean;
   finished: boolean;
   clipTime: number;
   currentEventIndex: number;
@@ -26,12 +27,14 @@ export class AnimatorStatePlayData {
     const state = this.state;
     let time = this.frameTime;
     const duration = state.clipEndTime - state.clipStartTime;
+    this.started = true;
     if (time > duration) {
       if (state.wrapMode === WrapMode.Loop) {
         time = time % duration;
       } else {
         time = duration;
         this.finished = true;
+        this.started = false;
       }
     }
     this.clipTime = time + this.state.clipStartTime;
