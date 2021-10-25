@@ -3,9 +3,11 @@ import {
   CapsuleColliderShape,
   Collider,
   ColliderShapeUpAxis,
+  DynamicCollider,
   PlaneColliderShape,
   SphereColliderShape
 } from "@oasis-engine/core";
+import { Vector3 } from "@oasis-engine/math";
 
 // 根据Schema构造Component
 export function colliderConfigure(collider: Collider, props: any) {
@@ -29,13 +31,13 @@ export function colliderConfigure(collider: Collider, props: any) {
         shape.height && (capsule.height = shape.height);
         if (shape.upAxis) {
           switch (shape.upAxis) {
-            case "X-Axis":
+            case "X":
               capsule.upAxis = ColliderShapeUpAxis.X;
               break;
-            case "Y-Axis":
+            case "Y":
               capsule.upAxis = ColliderShapeUpAxis.Y;
               break;
-            case "Z-Axis":
+            case "Z":
               capsule.upAxis = ColliderShapeUpAxis.Z;
               break;
           }
@@ -47,7 +49,7 @@ export function colliderConfigure(collider: Collider, props: any) {
       }
       case "PlaneColliderShape": {
         const plane = new PlaneColliderShape();
-        shape.rotation && plane.setRotation(shape.position[0], shape.position[1], shape.position[2]);
+        shape.rotation && plane.setRotation(shape.rotation[0], shape.rotation[1], shape.rotation[2]);
         shape.position && plane.setPosition(shape.position[0], shape.position[1], shape.position[2]);
         shape.isTrigger && (plane.isTrigger = shape.isTrigger);
         collider.addShape(plane);
@@ -61,6 +63,18 @@ export function colliderConfigure(collider: Collider, props: any) {
         collider.addShape(sphere);
         break;
       }
+    }
+  }
+
+  if (collider instanceof DynamicCollider) {
+    const force = props.force;
+    if (force) {
+      (<DynamicCollider>collider).applyForce(new Vector3(force[0], force[1], force[2]));
+    }
+
+    const torque = props.torque;
+    if (torque) {
+      (<DynamicCollider>collider).applyTorque(new Vector3(torque[0], torque[1], torque[2]));
     }
   }
 }
