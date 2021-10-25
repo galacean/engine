@@ -1,4 +1,3 @@
-import { StateMachineScript } from './StateMachineScript';
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
@@ -12,6 +11,7 @@ import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorUtils } from "./AnimatorUtils";
+import { StateMachineScript } from "./StateMachineScript";
 import { AnimationProperty } from "./enums/AnimationProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { LayerState } from "./enums/LayerState";
@@ -276,25 +276,21 @@ export class Animator extends Component {
 
   private _saveAnimatorStateScripts(state: AnimatorState, animatorStateData: AnimatorStateData): void {
     const { _scripts: scripts } = state;
-    const {prototype} = StateMachineScript
-    const { onStartScripts, onStateEnterScripts, onStateUpdateScripts, onStateExitScripts }  = animatorStateData;
-    onStartScripts.length = 0;
+    const { prototype } = StateMachineScript;
+    const { onStateEnterScripts, onStateUpdateScripts, onStateExitScripts } = animatorStateData;
     onStateEnterScripts.length = 0;
     onStateUpdateScripts.length = 0;
     onStateExitScripts.length = 0;
     for (let i = 0, n = scripts.length; i < n; i++) {
       const script = scripts[i];
-      if (script.onStart !== prototype.onStart) {
-        onStartScripts.push(script)
-      }
       if (script.onStateEnter !== prototype.onStateEnter) {
-        onStateEnterScripts.push(script)
+        onStateEnterScripts.push(script);
       }
       if (script.onStateUpdate !== prototype.onStateUpdate) {
-        onStateUpdateScripts.push(script)
+        onStateUpdateScripts.push(script);
       }
       if (script.onStateExit !== prototype.onStateExit) {
-        onStateEnterScripts.push(script)
+        onStateExitScripts.push(script);
       }
     }
   }
@@ -433,13 +429,21 @@ export class Animator extends Component {
     this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
     switch (animLayerData.layerState) {
       case LayerState.Playing:
-        this._updatePlayingState(srcPlayData, animLayerData, layerWeight, deltaTime, layerAdditive);
+        this._updatePlayingState(srcPlayData, animLayerData, layerIndex, layerWeight, deltaTime, layerAdditive);
         break;
       case LayerState.FixedCrossFading:
-        this._updateCrossFadeFromPose(destPlayData, animLayerData, layerWeight, deltaTime, layerAdditive);
+        this._updateCrossFadeFromPose(destPlayData, animLayerData, layerIndex, layerWeight, deltaTime, layerAdditive);
         break;
       case LayerState.CrossFading:
-        this._updateCrossFade(srcPlayData, destPlayData, animLayerData, layerWeight, deltaTime, layerAdditive);
+        this._updateCrossFade(
+          srcPlayData,
+          destPlayData,
+          animLayerData,
+          layerIndex,
+          layerWeight,
+          deltaTime,
+          layerAdditive
+        );
         break;
     }
   }
@@ -447,21 +451,24 @@ export class Animator extends Component {
   private _updatePlayingState(
     playData: AnimatorStatePlayData,
     layerData: AnimatorLayerData,
+    layerIndex: number,
     weight: number,
     delta: number,
     additive: boolean
   ): void {
-    const { curveOwners, eventHandlers, onStartScripts } = playData.stateData;
-    const { state } = playData;
+    const { curveOwners, eventHandlers } = playData.stateData;
+    const { state, stateData } = playData;
     const { _curveBindings: curves } = state.clip;
     const lastClipTime = playData.clipTime;
+    const hasTriggeredEnter = playData.started;
 
     playData.update();
 
     const clipTime = playData.clipTime;
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
-    // this._callScriptOnStart();
+    !hasTriggeredEnter && this._callAnimatorScriptOnEnter(state, stateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(state, stateData, layerIndex);
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
@@ -476,6 +483,7 @@ export class Animator extends Component {
 
     if (playData.finished) {
       layerData.layerState = LayerState.Standby;
+      this._callAnimatorScriptOnExit(state, stateData, layerIndex);
     }
   }
 
@@ -483,14 +491,22 @@ export class Animator extends Component {
     srcPlayData: AnimatorStatePlayData,
     destPlayData: AnimatorStatePlayData,
     layerData: AnimatorLayerData,
+    layerIndex,
     weight: number,
     delta: number,
     additive: boolean
   ) {
     const crossCurveDataCollection = this._crossCurveDataCollection;
     const srcCurves = srcPlayData.state.clip._curveBindings;
-    const { state: destState } = destPlayData;
+    const { state: srcState, stateData: srcStateData } = srcPlayData;
+    const { eventHandlers: srcEventHandler } = srcStateData;
+    const { state: destState, stateData: destStateData } = destPlayData;
+    const { eventHandlers: destEventHandler } = destStateData;
     const destCurves = destState.clip._curveBindings;
+    const lastSrcClipTime = srcPlayData.clipTime;
+    const lastDestClipTime = destPlayData.clipTime;
+    const hasTriggeredSrcEnter = srcPlayData.started;
+    const hasTriggeredDestEnter = destPlayData.started;
 
     let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
@@ -499,6 +515,15 @@ export class Animator extends Component {
 
     const srcClipTime = srcPlayData.clipTime;
     const destClipTime = destPlayData.clipTime;
+
+    srcEventHandler.length && this._fireAnimationEvents(srcPlayData, srcEventHandler, lastSrcClipTime, srcClipTime);
+    destEventHandler.length &&
+      this._fireAnimationEvents(destPlayData, destEventHandler, lastDestClipTime, destClipTime);
+    !hasTriggeredSrcEnter && this._callAnimatorScriptOnEnter(srcState, srcStateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(srcState, srcStateData, layerIndex);
+    !hasTriggeredDestEnter && this._callAnimatorScriptOnEnter(destState, destStateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(destState, destStateData, layerIndex);
+
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
       const { property, defaultValue } = curveOwner;
@@ -515,25 +540,37 @@ export class Animator extends Component {
       this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
     }
 
+    (crossWeight === 1 || srcPlayData.finished) && this._callAnimatorScriptOnExit(srcState, srcStateData, layerIndex);
+    destPlayData.finished && this._callAnimatorScriptOnExit(destState, destStateData, layerIndex);
+
     this._updateCrossFadeData(layerData, crossWeight, delta, false);
   }
 
   private _updateCrossFadeFromPose(
     destPlayData: AnimatorStatePlayData,
     layerData: AnimatorLayerData,
+    layerIndex: number,
     weight: number,
     delta: number,
     additive: boolean
   ) {
     const crossCurveDataCollection = this._crossCurveDataCollection;
-    const { state: destState } = destPlayData;
+    const { state: destState, stateData } = destPlayData;
+    const { eventHandlers } = stateData;
     const curves = destState.clip._curveBindings;
+    const lastDestClipTime = destPlayData.clipTime;
+    const hasTriggeredEnter = destPlayData.started;
 
     let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
     destPlayData.update();
 
     const destClipTime = destPlayData.clipTime;
+
+    eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
+    !hasTriggeredEnter && this._callAnimatorScriptOnEnter(destState, stateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(destState, stateData, layerIndex);
+
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
       const destValue =
@@ -543,6 +580,8 @@ export class Animator extends Component {
 
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
     }
+
+    destPlayData.finished && this._callAnimatorScriptOnExit(destState, stateData, layerIndex);
 
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
   }
@@ -791,6 +830,27 @@ export class Animator extends Component {
         }
         playState.currentEventIndex = i + 1;
       }
+    }
+  }
+
+  private _callAnimatorScriptOnEnter(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number) {
+    const scripts = stateData.onStateEnterScripts;
+    for (let i = 0, n = scripts.length; i < n; ++i) {
+      scripts[i].onStateEnter(this, state, layerIndex);
+    }
+  }
+
+  private _callAnimatorScriptOnUpdate(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number) {
+    const scripts = stateData.onStateUpdateScripts;
+    for (let i = 0, n = scripts.length; i < n; ++i) {
+      scripts[i].onStateUpdate(this, state, layerIndex);
+    }
+  }
+
+  private _callAnimatorScriptOnExit(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number) {
+    const scripts = stateData.onStateExitScripts;
+    for (let i = 0, n = scripts.length; i < n; ++i) {
+      scripts[i].onStateExit(this, state, layerIndex);
     }
   }
 

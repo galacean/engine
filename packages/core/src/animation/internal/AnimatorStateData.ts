@@ -8,7 +8,6 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
 export class AnimatorStateData {
   curveOwners: AnimationCurveOwner[] = [];
   eventHandlers: AnimationEventHandler[] = [];
-  onStartScripts: StateMachineScript[] = [];
   onStateEnterScripts: StateMachineScript[] = [];
   onStateUpdateScripts: StateMachineScript[] = [];
   onStateExitScripts: StateMachineScript[] = [];
