@@ -1,6 +1,5 @@
 import {
-  Camera,
-  Canvas,
+  Camera, CameraClearFlags, Canvas,
   ColorWriteMask,
   Engine,
   GLCapabilityType,
@@ -19,9 +18,8 @@ import {
   Texture2D,
   TextureCubeMap
 } from "@oasis-engine/core";
-import { CameraClearFlags } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
-import { Color } from "@oasis-engine/math";
+import { Color, Vector4 } from "@oasis-engine/math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
@@ -70,6 +68,10 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   private _activeTextureID: number = WebGLRenderingContext.TEXTURE0;
   private _activeTextures: GLTexture[] = new Array(32);
+
+  // cache value
+  private _lastViewport: Vector4 = new Vector4(undefined, undefined, undefined, undefined);
+  private _lastClearColor: Color = new Color(undefined, undefined, undefined, undefined);
 
   get isWebGL2() {
     return this._isWebGL2;
@@ -181,11 +183,16 @@ export class WebGLRenderer implements IHardwareRenderer {
     return this.capability.canIUseCompressedTextureInternalFormat(type);
   }
 
-  viewport(x, y, width, height) {
+  viewport(x: number, y: number, width: number, height: number): void {
     // gl.enable(gl.SCISSOR_TEST);
     // gl.scissor(x, transformY, width, height);
     const gl = this._gl;
-    gl.viewport(x, gl.drawingBufferHeight - y - height, width, height);
+    const lv = this._lastViewport;
+
+    if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
+      gl.viewport(x, y, width, height);
+      lv.setValue(x, y, width, height);
+    }
   }
 
   colorMask(r, g, b, a) {
@@ -205,11 +212,18 @@ export class WebGLRenderer implements IHardwareRenderer {
     } = engine._lastRenderState;
 
     let clearFlag = gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
+
     if (clearFlags === CameraClearFlags.DepthColor) {
-      clearFlag = clearFlag | gl.COLOR_BUFFER_BIT;
-      if (clearColor) {
-        gl.clearColor(clearColor.r, clearColor.g, clearColor.b, clearColor.a);
+      clearFlag |= gl.COLOR_BUFFER_BIT;
+
+      const lc = this._lastClearColor;
+      const { r, g, b, a } = clearColor;
+
+      if (clearColor && (r !== lc.r || g !== lc.g || b !== lc.b || a !== lc.a)) {
+        gl.clearColor(r, g, b, a);
+        lc.setValue(r, g, b, a);
       }
+
       if (targetBlendState.colorWriteMask !== ColorWriteMask.All) {
         gl.colorMask(true, true, true, true);
         targetBlendState.colorWriteMask = ColorWriteMask.All;
@@ -245,14 +259,16 @@ export class WebGLRenderer implements IHardwareRenderer {
       /** @ts-ignore */
       (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
       const { width, height } = renderTarget;
-
-      gl.viewport(0.0, 0.0, width >> mipLevel, height >> mipLevel);
+      this.viewport(0, 0, width >> mipLevel, height >> mipLevel);
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       const viewport = camera.viewport;
-      const width = gl.drawingBufferWidth;
-      const height = gl.drawingBufferHeight;
-      this.viewport(viewport.x * width, viewport.y * height, viewport.z * width, viewport.w * height);
+      const { drawingBufferWidth, drawingBufferHeight } = gl;
+      const width = drawingBufferWidth * viewport.z;
+      const height = drawingBufferHeight * viewport.w;
+      const x = viewport.x * drawingBufferWidth;
+      const y = drawingBufferHeight - viewport.y * drawingBufferHeight - height;
+      this.viewport(x, y, width, height);
     }
   }
 
