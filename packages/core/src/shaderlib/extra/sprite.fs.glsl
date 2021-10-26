@@ -1,3 +1,6 @@
+precision mediump float;
+precision mediump int;
+
 #ifdef USE_CUSTOM_TEXTURE
 uniform sampler2D u_cusTomTexture;
 #else

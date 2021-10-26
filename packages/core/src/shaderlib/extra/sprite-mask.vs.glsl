@@ -1,3 +1,5 @@
+precision highp float;
+
 uniform mat4 u_VPMat;
 
 attribute vec3 POSITION;

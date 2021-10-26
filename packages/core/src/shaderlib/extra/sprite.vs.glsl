@@ -1,3 +1,5 @@
+precision highp float;
+
 #ifdef USE_MODEL_MATRIX
 uniform mat4 u_MVPMat;
 #else
