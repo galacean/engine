@@ -85,12 +85,20 @@ export class AnimatorState {
     index !== -1 && this._transitions.splice(index, 1);
   }
 
-  addStateMachineScript<T extends StateMachineScript>(type: new () => T): T {
-    const script = new type();
+  /**
+   * Adds a state machine script class of type T to the AnimatorState.
+   * @param scriptType - The state machine script class of type T.
+   */
+  addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
+    const script = new scriptType();
     this._scripts.push(script);
     return script;
   }
-
+  
+  /**
+   * Remove the state machine script added.
+   * @param stateMachineScript - The state machine script.
+   */
   removeStateMachineScript(stateMachineScript: StateMachineScript) {
     const index = this._scripts.indexOf(stateMachineScript);
     index !== -1 && this._scripts.splice(index, 1);
