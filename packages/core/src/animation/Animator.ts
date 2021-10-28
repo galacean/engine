@@ -11,7 +11,6 @@ import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorUtils } from "./AnimatorUtils";
-import { StateMachineScript } from "./StateMachineScript";
 import { AnimationProperty } from "./enums/AnimationProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { LayerState } from "./enums/LayerState";
@@ -23,6 +22,7 @@ import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
 import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
+import { StateMachineScript } from "./StateMachineScript";
 
 /**
  * The controller of the animation system.
@@ -833,28 +833,28 @@ export class Animator extends Component {
     }
   }
 
-  private _callAnimatorScriptOnEnter(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number) {
+  private _callAnimatorScriptOnEnter(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
     const scripts = stateData.onStateEnterScripts;
-    for (let i = 0, n = scripts.length; i < n; ++i) {
+    for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateEnter(this, state, layerIndex);
     }
   }
 
-  private _callAnimatorScriptOnUpdate(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number) {
+  private _callAnimatorScriptOnUpdate(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
     const scripts = stateData.onStateUpdateScripts;
-    for (let i = 0, n = scripts.length; i < n; ++i) {
+    for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateUpdate(this, state, layerIndex);
     }
   }
 
-  private _callAnimatorScriptOnExit(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number) {
+  private _callAnimatorScriptOnExit(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
     const scripts = stateData.onStateExitScripts;
-    for (let i = 0, n = scripts.length; i < n; ++i) {
+    for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateExit(this, state, layerIndex);
     }
   }
 
-  private _clearPlayData() {
+  private _clearPlayData(): void {
     this._animatorLayersData.length = 0;
     this._crossCurveDataCollection.length = 0;
     this._animationCurveOwners.length = 0;

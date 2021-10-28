@@ -1,7 +1,7 @@
-import { StateMachineScript } from "./StateMachineScript";
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
+import { StateMachineScript } from "./StateMachineScript";
 
 /**
  * States are the basic building blocks of a state machine. Each state contains a AnimationClip which will play while the character is in that state.
@@ -12,6 +12,7 @@ export class AnimatorState {
   /** The wrap mode used in the state. */
   wrapMode: WrapMode = WrapMode.Loop;
 
+  /** @internal */
   _scripts: StateMachineScript[] = [];
 
   private _clipStartTime: number = 0;
