@@ -532,21 +532,21 @@ export class Animator extends Component {
     additive: boolean
   ) {
     const crossCurveDataCollection = this._crossCurveDataCollection;
-    const { state: destState, stateData } = destPlayData;
+    const { state, stateData } = destPlayData;
     const { eventHandlers } = stateData;
-    const curves = destState.clip._curveBindings;
+    const curves = state.clip._curveBindings;
     const lastDestClipTime = destPlayData.clipTime;
     const hasTriggeredEnter = destPlayData.started;
 
-    let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight = destPlayData.frameTime / (state._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
     destPlayData.update();
 
     const destClipTime = destPlayData.clipTime;
 
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
-    !hasTriggeredEnter && this._callAnimatorScriptOnEnter(destState, stateData, layerIndex);
-    this._callAnimatorScriptOnUpdate(destState, layerIndex);
+    !hasTriggeredEnter && this._callAnimatorScriptOnEnter(state, stateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(state, layerIndex);
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
@@ -558,7 +558,7 @@ export class Animator extends Component {
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
     }
 
-    destPlayData.finished && this._callAnimatorScriptOnExit(destState, layerIndex);
+    destPlayData.finished && this._callAnimatorScriptOnExit(state, layerIndex);
 
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
   }
