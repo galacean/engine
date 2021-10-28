@@ -40,7 +40,7 @@ vec3 emissiveRadiance = u_emissiveColor;
     #ifndef OASIS_COLORSPACE_GAMMA
         emissiveColor = gammaToLinear(emissiveColor);
     #endif
-    emissiveRadiance *= emissiveColor;
+    emissiveRadiance *= emissiveColor.rgb;
 #endif
 
 // Total
