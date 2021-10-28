@@ -445,7 +445,7 @@ export class Animator extends Component {
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
     !hasTriggeredEnter && this._callAnimatorScriptOnEnter(state, stateData, layerIndex);
-    this._callAnimatorScriptOnUpdate(state, stateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(state, layerIndex);
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
@@ -460,7 +460,7 @@ export class Animator extends Component {
 
     if (playData.finished) {
       layerData.layerState = LayerState.Standby;
-      this._callAnimatorScriptOnExit(state, stateData, layerIndex);
+      this._callAnimatorScriptOnExit(state, layerIndex);
     }
   }
 
@@ -497,9 +497,9 @@ export class Animator extends Component {
     destEventHandler.length &&
       this._fireAnimationEvents(destPlayData, destEventHandler, lastDestClipTime, destClipTime);
     !hasTriggeredSrcEnter && this._callAnimatorScriptOnEnter(srcState, srcStateData, layerIndex);
-    this._callAnimatorScriptOnUpdate(srcState, srcStateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(srcState, layerIndex);
     !hasTriggeredDestEnter && this._callAnimatorScriptOnEnter(destState, destStateData, layerIndex);
-    this._callAnimatorScriptOnUpdate(destState, destStateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(destState, layerIndex);
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
@@ -517,8 +517,8 @@ export class Animator extends Component {
       this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
     }
 
-    (crossWeight === 1 || srcPlayData.finished) && this._callAnimatorScriptOnExit(srcState, srcStateData, layerIndex);
-    destPlayData.finished && this._callAnimatorScriptOnExit(destState, destStateData, layerIndex);
+    (crossWeight === 1 || srcPlayData.finished) && this._callAnimatorScriptOnExit(srcState, layerIndex);
+    destPlayData.finished && this._callAnimatorScriptOnExit(destState, layerIndex);
 
     this._updateCrossFadeData(layerData, crossWeight, delta, false);
   }
@@ -546,7 +546,7 @@ export class Animator extends Component {
 
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
     !hasTriggeredEnter && this._callAnimatorScriptOnEnter(destState, stateData, layerIndex);
-    this._callAnimatorScriptOnUpdate(destState, stateData, layerIndex);
+    this._callAnimatorScriptOnUpdate(destState, layerIndex);
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
@@ -558,7 +558,7 @@ export class Animator extends Component {
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
     }
 
-    destPlayData.finished && this._callAnimatorScriptOnExit(destState, stateData, layerIndex);
+    destPlayData.finished && this._callAnimatorScriptOnExit(destState, layerIndex);
 
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
   }
@@ -817,14 +817,14 @@ export class Animator extends Component {
     }
   }
 
-  private _callAnimatorScriptOnUpdate(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
+  private _callAnimatorScriptOnUpdate(state: AnimatorState, layerIndex: number): void {
     const scripts = state._onStateUpdateScripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateUpdate(this, state, layerIndex);
     }
   }
 
-  private _callAnimatorScriptOnExit(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
+  private _callAnimatorScriptOnExit(state: AnimatorState, layerIndex: number): void {
     const scripts = state._onStateExitScripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateExit(this, state, layerIndex);
