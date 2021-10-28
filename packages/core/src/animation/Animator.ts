@@ -445,7 +445,7 @@ export class Animator extends Component {
     const clipTime = playData.clipTime;
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
-    playState === AnimatorStatePlayState.UnStarted && this._callAnimatorScriptOnEnter(state, stateData, layerIndex);
+    playState === AnimatorStatePlayState.UnStarted && this._callAnimatorScriptOnEnter(state, layerIndex);
     this._callAnimatorScriptOnUpdate(state, layerIndex);
 
     for (let i = curves.length - 1; i >= 0; i--) {
@@ -499,12 +499,12 @@ export class Animator extends Component {
       this._fireAnimationEvents(destPlayData, destEventHandler, lastDestClipTime, destClipTime);
 
     if (srcPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(srcState, srcStateData, layerIndex);
+      this._callAnimatorScriptOnEnter(srcState, layerIndex);
     }
     this._callAnimatorScriptOnUpdate(srcState, layerIndex);
 
     if (dstPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(destState, destStateData, layerIndex);
+      this._callAnimatorScriptOnEnter(destState, layerIndex);
     }
     this._callAnimatorScriptOnUpdate(destState, layerIndex);
 
@@ -554,7 +554,7 @@ export class Animator extends Component {
     const destClipTime = destPlayData.clipTime;
 
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
-    playState === AnimatorStatePlayState.UnStarted && this._callAnimatorScriptOnEnter(state, stateData, layerIndex);
+    playState === AnimatorStatePlayState.UnStarted && this._callAnimatorScriptOnEnter(state, layerIndex);
     this._callAnimatorScriptOnUpdate(state, layerIndex);
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
@@ -819,7 +819,7 @@ export class Animator extends Component {
     }
   }
 
-  private _callAnimatorScriptOnEnter(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
+  private _callAnimatorScriptOnEnter(state: AnimatorState, layerIndex: number): void {
     const scripts = state._onStateEnterScripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateEnter(this, state, layerIndex);
