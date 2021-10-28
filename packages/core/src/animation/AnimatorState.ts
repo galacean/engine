@@ -13,7 +13,11 @@ export class AnimatorState {
   wrapMode: WrapMode = WrapMode.Loop;
 
   /** @internal */
-  _scripts: StateMachineScript[] = [];
+  _onStateEnterScripts: StateMachineScript[] = [];
+  /** @internal */
+  _onStateUpdateScripts: StateMachineScript[] = [];
+  /** @internal */
+  _onStateExitScripts: StateMachineScript[] = [];
 
   private _clipStartTime: number = 0;
   private _clipEndTime: number = Infinity;
@@ -28,7 +32,7 @@ export class AnimatorState {
   }
 
   /**
-   * ƒThe clip that is being played by this animator state.
+   * The clip that is being played by this animator state.
    */
   get clip(): AnimationClip {
     return this._clip;
@@ -92,8 +96,19 @@ export class AnimatorState {
    */
   addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
     const script = new scriptType();
-    this._scripts.push(script);
     script._state = this;
+
+    const { prototype } = StateMachineScript;
+    if (script.onStateEnter !== prototype.onStateEnter) {
+      this._onStateEnterScripts.push(script);
+    }
+    if (script.onStateUpdate !== prototype.onStateUpdate) {
+      this._onStateUpdateScripts.push(script);
+    }
+    if (script.onStateExit !== prototype.onStateExit) {
+      this._onStateExitScripts.push(script);
+    }
+
     return script;
   }
 
@@ -114,8 +129,19 @@ export class AnimatorState {
   /**
    * @internal
    */
-  _removeStateMachineScript(stateMachineScript: StateMachineScript): void {
-    const index = this._scripts.indexOf(stateMachineScript);
-    index !== -1 && this._scripts.splice(index, 1);
+  _removeStateMachineScript(script: StateMachineScript): void {
+    const { prototype } = StateMachineScript;
+    if (script.onStateEnter !== prototype.onStateEnter) {
+      const index = this._onStateEnterScripts.indexOf(script);
+      index !== -1 && this._onStateEnterScripts.splice(index, 1);
+    }
+    if (script.onStateUpdate !== prototype.onStateUpdate) {
+      const index = this._onStateUpdateScripts.indexOf(script);
+      index !== -1 && this._onStateUpdateScripts.splice(index, 1);
+    }
+    if (script.onStateExit !== prototype.onStateExit) {
+      const index = this._onStateExitScripts.indexOf(script);
+      index !== -1 && this._onStateExitScripts.splice(index, 1);
+    }
   }
 }

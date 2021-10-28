@@ -22,7 +22,6 @@ import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
 import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
-import { StateMachineScript } from "./StateMachineScript";
 
 /**
  * The controller of the animation system.
@@ -228,7 +227,6 @@ export class Animator extends Component {
       animatorStateDataCollection[stateName] = animatorStateData;
       this._saveAnimatorStateData(animatorState, animatorStateData);
       this._saveAnimatorEventHandlers(animatorState, animatorStateData);
-      this._saveAnimatorStateScripts(animatorState, animatorStateData);
     }
     return animatorStateData;
   }
@@ -271,27 +269,6 @@ export class Animator extends Component {
         handler && handlers.push(handler);
       }
       eventHandlers.push(eventHandler);
-    }
-  }
-
-  private _saveAnimatorStateScripts(state: AnimatorState, animatorStateData: AnimatorStateData): void {
-    const { _scripts: scripts } = state;
-    const { prototype } = StateMachineScript;
-    const { onStateEnterScripts, onStateUpdateScripts, onStateExitScripts } = animatorStateData;
-    onStateEnterScripts.length = 0;
-    onStateUpdateScripts.length = 0;
-    onStateExitScripts.length = 0;
-    for (let i = 0, n = scripts.length; i < n; i++) {
-      const script = scripts[i];
-      if (script.onStateEnter !== prototype.onStateEnter) {
-        onStateEnterScripts.push(script);
-      }
-      if (script.onStateUpdate !== prototype.onStateUpdate) {
-        onStateUpdateScripts.push(script);
-      }
-      if (script.onStateExit !== prototype.onStateExit) {
-        onStateExitScripts.push(script);
-      }
     }
   }
 
@@ -834,21 +811,21 @@ export class Animator extends Component {
   }
 
   private _callAnimatorScriptOnEnter(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
-    const scripts = stateData.onStateEnterScripts;
+    const scripts = state._onStateEnterScripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateEnter(this, state, layerIndex);
     }
   }
 
   private _callAnimatorScriptOnUpdate(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
-    const scripts = stateData.onStateUpdateScripts;
+    const scripts = state._onStateUpdateScripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateUpdate(this, state, layerIndex);
     }
   }
 
   private _callAnimatorScriptOnExit(state: AnimatorState, stateData: AnimatorStateData, layerIndex: number): void {
-    const scripts = stateData.onStateExitScripts;
+    const scripts = state._onStateExitScripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateExit(this, state, layerIndex);
     }
