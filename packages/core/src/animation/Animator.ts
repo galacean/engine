@@ -435,7 +435,7 @@ export class Animator extends Component {
     additive: boolean
   ): void {
     const { curveOwners, eventHandlers } = playData.stateData;
-    const { state, stateData } = playData;
+    const { state } = playData;
     const { _curveBindings: curves } = state.clip;
     const lastClipTime = playData.clipTime;
     const playState = playData.playState;
