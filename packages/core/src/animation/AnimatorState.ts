@@ -1,4 +1,4 @@
-import { StateMachineScript } from './StateMachineScript';
+import { StateMachineScript } from "./StateMachineScript";
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
@@ -13,7 +13,7 @@ export class AnimatorState {
   wrapMode: WrapMode = WrapMode.Loop;
 
   _scripts: StateMachineScript[] = [];
-  
+
   private _clipStartTime: number = 0;
   private _clipEndTime: number = Infinity;
   private _clip: AnimationClip;
@@ -87,21 +87,13 @@ export class AnimatorState {
 
   /**
    * Adds a state machine script class of type T to the AnimatorState.
-   * @param scriptType - The state machine script class of type T.
+   * @param scriptType - The state machine script class of type T
    */
   addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
     const script = new scriptType();
     this._scripts.push(script);
+    script._state = this;
     return script;
-  }
-  
-  /**
-   * Remove the state machine script added.
-   * @param stateMachineScript - The state machine script.
-   */
-  removeStateMachineScript(stateMachineScript: StateMachineScript) {
-    const index = this._scripts.indexOf(stateMachineScript);
-    index !== -1 && this._scripts.splice(index, 1);
   }
 
   /**
@@ -116,5 +108,13 @@ export class AnimatorState {
    */
   _getDuration(): number {
     return this._clipEndTime - this._clipStartTime;
+  }
+
+  /**
+   * @internal
+   */
+  _removeStateMachineScript(stateMachineScript: StateMachineScript): void {
+    const index = this._scripts.indexOf(stateMachineScript);
+    index !== -1 && this._scripts.splice(index, 1);
   }
 }
