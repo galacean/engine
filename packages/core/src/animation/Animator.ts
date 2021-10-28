@@ -478,8 +478,8 @@ export class Animator extends Component {
     delta: number,
     additive: boolean
   ) {
-    const crossCurveDataCollection = this._crossCurveDataCollection;
-    const srcCurves = srcPlayData.state.clip._curveBindings;
+    const { _crossCurveDataCollection: crossCurveDataCollection } = this;
+    const { _curveBindings: srcCurves } = srcPlayData.state.clip;
     const { state: srcState, stateData: srcStateData, playState: lastSrcPlayState } = srcPlayData;
     const { eventHandlers: srcEventHandler } = srcStateData;
     const { state: destState, stateData: destStateData, playState: lastDstPlayState } = destPlayData;
