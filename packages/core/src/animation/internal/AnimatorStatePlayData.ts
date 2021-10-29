@@ -1,4 +1,5 @@
 import { AnimatorState } from "../AnimatorState";
+import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
 import { WrapMode } from "../enums/WrapMode";
 import { AnimatorStateData } from "./AnimatorStateData";
 
@@ -9,8 +10,7 @@ export class AnimatorStatePlayData {
   state: AnimatorState;
   stateData: AnimatorStateData;
   frameTime: number;
-  started: boolean;
-  finished: boolean;
+  playState: AnimatorStatePlayState;
   clipTime: number;
   currentEventIndex: number;
 
@@ -18,7 +18,7 @@ export class AnimatorStatePlayData {
     this.state = state;
     this.frameTime = offsetFrameTime;
     this.stateData = stateData;
-    this.finished = false;
+    this.playState = AnimatorStatePlayState.UnStarted;
     this.clipTime = this.state.clipStartTime;
     this.currentEventIndex = 0;
   }
@@ -27,14 +27,13 @@ export class AnimatorStatePlayData {
     const state = this.state;
     let time = this.frameTime;
     const duration = state.clipEndTime - state.clipStartTime;
-    this.started = true;
+    this.playState = AnimatorStatePlayState.Playing;
     if (time > duration) {
       if (state.wrapMode === WrapMode.Loop) {
         time = time % duration;
       } else {
         time = duration;
-        this.finished = true;
-        this.started = false;
+        this.playState = AnimatorStatePlayState.Finished;
       }
     }
     this.clipTime = time + this.state.clipStartTime;
