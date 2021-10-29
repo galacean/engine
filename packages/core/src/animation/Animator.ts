@@ -557,6 +557,7 @@ export class Animator extends Component {
     const { clipTime: destClipTime } = destPlayData;
 
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
+    
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(state, layerIndex);
     }
