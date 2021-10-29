@@ -9,6 +9,7 @@ export { AnimationCurve } from "./AnimationCurve";
 export { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 export * from "./KeyFrame";
 export { AnimationEvent } from "./AnimationEvent";
+export { StateMachineScript } from "./StateMachineScript";
 export { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 export { InterpolableValueType } from "./enums/InterpolableValueType";
 export { InterpolationType } from "./enums/InterpolationType";
