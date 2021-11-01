@@ -1,6 +1,7 @@
 import { AnimationClip } from "./AnimationClip";
 import { AnimatorStateTransition } from "./AnimatorTransition";
 import { WrapMode } from "./enums/WrapMode";
+import { StateMachineScript } from "./StateMachineScript";
 
 /**
  * States are the basic building blocks of a state machine. Each state contains a AnimationClip which will play while the character is in that state.
@@ -10,6 +11,13 @@ export class AnimatorState {
   speed: number = 1.0;
   /** The wrap mode used in the state. */
   wrapMode: WrapMode = WrapMode.Loop;
+
+  /** @internal */
+  _onStateEnterScripts: StateMachineScript[] = [];
+  /** @internal */
+  _onStateUpdateScripts: StateMachineScript[] = [];
+  /** @internal */
+  _onStateExitScripts: StateMachineScript[] = [];
 
   private _clipStartTime: number = 0;
   private _clipEndTime: number = Infinity;
@@ -24,7 +32,7 @@ export class AnimatorState {
   }
 
   /**
-   * ƒThe clip that is being played by this animator state.
+   * The clip that is being played by this animator state.
    */
   get clip(): AnimationClip {
     return this._clip;
@@ -83,6 +91,28 @@ export class AnimatorState {
   }
 
   /**
+   * Adds a state machine script class of type T to the AnimatorState.
+   * @param scriptType - The state machine script class of type T
+   */
+  addStateMachineScript<T extends StateMachineScript>(scriptType: new () => T): T {
+    const script = new scriptType();
+    script._state = this;
+
+    const { prototype } = StateMachineScript;
+    if (script.onStateEnter !== prototype.onStateEnter) {
+      this._onStateEnterScripts.push(script);
+    }
+    if (script.onStateUpdate !== prototype.onStateUpdate) {
+      this._onStateUpdateScripts.push(script);
+    }
+    if (script.onStateExit !== prototype.onStateExit) {
+      this._onStateExitScripts.push(script);
+    }
+
+    return script;
+  }
+
+  /**
    * Clears all transitions from the state.
    */
   clearTransitions(): void {
@@ -94,5 +124,24 @@ export class AnimatorState {
    */
   _getDuration(): number {
     return this._clipEndTime - this._clipStartTime;
+  }
+
+  /**
+   * @internal
+   */
+  _removeStateMachineScript(script: StateMachineScript): void {
+    const { prototype } = StateMachineScript;
+    if (script.onStateEnter !== prototype.onStateEnter) {
+      const index = this._onStateEnterScripts.indexOf(script);
+      index !== -1 && this._onStateEnterScripts.splice(index, 1);
+    }
+    if (script.onStateUpdate !== prototype.onStateUpdate) {
+      const index = this._onStateUpdateScripts.indexOf(script);
+      index !== -1 && this._onStateUpdateScripts.splice(index, 1);
+    }
+    if (script.onStateExit !== prototype.onStateExit) {
+      const index = this._onStateExitScripts.indexOf(script);
+      index !== -1 && this._onStateExitScripts.splice(index, 1);
+    }
   }
 }

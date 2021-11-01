@@ -92,6 +92,7 @@ export class AmbientLight {
 
   /**
    * Specular reflection texture.
+   * @remarks This texture must be baked from @oasis-engine/baker
    */
   get specularTexture(): TextureCubeMap {
     return this._specularReflection;

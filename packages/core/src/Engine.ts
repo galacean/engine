@@ -1,12 +1,18 @@
+import { IPhysics } from "@oasis-engine/design";
+import { ColorSpace } from ".";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
 import { ComponentsManager } from "./ComponentsManager";
 import { EngineFeature } from "./EngineFeature";
+import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
+import { InputManager } from "./input/InputManager";
 import { RenderQueueType } from "./material/enums/RenderQueueType";
 import { Material } from "./material/Material";
+import { ModelMesh, PrimitiveMesh } from "./mesh";
+import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { ClassPool } from "./RenderPipeline/ClassPool";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -16,20 +22,18 @@ import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
+import { CompareFunction } from "./shader";
 import { BlendFactor } from "./shader/enums/BlendFactor";
 import { BlendOperation } from "./shader/enums/BlendOperation";
 import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
 import { CullMode } from "./shader/enums/CullMode";
 import { Shader } from "./shader/Shader";
+import { ShaderMacro } from "./shader/ShaderMacro";
+import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
-import { ModelMesh, PrimitiveMesh } from "./mesh";
-import { CompareFunction } from "./shader";
-import { InputManager } from "./input/InputManager";
-import { IPhysics } from "@oasis-engine/design";
-import { PhysicsManager } from "./physics";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -39,6 +43,9 @@ ShaderPool.init();
  * Engine.
  */
 export class Engine extends EventDispatcher {
+  /** @internal */
+  static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
 
@@ -68,8 +75,12 @@ export class Engine extends EventDispatcher {
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _inputManager: InputManager;
+  /** @internal */
+  _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   protected _canvas: Canvas;
+
+  private _settings: EngineSettings = {};
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
   private _vSyncCount: number = 1;
@@ -93,6 +104,13 @@ export class Engine extends EventDispatcher {
       this.update();
     }
   };
+
+  /**
+   * Settings of Engine.
+   */
+  get settings(): Readonly<EngineSettings> {
+    return this._settings;
+  }
 
   /**
    * The canvas to use for rendering.
@@ -163,7 +181,7 @@ export class Engine extends EventDispatcher {
    * @param hardwareRenderer - Graphics API renderer
    * @param physics - native physics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics, settings?: EngineSettings) {
     super(null);
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
@@ -206,6 +224,10 @@ export class Engine extends EventDispatcher {
 
     this._backgroundTextureMesh = PrimitiveMesh.createPlane(this, 2, 2, 1, 1, false);
     this._backgroundTextureMesh.isGCIgnored = true;
+
+    const colorSpace = settings?.colorSpace || ColorSpace.Linear;
+    colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
+    this._settings.colorSpace = colorSpace;
   }
 
   /**

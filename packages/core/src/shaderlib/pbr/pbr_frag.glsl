@@ -8,12 +8,13 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
 
 // IBL diffuse
 #ifdef O3_USE_SH
-   vec3 irradiance = getLightProbeIrradiance(u_env_sh, geometry.normal) * u_envMapLight.diffuseIntensity;
+    vec3 irradiance = getLightProbeIrradiance(u_env_sh, geometry.normal);
+    #ifdef OASIS_COLORSPACE_GAMMA
+        irradiance = linearTogamma(irradiance);
+    #endif
+    irradiance *= u_envMapLight.diffuseIntensity;
 #else
    vec3 irradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
-#endif
-
-#ifndef PHYSICALLY_CORRECT_LIGHTS
    irradiance *= PI;
 #endif
 
@@ -35,7 +36,11 @@ reflectedLight.indirectSpecular += radiance * envBRDFApprox(material.specularCol
 // Emissive
 vec3 emissiveRadiance = u_emissiveColor;
 #ifdef HAS_EMISSIVEMAP
-    emissiveRadiance *= texture2D(u_emissiveSampler, v_uv).rgb;
+    vec4 emissiveColor = texture2D(u_emissiveSampler, v_uv);
+    #ifndef OASIS_COLORSPACE_GAMMA
+        emissiveColor = gammaToLinear(emissiveColor);
+    #endif
+    emissiveRadiance *= emissiveColor.rgb;
 #endif
 
 // Total
@@ -45,4 +50,8 @@ vec3 totalRadiance =    reflectedLight.directDiffuse +
                         reflectedLight.indirectSpecular + 
                         emissiveRadiance;
 
-gl_FragColor = vec4(totalRadiance, u_baseColor.a);
+vec4 tagetColor =vec4(totalRadiance, u_baseColor.a);
+#ifndef OASIS_COLORSPACE_GAMMA
+    tagetColor = linearToGamma (tagetColor);
+#endif
+gl_FragColor = tagetColor;

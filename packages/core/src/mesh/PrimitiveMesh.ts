@@ -254,14 +254,14 @@ export class PrimitiveMesh {
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;
-      const y = (i * horizontalCountReciprocal) | 0;
+      const z = (i * horizontalCountReciprocal) | 0;
 
       // Position
-      positions[i] = new Vector3(x * gridWidth - halfWidth, y * gridHeight - halfHeight, 0);
+      positions[i] = new Vector3(x * gridWidth - halfWidth, 0, z * gridHeight - halfHeight);
       // Normal
-      normals[i] = new Vector3(0, 0, 1);
+      normals[i] = new Vector3(0, 1, 0);
       // Texcoord
-      uvs[i] = new Vector2(x * horizontalSegmentsReciprocal, 1 - y * verticalSegmentsReciprocal);
+      uvs[i] = new Vector2(x * horizontalSegmentsReciprocal, z * verticalSegmentsReciprocal);
     }
 
     let offset = 0;
@@ -274,17 +274,17 @@ export class PrimitiveMesh {
       const c = a + horizontalCount;
       const d = c + 1;
 
-      indices[offset++] = b;
-      indices[offset++] = c;
       indices[offset++] = a;
-      indices[offset++] = b;
-      indices[offset++] = d;
       indices[offset++] = c;
+      indices[offset++] = b;
+      indices[offset++] = c;
+      indices[offset++] = d;
+      indices[offset++] = b;
     }
 
     const { bounds } = mesh;
-    bounds.min.setValue(-halfWidth, -halfHeight, 0);
-    bounds.max.setValue(halfWidth, halfHeight, 0);
+    bounds.min.setValue(-halfWidth, 0, -halfHeight);
+    bounds.max.setValue(halfWidth, 0, halfHeight);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;

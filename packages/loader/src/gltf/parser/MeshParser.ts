@@ -2,7 +2,7 @@ import { BlendShape, Engine, EngineObject, ModelMesh, TypedArray } from "@oasis-
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
-import { IGLTF, IMesh, IMeshPrimitive } from "../Schema";
+import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
 
 export class MeshParser extends Parser {
@@ -112,7 +112,8 @@ export class MeshParser extends Parser {
     const { attributes, targets, indices, mode } = gltfPrimitive;
     let vertexCount: number;
 
-    const accessor = gltf.accessors[attributes["POSITION"]];
+    const { accessors } = gltf;
+    const accessor = accessors[attributes["POSITION"]];
     const positionBuffer = <Float32Array>getVertexBufferData("POSITION");
     const positions = GLTFUtil.floatBufferToVector3Array(positionBuffer);
     mesh.setPositions(positions);
@@ -148,14 +149,46 @@ export class MeshParser extends Parser {
           const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
           mesh.setNormals(normals);
           break;
-        case "TANGENT":
-          const tangents = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
-          mesh.setTangents(tangents);
-          break;
         case "TEXCOORD_0":
           const texturecoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords, 0);
           break;
+        case "TEXCOORD_1":
+          const texturecoords1 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(texturecoords1, 1);
+          break;
+        case "TEXCOORD_2":
+          const texturecoords2 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(texturecoords2, 2);
+          break;
+        case "TEXCOORD_3":
+          const texturecoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(texturecoords3, 3);
+        case "TEXCOORD_4":
+          const texturecoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(texturecoords4, 4);
+        case "TEXCOORD_5":
+          const texturecoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(texturecoords5, 5);
+        case "TEXCOORD_6":
+          const texturecoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(texturecoords6, 6);
+        case "TEXCOORD_7":
+          const texturecoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(texturecoords7, 7);
+          break;
+        case "COLOR_0":
+          const colors = GLTFUtil.floatBufferToColorArray(
+            <Float32Array>bufferData,
+            accessors[attributes["COLOR_0"]].type === AccessorType.VEC3
+          );
+          mesh.setColors(colors);
+          break;
+        case "TANGENT":
+          const tangents = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
+          mesh.setTangents(tangents);
+          break;
+
         case "JOINTS_0":
           const joints = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
           mesh.setBoneIndices(joints);

@@ -20,11 +20,6 @@ vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
 
 // ------------------------Specular------------------------
 
-// source: http://simonstechblog.blogspot.ca/2011/12/microfacet-brdf.html
-float GGXRoughnessToBlinnExponent(float ggxRoughness ) {
-    return ( 2.0 / pow2( ggxRoughness + 0.0001 ) - 2.0 );
-}
-
 // ref: https://www.unrealengine.com/blog/physically-based-shading-on-mobile - environmentBRDF for GGX on mobile
 vec3 envBRDFApprox(vec3 specularColor,float roughness, float dotNV ) {
 
@@ -43,14 +38,8 @@ vec3 envBRDFApprox(vec3 specularColor,float roughness, float dotNV ) {
 }
 
 
-// taken from here: http://casual-effects.blogspot.ca/2011/08/plausible-environment-lighting-in-two.html
-float getSpecularMIPLevel(float blinnShininessExponent, int maxMIPLevel ) {
-    float maxMIPLevelScalar = float( maxMIPLevel );
-    float desiredMIPLevel = maxMIPLevelScalar + 0.79248 - 0.5 * log2( pow2( blinnShininessExponent ) + 1.0 );
-
-    // clamp to allowable LOD ranges.
-    return clamp( desiredMIPLevel, 0.0, maxMIPLevelScalar );
-
+float getSpecularMIPLevel(float roughness, int maxMIPLevel ) {
+    return roughness * float(maxMIPLevel);
 }
 
 vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMIPLevel, float specularIntensity) {
@@ -63,7 +52,7 @@ vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMI
 
         vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
         
-        float specularMIPLevel = getSpecularMIPLevel( GGXRoughnessToBlinnExponent( roughness ), maxMIPLevel );
+        float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
             vec4 envMapColor = textureCubeLodEXT( u_env_specularSampler, reflectVec, specularMIPLevel );
@@ -71,9 +60,11 @@ vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMI
             vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
         #endif
 
-        envMapColor.rgb *= specularIntensity;
-
-        return envMapColor.rgb;
+        envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
+        #ifdef OASIS_COLORSPACE_GAMMA
+            envMapColor = linearTogamma(envMapColor);
+        #endif
+        return envMapColor.rgb * specularIntensity;
 
     #endif
 
