@@ -146,6 +146,10 @@ export class TextUtils {
     }
 
     if (top !== -1) {
+      top = Math.max(0, top - 1);
+      bottom = Math.min(height - 1, bottom + 1);
+      left = Math.max(0, left - 1);
+      right = Math.min(width - 1, right + 1);
       width = right - left + 1;
       height = bottom - top + 1;
       data = context.getImageData(left, top, width, height);
