@@ -2,11 +2,20 @@ import { BoundingBox } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
+import { Texture2D } from "../../texture";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
-import { SpriteRenderer } from "../sprite";
+import { Sprite, SpriteRenderer } from "../sprite";
+import { TextUtils } from "./TextUtils";
 
 export class TextRenderer extends SpriteRenderer {
+  /** @internal */
+  @ignoreClone
+  _canvas: HTMLCanvasElement;
+  /** @internal */
+  @ignoreClone
+  _context: CanvasRenderingContext2D;
+
   @assignmentClone
   private _text: string = "";
   @assignmentClone
@@ -14,13 +23,13 @@ export class TextRenderer extends SpriteRenderer {
   @assignmentClone
   private _height: number = 0;
   @assignmentClone
-  private _font: string = "Arial";
+  private _fontName: string = "Arial";
   @assignmentClone
   private _fontSize: number = 24;
   @assignmentClone
   private _lineHeight: number = 1;
   @assignmentClone
-  private _isBolb: boolean = false;
+  private _isBold: boolean = false;
   @assignmentClone
   private _isItalic: boolean = false;
   @assignmentClone
@@ -71,14 +80,14 @@ export class TextRenderer extends SpriteRenderer {
     }
   }
 
-  get font(): string {
-    return this._font;
+  get fontName(): string {
+    return this._fontName;
   }
 
-  set font(value: string) {
+  set fontName(value: string) {
     value = value || "Arial";
-    if (this._font !== value) {
-      this._font = value;
+    if (this._fontName !== value) {
+      this._fontName = value;
       this._styleDirtyFlag = true;
     }
   }
@@ -105,13 +114,13 @@ export class TextRenderer extends SpriteRenderer {
     }
   }
 
-  get isBolb(): boolean {
-    return this._isBolb;
+  get isBold(): boolean {
+    return this._isBold;
   }
 
-  set isBolb(value: boolean) {
-    if (this._isBolb !== value) {
-      this._isBolb = value;
+  set isBold(value: boolean) {
+    if (this._isBold !== value) {
+      this._isBold = value;
       this._styleDirtyFlag = true;
     }
   }
@@ -173,12 +182,24 @@ export class TextRenderer extends SpriteRenderer {
 
   constructor(entity: Entity) {
     super(entity);
+
+    const canvas = this._canvas = document.createElement("canvas");
+    this._context = canvas.getContext("2d");
+    canvas.width = canvas.height = 1;
+
+    this.sprite = new Sprite(this.engine);
   }
 
   /**
    * @internal
    */
-  _render(camera: Camera): void {}
+  _render(camera: Camera): void {
+    if (this._styleDirtyFlag) {
+      this._updateText();
+    }
+
+    super._render(camera);
+  }
 
   /**
    * @override
@@ -190,13 +211,44 @@ export class TextRenderer extends SpriteRenderer {
         const worldMatrix = this._customRootEntity.transform.worldMatrix;
         BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
       } else {
-        // const localBounds = sprite.bounds;
-        // const worldMatrix = this._entity.transform.worldMatrix;
-        // BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+        const localBounds = sprite.bounds;
+        const worldMatrix = this._entity.transform.worldMatrix;
+        BoundingBox.transform(localBounds, worldMatrix, worldBounds);
       }
     } else {
       worldBounds.min.setValue(0, 0, 0);
       worldBounds.max.setValue(0, 0, 0);
     }
+  }
+
+  private _getFontString() {
+    let str = "";
+    if (this.isBold) {
+      str += "bold ";
+    }
+    if (this.isItalic) {
+      str += "italic ";
+    }
+    str += `${this._fontSize}px ${this._fontName}`;
+    return str;
+  }
+
+  private _updateText() {
+    const fontStr = this._getFontString();
+    TextUtils.measureText(this, fontStr);
+    this._updateTexture();
+  }
+
+  private _updateTexture() {
+    const { _canvas: canvas } = this;
+    const trimData = TextUtils.trimCanvas(this);
+    const { width, height } = trimData;
+    canvas.width = width;
+    canvas.height = height;
+    this._context.putImageData(trimData.data, 0, 0);
+    const texture = new Texture2D(this.engine, width, height);
+    texture.setImageSource(canvas);
+    texture.generateMipmaps();
+    this.sprite.texture = texture;
   }
 }
