@@ -51,7 +51,7 @@ export class AnimatorState {
   }
 
   set clipStartTime(time: number) {
-    this._clipStartTime = time < 0 ? 0 : time;
+    this._clipStartTime =  Math.max(time, 0);
   }
 
   /**
@@ -64,7 +64,7 @@ export class AnimatorState {
   set clipEndTime(time: number) {
     const clip = this._clip;
     if (clip) {
-      this._clipEndTime = Math.min(time, clip.length);
+      this._clipEndTime = Math.min(time, 1);
     }
   }
 
@@ -123,7 +123,10 @@ export class AnimatorState {
    * @internal
    */
   _getDuration(): number {
-    return this._clipEndTime - this._clipStartTime;
+    if (this.clip) {
+      return (this._clipEndTime - this._clipStartTime) * this.clip.length;
+    }
+    return null;
   }
 
   /**
