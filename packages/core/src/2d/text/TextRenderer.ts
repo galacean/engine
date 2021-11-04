@@ -9,13 +9,6 @@ import { Sprite, SpriteRenderer } from "../sprite";
 import { TextUtils } from "./TextUtils";
 
 export class TextRenderer extends SpriteRenderer {
-  /** @internal */
-  @ignoreClone
-  _canvas: HTMLCanvasElement;
-  /** @internal */
-  @ignoreClone
-  _context: CanvasRenderingContext2D;
-
   @assignmentClone
   private _text: string = "";
   @assignmentClone
@@ -183,9 +176,9 @@ export class TextRenderer extends SpriteRenderer {
   constructor(entity: Entity) {
     super(entity);
 
-    const canvas = this._canvas = document.createElement("canvas");
-    this._context = canvas.getContext("2d");
-    canvas.width = canvas.height = 1;
+    // const canvas = this._canvas = document.createElement("canvas");
+    // this._context = canvas.getContext("2d");
+    // canvas.width = canvas.height = 1;
 
     this.sprite = new Sprite(this.engine);
   }
@@ -196,6 +189,7 @@ export class TextRenderer extends SpriteRenderer {
   _render(camera: Camera): void {
     if (this._styleDirtyFlag) {
       this._updateText();
+      this._styleDirtyFlag = false;
     }
 
     super._render(camera);
@@ -235,17 +229,18 @@ export class TextRenderer extends SpriteRenderer {
 
   private _updateText() {
     const fontStr = this._getFontString();
-    TextUtils.measureText(this, fontStr);
+    TextUtils.measureText(TextUtils.textContext(), this, fontStr);
     this._updateTexture();
   }
 
   private _updateTexture() {
-    const { _canvas: canvas } = this;
-    const trimData = TextUtils.trimCanvas(this);
+    const textContext = TextUtils.textContext();
+    const { canvas, context } = textContext;
+    const trimData = TextUtils.trimCanvas(textContext);
     const { width, height } = trimData;
     canvas.width = width;
     canvas.height = height;
-    this._context.putImageData(trimData.data, 0, 0);
+    context.putImageData(trimData.data, 0, 0);
     const texture = new Texture2D(this.engine, width, height);
     texture.setImageSource(canvas);
     texture.generateMipmaps();

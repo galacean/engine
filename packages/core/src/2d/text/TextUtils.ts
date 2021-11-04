@@ -26,13 +26,13 @@ export class TextUtils {
     return TextUtils._textContext;
   }
 
-  public static measureFont(font: string): number {
+  public static measureFont(textContext: TextContext, font: string): number {
     const { fontSizes } = TextUtils;
     if (fontSizes[font]) {
       return fontSizes[font];
     }
 
-    const { canvas, context } = TextUtils.textContext();
+    const { canvas, context } = textContext;
     context.font = font;
     const testStr = TextUtils.TEST_STRING;
     const width = Math.ceil(context.measureText(testStr).width);
@@ -91,9 +91,11 @@ export class TextUtils {
     return fontSize;
   }
 
-  public static measureText(textRenderer: TextRenderer, fontStr: string): void {
-    const fontSize = TextUtils.measureFont(fontStr);
-    const { _canvas: canvas, _context: context, text } = textRenderer;
+  public static measureText(textContext: TextContext, textRenderer: TextRenderer, fontStr: string): void {
+    const fontSize = TextUtils.measureFont(textContext, fontStr);
+    // const wrappedTexts = TextUtils._wordWrap(textRenderer, fontStr);
+    const { text } = textRenderer;
+    const { canvas, context } = textContext;
     context.font = fontStr;
     const width = Math.ceil(context.measureText(text || "").width);
     canvas.width = width;
@@ -101,14 +103,15 @@ export class TextUtils {
     context.font = fontStr;
     context.clearRect(0, 0, width, fontSize);
     context.textBaseline = "top";
+    context.fillStyle = '#000';
     context.fillText(text, 0, 0);
   }
 
-  public static trimCanvas(textRenderer: TextRenderer): { width: number; height: number; data?: ImageData } {
+  public static trimCanvas(textContext: TextContext): { width: number; height: number; data?: ImageData } {
     // https://gist.github.com/remy/784508
 
-    let { width, height } = textRenderer._canvas;
-    const { _context: context } = textRenderer;
+    const { canvas, context } = textContext;
+    let { width, height } = canvas;
 
     const imageData = context.getImageData(0, 0, width, height).data;
     const len = imageData.length;
@@ -160,5 +163,25 @@ export class TextUtils {
       height,
       data
     };
+  }
+
+  private static _wordWrap(textRenderer: TextRenderer, fontStr: string): Array<string> {
+    const { context } = TextUtils.textContext();
+    const { text, width, height, horizontalOverflow, verticalOverflow } = textRenderer;
+    const output: Array<string> = [];
+    context.font = fontStr;
+    const textArr = text.split("\n");
+
+    for (let i = 0, l = textArr.length; i < l; ++i) {
+      const curText = textArr[i];
+      const curWidth = Math.ceil(context.measureText(curText).width);
+      if (curWidth < width) {
+        output.push(curText);
+      } else {
+        
+      }
+    }
+
+    return output;
   }
 }
