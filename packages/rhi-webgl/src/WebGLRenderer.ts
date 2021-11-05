@@ -68,12 +68,12 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _capability: GLCapability;
   private _isWebGL2: boolean;
 
-  private _activeTextureID: number = WebGLRenderingContext.TEXTURE0;
+  private _activeTextureID: number;
   private _activeTextures: GLTexture[] = new Array(32);
 
   // cache value
-  private _lastViewport: Vector4 = new Vector4(undefined, undefined, undefined, undefined);
-  private _lastClearColor: Color = new Color(undefined, undefined, undefined, undefined);
+  private _lastViewport: Vector4 = new Vector4(null, null, null, null);
+  private _lastClearColor: Color = new Color(null, null, null, null);
 
   get isWebGL2() {
     return this._isWebGL2;
@@ -140,11 +140,12 @@ export class WebGLRenderer implements IHardwareRenderer {
     }
 
     this._gl = gl;
+    this._activeTextureID = gl.TEXTURE0;
     this._renderStates = new GLRenderStates(gl);
     this._extensions = new GLExtensions(this);
     this._capability = new GLCapability(this);
     // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
-    gl.activeTexture(WebGLRenderingContext.TEXTURE0);
+    gl.activeTexture(gl.TEXTURE0);
 
     this._options = null;
   }

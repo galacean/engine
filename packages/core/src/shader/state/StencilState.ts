@@ -7,45 +7,49 @@ import { RenderState } from "./RenderState";
  * Stencil state.
  */
 export class StencilState {
-  private static _getGLCompareFunction(compareFunction: CompareFunction): number {
+  private static _getGLCompareFunction(rhi: IHardwareRenderer, compareFunction: CompareFunction): number {
+    const gl = rhi.gl;
+
     switch (compareFunction) {
       case CompareFunction.Never:
-        return WebGLRenderingContext.NEVER;
+        return gl.NEVER;
       case CompareFunction.Less:
-        return WebGLRenderingContext.LESS;
+        return gl.LESS;
       case CompareFunction.Equal:
-        return WebGLRenderingContext.EQUAL;
+        return gl.EQUAL;
       case CompareFunction.LessEqual:
-        return WebGLRenderingContext.LEQUAL;
+        return gl.LEQUAL;
       case CompareFunction.Greater:
-        return WebGLRenderingContext.GREATER;
+        return gl.GREATER;
       case CompareFunction.NotEqual:
-        return WebGLRenderingContext.NOTEQUAL;
+        return gl.NOTEQUAL;
       case CompareFunction.GreaterEqual:
-        return WebGLRenderingContext.GEQUAL;
+        return gl.GEQUAL;
       case CompareFunction.Always:
-        return WebGLRenderingContext.ALWAYS;
+        return gl.ALWAYS;
     }
   }
 
-  private static _getGLStencilOperation(compareFunction: StencilOperation): number {
+  private static _getGLStencilOperation(rhi: IHardwareRenderer, compareFunction: StencilOperation): number {
+    const gl = rhi.gl;
+
     switch (compareFunction) {
       case StencilOperation.Keep:
-        return WebGLRenderingContext.KEEP;
+        return gl.KEEP;
       case StencilOperation.Zero:
-        return WebGLRenderingContext.ZERO;
+        return gl.ZERO;
       case StencilOperation.Replace:
-        return WebGLRenderingContext.REPLACE;
+        return gl.REPLACE;
       case StencilOperation.IncrementSaturate:
-        return WebGLRenderingContext.INCR;
+        return gl.INCR;
       case StencilOperation.DecrementSaturate:
-        return WebGLRenderingContext.DECR;
+        return gl.DECR;
       case StencilOperation.Invert:
-        return WebGLRenderingContext.INVERT;
+        return gl.INVERT;
       case StencilOperation.IncrementWrap:
-        return WebGLRenderingContext.INCR_WRAP;
+        return gl.INCR_WRAP;
       case StencilOperation.DecrementWrap:
-        return WebGLRenderingContext.DECR_WRAP;
+        return gl.DECR_WRAP;
     }
   }
 
@@ -102,7 +106,7 @@ export class StencilState {
       if (enabled) {
         gl.enable(gl.STENCIL_TEST);
       } else {
-        gl.disable(WebGLRenderingContext.STENCIL_TEST);
+        gl.disable(gl.STENCIL_TEST);
       }
       lastState.enabled = enabled;
     }
@@ -113,7 +117,7 @@ export class StencilState {
       if (referenceOrMaskChange || compareFunctionFront !== lastState.compareFunctionFront) {
         gl.stencilFuncSeparate(
           gl.FRONT,
-          StencilState._getGLCompareFunction(compareFunctionFront),
+          StencilState._getGLCompareFunction(rhi, compareFunctionFront),
           referenceValue,
           mask
         );
@@ -121,7 +125,7 @@ export class StencilState {
       }
 
       if (referenceOrMaskChange || compareFunctionBack !== lastState.compareFunctionBack) {
-        gl.stencilFuncSeparate(gl.BACK, StencilState._getGLCompareFunction(compareFunctionBack), referenceValue, mask);
+        gl.stencilFuncSeparate(gl.BACK, StencilState._getGLCompareFunction(rhi, compareFunctionBack), referenceValue, mask);
         lastState.compareFunctionBack = this.compareFunctionBack;
       }
       if (referenceOrMaskChange) {
@@ -137,9 +141,9 @@ export class StencilState {
       ) {
         gl.stencilOpSeparate(
           gl.FRONT,
-          StencilState._getGLStencilOperation(failOperationFront),
-          StencilState._getGLStencilOperation(zFailOperationFront),
-          StencilState._getGLStencilOperation(passOperationFront)
+          StencilState._getGLStencilOperation(rhi, failOperationFront),
+          StencilState._getGLStencilOperation(rhi, zFailOperationFront),
+          StencilState._getGLStencilOperation(rhi, passOperationFront)
         );
         lastState.failOperationFront = failOperationFront;
         lastState.zFailOperationFront = zFailOperationFront;
@@ -153,9 +157,9 @@ export class StencilState {
       ) {
         gl.stencilOpSeparate(
           gl.BACK,
-          StencilState._getGLStencilOperation(failOperationBack),
-          StencilState._getGLStencilOperation(zFailOperationBack),
-          StencilState._getGLStencilOperation(passOperationBack)
+          StencilState._getGLStencilOperation(rhi, failOperationBack),
+          StencilState._getGLStencilOperation(rhi, zFailOperationBack),
+          StencilState._getGLStencilOperation(rhi, passOperationBack)
         );
         lastState.failOperationBack = failOperationBack;
         lastState.zFailOperationBack = zFailOperationBack;
