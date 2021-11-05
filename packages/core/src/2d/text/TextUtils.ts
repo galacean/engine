@@ -103,7 +103,7 @@ export class TextUtils {
     context.font = fontStr;
     context.clearRect(0, 0, width, fontSize);
     context.textBaseline = "top";
-    context.fillStyle = '#000';
+    context.fillStyle = '#fff';
     context.fillText(text, 0, 0);
   }
 
