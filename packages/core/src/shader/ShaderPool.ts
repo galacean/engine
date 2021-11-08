@@ -18,6 +18,8 @@ import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import backgroundTextureVs from "../shaderlib/extra/background-texture.vs.glsl";
 import backgroundTextureFs from "../shaderlib/extra/background-texture.fs.glsl";
+import hdrSkyboxFs from "../shaderlib/extra/hdr-skybox.fs.glsl";
+import hdrSkyboxVs from "../shaderlib/extra/hdr-skybox.vs.glsl";
 import { Shader } from "./Shader";
 
 /**
@@ -37,5 +39,6 @@ export class ShaderPool {
     Shader.create("SpriteMask", spriteMaskVs, spriteMaskFs);
     Shader.create("Sprite", spriteVs, spriteFs);
     Shader.create("background-texture", backgroundTextureVs, backgroundTextureFs);
+    Shader.create("HDR-skybox", hdrSkyboxVs, hdrSkyboxFs);
   }
 }
