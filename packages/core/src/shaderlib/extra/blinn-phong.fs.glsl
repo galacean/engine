@@ -12,14 +12,6 @@
 #include <fog_share>
 #include <normal_get>
 
-vec4 gammaToLinear(vec4 srgbIn){
-    return vec4( pow(srgbIn.rgb, vec3(2.2)), srgbIn.a);
-}
-
-vec4 linearToGamma(vec4 linearIn){
-    return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
-}
-
 void main() {
 
     #include <begin_mobile_frag>
