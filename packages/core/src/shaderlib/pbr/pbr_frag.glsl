@@ -10,7 +10,7 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
 #ifdef O3_USE_SH
     vec3 irradiance = getLightProbeIrradiance(u_env_sh, geometry.normal);
     #ifdef OASIS_COLORSPACE_GAMMA
-        irradiance = linearTogamma(irradiance);
+        irradiance = linearToGamma(vec4(irradiance, 1.0)).rgb;
     #endif
     irradiance *= u_envMapLight.diffuseIntensity;
 #else
@@ -50,8 +50,8 @@ vec3 totalRadiance =    reflectedLight.directDiffuse +
                         reflectedLight.indirectSpecular + 
                         emissiveRadiance;
 
-vec4 tagetColor =vec4(totalRadiance, u_baseColor.a);
+vec4 targetColor =vec4(totalRadiance, u_baseColor.a);
 #ifndef OASIS_COLORSPACE_GAMMA
-    tagetColor = linearToGamma (tagetColor);
+    targetColor = linearToGamma(targetColor);
 #endif
-gl_FragColor = tagetColor;
+gl_FragColor = targetColor;
