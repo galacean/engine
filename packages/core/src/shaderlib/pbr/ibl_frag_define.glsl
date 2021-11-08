@@ -62,7 +62,7 @@ vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMI
 
         envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
         #ifdef OASIS_COLORSPACE_GAMMA
-            envMapColor = linearTogamma(envMapColor);
+            envMapColor = linearToGamma(envMapColor);
         #endif
         return envMapColor.rgb * specularIntensity;
 
