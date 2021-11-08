@@ -8,7 +8,7 @@ export class AmbientLightResource extends SchemaResource {
     return new Promise((resolve, reject) => {
       const { url } = assetConfig;
       resourceManager
-        .load({ url, type: "environment" })
+        .load({ url, type: "env" })
         .then((res) => {
           this._resource = res;
           resolve(this);
