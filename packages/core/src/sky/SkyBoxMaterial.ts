@@ -12,27 +12,31 @@ import { TextureCubeMap } from "../texture";
 export class SkyBoxMaterial extends Material {
   private _decodeParam: Vector4 = new Vector4(0, 5, 0, 0);
 
-  /** Decode from texture with RGBM format. */
-  get decodeFromRGBM() {
+  /**
+   * Whether to decode from texture with RGBM format.
+   */
+  get textureDecodeRGBM(): boolean {
     return Boolean(this._decodeParam.x);
   }
 
-  set decodeFromRGBM(value: boolean) {
+  set textureDecodeRGBM(value: boolean) {
     this._decodeParam.x = Number(value);
   }
 
   /**
    * RGBM decode factor, default 5.0.
    */
-  get RGBMFactor() {
+  get RGBMDecodeFactor(): number {
     return this._decodeParam.y;
   }
 
-  set RGBMFactor(value: number) {
+  set RGBMDecodeFactor(value: number) {
     this._decodeParam.y = value;
   }
 
-  /** Texture cube map of the sky box material. */
+  /**
+   * Texture cube map of the sky box material.
+   */
   get textureCubeMap(): TextureCubeMap {
     return this.shaderData.getTexture("u_cube") as TextureCubeMap;
   }
@@ -47,6 +51,6 @@ export class SkyBoxMaterial extends Material {
     this.renderState.rasterState.cullMode = CullMode.Off;
     this.renderState.depthState.compareFunction = CompareFunction.LessEqual;
 
-    this.shaderData.setVector4("u_param", this._decodeParam);
+    this.shaderData.setVector4("u_cubeDecodeParam", this._decodeParam);
   }
 }
