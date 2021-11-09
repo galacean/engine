@@ -37,7 +37,9 @@ export class Scene extends EngineObject {
   private _rootEntities: Entity[] = [];
   private _ambientLight: AmbientLight;
 
-  /** Ambient light. */
+  /**
+   * Ambient light.
+   */
   get ambientLight(): AmbientLight {
     return this._ambientLight;
   }
@@ -48,12 +50,12 @@ export class Scene extends EngineObject {
       return;
     }
 
-    if (this._ambientLight) {
-      this._ambientLight._scene = null;
+    const lastAmbientLight = this._ambientLight;
+    if (lastAmbientLight !== value) {
+      lastAmbientLight && lastAmbientLight._setScene(null);
+      value._setScene(this);
+      this._ambientLight = value;
     }
-    value._scene = this;
-
-    this._ambientLight = value;
   }
 
   /**

@@ -29,7 +29,7 @@ export class AmbientLight {
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
-  private __scene: Scene;
+  private _scene: Scene;
 
   /**
    * Diffuse mode of ambient light.
@@ -131,14 +131,11 @@ export class AmbientLight {
     this._scene.shaderData.setFloat(AmbientLight._specularIntensityProperty, value);
   }
 
-  /** @internal */
-  get _scene() {
-    return this.__scene;
-  }
-
-  /** @internal */
-  set _scene(value: Scene) {
-    this.__scene = value;
+  /**
+   * @internal
+   */
+  _setScene(value: Scene) {
+    this._scene = value;
     if (!value) return;
 
     const { shaderData } = value;
