@@ -557,7 +557,7 @@ export class Animator extends Component {
     const { clipTime: destClipTime } = destPlayData;
 
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
-    
+
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(state, layerIndex);
     }
@@ -793,13 +793,13 @@ export class Animator extends Component {
     lastClipTime: number,
     clipTime: number
   ): void {
-    const { clip, clipStartTime, clipEndTime } = playState.state;
-    const clipDuration = clip.length;
+    const { state } = playState;
+    const clipDuration = state.clip.length;
     // TODO: If play backward, not work.
     if (clipTime < lastClipTime) {
-      this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, clipEndTime * clipDuration);
+      this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
       playState.currentEventIndex = 0;
-      this._fireSubAnimationEvents(playState, eventHandlers, clipStartTime * clipDuration, clipTime);
+      this._fireSubAnimationEvents(playState, eventHandlers, state.clipStartTime * clipDuration, clipTime);
     } else {
       this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
     }
