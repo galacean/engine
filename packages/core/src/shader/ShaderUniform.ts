@@ -120,7 +120,7 @@ export class ShaderUniform {
             Color.gammaToLinearSpace((<Color>value).r),
             Color.gammaToLinearSpace((<Color>value).g),
             Color.gammaToLinearSpace((<Color>value).b),
-            Color.gammaToLinearSpace((<Color>value).a)
+            (<Color>value).a
           );
         } else {
           this._gl.uniform4f(
