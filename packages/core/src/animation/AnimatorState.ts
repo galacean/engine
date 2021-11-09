@@ -20,7 +20,7 @@ export class AnimatorState {
   _onStateExitScripts: StateMachineScript[] = [];
 
   private _clipStartTime: number = 0;
-  private _clipEndTime: number = Infinity;
+  private _clipEndTime: number = 1;
   private _clip: AnimationClip;
   private _transitions: AnimatorStateTransition[] = [];
 
@@ -44,28 +44,25 @@ export class AnimatorState {
   }
 
   /**
-   * The clip start time the user set , default is 0.
+   * The start time of the clip, the range is 0 to 1, default is 0.
    */
   get clipStartTime() {
     return this._clipStartTime;
   }
 
   set clipStartTime(time: number) {
-    this._clipStartTime = time < 0 ? 0 : time;
+    this._clipStartTime = Math.max(time, 0);
   }
 
   /**
-   * The clip end time the user set , default is the clip duration.
+   * The start time of the clip, the range is 0 to 1, default is 1.
    */
   get clipEndTime() {
     return this._clipEndTime;
   }
 
   set clipEndTime(time: number) {
-    const clip = this._clip;
-    if (clip) {
-      this._clipEndTime = Math.min(time, clip.length);
-    }
+    this._clipEndTime = Math.min(time, 1);
   }
 
   /**
@@ -123,7 +120,10 @@ export class AnimatorState {
    * @internal
    */
   _getDuration(): number {
-    return this._clipEndTime - this._clipStartTime;
+    if (this.clip) {
+      return (this._clipEndTime - this._clipStartTime) * this.clip.length;
+    }
+    return null;
   }
 
   /**
