@@ -172,6 +172,14 @@ export class Animator extends Component {
   }
 
   /**
+   * Get the playing state from the target layerIndex.
+   * @param layerIndex - The layer index
+   */
+  getCurrentAnimatorState(layerIndex: number) {
+    return this._animatorLayersData[layerIndex]?.srcPlayData?.state;
+  }
+
+  /**
    * @override
    * @internal
    */
@@ -490,8 +498,14 @@ export class Animator extends Component {
 
     let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
+    
     srcPlayData.update();
     destPlayData.update();
+
+    const { playState: srcPlayState } = srcPlayData;
+    const { playState: destPlayState } = destPlayData;
+
+    this._updateCrossFadeData(layerData, crossWeight, delta, false);
 
     const { clipTime: srcClipTime } = srcPlayData;
     const { clipTime: destClipTime } = destPlayData;
@@ -503,7 +517,7 @@ export class Animator extends Component {
     if (lastSrcPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(srcState, layerIndex);
     }
-    if (crossWeight === 1 || srcPlayData.playState === AnimatorStatePlayState.Finished) {
+    if (crossWeight === 1 || srcPlayState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(srcState, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(srcState, layerIndex);
@@ -512,7 +526,7 @@ export class Animator extends Component {
     if (lastDstPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(destState, layerIndex);
     }
-    if (destPlayData.playState === AnimatorStatePlayState.Finished) {
+    if (destPlayState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(destState, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(destState, layerIndex);
@@ -533,7 +547,6 @@ export class Animator extends Component {
 
       this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
     }
-    this._updateCrossFadeData(layerData, crossWeight, delta, false);
   }
 
   private _updateCrossFadeFromPose(
@@ -552,7 +565,12 @@ export class Animator extends Component {
 
     let crossWeight = destPlayData.frameTime / (state._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
+
     destPlayData.update();
+
+    const { playState } = destPlayData;
+
+    this._updateCrossFadeData(layerData, crossWeight, delta, true);
 
     const { clipTime: destClipTime } = destPlayData;
 
@@ -561,7 +579,7 @@ export class Animator extends Component {
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(state, layerIndex);
     }
-    if (destPlayData.playState === AnimatorStatePlayState.Finished) {
+    if (playState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
@@ -576,8 +594,6 @@ export class Animator extends Component {
 
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
     }
-
-    this._updateCrossFadeData(layerData, crossWeight, delta, true);
   }
 
   private _updateCrossFadeData(layerData: AnimatorLayerData, crossWeight: number, delta: number, fixed: boolean): void {
