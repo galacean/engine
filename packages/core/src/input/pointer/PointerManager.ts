@@ -49,7 +49,8 @@ export class PointerManager {
       this._nativeEvents.push(evt);
     };
     // MaxTouchCount + MouseCount(1)
-    this._pointerPool = new Array<Pointer>(navigator.maxTouchPoints + 1);
+    // this._pointerPool = new Array<Pointer>(navigator.maxTouchPoints + 1);
+    this._pointerPool = new Array<Pointer>(11);
     this._enablePhysics = engine.physicsManager ? true : false;
   }
 
