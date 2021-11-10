@@ -16,5 +16,8 @@
   "dependencies": {
     "@oasis-engine/design": "0.6.0-alpha.0",
     "@oasis-engine/math": "0.6.0-alpha.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
