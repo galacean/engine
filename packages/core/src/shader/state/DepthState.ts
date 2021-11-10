@@ -6,24 +6,26 @@ import { RenderState } from "./RenderState";
  * Depth state.
  */
 export class DepthState {
-  private static _getGLCompareFunction(compareFunction: CompareFunction): number {
+  private static _getGLCompareFunction(rhi: IHardwareRenderer, compareFunction: CompareFunction): number {
+    const gl = rhi.gl;
+
     switch (compareFunction) {
       case CompareFunction.Never:
-        return WebGLRenderingContext.NEVER;
+        return gl.NEVER;
       case CompareFunction.Less:
-        return WebGLRenderingContext.LESS;
+        return gl.LESS;
       case CompareFunction.Equal:
-        return WebGLRenderingContext.EQUAL;
+        return gl.EQUAL;
       case CompareFunction.LessEqual:
-        return WebGLRenderingContext.LEQUAL;
+        return gl.LEQUAL;
       case CompareFunction.Greater:
-        return WebGLRenderingContext.GREATER;
+        return gl.GREATER;
       case CompareFunction.NotEqual:
-        return WebGLRenderingContext.NOTEQUAL;
+        return gl.NOTEQUAL;
       case CompareFunction.GreaterEqual:
-        return WebGLRenderingContext.GEQUAL;
+        return gl.GEQUAL;
       case CompareFunction.Always:
-        return WebGLRenderingContext.ALWAYS;
+        return gl.ALWAYS;
     }
   }
 
@@ -58,7 +60,7 @@ export class DepthState {
     if (enabled) {
       // apply compare func.
       if (compareFunction != lastState.compareFunction) {
-        gl.depthFunc(DepthState._getGLCompareFunction(compareFunction));
+        gl.depthFunc(DepthState._getGLCompareFunction(rhi, compareFunction));
         lastState.compareFunction = compareFunction;
       }
 

@@ -5,18 +5,6 @@ float pow2(float x ) {
     return x * x;
 }
 
-vec4 gammaToLinear(vec4 srgbIn){
-    return vec4( pow(srgbIn.rgb, vec3(2.2)), srgbIn.a);
-}
-
-vec4 RGBMToLinear(vec4 value, float maxRange ) {
-    return vec4( value.rgb * value.a * maxRange, 1.0 );
-}
-
-vec4 linearToGamma(vec4 linearIn){
-    return vec4( pow(linearIn.rgb, vec3(1.0 / 2.2)), linearIn.a);
-}
-
 vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor ) {
 	return RECIPROCAL_PI * diffuseColor;
 }
@@ -37,7 +25,11 @@ PhysicalMaterial getPhysicalMaterial(
         PhysicalMaterial material;
 
         #ifdef HAS_BASECOLORMAP
-            diffuseColor *= gammaToLinear(texture2D(u_baseColorSampler, v_uv));
+            vec4 baseColor = texture2D(u_baseColorSampler, v_uv);
+            #ifndef OASIS_COLORSPACE_GAMMA
+                baseColor = gammaToLinear(baseColor);
+            #endif
+            diffuseColor *= baseColor;
         #endif
 
         #ifdef O3_HAS_VERTEXCOLOR

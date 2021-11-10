@@ -1,5 +1,5 @@
-import { Vector3, Vector4, Vector2 } from "@oasis-engine/math";
 import { IndexFormat, TypedArray, VertexElement, VertexElementFormat } from "@oasis-engine/core";
+import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
 /**
@@ -31,6 +31,23 @@ export class GLTFUtil {
       array[i / 4] = new Vector4(buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]);
     }
     return array;
+  }
+
+  public static floatBufferToColorArray(buffer: Float32Array, isColor3: boolean): Color[] {
+    const bufferLen = buffer.length;
+    const colors = new Array<Color>(bufferLen / (isColor3 ? 3 : 4));
+
+    if (isColor3) {
+      for (let i = 0; i < bufferLen; i += 3) {
+        colors[i / 3] = new Color(buffer[i], buffer[i + 1], buffer[i + 2], 1.0);
+      }
+    } else {
+      for (let i = 0; i < bufferLen; i += 4) {
+        colors[i / 4] = new Color(buffer[i], buffer[i + 1], buffer[i + 2], buffer[i + 3]);
+      }
+    }
+
+    return colors;
   }
 
   /**

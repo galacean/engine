@@ -10,5 +10,6 @@ export { SphereColliderShape } from "./shape/SphereColliderShape";
 export { PlaneColliderShape } from "./shape/PlaneColliderShape";
 export { CapsuleColliderShape } from "./shape/CapsuleColliderShape";
 
+export { Collider } from "./Collider";
 export { StaticCollider } from "./StaticCollider";
 export { DynamicCollider } from "./DynamicCollider";

@@ -11,7 +11,9 @@ import {
   PointLight,
   SpriteRenderer,
   SpriteMask,
-  Animator
+  Animator,
+  StaticCollider,
+  DynamicCollider
 } from "@oasis-engine/core";
 import { GLTFModel, Parser, Model } from "@oasis-engine/loader";
 
@@ -26,6 +28,8 @@ Parser.registerComponents("o3", {
   Camera,
   Model,
   Component,
+  StaticCollider,
+  DynamicCollider,
   Animator
 });
 

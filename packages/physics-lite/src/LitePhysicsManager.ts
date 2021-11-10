@@ -179,10 +179,10 @@ export class LitePhysicsManager implements IPhysicsManager {
       const myShape = myColliderShapes[i];
       if (myShape instanceof LiteBoxColliderShape) {
         LitePhysicsManager._updateWorldBox(myShape, this._box);
-        for (let i = 0, len = colliders.length; i < len; i++) {
-          const colliderShape = colliders[i]._shapes;
-          for (let i = 0, len = colliderShape.length; i < len; i++) {
-            const shape = colliderShape[i];
+        for (let j = 0, len = colliders.length; j < len; j++) {
+          const colliderShape = colliders[j]._shapes;
+          for (let k = 0, len = colliderShape.length; k < len; k++) {
+            const shape = colliderShape[k];
             const index1 = shape._id;
             const index2 = myShape._id;
             const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
@@ -206,10 +206,10 @@ export class LitePhysicsManager implements IPhysicsManager {
         }
       } else if (myShape instanceof LiteSphereColliderShape) {
         LitePhysicsManager._upWorldSphere(myShape, this._sphere);
-        for (let i = 0, len = colliders.length; i < len; i++) {
-          const colliderShape = colliders[i]._shapes;
-          for (let i = 0, len = colliderShape.length; i < len; i++) {
-            const shape = colliderShape[i];
+        for (let j = 0, len = colliders.length; j < len; j++) {
+          const colliderShape = colliders[j]._shapes;
+          for (let k = 0, len = colliderShape.length; k < len; k++) {
+            const shape = colliderShape[k];
             const index1 = shape._id;
             const index2 = myShape._id;
             const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
