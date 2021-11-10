@@ -1,0 +1,20 @@
+{
+  "name": "@oasis-engine/physics-physx",
+  "version": "0.5.7",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@oasis-engine/design": "0.5.7",
+    "@oasis-engine/math": "0.5.7"
+  }
+}

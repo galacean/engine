@@ -23,9 +23,7 @@ import worldpos_vert from "./worldpos_vert.glsl";
 import shadow_vert from "./shadow_vert.glsl";
 import fog_vert from "./fog_vert.glsl";
 
-import direct_light_frag from "./direct_light_frag.glsl";
-import point_light_frag from "./point_light_frag.glsl";
-import spot_light_frag from "./spot_light_frag.glsl";
+import light_frag_define from "./light_frag_define.glsl";
 import mobile_material_frag from "./mobile_material_frag.glsl";
 import fog_frag from "./fog_frag.glsl";
 
@@ -50,8 +48,6 @@ import noise_simplex_3D_grad from "./noise_simplex_3D_grad.glsl";
 import noise_simplex_3D from "./noise_simplex_3D.glsl";
 import noise_simplex_4D from "./noise_simplex_4D.glsl";
 import noise_simplex from "./noise_simplex.glsl";
-
-import gamma_frag from "./gamma_frag.glsl";
 
 import PBRShaderLib from "./pbr";
 
@@ -83,9 +79,7 @@ export const ShaderLib = {
   shadow_vert,
   fog_vert,
 
-  direct_light_frag,
-  point_light_frag,
-  spot_light_frag,
+  light_frag_define,
   mobile_material_frag,
   fog_frag,
 
@@ -110,8 +104,6 @@ export const ShaderLib = {
   noise_simplex_3D,
   noise_simplex_4D,
   noise_simplex,
-
-  gamma_frag,
 
   ...PBRShaderLib,
   normal_get
