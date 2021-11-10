@@ -14,7 +14,8 @@ import {
   TextureResource,
   UnlitMaterialResource,
   AnimatorControllerResource,
-  AnimationClipResource
+  AnimationClipResource,
+  AmbientLightResource
 } from "./resources";
 import { SpriteAtlasResource } from "./resources/SpriteAtlasResource";
 import { AssetConfig } from "./types";
@@ -33,7 +34,8 @@ export const RESOURCE_CLASS = {
   sprite: SpriteResource,
   SpriteAtlas: SpriteAtlasResource,
   animatorController: AnimatorControllerResource,
-  animationClip: AnimationClipResource
+  animationClip: AnimationClipResource,
+  environment: AmbientLightResource
 };
 
 const RESOURCE_TYPE: Map<SchemaResource, string> = new Map();

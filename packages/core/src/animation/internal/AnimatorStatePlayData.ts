@@ -19,14 +19,14 @@ export class AnimatorStatePlayData {
     this.frameTime = offsetFrameTime;
     this.stateData = stateData;
     this.playState = AnimatorStatePlayState.UnStarted;
-    this.clipTime = this.state.clipStartTime;
+    this.clipTime = state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
   }
 
   update(): void {
     const state = this.state;
     let time = this.frameTime;
-    const duration = state.clipEndTime - state.clipStartTime;
+    const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
     if (time > duration) {
       if (state.wrapMode === WrapMode.Loop) {
@@ -36,6 +36,6 @@ export class AnimatorStatePlayData {
         this.playState = AnimatorStatePlayState.Finished;
       }
     }
-    this.clipTime = time + this.state.clipStartTime;
+    this.clipTime = time + state.clipStartTime * state.clip.length;
   }
 }
