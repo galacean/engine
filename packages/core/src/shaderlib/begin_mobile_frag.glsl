@@ -6,14 +6,20 @@
     
 
     #ifdef O3_EMISSIVE_TEXTURE
-
-        emission *= texture2D(u_emissiveTexture, v_uv);
+        vec4 emissiveTextureColor = texture2D(u_emissiveTexture, v_uv);
+        #ifndef OASIS_COLORSPACE_GAMMA
+            emissiveTextureColor = gammaToLinear(emissiveTextureColor);
+        #endif
+        emission *= emissiveTextureColor;
 
     #endif
 
     #ifdef O3_DIFFUSE_TEXTURE
-
-        diffuse *= texture2D(u_diffuseTexture, v_uv);
+        vec4 diffuseTextureColor = texture2D(u_diffuseTexture, v_uv);
+        #ifndef OASIS_COLORSPACE_GAMMA
+            diffuseTextureColor = gammaToLinear(diffuseTextureColor);
+        #endif
+        diffuse *= diffuseTextureColor;
 
     #endif
 
@@ -24,8 +30,11 @@
     #endif
 
     #ifdef O3_SPECULAR_TEXTURE
-
-        specular *= texture2D(u_specularTexture, v_uv);
+        vec4 specularTextureColor = texture2D(u_specularTexture, v_uv);
+        #ifndef OASIS_COLORSPACE_GAMMA
+            specularTextureColor = gammaToLinear(specularTextureColor);
+        #endif
+        specular *= specularTextureColor;
 
     #endif
 

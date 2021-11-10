@@ -22,7 +22,6 @@ export class AmbientLight {
   );
   private static _mipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.mipMapLevel");
 
-  private _scene: Scene;
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
   private _diffuseIntensity: number = 1.0;
@@ -30,6 +29,7 @@ export class AmbientLight {
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
+  private _scene: Scene;
 
   /**
    * Diffuse mode of ambient light.
@@ -40,6 +40,8 @@ export class AmbientLight {
 
   set diffuseMode(value: DiffuseMode) {
     this._diffuseMode = value;
+    if (!this._scene) return;
+
     if (value === DiffuseMode.SphericalHarmonics) {
       this._scene.shaderData.enableMacro(AmbientLight._shMacro);
     } else {
@@ -71,10 +73,10 @@ export class AmbientLight {
 
   set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
     this._diffuseSphericalHarmonics = value;
-    const shaderData = this._scene.shaderData;
+    if (!this._scene) return;
 
     if (value) {
-      shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._preComputeSH(value, this._shArray));
+      this._scene.shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._preComputeSH(value, this._shArray));
     }
   }
 
@@ -87,6 +89,8 @@ export class AmbientLight {
 
   set diffuseIntensity(value: number) {
     this._diffuseIntensity = value;
+    if (!this._scene) return;
+
     this._scene.shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value);
   }
 
@@ -100,6 +104,7 @@ export class AmbientLight {
 
   set specularTexture(value: TextureCubeMap) {
     this._specularReflection = value;
+    if (!this._scene) return;
 
     const shaderData = this._scene.shaderData;
 
@@ -121,16 +126,26 @@ export class AmbientLight {
 
   set specularIntensity(value: number) {
     this._specularIntensity = value;
+    if (!this._scene) return;
+
     this._scene.shaderData.setFloat(AmbientLight._specularIntensityProperty, value);
   }
 
-  constructor(scene: Scene) {
-    this._scene = scene;
+  /**
+   * @internal
+   */
+  _setScene(value: Scene) {
+    this._scene = value;
+    if (!value) return;
 
-    const { shaderData } = this._scene;
+    const { shaderData } = value;
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
-    shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
-    shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
+
+    this.diffuseMode = this._diffuseMode;
+    this.diffuseSphericalHarmonics = this._diffuseSphericalHarmonics;
+    this.diffuseIntensity = this._diffuseIntensity;
+    this.specularTexture = this._specularReflection;
+    this.specularIntensity = this._specularIntensity;
   }
 
   private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {

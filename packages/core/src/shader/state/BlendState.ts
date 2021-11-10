@@ -11,38 +11,40 @@ import { RenderTargetBlendState } from "./RenderTargetBlendState";
  * Blend state.
  */
 export class BlendState {
-  private static _getGLBlendFactor(blendFactor: BlendFactor): number {
+  private static _getGLBlendFactor(rhi: IHardwareRenderer, blendFactor: BlendFactor): number {
+    const gl = rhi.gl;
+
     switch (blendFactor) {
       case BlendFactor.Zero:
-        return WebGLRenderingContext.ZERO;
+        return gl.ZERO;
       case BlendFactor.One:
-        return WebGLRenderingContext.ONE;
+        return gl.ONE;
       case BlendFactor.SourceColor:
-        return WebGLRenderingContext.SRC_COLOR;
+        return gl.SRC_COLOR;
       case BlendFactor.OneMinusSourceColor:
-        return WebGLRenderingContext.ONE_MINUS_SRC_COLOR;
+        return gl.ONE_MINUS_SRC_COLOR;
       case BlendFactor.DestinationColor:
-        return WebGLRenderingContext.DST_COLOR;
+        return gl.DST_COLOR;
       case BlendFactor.OneMinusDestinationColor:
-        return WebGLRenderingContext.ONE_MINUS_DST_COLOR;
+        return gl.ONE_MINUS_DST_COLOR;
       case BlendFactor.SourceAlpha:
-        return WebGLRenderingContext.SRC_ALPHA;
+        return gl.SRC_ALPHA;
       case BlendFactor.OneMinusSourceAlpha:
-        return WebGLRenderingContext.ONE_MINUS_SRC_ALPHA;
+        return gl.ONE_MINUS_SRC_ALPHA;
       case BlendFactor.DestinationAlpha:
-        return WebGLRenderingContext.DST_ALPHA;
+        return gl.DST_ALPHA;
       case BlendFactor.OneMinusDestinationAlpha:
-        return WebGLRenderingContext.ONE_MINUS_DST_ALPHA;
+        return gl.ONE_MINUS_DST_ALPHA;
       case BlendFactor.SourceAlphaSaturate:
-        return WebGLRenderingContext.SRC_ALPHA_SATURATE;
+        return gl.SRC_ALPHA_SATURATE;
       case BlendFactor.BlendColor:
-        return WebGLRenderingContext.CONSTANT_COLOR;
+        return gl.CONSTANT_COLOR;
       case BlendFactor.OneMinusBlendColor:
-        return WebGLRenderingContext.ONE_MINUS_CONSTANT_COLOR;
+        return gl.ONE_MINUS_CONSTANT_COLOR;
     }
   }
 
-  private static _getGLBlendOperation(blendOperation: BlendOperation, rhi: IHardwareRenderer): number {
+  private static _getGLBlendOperation(rhi: IHardwareRenderer, blendOperation: BlendOperation): number {
     const gl = rhi.gl;
 
     switch (blendOperation) {
@@ -113,10 +115,10 @@ export class BlendState {
         destinationAlphaBlendFactor !== lastTargetBlendState.destinationAlphaBlendFactor
       ) {
         gl.blendFuncSeparate(
-          BlendState._getGLBlendFactor(sourceColorBlendFactor),
-          BlendState._getGLBlendFactor(destinationColorBlendFactor),
-          BlendState._getGLBlendFactor(sourceAlphaBlendFactor),
-          BlendState._getGLBlendFactor(destinationAlphaBlendFactor)
+          BlendState._getGLBlendFactor(rhi, sourceColorBlendFactor),
+          BlendState._getGLBlendFactor(rhi, destinationColorBlendFactor),
+          BlendState._getGLBlendFactor(rhi, sourceAlphaBlendFactor),
+          BlendState._getGLBlendFactor(rhi, destinationAlphaBlendFactor)
         );
         lastTargetBlendState.sourceColorBlendFactor = sourceColorBlendFactor;
         lastTargetBlendState.destinationColorBlendFactor = destinationColorBlendFactor;
@@ -130,8 +132,8 @@ export class BlendState {
         alphaBlendOperation !== lastTargetBlendState.alphaBlendOperation
       ) {
         gl.blendEquationSeparate(
-          BlendState._getGLBlendOperation(colorBlendOperation, rhi),
-          BlendState._getGLBlendOperation(alphaBlendOperation, rhi)
+          BlendState._getGLBlendOperation(rhi, colorBlendOperation),
+          BlendState._getGLBlendOperation(rhi, alphaBlendOperation)
         );
         lastTargetBlendState.colorBlendOperation = colorBlendOperation;
         lastTargetBlendState.alphaBlendOperation = alphaBlendOperation;
