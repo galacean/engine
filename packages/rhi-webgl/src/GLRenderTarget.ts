@@ -27,6 +27,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   private _MSAADepthRenderBuffer: WebGLRenderbuffer | null;
   private _oriDrawBuffers: GLenum[];
   private _blitDrawBuffers: GLenum[] | null;
+  private _curMipLevel: number = 0;
 
   /**
    * Create render target in WebGL platform.
@@ -86,40 +87,53 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   }
 
   /**
-   * Set which face of the cube texture to render to.
+   * Set which face and mipLevel of the cube texture to render to.
    * @param faceIndex - Cube texture face
+   * @param mipLevel - Set mip level the data want to write
    */
-  setRenderTargetFace(faceIndex: TextureCubeFace): void {
-    const gl = this._gl;
-    const colorTexture = this._target.getColorTexture(0);
-    const depthTexture = this._target.depthTexture;
+  setRenderTargetInfo(faceIndex: TextureCubeFace, mipLevel: number): void {
+    const { _gl: gl, _target: target } = this;
+    const { depthTexture } = target;
+    const colorTexture = target.getColorTexture(0);
+    const mipChanged = mipLevel !== this._curMipLevel;
 
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
-    // bind render color texture
-    if (colorTexture?.isCube) {
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
-        gl.COLOR_ATTACHMENT0,
-        gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-        /** @ts-ignore */
-        (colorTexture._platformTexture as GLRenderColorTexture)._glTexture,
-        0
-      );
+    if (colorTexture) {
+      const isCube = colorTexture.isCube;
+      if (mipChanged || isCube) {
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          gl.COLOR_ATTACHMENT0,
+          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
+          /** @ts-ignore */
+          (colorTexture._platformTexture as GLRenderColorTexture)._glTexture,
+          mipLevel
+        );
+      }
     }
-
-    // bind depth texture
-    if (depthTexture?.isCube) {
-      gl.framebufferTexture2D(
-        gl.FRAMEBUFFER,
+    if (depthTexture) {
+      const isCube = depthTexture.isCube;
+      if (mipChanged || isCube) {
         /** @ts-ignore */
-        (depthTexture._platformTexture as GLRenderDepthTexture)._formatDetail.attachment,
-        gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex,
-        /** @ts-ignore */
-        (depthTexture._platformTexture as GLRenderDepthTexture)._glTexture,
-        0
-      );
+        const { _platformTexture: platformTexture } = depthTexture;
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          platformTexture._formatDetail.attachment,
+          isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
+          platformTexture._glTexture,
+          mipLevel
+        );
+      }
+    } else {
+      if (mipChanged) {
+        // @ts-ignore
+        const { internalFormat } = GLTexture._getRenderBufferDepthFormatDetail(target._depth, gl, this._isWebGL2);
+        gl.bindRenderbuffer(gl.RENDERBUFFER, this._depthRenderBuffer);
+        gl.renderbufferStorage(gl.RENDERBUFFER, internalFormat, target.width >> mipLevel, target.height >> mipLevel);
+      }
     }
+    this._curMipLevel = mipLevel;
 
     // revert current activated render target
     this._activeRenderTarget();
@@ -209,7 +223,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
       drawBuffers[i] = attachment;
 
-      // Cube texture please call _setRenderTargetFace()
       if (!colorTexture.isCube) {
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
@@ -230,7 +243,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     /** depth render buffer */
     if (_depth !== null) {
       if (_depth instanceof RenderDepthTexture) {
-        // Cube texture please call _setRenderTargetFace()
         if (!_depth.isCube) {
           gl.framebufferTexture2D(
             gl.FRAMEBUFFER,

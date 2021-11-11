@@ -136,8 +136,8 @@ export class AnimatorControllerResource extends SchemaResource {
         const animationClip = animations[animationIndex.index];
         if (!animationClip) continue;
         state.clip = animationClip;
-        state.clipStartTime = animationClip.length * clipStartNormalizedTime;
-        state.clipEndTime = animationClip.length * clipEndNormalizedTime;
+        state.clipStartTime = clipStartNormalizedTime;
+        state.clipEndTime = clipEndNormalizedTime;
         for (let j = 0, length = transitions.length; j < length; ++j) {
           const transition = transitions[j];
           transitions[j].srcState = state;

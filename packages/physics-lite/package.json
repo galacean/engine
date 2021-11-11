@@ -1,0 +1,23 @@
+{
+  "name": "@oasis-engine/physics-lite",
+  "version": "0.6.0-alpha.1",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "debug": "src/index.ts",
+  "types": "types/index.d.ts",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@oasis-engine/design": "0.6.0-alpha.1",
+    "@oasis-engine/math": "0.6.0-alpha.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

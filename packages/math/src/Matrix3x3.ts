@@ -1,4 +1,4 @@
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "./IClone";
 import { MathUtil } from "./MathUtil";
 import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";

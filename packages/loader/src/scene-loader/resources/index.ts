@@ -12,3 +12,4 @@ export * from "./ScriptResource";
 export { BaseResource } from "./BaseResource";
 export { AnimatorControllerResource } from "./AnimatorControllerResource";
 export { AnimationClipResource } from "./AnimationClipResource";
+export { AmbientLightResource } from "./AmbientLightResource";
