@@ -19,8 +19,6 @@ export class Scene extends EngineObject {
 
   /** Scene name. */
   name: string;
-  /** Ambient light. */
-  ambientLight: AmbientLight;
 
   /** The background of the scene. */
   readonly background: Background = new Background(this._engine);
@@ -37,6 +35,28 @@ export class Scene extends EngineObject {
 
   private _destroyed: boolean = false;
   private _rootEntities: Entity[] = [];
+  private _ambientLight: AmbientLight;
+
+  /**
+   * Ambient light.
+   */
+  get ambientLight(): AmbientLight {
+    return this._ambientLight;
+  }
+
+  set ambientLight(value: AmbientLight) {
+    if (!value) {
+      Logger.warn("The scene must have one ambient light");
+      return;
+    }
+
+    const lastAmbientLight = this._ambientLight;
+    if (lastAmbientLight !== value) {
+      lastAmbientLight && lastAmbientLight._setScene(null);
+      value._setScene(this);
+      this._ambientLight = value;
+    }
+  }
 
   /**
    * Count of root entities.
@@ -71,7 +91,7 @@ export class Scene extends EngineObject {
     const shaderData = this.shaderData;
     Scene.sceneFeatureManager.addObject(this);
     shaderData._addRefCount(1);
-    this.ambientLight = new AmbientLight(this);
+    this.ambientLight = new AmbientLight();
   }
 
   /**

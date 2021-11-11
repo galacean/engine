@@ -12,7 +12,6 @@
 #include <fog_share>
 #include <normal_get>
 
-
 void main() {
 
     #include <begin_mobile_frag>
@@ -22,6 +21,9 @@ void main() {
     gl_FragColor = emission + ambient + diffuse + specular;
     gl_FragColor.a = diffuse.a;
 
+    #ifndef OASIS_COLORSPACE_GAMMA
+        gl_FragColor = linearToGamma(gl_FragColor);
+    #endif
     #include <fog_frag>
 
 }

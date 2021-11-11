@@ -1,4 +1,4 @@
-import { Color, Vector2, Vector3, Vector4, SphericalHarmonics3 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 
 /**
  * temp compa
@@ -46,8 +46,6 @@ function handleComponents(props) {
   }
 }
 
-const sh = new SphericalHarmonics3();
-
 function handleSceneProps(props) {
   const keys = Object.keys(props);
   for (let i = 0, l = keys.length; i < l; ++i) {
@@ -64,9 +62,6 @@ function handleSceneProps(props) {
       } else if (v.length === 2) {
         props[k] = new Vector2(v[0], v[1]);
       }
-    } else if (v && k === "diffuseSphericalHarmonics") {
-      sh.setValueByArray(JSON.parse(v));
-      props[k] = sh;
     }
   }
 }
