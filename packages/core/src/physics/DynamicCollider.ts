@@ -52,7 +52,10 @@ export class DynamicCollider extends Collider {
    */
   _onLateUpdate() {
     const { transform } = this.entity;
-    this._nativeCollider.getWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);
+    const { worldPosition, worldRotationQuaternion } = transform;
+    this._nativeCollider.getWorldTransform(worldPosition, worldRotationQuaternion);
+    transform.worldPosition = worldPosition;
+    transform.worldRotationQuaternion = worldRotationQuaternion;
     this._updateFlag.flag = false;
   }
 }
