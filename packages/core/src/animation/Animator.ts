@@ -107,7 +107,7 @@ export class Animator extends Component {
     const { srcPlayData } = animatorLayerData;
     const { state: curState } = srcPlayData;
     if (curState && curState !== state) {
-      this._revertDefaultValue(srcPlayData);
+      this._revertDefaultValue(srcPlayData.state, srcPlayData.stateData);
     }
 
     //CM: Not consider same stateName, but different animation
@@ -117,6 +117,26 @@ export class Animator extends Component {
     srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
 
     this._saveDefaultValues(animatorStateData);
+  }
+
+  /**
+   * @internal
+   */
+  _reset(): void {
+    const { _animatorController: animatorController } = this;
+    if (animatorController) {
+      const layers = animatorController.layers;
+      for (let i = 0, n = layers.length; i < n; ++i) {
+        const { states } = layers[i].stateMachine;
+        const animatorLayerData = this._getAnimatorLayerData(i);
+        for (let j = 0, m = states.length; j < m; ++j) {
+          const state = states[j];
+          const animatorStateData = this._getAnimatorStateData(state.name, state, animatorLayerData);
+          this._revertDefaultValue(state, animatorStateData);
+        }
+      }
+    }
+    this._clearPlayData();
   }
 
   /**
@@ -363,6 +383,7 @@ export class Animator extends Component {
       if (owner.crossCurveMark === crossCurveMark) {
         crossCurveData[owner.crossCurveIndex].destCurveIndex = i;
       } else {
+        owner.saveDefaultValue();
         saveFixed && owner.saveFixedPoseValue();
         owner.crossCurveMark = crossCurveMark;
         owner.crossCurveIndex = crossCurveData.length;
@@ -498,7 +519,7 @@ export class Animator extends Component {
 
     let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
-    
+
     srcPlayData.update();
     destPlayData.update();
 
@@ -639,6 +660,12 @@ export class Animator extends Component {
           break;
         }
       }
+    } else if (owner.type === SkinnedMeshRenderer) {
+      switch (owner.property) {
+        case AnimationProperty.BlendShapeWeights:
+          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          break;
+      }
     }
 
     if (additive) {
@@ -717,11 +744,11 @@ export class Animator extends Component {
     }
   }
 
-  private _revertDefaultValue(playData: AnimatorStatePlayData) {
-    const { clip } = playData.state;
+  private _revertDefaultValue(state: AnimatorState, stateData: AnimatorStateData) {
+    const { clip } = state;
     if (clip) {
       const curves = clip._curveBindings;
-      const { curveOwners } = playData.stateData;
+      const { curveOwners } = stateData;
       for (let i = curves.length - 1; i >= 0; i--) {
         const owner = curveOwners[i];
         const { transform } = owner.target;
@@ -734,6 +761,12 @@ export class Animator extends Component {
             break;
           case AnimationProperty.Scale:
             transform.scale = <Vector3>owner.defaultValue;
+            break;
+          case AnimationProperty.BlendShapeWeights:
+            const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+            for (let j = 0, length = blendShapeWeights.length; j < length; ++j) {
+              (<SkinnedMeshRenderer>owner.component).blendShapeWeights[j] = owner.defaultValue[j];
+            }
             break;
         }
       }
@@ -756,7 +789,7 @@ export class Animator extends Component {
     }
   }
 
-  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number) {
+  private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
     const { name } = transition.destinationState;
     const animatorStateInfo = this._getAnimatorStateInfo(name, layerIndex, Animator._animatorInfo);
     const { state: crossState } = animatorStateInfo;
@@ -776,8 +809,6 @@ export class Animator extends Component {
     const duration = crossState._getDuration();
     const offset = duration * transition.offset;
     destPlayData.reset(crossState, animatorStateData, offset);
-
-    this._saveDefaultValues(animatorStateData);
 
     switch (layerState) {
       // Maybe not play, maybe end.
@@ -870,6 +901,8 @@ export class Animator extends Component {
     this._animatorLayersData.length = 0;
     this._crossCurveDataCollection.length = 0;
     this._animationCurveOwners.length = 0;
-    this._controllerUpdateFlag.flag = false;
+    if (this._controllerUpdateFlag) {
+      this._controllerUpdateFlag.flag = false;
+    }
   }
 }
