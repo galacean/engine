@@ -58,6 +58,12 @@ export class AnimationCurveOwner {
       case AnimationProperty.Scale:
         this.target.transform.scale.cloneTo(<Vector3>this.defaultValue);
         break;
+      case AnimationProperty.BlendShapeWeights:
+        const { blendShapeWeights } = <SkinnedMeshRenderer>this.component;
+        for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+          this.defaultValue[i] = (<SkinnedMeshRenderer>this.component).blendShapeWeights[i];
+        }
+        break;
     }
   }
 
@@ -71,6 +77,12 @@ export class AnimationCurveOwner {
         break;
       case AnimationProperty.Scale:
         this.target.transform.scale.cloneTo(<Vector3>this.fixedPoseValue);
+        break;
+      case AnimationProperty.BlendShapeWeights:
+        const { blendShapeWeights } = <SkinnedMeshRenderer>this.component;
+        for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+          this.fixedPoseValue[i] = (<SkinnedMeshRenderer>this.component).blendShapeWeights[i];
+        }
         break;
     }
   }
