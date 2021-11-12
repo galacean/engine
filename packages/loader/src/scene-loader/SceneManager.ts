@@ -43,6 +43,7 @@ export class SceneManager {
         scene.ambientLight.specularTexture = ambientLight.specularTexture;
         scene.ambientLight.diffuseSphericalHarmonics = ambientLight.diffuseSphericalHarmonics;
         scene.ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
+        scene.ambientLight.specularTextureDecodeRGBM = true;
       } else {
         scene.ambientLight.specularTexture = null;
         scene.ambientLight.diffuseMode = DiffuseMode.SolidColor;
