@@ -752,6 +752,7 @@ export class Animator extends Component {
       for (let i = curves.length - 1; i >= 0; i--) {
         const owner = curveOwners[i];
         const { transform } = owner.target;
+        if (!owner._hasSavedDefaultValue) continue;
         switch (owner.property) {
           case AnimationProperty.Position:
             transform.position = <Vector3>owner.defaultValue;
