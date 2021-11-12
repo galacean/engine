@@ -18,6 +18,9 @@ export class AnimationCurveOwner {
   readonly component: Component;
   readonly defaultValue: InterpolableValue;
   readonly fixedPoseValue: InterpolableValue;
+  
+  /** @internal */
+  _hasSavedDefaultValue: boolean = false;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     this.target = target;
@@ -65,6 +68,7 @@ export class AnimationCurveOwner {
         }
         break;
     }
+    this._hasSavedDefaultValue = true;
   }
 
   saveFixedPoseValue(): void {
