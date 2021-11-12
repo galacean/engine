@@ -93,7 +93,8 @@ export class GLTFModel extends Component {
           this._animator.play(value, 0);
         }
       } else {
-        this._animator.reset();
+        // @ts-ignore
+        this._animator._reset();
       }
     }
     this._clipPreview = value;
@@ -163,7 +164,8 @@ export class GLTFModel extends Component {
         this._animator.play(playStateName, 0);
       }
     } else {
-      this._animator.reset();
+       // @ts-ignore
+      this._animator._reset();
     }
     if (this._controllerUpdateFlag?.flag) {
       this._controllerUpdateFlag.flag = false;
@@ -182,7 +184,8 @@ export class GLTFModel extends Component {
         if (defaultStateName) {
           animator.play(defaultStateName, i);
         } else {
-          animator.reset();
+           // @ts-ignore
+          animator._reset();
         }
         if (this._controllerUpdateFlag?.flag) {
           this._controllerUpdateFlag.flag = false;
