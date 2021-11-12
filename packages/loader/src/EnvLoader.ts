@@ -48,6 +48,7 @@ class EnvLoader extends Loader<AmbientLight> {
           sh.setValueByArray(shArray);
           ambientLight.diffuseSphericalHarmonics = sh;
           ambientLight.specularTexture = texture;
+          ambientLight.specularTextureDecodeRGBM = true;
 
           resolve(ambientLight);
         })

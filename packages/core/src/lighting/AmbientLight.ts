@@ -12,6 +12,7 @@ import { DiffuseMode } from "./enums/DiffuseMode";
 export class AmbientLight {
   private static _shMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SH");
   private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
+  private static _decodeRGBMMacro: ShaderMacro = Shader.getMacroByName("O3_DECODE_ENV_RGBM");
 
   private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
   private static _diffuseSHProperty: ShaderProperty = Shader.getPropertyByName("u_env_sh");
@@ -30,6 +31,25 @@ export class AmbientLight {
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
   private _scene: Scene;
+  private _specularTextureDecodeRGBM: boolean = false;
+
+  /**
+   * Whether to decode from specularTexture with RGBM format.
+   */
+  get specularTextureDecodeRGBM(): boolean {
+    return this._specularTextureDecodeRGBM;
+  }
+
+  set specularTextureDecodeRGBM(value: boolean) {
+    this._specularTextureDecodeRGBM = value;
+    if (!this._scene) return;
+
+    if (value) {
+      this._scene.shaderData.enableMacro(AmbientLight._decodeRGBMMacro);
+    } else {
+      this._scene.shaderData.disableMacro(AmbientLight._decodeRGBMMacro);
+    }
+  }
 
   /**
    * Diffuse mode of ambient light.
@@ -146,6 +166,7 @@ export class AmbientLight {
     this.diffuseIntensity = this._diffuseIntensity;
     this.specularTexture = this._specularReflection;
     this.specularIntensity = this._specularIntensity;
+    this.specularTextureDecodeRGBM = this._specularTextureDecodeRGBM;
   }
 
   private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
