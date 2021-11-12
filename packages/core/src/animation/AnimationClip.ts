@@ -48,10 +48,29 @@ export class AnimationClip extends Motion {
 
   /**
    * Adds an animation event to the clip.
+   * @param functionName - The name of the method called in the script
+   * @param time - The time when the event be triggered
+   * @param parameter - The parameter that is stored in the event and will be sent to the function
+   */
+  addEvent(functionName: string, time: number, parameter: Object): void;
+
+  /**
+   * Adds an animation event to the clip.
    * @param event - The animation event
    */
-  addEvent(event: AnimationEvent): void {
-    this._events.push(event);
+  addEvent(event: AnimationEvent): void;
+
+
+  addEvent(param: AnimationEvent | string, time?: number, parameter?: Object): void {
+    if (typeof param === 'string') {
+      const event = new AnimationEvent();
+      event.functionName = param;
+      event.time = time;
+      event.parameter = parameter;
+      this._events.push(event);
+    } else {
+      this._events.push(param);
+    }
     this._events.sort((a, b) => a.time - b.time);
   }
 

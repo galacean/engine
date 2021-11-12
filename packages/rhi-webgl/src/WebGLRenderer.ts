@@ -1,6 +1,5 @@
 import {
-  Camera,
-  Canvas,
+  Camera, CameraClearFlags, Canvas,
   ColorWriteMask,
   Engine,
   GLCapabilityType,
@@ -19,7 +18,6 @@ import {
   Texture2D,
   TextureCubeMap
 } from "@oasis-engine/core";
-import { CameraClearFlags } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { Color, Vector4 } from "@oasis-engine/math";
 import { GLCapability } from "./GLCapability";
@@ -256,13 +254,13 @@ export class WebGLRenderer implements IHardwareRenderer {
     }
   }
 
-  activeRenderTarget(renderTarget: RenderTarget, camera: Camera) {
+  activeRenderTarget(renderTarget: RenderTarget, camera: Camera, mipLevel: number) {
     const gl = this._gl;
     if (renderTarget) {
       /** @ts-ignore */
       (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
       const { width, height } = renderTarget;
-      this.viewport(0, 0, width, height);
+      this.viewport(0, 0, width >> mipLevel, height >> mipLevel);
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       const viewport = camera.viewport;
