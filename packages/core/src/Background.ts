@@ -1,4 +1,5 @@
-import { Color } from "@oasis-engine/math";
+import { Color, Vector2, Vector3 } from "@oasis-engine/math";
+import { ModelMesh } from ".";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
@@ -31,6 +32,9 @@ export class Background {
 
   /** @internal */
   _textureFillMode: BackgroundTextureFillMode = BackgroundTextureFillMode.AspectFitHeight;
+
+  /** @internal */
+  _mesh: ModelMesh;
 
   private _texture: Texture2D = null;
 
@@ -70,7 +74,9 @@ export class Background {
    * Constructor of Background.
    * @param _engine Engine Which the background belongs to.
    */
-  constructor(private _engine: Engine) {}
+  constructor(private _engine: Engine) {
+    this._mesh = this._createPlane(_engine)
+  }
 
   /**
    * @internal
@@ -81,7 +87,7 @@ export class Background {
     }
     const { canvas } = this._engine;
     const { width, height } = canvas;
-    const { _backgroundTextureMesh } = this._engine;
+    const { _mesh:_backgroundTextureMesh } = this;
     const positions = _backgroundTextureMesh.getPositions();
 
     switch (this._textureFillMode) {
@@ -108,5 +114,28 @@ export class Background {
     }
     _backgroundTextureMesh.setPositions(positions);
     _backgroundTextureMesh.uploadData(false);
+  }
+
+  private _createPlane(
+    engine: Engine,
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    const indices = new Uint8Array([1, 2, 0, 1, 3, 2]);
+
+    const positions: Vector3[] = new Array(4);
+    const uvs: Vector2[] = new Array(4);
+
+    for (let i = 0; i < 4; ++i) {
+      positions[i] = new Vector3();
+      uvs[i] = new Vector2(i % 2, 1 - ((i * 0.5) | 0));
+    }
+
+    mesh.setPositions(positions);
+    mesh.setUVs(uvs);
+    mesh.setIndices(indices);
+
+    mesh.uploadData(false);
+    mesh.addSubMesh(0, indices.length);
+    return mesh;
   }
 }

@@ -66,8 +66,6 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _backgroundTextureMaterial: Material;
   /* @internal */
-  _backgroundTextureMesh: ModelMesh;
-  /* @internal */
   _renderCount: number = 0;
   /* @internal */
   _shaderProgramPools: ShaderProgramPool[] = [];
@@ -221,9 +219,6 @@ export class Engine extends EventDispatcher {
     this._backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
     this._backgroundTextureMaterial.isGCIgnored = true;
     this._backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
-
-    this._backgroundTextureMesh = PrimitiveMesh.createPlane(this, 2, 2, 1, 1, false);
-    this._backgroundTextureMesh.isGCIgnored = true;
 
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
