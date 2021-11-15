@@ -22,7 +22,7 @@ describe("Background Test", function () {
   });
   it("set texture fill should be success", () => {
     scene.background.textureFillMode = BackgroundTextureFillMode.Fill;
-    const positions = engine._backgroundTextureMesh.getPositions();
+    const positions = scene.background._mesh.getPositions();
     expect(positions[0].x).toBeCloseTo(-1);
     expect(positions[0].y).toBeCloseTo(-1);
 
@@ -38,7 +38,7 @@ describe("Background Test", function () {
 
   it("set texture fill should be success", () => {
     scene.background.textureFillMode = BackgroundTextureFillMode.AspectFitHeight;
-    const positions = engine._backgroundTextureMesh.getPositions();
+    const positions = scene.background._mesh.getPositions();
     expect(positions[0].x).toBeCloseTo(-0.5);
     expect(positions[0].y).toBeCloseTo(-1);
 
@@ -54,7 +54,7 @@ describe("Background Test", function () {
 
   it("set texture fill should be success", () => {
     scene.background.textureFillMode = BackgroundTextureFillMode.AspectFitWidth;
-    const positions = engine._backgroundTextureMesh.getPositions();
+    const positions = scene.background._mesh.getPositions();
     expect(positions[0].x).toBeCloseTo(-1);
     expect(positions[0].y).toBeCloseTo(-2);
 

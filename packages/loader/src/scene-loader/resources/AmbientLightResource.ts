@@ -1,4 +1,4 @@
-import { ResourceManager } from "@oasis-engine/core";
+import { AssetType, ResourceManager } from "@oasis-engine/core";
 import { Oasis } from "../Oasis";
 import { AssetConfig } from "../types";
 import { SchemaResource } from "./SchemaResource";
@@ -8,7 +8,7 @@ export class AmbientLightResource extends SchemaResource {
     return new Promise((resolve, reject) => {
       const { url } = assetConfig;
       resourceManager
-        .load({ url, type: "env" })
+        .load({ url, type: AssetType.Env })
         .then((res) => {
           this._resource = res;
           resolve(this);

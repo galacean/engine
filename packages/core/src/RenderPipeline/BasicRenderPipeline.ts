@@ -213,7 +213,8 @@ export class BasicRenderPipeline {
 
   private _drawBackgroundTexture(engine: Engine, background: Background) {
     const rhi = engine._hardwareRenderer;
-    const { _backgroundTextureMaterial, _backgroundTextureMesh, canvas } = engine;
+    const { _backgroundTextureMaterial, canvas } = engine;
+    const mesh = background._mesh;
 
     if (
       (this._lastCanvasSize.x !== canvas.width || this._lastCanvasSize.y !== canvas.height) &&
@@ -229,7 +230,7 @@ export class BasicRenderPipeline {
     program.uploadUngroupTextures();
 
     _backgroundTextureMaterial.renderState._apply(engine);
-    rhi.drawPrimitive(_backgroundTextureMesh, _backgroundTextureMesh.subMesh, program);
+    rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 
   private _drawSky(engine: Engine, camera: Camera, sky: Sky): void {

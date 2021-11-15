@@ -1,4 +1,4 @@
-import { PrimitiveMesh, SkyBoxMaterial } from "@oasis-engine/core";
+import { AmbientLight, DiffuseMode, PrimitiveMesh, SkyBoxMaterial } from "@oasis-engine/core";
 import { Oasis } from "./Oasis";
 import { pluginHook } from "./plugins/PluginManager";
 
@@ -36,6 +36,17 @@ export class SceneManager {
       } else {
         sky.mesh = null;
         sky.material = null;
+      }
+    } else if (scene[field] && field === "ambientLight" && key === "specularTexture") {
+      if (prop && prop.type === "asset") {
+        const ambientLight: AmbientLight = this.oasis.resourceManager.get(prop.id).resource;
+        scene.ambientLight.specularTexture = ambientLight.specularTexture;
+        scene.ambientLight.diffuseSphericalHarmonics = ambientLight.diffuseSphericalHarmonics;
+        scene.ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
+        scene.ambientLight.specularTextureDecodeRGBM = true;
+      } else {
+        scene.ambientLight.specularTexture = null;
+        scene.ambientLight.diffuseMode = DiffuseMode.SolidColor;
       }
     } else if (scene[field]) {
       if (prop && prop.type === "asset") {
