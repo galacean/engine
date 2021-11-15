@@ -1,3 +1,4 @@
+import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
 import { TextRenderer } from "./TextRenderer";
 
 interface TextContext {
@@ -166,8 +167,21 @@ export class TextUtils {
   }
 
   private static _wordWrap(textRenderer: TextRenderer, fontStr: string): Array<string> {
+    const { width, height, horizontalOverflow, verticalOverflow } = textRenderer;
+    const isWrap = horizontalOverflow === TextHorizontalOverflow.Wrap;
+
+    // 
+    if (isWrap && width === 0) {
+      return [];
+    }
+    if (verticalOverflow === TextVerticalOverflow.Truncate && height === 0) {
+      return [];
+    }
+
     const { context } = TextUtils.textContext();
-    const { text, width, height, horizontalOverflow, verticalOverflow } = textRenderer;
+    const { sprite, text } = textRenderer;
+    const { pixelsPerUnit } = sprite;
+    const widthInPixel = width * pixelsPerUnit;
     const output: Array<string> = [];
     context.font = fontStr;
     const textArr = text.split("\n");
@@ -175,10 +189,35 @@ export class TextUtils {
     for (let i = 0, l = textArr.length; i < l; ++i) {
       const curText = textArr[i];
       const curWidth = Math.ceil(context.measureText(curText).width);
-      if (curWidth < width) {
-        output.push(curText);
+      if (isWrap) {
+        if (curWidth <= widthInPixel) {
+          output.push(curText);
+        } else {
+          let chars = '';
+          let charsWidth = 0;
+          for (let j = 0, l = curText.length; i < l; ++j) {
+            const curChar = curText[i];
+            const curCharWidth = Math.ceil(context.measureText(curChar).width);
+            if (charsWidth + curCharWidth > widthInPixel) {
+              // The width of text renderer is shorter than cur char.
+              if (charsWidth === 0) {
+                output.push(curChar);
+              } else {
+                output.push(chars);
+                chars = curChar;
+                charsWidth = curCharWidth;
+              }
+            } else {
+              chars += curChar;
+              charsWidth += curCharWidth;
+            }
+          }
+          if (charsWidth > 0) {
+            output.push(chars);
+          }
+        }
       } else {
-        
+        output.push(curText);
       }
     }
 
