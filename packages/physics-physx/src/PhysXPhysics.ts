@@ -62,9 +62,9 @@ export class PhysXPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = "https://lg-2fw0hhsc-1256786476.cos.ap-shanghai.myqcloud.com/phy/physx.release.js";
+        script.src = "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = "https://lg-2fw0hhsc-1256786476.cos.ap-shanghai.myqcloud.com/phy/physx.release.js";
+        script.src = "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
       }
     });
 

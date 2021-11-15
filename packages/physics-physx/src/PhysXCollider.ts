@@ -25,7 +25,7 @@ export abstract class PhysXCollider implements ICollider {
    * {@inheritDoc ICollider.removeShape }
    */
   removeShape(shape: PhysXColliderShape): void {
-    this._pxActor.detachShape(shape._pxShape);
+    this._pxActor.detachShape(shape._pxShape, true);
   }
 
   /**

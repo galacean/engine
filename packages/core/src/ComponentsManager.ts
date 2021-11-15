@@ -235,7 +235,7 @@ export class ComponentsManager {
     const camComps = camera.entity._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];
-      (camComp as any).onBeginRender && (camComp as any).onEndRender(camera);
+      (camComp as any).onEndRender && (camComp as any).onEndRender(camera);
     }
   }
 

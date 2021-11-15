@@ -48,8 +48,8 @@ export class PointerManager {
     htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = (evt:PointerEvent)=>{
       this._nativeEvents.push(evt);
     };
-    // MaxTouchCount + MouseCount(1)
-    this._pointerPool = new Array<Pointer>(navigator.maxTouchPoints + 1);
+    // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
+    this._pointerPool = new Array<Pointer>(11);
     this._enablePhysics = engine.physicsManager ? true : false;
   }
 
