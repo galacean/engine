@@ -75,7 +75,7 @@ export class Background {
    * @param _engine Engine Which the background belongs to.
    */
   constructor(private _engine: Engine) {
-    this._mesh = this._createPlane(_engine)
+    this._mesh = this._createPlane(_engine);
   }
 
   /**
@@ -120,6 +120,7 @@ export class Background {
     engine: Engine,
   ): ModelMesh {
     const mesh = new ModelMesh(engine);
+    mesh.isGCIgnored = true;
     const indices = new Uint8Array([1, 2, 0, 1, 3, 2]);
 
     const positions: Vector3[] = new Array(4);
