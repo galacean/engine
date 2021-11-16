@@ -41,6 +41,7 @@ ShaderPool.init();
 export class Engine extends EventDispatcher {
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
+  readonly inputManager: InputManager;
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
@@ -66,8 +67,6 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _spriteMaskManager: SpriteMaskManager;
-  /** @internal */
-  _inputManager: InputManager;
 
   protected _canvas: Canvas;
   private _resourceManager: ResourceManager = new ResourceManager(this);
@@ -180,7 +179,7 @@ export class Engine extends EventDispatcher {
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
 
-    this._inputManager = new InputManager(this);
+    this.inputManager = new InputManager(this);
 
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
 
@@ -261,7 +260,7 @@ export class Engine extends EventDispatcher {
         this.physicsManager._update(deltaTime);
         componentsManager.callColliderOnLateUpdate();
       }
-      this._inputManager._update();
+      this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
@@ -291,7 +290,7 @@ export class Engine extends EventDispatcher {
     if (this._sceneManager) {
       this._whiteTexture2D.destroy(true);
       this._whiteTextureCube.destroy(true);
-      this._inputManager._destroy();
+      this.inputManager._destroy();
       this.trigger(new Event("shutdown", this));
       engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 
