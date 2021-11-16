@@ -13,6 +13,6 @@
   ],
   "types": "types/index.d.ts",
   "dependencies": {
-    "@oasis-engine/math": "0.5.2"
+    "@oasis-engine/math": "0.6.0-alpha.3"
   }
 }
