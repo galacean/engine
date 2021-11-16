@@ -3,6 +3,8 @@ import { WebCanvas } from "./WebCanvas";
 import { WebGLRenderer, WebGLRendererOptions } from "./WebGLRenderer";
 import { IPhysics } from "@oasis-engine/design";
 
+type OffscreenCanvas = any;
+
 /**
  * WebGL platform engine,support includes WebGL1.0 and WebGL2.0.
  */
