@@ -2,6 +2,8 @@
 import { Entity, Matrix, Script, Vector2, Vector3 } from "oasis-engine";
 import { Spherical } from "./Spherical";
 
+type MouseWheelEvent = any;
+
 /**
  * The camera's track controller, can rotate, zoom, pan, support mouse and touch events.
  */

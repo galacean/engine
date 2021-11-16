@@ -1,6 +1,8 @@
 import { Canvas } from "@oasis-engine/core";
 import { Vector2 } from "@oasis-engine/math";
 
+type OffscreenCanvas = any;
+
 /**
  * The canvas used on the web, which can support HTMLCanvasElement and OffscreenCanvas.
  */

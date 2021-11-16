@@ -40,7 +40,7 @@ export class AnimatorState {
 
   set clip(clip: AnimationClip) {
     this._clip = clip;
-    this._clipEndTime = Math.min(this._clipEndTime, clip.length);
+    this._clipEndTime = Math.min(this._clipEndTime, 1);
   }
 
   /**
