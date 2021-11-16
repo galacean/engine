@@ -166,10 +166,7 @@ export class AmbientLight {
     this.diffuseIntensity = this._diffuseIntensity;
     this.specularTexture = this._specularReflection;
     this.specularIntensity = this._specularIntensity;
-<<<<<<< HEAD
-=======
     this.specularTextureDecodeRGBM = this._specularTextureDecodeRGBM;
->>>>>>> 23f58d7f554c12e833bdf7f02a40259e775c22b2
   }
 
   private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
