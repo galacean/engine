@@ -42,6 +42,7 @@ export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { ColorSpace } from "./enums/ColorSpace";
+export * from "./input/index";
 export * from "./lighting/index";
 export * from "./material/index";
 export * from "./texture/index";
