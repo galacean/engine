@@ -1,5 +1,5 @@
 import { IPhysicsManager } from "@oasis-engine/design";
-import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "@oasis-engine/math";
+import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";

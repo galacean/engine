@@ -1,6 +1,6 @@
 import { ISphereColliderShape } from "@oasis-engine/design";
 import { LiteColliderShape } from "./LiteColliderShape";
-import { BoundingSphere, Quaternion, Ray, Vector3 } from "@oasis-engine/math";
+import { BoundingSphere, Quaternion, Ray, Vector3 } from "oasis-engine";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 

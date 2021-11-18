@@ -10,7 +10,7 @@ import {
   IPlaneColliderShape
 } from "@oasis-engine/design";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "oasis-engine";
 import { LiteStaticCollider } from "./LiteStaticCollider";
 import { LitePhysicsMaterial } from "./LitePhysicsMaterial";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
