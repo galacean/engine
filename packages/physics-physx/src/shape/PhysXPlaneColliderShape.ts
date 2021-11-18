@@ -2,7 +2,7 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
 import { IPlaneColliderShape } from "@oasis-engine/design";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXPhysics } from "../PhysXPhysics";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "oasis-engine";
 
 /**
  * Plane collider shape in PhysX.
