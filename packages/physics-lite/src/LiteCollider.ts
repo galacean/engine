@@ -1,5 +1,5 @@
 import { ICollider } from "@oasis-engine/design";
-import { Quaternion, Ray, Vector3 } from "@oasis-engine/math";
+import { Quaternion, Ray, Vector3 } from "oasis-engine";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteTransform } from "./LiteTransform";
