@@ -2,7 +2,7 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "oasis-engine";
 
 /**
  * Capsule collider shape in PhysX.

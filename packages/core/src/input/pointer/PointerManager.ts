@@ -128,7 +128,7 @@ export class PointerManager {
     return -1;
   }
 
-  public _addPointer(pointerId: number, x: number, y: number, phase: PointerPhase): void {
+  private _addPointer(pointerId: number, x: number, y: number, phase: PointerPhase): void {
     const { _pointers: pointers } = this;
     const lastCount = pointers.length;
     if (lastCount === 0 || this._multiPointerEnabled) {

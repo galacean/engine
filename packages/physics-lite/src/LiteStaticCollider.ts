@@ -1,6 +1,6 @@
 import { IStaticCollider } from "@oasis-engine/design";
 import { LiteCollider } from "./LiteCollider";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "oasis-engine";
 
 /**
  * A static collider component that will not move.

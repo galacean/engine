@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
+import { MathUtil, Matrix, Quaternion, Vector3 } from "oasis-engine";
 import { LiteUpdateFlagManager } from "./LiteUpdateFlagManager";
 import { LiteUpdateFlag } from "./LiteUpdateFlag";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
