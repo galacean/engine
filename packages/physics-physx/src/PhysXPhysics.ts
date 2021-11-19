@@ -17,7 +17,7 @@ import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
 import { PhysXStaticCollider } from "./PhysXStaticCollider";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 

@@ -2,7 +2,7 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { ISphereColliderShape } from "@oasis-engine/design";
 import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "oasis-engine";
 
 /**
  * Sphere collider shape in PhysX.

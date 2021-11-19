@@ -1,5 +1,5 @@
 import { PhysXPhysics } from "./PhysXPhysics";
-import { Ray, Vector3 } from "@oasis-engine/math";
+import { Ray, Vector3 } from "oasis-engine";
 import { IPhysicsManager } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
 import { DisorderedArray } from "./DisorderedArray";
