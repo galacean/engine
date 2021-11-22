@@ -4,6 +4,16 @@ import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape, IPlaneC
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { ICollider } from "./ICollider";
+import {
+  IConfigurableJoint,
+  IFixedJoint,
+  IHingeJoint,
+  ISphericalJoint,
+  ISpringJoint,
+  ITranslationalJoint
+} from "./joints";
+import { ICapsuleCharacterControllerDesc, IPhysicsCapsuleObstacle } from "./characterkinematic";
 
 /**
  * The interface of physics creation.
@@ -93,4 +103,64 @@ export interface IPhysics {
     height: number,
     material: IPhysicsMaterial
   ): ICapsuleColliderShape;
+
+  //MARK: - Joint
+  createFixedJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): IFixedJoint;
+
+  createHingeJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): IHingeJoint;
+
+  createSphericalJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): ISphericalJoint;
+
+  createSpringJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): ISpringJoint;
+
+  createTranslationalJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): ITranslationalJoint;
+
+  createConfigurableJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): IConfigurableJoint;
+
+  //MARK: - Character Controller
+  createCapsuleCharacterControllerDesc(): ICapsuleCharacterControllerDesc;
+
+  createCapsuleObstacle(): IPhysicsCapsuleObstacle;
 }

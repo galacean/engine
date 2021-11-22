@@ -2,11 +2,11 @@ import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { IPhysicsObstacle } from "./IPhysicsObstacle";
 
 export interface IPhysicsCapsuleObstacle extends IPhysicsObstacle {
-  setPos(mPos: Vector3);
+  setPos(mPos: Vector3): void;
 
-  setRot(mRot: Quaternion);
+  setRot(mRot: Quaternion): void;
 
-  setRadius(mRadius: number);
+  setRadius(mRadius: number): void;
 
-  setHalfHeight(mHalfHeight: number);
+  setHalfHeight(mHalfHeight: number): void;
 }

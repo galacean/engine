@@ -1,7 +1,7 @@
 import { IJoint } from "./IJoint";
 
 export interface IFixedJoint extends IJoint {
-  setProjectionLinearTolerance(tolerance: number);
+  setProjectionLinearTolerance(tolerance: number): void;
 
-  setProjectionAngularTolerance(tolerance: number);
+  setProjectionAngularTolerance(tolerance: number): void;
 }

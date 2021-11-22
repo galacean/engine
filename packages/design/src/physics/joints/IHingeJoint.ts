@@ -1,19 +1,19 @@
 import { IJoint } from "./IJoint";
 
 export interface IHingeJoint extends IJoint {
-  setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number);
+  setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number): void;
 
-  setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number);
+  setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void;
 
-  setDriveVelocity(velocity: number);
+  setDriveVelocity(velocity: number): void;
 
-  setDriveForceLimit(limit: number);
+  setDriveForceLimit(limit: number): void;
 
-  setDriveGearRatio(ratio: number);
+  setDriveGearRatio(ratio: number): void;
 
-  setRevoluteJointFlag(flag: number, value: boolean);
+  setRevoluteJointFlag(flag: number, value: boolean): void;
 
-  setProjectionLinearTolerance(tolerance: number);
+  setProjectionLinearTolerance(tolerance: number): void;
 
-  setProjectionAngularTolerance(tolerance: number);
+  setProjectionAngularTolerance(tolerance: number): void;
 }

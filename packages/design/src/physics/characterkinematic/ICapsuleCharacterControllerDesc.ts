@@ -7,43 +7,43 @@ import { ICharacterController } from "./ICharacterController";
 import { IPhysicsObstacle } from "./IPhysicsObstacle";
 
 export interface ICapsuleCharacterControllerDesc extends ICharacterControllerDesc {
-  setToDefault();
+  setToDefault(): void;
 
-  setRadius(radius: number);
+  setRadius(radius: number): void;
 
-  setHeight(height: number);
+  setHeight(height: number): void;
 
-  setClimbingMode(climbingMode: number);
+  setClimbingMode(climbingMode: number): void;
 
-  setPosition(position: Vector3);
+  setPosition(position: Vector3): void;
 
-  setUpDirection(upDirection: Vector3);
+  setUpDirection(upDirection: Vector3): void;
 
-  setSlopeLimit(slopeLimit: number);
+  setSlopeLimit(slopeLimit: number): void;
 
-  setInvisibleWallHeight(invisibleWallHeight: number);
+  setInvisibleWallHeight(invisibleWallHeight: number): void;
 
-  setMaxJumpHeight(maxJumpHeight: number);
+  setMaxJumpHeight(maxJumpHeight: number): void;
 
-  setContactOffset(contactOffset: number);
+  setContactOffset(contactOffset: number): void;
 
-  setStepOffset(stepOffset: number);
+  setStepOffset(stepOffset: number): void;
 
-  setDensity(density: number);
+  setDensity(density: number): void;
 
-  setScaleCoeff(scaleCoeff: number);
+  setScaleCoeff(scaleCoeff: number): void;
 
-  setVolumeGrowth(volumeGrowth: number);
+  setVolumeGrowth(volumeGrowth: number): void;
 
-  setNonWalkableMode(nonWalkableMode: number);
+  setNonWalkableMode(nonWalkableMode: number): void;
 
-  setMaterial(material?: IPhysicsMaterial);
+  setMaterial(material?: IPhysicsMaterial): void;
 
-  setRegisterDeletionListener(registerDeletionListener: boolean);
+  setRegisterDeletionListener(registerDeletionListener: boolean): void;
 
   setControllerBehaviorCallback(
     getShapeBehaviorFlags: (shape: IColliderShape, collider: ICollider) => number,
     getControllerBehaviorFlags: (controller: ICharacterController) => number,
     getObstacleBehaviorFlags: (obstacle: IPhysicsObstacle) => number
-  );
+  ): void;
 }

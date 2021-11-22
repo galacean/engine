@@ -7,24 +7,24 @@ export interface ICharacterController {
 
   setPosition(position: Vector3): boolean;
 
-  setFootPosition(position: Vector3);
+  setFootPosition(position: Vector3): void;
 
-  setStepOffset(offset: number);
+  setStepOffset(offset: number): void;
 
-  setNonWalkableMode(flag: number);
+  setNonWalkableMode(flag: number): void;
 
-  setContactOffset(offset: number);
+  setContactOffset(offset: number): void;
 
-  setUpDirection(up: Vector3);
+  setUpDirection(up: Vector3): void;
 
-  setSlopeLimit(slopeLimit: number);
+  setSlopeLimit(slopeLimit: number): void;
 
-  invalidateCache();
+  invalidateCache(): void;
 
-  resize(height: number);
+  resize(height: number): void;
 
   /// Set unique id of the collider shape.
-  setUniqueID(id: number);
+  setUniqueID(id: number): void;
 
-  getPosition(position: Vector3);
+  getPosition(position: Vector3): void;
 }

@@ -1,4 +1,4 @@
-import { IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterController, ICharacterControllerManager, IPhysicsManager } from "@oasis-engine/design";
 import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -94,6 +94,18 @@ export class LitePhysicsManager implements IPhysicsManager {
       this._collisionDetection(deltaTime, colliders[i]);
     }
     this._fireEvent();
+  }
+
+  addCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
+  }
+
+  removeCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+  }
+
+  createControllerManager(): ICharacterControllerManager {
+    throw "Physics-lite don't support createControllerManager. Use Physics-PhysX instead!";
   }
 
   /**
@@ -237,7 +249,7 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = 0, n = currentEvents.length; i < n;) {
       const event = currentEvents.get(i);
       if (!event.needUpdate) {
         if (event.state == TriggerEventState.Enter) {

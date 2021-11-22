@@ -2,23 +2,23 @@ import { IJoint } from "./IJoint";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
 export interface IConfigurableJoint extends IJoint {
-  setMotion(axis: number, type: number);
+  setMotion(axis: number, type: number): void;
 
-  setHardDistanceLimit(extent: number, contactDist: number);
+  setHardDistanceLimit(extent: number, contactDist: number): void;
 
-  setSoftDistanceLimit(extent: number, stiffness: number, damping: number);
+  setSoftDistanceLimit(extent: number, stiffness: number, damping: number): void;
 
-  setHardLinearLimit(axis: number, lowerLimit: number, upperLimit: number, contactDist: number);
+  setHardLinearLimit(axis: number, lowerLimit: number, upperLimit: number, contactDist: number): void;
 
-  setSoftLinearLimit(axis: number, lowerLimit: number, upperLimit: number, stiffness: number, damping: number);
+  setSoftLinearLimit(axis: number, lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void;
 
-  setHardTwistLimit(lowerLimit: number, upperLimit: number, contactDist: number);
+  setHardTwistLimit(lowerLimit: number, upperLimit: number, contactDist: number): void;
 
-  setSoftTwistLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number);
+  setSoftTwistLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void;
 
-  setHardSwingLimit(yLimitAngle: number, zLimitAngle: number, contactDist: number);
+  setHardSwingLimit(yLimitAngle: number, zLimitAngle: number, contactDist: number): void;
 
-  setSoftSwingLimit(yLimitAngle: number, zLimitAngle: number, stiffness: number, damping: number);
+  setSoftSwingLimit(yLimitAngle: number, zLimitAngle: number, stiffness: number, damping: number): void;
 
   setHardPyramidSwingLimit(
     yLimitAngleMin: number,
@@ -26,7 +26,7 @@ export interface IConfigurableJoint extends IJoint {
     zLimitAngleMin: number,
     zLimitAngleMax: number,
     contactDist: number
-  );
+  ): void;
 
   setSoftPyramidSwingLimit(
     yLimitAngleMin: number,
@@ -35,15 +35,15 @@ export interface IConfigurableJoint extends IJoint {
     zLimitAngleMax: number,
     stiffness: number,
     damping: number
-  );
+  ): void;
 
-  setDrive(index: number, driveStiffness: number, driveDamping: number, driveForceLimit: number);
+  setDrive(index: number, driveStiffness: number, driveDamping: number, driveForceLimit: number): void;
 
-  setDrivePosition(position: Vector3, rotation: Quaternion);
+  setDrivePosition(position: Vector3, rotation: Quaternion): void;
 
-  setDriveVelocity(linear: Vector3, angular: Vector3);
+  setDriveVelocity(linear: Vector3, angular: Vector3): void;
 
-  setProjectionLinearTolerance(tolerance: number);
+  setProjectionLinearTolerance(tolerance: number): void;
 
-  setProjectionAngularTolerance(tolerance: number);
+  setProjectionAngularTolerance(tolerance: number): void;
 }

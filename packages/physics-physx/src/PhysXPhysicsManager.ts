@@ -1,6 +1,6 @@
 import { PhysXPhysics } from "./PhysXPhysics";
 import { Ray, Vector3 } from "oasis-engine";
-import { IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterController, ICharacterControllerManager, IPhysicsManager } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
 import { DisorderedArray } from "./DisorderedArray";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
@@ -120,6 +120,18 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    */
   removeCollider(collider: PhysXCollider): void {
     this._pxScene.removeActor(collider._pxActor, true);
+  }
+
+  addCharacterController(characterController: ICharacterController): void {
+    throw new Error("Method not implemented.");
+  }
+
+  removeCharacterController(characterController: ICharacterController): void {
+    throw new Error("Method not implemented.");
+  }
+
+  createControllerManager(): ICharacterControllerManager {
+    throw new Error("Method not implemented.");
   }
 
   /**

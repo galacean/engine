@@ -3,19 +3,19 @@ import { ICharacterControllerDesc } from "./ICharacterControllerDesc";
 import { ICharacterController } from "./ICharacterController";
 
 export interface ICharacterControllerManager {
-  purgeControllers();
+  purgeControllers(): void;
 
   createController(desc: ICharacterControllerDesc): ICharacterController;
 
-  computeInteractions(elapsedTime: number);
+  computeInteractions(elapsedTime: number): void;
 
-  setTessellation(flag: boolean, maxEdgeLength: number);
+  setTessellation(flag: boolean, maxEdgeLength: number): void;
 
-  setOverlapRecoveryModule(flag: boolean);
+  setOverlapRecoveryModule(flag: boolean): void;
 
-  setPreciseSweeps(flag: boolean);
+  setPreciseSweeps(flag: boolean): void;
 
-  setPreventVerticalSlidingAgainstCeiling(flag: boolean);
+  setPreventVerticalSlidingAgainstCeiling(flag: boolean): void;
 
-  shiftOrigin(shift: Vector3);
+  shiftOrigin(shift: Vector3): void;
 }

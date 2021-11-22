@@ -1,15 +1,15 @@
 import { IJoint } from "./IJoint";
 
 export interface ISpringJoint extends IJoint {
-  setMinDistance(distance: number);
+  setMinDistance(distance: number): void;
 
-  setMaxDistance(distance: number);
+  setMaxDistance(distance: number): void;
 
-  setTolerance(tolerance: number);
+  setTolerance(tolerance: number): void;
 
-  setStiffness(stiffness: number);
+  setStiffness(stiffness: number): void;
 
-  setDamping(damping: number);
+  setDamping(damping: number): void;
 
-  setDistanceJointFlag(flag: number, value: boolean);
+  setDistanceJointFlag(flag: number, value: boolean): void;
 }

@@ -434,4 +434,72 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   wakeUp() {
     return this._pxActor.wakeUp();
   }
+
+  movePosition(value: Vector3): void {
+    throw "";
+  }
+
+  moveRotation(value: Quaternion): void {
+    throw "";
+  }
+
+  putToSleep(): void {
+    throw "";
+  }
+
+  setAngularDamping(value: number): void {
+    throw "";
+  }
+
+  setAngularVelocity(value: Vector3): void {
+    throw "";
+  }
+
+  setCenterOfMass(value: Vector3): void {
+    throw "";
+  }
+
+  setCollisionDetectionMode(value: number): void {
+    throw "";
+  }
+
+  setFreezeRotation(value: boolean): void {
+    throw "";
+  }
+
+  setInertiaTensor(value: Vector3): void {
+    throw "";
+  }
+
+  setIsKinematic(value: boolean): void {
+    throw "";
+  }
+
+  setLinearDamping(value: number): void {
+    throw "";
+  }
+
+  setLinearVelocity(value: Vector3): void {
+    throw "";
+  }
+
+  setMass(value: number): void {
+    throw "";
+  }
+
+  setMaxAngularVelocity(value: number): void {
+    throw "";
+  }
+
+  setMaxDepenetrationVelocity(value: number): void {
+    throw "";
+  }
+
+  setSleepThreshold(value: number): void {
+    throw "";
+  }
+
+  setSolverIterations(value: number): void {
+    throw "";
+  }
 }
