@@ -96,14 +96,23 @@ export class LitePhysicsManager implements IPhysicsManager {
     this._fireEvent();
   }
 
+  /**
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
   addCharacterController(characterController: ICharacterController): void {
     throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
   }
 
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
   removeCharacterController(characterController: ICharacterController): void {
     throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
   }
 
+  /**
+   * {@inheritDoc IPhysicsManager.createControllerManager }
+   */
   createControllerManager(): ICharacterControllerManager {
     throw "Physics-lite don't support createControllerManager. Use Physics-PhysX instead!";
   }

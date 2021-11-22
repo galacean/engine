@@ -115,6 +115,9 @@ export class LitePhysics {
   }
 
   //MARK: - Joint
+  /**
+   * {@inheritDoc IPhysics.createFixedJoint }
+   */
   static createFixedJoint(
     actor0: ICollider,
     position0: Vector3,
@@ -123,9 +126,12 @@ export class LitePhysics {
     position1: Vector3,
     rotation1: Quaternion
   ): IFixedJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw "Physics-lite don't support FixedJoint. Use Physics-PhysX instead!";
   }
 
+  /**
+   * {@inheritDoc IPhysics.createHingeJoint }
+   */
   static createHingeJoint(
     actor0: ICollider,
     position0: Vector3,
@@ -134,9 +140,12 @@ export class LitePhysics {
     position1: Vector3,
     rotation1: Quaternion
   ): IHingeJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw "Physics-lite don't support HingeJoint. Use Physics-PhysX instead!";
   }
 
+  /**
+   * {@inheritDoc IPhysics.createSphericalJoint }
+   */
   static createSphericalJoint(
     actor0: ICollider,
     position0: Vector3,
@@ -145,9 +154,12 @@ export class LitePhysics {
     position1: Vector3,
     rotation1: Quaternion
   ): ISphericalJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw "Physics-lite don't support SphericalJoint. Use Physics-PhysX instead!";
   }
 
+  /**
+   * {@inheritDoc IPhysics.createSpringJoint }
+   */
   static createSpringJoint(
     actor0: ICollider,
     position0: Vector3,
@@ -156,9 +168,12 @@ export class LitePhysics {
     position1: Vector3,
     rotation1: Quaternion
   ): ISpringJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw "Physics-lite don't support SpringJoint. Use Physics-PhysX instead!";
   }
 
+  /**
+   * {@inheritDoc IPhysics.createTranslationalJoint }
+   */
   static createTranslationalJoint(
     actor0: ICollider,
     position0: Vector3,
@@ -167,9 +182,12 @@ export class LitePhysics {
     position1: Vector3,
     rotation1: Quaternion
   ): ITranslationalJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw "Physics-lite don't support TranslationalJoint. Use Physics-PhysX instead!";
   }
 
+  /**
+   * {@inheritDoc IPhysics.createConfigurableJoint }
+   */
   static createConfigurableJoint(
     actor0: ICollider,
     position0: Vector3,
@@ -178,15 +196,21 @@ export class LitePhysics {
     position1: Vector3,
     rotation1: Quaternion
   ): IConfigurableJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw "Physics-lite don't support ConfigurableJoint. Use Physics-PhysX instead!";
   }
 
   //MARK: - Character Controller
+  /**
+   * {@inheritDoc IPhysics.createCapsuleCharacterControllerDesc }
+   */
   static createCapsuleCharacterControllerDesc(): ICapsuleCharacterControllerDesc {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw "Physics-lite don't support CapsuleCharacterControllerDesc. Use Physics-PhysX instead!";
   }
 
+  /**
+   * {@inheritDoc IPhysics.createCapsuleObstacle }
+   */
   static createCapsuleObstacle(): IPhysicsCapsuleObstacle {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    throw "Physics-lite don't support CapsuleObstacle. Use Physics-PhysX instead!";
   }
 }
