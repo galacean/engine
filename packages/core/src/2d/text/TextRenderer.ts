@@ -187,6 +187,11 @@ export class TextRenderer extends SpriteRenderer {
    * @internal
    */
   _render(camera: Camera): void {
+    if (this._text === '') {
+      this.sprite.texture = null;
+      return ;
+    }
+
     if (this._styleDirtyFlag) {
       this._updateText();
       this._styleDirtyFlag = false;
