@@ -2,7 +2,6 @@ import {
   IBoxColliderShape,
   ICapsuleCharacterControllerDesc,
   ICapsuleColliderShape,
-  ICollider,
   IConfigurableJoint,
   IDynamicCollider,
   IFixedJoint,
@@ -29,6 +28,13 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
+import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
+import { PhysXCollider } from "./PhysXCollider";
+import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
+import { PhysXSphericalJoint } from "./joint/PhysXSphericalJoint";
+import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
+import { PhysXTranslationalJoint } from "./joint/PhysXTranslationalJoint";
+import { PhysXConfigurableJoint } from "./joint/PhysXConfigurableJoint";
 
 /**
  * PhysX object creation.
@@ -178,69 +184,69 @@ export class PhysXPhysics {
 
   //MARK: - Joint
   static createFixedJoint(
-    actor0: ICollider,
+    actor0: PhysXCollider,
     position0: Vector3,
     rotation0: Quaternion,
-    actor1: ICollider,
+    actor1: PhysXCollider,
     position1: Vector3,
     rotation1: Quaternion
   ): IFixedJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    return new PhysXFixedJoint(actor0, position0, rotation0, actor1, position1, rotation1);
   }
 
   static createHingeJoint(
-    actor0: ICollider,
+    actor0: PhysXCollider,
     position0: Vector3,
     rotation0: Quaternion,
-    actor1: ICollider,
+    actor1: PhysXCollider,
     position1: Vector3,
     rotation1: Quaternion
   ): IHingeJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    return new PhysXHingeJoint(actor0, position0, rotation0, actor1, position1, rotation1);
   }
 
   static createSphericalJoint(
-    actor0: ICollider,
+    actor0: PhysXCollider,
     position0: Vector3,
     rotation0: Quaternion,
-    actor1: ICollider,
+    actor1: PhysXCollider,
     position1: Vector3,
     rotation1: Quaternion
   ): ISphericalJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    return new PhysXSphericalJoint(actor0, position0, rotation0, actor1, position1, rotation1);
   }
 
   static createSpringJoint(
-    actor0: ICollider,
+    actor0: PhysXCollider,
     position0: Vector3,
     rotation0: Quaternion,
-    actor1: ICollider,
+    actor1: PhysXCollider,
     position1: Vector3,
     rotation1: Quaternion
   ): ISpringJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    return new PhysXSpringJoint(actor0, position0, rotation0, actor1, position1, rotation1);
   }
 
   static createTranslationalJoint(
-    actor0: ICollider,
+    actor0: PhysXCollider,
     position0: Vector3,
     rotation0: Quaternion,
-    actor1: ICollider,
+    actor1: PhysXCollider,
     position1: Vector3,
     rotation1: Quaternion
   ): ITranslationalJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    return new PhysXTranslationalJoint(actor0, position0, rotation0, actor1, position1, rotation1);
   }
 
   static createConfigurableJoint(
-    actor0: ICollider,
+    actor0: PhysXCollider,
     position0: Vector3,
     rotation0: Quaternion,
-    actor1: ICollider,
+    actor1: PhysXCollider,
     position1: Vector3,
     rotation1: Quaternion
   ): IConfigurableJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+    return new PhysXConfigurableJoint(actor0, position0, rotation0, actor1, position1, rotation1);
   }
 
   //MARK: - Character Controller
