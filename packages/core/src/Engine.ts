@@ -275,6 +275,7 @@ export class Engine extends EventDispatcher {
       if (this.physicsManager) {
         componentsManager.callColliderOnUpdate();
         this.physicsManager._update(deltaTime / 1000.0);
+        componentsManager.callCharacterControllerOnLateUpdate();
         componentsManager.callColliderOnLateUpdate();
       }
       this.inputManager._update();
