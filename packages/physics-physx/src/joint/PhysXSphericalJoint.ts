@@ -4,6 +4,9 @@ import { PhysXJoint } from "./PhysXJoint";
 import { PhysXCollider } from "../PhysXCollider";
 import { PhysXPhysics } from "../PhysXPhysics";
 
+/**
+ * A joint which behaves in a similar way to a ball and socket.
+ */
 export class PhysXSphericalJoint extends PhysXJoint implements ISphericalJoint {
   constructor(
     actor0: PhysXCollider,
@@ -24,20 +27,30 @@ export class PhysXSphericalJoint extends PhysXJoint implements ISphericalJoint {
     );
   }
 
+  /**
+   * {@inheritDoc ISphericalJoint.setHardLimitCone }
+   */
   setHardLimitCone(yLimitAngle: number, zLimitAngle: number, contactDist: number) {
-    //this._pxJoint.setLimitCone(CPxJointLimitCone(hardLimit: yLimitAngle, zLimitAngle, contactDist))
+    this._pxJoint.setHardLimitCone(yLimitAngle, zLimitAngle, contactDist);
   }
 
+  /**
+   * {@inheritDoc ISphericalJoint.setSoftLimitCone }
+   */
   setSoftLimitCone(yLimitAngle: number, zLimitAngle: number, stiffness: number, damping: number) {
-    //this._pxJoint.setLimitCone(
-    // CPxJointLimitCone(softLimit: yLimitAngle, zLimitAngle,
-    // CPxSpring(stiffness: stiffness, damping)))
+    this._pxJoint.setSoftLimitCone(yLimitAngle, zLimitAngle, stiffness, damping);
   }
 
+  /**
+   * {@inheritDoc ISphericalJoint.setSphericalJointFlag }
+   */
   setSphericalJointFlag(flag: number, value: boolean) {
-    //this._pxJoint.setSphericalJointFlag(CPxSphericalJointFlag(UInt32(flag)), value)
+    this._pxJoint.setSphericalJointFlag(new PhysXPhysics._physX.PxSphericalJointFlag(flag), value);
   }
 
+  /**
+   * {@inheritDoc ISphericalJoint.setProjectionLinearTolerance }
+   */
   setProjectionLinearTolerance(tolerance: number) {
     this._pxJoint.setProjectionLinearTolerance(tolerance);
   }

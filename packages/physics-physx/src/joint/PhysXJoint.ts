@@ -3,6 +3,9 @@ import { PhysXCollider } from "../PhysXCollider";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 
+/**
+ * a base interface providing common functionality for PhysX joints
+ */
 export class PhysXJoint implements IJoint {
   /** @internal */
   _pxJoint: any;
