@@ -10,7 +10,7 @@ export class PhysXObstacle implements IPhysicsObstacle {
   }
 }
 
-class PhysXCapsuleObstacle extends PhysXObstacle implements IPhysicsCapsuleObstacle {
+export class PhysXCapsuleObstacle extends PhysXObstacle implements IPhysicsCapsuleObstacle {
   constructor() {
     super();
     // this._pxObstacle = CPxCapsuleObstacle()

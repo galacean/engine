@@ -4,6 +4,8 @@ import { ICharacterController, ICharacterControllerManager, IPhysicsManager } fr
 import { PhysXCollider } from "./PhysXCollider";
 import { DisorderedArray } from "./DisorderedArray";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
+import { PhysXCharacterControllerManager } from "./characterkinematic/PhysXCharacterControllerManager";
+import { PhysXCharacterController } from "./characterkinematic/PhysXCharacterController";
 
 /**
  * A manager is a collection of bodies and constraints which can interact.
@@ -122,16 +124,18 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._pxScene.removeActor(collider._pxActor, true);
   }
 
-  addCharacterController(characterController: ICharacterController): void {
-    throw new Error("Method not implemented.");
+  addCharacterController(characterController: PhysXCharacterController): void {
+    this._eventMap[characterController._id] = [];
   }
 
-  removeCharacterController(characterController: ICharacterController): void {
-    throw new Error("Method not implemented.");
+  removeCharacterController(characterController: PhysXCharacterController): void {
+    delete this._eventMap[characterController._id];
   }
 
   createControllerManager(): ICharacterControllerManager {
-    throw new Error("Method not implemented.");
+    let manager = new PhysXCharacterControllerManager();
+    manager._pxControllerManager = this._pxScene.createControllerManager();
+    return manager;
   }
 
   /**
