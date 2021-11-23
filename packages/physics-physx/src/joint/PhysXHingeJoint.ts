@@ -4,6 +4,9 @@ import { IHingeJoint } from "@oasis-engine/design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { Quaternion, Vector3 } from "oasis-engine";
 
+/**
+ * A joint which behaves in a similar way to a hinge or axle.
+ */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   constructor(
     actor0: PhysXCollider,
@@ -24,36 +27,58 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
     );
   }
 
+  /**
+   * {@inheritDoc IHingeJoint.setHardLimitCone }
+   */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number) {
-    // this._pxJoint.setLimit(CPxJointAngularLimitPair(hardLimit: lowerLimit, upperLimit, contactDist))
+    this._pxJoint.setHardLimit(lowerLimit, upperLimit, contactDist);
   }
 
+  /**
+   * {@inheritDoc IHingeJoint.setHardLimitCone }
+   */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number) {
-    // this._pxJoint.setLimit(
-    // CPxJointAngularLimitPair(softLimit: lowerLimit, upperLimit,
-    // CPxSpring(stiffness: stiffness, damping)))
+    this._pxJoint.setSoftLimit(lowerLimit, upperLimit, stiffness, damping);
   }
 
+  /**
+   * {@inheritDoc IHingeJoint.setDriveVelocity }
+   */
   setDriveVelocity(velocity: number) {
     this._pxJoint.setDriveVelocity(velocity);
   }
 
+  /**
+   * {@inheritDoc IHingeJoint.setDriveForceLimit }
+   */
   setDriveForceLimit(limit: number) {
     this._pxJoint.setDriveForceLimit(limit);
   }
 
+  /**
+   * {@inheritDoc IHingeJoint.setDriveGearRatio }
+   */
   setDriveGearRatio(ratio: number) {
     this._pxJoint.setDriveGearRatio(ratio);
   }
 
+  /**
+   * {@inheritDoc IHingeJoint.setRevoluteJointFlag }
+   */
   setRevoluteJointFlag(flag: number, value: boolean) {
-    // this._pxJoint.setRevoluteJointFlag(CPxRevoluteJointFlag(UInt32(flag)), value)
+    this._pxJoint.setRevoluteJointFlag(flag, value);
   }
 
+  /**
+   * {@inheritDoc IHingeJoint.setProjectionLinearTolerance }
+   */
   setProjectionLinearTolerance(tolerance: number) {
     this._pxJoint.setProjectionLinearTolerance(tolerance);
   }
 
+  /**
+   * {@inheritDoc IHingeJoint.setProjectionAngularTolerance }
+   */
   setProjectionAngularTolerance(tolerance: number) {
     this._pxJoint.setProjectionAngularTolerance(tolerance);
   }

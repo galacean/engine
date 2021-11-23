@@ -21,7 +21,7 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.setLocalPose }
    */
   setLocalPose(actor: number, position: Vector3, rotation: Quaternion) {
-    this._pxJoint.setLocalPose(new PhysXPhysics._physX.PxJointActorIndex(actor), position, rotation);
+    this._pxJoint.setLocalPose(actor, position, rotation);
   }
 
   /**
@@ -35,7 +35,7 @@ export class PhysXJoint implements IJoint {
    * {@inheritDoc IJoint.setConstraintFlag }
    */
   setConstraintFlag(flags: number, value: boolean) {
-    this._pxJoint.setConstraintFlag(new PhysXPhysics._physX.PxConstraintFlag(flags), value);
+    this._pxJoint.setConstraintFlag(flags, value);
   }
 
   /**
