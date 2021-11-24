@@ -2,6 +2,9 @@ import { IJoint } from "@oasis-engine/design";
 import { Collider } from "../Collider";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
+/**
+ * a base class providing common functionality for joints.
+ */
 export class Joint {
   /** @internal */
   _nativeJoint: IJoint;
@@ -11,6 +14,9 @@ export class Joint {
   private _jointActor0 = new JointActor();
   private _jointActor1 = new JointActor();
 
+  /**
+   * The first actor.
+   */
   get actor0(): Collider {
     return this._jointActor0._collider;
   }
@@ -23,6 +29,9 @@ export class Joint {
     );
   }
 
+  /**
+   * The second actor.
+   */
   get actor1(): Collider {
     return this._jointActor1._collider;
   }
@@ -35,6 +44,9 @@ export class Joint {
     );
   }
 
+  /**
+   *  The local position for the first actor this joint.
+   */
   get localPosition0(): Vector3 {
     return this._jointActor0._localPosition;
   }
@@ -46,6 +58,9 @@ export class Joint {
     }
   }
 
+  /**
+   *  The local rotation for the first actor this joint.
+   */
   get localRotation0(): Quaternion {
     return this._jointActor0._localRotation;
   }
@@ -57,6 +72,9 @@ export class Joint {
     }
   }
 
+  /**
+   *  The local position for the second actor this joint.
+   */
   get localPosition1(): Vector3 {
     return this._jointActor1._localPosition;
   }
@@ -68,6 +86,9 @@ export class Joint {
     }
   }
 
+  /**
+   *  The local rotation for the second actor this joint.
+   */
   get localRotation1(): Quaternion {
     return this._jointActor1._localRotation;
   }
@@ -79,6 +100,9 @@ export class Joint {
     }
   }
 
+  /**
+   * The maximum force the joint can apply before breaking.
+   */
   get BreakForce(): number {
     return this._force;
   }
@@ -88,6 +112,9 @@ export class Joint {
     this._nativeJoint.setBreakForce(this._force, this._torque);
   }
 
+  /**
+   * The maximum torque the joint can apply before breaking.
+   */
   get BreakTorque(): number {
     return this._torque;
   }
@@ -97,6 +124,9 @@ export class Joint {
     this._nativeJoint.setBreakForce(this._force, this._torque);
   }
 
+  /**
+   *  The scale to apply to the inverse mass of actor 0 for resolving this constraint.
+   */
   get invMassScale0(): number {
     return this._jointActor0._invMassScale;
   }
@@ -106,6 +136,9 @@ export class Joint {
     this._nativeJoint.setInvMassScale0(this._jointActor0._invMassScale);
   }
 
+  /**
+   * The scale to apply to the inverse inertia of actor0 for resolving this constraint.
+   */
   get invInertiaScale0(): number {
     return this._jointActor0._invInertiaScale;
   }
@@ -115,6 +148,9 @@ export class Joint {
     this._nativeJoint.setInvInertiaScale0(this._jointActor0._invInertiaScale);
   }
 
+  /**
+   * The scale to apply to the inverse mass of actor 1 for resolving this constraint.
+   */
   get invMassScale1(): number {
     return this._jointActor1._invMassScale;
   }
@@ -124,6 +160,9 @@ export class Joint {
     this._nativeJoint.setInvMassScale1(this._jointActor1._invMassScale);
   }
 
+  /**
+   * The scale to apply to the inverse inertia of actor1 for resolving this constraint.
+   */
   get invInertiaScale1(): number {
     return this._jointActor1._invInertiaScale;
   }
@@ -133,6 +172,11 @@ export class Joint {
     this._nativeJoint.setInvInertiaScale1(this._jointActor1._invInertiaScale);
   }
 
+  /**
+   * Set a constraint flags for this joint to a specified value.
+   * @param flags the constraint flag
+   * @param value the value to which to set the flag
+   */
   setConstraintFlag(flags: PxConstraintFlag, value: boolean) {
     this._nativeJoint.setConstraintFlag(flags, value);
   }

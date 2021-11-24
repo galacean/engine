@@ -4,6 +4,10 @@ import { PhysXCollider } from "../PhysXCollider";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 
+/**
+ * A translational joint permits relative translational movement between two bodies along
+ * an axis, but no relative rotational movement.
+ */
 export class PhysXTranslationalJoint extends PhysXJoint implements ITranslationalJoint {
   constructor(
     actor0: PhysXCollider,

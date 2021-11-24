@@ -43,10 +43,16 @@ enum ConfigurableJointDrive {
   SLERP = 5
 }
 
+/**
+ * A Configurable joint is a general constraint between two actors.
+ */
 export class ConfigurableJoint extends Joint {
   private _projectionLinearTolerance: number = 0;
   private _projectionAngularTolerance: number = 0;
 
+  /**
+   * the linear tolerance threshold
+   */
   get projectionLinearTolerance(): number {
     return this._projectionLinearTolerance;
   }
@@ -56,6 +62,9 @@ export class ConfigurableJoint extends Joint {
     (<IConfigurableJoint>this._nativeJoint).setProjectionLinearTolerance(newValue);
   }
 
+  /**
+   * the angular tolerance threshold in radians
+   */
   get projectionAngularTolerance(): number {
     return this._projectionAngularTolerance;
   }
@@ -77,22 +86,53 @@ export class ConfigurableJoint extends Joint {
     );
   }
 
+  /**
+   * Set the motion type around the specified axis.
+   * @param axis the axis around which motion is specified
+   * @param type the motion type around the specified axis
+   */
   setMotion(axis: ConfigurableJointAxis, type: ConfigurableJointMotion) {
     (<IConfigurableJoint>this._nativeJoint).setMotion(axis, type);
   }
 
+  /**
+   * Set the distance limit for the joint.
+   * @param extent The extent of the limit
+   * @param contactDist The distance from the limit at which it becomes active.
+   */
   setHardDistanceLimit(extent: number, contactDist: number) {
     (<IConfigurableJoint>this._nativeJoint).setHardDistanceLimit(extent, contactDist);
   }
 
+  /**
+   * Set the distance limit for the joint.
+   * @param extent the extent of the limit
+   * @param stiffness the spring strength of the drive
+   * @param damping the damping strength of the drive
+   */
   setSoftDistanceLimit(extent: number, stiffness: number, damping: number) {
     (<IConfigurableJoint>this._nativeJoint).setSoftDistanceLimit(extent, stiffness, damping);
   }
 
+  /**
+   * Set the linear limit for a given linear axis.
+   * @param axis The limited linear axis
+   * @param lowerLimit The lower distance of the limit
+   * @param upperLimit The upper distance of the limit
+   * @param contactDist The distance from the limit at which it becomes active.
+   */
   setHardLinearLimit(axis: ConfigurableJointAxis, lowerLimit: number, upperLimit: number, contactDist: number) {
     (<IConfigurableJoint>this._nativeJoint).setHardLinearLimit(axis, lowerLimit, upperLimit, contactDist);
   }
 
+  /**
+   * Set the linear limit for a given linear axis.
+   * @param axis The limited linear axis
+   * @param lowerLimit The lower distance of the limit
+   * @param upperLimit The upper distance of the limit
+   * @param stiffness the spring strength of the drive
+   * @param damping the damping strength of the drive
+   */
   setSoftLinearLimit(
     axis: ConfigurableJointAxis,
     lowerLimit: number,
@@ -103,22 +143,56 @@ export class ConfigurableJoint extends Joint {
     (<IConfigurableJoint>this._nativeJoint).setSoftLinearLimit(axis, lowerLimit, upperLimit, stiffness, damping);
   }
 
+  /**
+   * Set the twist limit for the joint.
+   * @param lowerLimit The lower angle of the limit
+   * @param upperLimit The upper angle of the limit
+   * @param contactDist The distance from the limit at which it becomes active.
+   */
   setHardTwistLimit(lowerLimit: number, upperLimit: number, contactDist: number) {
     (<IConfigurableJoint>this._nativeJoint).setHardTwistLimit(lowerLimit, upperLimit, contactDist);
   }
 
+  /**
+   *  Set the twist limit for the joint.
+   * @param lowerLimit The lower angle of the limit
+   * @param upperLimit The upper angle of the limit
+   * @param stiffness the spring strength of the drive
+   * @param damping the damping strength of the drive
+   */
   setSoftTwistLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number) {
     (<IConfigurableJoint>this._nativeJoint).setSoftTwistLimit(lowerLimit, upperLimit, stiffness, damping);
   }
 
+  /**
+   * Set the swing cone limit for the joint.
+   * @param yLimitAngle The limit angle from the Y-axis of the constraint frame
+   * @param zLimitAngle The limit angle from the Z-axis of the constraint frame
+   * @param contactDist The distance from the limit at which it becomes active.
+   */
   setHardSwingLimit(yLimitAngle: number, zLimitAngle: number, contactDist: number) {
     (<IConfigurableJoint>this._nativeJoint).setHardSwingLimit(yLimitAngle, zLimitAngle, contactDist);
   }
 
+  /**
+   * Set the swing cone limit for the joint.
+   * @param yLimitAngle The limit angle from the Y-axis of the constraint frame
+   * @param zLimitAngle The limit angle from the Z-axis of the constraint frame
+   * @param stiffness the spring strength of the drive
+   * @param damping the damping strength of the drive
+   */
   setSoftSwingLimit(yLimitAngle: number, zLimitAngle: number, stiffness: number, damping: number) {
     (<IConfigurableJoint>this._nativeJoint).setSoftSwingLimit(yLimitAngle, zLimitAngle, stiffness, damping);
   }
 
+  /**
+   * Set a pyramidal swing limit for the joint.
+   * @param yLimitAngleMin The minimum limit angle from the Y-axis of the constraint frame
+   * @param yLimitAngleMax The maximum limit angle from the Y-axis of the constraint frame
+   * @param zLimitAngleMin The minimum limit angle from the Z-axis of the constraint frame
+   * @param zLimitAngleMax The maximum limit angle from the Z-axis of the constraint frame
+   * @param contactDist The distance from the limit at which it becomes active.
+   */
   setHardPyramidSwingLimit(
     yLimitAngleMin: number,
     yLimitAngleMax: number,
@@ -135,6 +209,15 @@ export class ConfigurableJoint extends Joint {
     );
   }
 
+  /**
+   * Set a pyramidal swing limit for the joint.
+   * @param yLimitAngleMin The minimum limit angle from the Y-axis of the constraint frame
+   * @param yLimitAngleMax The maximum limit angle from the Y-axis of the constraint frame
+   * @param zLimitAngleMin The minimum limit angle from the Z-axis of the constraint frame
+   * @param zLimitAngleMax The maximum limit angle from the Z-axis of the constraint frame
+   * @param stiffness the spring strength of the drive
+   * @param damping the damping strength of the drive
+   */
   setSoftPyramidSwingLimit(
     yLimitAngleMin: number,
     yLimitAngleMax: number,
@@ -153,14 +236,31 @@ export class ConfigurableJoint extends Joint {
     );
   }
 
+  /**
+   *  Set the drive parameters for the specified drive type.
+   * @param index the type of drive being specified
+   * @param driveStiffness The stiffness of the drive spring.
+   * @param driveDamping The damping of the drive spring
+   * @param driveForceLimit The maximum impulse or force that can be exerted by the drive
+   */
   setDrive(index: ConfigurableJointDrive, driveStiffness: number, driveDamping: number, driveForceLimit: number) {
     (<IConfigurableJoint>this._nativeJoint).setDrive(index, driveStiffness, driveDamping, driveForceLimit);
   }
 
+  /**
+   * Set the drive goal pose
+   * @param position The goal drive pose if positional drive is in use.
+   * @param rotation The goal drive rotation if positional drive is in use.
+   */
   setDrivePosition(position: Vector3, rotation: Quaternion) {
     (<IConfigurableJoint>this._nativeJoint).setDrivePosition(position, rotation);
   }
 
+  /**
+   * Set the target goal velocity for drive.
+   * @param linear The goal velocity for linear drive
+   * @param angular The goal velocity for angular drive
+   */
   setDriveVelocity(linear: Vector3, angular: Vector3) {
     (<IConfigurableJoint>this._nativeJoint).setDriveVelocity(linear, angular);
   }

@@ -1,5 +1,9 @@
 import { IJoint } from "./IJoint";
 
+/**
+ * A translational joint permits relative translational movement between two bodies along
+ * an axis, but no relative rotational movement.
+ */
 export interface ITranslationalJoint extends IJoint {
   /**
    * Set a cone hard limit.

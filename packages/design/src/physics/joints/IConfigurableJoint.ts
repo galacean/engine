@@ -2,7 +2,7 @@ import { IJoint } from "./IJoint";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
 /**
- * A D6 joint is a general constraint between two actors.
+ * A Configurable joint is a general constraint between two actors.
  */
 export interface IConfigurableJoint extends IJoint {
   /**

@@ -10,6 +10,9 @@ enum SpringJointFlag {
   SPRING_ENABLED = 8
 }
 
+/**
+ * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
+ */
 export class SpringJoint extends Joint {
   private _minDistance: number = 0;
   private _maxDistance: number = 0;
@@ -17,6 +20,9 @@ export class SpringJoint extends Joint {
   private _stiffness: number = 0;
   private _damping: number = 0;
 
+  /**
+   * The minimum distance.
+   */
   get minDistance(): number {
     return this._minDistance;
   }
@@ -26,6 +32,9 @@ export class SpringJoint extends Joint {
     (<ISpringJoint>this._nativeJoint).setMinDistance(newValue);
   }
 
+  /**
+   * The maximum distance.
+   */
   get maxDistance(): number {
     return this._maxDistance;
   }
@@ -35,6 +44,9 @@ export class SpringJoint extends Joint {
     (<ISpringJoint>this._nativeJoint).setMaxDistance(newValue);
   }
 
+  /**
+   * The distance beyond the allowed range at which the joint becomes active.
+   */
   get tolerance(): number {
     return this._tolerance;
   }
@@ -44,6 +56,9 @@ export class SpringJoint extends Joint {
     (<ISpringJoint>this._nativeJoint).setTolerance(newValue);
   }
 
+  /**
+   * The spring strength of the joint.
+   */
   get stiffness(): number {
     return this._stiffness;
   }
@@ -53,6 +68,9 @@ export class SpringJoint extends Joint {
     (<ISpringJoint>this._nativeJoint).setStiffness(newValue);
   }
 
+  /**
+   * The degree of damping of the joint spring of the joint.
+   */
   get damping(): number {
     return this._damping;
   }
@@ -74,6 +92,11 @@ export class SpringJoint extends Joint {
     );
   }
 
+  /**
+   * Set a single flag specific to a Distance Joint to true or false.
+   * @param flag The flag to set or clear.
+   * @param value the value to which to set the flag
+   */
   setDistanceJointFlag(flag: SpringJointFlag, value: boolean) {
     (<ISpringJoint>this._nativeJoint).setDistanceJointFlag(flag, value);
   }

@@ -4,10 +4,16 @@ import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
+/*
+ A fixed joint permits no relative movement between two bodies. ie the bodies are glued together.
+ */
 export class FixedJoint extends Joint {
   private _projectionLinearTolerance: number = 0;
   private _projectionAngularTolerance: number = 0;
 
+  /**
+   * the linear tolerance threshold
+   */
   get projectionLinearTolerance(): number {
     return this._projectionLinearTolerance;
   }
@@ -17,6 +23,9 @@ export class FixedJoint extends Joint {
     (<IFixedJoint>this._nativeJoint).setProjectionLinearTolerance(this._projectionLinearTolerance);
   }
 
+  /**
+   * the angular tolerance threshold in radians
+   */
   get projectionAngularTolerance(): number {
     return this._projectionAngularTolerance;
   }
