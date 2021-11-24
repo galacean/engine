@@ -2,7 +2,6 @@ import { Joint } from "./Joint";
 import { ISpringJoint } from "@oasis-engine/design";
 import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
 
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
@@ -76,13 +75,17 @@ export class SpringJoint extends Joint {
 
   constructor(collider0: Collider, collider1: Collider) {
     super();
+    const jointActor0 = this._jointActor0;
+    const jointActor1 = this._jointActor1;
+    jointActor0._collider = collider0;
+    jointActor1._collider = collider1;
     this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(
       collider0?._nativeCollider,
-      new Vector3(),
-      new Quaternion(),
+      jointActor0._localPosition,
+      jointActor0._localRotation,
       collider1?._nativeCollider,
-      new Vector3(),
-      new Quaternion()
+      jointActor1._localPosition,
+      jointActor1._localRotation
     );
   }
 

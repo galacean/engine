@@ -1,6 +1,6 @@
 import { IJoint } from "@oasis-engine/design";
-import { Collider } from "../Collider";
 import { Vector3, Quaternion } from "@oasis-engine/math";
+import { Collider } from "../Collider";
 
 /**
  * A base class providing common functionality for joints.
@@ -11,8 +11,8 @@ export class Joint {
 
   private _force: number = 0;
   private _torque: number = 0;
-  private _jointActor0 = new JointActor();
-  private _jointActor1 = new JointActor();
+  protected _jointActor0 = new JointActor();
+  protected _jointActor1 = new JointActor();
 
   /**
    * The first actor.

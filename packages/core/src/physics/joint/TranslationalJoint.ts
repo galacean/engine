@@ -2,7 +2,6 @@ import { Joint } from "./Joint";
 import { ITranslationalJoint } from "@oasis-engine/design";
 import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
-import { Vector3, Quaternion } from "@oasis-engine/math";
 
 /**
  * A translational joint permits relative translational movement between two bodies along
@@ -51,14 +50,19 @@ export class TranslationalJoint extends Joint {
 
   constructor(collider0: Collider, collider1: Collider) {
     super();
+    const jointActor0 = this._jointActor0;
+    const jointActor1 = this._jointActor1;
+    jointActor0._collider = collider0;
+    jointActor1._collider = collider1;
     this._nativeJoint = PhysicsManager._nativePhysics.createTranslationalJoint(
       collider0?._nativeCollider,
-      new Vector3(),
-      new Quaternion(),
+      jointActor0._localPosition,
+      jointActor0._localRotation,
       collider1?._nativeCollider,
-      new Vector3(),
-      new Quaternion()
+      jointActor1._localPosition,
+      jointActor1._localRotation
     );
+    (<ITranslationalJoint>this._nativeJoint).setPrismaticJointFlag(1 << 1, false);
   }
 
   /**
