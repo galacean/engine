@@ -13,7 +13,7 @@ import {
   ISpringJoint,
   ITranslationalJoint
 } from "./joints";
-import { ICapsuleCharacterControllerDesc, IPhysicsCapsuleObstacle } from "./characterkinematic";
+import { ICapsuleCharacterControllerDesc } from "./characterkinematic";
 
 /**
  * The interface of physics creation.
@@ -161,6 +161,4 @@ export interface IPhysics {
 
   //MARK: - Character Controller
   createCapsuleCharacterControllerDesc(): ICapsuleCharacterControllerDesc;
-
-  createCapsuleObstacle(): IPhysicsCapsuleObstacle;
 }

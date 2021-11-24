@@ -9,11 +9,17 @@ export enum CapsuleClimbingMode {
   CONSTRAINED
 }
 
+/**
+ * A capsule character controller.
+ */
 export class CapsuleCharacterController extends CharacterController {
   private _radius: number = 0;
   private _height: number = 0;
   private _climbingMode: CapsuleClimbingMode = CapsuleClimbingMode.EASY;
 
+  /**
+   * The radius for the controller.
+   */
   get radius(): number {
     return this._radius;
   }
@@ -23,6 +29,9 @@ export class CapsuleCharacterController extends CharacterController {
     (<ICapsuleCharacterController>this._nativeCharacterController).setRadius(newValue);
   }
 
+  /**
+   * The height for the controller.
+   */
   get height(): number {
     return this._height;
   }
@@ -32,6 +41,9 @@ export class CapsuleCharacterController extends CharacterController {
     (<ICapsuleCharacterController>this._nativeCharacterController).setHeight(newValue);
   }
 
+  /**
+   * The capsule controller's climbing mode.
+   */
   get climbingMode(): CapsuleClimbingMode {
     return this._climbingMode;
   }

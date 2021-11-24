@@ -13,7 +13,6 @@ import {
   IConfigurableJoint,
   IFixedJoint,
   IHingeJoint,
-  IPhysicsCapsuleObstacle,
   ISphericalJoint,
   ISpringJoint,
   ITranslationalJoint
@@ -205,12 +204,5 @@ export class LitePhysics {
    */
   static createCapsuleCharacterControllerDesc(): ICapsuleCharacterControllerDesc {
     throw "Physics-lite don't support CapsuleCharacterControllerDesc. Use Physics-PhysX instead!";
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createCapsuleObstacle }
-   */
-  static createCapsuleObstacle(): IPhysicsCapsuleObstacle {
-    throw "Physics-lite don't support CapsuleObstacle. Use Physics-PhysX instead!";
   }
 }

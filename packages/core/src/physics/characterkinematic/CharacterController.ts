@@ -21,6 +21,9 @@ export enum ControllerCollisionFlag {
   COLLISION_DOWN = 4
 }
 
+/**
+ * Base class for character controllers.
+ */
 export class CharacterController extends Component {
   /** @internal */
   _index: number = -1;
@@ -35,11 +38,16 @@ export class CharacterController extends Component {
   protected _id: number;
   protected _material: PhysicsMaterial;
 
-  /// Unique id for this controller.
+  /**
+   * Unique id for this controller.
+   */
   get id(): number {
     return this._id;
   }
 
+  /**
+   * The step offset for the controller.
+   */
   get stepOffset(): number {
     return this._stepOffset;
   }
@@ -49,6 +57,9 @@ export class CharacterController extends Component {
     this._nativeCharacterController.setStepOffset(newValue);
   }
 
+  /**
+   * The value of the non-walkable mode.
+   */
   get nonWalkableMode(): ControllerNonWalkableMode {
     return this._nonWalkableMode;
   }
@@ -58,6 +69,9 @@ export class CharacterController extends Component {
     this._nativeCharacterController.setNonWalkableMode(newValue);
   }
 
+  /**
+   * The contact offset for the controller.
+   */
   get contactOffset(): number {
     return this._contactOffset;
   }
@@ -67,6 +81,9 @@ export class CharacterController extends Component {
     this._nativeCharacterController.setContactOffset(newValue);
   }
 
+  /**
+   * The up direction for the controller.
+   */
   get upDirection(): Vector3 {
     return this._upDirection;
   }
@@ -78,6 +95,9 @@ export class CharacterController extends Component {
     this._nativeCharacterController.setUpDirection(this._upDirection);
   }
 
+  /**
+   * The slope limit for the controller.
+   */
   get slopeLimit(): number {
     return this._slopeLimit;
   }
@@ -98,26 +118,52 @@ export class CharacterController extends Component {
     }
   }
 
+  /**
+   * Moves the character using a "collide-and-slide" algorithm.
+   * @param disp Displacement vector
+   * @param minDist The minimum travelled distance to consider.
+   * @param elapsedTime Time elapsed since last call
+   */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
     return this._nativeCharacterController.move(disp, minDist, elapsedTime);
   }
 
+  /**
+   * Test whether flags contain certain flag
+   * @param flags flags number
+   * @param flag certain flag
+   */
   isSetControllerCollisionFlag(flags: number, flag: ControllerCollisionFlag): boolean {
     return this._nativeCharacterController.isSetControllerCollisionFlag(flags, flag);
   }
 
+  /**
+   * Sets controller's position.
+   * @param position The new (center) position for the controller.
+   */
   setPosition(position: Vector3): boolean {
     return this._nativeCharacterController.setPosition(position);
   }
 
+  /**
+   * Set controller's foot position.
+   * @param position The new (bottom) position for the controller.
+   */
   setFootPosition(position: Vector3) {
     this._nativeCharacterController.setFootPosition(position);
   }
 
+  /**
+   * Flushes internal geometry cache.
+   */
   invalidateCache() {
     this._nativeCharacterController.invalidateCache();
   }
 
+  /**
+   * Resizes the controller.
+   * @param height
+   */
   resize(height: number) {
     this._nativeCharacterController.resize(height);
   }

@@ -7,7 +7,6 @@ import {
   IFixedJoint,
   IHingeJoint,
   IPhysics,
-  IPhysicsCapsuleObstacle,
   IPhysicsManager,
   IPhysicsMaterial,
   IPlaneColliderShape,
@@ -36,7 +35,6 @@ import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { PhysXTranslationalJoint } from "./joint/PhysXTranslationalJoint";
 import { PhysXConfigurableJoint } from "./joint/PhysXConfigurableJoint";
 import { PhysXCapsuleCharacterControllerDesc } from "./characterkinematic/PhysXCapsuleCharacterControllerDesc";
-import { PhysXCapsuleObstacle } from "./characterkinematic/PhysXObstacle";
 
 /**
  * PhysX object creation.
@@ -254,10 +252,6 @@ export class PhysXPhysics {
   //MARK: - Character Controller
   static createCapsuleCharacterControllerDesc(): ICapsuleCharacterControllerDesc {
     return new PhysXCapsuleCharacterControllerDesc();
-  }
-
-  static createCapsuleObstacle(): IPhysicsCapsuleObstacle {
-    return new PhysXCapsuleObstacle();
   }
 
   private static _init(PHYSX: any): void {
