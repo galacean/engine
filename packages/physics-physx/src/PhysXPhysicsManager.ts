@@ -124,14 +124,23 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._pxScene.removeActor(collider._pxActor, true);
   }
 
+  /**
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
   addCharacterController(characterController: PhysXCharacterController): void {
     this._eventMap[characterController._id] = [];
   }
 
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
   removeCharacterController(characterController: PhysXCharacterController): void {
     delete this._eventMap[characterController._id];
   }
 
+  /**
+   * {@inheritDoc IPhysicsManager.removeCollider }
+   */
   createControllerManager(): ICharacterControllerManager {
     let manager = new PhysXCharacterControllerManager();
     manager._pxControllerManager = this._pxScene.createControllerManager();

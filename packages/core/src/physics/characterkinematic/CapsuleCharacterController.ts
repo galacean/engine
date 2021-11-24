@@ -57,10 +57,10 @@ export class CapsuleCharacterController extends CharacterController {
     desc.position = this.entity.transform.worldPosition;
     desc.material = this._material;
 
-    this._nativeCharacterController = this.engine.physicsManager!.characterControllerManager!.createController(
+    this._nativeCharacterController = this.engine.physicsManager.characterControllerManager.createController(
       desc._nativeCharacterControllerDesc
     );
     this._nativeCharacterController.setUniqueID(this._id);
-    this.engine.physicsManager!._addCharacterController(this);
+    this.engine.physicsManager._addCharacterController(this);
   }
 }

@@ -5,6 +5,9 @@ import { PhysicsManager } from "../PhysicsManager";
 import { CapsuleClimbingMode } from "./CapsuleCharacterController";
 import { ControllerNonWalkableMode } from "./CharacterController";
 
+/**
+ * A descriptor for a capsule character controller.
+ */
 export class CapsuleCharacterControllerDesc {
   /** @internal */
   _nativeCharacterControllerDesc: ICapsuleCharacterControllerDesc;

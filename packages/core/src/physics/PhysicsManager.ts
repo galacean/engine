@@ -77,6 +77,13 @@ export class PhysicsManager {
     }
   };
 
+  /**
+   * The character controller manager.
+   */
+  get characterControllerManager(): ICharacterControllerManager {
+    return this._nativeCharacterControllerManager;
+  }
+
   constructor() {
     this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
       this._onContactEnter,
@@ -236,28 +243,31 @@ export class PhysicsManager {
     this._nativePhysicsManager.removeCollider(collider._nativeCollider);
   }
 
-  /// Add CharacterController into the manager.
-  /// - Parameter characterController: The Character Controller.
-  /** @internal */
+  /**
+   * Add CharacterController into the manager.
+   * @param characterController The Character Controller.
+   * @internal
+   */
   _addCharacterController(characterController: CharacterController) {
     this._physicalObjectsMap[characterController.id] = characterController;
     this._nativePhysicsManager.addCharacterController(characterController._nativeCharacterController);
   }
 
-  /// Remove CharacterController.
-  /// - Parameter characterController: The Character Controller.
-  /** @internal */
+  /**
+   * Remove CharacterController.
+   * @param characterController The Character Controller.
+   * @internal
+   */
   _removeCharacterController(characterController: CharacterController) {
     delete this._physicalObjectsMap[characterController.id];
     this._nativePhysicsManager.removeCharacterController(characterController._nativeCharacterController);
   }
 
-  /** @internal */
+  /**
+   * Create character controller manager.
+   * @internal
+   */
   _createCharacterControllerManager() {
     this._nativeCharacterControllerManager = this._nativePhysicsManager.createControllerManager();
-  }
-
-  get characterControllerManager(): ICharacterControllerManager {
-    return this._nativeCharacterControllerManager;
   }
 }

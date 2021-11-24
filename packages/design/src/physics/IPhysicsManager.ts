@@ -37,13 +37,21 @@ export interface IPhysicsManager {
    */
   removeCollider(collider: ICollider): void;
 
-  /// Add ICharacterController into the manager.
+  /**
+   * Add ICharacterController into the manager.
+   * @param characterController The Character Controller.
+   */
   addCharacterController(characterController: ICharacterController): void;
 
-  /// Remove ICharacterController.
+  /**
+   * Remove ICharacterController.
+   * @param characterController The Character Controller.
+   */
   removeCharacterController(characterController: ICharacterController): void;
 
-  /// Create Character Controller Manager
+  /**
+   * Create Character Controller Manager
+   */
   createControllerManager(): ICharacterControllerManager;
 
   /**
