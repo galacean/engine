@@ -4,45 +4,6 @@ import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
-enum ConfigurableJointAxis {
-  /// motion along the X axis
-  X = 0,
-  /// motion along the Y axis
-  Y = 1,
-  /// motion along the Z axis
-  Z = 2,
-  /// motion around the X axis
-  TWIST = 3,
-  /// motion around the Y axis
-  SWING1 = 4,
-  /// motion around the Z axis
-  SWING2 = 5
-}
-
-enum ConfigurableJointMotion {
-  /// The DOF is locked, it does not allow relative motion.
-  LOCKED = 0,
-  /// The DOF is limited, it only allows motion within a specific range.
-  LIMITED = 1,
-  /// The DOF is free and has its full range of motion.
-  FREE = 2
-}
-
-enum ConfigurableJointDrive {
-  /// drive along the X-axis
-  X = 0,
-  /// drive along the Y-axis
-  Y = 1,
-  /// drive along the Z-axis
-  Z = 2,
-  /// drive of displacement from the X-axis
-  SWING = 3,
-  /// drive of the displacement around the X-axis
-  TWIST = 4,
-  /// drive of all three angular degrees along a SLERP-path
-  SLERP = 5
-}
-
 /**
  * A Configurable joint is a general constraint between two actors.
  */
@@ -264,4 +225,43 @@ export class ConfigurableJoint extends Joint {
   setDriveVelocity(linear: Vector3, angular: Vector3) {
     (<IConfigurableJoint>this._nativeJoint).setDriveVelocity(linear, angular);
   }
+}
+
+export enum ConfigurableJointAxis {
+  /// motion along the X axis
+  X = 0,
+  /// motion along the Y axis
+  Y = 1,
+  /// motion along the Z axis
+  Z = 2,
+  /// motion around the X axis
+  TWIST = 3,
+  /// motion around the Y axis
+  SWING1 = 4,
+  /// motion around the Z axis
+  SWING2 = 5
+}
+
+export enum ConfigurableJointMotion {
+  /// The DOF is locked, it does not allow relative motion.
+  LOCKED = 0,
+  /// The DOF is limited, it only allows motion within a specific range.
+  LIMITED = 1,
+  /// The DOF is free and has its full range of motion.
+  FREE = 2
+}
+
+export enum ConfigurableJointDrive {
+  /// drive along the X-axis
+  X = 0,
+  /// drive along the Y-axis
+  Y = 1,
+  /// drive along the Z-axis
+  Z = 2,
+  /// drive of displacement from the X-axis
+  SWING = 3,
+  /// drive of the displacement around the X-axis
+  TWIST = 4,
+  /// drive of all three angular degrees along a SLERP-path
+  SLERP = 5
 }
