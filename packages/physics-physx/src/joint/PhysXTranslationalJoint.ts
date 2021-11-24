@@ -28,7 +28,7 @@ export class PhysXTranslationalJoint extends PhysXJoint implements ITranslationa
    * {@inheritDoc ITranslationalJoint.setHardLimit }
    */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number) {
-    this._pxJoint.setHardLimit(lowerLimit, upperLimit, contactDist);
+    this._pxJoint.setHardLimit(PhysXPhysics._pxPhysics.getTolerancesScale(), lowerLimit, upperLimit, contactDist);
   }
 
   /**

@@ -4,6 +4,9 @@ import { PhysXCollider } from "../PhysXCollider";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 
+/**
+ * A D6 joint is a general constraint between two actors.
+ */
 export class PhysXConfigurableJoint extends PhysXJoint implements IConfigurableJoint {
   constructor(
     actor0: PhysXCollider,
@@ -24,49 +27,78 @@ export class PhysXConfigurableJoint extends PhysXJoint implements IConfigurableJ
     );
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setMotion }
+   */
   setMotion(axis: number, type: number) {
-    // this._pxJoint.setMotion(CPxD6Axis(UInt32(axis)), CPxD6Motion(UInt32(type)))
+    this._pxJoint.setMotion(axis, type);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setHardDistanceLimit }
+   */
   setHardDistanceLimit(extent: number, contactDist: number) {
-    // this._pxJoint.setDistanceLimit(CPxJointLinearLimit(hardLimit: CPxTolerancesScale.new(), extent, contactDist))
+    this._pxJoint.setHardDistanceLimit(PhysXPhysics._pxPhysics.getTolerancesScale(), extent, contactDist);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setSoftDistanceLimit }
+   */
   setSoftDistanceLimit(extent: number, stiffness: number, damping: number) {
-    // this._pxJoint.setDistanceLimit(CPxJointLinearLimit(softLimit: extent,
-    //   CPxSpring(stiffness: stiffness, damping)))
+    this._pxJoint.setSoftDistanceLimit(extent, stiffness, damping);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setHardLinearLimit }
+   */
   setHardLinearLimit(axis: number, lowerLimit: number, upperLimit: number, contactDist: number) {
-    // this._pxJoint.setLinearLimit(CPxD6Axis(UInt32(axis)),
-    //   CPxJointLinearLimitPair(hardLimit: CPxTolerancesScale.new(),
-    //   lowerLimit, upperLimit, contactDist))
+    this._pxJoint.setHardLinearLimit(
+      axis,
+      PhysXPhysics._pxPhysics.getTolerancesScale(),
+      lowerLimit,
+      upperLimit,
+      contactDist
+    );
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setSoftLinearLimit }
+   */
   setSoftLinearLimit(axis: number, lowerLimit: number, upperLimit: number, stiffness: number, damping: number) {
-    // this._pxJoint.setLinearLimit(CPxD6Axis(UInt32(axis)),
-    //  CPxJointLinearLimitPair(softLimit: lowerLimit, upperLimit,
-    //  CPxSpring(stiffness: stiffness, damping)))
+    this._pxJoint.setSoftLinearLimit(axis, lowerLimit, upperLimit, stiffness, damping);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setHardTwistLimit }
+   */
   setHardTwistLimit(lowerLimit: number, upperLimit: number, contactDist: number) {
-    // this._pxJoint.setTwistLimit(CPxJointAngularLimitPair(hardLimit: lowerLimit, upperLimit, contactDist))
+    this._pxJoint.setHardTwistLimit(lowerLimit, upperLimit, contactDist);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setSoftTwistLimit }
+   */
   setSoftTwistLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number) {
-    // this._pxJoint.setTwistLimit(CPxJointAngularLimitPair(softLimit: lowerLimit, upperLimit,
-    //  CPxSpring(stiffness: stiffness, damping)))
+    this._pxJoint.setSoftTwistLimit(lowerLimit, upperLimit, stiffness, damping);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setHardSwingLimit }
+   */
   setHardSwingLimit(yLimitAngle: number, zLimitAngle: number, contactDist: number) {
-    // this._pxJoint.setSwingLimit(CPxJointLimitCone(hardLimit: yLimitAngle, zLimitAngle, contactDist))
+    this._pxJoint.setHardSwingLimit(yLimitAngle, zLimitAngle, contactDist);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setSoftSwingLimit }
+   */
   setSoftSwingLimit(yLimitAngle: number, zLimitAngle: number, stiffness: number, damping: number) {
-    // this._pxJoint.setSwingLimit(CPxJointLimitCone(softLimit: yLimitAngle, zLimitAngle,
-    //  CPxSpring(stiffness: stiffness, damping)))
+    this._pxJoint.setSoftSwingLimit(yLimitAngle, zLimitAngle, stiffness, damping);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setHardPyramidSwingLimit }
+   */
   setHardPyramidSwingLimit(
     yLimitAngleMin: number,
     yLimitAngleMax: number,
@@ -74,10 +106,12 @@ export class PhysXConfigurableJoint extends PhysXJoint implements IConfigurableJ
     zLimitAngleMax: number,
     contactDist: number
   ) {
-    // this._pxJoint.setPyramidSwingLimit(CPxJointLimitPyramid(hardLimit: yLimitAngleMin, yLimitAngleMax,
-    //  zLimitAngleMin, zLimitAngleMax, contactDist))
+    this._pxJoint.setHardPyramidSwingLimit(yLimitAngleMin, yLimitAngleMax, zLimitAngleMin, zLimitAngleMax, contactDist);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setSoftPyramidSwingLimit }
+   */
   setSoftPyramidSwingLimit(
     yLimitAngleMin: number,
     yLimitAngleMax: number,
@@ -86,27 +120,47 @@ export class PhysXConfigurableJoint extends PhysXJoint implements IConfigurableJ
     stiffness: number,
     damping: number
   ) {
-    // this._pxJoint.setPyramidSwingLimit(CPxJointLimitPyramid(softLimit: yLimitAngleMin, yLimitAngleMax,
-    //   zLimitAngleMin, zLimitAngleMax, CPxSpring(stiffness: stiffness, damping)))
+    this._pxJoint.setSoftPyramidSwingLimit(
+      yLimitAngleMin,
+      yLimitAngleMax,
+      zLimitAngleMin,
+      zLimitAngleMax,
+      stiffness,
+      damping
+    );
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setDrive }
+   */
   setDrive(index: number, driveStiffness: number, driveDamping: number, driveForceLimit: number) {
-    // this._pxJoint.setDrive(CPxD6Drive(UInt32(index)),
-    //  CPxD6JointDrive(limitStiffness: driveStiffness, driveDamping, driveForceLimit))
+    this._pxJoint.setDrive(index, driveStiffness, driveDamping, driveForceLimit);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setDrivePosition }
+   */
   setDrivePosition(position: Vector3, rotation: Quaternion) {
     this._pxJoint.setDrivePosition(position, rotation);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setDriveVelocity }
+   */
   setDriveVelocity(linear: Vector3, angular: Vector3) {
     this._pxJoint.setDriveVelocity(linear, angular);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setProjectionLinearTolerance }
+   */
   setProjectionLinearTolerance(tolerance: number) {
     this._pxJoint.setProjectionLinearTolerance(tolerance);
   }
 
+  /**
+   * {@inheritDoc IConfigurableJoint.setProjectionAngularTolerance }
+   */
   setProjectionAngularTolerance(tolerance: number) {
     this._pxJoint.setProjectionAngularTolerance(tolerance);
   }
