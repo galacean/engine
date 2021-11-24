@@ -24,25 +24,37 @@ export class PhysXTranslationalJoint extends PhysXJoint implements ITranslationa
     );
   }
 
+  /**
+   * {@inheritDoc ITranslationalJoint.setHardLimit }
+   */
   setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number) {
-    //this._pxJoint.setLimit(CPxJointLinearLimitPair(
-    // hardLimit: CPxTolerancesScale.new(), lowerLimit, upperLimit, contactDist))
+    this._pxJoint.setHardLimit(lowerLimit, upperLimit, contactDist);
   }
 
+  /**
+   * {@inheritDoc ITranslationalJoint.setSoftLimit }
+   */
   setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number) {
-    //this._pxJoint.setLimit(
-    // CPxJointLinearLimitPair(softLimit: lowerLimit, upperLimit,
-    // CPxSpring(stiffness: stiffness, damping)))
+    this._pxJoint.setSoftLimit(lowerLimit, upperLimit, stiffness, damping);
   }
 
+  /**
+   * {@inheritDoc ITranslationalJoint.setPrismaticJointFlag }
+   */
   setPrismaticJointFlag(flag: number, value: boolean) {
-    // this._pxJoint.setPrismaticJointFlag(CPxPrismaticJointFlag(UInt32(flag)), value)
+    this._pxJoint.setPrismaticJointFlag(flag, value);
   }
 
+  /**
+   * {@inheritDoc ITranslationalJoint.setProjectionLinearTolerance }
+   */
   setProjectionLinearTolerance(tolerance: number) {
     this._pxJoint.setProjectionLinearTolerance(tolerance);
   }
 
+  /**
+   * {@inheritDoc ITranslationalJoint.setProjectionAngularTolerance }
+   */
   setProjectionAngularTolerance(tolerance: number) {
     this._pxJoint.setProjectionAngularTolerance(tolerance);
   }
