@@ -3,7 +3,7 @@ import { Collider } from "../Collider";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
 /**
- * a base class providing common functionality for joints.
+ * A base class providing common functionality for joints.
  */
 export class Joint {
   /** @internal */
@@ -177,7 +177,7 @@ export class Joint {
    * @param flags the constraint flag
    * @param value the value to which to set the flag
    */
-  setConstraintFlag(flags: PxConstraintFlag, value: boolean) {
+  setConstraintFlag(flags: PxConstraintFlag, value: boolean): void {
     this._nativeJoint.setConstraintFlag(flags, value);
   }
 }
@@ -190,7 +190,7 @@ class JointActor {
   _invInertiaScale: number = 0;
 }
 
-enum PxConstraintFlag {
+export enum PxConstraintFlag {
   /// whether the constraint is broken
   BROKEN = 1,
   /// whether actor1 should get projected to actor0 for this constraint (note: projection of a static/kinematic actor to a dynamic actor will be ignored)

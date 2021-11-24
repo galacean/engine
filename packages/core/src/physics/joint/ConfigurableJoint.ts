@@ -51,7 +51,7 @@ export class ConfigurableJoint extends Joint {
   private _projectionAngularTolerance: number = 0;
 
   /**
-   * the linear tolerance threshold
+   * The linear tolerance threshold.
    */
   get projectionLinearTolerance(): number {
     return this._projectionLinearTolerance;
@@ -63,7 +63,7 @@ export class ConfigurableJoint extends Joint {
   }
 
   /**
-   * the angular tolerance threshold in radians
+   * The angular tolerance threshold in radians.
    */
   get projectionAngularTolerance(): number {
     return this._projectionAngularTolerance;
@@ -100,7 +100,7 @@ export class ConfigurableJoint extends Joint {
    * @param extent The extent of the limit
    * @param contactDist The distance from the limit at which it becomes active.
    */
-  setHardDistanceLimit(extent: number, contactDist: number) {
+  setHardDistanceLimit(extent: number, contactDist: number = -1.0) {
     (<IConfigurableJoint>this._nativeJoint).setHardDistanceLimit(extent, contactDist);
   }
 
@@ -121,7 +121,7 @@ export class ConfigurableJoint extends Joint {
    * @param upperLimit The upper distance of the limit
    * @param contactDist The distance from the limit at which it becomes active.
    */
-  setHardLinearLimit(axis: ConfigurableJointAxis, lowerLimit: number, upperLimit: number, contactDist: number) {
+  setHardLinearLimit(axis: ConfigurableJointAxis, lowerLimit: number, upperLimit: number, contactDist: number = -1.0) {
     (<IConfigurableJoint>this._nativeJoint).setHardLinearLimit(axis, lowerLimit, upperLimit, contactDist);
   }
 
@@ -149,7 +149,7 @@ export class ConfigurableJoint extends Joint {
    * @param upperLimit The upper angle of the limit
    * @param contactDist The distance from the limit at which it becomes active.
    */
-  setHardTwistLimit(lowerLimit: number, upperLimit: number, contactDist: number) {
+  setHardTwistLimit(lowerLimit: number, upperLimit: number, contactDist: number = -1.0) {
     (<IConfigurableJoint>this._nativeJoint).setHardTwistLimit(lowerLimit, upperLimit, contactDist);
   }
 
@@ -170,7 +170,7 @@ export class ConfigurableJoint extends Joint {
    * @param zLimitAngle The limit angle from the Z-axis of the constraint frame
    * @param contactDist The distance from the limit at which it becomes active.
    */
-  setHardSwingLimit(yLimitAngle: number, zLimitAngle: number, contactDist: number) {
+  setHardSwingLimit(yLimitAngle: number, zLimitAngle: number, contactDist: number = -1.0) {
     (<IConfigurableJoint>this._nativeJoint).setHardSwingLimit(yLimitAngle, zLimitAngle, contactDist);
   }
 
@@ -198,7 +198,7 @@ export class ConfigurableJoint extends Joint {
     yLimitAngleMax: number,
     zLimitAngleMin: number,
     zLimitAngleMax: number,
-    contactDist: number
+    contactDist: number = -1.0
   ) {
     (<IConfigurableJoint>this._nativeJoint).setHardPyramidSwingLimit(
       yLimitAngleMin,
@@ -237,7 +237,7 @@ export class ConfigurableJoint extends Joint {
   }
 
   /**
-   *  Set the drive parameters for the specified drive type.
+   * Set the drive parameters for the specified drive type.
    * @param index the type of drive being specified
    * @param driveStiffness The stiffness of the drive spring.
    * @param driveDamping The damping of the drive spring

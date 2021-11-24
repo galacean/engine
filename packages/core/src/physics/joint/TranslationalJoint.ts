@@ -14,7 +14,7 @@ export class TranslationalJoint extends Joint {
   private _projectionAngularTolerance: number = 0;
 
   /**
-   * is limit enable
+   * Is limit enable
    */
   get enableLimit(): boolean {
     return this._enableLimit;
@@ -26,7 +26,7 @@ export class TranslationalJoint extends Joint {
   }
 
   /**
-   * the linear tolerance threshold
+   * The linear tolerance threshold
    */
   get projectionLinearTolerance(): number {
     return this._projectionLinearTolerance;
@@ -38,7 +38,7 @@ export class TranslationalJoint extends Joint {
   }
 
   /**
-   * the linear tolerance threshold
+   * The linear tolerance threshold
    */
   get projectionAngularTolerance(): number {
     return this._projectionAngularTolerance;
@@ -65,9 +65,9 @@ export class TranslationalJoint extends Joint {
    * Set a cone hard limit.
    * @param lowerLimit The lower angle of the limit
    * @param upperLimit The upper angle of the limit
-   * @param contactDist The distance from the limit at which it becomes active. Default is the lesser of 0.1 radians, and 0.49 * the lower of the limit angles
+   * @param contactDist The distance from the limit at which it becomes active.
    */
-  setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number) {
+  setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number = -1.0) {
     (<ITranslationalJoint>this._nativeJoint).setHardLimit(lowerLimit, upperLimit, contactDist);
   }
 

@@ -12,7 +12,7 @@ export class SphericalJoint extends Joint {
   private _projectionLinearTolerance: number = 0;
 
   /**
-   * is limit enable
+   * Is limit enable.
    */
   get enableLimit(): boolean {
     return this._enableLimit;
@@ -24,7 +24,7 @@ export class SphericalJoint extends Joint {
   }
 
   /**
-   * the linear tolerance threshold
+   * The linear tolerance threshold.
    */
   get projectionLinearTolerance(): number {
     return this._projectionLinearTolerance;
@@ -52,9 +52,9 @@ export class SphericalJoint extends Joint {
    * Set a cone hard limit.
    * @param yLimitAngle The limit angle from the Y-axis of the constraint frame
    * @param zLimitAngle The limit angle from the Z-axis of the constraint frame
-   * @param contactDist The distance from the limit at which it becomes active. Default is the lesser of 0.1 radians, and 0.49 * the lower of the limit angles
+   * @param contactDist The distance from the limit at which it becomes active.
    */
-  setHardLimitCone(yLimitAngle: number, zLimitAngle: number, contactDist: number): void {
+  setHardLimitCone(yLimitAngle: number, zLimitAngle: number, contactDist: number = -1.0): void {
     (<ISphericalJoint>this._nativeJoint).setHardLimitCone(yLimitAngle, zLimitAngle, contactDist);
   }
 

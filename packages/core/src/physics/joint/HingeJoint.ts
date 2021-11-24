@@ -4,15 +4,6 @@ import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
-enum HingeJointFlag {
-  /// enable the limit
-  LIMIT_ENABLED = 1,
-  /// enable the drive
-  DRIVE_ENABLED = 2,
-  /// if the existing velocity is beyond the drive velocity, do not add force
-  DRIVE_FREESPIN = 4
-}
-
 /**
  * A joint which behaves in a similar way to a hinge or axle.
  */
@@ -24,7 +15,7 @@ export class HingeJoint extends Joint {
   private _projectionAngularTolerance: number = 0;
 
   /**
-   * the drive target velocity
+   * The drive target velocity.
    */
   get driveVelocity(): number {
     return this._driveVelocity;
@@ -36,7 +27,7 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * the maximum torque
+   * The maximum torque.
    */
   get driveForceLimit(): number {
     return this._driveForceLimit;
@@ -48,7 +39,7 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * the gear ratio
+   * The gear ratio.
    */
   get driveGearRatio(): number {
     return this._driveGearRatio;
@@ -60,7 +51,7 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * the linear tolerance threshold
+   * The linear tolerance threshold.
    */
   get projectionLinearTolerance(): number {
     return this._projectionLinearTolerance;
@@ -72,7 +63,7 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * the angular tolerance threshold in radians
+   * The angular tolerance threshold in radians.
    */
   get projectionAngularTolerance(): number {
     return this._projectionAngularTolerance;
@@ -99,9 +90,9 @@ export class HingeJoint extends Joint {
    * Set a cone hard limit.
    * @param lowerLimit The lower angle of the limit
    * @param upperLimit The upper angle of the limit
-   * @param contactDist The distance from the limit at which it becomes active. Default is the lesser of 0.1 radians, and 0.49 * the lower of the limit angles
+   * @param contactDist The distance from the limit at which it becomes active
    */
-  setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number) {
+  setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number = -1.0) {
     (<IHingeJoint>this._nativeJoint).setHardLimit(lowerLimit, upperLimit, contactDist);
   }
 
@@ -124,4 +115,13 @@ export class HingeJoint extends Joint {
   setHingeJointFlag(flag: HingeJointFlag, value: boolean) {
     (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(flag, value);
   }
+}
+
+export enum HingeJointFlag {
+  /// enable the limit
+  LIMIT_ENABLED = 1,
+  /// enable the drive
+  DRIVE_ENABLED = 2,
+  /// if the existing velocity is beyond the drive velocity, do not add force
+  DRIVE_FREESPIN = 4
 }

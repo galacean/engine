@@ -4,12 +4,6 @@ import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 
-enum SpringJointFlag {
-  MAX_DISTANCE_ENABLED = 2,
-  MIN_DISTANCE_ENABLED = 4,
-  SPRING_ENABLED = 8
-}
-
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
  */
@@ -100,4 +94,10 @@ export class SpringJoint extends Joint {
   setDistanceJointFlag(flag: SpringJointFlag, value: boolean) {
     (<ISpringJoint>this._nativeJoint).setDistanceJointFlag(flag, value);
   }
+}
+
+enum SpringJointFlag {
+  MAX_DISTANCE_ENABLED = 2,
+  MIN_DISTANCE_ENABLED = 4,
+  SPRING_ENABLED = 8
 }
