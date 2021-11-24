@@ -5,38 +5,6 @@ import { PhysicsManager } from "./PhysicsManager";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
 /**
- * The collision detection mode constants used for PhysXDynamicCollider.collisionDetectionMode.
- */
-export enum CollisionDetectionMode {
-  /// Continuous collision detection is off for this dynamic collider.
-  Discrete,
-  /// Continuous collision detection is on for colliding with static mesh geometry.
-  Continuous,
-  /// Continuous collision detection is on for colliding with static and dynamic geometry.
-  ContinuousDynamic,
-  /// Speculative continuous collision detection is on for static and dynamic geometries
-  ContinuousSpeculative
-}
-
-/**
- * Use these flags to constrain motion of dynamic collider.
- */
-export enum DynamicColliderConstraints {
-  /** Freeze motion along the X-axis. */
-  FreezePositionX = 1,
-  /** Freeze motion along the Y-axis. */
-  FreezePositionY = 2,
-  /** Freeze motion along the Z-axis. */
-  FreezePositionZ = 4,
-  /** Freeze rotation along the X-axis. */
-  FreezeRotationX = 8,
-  /** Freeze rotation along the Y-axis. */
-  FreezeRotationY = 16,
-  /** Freeze rotation along the Z-axis. */
-  FreezeRotationZ = 32
-}
-
-/**
  * A dynamic collider can act with self-defined movement or physical force.
  */
 export class DynamicCollider extends Collider {
@@ -304,4 +272,36 @@ export class DynamicCollider extends Collider {
     transform.worldRotationQuaternion = worldRotationQuaternion;
     this._updateFlag.flag = false;
   }
+}
+
+/**
+ * The collision detection mode constants.
+ */
+export enum CollisionDetectionMode {
+  /// Continuous collision detection is off for this dynamic collider.
+  Discrete,
+  /// Continuous collision detection is on for colliding with static mesh geometry.
+  Continuous,
+  /// Continuous collision detection is on for colliding with static and dynamic geometry.
+  ContinuousDynamic,
+  /// Speculative continuous collision detection is on for static and dynamic geometries
+  ContinuousSpeculative
+}
+
+/**
+ * Use these flags to constrain motion of dynamic collider.
+ */
+export enum DynamicColliderConstraints {
+  /** Freeze motion along the X-axis. */
+  FreezePositionX = 1,
+  /** Freeze motion along the Y-axis. */
+  FreezePositionY = 2,
+  /** Freeze motion along the Z-axis. */
+  FreezePositionZ = 4,
+  /** Freeze rotation along the X-axis. */
+  FreezeRotationX = 8,
+  /** Freeze rotation along the Y-axis. */
+  FreezeRotationY = 16,
+  /** Freeze rotation along the Z-axis. */
+  FreezeRotationZ = 32
 }
