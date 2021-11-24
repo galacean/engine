@@ -1,4 +1,4 @@
-import { Color, MathUtil, Matrix, Quaternion, SphericalHarmonics3, Vector3 } from "@oasis-engine/math";
+import { Color, Matrix, SphericalHarmonics3 } from "@oasis-engine/math";
 import { Scene } from "../Scene";
 import { Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -32,28 +32,15 @@ export class AmbientLight {
   private _shArray: Float32Array = new Float32Array(27);
   private _scene: Scene;
   private _specularTextureDecodeRGBM: boolean = false;
-  private _rotation: Vector3 = new Vector3();
   private _rotationMatrix: Matrix = new Matrix();
-  private _quaternion: Quaternion = new Quaternion();
 
-  get rotation(): Vector3 {
-    return this._rotation;
-  }
-
-  set rotation(value: Vector3) {
-    if (this._rotation !== value) {
-      value.cloneTo(this._rotation);
+  set rotationMatrix(value: Matrix) {
+    if (this._rotationMatrix !== value) {
+      value.cloneTo(this._rotationMatrix);
     }
 
     if (!this._scene) return;
 
-    Quaternion.rotationEuler(
-      MathUtil.degreeToRadian(value.x),
-      MathUtil.degreeToRadian(value.y),
-      MathUtil.degreeToRadian(value.z),
-      this._quaternion
-    );
-    Matrix.rotationQuaternion(this._quaternion, this._rotationMatrix);
     this._scene.shaderData.setMatrix("u_envMapLight.modelMatrix", this._rotationMatrix);
   }
 
@@ -191,7 +178,8 @@ export class AmbientLight {
     this.specularTexture = this._specularReflection;
     this.specularIntensity = this._specularIntensity;
     this.specularTextureDecodeRGBM = this._specularTextureDecodeRGBM;
-    this.rotation = this._rotation;
+    // this.rotation = this._rotation;
+    this.rotationMatrix = this._rotationMatrix;
   }
 
   private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
