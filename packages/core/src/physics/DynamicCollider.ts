@@ -4,8 +4,10 @@ import { Collider } from "./Collider";
 import { PhysicsManager } from "./PhysicsManager";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
-/// The collision detection mode constants used for PhysXDynamicCollider.collisionDetectionMode.
-enum CollisionDetectionMode {
+/**
+ * The collision detection mode constants used for PhysXDynamicCollider.collisionDetectionMode.
+ */
+export enum CollisionDetectionMode {
   /// Continuous collision detection is off for this dynamic collider.
   Discrete,
   /// Continuous collision detection is on for colliding with static mesh geometry.
@@ -14,6 +16,24 @@ enum CollisionDetectionMode {
   ContinuousDynamic,
   /// Speculative continuous collision detection is on for static and dynamic geometries
   ContinuousSpeculative
+}
+
+/**
+ * Use these flags to constrain motion of dynamic collider.
+ */
+export enum DynamicColliderConstraints {
+  /** Freeze motion along the X-axis. */
+  FreezePositionX = 1,
+  /** Freeze motion along the Y-axis. */
+  FreezePositionY = 2,
+  /** Freeze motion along the Z-axis. */
+  FreezePositionZ = 4,
+  /** Freeze rotation along the X-axis. */
+  FreezeRotationX = 8,
+  /** Freeze rotation along the Y-axis. */
+  FreezeRotationY = 16,
+  /** Freeze rotation along the Z-axis. */
+  FreezeRotationZ = 32
 }
 
 /**
@@ -33,9 +53,12 @@ export class DynamicCollider extends Collider {
   private _solverIterations: number = 0;
   private _isKinematic: boolean = false;
   private _freezeRotation: boolean = false;
+  private _constraints: number = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
 
-  /// The linear damping of the dynamic collider.
+  /**
+   * The linear damping of the dynamic collider.
+   */
   get linearDamping(): number {
     return this._linearDamping;
   }
@@ -45,7 +68,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setLinearDamping(newValue);
   }
 
-  /// The angular damping of the dynamic collider.
+  /**
+   * The angular damping of the dynamic collider.
+   */
   get angularDamping(): number {
     return this._angularDamping;
   }
@@ -55,7 +80,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setAngularDamping(newValue);
   }
 
-  /// The linear velocity vector of the dynamic collider measured in world unit per second.
+  /**
+   * The linear velocity vector of the dynamic collider measured in world unit per second.
+   */
   get linearVelocity(): Vector3 {
     return this._linearVelocity;
   }
@@ -67,7 +94,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
 
-  /// The angular velocity vector of the dynamic collider measured in radians per second.
+  /**
+   * The angular velocity vector of the dynamic collider measured in radians per second.
+   */
   get angularVelocity(): Vector3 {
     return this._angularVelocity;
   }
@@ -79,7 +108,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
-  /// The mass of the dynamic collider.
+  /**
+   * The mass of the dynamic collider.
+   */
   get mass(): number {
     return this._mass;
   }
@@ -89,7 +120,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setMass(newValue);
   }
 
-  /// The center of mass relative to the transform's origin.
+  /**
+   * The center of mass relative to the transform's origin.
+   */
   get centerOfMass(): Vector3 {
     return this._centerOfMass;
   }
@@ -101,7 +134,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
   }
 
-  /// The diagonal inertia tensor of mass relative to the center of mass.
+  /**
+   * The diagonal inertia tensor of mass relative to the center of mass.
+   */
   get inertiaTensor(): Vector3 {
     return this._inertiaTensor;
   }
@@ -113,7 +148,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 
-  /// The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }.
+  /**
+   * The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }.
+   */
   get maxAngularVelocity(): number {
     return this._maxAngularVelocity;
   }
@@ -123,7 +160,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(newValue);
   }
 
-  /// Maximum velocity of a collider when moving out of penetrating state.
+  /**
+   * Maximum velocity of a collider when moving out of penetrating state.
+   */
   get maxDepenetrationVelocity(): number {
     return this._maxDepenetrationVelocity;
   }
@@ -133,7 +172,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(newValue);
   }
 
-  /// The mass-normalized energy threshold, below which objects start going to sleep.
+  /**
+   * The mass-normalized energy threshold, below which objects start going to sleep.
+   */
   get sleepThreshold(): number {
     return this._sleepThreshold;
   }
@@ -143,7 +184,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setSleepThreshold(newValue);
   }
 
-  /// The solverIterations determines how accurately collider joints and collision contacts are resolved.
+  /**
+   * The solverIterations determines how accurately collider joints and collision contacts are resolved.
+   */
   get solverIterations(): number {
     return this._solverIterations;
   }
@@ -153,7 +196,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setSolverIterations(newValue);
   }
 
-  /// Controls whether physics affects the dynamic collider.
+  /**
+   * Controls whether physics affects the dynamic collider.
+   */
   get isKinematic(): boolean {
     return this._isKinematic;
   }
@@ -163,7 +208,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setIsKinematic(newValue);
   }
 
-  /// Controls whether physics will change the rotation of the object.
+  /**
+   * Controls whether physics will change the rotation of the object.
+   */
   get freezeRotation(): boolean {
     return this._freezeRotation;
   }
@@ -173,7 +220,21 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setFreezeRotation(newValue);
   }
 
-  /// The colliders' collision detection mode.
+  /**
+   * The particular rigid dynamic lock flag.
+   */
+  get constraints(): number {
+    return this._constraints;
+  }
+
+  set constraints(newValue: number) {
+    this._constraints = newValue;
+    (<IDynamicCollider>this._nativeCollider).setConstraints(newValue);
+  }
+
+  /**
+   * The colliders' collision detection mode.
+   */
   get collisionDetectionMode(): CollisionDetectionMode {
     return this._collisionDetectionMode;
   }
@@ -208,27 +269,25 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).addTorque(torque);
   }
 
-  /// Applies force at position. As a result this will apply a torque and force on the object.
-  applyForceAtPosition(force: Vector3, pos: Vector3) {
-    (<IDynamicCollider>this._nativeCollider).addForceAtPosition(force, pos);
+  /**
+   * Moves kinematically controlled dynamic actors through the game world.
+   * @param position The desired position for the kinematic actor
+   * @param rotation The desired rotation for the kinematic actor
+   */
+  setKinematicTarget(position: Vector3, rotation: Quaternion) {
+    (<IDynamicCollider>this._nativeCollider).setKinematicTarget(position, rotation);
   }
 
-  /// Moves the kinematic collider towards position.
-  movePosition(value: Vector3) {
-    (<IDynamicCollider>this._nativeCollider).movePosition(value);
-  }
-
-  /// Rotates the collider to rotation.
-  moveRotation(value: Quaternion) {
-    (<IDynamicCollider>this._nativeCollider).moveRotation(value);
-  }
-
-  /// Forces a collider to sleep at least one frame.
+  /**
+   * Forces a collider to sleep at least one frame.
+   */
   putToSleep() {
     (<IDynamicCollider>this._nativeCollider).putToSleep();
   }
 
-  /// Forces a collider to wake up.
+  /**
+   * Forces a collider to wake up.
+   */
   wakeUp() {
     (<IDynamicCollider>this._nativeCollider).wakeUp();
   }

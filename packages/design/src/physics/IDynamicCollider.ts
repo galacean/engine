@@ -5,47 +5,95 @@ import { ICollider } from "./ICollider";
  * Interface of physics dynamic collider.
  */
 export interface IDynamicCollider extends ICollider {
-  /// The linear damping of the dynamic collider.
+  /**
+   * Sets the linear damping coefficient.
+   * @param value Linear damping coefficient.
+   */
   setLinearDamping(value: number): void;
 
-  /// The angular damping of the dynamic collider.
+  /**
+   * Sets the angular damping coefficient.
+   * @param value Angular damping coefficient.
+   */
   setAngularDamping(value: number): void;
 
-  /// The linear velocity vector of the dynamic collider measured in world unit per second.
+  /**
+   * Sets the linear velocity of the actor.
+   * @param value New linear velocity of actor.
+   */
   setLinearVelocity(value: Vector3): void;
 
-  /// The angular velocity vector of the dynamic collider measured in radians per second.
+  /**
+   * Sets the angular velocity of the actor.
+   * @param value New angular velocity of actor.
+   */
   setAngularVelocity(value: Vector3): void;
 
-  /// The mass of the dynamic collider.
+  /**
+   *  Sets the mass of a dynamic actor.
+   * @param value New mass value for the actor.
+   */
   setMass(value: number): void;
 
-  /// The center of mass relative to the transform's origin.
+  /**
+   * Sets the pose of the center of mass relative to the actor.
+   * @param value Mass frame offset transform relative to the actor frame.
+   */
   setCenterOfMass(value: Vector3): void;
 
-  /// The diagonal inertia tensor of mass relative to the center of mass.
+  /**
+   * Sets the inertia tensor, using a parameter specified in mass space coordinates.
+   * @param value New mass space inertia tensor for the actor.
+   */
   setInertiaTensor(value: Vector3): void;
 
-  /// The maximum angular velocity of the collider measured in radians per second. (Default 7) range { 0, infinity }.
+  /**
+   * Set the maximum angular velocity permitted for this actor.
+   * @param value Max allowable angular velocity for actor.
+   */
   setMaxAngularVelocity(value: number): void;
 
-  /// Maximum velocity of a collider when moving out of penetrating state.
+  /**
+   * Sets the maximum depenetration velocity permitted to be introduced by the solver.
+   * @param value The maximum velocity to de-penetrate
+   */
   setMaxDepenetrationVelocity(value: number): void;
 
-  /// The mass-normalized energy threshold, below which objects start going to sleep.
+  /**
+   * Sets the mass-normalized kinetic energy threshold below which an actor may go to sleep.
+   * @param value Energy below which an actor may go to sleep.
+   */
   setSleepThreshold(value: number): void;
 
-  /// The solverIterations determines how accurately collider joints and collision contacts are resolved.
+  /**
+   * Sets the solver iteration counts for the body.
+   * @param value Number of position iterations the solver should perform for this body.
+   */
   setSolverIterations(value: number): void;
 
-  /// The colliders' collision detection mode.
+  /**
+   * Sets the colliders' collision detection mode.
+   * @param value rigid body flag
+   */
   setCollisionDetectionMode(value: number): void;
 
-  /// Controls whether physics affects the dynamic collider.
+  /**
+   * Controls whether physics affects the dynamic collider.
+   * @param value is or not
+   */
   setIsKinematic(value: boolean): void;
 
-  /// Controls whether physics will change the rotation of the object.
+  /**
+   * Controls whether physics will change the rotation of the object.
+   * @param value is or not
+   */
   setFreezeRotation(value: boolean): void;
+
+  /**
+   * Raises or clears a particular rigid dynamic lock flag.
+   * @param flags the flag to raise(set) or clear.
+   */
+  setConstraints(flags: number): void;
 
   /**
    * Apply a force to the dynamic collider.
@@ -59,18 +107,20 @@ export interface IDynamicCollider extends ICollider {
    */
   addTorque(torque: Vector3): void;
 
-  /// Applies force at position. As a result this will apply a torque and force on the object.
-  addForceAtPosition(force: Vector3, pos: Vector3): void;
+  /**
+   * Moves kinematically controlled dynamic actors through the game world.
+   * @param position The desired position for the kinematic actor
+   * @param rotation The desired rotation for the kinematic actor
+   */
+  setKinematicTarget(position: Vector3, rotation: Quaternion): void;
 
-  /// Moves the kinematic collider towards position.
-  movePosition(value: Vector3): void;
-
-  /// Rotates the collider to rotation.
-  moveRotation(value: Quaternion): void;
-
-  /// Forces a collider to sleep at least one frame.
+  /**
+   * Forces a collider to sleep at least one frame.
+   */
   putToSleep(): void;
 
-  /// Forces a collider to wake up.
+  /**
+   * Forces a collider to wake up.
+   */
   wakeUp(): void;
 }
