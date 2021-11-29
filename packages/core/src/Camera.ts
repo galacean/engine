@@ -21,7 +21,6 @@ class MathTemp {
   static tempRay = new Ray();
   static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
-  static tempVec3 = new Vector3();
   static tempVec2 = new Vector2();
 }
 
