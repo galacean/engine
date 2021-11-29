@@ -378,6 +378,7 @@ export class Camera extends Component {
     const viewport = this.viewport;
     out.x = (viewport.x + point.x * viewport.z) * canvas.width;
     out.y = (viewport.y + point.y * viewport.w) * canvas.height;
+    (<Vector3>point).z !== undefined && ((<Vector3>out).z = (<Vector3>point).z);
     return out;
   }
 
