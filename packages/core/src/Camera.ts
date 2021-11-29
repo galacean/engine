@@ -314,7 +314,7 @@ export class Camera extends Component {
     // Transform of coordinate axis.
     out.x = (nx + 1.0) * 0.5;
     out.y = (1.0 - ny) * 0.5;
-    out.z = nz;
+    out.z = (nz + 1.0) * 0.5;
     out.w = w;
     return out;
   }
@@ -480,10 +480,9 @@ export class Camera extends Component {
 
   private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
-    const depth = point.z * 2 - 1;
     // Transform to clipping space matrix
     const clipPoint = MathTemp.tempVec4;
-    clipPoint.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
+    clipPoint.setValue(point.x * 2 - 1, 1 - point.y * 2, point.z * 2 - 1, 1);
     Vector4.transform(clipPoint, invViewProjMat, clipPoint);
     const invW = 1.0 / clipPoint.w;
     out.x = clipPoint.x * invW;
