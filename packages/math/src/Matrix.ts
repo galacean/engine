@@ -517,15 +517,15 @@ export class Matrix implements IClone {
 
   /**
    * Calculate a perspective projection matrix.
-   * @param fovy - Field of view in the y direction, in radians
+   * @param fovY - Field of view in the y direction, in radians
    * @param aspect - Aspect ratio, defined as view space width divided by height
    * @param near - The depth of the near plane
    * @param far - The depth of the far plane
    * @param out - The calculated perspective projection matrix
    */
-  static perspective(fovy: number, aspect: number, near: number, far: number, out: Matrix): void {
+  static perspective(fovY: number, aspect: number, near: number, far: number, out: Matrix): void {
     const oe = out.elements;
-    const f = 1.0 / Math.tan(fovy / 2);
+    const f = 1.0 / Math.tan(fovY / 2);
     const nf = 1 / (near - far);
 
     oe[0] = f / aspect;
