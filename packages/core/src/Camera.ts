@@ -393,7 +393,7 @@ export class Camera extends Component {
   }
 
   /**
-   * Transform a point from screen space to world space.=
+   * Transform a point from screen space to world space.
    *
    * @param point - Screen space point, the top-left of the screen is (0,0), the right-bottom is (pixelWidth,pixelHeight), The z position is in world units from the camera
    * @param out - Point in world space
