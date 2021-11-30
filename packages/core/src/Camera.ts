@@ -507,7 +507,7 @@ export class Camera extends Component {
 
   /**
    * The inverse matrix of view projection matrix.
-   */ ƒ;
+   */
   private _getInvViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
