@@ -341,7 +341,7 @@ export class Camera extends Component {
    * @returns Ray
    */
   viewportPointToRay(point: Vector2, out: Ray): Ray {
-    const invViewProjMat = this.invViewProjMat;
+    const invViewProjMat = this._getInvViewProjMat();
     // Use the intersection of the near clipping plane as the origin point.
     const origin = this._innerViewportToWorldPoint(point, 0.0, invViewProjMat, out.origin);
     // Use the intersection of the far clipping plane as the origin point.
@@ -495,33 +495,31 @@ export class Camera extends Component {
     return out;
   }
 
-  private _updateShaderData(context: RenderContext) {
+  private _updateShaderData(context: RenderContext): void {
     const shaderData = this.shaderData;
     shaderData.setMatrix(Camera._viewMatrixProperty, this.viewMatrix);
     shaderData.setMatrix(Camera._projectionMatrixProperty, this.projectionMatrix);
     shaderData.setMatrix(Camera._vpMatrixProperty, context._viewProjectMatrix);
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
-    shaderData.setMatrix(Camera._inverseProjectionMatrixProperty, this.inverseProjectionMatrix);
+    shaderData.setMatrix(Camera._inverseProjectionMatrixProperty, this._getInverseProjectionMatrix());
     shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
   }
 
   /**
-   * @private
    * The inverse matrix of view projection matrix.
-   */
-  get invViewProjMat(): Matrix {
+   */ ƒ;
+  private _getInvViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this._transform.worldMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
+      Matrix.multiply(this._transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
     }
     return this._invViewProjMat;
   }
 
   /**
-   * @private
    * The inverse of the projection matrix.
    */
-  get inverseProjectionMatrix(): Readonly<Matrix> {
+  private _getInverseProjectionMatrix(): Readonly<Matrix> {
     if (this._isInvProjMatDirty) {
       this._isInvProjMatDirty = false;
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
