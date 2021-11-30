@@ -51,7 +51,8 @@ vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMI
     #else
 
         vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
-        
+        reflectVec = mat3(u_envMapLight.modelMatrix) * reflectVec;
+
         float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
