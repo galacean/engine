@@ -8,7 +8,8 @@ import {
   resourceLoader,
   ResourceManager,
   TextureCubeFace,
-  TextureCubeMap
+  TextureCubeMap,
+  TextureFilterMode
 } from "@oasis-engine/core";
 import { SphericalHarmonics3 } from "@oasis-engine/math";
 
@@ -27,6 +28,7 @@ class EnvLoader extends Loader<AmbientLight> {
           const size = new Uint16Array(arraybuffer, shByteLength, 1)?.[0];
 
           const texture = new TextureCubeMap(resourceManager.engine, size);
+          texture.filterMode = TextureFilterMode.Trilinear;
           const mipmapCount = texture.mipmapCount;
           let offset = shByteLength + 2;
 
