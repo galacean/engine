@@ -89,11 +89,11 @@ export class LitePhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.update }
    */
   update(deltaTime: number): void {
-    let colliders = this._colliders;
-    for (let i = 0, len = colliders.length; i < len; i++) {
-      this._collisionDetection(deltaTime, colliders[i]);
-    }
-    this._fireEvent();
+    // let colliders = this._colliders;
+    // for (let i = 0, len = colliders.length; i < len; i++) {
+    //   this._collisionDetection(deltaTime, colliders[i]);
+    // }
+    // this._fireEvent();
   }
 
   /**
