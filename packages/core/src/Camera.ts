@@ -18,9 +18,9 @@ import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 
 class MathTemp {
+  static tempRay = new Ray();
   static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
-  static tempVec3 = new Vector3();
   static tempVec2 = new Vector2();
 }
 
@@ -314,39 +314,40 @@ export class Camera extends Component {
     // Transform of coordinate axis.
     out.x = (nx + 1.0) * 0.5;
     out.y = (1.0 - ny) * 0.5;
-    out.z = nz;
+    out.z = (nz + 1.0) * 0.5;
     out.w = w;
     return out;
   }
 
   /**
    * Transform a point from viewport space to world space.
-   * @param point - Point in viewport space, X and Y are the viewport space coordinates, Z is the viewport depth. The near clipping plane is 0, and the far clipping plane is 1
+   * @param point - Point in viewport space, X and Y are the camera viewport space coordinates, Z is in world units from the camera
    * @param out - Point in world space
    * @returns Point in world space
    */
   viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
-    const invViewProjMat = this.invViewProjMat;
-    return this._innerViewportToWorldPoint(point, invViewProjMat, out);
+    const { tempVec2: pointXY, tempRay: ray } = MathTemp;
+    pointXY.setValue(point.x, point.y);
+    this.viewportPointToRay(pointXY, ray);
+    Vector3.scale(ray.direction, point.z, out);
+    Vector3.add(ray.origin, out, out);
+    return out;
   }
 
   /**
    * Generate a ray by a point in viewport.
-   * @param point - Point in viewport space, which is represented by normalization
+   * @param point - Point in viewport space, X and Y are the camera viewport space coordinates
    * @param out - Ray
    * @returns Ray
    */
   viewportPointToRay(point: Vector2, out: Ray): Ray {
-    const clipPoint = MathTemp.tempVec3;
+    const invViewProjMat = this._getInvViewProjMat();
     // Use the intersection of the near clipping plane as the origin point.
-    clipPoint.setValue(point.x, point.y, 0);
-    const origin = this.viewportToWorldPoint(clipPoint, out.origin);
+    const origin = this._innerViewportToWorldPoint(point, 0.0, invViewProjMat, out.origin);
     // Use the intersection of the far clipping plane as the origin point.
-    clipPoint.z = 1.0;
-    const farPoint: Vector3 = this._innerViewportToWorldPoint(clipPoint, this._invViewProjMat, clipPoint);
-    Vector3.subtract(farPoint, origin, out.direction);
-    out.direction.normalize();
-
+    const direction: Vector3 = this._innerViewportToWorldPoint(point, 1.0, invViewProjMat, out.direction);
+    Vector3.subtract(direction, origin, direction);
+    direction.normalize();
     return out;
   }
 
@@ -361,6 +362,7 @@ export class Camera extends Component {
     const viewport = this.viewport;
     out.x = (point.x / canvas.width - viewport.x) / viewport.z;
     out.y = (point.y / canvas.height - viewport.y) / viewport.w;
+    (<Vector3>point).z !== undefined && ((<Vector3>out).z = (<Vector3>point).z);
     return out;
   }
 
@@ -375,6 +377,7 @@ export class Camera extends Component {
     const viewport = this.viewport;
     out.x = (viewport.x + point.x * viewport.z) * canvas.width;
     out.y = (viewport.y + point.y * viewport.w) * canvas.height;
+    (<Vector3>point).z !== undefined && ((<Vector3>out).z = (<Vector3>point).z);
     return out;
   }
 
@@ -391,7 +394,8 @@ export class Camera extends Component {
 
   /**
    * Transform a point from screen space to world space.
-   * @param point - Screen space point
+   *
+   * @param point - Screen space point, the top-left of the screen is (0,0), the right-bottom is (pixelWidth,pixelHeight), The z position is in world units from the camera
    * @param out - Point in world space
    * @returns Point in world space
    */
@@ -402,7 +406,7 @@ export class Camera extends Component {
 
   /**
    * Generate a ray by a point in screen.
-   * @param point - Point in screen space, the unit is pixel
+   * @param point - Point in screen space, the top-left of the screen is (0,0), the right-bottom is (pixelWidth,pixelHeight)
    * @param out - Ray
    * @returns Ray
    */
@@ -478,12 +482,11 @@ export class Camera extends Component {
     this._isInvViewProjDirty.flag = true;
   }
 
-  private _innerViewportToWorldPoint(point: Vector3, invViewProjMat: Matrix, out: Vector3): Vector3 {
+  private _innerViewportToWorldPoint(pointXY: Vector2, pointZ: number, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
-    const depth = point.z * 2 - 1;
     // Transform to clipping space matrix
     const clipPoint = MathTemp.tempVec4;
-    clipPoint.setValue(point.x * 2 - 1, 1 - point.y * 2, depth, 1);
+    clipPoint.setValue(pointXY.x * 2 - 1, 1 - pointXY.y * 2, pointZ * 2 - 1, 1);
     Vector4.transform(clipPoint, invViewProjMat, clipPoint);
     const invW = 1.0 / clipPoint.w;
     out.x = clipPoint.x * invW;
@@ -492,33 +495,31 @@ export class Camera extends Component {
     return out;
   }
 
-  private _updateShaderData(context: RenderContext) {
+  private _updateShaderData(context: RenderContext): void {
     const shaderData = this.shaderData;
     shaderData.setMatrix(Camera._viewMatrixProperty, this.viewMatrix);
     shaderData.setMatrix(Camera._projectionMatrixProperty, this.projectionMatrix);
     shaderData.setMatrix(Camera._vpMatrixProperty, context._viewProjectMatrix);
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
-    shaderData.setMatrix(Camera._inverseProjectionMatrixProperty, this.inverseProjectionMatrix);
+    shaderData.setMatrix(Camera._inverseProjectionMatrixProperty, this._getInverseProjectionMatrix());
     shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
   }
 
   /**
-   * @private
    * The inverse matrix of view projection matrix.
    */
-  get invViewProjMat(): Matrix {
+  private _getInvViewProjMat(): Matrix {
     if (this._isInvViewProjDirty.flag) {
       this._isInvViewProjDirty.flag = false;
-      Matrix.multiply(this._transform.worldMatrix, this.inverseProjectionMatrix, this._invViewProjMat);
+      Matrix.multiply(this._transform.worldMatrix, this._getInverseProjectionMatrix(), this._invViewProjMat);
     }
     return this._invViewProjMat;
   }
 
   /**
-   * @private
    * The inverse of the projection matrix.
    */
-  get inverseProjectionMatrix(): Readonly<Matrix> {
+  private _getInverseProjectionMatrix(): Readonly<Matrix> {
     if (this._isInvProjMatDirty) {
       this._isInvProjMatDirty = false;
       Matrix.invert(this.projectionMatrix, this._inverseProjectionMatrix);
