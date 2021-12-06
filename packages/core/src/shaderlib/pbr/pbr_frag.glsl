@@ -50,7 +50,7 @@ vec3 totalRadiance =    reflectedLight.directDiffuse +
                         reflectedLight.indirectSpecular + 
                         emissiveRadiance;
 
-vec4 targetColor =vec4(totalRadiance, u_baseColor.a);
+vec4 targetColor =vec4(totalRadiance, material.opacity);
 #ifndef OASIS_COLORSPACE_GAMMA
     targetColor = linearToGamma(targetColor);
 #endif
