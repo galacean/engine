@@ -93,7 +93,7 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      material.renderState._apply(engine, true);
+      material.renderState._apply(engine, false);
 
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
     }
