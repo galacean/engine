@@ -519,6 +519,17 @@ export class Transform extends Component {
   }
 
   /**
+   * @internal
+   */
+  _isFrontFaceInvert(): boolean {
+    const scale = this.lossyWorldScale;
+    let isInvert = scale.x < 0;
+    scale.y < 0 && (isInvert = !isInvert);
+    scale.z < 0 && (isInvert = !isInvert);
+    return isInvert;
+  }
+
+  /**
    * Get worldMatrix: Will trigger the worldMatrix update of itself and all parent entities.
    * Get worldPosition: Will trigger the worldMatrix, local position update of itself and the worldMatrix update of all parent entities.
    * In summary, any update of related variables will cause the dirty mark of one of the full process (worldMatrix or worldRotationQuaternion) to be false.
