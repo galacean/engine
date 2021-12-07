@@ -399,8 +399,6 @@ export class OrbitControl extends Script {
    * @param deltaY - The amount of translation from the screen distance in the y direction
    */
   pan(deltaX: number, deltaY: number) {
-    const element = this.domElement === document ? this.domElement.body : (this.domElement as HTMLElement);
-
     // perspective only
     const position: Vector3 = this.camera.position;
     position.cloneTo(this._vPan);
@@ -409,8 +407,8 @@ export class OrbitControl extends Script {
 
     targetDistance *= (this.fov / 2) * (Math.PI / 180);
 
-    this.panLeft(-2 * deltaX * (targetDistance / element.clientHeight), this.camera.transform.worldMatrix);
-    this.panUp(2 * deltaY * (targetDistance / element.clientHeight), this.camera.transform.worldMatrix);
+    this.panLeft(-2 * deltaX * (targetDistance / this.mainElement.clientHeight), this.camera.transform.worldMatrix);
+    this.panUp(2 * deltaY * (targetDistance / this.mainElement.clientHeight), this.camera.transform.worldMatrix);
   }
 
   /**
@@ -457,10 +455,8 @@ export class OrbitControl extends Script {
     this._rotateEnd.setValue(event.clientX, event.clientY);
     Vector2.subtract(this._rotateEnd, this._rotateStart, this._rotateDelta);
 
-    const element = this.domElement === document ? document.body : (this.domElement as HTMLElement);
-
-    this.rotateLeft(2 * Math.PI * (this._rotateDelta.x / element.clientWidth) * this.rotateSpeed);
-    this.rotateUp(2 * Math.PI * (this._rotateDelta.y / element.clientHeight) * this.rotateSpeed);
+    this.rotateLeft(2 * Math.PI * (this._rotateDelta.x / this.mainElement.clientWidth) * this.rotateSpeed);
+    this.rotateUp(2 * Math.PI * (this._rotateDelta.y / this.mainElement.clientHeight) * this.rotateSpeed);
 
     this._rotateEnd.cloneTo(this._rotateStart);
   }
@@ -557,10 +553,8 @@ export class OrbitControl extends Script {
     this._rotateEnd.setValue(event.touches[0].pageX, event.touches[0].pageY);
     Vector2.subtract(this._rotateEnd, this._rotateStart, this._rotateDelta);
 
-    const element = this.domElement === document ? this.domElement.body : (this.domElement as HTMLElement);
-
-    this.rotateLeft(((2 * Math.PI * this._rotateDelta.x) / element.clientWidth) * this.rotateSpeed);
-    this.rotateUp(((2 * Math.PI * this._rotateDelta.y) / element.clientHeight) * this.rotateSpeed);
+    this.rotateLeft(((2 * Math.PI * this._rotateDelta.x) / this.mainElement.clientWidth) * this.rotateSpeed);
+    this.rotateUp(((2 * Math.PI * this._rotateDelta.y) / this.mainElement.clientHeight) * this.rotateSpeed);
 
     this._rotateEnd.cloneTo(this._rotateStart);
   }
