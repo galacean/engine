@@ -137,7 +137,7 @@ export class RenderQueue {
             program.uploadUngroupTextures();
           }
         }
-        material.renderState._apply(camera.engine,element.component.entity.transform._isFrontFaceInvert());
+        material.renderState._apply(camera.engine, renderer.entity.transform._isFrontFaceInvert());
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
