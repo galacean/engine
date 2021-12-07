@@ -57,7 +57,7 @@ export class RasterState {
       } else {
         gl.frontFace(gl.CCW);
       }
-      lastState._frontFaceInvert == frontFaceInvert;
+      lastState._frontFaceInvert = frontFaceInvert;
     }
 
     // apply polygonOffset.
