@@ -12,19 +12,19 @@ import { ObjectValues } from "../base/Util";
 export class ResourceManager {
   /** Loader collection. */
   private static _loaders: { [key: number]: Loader<any> } = {};
-  private static _extTypeMapping: { [key: string]: AssetType } = {};
+  private static _extTypeMapping: { [key: string]: string } = {};
 
   /**
    * @internal
    */
-  static _addLoader(type: AssetType, loader: Loader<any>, extnames: string[]) {
+  static _addLoader(type: string, loader: Loader<any>, extnames: string[]) {
     this._loaders[type] = loader;
     for (let i = 0, len = extnames.length; i < len; i++) {
       this._extTypeMapping[extnames[i]] = type;
     }
   }
 
-  private static _getTypeByUrl(url: string): AssetType {
+  private static _getTypeByUrl(url: string): string {
     const path = url.split("?")[0];
     return this._extTypeMapping[path.substring(path.lastIndexOf(".") + 1)];
   }
@@ -244,7 +244,7 @@ export class ResourceManager {
  * @param assetType - Type of asset
  * @param extnames - Name of file extension
  */
-export function resourceLoader(assetType: AssetType, extnames: string[], useCache: boolean = true) {
+export function resourceLoader(assetType: string, extnames: string[], useCache: boolean = true) {
   return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
     const loader = new Target(useCache);
     ResourceManager._addLoader(assetType, loader, extnames);

@@ -31,11 +31,6 @@ export const Util = {
   },
 
   downloadBlob(blob: Blob, fileName: string = "") {
-    if (navigator && navigator.msSaveBlob) {
-      navigator.msSaveBlob(blob, fileName);
-      return;
-    }
-
     let url = window.URL.createObjectURL(blob);
     let a = document.createElement("a");
     document.body.appendChild(a);

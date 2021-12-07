@@ -6,6 +6,8 @@ import { pluginHook } from "./plugins/PluginManager";
 import { scriptAbility } from "./resources";
 import { ComponentConfig, Props } from "./types";
 import { switchElementsIndex } from "./utils";
+import { colliderConfigure } from "./ColliderConfigure";
+
 export class AbilityManager {
   private abilityMap: { [id: string]: Component } = {};
 
@@ -18,7 +20,7 @@ export class AbilityManager {
     const node = this.oasis.nodeManager.get(nodeId);
     const AbilityConstructor = this.getCompConstructor(type);
     if (!AbilityConstructor) {
-      Logger.error(`${type} abiltiy is not defined`);
+      Logger.error(`${type} ability is not defined`);
       return;
     }
 
@@ -38,6 +40,8 @@ export class AbilityManager {
       if (abilityProps.material) {
         (ability as any).material = abilityProps.material;
       }
+    } else if (type === "StaticCollider" || type === "DynamicCollider") {
+      colliderConfigure(ability as any, abilityProps);
     } else {
       for (let k in abilityProps) {
         if (abilityProps[k] !== null) {

@@ -1,16 +1,15 @@
-import { Vector3 } from "@oasis-engine/math";
 import { Background } from "./Background";
-import { EngineObject, GLCapabilityType, Logger } from "./base";
+import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
-import { Layer } from "./Layer";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightFeature } from "./lighting/LightFeature";
 import { SceneFeature } from "./SceneFeature";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
+import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 /**
  * Scene.
@@ -20,10 +19,10 @@ export class Scene extends EngineObject {
 
   /** Scene name. */
   name: string;
+
   /** The background of the scene. */
   readonly background: Background = new Background(this._engine);
-  /** Ambient light. */
-  readonly ambientLight: AmbientLight;
+
   /** Scene-related shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
 
@@ -31,9 +30,33 @@ export class Scene extends EngineObject {
   _activeCameras: Camera[] = [];
   /** @internal */
   _isActiveInEngine: boolean = false;
+  /** @internal */
+  _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
 
   private _destroyed: boolean = false;
   private _rootEntities: Entity[] = [];
+  private _ambientLight: AmbientLight;
+
+  /**
+   * Ambient light.
+   */
+  get ambientLight(): AmbientLight {
+    return this._ambientLight;
+  }
+
+  set ambientLight(value: AmbientLight) {
+    if (!value) {
+      Logger.warn("The scene must have one ambient light");
+      return;
+    }
+
+    const lastAmbientLight = this._ambientLight;
+    if (lastAmbientLight !== value) {
+      lastAmbientLight && lastAmbientLight._setScene(null);
+      value._setScene(this);
+      this._ambientLight = value;
+    }
+  }
 
   /**
    * Count of root entities.
@@ -68,7 +91,7 @@ export class Scene extends EngineObject {
     const shaderData = this.shaderData;
     Scene.sceneFeatureManager.addObject(this);
     shaderData._addRefCount(1);
-    this.ambientLight = new AmbientLight(this);
+    this.ambientLight = new AmbientLight();
   }
 
   /**
@@ -237,7 +260,14 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _updateShaderData() {
+  _updateShaderData(): void {
+    // union scene and camera macro.
+    ShaderMacroCollection.unionCollection(
+      this.engine._macroCollection,
+      this.shaderData._macroCollection,
+      this._globalShaderMacro
+    );
+
     const lightMgr = this.findFeature(LightFeature);
 
     lightMgr._updateShaderData(this.shaderData);
@@ -258,11 +288,4 @@ export class Scene extends EngineObject {
   }
 
   features: SceneFeature[] = [];
-
-  /**
-   * Raycast.
-   * @deprecated
-   * @param ray
-   */
-  public raycast(ray: { origin: Vector3; direction: Vector3 }, outPos?: Vector3, tag?: Layer): any {}
 }

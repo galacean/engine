@@ -15,15 +15,17 @@ export class RasterState {
 
   /** @internal */
   _cullFaceEnable: boolean = true;
+  /** @internal */
+  _frontFaceInvert: boolean = false;
 
   /**
    * @internal
    */
-  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState): void {
-    this._platformApply(hardwareRenderer, lastRenderState.rasterState);
+  _apply(hardwareRenderer: IHardwareRenderer, lastRenderState: RenderState, frontFaceInvert: boolean): void {
+    this._platformApply(hardwareRenderer, lastRenderState.rasterState, frontFaceInvert);
   }
 
-  private _platformApply(rhi: IHardwareRenderer, lastState: RasterState): void {
+  private _platformApply(rhi: IHardwareRenderer, lastState: RasterState, frontFaceInvert: boolean): void {
     const gl = <WebGLRenderingContext>rhi.gl;
     const { cullMode, depthBias, slopeScaledDepthBias } = this;
 
@@ -47,6 +49,15 @@ export class RasterState {
         }
         lastState.cullMode = cullMode;
       }
+    }
+
+    if (frontFaceInvert !== lastState._frontFaceInvert) {
+      if (frontFaceInvert) {
+        gl.frontFace(gl.CW);
+      } else {
+        gl.frontFace(gl.CCW);
+      }
+      lastState._frontFaceInvert == frontFaceInvert;
     }
 
     // apply polygonOffset.

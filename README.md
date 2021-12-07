@@ -1,13 +1,11 @@
-# Oasis Engine (Ant Graphics Engine)
-
-<p align="center"><a href="https://oasis-engine.github.io" target="_blank" rel="noopener noreferrer"><img src="https://gw.alipayobjects.com/mdn/rms_d27172/afts/img/A*f1pVTpPvzA8AAAAAAAAAAAAAARQnAQ" alt="Oasis logo"></a></p>
+# Ant Graphics Engine
 
 <a href="https://www.npmjs.com/package/oasis-engine"><img src="https://img.shields.io/npm/v/oasis-engine"/></a>
 ![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
 [![codecov](https://codecov.io/gh/oasis-engine/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/oasis-engine/engine)
 
-Oasis is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. This repository is the core engine of Oasis. Developers can independently use and write Typescript scripts to develop projects using pure code.
+This is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ## Features
 
@@ -51,13 +49,13 @@ engine.run();
 
 ## npm
 
-Oasis Engine are published on npm with full typing support. To install, use:
+The engine is published on npm with full typing support. To install, use:
 
 ```sh
 npm install oasis-engine
 ```
 
-This will allow you to import Oasis Engine entirely using:
+This will allow you to import engine entirely using:
 
 ```javascript
 import * as OASIS from "oasis-engine";
@@ -73,7 +71,7 @@ import { Engine, Scene, Entity } from "oasis-engine";
 
 Everyone is welcome to join us! Whether you find a bug, have a great feature request or you fancy owning a task from the road map feel free to get in touch.
 
-Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) before submitting changes.
+Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [贡献指南](https://github.com/oasis-engine/engine/wiki/%E5%A6%82%E4%BD%95%E4%B8%8E%E6%88%91%E4%BB%AC%E5%85%B1%E5%BB%BA-Oasis-%E5%BC%80%E6%BA%90%E4%BA%92%E5%8A%A8%E5%BC%95%E6%93%8E) before submitting changes.
 
 ## Build
 
@@ -98,4 +96,4 @@ npm run b:all
 
 
 ## License 
-The Oasis Engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.
+The engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.

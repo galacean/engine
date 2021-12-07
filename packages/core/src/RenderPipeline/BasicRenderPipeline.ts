@@ -134,8 +134,9 @@ export class BasicRenderPipeline {
    * Perform scene rendering.
    * @param context - Render context
    * @param cubeFace - Render surface of cube texture
+   * @param mipLevel - Set mip level the data want to write
    */
-  render(context: RenderContext, cubeFace?: TextureCubeFace) {
+  render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number) {
     const camera = this._camera;
     const opaqueQueue = this._opaqueQueue;
     const alphaTestQueue = this._alphaTestQueue;
@@ -154,11 +155,11 @@ export class BasicRenderPipeline {
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
-      this._drawRenderPass(this._renderPassArray[i], camera, cubeFace);
+      this._drawRenderPass(this._renderPassArray[i], camera, cubeFace, mipLevel);
     }
   }
 
-  private _drawRenderPass(pass: RenderPass, camera: Camera, cubeFace?: TextureCubeFace) {
+  private _drawRenderPass(pass: RenderPass, camera: Camera, cubeFace?: TextureCubeFace, mipLevel?: number) {
     pass.preRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
 
     if (pass.enabled) {
@@ -166,8 +167,8 @@ export class BasicRenderPipeline {
       const { background } = scene;
       const rhi = engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
-      rhi.activeRenderTarget(renderTarget, camera);
-      renderTarget?._setRenderTargetFace(cubeFace);
+      rhi.activeRenderTarget(renderTarget, camera, mipLevel); // change viewport with mip level
+      renderTarget?._setRenderTargetInfo(cubeFace, mipLevel);
       const clearFlags = pass.clearFlags ?? camera.clearFlags;
       const color = pass.clearColor ?? background.solidColor;
       if (clearFlags !== CameraClearFlags.None) {
@@ -212,7 +213,8 @@ export class BasicRenderPipeline {
 
   private _drawBackgroundTexture(engine: Engine, background: Background) {
     const rhi = engine._hardwareRenderer;
-    const { _backgroundTextureMaterial, _backgroundTextureMesh, canvas } = engine;
+    const { _backgroundTextureMaterial, canvas } = engine;
+    const mesh = background._mesh;
 
     if (
       (this._lastCanvasSize.x !== canvas.width || this._lastCanvasSize.y !== canvas.height) &&
@@ -227,8 +229,8 @@ export class BasicRenderPipeline {
     program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
     program.uploadUngroupTextures();
 
-    _backgroundTextureMaterial.renderState._apply(engine);
-    rhi.drawPrimitive(_backgroundTextureMesh, _backgroundTextureMesh.subMesh, program);
+    _backgroundTextureMaterial.renderState._apply(engine, false);
+    rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 
   private _drawSky(engine: Engine, camera: Camera, sky: Sky): void {
@@ -257,10 +259,11 @@ export class BasicRenderPipeline {
 
     const program = shader._getShaderProgram(engine, compileMacros);
     program.bind();
+    program.groupingOtherUniformBlock();
     program.uploadAll(program.materialUniformBlock, shaderData);
     program.uploadUngroupTextures();
 
-    renderState._apply(engine);
+    renderState._apply(engine, false);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 }

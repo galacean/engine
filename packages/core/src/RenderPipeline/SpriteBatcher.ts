@@ -113,7 +113,7 @@ export class SpriteBatcher extends Basic2DBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      material.renderState._apply(engine);
+      material.renderState._apply(engine,false);
 
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
 

@@ -6,6 +6,7 @@ import "./KTXLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
 import "./SpriteAtlasLoader";
+import "./EnvLoader";
 import "./gltf/extensions/index";
 import "./OasisAssetLoader";
 
