@@ -21,6 +21,7 @@ class MathTemp {
   static tempRay = new Ray();
   static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
+  static tempVec3 = new Vector3();
   static tempVec2 = new Vector2();
 }
 
@@ -298,24 +299,17 @@ export class Camera extends Component {
   /**
    * Transform a point from world space to viewport space.
    * @param point - Point in world space
-   * @param out - A point in the viewport space, X and Y are the viewport space coordinates, Z is the viewport depth, the near clipping plane is 0, the far clipping plane is 1, and W is the world unit distance from the camera
+   * @param out - Point in viewport space, X and Y are the camera viewport space coordinates, Z is in world units from the camera
    * @returns Point in viewport space
    */
-  worldToViewportPoint(point: Vector3, out: Vector4): Vector4 {
-    Matrix.multiply(this.projectionMatrix, this.viewMatrix, MathTemp.tempMat4);
-    MathTemp.tempVec4.setValue(point.x, point.y, point.z, 1.0);
-    Vector4.transform(MathTemp.tempVec4, MathTemp.tempMat4, MathTemp.tempVec4);
+  worldToViewportPoint(point: Vector3, out: Vector3): Vector3 {
+    const viewportPoint = MathTemp.tempVec4;
+    const projectionView = MathTemp.tempMat4;
+    Matrix.multiply(this.projectionMatrix, this.viewMatrix, projectionView);
+    Vector3.transformToVec4(point, projectionView, viewportPoint);
 
-    const w = MathTemp.tempVec4.w;
-    const nx = MathTemp.tempVec4.x / w;
-    const ny = MathTemp.tempVec4.y / w;
-    const nz = MathTemp.tempVec4.z / w;
-
-    // Transform of coordinate axis.
-    out.x = (nx + 1.0) * 0.5;
-    out.y = (1.0 - ny) * 0.5;
-    out.z = (nz + 1.0) * 0.5;
-    out.w = w;
+    const w = viewportPoint.w;
+    out.setValue((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, w);
     return out;
   }
 
@@ -326,11 +320,13 @@ export class Camera extends Component {
    * @returns Point in world space
    */
   viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
-    const { tempVec2: pointXY, tempRay: ray } = MathTemp;
+    const { tempVec2: pointXY } = MathTemp;
+    const invViewProjMat = this._getInvViewProjMat();
+    const position = this.entity.transform.worldPosition;
+
     pointXY.setValue(point.x, point.y);
-    this.viewportPointToRay(pointXY, ray);
-    Vector3.scale(ray.direction, point.z, out);
-    Vector3.add(ray.origin, out, out);
+    this._innerViewportToWorldPoint(pointXY, 1.0, invViewProjMat, out);
+    out.subtract(position).normalize().scale(point.z).add(position);
     return out;
   }
 
@@ -345,7 +341,7 @@ export class Camera extends Component {
     // Use the intersection of the near clipping plane as the origin point.
     const origin = this._innerViewportToWorldPoint(point, 0.0, invViewProjMat, out.origin);
     // Use the intersection of the far clipping plane as the origin point.
-    const direction: Vector3 = this._innerViewportToWorldPoint(point, 1.0, invViewProjMat, out.direction);
+    const direction = this._innerViewportToWorldPoint(point, 1.0, invViewProjMat, out.direction);
     Vector3.subtract(direction, origin, direction);
     direction.normalize();
     return out;
