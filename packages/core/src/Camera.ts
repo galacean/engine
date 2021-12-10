@@ -18,8 +18,6 @@ import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
 
 class MathTemp {
-  static tempRay = new Ray();
-  static tempMat4 = new Matrix();
   static tempVec4 = new Vector4();
   static tempVec3 = new Vector3();
   static tempVec2 = new Vector2();
@@ -321,8 +319,6 @@ export class Camera extends Component {
    * @returns Point in world space
    */
   viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
-    const invViewProjMat = this._getInvViewProjMat();
-
     const { nearClipPlane, farClipPlane } = this;
     const nf = 1 / (nearClipPlane - farClipPlane);
 
@@ -337,7 +333,7 @@ export class Camera extends Component {
       z = z / -pointZ;
     }
 
-    this._innerViewportToWorldPoint(point.x, point.y, (z + 1.0) / 2.0, invViewProjMat, out);
+    this._innerViewportToWorldPoint(point.x, point.y, (z + 1.0) / 2.0, this._getInvViewProjMat(), out);
     return out;
   }
 
