@@ -322,11 +322,18 @@ export class Camera extends Component {
   viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
     const { tempVec2: pointXY } = MathTemp;
     const invViewProjMat = this._getInvViewProjMat();
-    const position = this.entity.transform.worldPosition;
 
     pointXY.setValue(point.x, point.y);
-    this._innerViewportToWorldPoint(pointXY, 1.0, invViewProjMat, out);
-    out.subtract(position).normalize().scale(point.z).add(position);
+
+    const { nearClipPlane, farClipPlane } = this;
+    const pointZ = point.z;
+    const nf = 1 / (nearClipPlane - farClipPlane);
+
+    let z = -pointZ * (nearClipPlane + farClipPlane) * nf;
+    z += 2 * nearClipPlane * farClipPlane * nf;
+    z = z / pointZ;
+
+    this._innerViewportToWorldPoint(pointXY, (z + 1.0) / 2.0, invViewProjMat, out);
     return out;
   }
 
@@ -383,7 +390,7 @@ export class Camera extends Component {
    * @param out - Point of screen space
    * @returns Point of screen space
    */
-  worldToScreenPoint(point: Vector3, out: Vector4): Vector4 {
+  worldToScreenPoint(point: Vector3, out: Vector3): Vector3 {
     this.worldToViewportPoint(point, out);
     return this.viewportToScreenPoint(out, out);
   }
@@ -481,13 +488,9 @@ export class Camera extends Component {
   private _innerViewportToWorldPoint(pointXY: Vector2, pointZ: number, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
     // Transform to clipping space matrix
-    const clipPoint = MathTemp.tempVec4;
-    clipPoint.setValue(pointXY.x * 2 - 1, 1 - pointXY.y * 2, pointZ * 2 - 1, 1);
-    Vector4.transform(clipPoint, invViewProjMat, clipPoint);
-    const invW = 1.0 / clipPoint.w;
-    out.x = clipPoint.x * invW;
-    out.y = clipPoint.y * invW;
-    out.z = clipPoint.z * invW;
+    const clipPoint = MathTemp.tempVec3;
+    clipPoint.setValue(pointXY.x * 2 - 1, 1 - pointXY.y * 2, pointZ * 2 - 1);
+    Vector3.transformCoordinate(clipPoint, invViewProjMat, out);
     return out;
   }
 
