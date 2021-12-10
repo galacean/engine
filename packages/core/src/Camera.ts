@@ -321,26 +321,23 @@ export class Camera extends Component {
    * @returns Point in world space
    */
   viewportToWorldPoint(point: Vector3, out: Vector3): Vector3 {
-    const { tempVec2: pointXY } = MathTemp;
     const invViewProjMat = this._getInvViewProjMat();
 
-    pointXY.setValue(point.x, point.y);
-
     const { nearClipPlane, farClipPlane } = this;
-    const pointZ = point.z;
     const nf = 1 / (nearClipPlane - farClipPlane);
 
     let z: number;
     if (this.isOrthographic) {
-      z = pointZ * 2 * nf;
+      z = point.z * 2 * nf;
       z += (farClipPlane + nearClipPlane) * nf;
     } else {
+      const pointZ = point.z;
       z = pointZ * (nearClipPlane + farClipPlane) * nf;
       z += 2 * nearClipPlane * farClipPlane * nf;
       z = z / -pointZ;
     }
 
-    this._innerViewportToWorldPoint(pointXY, (z + 1.0) / 2.0, invViewProjMat, out);
+    this._innerViewportToWorldPoint(point.x, point.y, (z + 1.0) / 2.0, invViewProjMat, out);
     return out;
   }
 
@@ -353,9 +350,9 @@ export class Camera extends Component {
   viewportPointToRay(point: Vector2, out: Ray): Ray {
     const invViewProjMat = this._getInvViewProjMat();
     // Use the intersection of the near clipping plane as the origin point.
-    const origin = this._innerViewportToWorldPoint(point, 0.0, invViewProjMat, out.origin);
+    const origin = this._innerViewportToWorldPoint(point.x, point.y, 0.0, invViewProjMat, out.origin);
     // Use the intersection of the far clipping plane as the origin point.
-    const direction = this._innerViewportToWorldPoint(point, 1.0, invViewProjMat, out.direction);
+    const direction = this._innerViewportToWorldPoint(point.x, point.y, 1.0, invViewProjMat, out.direction);
     Vector3.subtract(direction, origin, direction);
     direction.normalize();
     return out;
@@ -492,11 +489,11 @@ export class Camera extends Component {
     this._isInvViewProjDirty.flag = true;
   }
 
-  private _innerViewportToWorldPoint(pointXY: Vector2, pointZ: number, invViewProjMat: Matrix, out: Vector3): Vector3 {
+  private _innerViewportToWorldPoint(x: number, y: number, z: number, invViewProjMat: Matrix, out: Vector3): Vector3 {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
     // Transform to clipping space matrix
     const clipPoint = MathTemp.tempVec3;
-    clipPoint.setValue(pointXY.x * 2 - 1, 1 - pointXY.y * 2, pointZ * 2 - 1);
+    clipPoint.setValue(x * 2 - 1, 1 - y * 2, z * 2 - 1);
     Vector3.transformCoordinate(clipPoint, invViewProjMat, out);
     return out;
   }
