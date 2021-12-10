@@ -303,13 +303,14 @@ export class Camera extends Component {
    * @returns Point in viewport space
    */
   worldToViewportPoint(point: Vector3, out: Vector3): Vector3 {
+    const cameraPoint = MathTemp.tempVec3;
     const viewportPoint = MathTemp.tempVec4;
-    const projectionView = MathTemp.tempMat4;
-    Matrix.multiply(this.projectionMatrix, this.viewMatrix, projectionView);
-    Vector3.transformToVec4(point, projectionView, viewportPoint);
+
+    Vector3.transformCoordinate(point, this.viewMatrix, cameraPoint);
+    Vector3.transformToVec4(cameraPoint, this.projectionMatrix, viewportPoint);
 
     const w = viewportPoint.w;
-    out.setValue((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, w);
+    out.setValue((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, cameraPoint.z);
     return out;
   }
 
@@ -329,9 +330,15 @@ export class Camera extends Component {
     const pointZ = point.z;
     const nf = 1 / (nearClipPlane - farClipPlane);
 
-    let z = -pointZ * (nearClipPlane + farClipPlane) * nf;
-    z += 2 * nearClipPlane * farClipPlane * nf;
-    z = z / pointZ;
+    let z: number;
+    if (this.isOrthographic) {
+      z = pointZ * 2 * nf;
+      z += (farClipPlane + nearClipPlane) * nf;
+    } else {
+      z = pointZ * (nearClipPlane + farClipPlane) * nf;
+      z += 2 * nearClipPlane * farClipPlane * nf;
+      z = z / -pointZ;
+    }
 
     this._innerViewportToWorldPoint(pointXY, (z + 1.0) / 2.0, invViewProjMat, out);
     return out;
