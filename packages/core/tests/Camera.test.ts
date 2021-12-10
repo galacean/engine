@@ -92,7 +92,7 @@ describe("camera test", function () {
     camera.orthographicSize = 5;
     // trigger calculate
     camera.projectionMatrix;
-    // //@ts-ignore
+    //@ts-ignore
     // camera._orthographicSize = 4;
 
     const width = (camera.orthographicSize * 400) / 400;
@@ -118,85 +118,84 @@ describe("camera test", function () {
   });
 
   it("world to viewport", () => {
-    // camera.projectionMatrix = new Matrix(
-    //   3.0807323455810547,
-    //   0,
-    //   0,
-    //   0,
-    //   0,
-    //   1.7320458889007568,
-    //   0,
-    //   0,
-    //   0,
-    //   0,
-    //   -1.001001000404358,
-    //   -1,
-    //   0,
-    //   0,
-    //   -0.10010010004043579,
-    //   0
-    // );
-    camera.entity.transform.setPosition(0,0,0);
-    // camera.isOrthographic = true;
-    const out = camera.worldToViewportPoint(new Vector3(1, 1, 100), new Vector3());
-    expect(out).toEqual({ x: 0.49133974611759185, y: 0.5086602538824081, z: -100 });
+    camera.projectionMatrix = new Matrix(
+      3.0807323455810547,
+      0,
+      0,
+      0,
+      0,
+      1.7320458889007568,
+      0,
+      0,
+      0,
+      0,
+      -1.001001000404358,
+      -1,
+      0,
+      0,
+      -0.10010010004043579,
+      0
+    );
+    camera.entity.transform.worldMatrix = new Matrix();
+    const out = camera.worldToViewportPoint(new Vector3(1, 1, -100), new Vector3());
+    expect(out).toEqual({ x: 0.5154036617279053, y: 0.4913397705554962, z: 100 });
   });
 
   it("viewport to world", () => {
-    // camera.projectionMatrix = new Matrix(
-    //   3.0807323455810547,
-    //   0,
-    //   0,
-    //   0,
-    //   0,
-    //   1.7320458889007568,
-    //   0,
-    //   0,
-    //   0,
-    //   0,
-    //   -1.001001000404358,
-    //   -1,
-    //   0,
-    //   0,
-    //   -0.10010010004043579,
-    //   0
-    // );
-    // camera.entity.transform.worldMatrix = new Matrix();
-    const out = camera.viewportToWorldPoint(new Vector3(0.49133974611759185, 0.5086602538824081, -100), new Vector3());
-    arrayCloseTo([1, 1, 99.99000149972699], [out.x, out.y, out.z]);
+    camera.projectionMatrix = new Matrix(
+      3.0807323455810547,
+      0,
+      0,
+      0,
+      0,
+      1.7320458889007568,
+      0,
+      0,
+      0,
+      0,
+      -1.001001000404358,
+      -1,
+      0,
+      0,
+      -0.10010010004043579,
+      0
+    );
+    camera.entity.transform.worldMatrix = new Matrix();
+    const out = camera.viewportToWorldPoint(new Vector3(0.5154036617279053, 0.4913397705554962, 100), new Vector3());
+    arrayCloseTo([1, 1, -100], [out.x, out.y, out.z]);
   });
 
-  // it("viewportToRay", () => {
-  //   const mat = new Matrix(
-  //     -1,
-  //     0,
-  //     0,
-  //     0,
-  //     0,
-  //     0.9593654870986938,
-  //     -0.28216633200645447,
-  //     0,
-  //     0,
-  //     -0.28216633200645447,
-  //     -0.9593654870986938,
-  //     0,
-  //     0,
-  //     5,
-  //     17,
-  //     1
-  //   );
-  //   camera.entity.transform.worldMatrix = mat;
-  //   const ray = camera.viewportPointToRay(new Vector2(0.4472140669822693, 0.4436090290546417), new Ray());
+  it("viewportToRay", () => {
+    const mat = new Matrix(
+      -1,
+      0,
+      0,
+      0,
+      0,
+      0.9593654870986938,
+      -0.28216633200645447,
+      0,
+      0,
+      -0.28216633200645447,
+      -0.9593654870986938,
+      0,
+      0,
+      5,
+      17,
+      1
+    );
+    camera.entity.transform.worldMatrix = mat;
+    const ray = camera.viewportPointToRay(new Vector2(0.4472140669822693, 0.4436090290546417), new Ray());
 
-  //   arrayCloseTo(
-  //     [ray.origin.x, ray.origin.y, ray.origin.z],
-  //     Float32Array.from([0.0017142786925635912, 5.017240249493299, 17.047073454417177])
-  //   );
-  //   arrayCloseTo(
-  //     [ray.direction.x, ray.direction.y, ray.direction.z],
-  //     Float32Array.from([0.034176195559507606, 0.3437087947548518, 0.9384541821875192])
-  //   );
-  // });
+    arrayCloseTo(
+      [ray.origin.x, ray.origin.y, ray.origin.z],
+      Float32Array.from([0.0017142786925635912, 5.017240249493299, 17.047073454417177])
+    );
+    arrayCloseTo(
+      [ray.direction.x, ray.direction.y, ray.direction.z],
+      Float32Array.from([0.034176195559507606, 0.3437087947548518, 0.9384541821875192])
+    );
+  });
 
   it("test near clip plane and far clip plane", () => {
     camera.entity.transform.worldMatrix = new Matrix();
