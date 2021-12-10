@@ -299,7 +299,7 @@ export class Camera extends Component {
   /**
    * Transform a point from world space to viewport space.
    * @param point - Point in world space
-   * @param out - Point in viewport space, X and Y are the camera viewport space coordinates, Z is in world units from the camera
+   * @param out - Point in viewport space, X and Y are the camera viewport space coordinates, Z is in world space units from the plane that camera forward is normal to
    * @returns Point in viewport space
    */
   worldToViewportPoint(point: Vector3, out: Vector3): Vector3 {
@@ -316,7 +316,7 @@ export class Camera extends Component {
 
   /**
    * Transform a point from viewport space to world space.
-   * @param point - Point in viewport space, X and Y are the camera viewport space coordinates, Z is in world units from the camera
+   * @param point - Point in viewport space, X and Y are the camera viewport space coordinates, Z is in world space units from the plane that camera forward is normal to
    * @param out - Point in world space
    * @returns Point in world space
    */
