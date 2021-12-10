@@ -93,7 +93,7 @@ describe("camera test", function () {
     // trigger calculate
     camera.projectionMatrix;
     //@ts-ignore
-    // camera._orthographicSize = 4;
+    camera._orthographicSize = 4;
 
     const width = (camera.orthographicSize * 400) / 400;
     const height = camera.orthographicSize;
