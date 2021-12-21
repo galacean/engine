@@ -1,4 +1,4 @@
-import { IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterController, ICharacterControllerManager, IPhysicsManager } from "@oasis-engine/design";
 import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -97,6 +97,27 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
+  addCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
+  removeCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.createControllerManager }
+   */
+  createControllerManager(): ICharacterControllerManager {
+    throw "Physics-lite don't support createControllerManager. Use Physics-PhysX instead!";
+  }
+
+  /**
    * {@inheritDoc IPhysicsManager.raycast }
    */
   raycast(
@@ -167,6 +188,8 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
     const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    event.index1 = index1;
+    event.index2 = index2;
     this._eventMap[index1][index2] = event;
     return event;
   }
@@ -237,7 +260,7 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = 0, n = currentEvents.length; i < n;) {
       const event = currentEvents.get(i);
       if (!event.needUpdate) {
         if (event.state == TriggerEventState.Enter) {

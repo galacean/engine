@@ -1,9 +1,11 @@
 import { PhysXPhysics } from "./PhysXPhysics";
 import { Ray, Vector3 } from "oasis-engine";
-import { IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterController, ICharacterControllerManager, IPhysicsManager } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
 import { DisorderedArray } from "./DisorderedArray";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
+import { PhysXCharacterControllerManager } from "./characterkinematic/PhysXCharacterControllerManager";
+import { PhysXCharacterController } from "./characterkinematic/PhysXCharacterController";
 
 /**
  * A manager is a collection of bodies and constraints which can interact.
@@ -123,6 +125,29 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
+  addCharacterController(characterController: PhysXCharacterController): void {
+    this._eventMap[characterController._id] = [];
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
+  removeCharacterController(characterController: PhysXCharacterController): void {
+    delete this._eventMap[characterController._id];
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCollider }
+   */
+  createControllerManager(): ICharacterControllerManager {
+    let manager = new PhysXCharacterControllerManager();
+    manager._pxControllerManager = this._pxScene.createControllerManager();
+    return manager;
+  }
+
+  /**
    * {@inheritDoc IPhysicsManager.update }
    */
   update(elapsedTime: number): void {
@@ -170,6 +195,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
     const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    event.index1 = index1;
+    event.index2 = index2;
     this._eventMap[index1][index2] = event;
     return event;
   }
