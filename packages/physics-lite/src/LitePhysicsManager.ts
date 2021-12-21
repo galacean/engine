@@ -188,6 +188,8 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
     const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    event.index1 = index1;
+    event.index2 = index2;
     this._eventMap[index1][index2] = event;
     return event;
   }
