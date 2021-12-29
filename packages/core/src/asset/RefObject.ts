@@ -10,20 +10,12 @@ export abstract class RefObject extends EngineObject implements IRefObject {
   isGCIgnored: boolean = false;
 
   private _refCount: number = 0;
-  private _destroyed: boolean = false;
 
   /**
    * Counted by valid references.
    */
   get refCount(): number {
     return this._refCount;
-  }
-
-  /**
-   * Whether it has been destroyed.
-   */
-  get destroyed(): boolean {
-    return this._destroyed;
   }
 
   protected constructor(engine: Engine) {
@@ -43,7 +35,7 @@ export abstract class RefObject extends EngineObject implements IRefObject {
     // resourceManager maybe null,because engine has destroyed.
     // TODO:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
     if (resourceManager) {
-      resourceManager._deleteAsset(this);
+      super.destroy();
       resourceManager._deleteRefObject(this.instanceId);
     }
 
@@ -53,7 +45,7 @@ export abstract class RefObject extends EngineObject implements IRefObject {
     }
     this._engine = null;
     this._onDestroy();
-    this._destroyed = true;
+    
     return true;
   }
 

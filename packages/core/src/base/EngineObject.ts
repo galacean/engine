@@ -15,6 +15,8 @@ export abstract class EngineObject {
   @ignoreClone
   protected _engine: Engine;
 
+  protected _destroyed: boolean = false;
+
   /**
    * Get the engine which the object belongs.
    */
@@ -22,7 +24,26 @@ export abstract class EngineObject {
     return this._engine;
   }
 
+  /**
+   * Whether it has been destroyed.
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
+
   constructor(engine: Engine) {
     this._engine = engine;
+  }
+
+  /**
+   * Destroy self.
+   */
+  destroy(): void {
+    if (this._destroyed) return;
+
+    const resourceManager = this._engine.resourceManager;
+    resourceManager?._deleteAsset(this);
+
+    this._destroyed = true;
   }
 }
