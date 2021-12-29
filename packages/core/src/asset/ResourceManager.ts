@@ -144,7 +144,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addAsset(path: string, asset: RefObject): void {
+  _addAsset(path: string, asset: EngineObject): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
   }

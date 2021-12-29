@@ -58,7 +58,6 @@ export abstract class RefObject extends EngineObject implements IRefObject {
 
   /**
    * @internal
-   * Add reference resource.
    */
   _addRefCount(value: number): void {
     this._refCount += value;
@@ -66,7 +65,6 @@ export abstract class RefObject extends EngineObject implements IRefObject {
 
   /**
    * @internal
-   * Remove reference resource.
    */
   _addToResourceManager(path: string): void {
     this._engine.resourceManager._addAsset(path, this);
