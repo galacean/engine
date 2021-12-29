@@ -13,7 +13,7 @@ import {
 import { IGLTF } from "./Schema";
 
 /**
- * Product after GLTF parser, usually, `defaultSceneRoot` is only needed tso use.
+ * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.
  */
 export class GLTFResource extends EngineObject {
   /** GLTF file url. */
