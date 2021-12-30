@@ -15,11 +15,11 @@ export class Oasis extends EventDispatcher {
   private schema: Schema;
   public timeout: number;
   private oasis = this;
-  public engine:Engine;
+  public engine: Engine;
 
   private constructor(private _options: Options, public readonly pluginManager: PluginManager) {
     super();
-    this.engine=_options.engine;
+    this.engine = _options.engine;
     this.schema = _options.config;
     this.timeout = _options.timeout;
     _options.scripts = _options.scripts ?? {};
