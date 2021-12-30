@@ -11,10 +11,8 @@ export abstract class EngineObject {
   @ignoreClone
   readonly instanceId: number = ++EngineObject._instanceIdCounter;
 
-  /** Engine to which the object belongs. */
   @ignoreClone
   protected _engine: Engine;
-
   protected _destroyed: boolean = false;
 
   /**
