@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/physics-lite",
-  "version": "0.6.1",
+  "version": "0.6.3",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -15,8 +15,8 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/design": "0.6.1",
-    "oasis-engine": "0.6.1"
+    "@oasis-engine/design": "0.6.3",
+    "oasis-engine": "0.6.3"
   },
   "publishConfig": {
     "access": "public"
