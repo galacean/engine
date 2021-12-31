@@ -208,9 +208,9 @@ export class ResourceManager {
       .then((res) => {
         if (loader.useCache) this._addAsset(url, res);
       })
-      .catch((err: Error) => Promise.reject(err))
-      .finally(() => {
+      .catch((err: Error) => {
         delete this._loadingPromises[url];
+        return Promise.reject(err);
       });
     return promise;
   }
