@@ -1,9 +1,9 @@
+import { Engine, EngineObject } from "..";
+import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
+import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
-import { Engine, EngineObject } from "..";
-import { Loader } from "./Loader";
-import { ObjectValues } from "../base/Util";
 
 /**
  * ResourceManager
@@ -16,10 +16,10 @@ export class ResourceManager {
   /**
    * @internal
    */
-  static _addLoader(type: string, loader: Loader<any>, extnames: string[]) {
+  static _addLoader(type: string, loader: Loader<any>, extNames: string[]) {
     this._loaders[type] = loader;
-    for (let i = 0, len = extnames.length; i < len; i++) {
-      this._extTypeMapping[extnames[i]] = type;
+    for (let i = 0, len = extNames.length; i < len; i++) {
+      this._extTypeMapping[extNames[i]] = type;
     }
   }
 
