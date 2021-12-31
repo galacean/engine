@@ -205,7 +205,7 @@ export class ResourceManager {
     const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
     promise
-      .then((res: EngineObject) => {
+      .then((res) => {
         if (loader.useCache) this._addAsset(url, res);
       })
       .catch((err: Error) => Promise.reject(err))
