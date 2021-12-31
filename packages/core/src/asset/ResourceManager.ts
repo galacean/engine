@@ -1,9 +1,8 @@
 import { AssetPromise } from "./AssetPromise";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
-import { Engine } from "..";
+import { Engine, EngineObject } from "..";
 import { Loader } from "./Loader";
-import { AssetType } from "./AssetType";
 import { ObjectValues } from "../base/Util";
 
 /**
@@ -140,7 +139,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addAsset(path: string, asset: RefObject): void {
+  _addAsset(path: string, asset: EngineObject): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
   }
@@ -148,7 +147,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _deleteAsset(asset: RefObject): void {
+  _deleteAsset(asset: EngineObject): void {
     const id = asset.instanceId;
     const path = this._assetPool[id];
     if (path) {
@@ -212,11 +211,13 @@ export class ResourceManager {
     const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
     promise
-      .then((res) => {
+      .then((res: EngineObject) => {
         if (loader.useCache) this._addAsset(url, res);
-        delete this._loadingPromises[url];
       })
-      .catch(() => {});
+      .catch((err: Error) => Promise.reject(err))
+      .finally(() => {
+        delete this._loadingPromises[url];
+      });
     return promise;
   }
 
