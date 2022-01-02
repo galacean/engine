@@ -5,6 +5,7 @@ import { Vector2 } from "@oasis-engine/math";
  * The canvas used on the web, which can support HTMLCanvasElement and OffscreenCanvas.
  */
 export class WebCanvas implements Canvas {
+  // TODO: 支持 HTMLCanvasElement | OffscreenCanvas
   _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
   private _width: number;

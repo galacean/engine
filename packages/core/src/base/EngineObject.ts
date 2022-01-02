@@ -1,6 +1,6 @@
 import { ignoreClone } from "../clone/CloneManager";
 import { Engine } from "../Engine";
-
+// TODO: 三维对象的抽象基类，三维对象实例化有一个唯一的示例ID，每一个示例对象都包括一个Engine的上下文
 /**
  * EngineObject.
  */

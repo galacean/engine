@@ -8,7 +8,7 @@ const debug = console.log.bind(console);
 const info = console.info.bind(console);
 const warn = console.warn.bind(console);
 const error = console.error.bind(console);
-
+// TODO: 可以关闭和开启的Log打印
 export const Logger = {
   debug: noop,
   info: noop,

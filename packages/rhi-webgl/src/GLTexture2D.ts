@@ -73,7 +73,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
 
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
-
+    // TODO: 压缩纹理支持
     if (isCompressed) {
       const mipBit = 1 << mipLevel;
       if (isWebGL2 || this._compressedMipFilled & mipBit) {

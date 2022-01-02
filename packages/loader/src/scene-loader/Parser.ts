@@ -30,9 +30,10 @@ export class Parser {
   resetPlugins() {
     this.pluginManager.reset();
   }
-
+  // TODO: 使用私有化,不允许外部使用new 创建实例，只能代用静态方法create
   private constructor() {}
 
+  // TODO: 采用工程模式实例化
   static create(): Parser {
     const parser = new Parser();
     return parser;

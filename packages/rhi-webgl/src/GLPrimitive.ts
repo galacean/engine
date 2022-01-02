@@ -24,7 +24,9 @@ export class GLPrimitive implements IPlatformPrimitive {
 
   constructor(rhi: WebGLRenderer, primitive: Mesh) {
     this._primitive = primitive;
+    // TODO: 是否支持实例化数组
     this.canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
+    // TODO: 是否支持VAO
     this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
     this.gl = rhi.gl;
   }
@@ -33,7 +35,10 @@ export class GLPrimitive implements IPlatformPrimitive {
    * Draw the primitive.
    */
   draw(shaderProgram: any, subMesh: SubMesh): void {
+    // TODO: shaderProgram 渲染调用的程序组，材质
+    // TODO: 渲染的参数
     const gl = this.gl;
+    // TODO: _primitive 为几何体的相关信息，
     const primitive = this._primitive;
 
     if (this._useVao) {
@@ -53,17 +58,21 @@ export class GLPrimitive implements IPlatformPrimitive {
     if (!_instanceCount) {
       if (_indexBufferBinding) {
         if (this._useVao) {
+          // TODO: VAO结构数据渲染
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
         } else {
+          // TODO:采用索引方式渲染
           const { _nativeBuffer } = _indexBufferBinding.buffer;
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
       } else {
+        // TODO: 采用非索引方式渲染
         gl.drawArrays(topology, start, count);
       }
     } else {
+      // TODO: 使用实例化方式
       if (this.canUseInstancedArrays) {
         if (_indexBufferBinding) {
           if (this._useVao) {

@@ -39,7 +39,7 @@ ShaderPool.init();
 export class Engine extends EventDispatcher {
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager = new PhysicsManager(this);
-
+  // TODO: 组件管理
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
@@ -69,6 +69,7 @@ export class Engine extends EventDispatcher {
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
   private _vSyncCount: number = 1;
+  // TODO: 帧率设置
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
   private _isPaused: boolean = true;
@@ -78,6 +79,7 @@ export class Engine extends EventDispatcher {
   private _targetFrameInterval: number = 1000 / 60;
 
   private _animate = () => {
+    // TODO: 显示60 因数的值可以控制帧率如 30 20 15等,_vSyncCount=0时采用setTimeout，限制帧率
     if (this._vSyncCount) {
       this._requestId = requestAnimationFrame(this._animate);
       if (this._vSyncCounter++ % this._vSyncCount === 0) {
@@ -160,7 +162,9 @@ export class Engine extends EventDispatcher {
    */
   constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer) {
     super(null);
+    // TODO: 初始化的时候传入canvas 与 图形API
     this._hardwareRenderer = hardwareRenderer;
+    // TODO: 调用图形API 的初始化函数，并传入canvas
     this._hardwareRenderer.init(canvas);
     this._canvas = canvas;
     // @todo delete

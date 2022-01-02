@@ -112,6 +112,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
+    // TODO: 默认使用webgl2
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
       gl = webCanvas.getContext("webgl2", option);
       if (!gl && webCanvas instanceof HTMLCanvasElement) {
@@ -119,12 +120,14 @@ export class WebGLRenderer implements IHardwareRenderer {
       }
       this._isWebGL2 = true;
 
+      // TODO: 新版本的safari deleteQuery 也是存在的
       // Prevent weird browsers to lie (such as safari!)
       if (gl && !(<WebGL2RenderingContext>gl).deleteQuery) {
         this._isWebGL2 = false;
       }
     }
 
+    // TODO: 如果不支持webGL2 创建webGL
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
         gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", option);
@@ -148,43 +151,44 @@ export class WebGLRenderer implements IHardwareRenderer {
 
     this._options = null;
   }
-
+  // TODO：创建一个渲染对象
   createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
     return new GLPrimitive(this, primitive);
   }
-
+  // TODO: 创建一个纹理，包括压缩纹理
   createPlatformTexture2D(texture2D: Texture2D): IPlatformTexture2D {
     return new GLTexture2D(this, texture2D);
   }
 
+  // TODO: 场景一个立方体贴图
   createPlatformTextureCubeMap(textureCube: TextureCubeMap): IPlatformTextureCubeMap {
     return new GLTextureCubeMap(this, textureCube);
   }
-
+  // TODO: 创建一个用于离屏渲染的颜色贴图
   createPlatformRenderColorTexture(texture: RenderColorTexture): IPlatformRenderColorTexture {
     return new GLRenderColorTexture(this, texture);
   }
-
+  // TODO：创建一个深度贴图
   createPlatformRenderDepthTexture(texture: RenderDepthTexture): IPlatformRenderDepthTexture {
     return new GLRenderDepthTexture(this, texture);
   }
-
+  // TODO: 创建一个离屏渲染对象，FBO
   createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget {
     return new GLRenderTarget(this, target);
   }
-
+  // TODO:获取扩展对象
   requireExtension(ext) {
     return this._extensions.requireExtension(ext);
   }
-
+  // TODO:返回WebGL上下文是否支持该能力 GLCapabilityType 枚举类型的能力列表
   canIUse(capabilityType: GLCapabilityType) {
     return this.capability.canIUse(capabilityType);
   }
-
+  // TODO:返回能够支持的纹理压缩格式
   canIUseCompressedTextureInternalFormat(type: number) {
     return this.capability.canIUseCompressedTextureInternalFormat(type);
   }
-
+  // TODO: 渲染视口的大小
   viewport(x: number, y: number, width: number, height: number): void {
     // gl.enable(gl.SCISSOR_TEST);
     // gl.scissor(x, transformY, width, height);
@@ -196,11 +200,11 @@ export class WebGLRenderer implements IHardwareRenderer {
       lv.setValue(x, y, width, height);
     }
   }
-
-  colorMask(r, g, b, a) {
+  // TODO: 颜色通道
+  colorMask(r: boolean, g: boolean, b: boolean, a: boolean) {
     this._gl.colorMask(r, g, b, a);
   }
-
+  // TODO: 渲染对象销毁回收
   clearRenderTarget(
     engine: Engine,
     clearFlags: CameraClearFlags.Depth | CameraClearFlags.DepthColor,
@@ -245,6 +249,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     gl.clear(clearFlag);
   }
 
+  // 渲染对象
   drawPrimitive(primitive: Mesh, subPrimitive: SubMesh, shaderProgram: any) {
     // todo: VAO not support morph animation
     if (primitive) {
@@ -255,6 +260,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     }
   }
 
+  //TODO: 激活渲染对象
   activeRenderTarget(renderTarget: RenderTarget, camera: Camera) {
     const gl = this._gl;
     if (renderTarget) {
@@ -276,13 +282,14 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   destroy() {}
 
+  // TODO: 激活纹理
   activeTexture(textureID: number): void {
     if (this._activeTextureID !== textureID) {
       this._gl.activeTexture(textureID);
       this._activeTextureID = textureID;
     }
   }
-
+  // TODO:绑定纹理
   bindTexture(texture: GLTexture): void {
     const index = this._activeTextureID - this._gl.TEXTURE0;
     if (this._activeTextures[index] !== texture) {

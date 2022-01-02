@@ -2,7 +2,9 @@ import { Component, Entity } from "@oasis-engine/core";
 import { Oasis } from "../Oasis";
 import { SchemaResource } from "../resources";
 import { Plugin } from "./Plugin";
+//TODO: 插件管理
 export class PluginManager implements PluginHook {
+  // TODO: 使用Set保存插件
   private registeredPlugins: Set<Plugin> = new Set();
   private plugins: PluginHook[] = [];
 
@@ -33,6 +35,7 @@ export class PluginManager implements PluginHook {
   }
 }
 
+// TODO: 通过PluginHook 为插件提供一系列的钩子函数，
 export interface PluginHook {
   oasis?: Oasis;
   nodeAdded?(entity: Entity): any;
@@ -56,6 +59,7 @@ export interface PluginHook {
   sceneUpdated?(updateConfig?: { type: string; key: string; value: any }): any;
 }
 
+// TODO: 使用装饰器
 export function pluginHook(options: Partial<{ before: keyof PluginHook; after: keyof PluginHook }>): MethodDecorator {
   return function (target: any, propertyName: string, descriptor: TypedPropertyDescriptor<any>) {
     const method = descriptor.value;
