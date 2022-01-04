@@ -340,6 +340,9 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   destroy(): void {
+    if (this._destroyed) return;
+    
+    super.destroy();
     const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
       abilityArray[i].destroy();
