@@ -186,8 +186,8 @@ export class BasicRenderPipeline {
           } else if (background.mode === BackgroundMode.Texture && background.texture) {
             this._drawBackgroundTexture(engine, background);
           }
-          this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
         }
+        this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
 
       renderTarget?._blitRenderTarget();
