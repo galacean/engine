@@ -1,11 +1,10 @@
-import { EngineObject } from "./EngineObject";
-import { Event } from "./Event";
 import { ignoreClone } from "../clone/CloneManager";
+import { Event } from "./Event";
 
 /**
  * EventDispatcher, which can be inherited as a base class.
  */
-export class EventDispatcher extends EngineObject {
+export class EventDispatcher {
   @ignoreClone
   private _evts = Object.create(null);
   private _evtCount = 0;
