@@ -9,6 +9,8 @@ import { Sprite, SpriteRenderer } from "../sprite";
 import { TextUtils } from "./TextUtils";
 
 export class TextRenderer extends SpriteRenderer {
+  static needPremultiplyAlpha: boolean = false;
+
   @assignmentClone
   private _text: string = "";
   @assignmentClone
@@ -197,6 +199,12 @@ export class TextRenderer extends SpriteRenderer {
       this._styleDirtyFlag = false;
     }
 
+    if (TextRenderer.needPremultiplyAlpha) {
+      this.shaderData.enableMacro("NEED_PREMULTIPLY_ALPHA");
+    } else {
+      this.shaderData.disableMacro("NEED_PREMULTIPLY_ALPHA");
+    }
+
     super._render(camera);
   }
 
@@ -241,13 +249,21 @@ export class TextRenderer extends SpriteRenderer {
   private _updateTexture() {
     const textContext = TextUtils.textContext();
     const { canvas, context } = textContext;
+    if (canvas.width === 0 || canvas.height === 0) {
+      this.sprite.texture = null;
+      return ;
+    }
     const trimData = TextUtils.trimCanvas(textContext);
     const { width, height } = trimData;
     canvas.width = width;
     canvas.height = height;
     context.putImageData(trimData.data, 0, 0);
     const texture = new Texture2D(this.engine, width, height);
-    texture.setImageSource(canvas);
+    if (TextRenderer.needPremultiplyAlpha) {
+      texture.setImageSource(canvas, 0, false, true);
+    } else {
+      texture.setImageSource(canvas);
+    }
     texture.generateMipmaps();
     this.sprite.texture = texture;
   }
