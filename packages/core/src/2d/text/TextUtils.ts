@@ -27,6 +27,12 @@ export class TextUtils {
     return TextUtils._textContext;
   }
 
+  /**
+   * measure the font.
+   * @param textContext - text context includes gl context and canvas
+   * @param font - the string of the font
+   * @returns the font size
+   */
   public static measureFont(textContext: TextContext, font: string): number {
     const { fontSizes } = TextUtils;
     if (fontSizes[font]) {
@@ -95,13 +101,11 @@ export class TextUtils {
   public static measureText(textContext: TextContext, textRenderer: TextRenderer, fontStr: string): void {
     const fontSize = TextUtils.measureFont(textContext, fontStr);
     // const wrappedTexts = TextUtils._wordWrap(textRenderer, fontStr);
+
     const { text } = textRenderer;
     const { canvas, context } = textContext;
     context.font = fontStr;
     const width = Math.ceil(context.measureText(text || "").width);
-    if (width === 0) {
-      return ;
-    }
     canvas.width = width;
     canvas.height = fontSize;
     context.font = fontStr;
@@ -111,6 +115,11 @@ export class TextUtils {
     context.fillText(text, 0, 0);
   }
 
+  /**
+   * Trim canvas.
+   * @param textContext - text context includes gl context and canvas
+   * @returns the width and height after trim, and the image data
+   */
   public static trimCanvas(textContext: TextContext): { width: number; height: number; data?: ImageData } {
     // https://gist.github.com/remy/784508
 
@@ -173,7 +182,6 @@ export class TextUtils {
     const { width, height, horizontalOverflow, verticalOverflow } = textRenderer;
     const isWrap = horizontalOverflow === TextHorizontalOverflow.Wrap;
 
-    // 
     if (isWrap && width === 0) {
       return [];
     }
@@ -187,7 +195,7 @@ export class TextUtils {
     const widthInPixel = width * pixelsPerUnit;
     const output: Array<string> = [];
     context.font = fontStr;
-    const textArr = text.split("\n");
+    const textArr = text.split(/(?:\r\n|\r|\n)/);
 
     for (let i = 0, l = textArr.length; i < l; ++i) {
       const curText = textArr[i];
@@ -202,7 +210,7 @@ export class TextUtils {
             const curChar = curText[i];
             const curCharWidth = Math.ceil(context.measureText(curChar).width);
             if (charsWidth + curCharWidth > widthInPixel) {
-              // The width of text renderer is shorter than cur char.
+              // The width of text renderer is shorter than current char.
               if (charsWidth === 0) {
                 output.push(curChar);
               } else {
