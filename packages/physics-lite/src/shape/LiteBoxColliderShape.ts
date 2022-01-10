@@ -1,5 +1,5 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
-import { BoundingBox, Ray, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Ray, Vector3 } from "oasis-engine";
 import { LiteColliderShape } from "./LiteColliderShape";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
@@ -59,8 +59,8 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     const localRay = this._getLocalRay(ray);
 
     const boundingBox = LiteBoxColliderShape._tempBox;
-    this._boxMin.cloneTo(boundingBox.min);
-    this._boxMax.cloneTo(boundingBox.max);
+    boundingBox.min.setValue(-this._halfSize.x, -this._halfSize.y, -this._halfSize.z);
+    boundingBox.max.setValue(this._halfSize.x, this._halfSize.y, this._halfSize.z);
     const rayDistance = localRay.intersectBox(boundingBox);
     if (rayDistance !== -1) {
       this._updateHitResult(localRay, rayDistance, hit, ray.origin);

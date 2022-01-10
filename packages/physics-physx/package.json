@@ -1,10 +1,11 @@
 {
   "name": "@oasis-engine/physics-physx",
-  "version": "0.6.0-alpha.3",
+  "version": "0.6.3",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "debug": "src/index.ts",
+  "browser": "dist/browser.js",
   "types": "types/index.d.ts",
   "scripts": {
     "b:types": "tsc"
@@ -14,8 +15,8 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/design": "0.6.0-alpha.3",
-    "@oasis-engine/math": "0.6.0-alpha.3"
+    "@oasis-engine/design": "0.6.3",
+    "oasis-engine": "0.6.3"
   },
   "publishConfig": {
     "access": "public"

@@ -11,7 +11,6 @@ import { FeatureManager } from "./FeatureManager";
 import { InputManager } from "./input/InputManager";
 import { RenderQueueType } from "./material/enums/RenderQueueType";
 import { Material } from "./material/Material";
-import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { ClassPool } from "./RenderPipeline/ClassPool";
@@ -48,6 +47,7 @@ export class Engine extends EventDispatcher {
 
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
+  readonly inputManager: InputManager;
 
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
@@ -71,8 +71,6 @@ export class Engine extends EventDispatcher {
   _shaderProgramPools: ShaderProgramPool[] = [];
   /** @internal */
   _spriteMaskManager: SpriteMaskManager;
-  /** @internal */
-  _inputManager: InputManager;
   /** @internal */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
@@ -180,7 +178,7 @@ export class Engine extends EventDispatcher {
    * @param physics - native physics Engine
    */
   constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics, settings?: EngineSettings) {
-    super(null);
+    super();
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     if (physics) {
@@ -196,7 +194,7 @@ export class Engine extends EventDispatcher {
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
 
-    this._inputManager = new InputManager(this);
+    this.inputManager = new InputManager(this);
 
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
 
@@ -278,7 +276,7 @@ export class Engine extends EventDispatcher {
         this.physicsManager._update(deltaTime / 1000.0);
         componentsManager.callColliderOnLateUpdate();
       }
-      this._inputManager._update();
+      this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
@@ -308,7 +306,7 @@ export class Engine extends EventDispatcher {
     if (this._sceneManager) {
       this._whiteTexture2D.destroy(true);
       this._whiteTextureCube.destroy(true);
-      this._inputManager._destroy();
+      this.inputManager._destroy();
       this.trigger(new Event("shutdown", this));
       engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 

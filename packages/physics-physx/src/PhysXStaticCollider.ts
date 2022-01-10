@@ -1,7 +1,7 @@
 import { PhysXPhysics } from "./PhysXPhysics";
 import { IStaticCollider } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "oasis-engine";
 
 /**
  * A static collider component that will not move.

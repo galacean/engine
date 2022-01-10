@@ -33,7 +33,6 @@ export class Scene extends EngineObject {
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
 
-  private _destroyed: boolean = false;
   private _rootEntities: Entity[] = [];
   private _ambientLight: AmbientLight;
 
@@ -70,13 +69,6 @@ export class Scene extends EngineObject {
    */
   get rootEntities(): Readonly<Entity[]> {
     return this._rootEntities;
-  }
-
-  /**
-   * Whether it's destroyed.
-   */
-  get destroyed(): boolean {
-    return this._destroyed;
   }
 
   /**
@@ -218,7 +210,6 @@ export class Scene extends EngineObject {
     this._activeCameras.length = 0;
     (Scene.sceneFeatureManager as any)._objects = [];
     this.shaderData._addRefCount(-1);
-    this._destroyed = true;
   }
 
   /**

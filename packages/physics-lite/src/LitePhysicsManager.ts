@@ -1,5 +1,5 @@
 import { IPhysicsManager } from "@oasis-engine/design";
-import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "@oasis-engine/math";
+import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
@@ -89,11 +89,11 @@ export class LitePhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.update }
    */
   update(deltaTime: number): void {
-    let colliders = this._colliders;
-    for (let i = 0, len = colliders.length; i < len; i++) {
-      this._collisionDetection(deltaTime, colliders[i]);
-    }
-    this._fireEvent();
+    // let colliders = this._colliders;
+    // for (let i = 0, len = colliders.length; i < len; i++) {
+    //   this._collisionDetection(deltaTime, colliders[i]);
+    // }
+    // this._fireEvent();
   }
 
   /**

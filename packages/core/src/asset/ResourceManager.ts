@@ -1,10 +1,9 @@
+import { Engine, EngineObject } from "..";
+import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
+import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
-import { Engine } from "..";
-import { Loader } from "./Loader";
-import { AssetType } from "./AssetType";
-import { ObjectValues } from "../base/Util";
 
 /**
  * ResourceManager
@@ -17,10 +16,10 @@ export class ResourceManager {
   /**
    * @internal
    */
-  static _addLoader(type: string, loader: Loader<any>, extnames: string[]) {
+  static _addLoader(type: string, loader: Loader<any>, extNames: string[]) {
     this._loaders[type] = loader;
-    for (let i = 0, len = extnames.length; i < len; i++) {
-      this._extTypeMapping[extnames[i]] = type;
+    for (let i = 0, len = extNames.length; i < len; i++) {
+      this._extTypeMapping[extNames[i]] = type;
     }
   }
 
@@ -145,7 +144,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addAsset(path: string, asset: RefObject): void {
+  _addAsset(path: string, asset: EngineObject): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
   }
@@ -153,7 +152,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _deleteAsset(asset: RefObject): void {
+  _deleteAsset(asset: EngineObject): void {
     const id = asset.instanceId;
     const path = this._assetPool[id];
     if (path) {
@@ -207,9 +206,11 @@ export class ResourceManager {
     promise
       .then((res) => {
         if (loader.useCache) this._addAsset(url, res);
-        delete this._loadingPromises[url];
       })
-      .catch(() => {});
+      .catch((err: Error) => {
+        delete this._loadingPromises[url];
+        return Promise.reject(err);
+      });
     return promise;
   }
 }

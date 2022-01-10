@@ -99,6 +99,9 @@ export class TextUtils {
     const { canvas, context } = textContext;
     context.font = fontStr;
     const width = Math.ceil(context.measureText(text || "").width);
+    if (width === 0) {
+      return ;
+    }
     canvas.width = width;
     canvas.height = fontSize;
     context.font = fontStr;

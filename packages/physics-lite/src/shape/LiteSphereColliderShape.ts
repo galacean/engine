@@ -1,6 +1,6 @@
 import { ISphereColliderShape } from "@oasis-engine/design";
 import { LiteColliderShape } from "./LiteColliderShape";
-import { BoundingSphere, Quaternion, Ray, Vector3 } from "@oasis-engine/math";
+import { BoundingSphere, Quaternion, Ray, Vector3 } from "oasis-engine";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 
@@ -47,10 +47,9 @@ export class LiteSphereColliderShape extends LiteColliderShape implements ISpher
    * @internal
    */
   _raycast(ray: Ray, hit: LiteHitResult): boolean {
-    const transform = this._transform;
     const boundingSphere = LiteSphereColliderShape._tempSphere;
-    Vector3.transformCoordinate(this._transform.position, transform.worldMatrix, boundingSphere.center);
-    LiteSphereColliderShape._tempSphere.radius = this.worldRadius;
+    Vector3.transformCoordinate(this._transform.position, this._collider._transform.worldMatrix, boundingSphere.center);
+    boundingSphere.radius = this.worldRadius;
 
     const rayDistance = ray.intersectSphere(boundingSphere);
     if (rayDistance !== -1) {
