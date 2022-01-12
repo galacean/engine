@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector2, Vector3 } from "@oasis-engine/math";
 import { Sprite, SpriteMaskInteraction, SpriteMaskLayer } from "..";
 import { CompareFunction, Renderer, Shader, UpdateFlag } from "../..";
 import { Camera } from "../../Camera";
@@ -14,6 +14,7 @@ export class TextRenderer extends Renderer {
   static needPremultiplyAlpha: boolean = false;
 
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
+  private static _tempVec2: Vector2 = new Vector2();
   private static _tempVec3: Vector3 = new Vector3();
 
   /** @internal temp solution. */
@@ -40,7 +41,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _fontSize: number = 24;
   @assignmentClone
-  private _lineHeight: number = 1;
+  private _lineSpace: number = 1;
   @assignmentClone
   private _isBold: boolean = false;
   @assignmentClone
@@ -53,8 +54,6 @@ export class TextRenderer extends Renderer {
   private _horizontalOverflow: TextHorizontalOverflow = TextHorizontalOverflow.Overflow;
   @assignmentClone
   private _verticalOverflow: TextVerticalOverflow = TextVerticalOverflow.Overflow;
-  // @ignoreClone
-  // private _styleDirtyFlag: boolean = true;
   @ignoreClone
   private _dirtyFlag: number = DirtyFlag.All;
   @ignoreClone
@@ -65,9 +64,9 @@ export class TextRenderer extends Renderer {
   private _maskLayer: number = SpriteMaskLayer.Layer0;
 
   /**
-   * Rendering color for the text.
+   * Rendering color for the TextRenderer.
    */
-   get color(): Color {
+  get color(): Color {
     return this._color;
   }
 
@@ -137,13 +136,13 @@ export class TextRenderer extends Renderer {
     }
   }
 
-  get lineHeight(): number {
-    return this._lineHeight;
+  get lineSpace(): number {
+    return this._lineSpace;
   }
 
-  set lineHeight(value: number) {
-    if (this._lineHeight !== value) {
-      this._lineHeight = value;
+  set lineSpace(value: number) {
+    if (this._lineSpace !== value) {
+      this._lineSpace = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
     }
   }
@@ -217,7 +216,7 @@ export class TextRenderer extends Renderer {
   /**
    * Interacts with the masks.
    */
-   get maskInteraction(): SpriteMaskInteraction {
+  get maskInteraction(): SpriteMaskInteraction {
     return this._maskInteraction;
   }
 
@@ -250,9 +249,9 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   _render(camera: Camera): void {
-    if (this._text === '') {
+    if (this._text === "") {
       this._sprite.texture = null;
-      return ;
+      return;
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.Style)) {
@@ -281,7 +280,7 @@ export class TextRenderer extends Renderer {
       const localPositions = sprite._positions;
       const localVertexPos = TextRenderer._tempVec3;
       const worldMatrix = transform.worldMatrix;
-      
+
       for (let i = 0, n = _positions.length; i < n; i++) {
         const curVertexPos = localPositions[i];
         localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
@@ -308,21 +307,9 @@ export class TextRenderer extends Renderer {
   /**
    * @internal
    */
-   _onDestroy(): void {
+  _onDestroy(): void {
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
-  }
-
-  private _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  private _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
-  }
-
-  private _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
   }
 
   /**
@@ -345,6 +332,18 @@ export class TextRenderer extends Renderer {
     }
   }
 
+  private _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  private _setDirtyFlagTrue(type: number): void {
+    this._dirtyFlag |= type;
+  }
+
+  private _setDirtyFlagFalse(type: number): void {
+    this._dirtyFlag &= ~type;
+  }
+
   private _getFontString() {
     let str = "";
     if (this.isBold) {
@@ -360,26 +359,57 @@ export class TextRenderer extends Renderer {
   private _updateText() {
     if (this._text === "") {
       this._sprite.texture = null;
-      return ;
+      return;
     }
 
+    const textContext = TextUtils.textContext();
+    const { canvas, context } = textContext;
     const fontStr = this._getFontString();
-    TextUtils.measureText(TextUtils.textContext(), this, fontStr);
+    const textMetrics = TextUtils.measureText(textContext, this, fontStr);
+    const { width, height } = textMetrics;
+    if (width === 0 || height === 0) {
+      this._sprite.texture = null;
+      return;
+    }
+
+    // reset canvas's width and height.
+    canvas.width = width;
+    canvas.height = height;
+    // clear canvas.
+    context.font = fontStr;
+    context.clearRect(0, 0, width, height);
+    // set canvas font info.
+    context.textBaseline = "top";
+    context.fillStyle = "#fff";
+
+    // draw lines.
+    const { lines, lineHeight, lineWidths } = textMetrics;
+    for (let i = 0, l = lines.length; i < l; ++i) {
+      const lineWidth = lineWidths[i];
+      const pos = TextRenderer._tempVec2;
+      this._calculateLinePosition(width, height, lineWidth, lineHeight, i, l, pos);
+      const { x, y } = pos;
+      if (y + lineHeight >= 0 && y < height) {
+        context.fillText(lines[i], x, y);
+      }
+    }
+
     this._updateTexture();
   }
 
   private _updateTexture() {
     const textContext = TextUtils.textContext();
     const { canvas, context } = textContext;
-    if (canvas.width === 0 || canvas.height === 0) {
-      this._sprite.texture = null;
-      return ;
-    }
     const trimData = TextUtils.trimCanvas(textContext);
+    const { data } = trimData;
+    if (!data) {
+      this._sprite.texture = null;
+      return;
+    }
     const { width, height } = trimData;
     canvas.width = width;
     canvas.height = height;
-    context.putImageData(trimData.data, 0, 0);
+    context.putImageData(data, 0, 0);
     const texture = new Texture2D(this.engine, width, height);
     if (TextRenderer.needPremultiplyAlpha) {
       texture.setImageSource(canvas, 0, false, true);
@@ -388,6 +418,40 @@ export class TextRenderer extends Renderer {
     }
     texture.generateMipmaps();
     this._sprite.texture = texture;
+  }
+
+  private _calculateLinePosition(
+    width: number,
+    height: number,
+    lineWidth: number,
+    lineHeight: number,
+    index: number,
+    length: number,
+    out: Vector2
+  ) {
+    switch(this._verticalAlignment) {
+      case TextVerticalAlignment.Top:
+        out.y = index * lineHeight;
+        break;
+      case TextVerticalAlignment.Bottom:
+        out.y = height - (length - index) * lineHeight;
+        break;
+      default:
+        out.y = 0.5 * height - 0.5 * length * lineHeight + index * lineHeight;
+        break;
+    }
+
+    switch(this._horizontalAlignment) {
+      case TextHorizontalAlignment.Left:
+        out.x = 0;
+        break;
+      case TextHorizontalAlignment.Right:
+        out.x = width - lineWidth;
+        break;
+      default:
+        out.x = (width - lineWidth) * 0.5;
+        break;
+    }
   }
 
   private _updateStencilState(): void {
@@ -418,5 +482,5 @@ export class TextRenderer extends Renderer {
 enum DirtyFlag {
   Style = 0x1,
   MaskInteraction = 0x2,
-  All = 0x3,
+  All = 0x3
 }
