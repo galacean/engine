@@ -1,9 +1,19 @@
 import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
 import { TextRenderer } from "./TextRenderer";
 
-interface TextContext {
+export interface TextContext {
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
+}
+
+export interface TextMetrics {
+  width: number;
+  height: number;
+  lines: Array<string>;
+  lineWidths: Array<number>;
+  maxLineWidth: number;
+  lineHeight: number;
+  fontSize: number;
 }
 
 export class TextUtils {
@@ -11,6 +21,8 @@ export class TextUtils {
   public static TEST_BASELINE = "M";
   public static HEIGHT_MULTIPLIER = 2;
   public static BASELINE_MULTIPLIER = 1.4;
+  public static MAX_WIDTH = 2048;
+  public static MAX_HEIGHT = 2048;
 
   public static fontSizes: { [font: string]: number } = {};
   private static _textContext: TextContext = null;
@@ -98,21 +110,45 @@ export class TextUtils {
     return fontSize;
   }
 
-  public static measureText(textContext: TextContext, textRenderer: TextRenderer, fontStr: string): void {
+  public static measureText(textContext: TextContext, textRenderer: TextRenderer, fontStr: string): TextMetrics {
     const fontSize = TextUtils.measureFont(textContext, fontStr);
-    // const wrappedTexts = TextUtils._wordWrap(textRenderer, fontStr);
+    const textMetrics: TextMetrics = {
+      width: 0,
+      height: 0,
+      lines: TextUtils._wordWrap(textRenderer, fontStr),
+      lineWidths: [],
+      maxLineWidth: 0,
+      lineHeight: fontSize + textRenderer.lineSpace,
+      fontSize
+    };
+    const { context } = textContext;
+    const { lines } = textMetrics;
+    if (lines.length === 0) {
+      return textMetrics;
+    }
 
-    const { text } = textRenderer;
-    const { canvas, context } = textContext;
     context.font = fontStr;
-    const width = Math.ceil(context.measureText(text || "").width);
-    canvas.width = width;
-    canvas.height = fontSize;
-    context.font = fontStr;
-    context.clearRect(0, 0, width, fontSize);
-    context.textBaseline = "top";
-    context.fillStyle = '#fff';
-    context.fillText(text, 0, 0);
+    const { lineWidths } = textMetrics;
+    const linesLen = lines.length;
+    let maxLineWidth = 0;
+    for (let i = 0; i < linesLen; ++i) {
+      const width = Math.ceil(context.measureText(lines[i]).width);
+      if (width > maxLineWidth) {
+        maxLineWidth = width;
+      }
+      lineWidths.push(width);
+    }
+    textMetrics.maxLineWidth = maxLineWidth;
+
+    // reset width and height.
+    textMetrics.width = Math.min(maxLineWidth, TextUtils.MAX_WIDTH);
+    let height = textRenderer.height;
+    if (textRenderer.verticalOverflow === TextVerticalOverflow.Overflow) {
+      height = Math.min(textMetrics.lineHeight * linesLen, TextUtils.MAX_HEIGHT);
+    }
+    textMetrics.height = height;
+
+    return textMetrics;
   }
 
   /**
@@ -182,17 +218,17 @@ export class TextUtils {
     const { width, height, horizontalOverflow, verticalOverflow } = textRenderer;
     const isWrap = horizontalOverflow === TextHorizontalOverflow.Wrap;
 
-    if (isWrap && width === 0) {
+    if (isWrap && width <= 0) {
       return [];
     }
-    if (verticalOverflow === TextVerticalOverflow.Truncate && height === 0) {
+    if (verticalOverflow === TextVerticalOverflow.Truncate && height <= 0) {
       return [];
     }
 
     const { context } = TextUtils.textContext();
-    const { sprite, text } = textRenderer;
-    const { pixelsPerUnit } = sprite;
-    const widthInPixel = width * pixelsPerUnit;
+    const { MAX_WIDTH } = TextUtils;
+    const { text } = textRenderer;
+    const widthInPixel = width * 128;
     const output: Array<string> = [];
     context.font = fontStr;
     const textArr = text.split(/(?:\r\n|\r|\n)/);
@@ -200,16 +236,18 @@ export class TextUtils {
     for (let i = 0, l = textArr.length; i < l; ++i) {
       const curText = textArr[i];
       const curWidth = Math.ceil(context.measureText(curText).width);
-      if (isWrap) {
-        if (curWidth <= widthInPixel) {
+      const needWrap = isWrap || curWidth > MAX_WIDTH;
+      const wrapWidth = Math.min(widthInPixel, MAX_WIDTH);
+      if (needWrap) {
+        if (curWidth <= wrapWidth) {
           output.push(curText);
         } else {
-          let chars = '';
+          let chars = "";
           let charsWidth = 0;
           for (let j = 0, l = curText.length; i < l; ++j) {
             const curChar = curText[i];
             const curCharWidth = Math.ceil(context.measureText(curChar).width);
-            if (charsWidth + curCharWidth > widthInPixel) {
+            if (charsWidth + curCharWidth > wrapWidth) {
               // The width of text renderer is shorter than current char.
               if (charsWidth === 0) {
                 output.push(curChar);
