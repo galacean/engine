@@ -23,6 +23,7 @@ export class TextUtils {
   public static BASELINE_MULTIPLIER = 1.4;
   public static MAX_WIDTH = 2048;
   public static MAX_HEIGHT = 2048;
+  public static PIXELS_PER_UNIT = 128;
 
   public static fontSizes: { [font: string]: number } = {};
   private static _textContext: TextContext = null;
@@ -142,7 +143,7 @@ export class TextUtils {
 
     // reset width and height.
     textMetrics.width = Math.min(maxLineWidth, TextUtils.MAX_WIDTH);
-    let height = textRenderer.height;
+    let height = textRenderer.height * TextUtils.PIXELS_PER_UNIT;
     if (textRenderer.verticalOverflow === TextVerticalOverflow.Overflow) {
       height = Math.min(textMetrics.lineHeight * linesLen, TextUtils.MAX_HEIGHT);
     }
@@ -228,7 +229,7 @@ export class TextUtils {
     const { context } = TextUtils.textContext();
     const { MAX_WIDTH } = TextUtils;
     const { text } = textRenderer;
-    const widthInPixel = width * 128;
+    const widthInPixel = width * TextUtils.PIXELS_PER_UNIT;
     const output: Array<string> = [];
     context.font = fontStr;
     const textArr = text.split(/(?:\r\n|\r|\n)/);
@@ -244,8 +245,8 @@ export class TextUtils {
         } else {
           let chars = "";
           let charsWidth = 0;
-          for (let j = 0, l = curText.length; i < l; ++j) {
-            const curChar = curText[i];
+          for (let j = 0, l = curText.length; j < l; ++j) {
+            const curChar = curText[j];
             const curCharWidth = Math.ceil(context.measureText(curChar).width);
             if (charsWidth + curCharWidth > wrapWidth) {
               // The width of text renderer is shorter than current char.
