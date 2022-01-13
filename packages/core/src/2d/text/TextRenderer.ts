@@ -33,15 +33,15 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _text: string = "";
   @assignmentClone
-  private _width: number = 0;
+  private _width: number = 0; // 3d space in unit
   @assignmentClone
-  private _height: number = 0;
+  private _height: number = 0; // 3d space in unit
   @assignmentClone
   private _fontName: string = "Arial";
   @assignmentClone
   private _fontSize: number = 24;
   @assignmentClone
-  private _lineSpace: number = 1;
+  private _lineSpace: number = 1; // pixel in unit
   @assignmentClone
   private _isBold: boolean = false;
   @assignmentClone
@@ -317,7 +317,7 @@ export class TextRenderer extends Renderer {
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
     const sprite = this._sprite;
-    if (sprite) {
+    if (sprite && sprite.texture) {
       if (this._customLocalBounds && this._customRootEntity) {
         const worldMatrix = this._customRootEntity.transform.worldMatrix;
         BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
