@@ -1,15 +1,15 @@
-import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
+import { Matrix } from "@oasis-engine/math";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
-import { Script } from "./Script";
 import { ComponentsDependencies } from "./ComponentsDependencies";
+import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
+import { Script } from "./Script";
 import { Transform } from "./Transform";
 import { UpdateFlag } from "./UpdateFlag";
-import { DisorderedArray } from "./DisorderedArray";
 
 /**
  * Entity, be used as components container.
@@ -341,7 +341,7 @@ export class Entity extends EngineObject {
    */
   destroy(): void {
     if (this._destroyed) return;
-    
+
     super.destroy();
     const abilityArray = this._components;
     for (let i = abilityArray.length - 1; i >= 0; i--) {
@@ -485,54 +485,6 @@ export class Entity extends EngineObject {
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   private _invModelMatrix: Matrix = new Matrix();
   private _inverseWorldMatFlag: UpdateFlag;
-
-  /**
-   * @deprecated
-   * Use transform.position instead.
-   */
-  get position(): Vector3 {
-    return this.transform.position;
-  }
-
-  set position(val: Vector3) {
-    this.transform.position = val;
-  }
-
-  /**
-   * @deprecated
-   * Use transform.worldPosition instead.
-   */
-  get worldPosition(): Vector3 {
-    return this.transform.worldPosition;
-  }
-
-  set worldPosition(val: Vector3) {
-    this.transform.worldPosition = val;
-  }
-
-  /**
-   * @deprecated
-   * Use transform.rotationQuaternion instead.
-   */
-  get rotation(): Quaternion {
-    return this.transform.rotationQuaternion;
-  }
-
-  set rotation(val: Quaternion) {
-    this.transform.rotationQuaternion = val;
-  }
-
-  /**
-   * @deprecated
-   * Use transform.scale instead.
-   */
-  get scale(): Vector3 {
-    return this.transform.scale;
-  }
-
-  set scale(val: Vector3) {
-    this.transform.scale = val;
-  }
 
   /**
    * @deprecated
