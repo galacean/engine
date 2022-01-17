@@ -1,6 +1,7 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
+import { Entity } from "./Entity";
 import { UpdateFlag } from "./UpdateFlag";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
@@ -59,8 +60,6 @@ export class Transform extends Component {
     if (this._position !== value) {
       value.cloneTo(this._position);
     }
-    this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
-    this._updateWorldPositionFlag();
   }
 
   /**
@@ -216,8 +215,6 @@ export class Transform extends Component {
     if (this._scale !== value) {
       value.cloneTo(this._scale);
     }
-    this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
-    this._updateWorldScaleFlag();
   }
 
   /**
@@ -291,6 +288,22 @@ export class Transform extends Component {
     }
     this.localMatrix = this._localMatrix;
     this._setDirtyFlagFalse(TransformFlag.WorldMatrix);
+  }
+
+  constructor(entity: Entity) {
+    super(entity);
+
+    //@ts-ignore
+    this._position._onValueChanged = () => {
+      this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
+      this._updateWorldPositionFlag();
+    };
+
+    //@ts-ignore
+    this._scale._onValueChanged = () => {
+      this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
+      this._updateWorldScaleFlag();
+    };
   }
 
   /**

@@ -301,12 +301,48 @@ export class Vector3 implements IClone {
     out.z = iz * qw - iw * qz - ix * qy + iy * qx;
   }
 
-  /** The x component of the vector.*/
-  x: number;
-  /** The y component of the vector.*/
-  y: number;
-  /** The z component of the vector.*/
-  z: number;
+  private _x: number;
+  private _y: number;
+  private _z: number;
+
+  /** @internal */
+  _onValueChanged: () => void;
+
+  /**
+   * The x component of the vector.
+   */
+  public get x() {
+    return this._x;
+  }
+
+  public set x(value: number) {
+    this._x = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The y component of the vector.
+   */
+  public get y() {
+    return this._y;
+  }
+
+  public set y(value: number) {
+    this._y = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The z component of the vector.
+   */
+  public get z() {
+    return this._z;
+  }
+
+  public set z(value: number) {
+    this._z = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * Constructor of Vector3.
@@ -315,9 +351,9 @@ export class Vector3 implements IClone {
    * @param z - The z component of the vector, default 0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
+    this._x = x;
+    this._y = y;
+    this._z = z;
   }
 
   /**
@@ -461,7 +497,7 @@ export class Vector3 implements IClone {
    * @returns A clone of this vector
    */
   clone(): Vector3 {
-    return new Vector3(this.x, this.y, this.z);
+    return new Vector3(this._x, this._y, this._z);
   }
 
   /**
@@ -470,9 +506,10 @@ export class Vector3 implements IClone {
    * @returns The specified vector
    */
   cloneTo(out: Vector3): Vector3 {
-    out.x = this.x;
-    out.y = this.y;
-    out.z = this.z;
+    out._x = this.x;
+    out._y = this.y;
+    out._z = this.z;
+    this._onValueChanged && this._onValueChanged();
     return out;
   }
 

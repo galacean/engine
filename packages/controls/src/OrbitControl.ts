@@ -400,7 +400,7 @@ export class OrbitControl extends Script {
    */
   pan(deltaX: number, deltaY: number) {
     // perspective only
-    const position: Vector3 = this.camera.position;
+    const position: Vector3 = this.camera.transform.position;
     position.cloneTo(this._vPan);
     this._vPan.subtract(this.target);
     let targetDistance = this._vPan.length();
