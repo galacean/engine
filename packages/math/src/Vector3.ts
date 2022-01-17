@@ -506,10 +506,10 @@ export class Vector3 implements IClone {
    * @returns The specified vector
    */
   cloneTo(out: Vector3): Vector3 {
-    out._x = this.x;
-    out._y = this.y;
-    out._z = this.z;
-    this._onValueChanged && this._onValueChanged();
+    out._x = this._x;
+    out._y = this._y;
+    out._z = this._z;
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
