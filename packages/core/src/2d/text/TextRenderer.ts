@@ -390,7 +390,8 @@ export class TextRenderer extends Renderer {
       this._calculateLinePosition(width, height, lineWidth, lineHeight, i, l, pos);
       const { x, y } = pos;
       if (y + lineHeight >= 0 && y < height) {
-        context.fillText(lines[i], x, y);
+        // +1, for chrome.
+        context.fillText(lines[i], x, y + 1);
       }
     }
 

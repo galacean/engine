@@ -17,15 +17,14 @@ export interface TextMetrics {
 }
 
 export class TextUtils {
-  public static TEST_STRING = "qpjÉÅ";
-  public static TEST_BASELINE = "M";
-  public static HEIGHT_MULTIPLIER = 2;
-  public static BASELINE_MULTIPLIER = 1.4;
-  public static MAX_WIDTH = 2048;
-  public static MAX_HEIGHT = 2048;
-  public static PIXELS_PER_UNIT = 128;
-
-  public static fontSizes: { [font: string]: number } = {};
+  private static _testString = "qpjÉÅ";
+  private static _testBaseline = "M";
+  private static _heightMultiplier = 2;
+  private static _baselineMultiplier = 1.4;
+  private static _maxWidth = 2048;
+  private static _maxHeight = 2048;
+  private static _pixelsPerUnit = 128;
+  private static _fontSizes: { [font: string]: number } = {};
   private static _textContext: TextContext = null;
 
   public static textContext(): TextContext {
@@ -47,18 +46,18 @@ export class TextUtils {
    * @returns the font size
    */
   public static measureFont(textContext: TextContext, font: string): number {
-    const { fontSizes } = TextUtils;
+    const { _fontSizes: fontSizes } = TextUtils;
     if (fontSizes[font]) {
       return fontSizes[font];
     }
 
     const { canvas, context } = textContext;
     context.font = font;
-    const testStr = TextUtils.TEST_STRING;
+    const testStr = TextUtils._testString;
     const width = Math.ceil(context.measureText(testStr).width);
-    let baseline = Math.ceil(context.measureText(TextUtils.TEST_BASELINE).width);
-    const height = baseline * TextUtils.HEIGHT_MULTIPLIER;
-    baseline = Math.floor(TextUtils.BASELINE_MULTIPLIER * baseline);
+    let baseline = Math.ceil(context.measureText(TextUtils._testBaseline).width);
+    const height = baseline * TextUtils._heightMultiplier;
+    baseline = Math.floor(TextUtils._baselineMultiplier * baseline);
 
     canvas.width = width;
     canvas.height = height;
@@ -107,7 +106,7 @@ export class TextUtils {
 
     const descent = i - baseline + 1;
     const fontSize = ascent + descent;
-    TextUtils.fontSizes[font] = fontSize;
+    TextUtils._fontSizes[font] = fontSize;
     return fontSize;
   }
 
@@ -142,10 +141,10 @@ export class TextUtils {
     textMetrics.maxLineWidth = maxLineWidth;
 
     // reset width and height.
-    textMetrics.width = Math.min(maxLineWidth, TextUtils.MAX_WIDTH);
-    let height = textRenderer.height * TextUtils.PIXELS_PER_UNIT;
+    textMetrics.width = Math.min(maxLineWidth, TextUtils._maxWidth);
+    let height = textRenderer.height * TextUtils._pixelsPerUnit;
     if (textRenderer.verticalOverflow === TextVerticalOverflow.Overflow) {
-      height = Math.min(textMetrics.lineHeight * linesLen, TextUtils.MAX_HEIGHT);
+      height = Math.min(textMetrics.lineHeight * linesLen, TextUtils._maxHeight);
     }
     textMetrics.height = height;
 
@@ -227,9 +226,9 @@ export class TextUtils {
     }
 
     const { context } = TextUtils.textContext();
-    const { MAX_WIDTH } = TextUtils;
+    const { _maxWidth: maxWidth } = TextUtils;
     const { text } = textRenderer;
-    const widthInPixel = width * TextUtils.PIXELS_PER_UNIT;
+    const widthInPixel = width * TextUtils._pixelsPerUnit;
     const output: Array<string> = [];
     context.font = fontStr;
     const textArr = text.split(/(?:\r\n|\r|\n)/);
@@ -237,8 +236,8 @@ export class TextUtils {
     for (let i = 0, l = textArr.length; i < l; ++i) {
       const curText = textArr[i];
       const curWidth = Math.ceil(context.measureText(curText).width);
-      const needWrap = isWrap || curWidth > MAX_WIDTH;
-      const wrapWidth = Math.min(widthInPixel, MAX_WIDTH);
+      const needWrap = isWrap || curWidth > maxWidth;
+      const wrapWidth = Math.min(widthInPixel, maxWidth);
       if (needWrap) {
         if (curWidth <= wrapWidth) {
           output.push(curText);
