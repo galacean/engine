@@ -54,6 +54,7 @@ export class Sprite extends RefObject {
     if (this._isContainDirtyFlag(DirtyFlag.positions) && this._texture) {
       this._updatePositionsAndBounds();
       this._setDirtyFlagFalse(DirtyFlag.positions);
+      this._setDirtyFlagTrue(DirtyFlag.bounds);
     }
     return this._bounds;
   }
@@ -375,5 +376,6 @@ export class Sprite extends RefObject {
 enum DirtyFlag {
   positions = 0x1,
   uv = 0x2,
-  all = 0x3
+  bounds = 0x4,
+  all = 0x7
 }
