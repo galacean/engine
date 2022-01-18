@@ -14,7 +14,6 @@ export class Transform extends Component {
   private static _tempMat30: Matrix3x3 = new Matrix3x3();
   private static _tempMat31: Matrix3x3 = new Matrix3x3();
   private static _tempMat32: Matrix3x3 = new Matrix3x3();
-  private static _tempMat40: Matrix = new Matrix();
   private static _tempMat41: Matrix = new Matrix();
   private static _tempMat42: Matrix = new Matrix();
   private static _tempMat43: Matrix = new Matrix();

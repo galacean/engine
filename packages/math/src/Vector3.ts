@@ -20,9 +20,10 @@ export class Vector3 implements IClone {
    * @param out - The sum of two vectors
    */
   static add(left: Vector3, right: Vector3, out: Vector3): void {
-    out.x = left.x + right.x;
-    out.y = left.y + right.y;
-    out.z = left.z + right.z;
+    out._x = left._x + right._x;
+    out._y = left._y + right._y;
+    out._z = left._z + right._z;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -306,7 +307,8 @@ export class Vector3 implements IClone {
   private _z: number;
 
   /** @internal */
-  _onValueChanged: () => void;
+  _onValueChanged: () => void = null;
+  _dirty: boolean = false;
 
   /**
    * The x component of the vector.
