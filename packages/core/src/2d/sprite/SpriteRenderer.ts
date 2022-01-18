@@ -59,10 +59,10 @@ export class SpriteRenderer extends Renderer {
 
   set sprite(value: Sprite | null) {
     if (this._sprite !== value) {
+      this._spriteDirty && this._spriteDirty.destroy();
       this._sprite = value;
       this._setDirtyFlagTrue(DirtyFlag.Sprite);
       if (value) {
-        this._spriteDirty && this._spriteDirty.destroy();
         this._spriteDirty = value.registerUpdateFlag();
       }
     }
