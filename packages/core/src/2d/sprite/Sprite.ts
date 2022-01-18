@@ -2,6 +2,8 @@ import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/mat
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
+import { UpdateFlag } from "../../UpdateFlag";
+import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * 2D sprite.
@@ -31,6 +33,7 @@ export class Sprite extends RefObject {
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
   private _atlasRegionOffset: Vector4 = new Vector4(0, 0, 0, 0);
   private _dirtyFlag: DirtyFlag = DirtyFlag.all;
+  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * The reference to the used texture.
@@ -54,7 +57,6 @@ export class Sprite extends RefObject {
     if (this._isContainDirtyFlag(DirtyFlag.positions) && this._texture) {
       this._updatePositionsAndBounds();
       this._setDirtyFlagFalse(DirtyFlag.positions);
-      this._setDirtyFlagTrue(DirtyFlag.bounds);
     }
     return this._bounds;
   }
@@ -148,26 +150,6 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Clone.
-   * @returns Cloned sprite
-   */
-  clone(): Sprite {
-    const cloneSprite = new Sprite(
-      this._engine,
-      this._texture,
-      this._region,
-      this._pivot,
-      this._pixelsPerUnit,
-      this.name
-    );
-    cloneSprite._assetID = this._assetID;
-    cloneSprite._atlasRotated = this._atlasRotated;
-    this._atlasRegion.cloneTo(cloneSprite._atlasRegion);
-    this._atlasRegionOffset.cloneTo(cloneSprite._atlasRegionOffset);
-    return cloneSprite;
-  }
-
-  /**
    * Constructor a Sprite.
    * @param engine - Engine to which the sprite belongs
    * @param texture - Texture from which to obtain the Sprite
@@ -194,6 +176,34 @@ export class Sprite extends RefObject {
     pivot && pivot.cloneTo(this._pivot);
 
     this._triangles = Sprite._rectangleTriangles;
+  }
+
+  /**
+   * Clone.
+   * @returns Cloned sprite
+   */
+   clone(): Sprite {
+    const cloneSprite = new Sprite(
+      this._engine,
+      this._texture,
+      this._region,
+      this._pivot,
+      this._pixelsPerUnit,
+      this.name
+    );
+    cloneSprite._assetID = this._assetID;
+    cloneSprite._atlasRotated = this._atlasRotated;
+    this._atlasRegion.cloneTo(cloneSprite._atlasRegion);
+    this._atlasRegionOffset.cloneTo(cloneSprite._atlasRegionOffset);
+    return cloneSprite;
+  }
+
+  /**
+   * Register update flag, update flag will be true if the sprite changes.
+   * @returns Update flag
+   */
+  registerUpdateFlag(): UpdateFlag {
+    return this._updateFlagManager.register();
   }
 
   /**
@@ -366,6 +376,7 @@ export class Sprite extends RefObject {
 
   private _setDirtyFlagTrue(type: number): void {
     this._dirtyFlag |= type;
+    this._updateFlagManager.distribute();
   }
 
   private _setDirtyFlagFalse(type: number): void {
@@ -376,6 +387,5 @@ export class Sprite extends RefObject {
 enum DirtyFlag {
   positions = 0x1,
   uv = 0x2,
-  bounds = 0x4,
-  all = 0x7
+  all = 0x3
 }

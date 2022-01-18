@@ -43,6 +43,8 @@ export class SpriteRenderer extends Renderer {
   private _dirtyFlag: number = DirtyFlag.All;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
+  @ignoreClone
+  private _spriteDirty: UpdateFlag;
   @assignmentClone
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   @assignmentClone
@@ -59,6 +61,9 @@ export class SpriteRenderer extends Renderer {
     if (this._sprite !== value) {
       this._sprite = value;
       this._setDirtyFlagTrue(DirtyFlag.Sprite);
+      if (value) {
+        this._spriteDirty = value.registerUpdateFlag();
+      }
     }
   }
 
@@ -154,9 +159,9 @@ export class SpriteRenderer extends Renderer {
     const { transform } = this.entity;
 
     // Update sprite data.
-    const localDirty = sprite._updateMeshData();
+    sprite._updateMeshData();
 
-    if (this._isWorldMatrixDirty.flag || localDirty || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
+    if (this._isWorldMatrixDirty.flag || this._spriteDirty.flag || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
       const localPositions = sprite._positions;
       const localVertexPos = SpriteRenderer._tempVec3;
       const worldMatrix = transform.worldMatrix;
@@ -171,6 +176,7 @@ export class SpriteRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.Flip);
       this._setDirtyFlagFalse(DirtyFlag.Sprite);
       this._isWorldMatrixDirty.flag = false;
+      this._spriteDirty.flag = false;
       this._cacheFlipX = flipX;
       this._cacheFlipY = flipY;
     } else if (this._isContainDirtyFlag(DirtyFlag.Flip)) {
