@@ -6,6 +6,7 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { Entity } from "../../Entity";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
+import { DynamicSprite } from "../dynamic-atlas/types";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
 import { TextUtils } from "./TextUtils";
@@ -26,6 +27,8 @@ export class TextRenderer extends Renderer {
 
   @assignmentClone
   private _sprite: Sprite = null;
+  @assignmentClone
+  private _dynamicSprite: DynamicSprite = null;
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   @deepClone
@@ -271,22 +274,9 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    const { _positions } = this;
-    const { transform } = this.entity;
-
     // Update sprite data.
-    const localDirty = sprite._updateMeshData();
-    if (this._isWorldMatrixDirty.flag || localDirty) {
-      const localPositions = sprite._positions;
-      const localVertexPos = TextRenderer._tempVec3;
-      const worldMatrix = transform.worldMatrix;
-
-      for (let i = 0, n = _positions.length; i < n; i++) {
-        const curVertexPos = localPositions[i];
-        localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
-        Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
-      }
-
+    if (this._isWorldMatrixDirty.flag) {
+      this._updatePosition();
       this._isWorldMatrixDirty.flag = false;
     }
 
@@ -295,12 +285,13 @@ export class TextRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    this.shaderData.setTexture(TextRenderer._textureProperty, texture);
-    const material = this.getMaterial();
-
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
-    spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
+    const { _dynamicSprite } = this;
+    const uploadTexture = _dynamicSprite ? _dynamicSprite.texture : texture;
+    const uv = _dynamicSprite ? _dynamicSprite._uv : sprite._uv;
+    this.shaderData.setTexture(TextRenderer._textureProperty, uploadTexture);
+    spriteElement.setValue(this, this._positions, uv, sprite._triangles, this.color, this.getMaterial(), camera);
     camera._renderPipeline.pushPrimitive(spriteElement);
   }
 
@@ -403,8 +394,9 @@ export class TextRenderer extends Renderer {
     const { canvas, context } = textContext;
     const trimData = TextUtils.trimCanvas(textContext);
     const { data } = trimData;
+    const { _sprite } = this;
     if (!data) {
-      this._sprite.texture = null;
+      _sprite.texture = null;
       return;
     }
     const { width, height } = trimData;
@@ -418,7 +410,11 @@ export class TextRenderer extends Renderer {
       texture.setImageSource(canvas);
     }
     texture.generateMipmaps();
-    this._sprite.texture = texture;
+    _sprite.texture = texture;
+    _sprite._updateMeshData();
+    this._updatePosition();
+
+    this._dynamicSprite = this.engine.dynamicAtlasManager.addSprite(_sprite, canvas);
   }
 
   private _calculateLinePosition(
@@ -476,6 +472,19 @@ export class TextRenderer extends Renderer {
           : CompareFunction.Greater;
       stencilState.compareFunctionFront = compare;
       stencilState.compareFunctionBack = compare;
+    }
+  }
+
+  private _updatePosition() {
+    const localPositions = this._sprite._positions;
+    const localVertexPos = TextRenderer._tempVec3;
+    const worldMatrix = this.entity.transform.worldMatrix;
+
+    const { _positions } = this;
+    for (let i = 0, n = _positions.length; i < n; i++) {
+      const curVertexPos = localPositions[i];
+      localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
+      Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
     }
   }
 }
