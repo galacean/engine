@@ -67,6 +67,7 @@ PhysicalMaterial getPhysicalMaterial(
             material.roughness = clamp( 1.0 - glossiness, 0.04, 1.0 );
         #endif
 
+        material.opacity = diffuseColor.a;
         return material;
 
 }

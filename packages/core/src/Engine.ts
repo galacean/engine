@@ -11,7 +11,6 @@ import { FeatureManager } from "./FeatureManager";
 import { InputManager } from "./input/InputManager";
 import { RenderQueueType } from "./material/enums/RenderQueueType";
 import { Material } from "./material/Material";
-import { ModelMesh, PrimitiveMesh } from "./mesh";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { ClassPool } from "./RenderPipeline/ClassPool";
@@ -179,7 +178,7 @@ export class Engine extends EventDispatcher {
    * @param physics - native physics Engine
    */
   constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics, settings?: EngineSettings) {
-    super(null);
+    super();
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
     if (physics) {
@@ -317,7 +316,7 @@ export class Engine extends EventDispatcher {
       this._animate = null;
 
       this._sceneManager._activeScene.destroy();
-      this._resourceManager.gc();
+      this._resourceManager._destroy();
       // If engine destroy, callComponentDestroy() maybe will not call anymore.
       this._componentsManager.callComponentDestroy();
       this._sceneManager = null;

@@ -227,9 +227,9 @@ export class BasicRenderPipeline {
     const program = _backgroundTextureMaterial.shader._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
-    program.uploadUngroupTextures();
+    program.uploadUnGroupTextures();
 
-    _backgroundTextureMaterial.renderState._apply(engine);
+    _backgroundTextureMaterial.renderState._apply(engine, false);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 
@@ -261,9 +261,9 @@ export class BasicRenderPipeline {
     program.bind();
     program.groupingOtherUniformBlock();
     program.uploadAll(program.materialUniformBlock, shaderData);
-    program.uploadUngroupTextures();
+    program.uploadUnGroupTextures();
 
-    renderState._apply(engine);
+    renderState._apply(engine, false);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 }

@@ -17,13 +17,15 @@ export class RenderState {
   /** Raster state. */
   readonly rasterState: RasterState = new RasterState();
 
-  /** @internal */
-  _apply(engine: Engine): void {
+  /**
+   * @internal
+   */
+  _apply(engine: Engine, frontFaceInvert: boolean): void {
     const hardwareRenderer = engine._hardwareRenderer;
     const lastRenderState = engine._lastRenderState;
     this.blendState._apply(hardwareRenderer, lastRenderState);
     this.depthState._apply(hardwareRenderer, lastRenderState);
     this.stencilState._apply(hardwareRenderer, lastRenderState);
-    this.rasterState._apply(hardwareRenderer, lastRenderState);
+    this.rasterState._apply(hardwareRenderer, lastRenderState, frontFaceInvert);
   }
 }
