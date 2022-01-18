@@ -1,6 +1,6 @@
 import { Sprite } from "../sprite/Sprite";
 import { Engine } from "../../Engine";
-import { DynamicSpriteAtlas } from "./DynamicSpriteAtlas";
+import { DynamicAtlas } from "./DynamicAtlas";
 import { DynamicSprite } from "./types";
 
 /**
@@ -10,7 +10,7 @@ export class DynamicAtlasManager {
   private _enabled: boolean = false;
   private _maxAtlasCount: number = 2;
   private _textureSize: number = 2048;
-  private _atlases: Array<DynamicSpriteAtlas> = [];
+  private _atlases: Array<DynamicAtlas> = [];
   private _atlasIndex: number = -1;
 
   /**
@@ -59,8 +59,6 @@ export class DynamicAtlasManager {
       return null;
     }
 
-    const texture = sprite.texture;
-    const id = texture.instanceId;
     let atlas = this._atlases[this._atlasIndex];
     if (!atlas) {
       atlas = this._createAtlas();
@@ -79,12 +77,20 @@ export class DynamicAtlasManager {
     return dynamicSprite;
   }
 
-  public reset() {}
+  public reset() {
+    const { _atlases } = this;
+    for (let i = 0, l = _atlases.length; i < l; ++i) {
+      _atlases[i].destroy();
+    }
 
-  private _createAtlas(): DynamicSpriteAtlas {
+    _atlases.length = 0;
+    this._atlasIndex = -1;
+  }
+
+  private _createAtlas(): DynamicAtlas {
     this._atlasIndex++;
     const { _textureSize } = this;
-    const atlas = new DynamicSpriteAtlas(this.engine, _textureSize, _textureSize);
+    const atlas = new DynamicAtlas(this.engine, _textureSize, _textureSize);
     this._atlases.push(atlas);
     return atlas;
   }
