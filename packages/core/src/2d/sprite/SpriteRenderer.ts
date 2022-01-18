@@ -62,6 +62,7 @@ export class SpriteRenderer extends Renderer {
       this._sprite = value;
       this._setDirtyFlagTrue(DirtyFlag.Sprite);
       if (value) {
+        this._spriteDirty && this._spriteDirty.destroy();
         this._spriteDirty = value.registerUpdateFlag();
       }
     }
@@ -223,6 +224,7 @@ export class SpriteRenderer extends Renderer {
    */
   _onDestroy(): void {
     this._isWorldMatrixDirty.destroy();
+    this._spriteDirty && this._spriteDirty.destroy();
     super._onDestroy();
   }
 
