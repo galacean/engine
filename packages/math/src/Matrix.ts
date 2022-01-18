@@ -1177,11 +1177,7 @@ export class Matrix implements IClone {
    */
   getTranslation(out: Vector3): Vector3 {
     const e = this.elements;
-
-    out.x = e[12];
-    out.y = e[13];
-    out.z = e[14];
-
+    out.setValue(e[12], e[13], e[14]);
     return out;
   }
 
