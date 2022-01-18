@@ -47,12 +47,18 @@ export class DynamicAtlas {
     }
 
     texture.setImageSource(imageSource, 0, false, false, this._curX, this._curY);
+
+    const { _width, _height } = this;
+    const l = this._curX / _width;
+    const r = (this._curX + width) / _width;
+    const t = this._curY / _height;
+    const b = (this._curY + height) / _height;
     const dynamicSprite: DynamicSprite = {
       _uv: [
-        new Vector2(this._curX / this._width, this._curY / this._height),
-        new Vector2(this._curX + width / this._width, this._curY / this._height),
-        new Vector2(this._curX + width / this._width, this._curY + height / this._height),
-        new Vector2(this._curX / this._width, this._curY + height / this._height)
+        new Vector2(l, t),
+        new Vector2(r, t),
+        new Vector2(r, b),
+        new Vector2(l, b)
       ],
       texture
     }

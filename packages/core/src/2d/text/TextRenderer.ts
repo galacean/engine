@@ -58,7 +58,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _verticalOverflow: TextVerticalOverflow = TextVerticalOverflow.Overflow;
   @ignoreClone
-  private _dirtyFlag: number = DirtyFlag.All;
+  private _dirtyFlag: number = DirtyFlag.Style;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
   @assignmentClone
@@ -244,8 +244,8 @@ export class TextRenderer extends Renderer {
   constructor(entity: Entity) {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    this.setMaterial(this._engine._spriteDefaultMaterial);
     this._sprite = new Sprite(this.engine);
+    this.setMaterial(this._engine._spriteDefaultMaterial);
   }
 
   /**
