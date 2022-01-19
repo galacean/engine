@@ -1,13 +1,14 @@
-import { Vector2 } from "@oasis-engine/math";
+import { Rect } from "@oasis-engine/math";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { Sprite } from "../sprite/Sprite";
-import { DynamicSprite } from "./types";
 
 /**
  * Dynamic atlas for text.
  */
 export class DynamicAtlas {
+  private static _rect: Rect = new Rect();
+
   private _texture: Texture2D;
   private _width: number;
   private _height: number;
@@ -24,10 +25,10 @@ export class DynamicAtlas {
   }
 
   public destroy() {
-
+    this._texture.destroy();
   }
 
-  public addSprite(sprite: Sprite, imageSource: TexImageSource): DynamicSprite | null {
+  public addSprite(sprite: Sprite, imageSource: TexImageSource): boolean {
     const { _space: space, _texture: texture } = this;
     const { width, height } = imageSource;
 
@@ -43,26 +44,18 @@ export class DynamicAtlas {
     }
 
     if (this._nextY >= this._height) {
-      return null;
+      return false;
     }
 
     texture.setImageSource(imageSource, 0, false, false, this._curX, this._curY);
 
     const { _width, _height } = this;
-    const l = this._curX / _width;
-    const r = (this._curX + width) / _width;
-    const t = this._curY / _height;
-    const b = (this._curY + height) / _height;
-    const dynamicSprite: DynamicSprite = {
-      _uv: [
-        new Vector2(l, t),
-        new Vector2(r, t),
-        new Vector2(r, b),
-        new Vector2(l, b)
-      ],
-      texture
-    }
+    const rect = DynamicAtlas._rect;
+    rect.setValue(this._curX / _width, this._curY / _height, width / _width, height / _height);
+    sprite.atlasRegion = rect;
+    sprite.texture = texture;
     this._curX = endX + space;
-    return dynamicSprite;
+
+    return true;
   }
 }

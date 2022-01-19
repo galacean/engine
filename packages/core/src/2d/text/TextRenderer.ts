@@ -6,7 +6,6 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { Entity } from "../../Entity";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
-import { DynamicSprite } from "../dynamic-atlas/types";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
 import { TextUtils } from "./TextUtils";
@@ -27,8 +26,6 @@ export class TextRenderer extends Renderer {
 
   @assignmentClone
   private _sprite: Sprite = null;
-  @assignmentClone
-  private _dynamicSprite: DynamicSprite = null;
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   @deepClone
@@ -287,11 +284,16 @@ export class TextRenderer extends Renderer {
 
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
-    const { _dynamicSprite } = this;
-    const uploadTexture = _dynamicSprite ? _dynamicSprite.texture : texture;
-    const uv = _dynamicSprite ? _dynamicSprite._uv : sprite._uv;
-    this.shaderData.setTexture(TextRenderer._textureProperty, uploadTexture);
-    spriteElement.setValue(this, this._positions, uv, sprite._triangles, this.color, this.getMaterial(), camera);
+    this.shaderData.setTexture(TextRenderer._textureProperty, texture);
+    spriteElement.setValue(
+      this,
+      this._positions,
+      sprite._uv,
+      sprite._triangles,
+      this.color,
+      this.getMaterial(),
+      camera
+    );
     camera._renderPipeline.pushPrimitive(spriteElement);
   }
 
@@ -411,10 +413,10 @@ export class TextRenderer extends Renderer {
     }
     texture.generateMipmaps();
     _sprite.texture = texture;
+
+    this.engine.dynamicAtlasManager.addSprite(_sprite, canvas);
     _sprite._updateMeshData();
     this._updatePosition();
-
-    this._dynamicSprite = this.engine.dynamicAtlasManager.addSprite(_sprite, canvas);
   }
 
   private _calculateLinePosition(
@@ -426,7 +428,7 @@ export class TextRenderer extends Renderer {
     length: number,
     out: Vector2
   ) {
-    switch(this._verticalAlignment) {
+    switch (this._verticalAlignment) {
       case TextVerticalAlignment.Top:
         out.y = index * lineHeight;
         break;
@@ -438,7 +440,7 @@ export class TextRenderer extends Renderer {
         break;
     }
 
-    switch(this._horizontalAlignment) {
+    switch (this._horizontalAlignment) {
       case TextHorizontalAlignment.Left:
         out.x = 0;
         break;
