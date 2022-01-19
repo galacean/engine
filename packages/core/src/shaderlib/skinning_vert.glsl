@@ -17,7 +17,7 @@
 
         position = skinMatrix * position;
 
-        #if defined(O3_HAS_NORMAL) && !defined(OMIT_NORMAL)
+        #ifdef O3_HAS_NORMAL
             normal = vec4( skinMatrix * vec4( normal, 0.0 ) ).xyz;
             #if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE )
                 tangent.xyz = vec4( skinMatrix * vec4( tangent.xyz, 0.0 ) ).xyz;

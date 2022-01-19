@@ -47,12 +47,10 @@ uniform vec3 u_cameraPos;
 uniform vec4 u_tilingOffset;
 
 
-#ifndef OMIT_NORMAL
-    #ifdef O3_HAS_NORMAL
-        attribute vec3 NORMAL;
-    #endif
+#ifdef O3_HAS_NORMAL
+    attribute vec3 NORMAL;
+#endif
 
-    #ifdef O3_HAS_TANGENT
-        attribute vec4 TANGENT;
-    #endif
+#ifdef O3_HAS_TANGENT
+    attribute vec4 TANGENT;
 #endif
