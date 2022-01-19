@@ -1,6 +1,7 @@
 import { Sprite } from "../sprite/Sprite";
 import { Engine } from "../../Engine";
 import { DynamicAtlas } from "./DynamicAtlas";
+import { Texture2D } from "../../texture/Texture2D";
 
 /**
  * Dynamic atlas manager for text.
@@ -53,9 +54,9 @@ export class DynamicAtlasManager {
    */
   constructor(public readonly engine: Engine) {}
 
-  public addSprite(sprite: Sprite, imageSource: TexImageSource): boolean {
+  public addSprite(sprite: Sprite, imageSource: TexImageSource): Texture2D | null {
     if (!this._enabled || this._atlasIndex >= this._maxAtlasCount) {
-      return false;
+      return null;
     }
 
     let atlas = this._atlases[this._atlasIndex];
@@ -63,20 +64,29 @@ export class DynamicAtlasManager {
       atlas = this._createAtlas();
     }
 
-    if (!atlas.addSprite(sprite, imageSource)) {
-      if (this._atlasIndex + 1 >= this._maxAtlasCount) {
-        this._atlasIndex = this._maxAtlasCount;
-        return false;
-      }
-      atlas = this._createAtlas();
-      return atlas.addSprite(sprite, imageSource);
+    const oldTexture = atlas.getOriginTextureById(sprite.instanceId);
+    if (atlas.addSprite(sprite, imageSource)) {
+      return oldTexture || null;
     }
 
-    return true;
+    if (this._atlasIndex + 1 >= this._maxAtlasCount) {
+      this._atlasIndex = this._maxAtlasCount;
+      return null;
+    }
+
+    atlas = this._createAtlas();
+    atlas.addSprite(sprite, imageSource);
+    return null;
   }
 
-  public removeSprite() {
+  public removeSprite(sprite: Sprite) {
+    if (!this._enabled || !sprite) return ;
 
+    const { _atlases } = this;
+    for (let i = 0, l = _atlases.length; i < l; ++i) {
+      const atlas = _atlases[i];
+      atlas.removeSprite(sprite);
+    }
   }
 
   public reset() {

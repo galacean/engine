@@ -250,7 +250,7 @@ export class TextRenderer extends Renderer {
    */
   _render(camera: Camera): void {
     if (this._text === "") {
-      this._sprite.texture = null;
+      this._clearTexture();
       return;
     }
 
@@ -284,7 +284,6 @@ export class TextRenderer extends Renderer {
 
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
-    this.shaderData.setTexture(TextRenderer._textureProperty, texture);
     spriteElement.setValue(
       this,
       this._positions,
@@ -351,7 +350,7 @@ export class TextRenderer extends Renderer {
 
   private _updateText() {
     if (this._text === "") {
-      this._sprite.texture = null;
+      this._clearTexture();
       return;
     }
 
@@ -361,7 +360,7 @@ export class TextRenderer extends Renderer {
     const textMetrics = TextUtils.measureText(textContext, this, fontStr);
     const { width, height } = textMetrics;
     if (width === 0 || height === 0) {
-      this._sprite.texture = null;
+      this._clearTexture();
       return;
     }
 
@@ -398,9 +397,10 @@ export class TextRenderer extends Renderer {
     const { data } = trimData;
     const { _sprite } = this;
     if (!data) {
-      _sprite.texture = null;
+      this._clearTexture();
       return;
     }
+
     const { width, height } = trimData;
     canvas.width = width;
     canvas.height = height;
@@ -412,9 +412,11 @@ export class TextRenderer extends Renderer {
       texture.setImageSource(canvas);
     }
     texture.generateMipmaps();
-    _sprite.texture = texture;
 
+    this._clearTexture();
+    _sprite.texture = texture;
     this.engine.dynamicAtlasManager.addSprite(_sprite, canvas);
+    this.shaderData.setTexture(TextRenderer._textureProperty, _sprite.texture);
     _sprite._updateMeshData();
     this._updatePosition();
   }
@@ -487,6 +489,19 @@ export class TextRenderer extends Renderer {
       const curVertexPos = localPositions[i];
       localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
       Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
+    }
+  }
+
+  private _clearTexture() {
+    const { _sprite } = this;
+    // Remove sprite from dynamic atlas.
+    this.engine.dynamicAtlasManager.removeSprite(_sprite);
+    // Destroy current texture.
+    const texture = _sprite.texture;
+    _sprite.texture = null;
+    if (texture) {
+      this.shaderData.setTexture(TextRenderer._textureProperty, null);
+      texture.destroy();
     }
   }
 }
