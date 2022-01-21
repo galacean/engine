@@ -2,13 +2,13 @@ import { Rect } from "@oasis-engine/math";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { Sprite } from "../sprite/Sprite";
-import { OriginTextureObj, OriginTextureRectObj } from "./types";
+import { OriginInfo, OriginInfoObj } from "./types";
 
 /**
  * Dynamic atlas for text.
  */
 export class DynamicAtlas {
-  private static _rect: Rect = new Rect();
+  private static _region: Rect = new Rect();
 
   private _texture: Texture2D;
   private _width: number;
@@ -19,8 +19,7 @@ export class DynamicAtlas {
   private _curY: number = 1;
   private _nextY: number = 1;
 
-  private _originTextures: OriginTextureObj = {};
-  private _originTextureInfos: OriginTextureRectObj = {};
+  private _originInfos: OriginInfoObj = {}; 
 
   constructor(engine: Engine, width: number, height: number) {
     this._width = width;
@@ -30,8 +29,18 @@ export class DynamicAtlas {
   }
 
   public destroy() {
-    this._texture._addRefCount(-1);
-    this._texture.destroy();
+    const { _originInfos } = this;
+    const ids = Object.keys(_originInfos);
+    for (let i = 0, l = ids.length; i < l; ++i) {
+      const id = ids[i];
+      const info = <OriginInfo>_originInfos[id];
+      const originSprite = info.sprite;
+      originSprite.texture = info.texture;
+      originSprite.atlasRegion = info.atlasRegion;
+      delete _originInfos[id];
+    }
+
+    this._texture.destroy(true);
   }
 
   public addSprite(sprite: Sprite, imageSource: TexImageSource): boolean {
@@ -56,14 +65,28 @@ export class DynamicAtlas {
     texture.setImageSource(imageSource, 0, false, false, this._curX, this._curY);
 
     const { _width, _height } = this;
-    const rect = DynamicAtlas._rect;
-    rect.setValue(this._curX / _width, this._curY / _height, width / _width, height / _height);
+    const region = DynamicAtlas._region;
+    region.setValue(this._curX / _width, this._curY / _height, width / _width, height / _height);
+
     // Cache origin texture.
     const originTexture = sprite.texture;
-    this._originTextures[sprite.instanceId] = originTexture;
-    this._originTextureInfos[originTexture.instanceId] = rect.clone();
+    const id = sprite.instanceId;
+    const { _originInfos } = this;
+    const originInfo = _originInfos[id];
+    if (originInfo) {
+      originInfo.sprite = sprite;
+      originInfo.texture = originTexture;
+      originInfo.atlasRegion = sprite.atlasRegion.clone();
+    } else {
+      _originInfos[id] = {
+        sprite: sprite,
+        texture: originTexture,
+        atlasRegion: sprite.atlasRegion.clone()
+      };
+    }
+
     // Update atlas texture.
-    sprite.atlasRegion = rect;
+    sprite.atlasRegion = region;
     sprite.texture = texture;
     this._curX = endX + space;
 
@@ -72,16 +95,20 @@ export class DynamicAtlas {
 
   public removeSprite(sprite: Sprite) {
     const id = sprite.instanceId;
-    const { _originTextures } = this;
-    const texture = _originTextures[id];
-    if (texture) {
-      delete this._originTextureInfos[texture.instanceId]
+    const { _originInfos } = this;
+    const info = _originInfos[id];
+    if (info) {
+      const texture = info.texture;
       texture.destroy();
     }
-    delete _originTextures[id];
+    delete _originInfos[id];
   }
 
   public getOriginTextureById(id: number): Texture2D | null {
-    return this._originTextures[id] || null;
+    const info = this._originInfos[id];
+    if (info) {
+      return info.texture;
+    }
+    return null;
   }
 }

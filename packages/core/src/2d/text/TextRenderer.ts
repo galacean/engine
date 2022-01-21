@@ -272,7 +272,8 @@ export class TextRenderer extends Renderer {
     }
 
     // Update sprite data.
-    if (this._isWorldMatrixDirty.flag) {
+    const localDirty = sprite._updateMeshData();
+    if (this._isWorldMatrixDirty.flag || localDirty) {
       this._updatePosition();
       this._isWorldMatrixDirty.flag = false;
     }
@@ -282,6 +283,7 @@ export class TextRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
+    this.shaderData.setTexture(TextRenderer._textureProperty, texture);
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
     spriteElement.setValue(
@@ -300,6 +302,7 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   _onDestroy(): void {
+    this.engine.dynamicAtlasManager.removeSprite(this._sprite);
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
   }
@@ -416,9 +419,6 @@ export class TextRenderer extends Renderer {
     this._clearTexture();
     _sprite.texture = texture;
     this.engine.dynamicAtlasManager.addSprite(_sprite, canvas);
-    this.shaderData.setTexture(TextRenderer._textureProperty, _sprite.texture);
-    _sprite._updateMeshData();
-    this._updatePosition();
   }
 
   private _calculateLinePosition(
