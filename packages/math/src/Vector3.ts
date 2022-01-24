@@ -46,9 +46,10 @@ export class Vector3 implements IClone {
    * @param out - The product of two vectors
    */
   static multiply(left: Vector3, right: Vector3, out: Vector3): void {
-    out.x = left.x * right.x;
-    out.y = left.y * right.y;
-    out.z = left.z * right.z;
+    out._x = left._x * right._x;
+    out._y = left._y * right._y;
+    out._z = left._z * right._z;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -58,9 +59,10 @@ export class Vector3 implements IClone {
    * @param out - The divisor of two vectors
    */
   static divide(left: Vector3, right: Vector3, out: Vector3): void {
-    out.x = left.x / right.x;
-    out.y = left.y / right.y;
-    out.z = left.z / right.z;
+    out._x = left._x / right._x;
+    out._y = left._y / right._y;
+    out._z = left._z / right._z;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -70,7 +72,7 @@ export class Vector3 implements IClone {
    * @returns The dot product of two vectors
    */
   static dot(left: Vector3, right: Vector3): number {
-    return left.x * right.x + left.y * right.y + left.z * right.z;
+    return left._x * right._x + left._y * right._y + left._z * right._z;
   }
 
   /**
@@ -80,12 +82,12 @@ export class Vector3 implements IClone {
    * @param out - The cross product of two vectors
    */
   static cross(left: Vector3, right: Vector3, out: Vector3): void {
-    const ax = left.x;
-    const ay = left.y;
-    const az = left.z;
-    const bx = right.x;
-    const by = right.y;
-    const bz = right.z;
+    const ax = left._x;
+    const ay = left._y;
+    const az = left._z;
+    const bx = right._x;
+    const by = right._y;
+    const bz = right._z;
 
     out.setValue(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx);
   }
@@ -110,9 +112,9 @@ export class Vector3 implements IClone {
    * @returns The squared distance of two vectors
    */
   static distanceSquared(a: Vector3, b: Vector3): number {
-    const x = b.x - a.x;
-    const y = b.y - a.y;
-    const z = b.z - a.z;
+    const x = b._x - a._x;
+    const y = b._y - a._y;
+    const z = b._z - a._z;
     return x * x + y * y + z * z;
   }
 
@@ -123,7 +125,9 @@ export class Vector3 implements IClone {
    * @returns True if the specified vectors are equals, false otherwise
    */
   static equals(left: Vector3, right: Vector3): boolean {
-    return MathUtil.equals(left.x, right.x) && MathUtil.equals(left.y, right.y) && MathUtil.equals(left.z, right.z);
+    return (
+      MathUtil.equals(left._x, right._x) && MathUtil.equals(left._y, right._y) && MathUtil.equals(left._z, right._z)
+    );
   }
 
   /**
@@ -148,9 +152,10 @@ export class Vector3 implements IClone {
    * @param out - The vector containing the largest components of the specified vectors
    */
   static max(left: Vector3, right: Vector3, out: Vector3): void {
-    out.x = Math.max(left.x, right.x);
-    out.y = Math.max(left.y, right.y);
-    out.z = Math.max(left.z, right.z);
+    out._x = Math.max(left._x, right._x);
+    out._y = Math.max(left._y, right._y);
+    out._z = Math.max(left._z, right._z);
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -160,9 +165,10 @@ export class Vector3 implements IClone {
    * @param out - The vector containing the smallest components of the specified vectors
    */
   static min(left: Vector3, right: Vector3, out: Vector3): void {
-    out.x = Math.min(left.x, right.x);
-    out.y = Math.min(left.y, right.y);
-    out.z = Math.min(left.z, right.z);
+    out._x = Math.min(left._x, right._x);
+    out._y = Math.min(left._y, right._y);
+    out._z = Math.min(left._z, right._z);
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -171,9 +177,10 @@ export class Vector3 implements IClone {
    * @param out - The vector facing in the opposite direction
    */
   static negate(a: Vector3, out: Vector3): void {
-    out.x = -a.x;
-    out.y = -a.y;
-    out.z = -a.z;
+    out._x = -a._x;
+    out._y = -a._y;
+    out._z = -a._z;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -217,11 +224,12 @@ export class Vector3 implements IClone {
    * @param out - The transformed normal
    */
   static transformNormal(v: Vector3, m: Matrix, out: Vector3): void {
-    const { x, y, z } = v;
+    const { _x, _y, _z } = v;
     const e = m.elements;
-    out.x = x * e[0] + y * e[4] + z * e[8];
-    out.y = x * e[1] + y * e[5] + z * e[9];
-    out.z = x * e[2] + y * e[6] + z * e[10];
+    out._x = _x * e[0] + _y * e[4] + _z * e[8];
+    out._y = _x * e[1] + _y * e[5] + _z * e[9];
+    out._z = _x * e[2] + _y * e[6] + _z * e[10];
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -307,7 +315,6 @@ export class Vector3 implements IClone {
 
   /** @internal */
   _onValueChanged: () => void = null;
-  _dirty: boolean = false;
 
   /**
    * The x component of the vector.

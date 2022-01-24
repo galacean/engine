@@ -415,14 +415,61 @@ export class Quaternion implements IClone {
     out.w = a.w * s;
   }
 
-  /** The x component of the quaternion. */
-  x: number;
-  /** The y component of the quaternion. */
-  y: number;
-  /** The z component of the quaternion. */
-  z: number;
-  /** The w component of the quaternion. */
-  w: number;
+  private _x: number;
+  private _y: number;
+  private _z: number;
+  private _w: number;
+
+  /** @internal */
+  _onValueChanged: () => void = null;
+
+  /**
+   * The x component of the quaternion.
+   */
+  public get x() {
+    return this._x;
+  }
+
+  public set x(value: number) {
+    this._x = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The y component of the quaternion.
+   */
+  public get y() {
+    return this._y;
+  }
+
+  public set y(value: number) {
+    this._y = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The z component of the quaternion.
+   */
+  public get z() {
+    return this._z;
+  }
+
+  public set z(value: number) {
+    this._z = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The w component of the quaternion.
+   */
+  public get w() {
+    return this._w;
+  }
+
+  public set w(value: number) {
+    this._w = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * Constructor of Quaternion.
@@ -432,10 +479,10 @@ export class Quaternion implements IClone {
    * @param w - The w component of the quaternion, default 1
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 1) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.w = w;
+    this._x = x;
+    this._y = y;
+    this._z = z;
+    this._w = w;
   }
 
   /**

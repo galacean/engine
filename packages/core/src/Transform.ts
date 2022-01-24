@@ -81,15 +81,6 @@ export class Transform extends Component {
     if (this._worldPosition !== value) {
       value.cloneTo(this._worldPosition);
     }
-    const parent = this._getParentTransform();
-    if (parent) {
-      Matrix.invert(parent.worldMatrix, Transform._tempMat41);
-      Vector3.transformCoordinate(value, Transform._tempMat41, this._position);
-    } else {
-      value.cloneTo(this._position);
-    }
-    this.position = this._position;
-    this._setDirtyFlagFalse(TransformFlag.WorldPosition);
   }
 
   /**
@@ -101,7 +92,6 @@ export class Transform extends Component {
     if (this._isContainDirtyFlag(TransformFlag.LocalEuler)) {
       this._rotationQuaternion.toEuler(this._rotation);
       this._rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
-
       this._setDirtyFlagFalse(TransformFlag.LocalEuler);
     }
     return this._rotation;
@@ -111,9 +101,6 @@ export class Transform extends Component {
     if (this._rotation !== value) {
       value.cloneTo(this._rotation);
     }
-    this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalQuat);
-    this._setDirtyFlagFalse(TransformFlag.LocalEuler);
-    this._updateWorldRotationFlag();
   }
 
   /**
@@ -134,14 +121,6 @@ export class Transform extends Component {
     if (this._worldRotation !== value) {
       value.cloneTo(this._worldRotation);
     }
-    Quaternion.rotationEuler(
-      MathUtil.degreeToRadian(value.x),
-      MathUtil.degreeToRadian(value.y),
-      MathUtil.degreeToRadian(value.z),
-      this._worldRotationQuaternion
-    );
-    this.worldRotationQuaternion = this._worldRotationQuaternion;
-    this._setDirtyFlagFalse(TransformFlag.WorldEuler);
   }
 
   /**
@@ -165,9 +144,6 @@ export class Transform extends Component {
     if (this._rotationQuaternion !== value) {
       value.cloneTo(this._rotationQuaternion);
     }
-    this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalEuler);
-    this._setDirtyFlagFalse(TransformFlag.LocalQuat);
-    this._updateWorldRotationFlag();
   }
 
   /**
@@ -191,15 +167,6 @@ export class Transform extends Component {
     if (this._worldRotationQuaternion !== value) {
       value.cloneTo(this._worldRotationQuaternion);
     }
-    const parent = this._getParentTransform();
-    if (parent) {
-      Quaternion.invert(parent.worldRotationQuaternion, Transform._tempQuat0);
-      Quaternion.multiply(value, Transform._tempQuat0, this._rotationQuaternion);
-    } else {
-      value.cloneTo(this._rotationQuaternion);
-    }
-    this.rotationQuaternion = this._rotationQuaternion;
-    this._setDirtyFlagFalse(TransformFlag.WorldQuat);
   }
 
   /**
@@ -296,6 +263,61 @@ export class Transform extends Component {
     this._position._onValueChanged = () => {
       this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
       this._updateWorldPositionFlag();
+    };
+
+    //@ts-ignore
+    this._worldPosition._onValueChanged = () => {
+      const worldPosition = this._worldPosition;
+      const parent = this._getParentTransform();
+      if (parent) {
+        Matrix.invert(parent.worldMatrix, Transform._tempMat41);
+        Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
+      } else {
+        worldPosition.cloneTo(this._position);
+      }
+      this.position = this._position;
+      this._setDirtyFlagFalse(TransformFlag.WorldPosition);
+    };
+
+    //@ts-ignore
+    this._rotation._onValueChanged = () => {
+      this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalQuat);
+      this._setDirtyFlagFalse(TransformFlag.LocalEuler);
+      this._updateWorldRotationFlag();
+    };
+
+    //@ts-ignore
+    this._worldRotation._onValueChanged = () => {
+      const worldRotation = this._worldRotation;
+      Quaternion.rotationEuler(
+        MathUtil.degreeToRadian(worldRotation.x),
+        MathUtil.degreeToRadian(worldRotation.y),
+        MathUtil.degreeToRadian(worldRotation.z),
+        this._worldRotationQuaternion
+      );
+      this.worldRotationQuaternion = this._worldRotationQuaternion;
+      this._setDirtyFlagFalse(TransformFlag.WorldEuler);
+    };
+
+    //@ts-ignore
+    this._rotationQuaternion._onValueChanged = () => {
+      this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalEuler);
+      this._setDirtyFlagFalse(TransformFlag.LocalQuat);
+      this._updateWorldRotationFlag();
+    };
+
+    //@ts-ignore
+    this._worldRotationQuaternion._onValueChanged = () => {
+      const worldRotationQuaternion = this._worldRotationQuaternion;
+      const parent = this._getParentTransform();
+      if (parent) {
+        Quaternion.invert(parent.worldRotationQuaternion, Transform._tempQuat0);
+        Quaternion.multiply(worldRotationQuaternion, Transform._tempQuat0, this._rotationQuaternion);
+      } else {
+        worldRotationQuaternion.cloneTo(this._rotationQuaternion);
+      }
+      this.rotationQuaternion = this._rotationQuaternion;
+      this._setDirtyFlagFalse(TransformFlag.WorldQuat);
     };
 
     //@ts-ignore
