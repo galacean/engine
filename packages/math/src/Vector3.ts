@@ -99,9 +99,9 @@ export class Vector3 implements IClone {
    * @returns The distance of two vectors
    */
   static distance(a: Vector3, b: Vector3): number {
-    const x = b.x - a.x;
-    const y = b.y - a.y;
-    const z = b.z - a.z;
+    const x = b._x - a._x;
+    const y = b._y - a._y;
+    const z = b._z - a._z;
     return Math.sqrt(x * x + y * y + z * z);
   }
 
@@ -190,7 +190,7 @@ export class Vector3 implements IClone {
    */
   static normalize(a: Vector3, out: Vector3): void {
     const { _x, _y, _z } = a;
-    let len: number = Math.sqrt(_x * _x + _y * _y + _z * _z);
+    let len = Math.sqrt(_x * _x + _y * _y + _z * _z);
     if (len > 0) {
       // TODO
       len = 1 / len;
@@ -239,12 +239,13 @@ export class Vector3 implements IClone {
    * @param out - The transformed vector3
    */
   static transformToVec3(v: Vector3, m: Matrix, out: Vector3): void {
-    const { x, y, z } = v;
+    const { _x, _y, _z } = v;
     const e = m.elements;
 
-    out.x = x * e[0] + y * e[4] + z * e[8] + e[12];
-    out.y = x * e[1] + y * e[5] + z * e[9] + e[13];
-    out.z = x * e[2] + y * e[6] + z * e[10] + e[14];
+    out._x = _x * e[0] + _y * e[4] + _z * e[8] + e[12];
+    out._y = _x * e[1] + _y * e[5] + _z * e[9] + e[13];
+    out._z = _x * e[2] + _y * e[6] + _z * e[10] + e[14];
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -254,13 +255,13 @@ export class Vector3 implements IClone {
    * @param out - The transformed vector4
    */
   static transformToVec4(v: Vector3, m: Matrix, out: Vector4): void {
-    const { x, y, z } = v;
+    const { _x, _y, _z } = v;
     const e = m.elements;
 
-    out.x = x * e[0] + y * e[4] + z * e[8] + e[12];
-    out.y = x * e[1] + y * e[5] + z * e[9] + e[13];
-    out.z = x * e[2] + y * e[6] + z * e[10] + e[14];
-    out.w = x * e[3] + y * e[7] + z * e[11] + e[15];
+    out.x = _x * e[0] + _y * e[4] + _z * e[8] + e[12];
+    out.y = _x * e[1] + _y * e[5] + _z * e[9] + e[13];
+    out.z = _x * e[2] + _y * e[6] + _z * e[10] + e[14];
+    out.w = _x * e[3] + _y * e[7] + _z * e[11] + e[15];
   }
 
   /**
@@ -277,14 +278,15 @@ export class Vector3 implements IClone {
    * @param out - The transformed coordinates
    */
   static transformCoordinate(v: Vector3, m: Matrix, out: Vector3): void {
-    const { x, y, z } = v;
+    const { _x, _y, _z } = v;
     const e = m.elements;
-    let w = x * e[3] + y * e[7] + z * e[11] + e[15];
+    let w = _x * e[3] + _y * e[7] + _z * e[11] + e[15];
     w = 1.0 / w;
 
-    out.x = (x * e[0] + y * e[4] + z * e[8] + e[12]) * w;
-    out.y = (x * e[1] + y * e[5] + z * e[9] + e[13]) * w;
-    out.z = (x * e[2] + y * e[6] + z * e[10] + e[14]) * w;
+    out._x = (_x * e[0] + _y * e[4] + _z * e[8] + e[12]) * w;
+    out._y = (_x * e[1] + _y * e[5] + _z * e[9] + e[13]) * w;
+    out._z = (_x * e[2] + _y * e[6] + _z * e[10] + e[14]) * w;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -294,19 +296,20 @@ export class Vector3 implements IClone {
    * @param out - The transformed vector
    */
   static transformByQuat(v: Vector3, quaternion: Quaternion, out: Vector3): void {
-    const { x, y, z } = v;
+    const { _x, _y, _z } = v;
     const { x: qx, y: qy, z: qz, w: qw } = quaternion;
 
     // calculate quat * vec
-    const ix = qw * x + qy * z - qz * y;
-    const iy = qw * y + qz * x - qx * z;
-    const iz = qw * z + qx * y - qy * x;
-    const iw = -qx * x - qy * y - qz * z;
+    const ix = qw * _x + qy * _z - qz * _y;
+    const iy = qw * _y + qz * _x - qx * _z;
+    const iz = qw * _z + qx * _y - qy * _x;
+    const iw = -qx * _x - qy * _y - qz * _z;
 
     // calculate result * inverse quat
-    out.x = ix * qw - iw * qx - iy * qz + iz * qy;
-    out.y = iy * qw - iw * qy - iz * qx + ix * qz;
-    out.z = iz * qw - iw * qz - ix * qy + iy * qx;
+    out._x = ix * qw - iw * qx - iy * qz + iz * qy;
+    out._y = iy * qw - iw * qy - iz * qx + ix * qz;
+    out._z = iz * qw - iw * qz - ix * qy + iy * qx;
+    out._onValueChanged && out._onValueChanged();
   }
 
   private _x: number;
@@ -424,9 +427,10 @@ export class Vector3 implements IClone {
    * @returns This vector
    */
   multiply(right: Vector3): Vector3 {
-    this.x *= right.x;
-    this.y *= right.y;
-    this.z *= right.z;
+    this._x *= right._x;
+    this._y *= right._y;
+    this._z *= right._z;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -436,9 +440,10 @@ export class Vector3 implements IClone {
    * @returns This vector
    */
   divide(right: Vector3): Vector3 {
-    this.x /= right.x;
-    this.y /= right.y;
-    this.z /= right.z;
+    this._x /= right._x;
+    this._y /= right._y;
+    this._z /= right._z;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -447,8 +452,8 @@ export class Vector3 implements IClone {
    * @returns The length of this vector
    */
   length(): number {
-    const { x, y, z } = this;
-    return Math.sqrt(x * x + y * y + z * z);
+    const { _x, _y, _z } = this;
+    return Math.sqrt(_x * _x + _y * _y + _z * _z);
   }
 
   /**
@@ -456,8 +461,8 @@ export class Vector3 implements IClone {
    * @returns The squared length of this vector
    */
   lengthSquared(): number {
-    const { x, y, z } = this;
-    return x * x + y * y + z * z;
+    const { _x, _y, _z } = this;
+    return _x * _x + _y * _y + _z * _z;
   }
 
   /**
@@ -465,9 +470,10 @@ export class Vector3 implements IClone {
    * @returns This vector
    */
   negate(): Vector3 {
-    this.x = -this.x;
-    this.y = -this.y;
-    this.z = -this.z;
+    this._x = -this._x;
+    this._y = -this._y;
+    this._z = -this._z;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -486,9 +492,10 @@ export class Vector3 implements IClone {
    * @returns This vector
    */
   scale(s: number): Vector3 {
-    this.x *= s;
-    this.y *= s;
-    this.z *= s;
+    this._x *= s;
+    this._y *= s;
+    this._z *= s;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -498,9 +505,9 @@ export class Vector3 implements IClone {
    * @param outOffset - The start offset of the array
    */
   toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    out[outOffset] = this.x;
-    out[outOffset + 1] = this.y;
-    out[outOffset + 2] = this.z;
+    out[outOffset] = this._x;
+    out[outOffset + 1] = this._y;
+    out[outOffset + 2] = this._z;
   }
 
   /**
