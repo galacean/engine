@@ -19,10 +19,11 @@ export class Quaternion implements IClone {
    * @param out - The sum of two quaternions
    */
   static add(left: Quaternion, right: Quaternion, out: Quaternion): void {
-    out.x = left.x + right.x;
-    out.y = left.y + right.y;
-    out.z = left.z + right.z;
-    out.w = left.w + right.w;
+    out._x = left._x + right._x;
+    out._y = left._y + right._y;
+    out._z = left._z + right._z;
+    out._w = left._w + right._w;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -32,19 +33,20 @@ export class Quaternion implements IClone {
    * @param out - The product of two quaternions
    */
   static multiply(left: Quaternion, right: Quaternion, out: Quaternion): void {
-    const ax = left.x,
-      ay = left.y,
-      az = left.z,
-      aw = left.w;
-    const bx = right.x,
-      by = right.y,
-      bz = right.z,
-      bw = right.w;
+    const ax = left._x,
+      ay = left._y,
+      az = left._z,
+      aw = left._w;
+    const bx = right._x,
+      by = right._y,
+      bz = right._z,
+      bw = right._w;
 
-    out.x = ax * bw + aw * bx + ay * bz - az * by;
-    out.y = ay * bw + aw * by + az * bx - ax * bz;
-    out.z = az * bw + aw * bz + ax * by - ay * bx;
-    out.w = aw * bw - ax * bx - ay * by - az * bz;
+    out._x = ax * bw + aw * bx + ay * bz - az * by;
+    out._y = ay * bw + aw * by + az * bx - ax * bz;
+    out._z = az * bw + aw * bz + ax * by - ay * bx;
+    out._w = aw * bw - ax * bx - ay * by - az * bz;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -53,10 +55,11 @@ export class Quaternion implements IClone {
    * @param out - The conjugate version of the specified quaternion
    */
   static conjugate(a: Quaternion, out: Quaternion): void {
-    out.x = -a.x;
-    out.y = -a.y;
-    out.z = -a.z;
-    out.w = a.w;
+    out._x = -a._x;
+    out._y = -a._y;
+    out._z = -a._z;
+    out._w = a._w;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -66,7 +69,7 @@ export class Quaternion implements IClone {
    * @returns The dot product of two quaternions
    */
   static dot(left: Quaternion, right: Quaternion): number {
-    return left.x * right.x + left.y * right.y + left.z * right.z + left.w * right.w;
+    return left._x * right._x + left._y * right._y + left._z * right._z + left._w * right._w;
   }
 
   /**
@@ -77,10 +80,10 @@ export class Quaternion implements IClone {
    */
   static equals(left: Quaternion, right: Quaternion): boolean {
     return (
-      MathUtil.equals(left.x, right.x) &&
-      MathUtil.equals(left.y, right.y) &&
-      MathUtil.equals(left.z, right.z) &&
-      MathUtil.equals(left.w, right.w)
+      MathUtil.equals(left._x, right._x) &&
+      MathUtil.equals(left._y, right._y) &&
+      MathUtil.equals(left._z, right._z) &&
+      MathUtil.equals(left._w, right._w)
     );
   }
 
