@@ -653,9 +653,7 @@ export class Animator extends Component {
           value = Animator._tempQuaternion;
           break;
         case AnimationProperty.Scale: {
-          const scale = transform.scale;
           Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
-          transform.scale = scale;
           value = Animator._tempVector3;
           break;
         }
