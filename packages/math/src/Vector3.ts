@@ -312,9 +312,12 @@ export class Vector3 implements IClone {
     out._onValueChanged && out._onValueChanged();
   }
 
-  private _x: number;
-  private _y: number;
-  private _z: number;
+  /** @internal */
+  _x: number;
+  /** @internal */
+  _y: number;
+  /** @internal */
+  _z: number;
 
   /** @internal */
   _onValueChanged: () => void = null;

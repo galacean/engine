@@ -497,11 +497,11 @@ export class Quaternion implements IClone {
    * @returns This quaternion
    */
   setValue(x: number, y: number, z: number, w: number): Quaternion {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.w = w;
-
+    this._x = x;
+    this._y = y;
+    this._z = z;
+    this._w = w;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -512,10 +512,11 @@ export class Quaternion implements IClone {
    * @returns This quaternion
    */
   setValueByArray(array: ArrayLike<number>, offset: number = 0): Quaternion {
-    this.x = array[offset];
-    this.y = array[offset + 1];
-    this.z = array[offset + 2];
-    this.w = array[offset + 3];
+    this._x = array[offset];
+    this._y = array[offset + 1];
+    this._z = array[offset + 2];
+    this._w = array[offset + 3];
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -524,10 +525,10 @@ export class Quaternion implements IClone {
    * @returns This quaternion
    */
   conjugate(): Quaternion {
-    this.x *= -1;
-    this.y *= -1;
-    this.z *= -1;
-
+    this._x *= -1;
+    this._y *= -1;
+    this._z *= -1;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -537,22 +538,22 @@ export class Quaternion implements IClone {
    * @returns The rotation angle (unit: radians)
    */
   getAxisAngle(out: Vector3): number {
-    const { x, y, z } = this;
-    const length = x * x + y * y + z * z;
+    const { _x, _y, _z } = this;
+    const length = _x * _x + _y * _y + _z * _z;
 
     if (length < MathUtil.zeroTolerance) {
-      out.x = 1;
-      out.y = 0;
-      out.z = 0;
+      out._x = 1;
+      out._y = 0;
+      out._z = 0;
 
       return 0;
     } else {
       const inv = 1.0 / length;
-      out.x = this.x * inv;
-      out.y = this.y * inv;
-      out.z = this.z * inv;
+      out._x = this._x * inv;
+      out._y = this._y * inv;
+      out._z = this._z * inv;
 
-      return Math.acos(this.w) * 2.0;
+      return Math.acos(this._w) * 2.0;
     }
   }
 
@@ -561,10 +562,11 @@ export class Quaternion implements IClone {
    * @returns This quaternion after identity
    */
   identity(): Quaternion {
-    this.x = 0;
-    this.y = 0;
-    this.z = 0;
-    this.w = 1;
+    this._x = 0;
+    this._y = 0;
+    this._z = 0;
+    this._w = 1;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -573,8 +575,8 @@ export class Quaternion implements IClone {
    * @returns The length of this quaternion
    */
   length(): number {
-    const { x, y, z, w } = this;
-    return Math.sqrt(x * x + y * y + z * z + w * w);
+    const { _x, _y, _z, _w } = this;
+    return Math.sqrt(_x * _x + _y * _y + _z * _z + _w * _w);
   }
 
   /**
@@ -582,8 +584,8 @@ export class Quaternion implements IClone {
    * @returns The squared length of this quaternion
    */
   lengthSquared(): number {
-    const { x, y, z, w } = this;
-    return x * x + y * y + z * z + w * w;
+    const { _x, _y, _z, _w } = this;
+    return _x * _x + _y * _y + _z * _z + _w * _w;
   }
 
   /**
@@ -602,9 +604,10 @@ export class Quaternion implements IClone {
    */
   toEuler(out: Vector3): Vector3 {
     this.toYawPitchRoll(out);
-    const t = out.x;
-    out.x = out.y;
-    out.y = t;
+    // @todo:
+    const t = out._x;
+    out._x = out._y;
+    out._y = t;
     return out;
   }
 
@@ -614,26 +617,27 @@ export class Quaternion implements IClone {
    * @returns Euler x->yaw y->pitch z->roll
    */
   toYawPitchRoll(out: Vector3): Vector3 {
-    const { x, y, z, w } = this;
-    const xx = x * x;
-    const yy = y * y;
-    const zz = z * z;
-    const xy = x * y;
-    const zw = z * w;
-    const zx = z * x;
-    const yw = y * w;
-    const yz = y * z;
-    const xw = x * w;
+    const { _x, _y, _z, _w } = this;
+    const xx = _x * _x;
+    const yy = _y * _y;
+    const zz = _z * _z;
+    const xy = _x * _y;
+    const zw = _z * _w;
+    const zx = _z * _x;
+    const yw = _y * _w;
+    const yz = _y * _z;
+    const xw = _x * _w;
 
-    out.y = Math.asin(2.0 * (xw - yz));
+    out._y = Math.asin(2.0 * (xw - yz));
     if (Math.cos(out.y) > MathUtil.zeroTolerance) {
-      out.z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
-      out.x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
+      out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
+      out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
     } else {
-      out.z = Math.atan2(-2.0 * (xy - zw), 1.0 - 2.0 * (yy + zz));
-      out.x = 0.0;
+      out._z = Math.atan2(-2.0 * (xy - zw), 1.0 - 2.0 * (yy + zz));
+      out._x = 0.0;
     }
 
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
@@ -643,10 +647,10 @@ export class Quaternion implements IClone {
    * @param outOffset - The start offset of the array
    */
   toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    out[outOffset] = this.x;
-    out[outOffset + 1] = this.y;
-    out[outOffset + 2] = this.z;
-    out[outOffset + 3] = this.w;
+    out[outOffset] = this._x;
+    out[outOffset + 1] = this._y;
+    out[outOffset + 2] = this._z;
+    out[outOffset + 3] = this._w;
   }
 
   /**
@@ -654,7 +658,7 @@ export class Quaternion implements IClone {
    * @returns A clone of this quaternion
    */
   clone(): Quaternion {
-    return new Quaternion(this.x, this.y, this.z, this.w);
+    return new Quaternion(this._x, this._y, this._z, this._w);
   }
 
   /**
@@ -663,10 +667,11 @@ export class Quaternion implements IClone {
    * @returns The specified quaternion
    */
   cloneTo(out: Quaternion): Quaternion {
-    out.x = this.x;
-    out.y = this.y;
-    out.z = this.z;
-    out.w = this.w;
+    out._x = this._x;
+    out._y = this._y;
+    out._z = this._z;
+    out._w = this._w;
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
