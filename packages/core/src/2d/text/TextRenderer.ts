@@ -77,7 +77,7 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   *
+   * Rendering string for the TextRenderer.
    */
   get text(): string {
     return this._text;
@@ -91,6 +91,9 @@ export class TextRenderer extends Renderer {
     }
   }
 
+  /**
+   * The width of the TextRenderer (in 3D world coordinates).
+   */
   get width(): number {
     return this._width;
   }
@@ -102,6 +105,9 @@ export class TextRenderer extends Renderer {
     }
   }
 
+  /**
+   * The height of the TextRenderer (in 3D world coordinates).
+   */
   get height(): number {
     return this._height;
   }
@@ -113,6 +119,9 @@ export class TextRenderer extends Renderer {
     }
   }
 
+  /**
+   * The font name of the TextRenderer.
+   */
   get fontName(): string {
     return this._fontName;
   }
@@ -125,6 +134,9 @@ export class TextRenderer extends Renderer {
     }
   }
 
+  /**
+   * The font size of the TextRenderer.
+   */
   get fontSize(): number {
     return this._fontSize;
   }
@@ -136,6 +148,9 @@ export class TextRenderer extends Renderer {
     }
   }
 
+  /**
+   * The space between two lines (in pixels).
+   */
   get lineSpace(): number {
     return this._lineSpace;
   }
@@ -147,66 +162,84 @@ export class TextRenderer extends Renderer {
     }
   }
 
-  get isBold(): boolean {
+  /**
+   * The text is bold.
+   */
+  get bold(): boolean {
     return this._isBold;
   }
 
-  set isBold(value: boolean) {
+  set bold(value: boolean) {
     if (this._isBold !== value) {
       this._isBold = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
     }
   }
 
-  get isItalic(): boolean {
+  /**
+   * The text is italic.
+   */
+  get italic(): boolean {
     return this._isItalic;
   }
 
-  set isItalic(value: boolean) {
+  set italic(value: boolean) {
     if (this._isItalic !== value) {
       this._isItalic = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
     }
   }
 
-  get horizontalAlignment(): TextHorizontalAlignment {
+  /**
+   * The horizontal alignment.
+   */
+  get hAlign(): TextHorizontalAlignment {
     return this._horizontalAlignment;
   }
 
-  set horizontalAlignment(value: TextHorizontalAlignment) {
+  set hAlign(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
     }
   }
 
-  get verticalAlignment(): TextVerticalAlignment {
+  /**
+   * The vertical alignment.
+   */
+  get vAlign(): TextVerticalAlignment {
     return this._verticalAlignment;
   }
 
-  set verticalAlignment(value: TextVerticalAlignment) {
+  set vAlign(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
     }
   }
 
-  get horizontalOverflow(): TextHorizontalOverflow {
+  /**
+   * The horizontal overflow.
+   */
+  get hOverflow(): TextHorizontalOverflow {
     return this._horizontalOverflow;
   }
 
-  set horizontalOverflow(value: TextHorizontalOverflow) {
+  set hOverflow(value: TextHorizontalOverflow) {
     if (this._horizontalOverflow !== value) {
       this._horizontalOverflow = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
     }
   }
 
-  get verticalOverflow(): TextVerticalOverflow {
+  /**
+   * The vertical overflow.
+   */
+  get vOverflow(): TextVerticalOverflow {
     return this._verticalOverflow;
   }
 
-  set verticalOverflow(value: TextVerticalOverflow) {
+  set vOverflow(value: TextVerticalOverflow) {
     if (this._verticalOverflow !== value) {
       this._verticalOverflow = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
@@ -341,10 +374,10 @@ export class TextRenderer extends Renderer {
 
   private _getFontString() {
     let str = "";
-    if (this.isBold) {
+    if (this.bold) {
       str += "bold ";
     }
-    if (this.isItalic) {
+    if (this.italic) {
       str += "italic ";
     }
     str += `${this._fontSize}px ${this._fontName}`;

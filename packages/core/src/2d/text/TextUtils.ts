@@ -1,11 +1,17 @@
 import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
 import { TextRenderer } from "./TextRenderer";
 
+/**
+ * TextContext.
+ */
 export interface TextContext {
   canvas: HTMLCanvasElement;
   context: CanvasRenderingContext2D;
 }
 
+/**
+ * TextMetrics.
+ */
 export interface TextMetrics {
   width: number;
   height: number;
@@ -16,6 +22,9 @@ export interface TextMetrics {
   fontSize: number;
 }
 
+/**
+ * TextUtils includes some helper function for text.
+ */
 export class TextUtils {
   private static _testString = "qpjÉÅ";
   private static _testBaseline = "M";
@@ -27,6 +36,10 @@ export class TextUtils {
   private static _fontSizes: { [font: string]: number } = {};
   private static _textContext: TextContext = null;
 
+  /**
+   * The instance function to get an object includes 2d context and canvas.
+   * @returns the TextContext object
+   */
   public static textContext(): TextContext {
     if (!TextUtils._textContext) {
       const canvas = document.createElement("canvas");
@@ -40,8 +53,8 @@ export class TextUtils {
   }
 
   /**
-   * measure the font.
-   * @param textContext - text context includes gl context and canvas
+   * Measure the font.
+   * @param textContext - text context includes 2d context and canvas
    * @param font - the string of the font
    * @returns the font size
    */
@@ -110,6 +123,13 @@ export class TextUtils {
     return fontSize;
   }
 
+  /**
+   * Measure the text.
+   * @param textContext - text context includes 2d context and canvas
+   * @param textRenderer - the text renderer
+   * @param fontStr - the string of font
+   * @returns the TextMetrics object
+   */
   public static measureText(textContext: TextContext, textRenderer: TextRenderer, fontStr: string): TextMetrics {
     const fontSize = TextUtils.measureFont(textContext, fontStr);
     const textMetrics: TextMetrics = {
@@ -143,7 +163,7 @@ export class TextUtils {
     // reset width and height.
     textMetrics.width = Math.min(maxLineWidth, TextUtils._maxWidth);
     let height = textRenderer.height * TextUtils._pixelsPerUnit;
-    if (textRenderer.verticalOverflow === TextVerticalOverflow.Overflow) {
+    if (textRenderer.vOverflow === TextVerticalOverflow.Overflow) {
       height = Math.min(textMetrics.lineHeight * linesLen, TextUtils._maxHeight);
     }
     textMetrics.height = height;
@@ -215,7 +235,7 @@ export class TextUtils {
   }
 
   private static _wordWrap(textRenderer: TextRenderer, fontStr: string): Array<string> {
-    const { width, height, horizontalOverflow, verticalOverflow } = textRenderer;
+    const { width, height, hOverflow: horizontalOverflow, vOverflow: verticalOverflow } = textRenderer;
     const isWrap = horizontalOverflow === TextHorizontalOverflow.Wrap;
 
     if (isWrap && width <= 0) {
