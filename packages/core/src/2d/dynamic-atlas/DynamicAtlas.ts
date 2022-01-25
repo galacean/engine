@@ -28,6 +28,9 @@ export class DynamicAtlas {
     this._texture._addRefCount(1);
   }
 
+  /**
+   * Destroy atlas, it will release the texture.
+   */
   public destroy() {
     const { _originInfos } = this;
     const ids = Object.keys(_originInfos);
@@ -43,6 +46,12 @@ export class DynamicAtlas {
     this._texture.destroy(true);
   }
 
+  /**
+   * Add a sprite.
+   * @param sprite - the sprite to add
+   * @param imageSource - The source of texture
+   * @returns true if add sprite success, otherwise false
+   */
   public addSprite(sprite: Sprite, imageSource: TexImageSource): boolean {
     const { _space: space, _texture: texture } = this;
     const { width, height } = imageSource;
@@ -93,6 +102,10 @@ export class DynamicAtlas {
     return true;
   }
 
+  /**
+   * Remove a sprite.
+   * @param sprite - the sprite to remove
+   */
   public removeSprite(sprite: Sprite) {
     const id = sprite.instanceId;
     const { _originInfos } = this;
@@ -104,6 +117,11 @@ export class DynamicAtlas {
     delete _originInfos[id];
   }
 
+  /**
+   * The origin texture before batch for the sprite.
+   * @param id - the id of the sprite
+   * @returns the origin texture before batch if have, otherwise null
+   */
   public getOriginTextureById(id: number): Texture2D | null {
     const info = this._originInfos[id];
     if (info) {

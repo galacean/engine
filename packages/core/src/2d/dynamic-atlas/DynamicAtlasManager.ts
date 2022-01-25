@@ -54,6 +54,12 @@ export class DynamicAtlasManager {
    */
   constructor(public readonly engine: Engine) {}
 
+  /**
+   * Add a sprite to atlas.
+   * @param sprite - the sprite to add
+   * @param imageSource - The source of texture
+   * @returns the origin texture before batch if have, otherwise null
+   */
   public addSprite(sprite: Sprite, imageSource: TexImageSource): Texture2D | null {
     if (!this._enabled || this._atlasIndex >= this._maxAtlasCount) {
       return null;
@@ -64,9 +70,9 @@ export class DynamicAtlasManager {
       atlas = this._createAtlas();
     }
 
-    const oldTexture = atlas.getOriginTextureById(sprite.instanceId);
+    const originTexture = atlas.getOriginTextureById(sprite.instanceId);
     if (atlas.addSprite(sprite, imageSource)) {
-      return oldTexture || null;
+      return originTexture || null;
     }
 
     if (this._atlasIndex + 1 >= this._maxAtlasCount) {
@@ -79,6 +85,10 @@ export class DynamicAtlasManager {
     return null;
   }
 
+  /**
+   * Remove a sprite from atlas.
+   * @param sprite - the sprite to remove
+   */
   public removeSprite(sprite: Sprite) {
     if (!this._enabled || !sprite) return ;
 
@@ -89,6 +99,9 @@ export class DynamicAtlasManager {
     }
   }
 
+  /**
+   * Reset all atlases.
+   */
   public reset() {
     const { _atlases } = this;
     for (let i = 0, l = _atlases.length; i < l; ++i) {
