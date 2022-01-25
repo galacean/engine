@@ -163,7 +163,7 @@ export class TextUtils {
     // reset width and height.
     textMetrics.width = Math.min(maxLineWidth, TextUtils._maxWidth);
     let height = textRenderer.height * TextUtils._pixelsPerUnit;
-    if (textRenderer.vOverflow === TextVerticalOverflow.Overflow) {
+    if (textRenderer.verticalOverflow === TextVerticalOverflow.Overflow) {
       height = Math.min(textMetrics.lineHeight * linesLen, TextUtils._maxHeight);
     }
     textMetrics.height = height;
@@ -235,7 +235,7 @@ export class TextUtils {
   }
 
   private static _wordWrap(textRenderer: TextRenderer, fontStr: string): Array<string> {
-    const { width, height, hOverflow: horizontalOverflow, vOverflow: verticalOverflow } = textRenderer;
+    const { width, height, horizontalOverflow, verticalOverflow } = textRenderer;
     const isWrap = horizontalOverflow === TextHorizontalOverflow.Wrap;
 
     if (isWrap && width <= 0) {

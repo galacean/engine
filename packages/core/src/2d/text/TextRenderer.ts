@@ -193,11 +193,11 @@ export class TextRenderer extends Renderer {
   /**
    * The horizontal alignment.
    */
-  get hAlign(): TextHorizontalAlignment {
+  get horizontalAlignment(): TextHorizontalAlignment {
     return this._horizontalAlignment;
   }
 
-  set hAlign(value: TextHorizontalAlignment) {
+  set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
@@ -207,11 +207,11 @@ export class TextRenderer extends Renderer {
   /**
    * The vertical alignment.
    */
-  get vAlign(): TextVerticalAlignment {
+  get verticalAlignment(): TextVerticalAlignment {
     return this._verticalAlignment;
   }
 
-  set vAlign(value: TextVerticalAlignment) {
+  set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
@@ -221,11 +221,11 @@ export class TextRenderer extends Renderer {
   /**
    * The horizontal overflow.
    */
-  get hOverflow(): TextHorizontalOverflow {
+  get horizontalOverflow(): TextHorizontalOverflow {
     return this._horizontalOverflow;
   }
 
-  set hOverflow(value: TextHorizontalOverflow) {
+  set horizontalOverflow(value: TextHorizontalOverflow) {
     if (this._horizontalOverflow !== value) {
       this._horizontalOverflow = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
@@ -235,11 +235,11 @@ export class TextRenderer extends Renderer {
   /**
    * The vertical overflow.
    */
-  get vOverflow(): TextVerticalOverflow {
+  get verticalOverflow(): TextVerticalOverflow {
     return this._verticalOverflow;
   }
 
-  set vOverflow(value: TextVerticalOverflow) {
+  set verticalOverflow(value: TextVerticalOverflow) {
     if (this._verticalOverflow !== value) {
       this._verticalOverflow = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
