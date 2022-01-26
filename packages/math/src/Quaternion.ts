@@ -166,37 +166,38 @@ export class Quaternion implements IClone {
 
     if (scale > 0) {
       sqrt = Math.sqrt(scale + 1.0);
-      out.w = sqrt * 0.5;
+      out._w = sqrt * 0.5;
       sqrt = 0.5 / sqrt;
 
-      out.x = (m23 - m32) * sqrt;
-      out.y = (m31 - m13) * sqrt;
-      out.z = (m12 - m21) * sqrt;
+      out._x = (m23 - m32) * sqrt;
+      out._y = (m31 - m13) * sqrt;
+      out._z = (m12 - m21) * sqrt;
     } else if (m11 >= m22 && m11 >= m33) {
       sqrt = Math.sqrt(1.0 + m11 - m22 - m33);
       half = 0.5 / sqrt;
 
-      out.x = 0.5 * sqrt;
-      out.y = (m12 + m21) * half;
-      out.z = (m13 + m31) * half;
-      out.w = (m23 - m32) * half;
+      out._x = 0.5 * sqrt;
+      out._y = (m12 + m21) * half;
+      out._z = (m13 + m31) * half;
+      out._w = (m23 - m32) * half;
     } else if (m22 > m33) {
       sqrt = Math.sqrt(1.0 + m22 - m11 - m33);
       half = 0.5 / sqrt;
 
-      out.x = (m21 + m12) * half;
-      out.y = 0.5 * sqrt;
-      out.z = (m32 + m23) * half;
-      out.w = (m31 - m13) * half;
+      out._x = (m21 + m12) * half;
+      out._y = 0.5 * sqrt;
+      out._z = (m32 + m23) * half;
+      out._w = (m31 - m13) * half;
     } else {
       sqrt = Math.sqrt(1.0 + m33 - m11 - m22);
       half = 0.5 / sqrt;
 
-      out.x = (m13 + m31) * half;
-      out.y = (m23 + m32) * half;
-      out.z = 0.5 * sqrt;
-      out.w = (m12 - m21) * half;
+      out._x = (m13 + m31) * half;
+      out._y = (m23 + m32) * half;
+      out._z = 0.5 * sqrt;
+      out._w = (m12 - m21) * half;
     }
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -390,10 +391,10 @@ export class Quaternion implements IClone {
     const by = Math.sin(rad);
     const bw = Math.cos(rad);
 
-    out.x = _x * bw - _z * by;
-    out.y = _y * bw + _w * by;
-    out.z = _z * bw + _x * by;
-    out.w = _w * bw - _y * by;
+    out._x = _x * bw - _z * by;
+    out._y = _y * bw + _w * by;
+    out._z = _z * bw + _x * by;
+    out._w = _w * bw - _y * by;
     out._onValueChanged && out._onValueChanged();
   }
 
@@ -409,10 +410,10 @@ export class Quaternion implements IClone {
     const bz = Math.sin(rad);
     const bw = Math.cos(rad);
 
-    out.x = _x * bw + _y * bz;
-    out.y = _y * bw - _x * bz;
-    out.z = _z * bw + _w * bz;
-    out.w = _w * bw - _z * bz;
+    out._x = _x * bw + _y * bz;
+    out._y = _y * bw - _x * bz;
+    out._z = _z * bw + _w * bz;
+    out._w = _w * bw - _z * bz;
     out._onValueChanged && out._onValueChanged();
   }
 
@@ -619,10 +620,13 @@ export class Quaternion implements IClone {
    */
   toEuler(out: Vector3): Vector3 {
     this.toYawPitchRoll(out);
-    // @todo:
+
     const t = out._x;
     out._x = out._y;
     out._y = t;
+
+    // @todo:
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
