@@ -533,7 +533,6 @@ export class Transform extends Component {
     worldUp = worldUp ?? Transform._tempVec3.setValue(0, 1, 0);
     Matrix.lookAt(position, worldPosition, worldUp, rotMat);
     rotMat.getRotation(worldRotationQuaternion).invert();
-    this.worldRotationQuaternion = worldRotationQuaternion;
   }
 
   /**

@@ -1117,31 +1117,32 @@ export class Matrix implements IClone {
     let trace = e[0] + e[5] + e[10];
 
     if (trace > MathUtil.zeroTolerance) {
-      let S = Math.sqrt(trace + 1.0) * 2;
-      out.w = 0.25 * S;
-      out.x = (e[6] - e[9]) / S;
-      out.y = (e[8] - e[2]) / S;
-      out.z = (e[1] - e[4]) / S;
+      let s = Math.sqrt(trace + 1.0) * 2;
+      out._w = 0.25 * s;
+      out._x = (e[6] - e[9]) / s;
+      out._y = (e[8] - e[2]) / s;
+      out._z = (e[1] - e[4]) / s;
     } else if (e[0] > e[5] && e[0] > e[10]) {
-      let S = Math.sqrt(1.0 + e[0] - e[5] - e[10]) * 2;
-      out.w = (e[6] - e[9]) / S;
-      out.x = 0.25 * S;
-      out.y = (e[1] + e[4]) / S;
-      out.z = (e[8] + e[2]) / S;
+      let s = Math.sqrt(1.0 + e[0] - e[5] - e[10]) * 2;
+      out._w = (e[6] - e[9]) / s;
+      out._x = 0.25 * s;
+      out._y = (e[1] + e[4]) / s;
+      out._z = (e[8] + e[2]) / s;
     } else if (e[5] > e[10]) {
-      let S = Math.sqrt(1.0 + e[5] - e[0] - e[10]) * 2;
-      out.w = (e[8] - e[2]) / S;
-      out.x = (e[1] + e[4]) / S;
-      out.y = 0.25 * S;
-      out.z = (e[6] + e[9]) / S;
+      let s = Math.sqrt(1.0 + e[5] - e[0] - e[10]) * 2;
+      out._w = (e[8] - e[2]) / s;
+      out._x = (e[1] + e[4]) / s;
+      out._y = 0.25 * s;
+      out._z = (e[6] + e[9]) / s;
     } else {
-      let S = Math.sqrt(1.0 + e[10] - e[0] - e[5]) * 2;
-      out.w = (e[1] - e[4]) / S;
-      out.x = (e[8] + e[2]) / S;
-      out.y = (e[6] + e[9]) / S;
-      out.z = 0.25 * S;
+      let s = Math.sqrt(1.0 + e[10] - e[0] - e[5]) * 2;
+      out._w = (e[1] - e[4]) / s;
+      out._x = (e[8] + e[2]) / s;
+      out._y = (e[6] + e[9]) / s;
+      out._z = 0.25 * s;
     }
 
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
