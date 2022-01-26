@@ -418,11 +418,14 @@ export class Quaternion implements IClone {
     out.w = a.w * s;
   }
 
-  private _x: number;
-  private _y: number;
-  private _z: number;
-  private _w: number;
-
+  /** @internal */
+  _x: number;
+  /** @internal */
+  _y: number;
+  /** @internal */
+  _z: number;
+  /** @internal */
+  _w: number;
   /** @internal */
   _onValueChanged: () => void = null;
 
