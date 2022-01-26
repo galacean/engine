@@ -241,14 +241,64 @@ export class Vector4 implements IClone {
     out.w = w;
   }
 
-  /** The x component of the vector. */
-  x: number;
-  /** The y component of the vector. */
-  y: number;
-  /** The z component of the vector. */
-  z: number;
-  /** The w component of the vector. */
-  w: number;
+  /** @internal */
+  _x: number;
+  /** @internal */
+  _y: number;
+  /** @internal */
+  _z: number;
+  /** @internal */
+  _w: number;
+  /** @internal */
+  _onValueChanged: () => void = null;
+
+  /**
+   * The x component of the vector.
+   */
+  public get x() {
+    return this._x;
+  }
+
+  public set x(value: number) {
+    this._x = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The y component of the vector.
+   */
+  public get y() {
+    return this._y;
+  }
+
+  public set y(value: number) {
+    this._y = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The z component of the vector.
+   */
+  public get z() {
+    return this._z;
+  }
+
+  public set z(value: number) {
+    this._z = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The w component of the vector.
+   */
+  public get w() {
+    return this._w;
+  }
+
+  public set w(value: number) {
+    this._w = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * Constructor of Vector4.

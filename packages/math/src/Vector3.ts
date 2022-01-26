@@ -191,8 +191,7 @@ export class Vector3 implements IClone {
   static normalize(a: Vector3, out: Vector3): void {
     const { _x, _y, _z } = a;
     let len = Math.sqrt(_x * _x + _y * _y + _z * _z);
-    if (len > 0) {
-      // TODO
+    if (len > MathUtil.zeroTolerance) {
       len = 1 / len;
       out.setValue(_x * len, _y * len, _z * len);
     }
@@ -257,7 +256,6 @@ export class Vector3 implements IClone {
   static transformToVec4(v: Vector3, m: Matrix, out: Vector4): void {
     const { _x, _y, _z } = v;
     const e = m.elements;
-
     out.x = _x * e[0] + _y * e[4] + _z * e[8] + e[12];
     out.y = _x * e[1] + _y * e[5] + _z * e[9] + e[13];
     out.z = _x * e[2] + _y * e[6] + _z * e[10] + e[14];
@@ -318,7 +316,6 @@ export class Vector3 implements IClone {
   _y: number;
   /** @internal */
   _z: number;
-
   /** @internal */
   _onValueChanged: () => void = null;
 
