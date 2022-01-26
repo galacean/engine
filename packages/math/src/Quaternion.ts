@@ -98,10 +98,11 @@ export class Quaternion implements IClone {
     Vector3.normalize(axis, normalAxis);
     rad *= 0.5;
     const s = Math.sin(rad);
-    out.x = normalAxis.x * s;
-    out.y = normalAxis.y * s;
-    out.z = normalAxis.z * s;
-    out.w = Math.cos(rad);
+    out._x = normalAxis._x * s;
+    out._y = normalAxis._y * s;
+    out._z = normalAxis._z * s;
+    out._w = Math.cos(rad);
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -137,10 +138,11 @@ export class Quaternion implements IClone {
     const cosYawPitch = cosYaw * cosPitch;
     const sinYawPitch = sinYaw * sinPitch;
 
-    out.x = cosYaw * sinPitch * cosRoll + sinYaw * cosPitch * sinRoll;
-    out.y = sinYaw * cosPitch * cosRoll - cosYaw * sinPitch * sinRoll;
-    out.z = cosYawPitch * sinRoll - sinYawPitch * cosRoll;
-    out.w = cosYawPitch * cosRoll + sinYawPitch * sinRoll;
+    out._x = cosYaw * sinPitch * cosRoll + sinYaw * cosPitch * sinRoll;
+    out._y = sinYaw * cosPitch * cosRoll - cosYaw * sinPitch * sinRoll;
+    out._z = cosYawPitch * sinRoll - sinYawPitch * cosRoll;
+    out._w = cosYawPitch * cosRoll + sinYawPitch * sinRoll;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -207,10 +209,11 @@ export class Quaternion implements IClone {
     const dot = x * x + y * y + z * z + w * w;
     if (dot > MathUtil.zeroTolerance) {
       const invDot = 1.0 / dot;
-      out.x = -x * invDot;
-      out.y = -y * invDot;
-      out.z = -z * invDot;
-      out.w = w * invDot;
+      out._x = -x * invDot;
+      out._y = -y * invDot;
+      out._z = -z * invDot;
+      out._w = w * invDot;
+      out._onValueChanged && out._onValueChanged();
     }
   }
 
@@ -224,15 +227,15 @@ export class Quaternion implements IClone {
   static lerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
     const inv = 1.0 - t;
     if (Quaternion.dot(start, end) >= 0) {
-      out.x = start.x * inv + end.x * t;
-      out.y = start.y * inv + end.y * t;
-      out.z = start.z * inv + end.z * t;
-      out.w = start.w * inv + end.w * t;
+      out._x = start._x * inv + end._x * t;
+      out._y = start._y * inv + end._y * t;
+      out._z = start._z * inv + end._z * t;
+      out._w = start._w * inv + end._w * t;
     } else {
-      out.x = start.x * inv - end.x * t;
-      out.y = start.y * inv - end.y * t;
-      out.z = start.z * inv - end.z * t;
-      out.w = start.w * inv - end.w * t;
+      out._x = start._x * inv - end._x * t;
+      out._y = start._y * inv - end._y * t;
+      out._z = start._z * inv - end._z * t;
+      out._w = start._w * inv - end._w * t;
     }
 
     out.normalize();
@@ -246,16 +249,16 @@ export class Quaternion implements IClone {
    * @param out - The result of spherical linear blending between two quaternions
    */
   static slerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
-    const ax = start.x;
-    const ay = start.y;
-    const az = start.z;
-    const aw = start.w;
-    let bx = end.x;
-    let by = end.y;
-    let bz = end.z;
-    let bw = end.w;
+    const ax = start._x;
+    const ay = start._y;
+    const az = start._z;
+    const aw = start._w;
+    let bx = end._x;
+    let by = end._y;
+    let bz = end._z;
+    let bw = end._w;
 
-    let scale0, scale1;
+    let scale0: number, scale1: number;
     // calc cosine
     let cosom = ax * bx + ay * by + az * bz + aw * bw;
     // adjust signs (if necessary)
@@ -280,10 +283,11 @@ export class Quaternion implements IClone {
       scale1 = t;
     }
     // calculate final values
-    out.x = scale0 * ax + scale1 * bx;
-    out.y = scale0 * ay + scale1 * by;
-    out.z = scale0 * az + scale1 * bz;
-    out.w = scale0 * aw + scale1 * bw;
+    out._x = scale0 * ax + scale1 * bx;
+    out._y = scale0 * ay + scale1 * by;
+    out._z = scale0 * az + scale1 * bz;
+    out._w = scale0 * aw + scale1 * bw;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -292,14 +296,15 @@ export class Quaternion implements IClone {
    * @param out - The normalized quaternion
    */
   static normalize(a: Quaternion, out: Quaternion): void {
-    const { x, y, z, w } = a;
-    let len: number = Math.sqrt(x * x + y * y + z * z + w * w);
+    const { _x, _y, _z, _w } = a;
+    let len = Math.sqrt(_x * _x + _y * _y + _z * _z + _w * _w);
     if (len > MathUtil.zeroTolerance) {
       len = 1 / len;
-      out.x = x * len;
-      out.y = y * len;
-      out.z = z * len;
-      out.w = w * len;
+      out._x = _x * len;
+      out._y = _y * len;
+      out._z = _z * len;
+      out._w = _w * len;
+      out._onValueChanged && out._onValueChanged();
     }
   }
 
@@ -313,10 +318,11 @@ export class Quaternion implements IClone {
     const s = Math.sin(rad);
     const c = Math.cos(rad);
 
-    out.x = s;
-    out.y = 0;
-    out.z = 0;
-    out.w = c;
+    out._x = s;
+    out._y = 0;
+    out._z = 0;
+    out._w = c;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -329,10 +335,11 @@ export class Quaternion implements IClone {
     const s = Math.sin(rad);
     const c = Math.cos(rad);
 
-    out.x = 0;
-    out.y = s;
-    out.z = 0;
-    out.w = c;
+    out._x = 0;
+    out._y = s;
+    out._z = 0;
+    out._w = c;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -345,10 +352,11 @@ export class Quaternion implements IClone {
     const s = Math.sin(rad);
     const c = Math.cos(rad);
 
-    out.x = 0;
-    out.y = 0;
-    out.z = s;
-    out.w = c;
+    out._x = 0;
+    out._y = 0;
+    out._z = s;
+    out._w = c;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -358,15 +366,16 @@ export class Quaternion implements IClone {
    * @param out - The calculated quaternion
    */
   static rotateX(quaternion: Quaternion, rad: number, out: Quaternion): void {
-    const { x, y, z, w } = quaternion;
+    const { _x, _y, _z, _w } = quaternion;
     rad *= 0.5;
     const bx = Math.sin(rad);
     const bw = Math.cos(rad);
 
-    out.x = x * bw + w * bx;
-    out.y = y * bw + z * bx;
-    out.z = z * bw - y * bx;
-    out.w = w * bw - x * bx;
+    out._x = _x * bw + _w * bx;
+    out._y = _y * bw + _z * bx;
+    out._z = _z * bw - _y * bx;
+    out._w = _w * bw - _x * bx;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -376,15 +385,16 @@ export class Quaternion implements IClone {
    * @param out - The calculated quaternion
    */
   static rotateY(quaternion: Quaternion, rad: number, out: Quaternion): void {
-    const { x, y, z, w } = quaternion;
+    const { _x, _y, _z, _w } = quaternion;
     rad *= 0.5;
     const by = Math.sin(rad);
     const bw = Math.cos(rad);
 
-    out.x = x * bw - z * by;
-    out.y = y * bw + w * by;
-    out.z = z * bw + x * by;
-    out.w = w * bw - y * by;
+    out.x = _x * bw - _z * by;
+    out.y = _y * bw + _w * by;
+    out.z = _z * bw + _x * by;
+    out.w = _w * bw - _y * by;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -394,15 +404,16 @@ export class Quaternion implements IClone {
    * @param out - The calculated quaternion
    */
   static rotateZ(quaternion: Quaternion, rad: number, out: Quaternion): void {
-    const { x, y, z, w } = quaternion;
+    const { _x, _y, _z, _w } = quaternion;
     rad *= 0.5;
     const bz = Math.sin(rad);
     const bw = Math.cos(rad);
 
-    out.x = x * bw + y * bz;
-    out.y = y * bw - x * bz;
-    out.z = z * bw + w * bz;
-    out.w = w * bw - z * bz;
+    out.x = _x * bw + _y * bz;
+    out.y = _y * bw - _x * bz;
+    out.z = _z * bw + _w * bz;
+    out.w = _w * bw - _z * bz;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -412,10 +423,11 @@ export class Quaternion implements IClone {
    * @param out - The scaled quaternion
    */
   static scale(a: Quaternion, s: number, out: Quaternion): void {
-    out.x = a.x * s;
-    out.y = a.y * s;
-    out.z = a.z * s;
-    out.w = a.w * s;
+    out._x = a._x * s;
+    out._y = a._y * s;
+    out._z = a._z * s;
+    out._w = a._w * s;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /** @internal */
