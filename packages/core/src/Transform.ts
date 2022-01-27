@@ -328,7 +328,6 @@ export class Transform extends Component {
    */
   setPosition(x: number, y: number, z: number): void {
     this._position.setValue(x, y, z);
-    this.position = this._position;
   }
 
   /**
@@ -340,7 +339,6 @@ export class Transform extends Component {
    */
   setRotation(x: number, y: number, z: number): void {
     this._rotation.setValue(x, y, z);
-    this.rotation = this._rotation;
   }
 
   /**
@@ -352,7 +350,6 @@ export class Transform extends Component {
    */
   setRotationQuaternion(x: number, y: number, z: number, w: number): void {
     this._rotationQuaternion.setValue(x, y, z, w);
-    this.rotationQuaternion = this._rotationQuaternion;
   }
 
   /**
@@ -363,7 +360,6 @@ export class Transform extends Component {
    */
   setScale(x: number, y: number, z: number): void {
     this._scale.setValue(x, y, z);
-    this.scale = this._scale;
   }
 
   /**
@@ -374,7 +370,6 @@ export class Transform extends Component {
    */
   setWorldPosition(x: number, y: number, z: number): void {
     this._worldPosition.setValue(x, y, z);
-    this.worldPosition = this._worldPosition;
   }
 
   /**
@@ -385,7 +380,6 @@ export class Transform extends Component {
    */
   setWorldRotation(x: number, y: number, z: number): void {
     this._worldRotation.setValue(x, y, z);
-    this.worldRotation = this._worldRotation;
   }
 
   /**
@@ -397,7 +391,6 @@ export class Transform extends Component {
    */
   setWorldRotationQuaternion(x: number, y: number, z: number, w: number): void {
     this._worldRotationQuaternion.setValue(x, y, z, w);
-    this.worldRotationQuaternion = this._worldRotationQuaternion;
   }
 
   /**
