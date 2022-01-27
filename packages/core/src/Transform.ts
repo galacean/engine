@@ -707,9 +707,9 @@ export class Transform extends Component {
 
   private _translate(translation: Vector3, relativeToLocal: boolean = true): void {
     if (relativeToLocal) {
-      this.position = this._position.add(translation);
+      this._position.add(translation);
     } else {
-      this.worldPosition = this._worldPosition.add(translation);
+      this._worldPosition.add(translation);
     }
   }
 
