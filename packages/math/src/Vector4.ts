@@ -364,10 +364,10 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   add(right: Vector4): Vector4 {
-    this._x += right.x;
-    this._y += right.y;
-    this._z += right.z;
-    this._w += right.w;
+    this._x += right._x;
+    this._y += right._y;
+    this._z += right._z;
+    this._w += right._w;
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -378,10 +378,10 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   subtract(right: Vector4): Vector4 {
-    this._x -= right.x;
-    this._y -= right.y;
-    this._z -= right.z;
-    this._w -= right.w;
+    this._x -= right._x;
+    this._y -= right._y;
+    this._z -= right._z;
+    this._w -= right._w;
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -392,10 +392,10 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   multiply(right: Vector4): Vector4 {
-    this._x *= right.x;
-    this._y *= right.y;
-    this._z *= right.z;
-    this._w *= right.w;
+    this._x *= right._x;
+    this._y *= right._y;
+    this._z *= right._z;
+    this._w *= right._w;
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -406,10 +406,10 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   divide(right: Vector4): Vector4 {
-    this._x /= right.x;
-    this._y /= right.y;
-    this._z /= right.z;
-    this._w /= right.w;
+    this._x /= right._x;
+    this._y /= right._y;
+    this._z /= right._z;
+    this._w /= right._w;
     this._onValueChanged && this._onValueChanged();
     return this;
   }

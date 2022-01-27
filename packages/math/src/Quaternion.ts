@@ -619,13 +619,11 @@ export class Quaternion implements IClone {
    * @returns Euler x->pitch y->yaw z->roll
    */
   toEuler(out: Vector3): Vector3 {
-    this.toYawPitchRoll(out);
+    this._toYawPitchRoll(out);
 
     const t = out._x;
     out._x = out._y;
     out._y = t;
-
-    // @todo:
     out._onValueChanged && out._onValueChanged();
     return out;
   }
@@ -636,26 +634,7 @@ export class Quaternion implements IClone {
    * @returns Euler x->yaw y->pitch z->roll
    */
   toYawPitchRoll(out: Vector3): Vector3 {
-    const { _x, _y, _z, _w } = this;
-    const xx = _x * _x;
-    const yy = _y * _y;
-    const zz = _z * _z;
-    const xy = _x * _y;
-    const zw = _z * _w;
-    const zx = _z * _x;
-    const yw = _y * _w;
-    const yz = _y * _z;
-    const xw = _x * _w;
-
-    out._y = Math.asin(2.0 * (xw - yz));
-    if (Math.cos(out.y) > MathUtil.zeroTolerance) {
-      out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
-      out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
-    } else {
-      out._z = Math.atan2(-2.0 * (xy - zw), 1.0 - 2.0 * (yy + zz));
-      out._x = 0.0;
-    }
-
+    this._toYawPitchRoll(out);
     out._onValueChanged && out._onValueChanged();
     return out;
   }
@@ -784,5 +763,28 @@ export class Quaternion implements IClone {
     Quaternion._tempQuat1.rotationAxisAngle(axis, rad);
     this.multiply(Quaternion._tempQuat1);
     return this;
+  }
+
+  private _toYawPitchRoll(out: Vector3): Vector3 {
+    const { _x, _y, _z, _w } = this;
+    const xx = _x * _x;
+    const yy = _y * _y;
+    const zz = _z * _z;
+    const xy = _x * _y;
+    const zw = _z * _w;
+    const zx = _z * _x;
+    const yw = _y * _w;
+    const yz = _y * _z;
+    const xw = _x * _w;
+
+    out._y = Math.asin(2.0 * (xw - yz));
+    if (Math.cos(out.y) > MathUtil.zeroTolerance) {
+      out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
+      out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
+    } else {
+      out._z = Math.atan2(-2.0 * (xy - zw), 1.0 - 2.0 * (yy + zz));
+      out._x = 0.0;
+    }
+    return out;
   }
 }

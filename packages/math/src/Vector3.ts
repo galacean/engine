@@ -295,7 +295,7 @@ export class Vector3 implements IClone {
    */
   static transformByQuat(v: Vector3, quaternion: Quaternion, out: Vector3): void {
     const { _x, _y, _z } = v;
-    const { x: qx, y: qy, z: qz, w: qw } = quaternion;
+    const { _x: qx, _y: qy, _z: qz, _w: qw } = quaternion;
 
     // calculate quat * vec
     const ix = qw * _x + qy * _z - qz * _y;
@@ -389,9 +389,10 @@ export class Vector3 implements IClone {
    * @returns This vector
    */
   setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector3 {
-    this.x = array[offset];
-    this.y = array[offset + 1];
-    this.z = array[offset + 2];
+    this._x = array[offset];
+    this._y = array[offset + 1];
+    this._z = array[offset + 2];
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
