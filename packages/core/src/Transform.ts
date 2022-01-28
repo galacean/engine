@@ -268,7 +268,6 @@ export class Transform extends Component {
       } else {
         worldPosition.cloneTo(this._position);
       }
-      this.position = this._position;
       this._setDirtyFlagFalse(TransformFlag.WorldPosition);
     };
 
@@ -288,7 +287,6 @@ export class Transform extends Component {
         MathUtil.degreeToRadian(worldRotation.z),
         this._worldRotationQuaternion
       );
-      this.worldRotationQuaternion = this._worldRotationQuaternion;
       this._setDirtyFlagFalse(TransformFlag.WorldEuler);
     };
 
@@ -309,7 +307,6 @@ export class Transform extends Component {
       } else {
         worldRotationQuaternion.cloneTo(this._rotationQuaternion);
       }
-      this.rotationQuaternion = this._rotationQuaternion;
       this._setDirtyFlagFalse(TransformFlag.WorldQuat);
     };
 
