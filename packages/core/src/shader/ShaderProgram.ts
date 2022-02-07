@@ -136,7 +136,7 @@ export class ShaderProgram {
   /**
    * Upload ungroup texture shader data in shader uniform block.
    */
-  uploadUngroupTextures(): void {
+  uploadUnGroupTextures(): void {
     const textureUniforms = this.otherUniformBlock.textureUniforms;
     // textureUniforms property maybe null if ShaderUniformBlock not contain any texture.
     if (textureUniforms) {

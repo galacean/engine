@@ -1,10 +1,9 @@
+import { Engine, EngineObject } from "..";
+import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
+import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
-import { Engine } from "..";
-import { Loader } from "./Loader";
-import { AssetType } from "./AssetType";
-import { ObjectValues } from "../base/Util";
 
 /**
  * ResourceManager
@@ -17,10 +16,10 @@ export class ResourceManager {
   /**
    * @internal
    */
-  static _addLoader(type: string, loader: Loader<any>, extnames: string[]) {
+  static _addLoader(type: string, loader: Loader<any>, extNames: string[]) {
     this._loaders[type] = loader;
-    for (let i = 0, len = extnames.length; i < len; i++) {
-      this._extTypeMapping[extnames[i]] = type;
+    for (let i = 0, len = extNames.length; i < len; i++) {
+      this._extTypeMapping[extNames[i]] = type;
     }
   }
 
@@ -131,12 +130,7 @@ export class ResourceManager {
    * @remarks The release principle is that it is not referenced by the components, including direct and indirect reference.
    */
   gc(): void {
-    const objects = ObjectValues(this._refObjectPool);
-    for (let i = 0, len = objects.length; i < len; i++) {
-      if (!objects[i].isGCIgnored) {
-        objects[i].destroy();
-      }
-    }
+    this._gc(false);
   }
 
   /**
@@ -168,7 +162,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addAsset(path: string, asset: RefObject): void {
+  _addAsset(path: string, asset: EngineObject): void {
     this._assetPool[asset.instanceId] = path;
     this._assetUrlPool[path] = asset;
   }
@@ -176,7 +170,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _deleteAsset(asset: RefObject): void {
+  _deleteAsset(asset: EngineObject): void {
     const id = asset.instanceId;
     const path = this._assetPool[id];
     if (path) {
@@ -197,6 +191,18 @@ export class ResourceManager {
    */
   _deleteRefObject(id: number): void {
     delete this._refObjectPool[id];
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this.cancelNotLoaded();
+    this._gc(true);
+    this._assetPool = null;
+    this._assetUrlPool = null;
+    this._refObjectPool = null;
+    this._loadingPromises = null;
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
@@ -230,12 +236,23 @@ export class ResourceManager {
     const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
     promise
-      .then((res) => {
+      .then((res: EngineObject) => {
         if (loader.useCache) this._addAsset(url, res);
-        delete this._loadingPromises[url];
       })
-      .catch(() => {});
+      .catch((err: Error) => Promise.reject(err))
+      .finally(() => {
+        delete this._loadingPromises[url];
+      });
     return promise;
+  }
+
+  private _gc(forceDestroy: boolean): void {
+    const objects = ObjectValues(this._refObjectPool);
+    for (let i = 0, len = objects.length; i < len; i++) {
+      if (!objects[i].isGCIgnored || forceDestroy) {
+        objects[i].destroy();
+      }
+    }
   }
 }
 
