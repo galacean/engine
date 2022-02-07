@@ -2,10 +2,19 @@ export interface IPrefabFile {
   entities: Array<IEntity>;
 }
 
+export interface IVector3 {
+  x: number;
+  y: number;
+  z: number;
+}
 export interface IEntity {
   name: string;
   id: string;
   components: Array<IComponent>;
+  isActive?: boolean;
+  position?: IVector3;
+  rotation?: IVector3;
+  scale?: IVector3;
   children?: Array<string>;
 }
 

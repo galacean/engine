@@ -16,3 +16,4 @@ export { GLTFModel } from "./scene-loader/GLTFModel";
 export { Model } from "./scene-loader/Model";
 export * from "./scene-loader/index";
 export { parseSingleKTX } from "./compressed-texture";
+export * from "./PrefabLoader";
