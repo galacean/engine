@@ -420,6 +420,8 @@ export class GLTexture implements IPlatformTexture {
   _target: GLenum; // gl.TEXTURE_2D | gl.TEXTURE_CUBE_MAP
   /** @internal */
   _formatDetail: TextureFormatDetail;
+  /** @internal */
+  _isMipmapGenerated: boolean = false;
 
   /**
    * Wrapping mode for texture coordinate S.
@@ -504,6 +506,10 @@ export class GLTexture implements IPlatformTexture {
   }
 
   protected _bind() {
+    // @ts-ignore
+    if (this._texture._mipmap > 0 && !this._isMipmapGenerated) {
+      Logger.warn(`Texture ${this._texture.name} is not generated mipmap, please call generateMipmaps() first.`);
+    }
     this._rhi.bindTexture(this);
   }
 
