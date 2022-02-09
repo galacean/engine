@@ -503,6 +503,7 @@ export class GLTexture implements IPlatformTexture {
   generateMipmaps(): void {
     this._bind();
     this._gl.generateMipmap(this._target);
+    this._isMipmapGenerated = true;
   }
 
   protected _bind() {
