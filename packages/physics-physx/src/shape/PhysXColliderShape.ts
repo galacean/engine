@@ -25,7 +25,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
     rotation: null
   };
   protected _position: Vector3 = new Vector3();
-  protected _rotation: Quaternion = new Quaternion(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
+  protected _rotation: Quaternion = new Quaternion();
   protected _scale: Vector3 = new Vector3(1, 1, 1);
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
@@ -42,7 +42,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setPosition }
    */
   setPosition(value: Vector3): void {
-    value.cloneTo(this._position);
+    if (value !== this._position) {
+      value.cloneTo(this._position);
+    }
     this._setLocalPose();
   }
 

@@ -15,6 +15,7 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
    */
   constructor(uniqueID: number, material: PhysXPhysicsMaterial) {
     super();
+    this._rotation.setValue(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
 
     this._pxGeometry = new PhysXPhysics._physX.PxPlaneGeometry();
     this._allocShape(material);
@@ -35,5 +36,14 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {}
+  setWorldScale(scale: Vector3): void {
+    // scale offset
+    const position = this._position;
+    position.setValue(
+      (position.x * scale.x) / this._scale.x,
+      (position.y * scale.y) / this._scale.y,
+      (position.z * scale.z) / this._scale.z
+    );
+    this._setLocalPose();
+  }
 }
