@@ -14,7 +14,8 @@ export class Texture2DEncoder {
       wrapModeV = 1,
       format = 1,
       width,
-      height
+      height,
+      isPixelBuffer = 0
     } = meta;
 
     // write data
@@ -27,6 +28,7 @@ export class Texture2DEncoder {
     bufferWriter.writeUint8(format);
     bufferWriter.writeUint16(width);
     bufferWriter.writeUint16(height);
+    bufferWriter.writeUint8(isPixelBuffer);
 
     // convert to ImageData
     const imagesData = data.map((buffer) => ({ type, buffer }));

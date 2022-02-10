@@ -4,15 +4,8 @@ import { decoder } from "../../utils/Decorator";
 
 @decoder("Texture2D")
 export class Texture2DDecoder {
-  static decode(
-    engine: Engine,
-    arraybuffer: ArrayBuffer,
-    byteOffset?: number,
-    byteLength?: number
-  ): Promise<Texture2D> {
+  static decode(engine: Engine, bufferReader: BufferReader): Promise<Texture2D> {
     return new Promise((resolve, reject) => {
-      const bufferReader = new BufferReader(arraybuffer, byteOffset, byteLength);
-
       const objectId = bufferReader.nextStr();
       const mipmap = !!bufferReader.nextUint8();
       const filterMode = bufferReader.nextUint8();
@@ -22,6 +15,8 @@ export class Texture2DDecoder {
       const format = bufferReader.nextUint8();
       const width = bufferReader.nextUint16();
       const height = bufferReader.nextUint16();
+      const isPixelBuffer = bufferReader.nextUint8();
+
       const mipCount = bufferReader.nextUint8();
       const imagesData = bufferReader.nextImagesData(mipCount);
 
@@ -31,21 +26,47 @@ export class Texture2DDecoder {
       texture2D.wrapModeU = wrapModeU;
       texture2D.wrapModeV = wrapModeV;
 
-      const pixelBuffer = new Uint8Array(imagesData[0].buffer);
-      texture2D.setPixelBuffer(pixelBuffer);
-
-      if (mipmap) {
-        texture2D.generateMipmaps();
-        for (let i = 1; i < mipCount; i++) {
-          const pixelBuffer = new Uint8Array(imagesData[i].buffer);
-          texture2D.setPixelBuffer(pixelBuffer, i);
+      if (isPixelBuffer) {
+        const pixelBuffer = new Uint8Array(imagesData[0].buffer);
+        texture2D.setPixelBuffer(pixelBuffer);
+        if (mipmap) {
+          texture2D.generateMipmaps();
+          for (let i = 1; i < mipCount; i++) {
+            const pixelBuffer = new Uint8Array(imagesData[i].buffer);
+            texture2D.setPixelBuffer(pixelBuffer, i);
+          }
         }
+        // @ts-ignore
+        engine.resourceManager._objectPool[objectId] = texture2D;
+        resolve(texture2D);
+      } else {
+        const blob = new window.Blob([imagesData[0].buffer]);
+        const img = new Image();
+        img.src = URL.createObjectURL(blob);
+        img.onload = () => {
+          texture2D.setImageSource(img);
+          let completedCount = 0;
+          const onComplete = () => {
+            completedCount++;
+            if (completedCount >= mipCount) {
+              resolve(texture2D);
+            }
+          };
+          onComplete();
+          if (mipmap) {
+            texture2D.generateMipmaps();
+            for (let i = 1; i < mipCount; i++) {
+              const blob = new window.Blob([imagesData[i].buffer]);
+              const img = new Image();
+              img.src = URL.createObjectURL(blob);
+              img.onload = () => {
+                texture2D.setImageSource(img, i);
+                onComplete();
+              };
+            }
+          }
+        };
       }
-
-      // @ts-ignore
-      engine.resourceManager._objectPool[objectId] = texture2D;
-
-      resolve(texture2D);
     });
   }
 }
