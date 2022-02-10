@@ -110,7 +110,13 @@ export class BufferReader {
   }
 
   nextImagesData(count: number): ImageData[] {
-    const imagesLen = this.nextUint32Array(count);
+    const imagesLen = new Array(count);
+    // Start offset of Uint32Array should be a multiple of 4. ref: https://stackoverflow.com/questions/15417310/why-typed-array-constructors-require-offset-to-be-multiple-of-underlying-type-si
+    for (let i = 0; i < count; i++) {
+      const len = this._dataView.getUint32(this._offset, this._littleEndian);
+      imagesLen[i] = len;
+      this._offset += 4;
+    }
     const imagesType = this.nextUint8Array(count);
     const imagesData: ImageData[] = [];
 

@@ -132,7 +132,9 @@ export class BufferWriter {
       temp.set(new Uint8Array(buffer), tempOffset);
       tempOffset += buffer.byteLength;
     }
+    this._dynamicExplansion(temp.byteLength);
     this._uint8Array.set(temp, this._offset);
+    this._offset += tempOffset;
   }
 
   public writeLen(len: number) {

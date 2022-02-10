@@ -1,9 +1,10 @@
 {
   "name": "@oasis-engine/math",
-  "version": "0.5.2",
+  "version": "0.6.6",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
+  "browser": "dist/browser.js",
   "debug": "src/index.ts",
   "types": "types/index.d.ts",
   "scripts": {
@@ -12,5 +13,8 @@
   "files": [
     "dist/**/*",
     "types/**/*"
-  ]
+  ],
+  "devDependencies": {
+    "@oasis-engine/design": "0.6.6"
+  }
 }

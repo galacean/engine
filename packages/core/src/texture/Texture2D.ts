@@ -88,6 +88,19 @@ export class Texture2D extends Texture {
   }
 
   /**
+   * Get pixel color buffer.
+   * @param out - Color buffer
+   */
+  getPixelBuffer(out: ArrayBufferView): void;
+
+  /**
+   * Get the pixel color buffer according to the specified mip level.
+   * @param mipLevel - Tet mip level want to get
+   * @param out - Color buffer
+   */
+  getPixelBuffer(mipLevel: number, out: ArrayBufferView): void;
+
+  /**
    * Get the pixel color buffer according to the specified area.
    * @param x - X coordinate of area start
    * @param y - Y coordinate of area start
@@ -95,7 +108,64 @@ export class Texture2D extends Texture {
    * @param height - Area height
    * @param out - Color buffer
    */
-  getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void {
-    (this._platformTexture as IPlatformTexture2D).getPixelBuffer(x, y, width, height, out);
+  getPixelBuffer(x: number, y: number, width: number, height: number, out: ArrayBufferView): void;
+
+  /**
+   * Get the pixel color buffer according to the specified area and mip level.
+   * @param x - X coordinate of area start
+   * @param y - Y coordinate of area start
+   * @param width - Area width
+   * @param height - Area height
+   * @param mipLevel - Tet mip level want to get
+   * @param out - Color buffer
+   */
+  getPixelBuffer(x: number, y: number, width: number, height: number, mipLevel: number, out: ArrayBufferView): void;
+
+  getPixelBuffer(
+    xOrMipLevelOrOut: number | ArrayBufferView,
+    yOrMipLevel?: number | ArrayBufferView,
+    width?: number,
+    height?: number,
+    mipLevelOrOut?: number | ArrayBufferView,
+    out?: ArrayBufferView
+  ): void {
+    const argsLength = arguments.length;
+    if (argsLength === 1) {
+      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
+        0,
+        0,
+        this._width,
+        this._height,
+        0,
+        <ArrayBufferView>xOrMipLevelOrOut
+      );
+    } else if (argsLength === 2) {
+      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
+        0,
+        0,
+        this._width,
+        this._height,
+        <number>xOrMipLevelOrOut,
+        <ArrayBufferView>yOrMipLevel
+      );
+    } else if (argsLength === 5) {
+      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
+        <number>xOrMipLevelOrOut,
+        <number>yOrMipLevel,
+        width,
+        height,
+        0,
+        <ArrayBufferView>mipLevelOrOut
+      );
+    } else if (argsLength === 6) {
+      (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
+        <number>xOrMipLevelOrOut,
+        <number>yOrMipLevel,
+        width,
+        height,
+        <number>mipLevelOrOut,
+        out
+      );
+    }
   }
 }

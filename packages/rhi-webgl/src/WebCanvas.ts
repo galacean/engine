@@ -1,6 +1,8 @@
 import { Canvas } from "@oasis-engine/core";
 import { Vector2 } from "@oasis-engine/math";
 
+type OffscreenCanvas = any;
+
 /**
  * The canvas used on the web, which can support HTMLCanvasElement and OffscreenCanvas.
  */
@@ -69,10 +71,8 @@ export class WebCanvas implements Canvas {
   resizeByClientSize(pixelRatio: number = window.devicePixelRatio): void {
     const webCanvas = this._webCanvas;
     if (webCanvas instanceof HTMLCanvasElement) {
-      const width = webCanvas.clientWidth;
-      const height = webCanvas.clientHeight;
-      this.width = width * pixelRatio;
-      this.height = height * pixelRatio;
+      this.width = webCanvas.clientWidth * pixelRatio;
+      this.height = webCanvas.clientHeight * pixelRatio;
     }
   }
 

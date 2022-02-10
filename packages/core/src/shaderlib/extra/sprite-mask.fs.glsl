@@ -1,6 +1,3 @@
-precision mediump float;
-precision mediump int;
-
 uniform sampler2D u_maskTexture;
 uniform float u_maskAlphaCutoff;
 varying vec2 v_uv;

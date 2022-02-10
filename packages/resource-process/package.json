@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/resource-process",
-  "version": "0.5.2",
+  "version": "0.6.6",
   "license": "MIT",
   "scripts": {
     "b:types": "tsc"
@@ -14,7 +14,7 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.5.2",
-    "@oasis-engine/math": "0.5.2"
+    "@oasis-engine/core": "0.6.6",
+    "@oasis-engine/math": "0.6.6"
   }
 }

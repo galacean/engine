@@ -78,6 +78,7 @@ export class RenderColorTexture extends Texture {
    * @param y - Y coordinate of area start
    * @param width - Area width
    * @param height - Area height
+   * @param mipLevel - Set mip level the data want to get from
    * @param out - Color buffer
    */
   public getPixelBuffer(
@@ -86,8 +87,9 @@ export class RenderColorTexture extends Texture {
     y: number,
     width: number,
     height: number,
+    mipLevel: number = 0,
     out: ArrayBufferView
   ): void {
-    (this._platformTexture as IPlatformRenderColorTexture).getPixelBuffer(face, x, y, width, height, out);
+    (this._platformTexture as IPlatformRenderColorTexture).getPixelBuffer(face, x, y, width, height, mipLevel, out);
   }
 }

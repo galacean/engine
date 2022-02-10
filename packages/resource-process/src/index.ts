@@ -10,6 +10,8 @@ export { MeshDecoder } from "./resources/mesh/MeshDecoder";
 export { MeshEncoder } from "./resources/mesh/MeshEncoder";
 export { encoder, decoder } from "./utils/Decorator";
 export { UniformType } from "./resources/material/type";
+export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
+export { Texture2DEncoder } from "./resources/texture2D/TextureEncoder";
 
 /**
  * Decode engine binary resource.

@@ -6,15 +6,11 @@
 #include <color_share>
 #include <worldpos_share>
 
-#include <pbr_envmap_light_frag_define>
-#include <direct_light_frag>
-#include <point_light_frag>
-#include <spot_light_frag>
+#include <light_frag_define>
 #include <mobile_material_frag>
 
 #include <fog_share>
 #include <normal_get>
-
 
 void main() {
 
@@ -25,6 +21,9 @@ void main() {
     gl_FragColor = emission + ambient + diffuse + specular;
     gl_FragColor.a = diffuse.a;
 
+    #ifndef OASIS_COLORSPACE_GAMMA
+        gl_FragColor = linearToGamma(gl_FragColor);
+    #endif
     #include <fog_frag>
 
 }

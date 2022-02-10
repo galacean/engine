@@ -1,9 +1,8 @@
 // @ts-nocheck
-import { Camera, ClearFlags } from "../src/Camera";
-import { Entity } from "../src/Entity";
-import { Transform } from "../src/Transform";
-import { Matrix, MathUtil, Vector2, Vector3, Vector4, Ray } from "@oasis-engine/math";
+import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { WebGLEngine } from "../../rhi-webgl/src";
+import { Camera } from "../src/Camera";
+import { Entity } from "../src/Entity";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -37,7 +36,6 @@ describe("camera test", function () {
     // expect(() => {
     //   const camera = testNode.addComponent(Camera);
     // }).toThrow();
-
     // const newTransform = testNode.addComponent(Transform);
     // testNode.addComponent(Camera);
     // expect(() => {
@@ -139,8 +137,8 @@ describe("camera test", function () {
       0
     );
     camera.entity.transform.worldMatrix = new Matrix();
-    const out = camera.worldToViewportPoint(new Vector3(1, 1, 100), new Vector4());
-    expect(out).toEqual({ x: 0.48459633827209475, y: 0.5086602294445037, z: 1.0020020014047624, w: -100 });
+    const out = camera.worldToViewportPoint(new Vector3(1, 1, -100), new Vector3());
+    expect(out).toEqual({ x: 0.5154036617279053, y: 0.4913397705554962, z: 100 });
   });
 
   it("viewport to world", () => {
@@ -163,8 +161,8 @@ describe("camera test", function () {
       0
     );
     camera.entity.transform.worldMatrix = new Matrix();
-    const out = camera.viewportToWorldPoint(new Vector3(0.48459633827209475, 0.4913397705554962, 1), new Vector3());
-    arrayCloseTo([-1, 1, -100], [out.x, out.y, out.z]);
+    const out = camera.viewportToWorldPoint(new Vector3(0.5154036617279053, 0.4913397705554962, 100), new Vector3());
+    arrayCloseTo([1, 1, -100], [out.x, out.y, out.z]);
   });
 
   it("viewportToRay", () => {
@@ -204,8 +202,8 @@ describe("camera test", function () {
     camera.nearClipPlane = 10;
     camera.farClipPlane = 100;
     camera.resetProjectionMatrix();
-    const nearClipPoint = camera.viewportToWorldPoint(new Vector3(0.5, 0.5, 0), new Vector3());
-    const farClipPoint = camera.viewportToWorldPoint(new Vector3(0.5, 0.5, 1), new Vector3());
+    const nearClipPoint = camera.viewportToWorldPoint(new Vector3(0.5, 0.5, camera.nearClipPlane), new Vector3());
+    const farClipPoint = camera.viewportToWorldPoint(new Vector3(0.5, 0.5, camera.farClipPlane), new Vector3());
     expect(nearClipPoint.z).toBeCloseTo(-camera.nearClipPlane);
     expect(farClipPoint.z).toBeCloseTo(-camera.farClipPlane);
   });
