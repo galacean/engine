@@ -72,6 +72,7 @@ export class DynamicAtlas {
     }
 
     texture.setImageSource(imageSource, 0, false, false, this._curX, this._curY);
+    texture.generateMipmaps();
 
     const { _width, _height } = this;
     const region = DynamicAtlas._region;
