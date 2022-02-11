@@ -107,7 +107,7 @@ export class TextUtils {
     for (i = height - 1; i >= baseline; --i) {
       startIndex = i * lineDataCount;
       for (let j = 0; j < lineDataCount; j += 4) {
-        if (imgData[startIndex + j] !== 255) {
+        if (imgData[startIndex + j] !== 0) {
           flag = true;
           break;
         }
@@ -143,13 +143,13 @@ export class TextUtils {
     };
     const { context } = textContext;
     const { lines } = textMetrics;
-    if (lines.length === 0) {
+    const linesLen = lines.length;
+    if (linesLen === 0) {
       return textMetrics;
     }
 
     context.font = fontStr;
     const { lineWidths } = textMetrics;
-    const linesLen = lines.length;
     let maxLineWidth = 0;
     for (let i = 0; i < linesLen; ++i) {
       const width = Math.ceil(context.measureText(lines[i]).width);

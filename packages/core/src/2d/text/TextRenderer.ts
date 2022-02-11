@@ -385,11 +385,6 @@ export class TextRenderer extends Renderer {
   }
 
   private _updateText() {
-    if (this._text === "") {
-      this._clearTexture();
-      return;
-    }
-
     const textContext = TextUtils.textContext();
     const { canvas, context } = textContext;
     const fontStr = this._getFontString();
@@ -431,7 +426,6 @@ export class TextRenderer extends Renderer {
     const { canvas, context } = textContext;
     const trimData = TextUtils.trimCanvas(textContext);
     const { data } = trimData;
-    const { _sprite } = this;
     if (!data) {
       this._clearTexture();
       return;
@@ -450,6 +444,7 @@ export class TextRenderer extends Renderer {
     texture.generateMipmaps();
 
     this._clearTexture();
+    const { _sprite } = this;
     _sprite.texture = texture;
     this.engine.dynamicAtlasManager.addSprite(_sprite, canvas);
   }
