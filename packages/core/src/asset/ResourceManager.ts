@@ -124,12 +124,7 @@ export class ResourceManager {
    * @remarks The release principle is that it is not referenced by the components, including direct and indirect reference.
    */
   gc(): void {
-    const objects = ObjectValues(this._refObjectPool);
-    for (let i = 0, len = objects.length; i < len; i++) {
-      if (!objects[i].isGCIgnored) {
-        objects[i].destroy();
-      }
-    }
+    this._gc(false);
   }
 
   /**
@@ -175,6 +170,18 @@ export class ResourceManager {
     delete this._refObjectPool[id];
   }
 
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this.cancelNotLoaded();
+    this._gc(true);
+    this._assetPool = null;
+    this._assetUrlPool = null;
+    this._refObjectPool = null;
+    this._loadingPromises = null;
+  }
+
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
     assetInfo.type = assetInfo.type ?? ResourceManager._getTypeByUrl(assetInfo.url);
     if (assetInfo.type === undefined) {
@@ -204,14 +211,23 @@ export class ResourceManager {
     const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
     promise
-      .then((res) => {
+      .then((res: EngineObject) => {
         if (loader.useCache) this._addAsset(url, res);
       })
-      .catch((err: Error) => {
+      .catch((err: Error) => Promise.reject(err))
+      .finally(() => {
         delete this._loadingPromises[url];
-        return Promise.reject(err);
       });
     return promise;
+  }
+
+  private _gc(forceDestroy: boolean): void {
+    const objects = ObjectValues(this._refObjectPool);
+    for (let i = 0, len = objects.length; i < len; i++) {
+      if (!objects[i].isGCIgnored || forceDestroy) {
+        objects[i].destroy();
+      }
+    }
   }
 }
 
