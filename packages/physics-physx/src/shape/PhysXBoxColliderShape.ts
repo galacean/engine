@@ -28,7 +28,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
       this._halfSize.z * this._scale.z
     );
     this._allocShape(material);
-    this._setLocalPose();
+    this._setLocalPose(this._scale);
     this.setUniqueID(uniqueID);
   }
 
@@ -46,14 +46,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    // scale offset
-    const position = this._position;
-    position.setValue(
-      (position.x * scale.x) / this._scale.x,
-      (position.y * scale.y) / this._scale.y,
-      (position.z * scale.z) / this._scale.z
-    );
-    this._setLocalPose();
+    this._setLocalPose(this._scale);
 
     scale.cloneTo(this._scale);
     Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);

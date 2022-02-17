@@ -21,7 +21,7 @@ export enum ShapeFlag {
 export abstract class PhysXColliderShape implements IColliderShape {
   static readonly halfSqrt: number = 0.70710678118655;
   static transform = {
-    translation: null,
+    translation: new Vector3(),
     rotation: null
   };
   protected _position: Vector3 = new Vector3();
@@ -45,7 +45,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
     if (value !== this._position) {
       value.cloneTo(this._position);
     }
-    this._setLocalPose();
+    this._setLocalPose(this._scale);
   }
 
   /**
@@ -94,9 +94,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._pxShape.setFlags(new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags));
   }
 
-  protected _setLocalPose(): void {
+  protected _setLocalPose(scale: Vector3): void {
     const transform = PhysXColliderShape.transform;
-    transform.translation = this._position;
+    Vector3.multiply(this._position, scale, transform.translation);
     transform.rotation = this._rotation;
     this._pxShape.setLocalPose(PhysXColliderShape.transform);
   }

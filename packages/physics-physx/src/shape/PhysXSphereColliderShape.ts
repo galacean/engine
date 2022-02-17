@@ -24,7 +24,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
 
     this._pxGeometry = new PhysXPhysics._physX.PxSphereGeometry(this._radius * this._maxScale);
     this._allocShape(material);
-    this._setLocalPose();
+    this._setLocalPose(this._scale);
     this.setUniqueID(uniqueID);
   }
 
@@ -41,14 +41,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    // scale offset
-    const position = this._position;
-    position.setValue(
-      (position.x * scale.x) / this._scale.x,
-      (position.y * scale.y) / this._scale.y,
-      (position.z * scale.z) / this._scale.z
-    );
-    this._setLocalPose();
+    this._setLocalPose(this._scale);
 
     this._maxScale = Math.max(scale.x, Math.max(scale.x, scale.y));
     this._pxGeometry.radius = this._radius * this._maxScale;
