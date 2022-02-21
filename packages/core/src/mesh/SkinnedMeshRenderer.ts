@@ -123,23 +123,24 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const rhi = this.entity.engine._hardwareRenderer;
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    const maxJoints = Math.floor((maxAttribUniformVec4 - 20) / 4);
+    const maxJoints = Math.floor((maxAttribUniformVec4 - 24) / 4);
     const shaderData = this.shaderData;
-    const jointCount = this.jointNodes?.length;
+    const jointCount = jointNodes.length;
+
     if (jointCount) {
       shaderData.enableMacro("O3_HAS_SKIN");
       shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
-      if (joints.length > maxJoints) {
+      if (jointCount > maxJoints) {
         if (rhi.canIUseMoreJoints) {
           this._useJointTexture = true;
         } else {
           Logger.error(
-            `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
+            `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
             this
           );
         }
       } else {
-        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, joints.length);
+        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, jointCount);
         SkinnedMeshRenderer._maxJoints = maxJoints;
         shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
         shaderData.enableMacro("O3_JOINTS_NUM", maxJoints.toString());
