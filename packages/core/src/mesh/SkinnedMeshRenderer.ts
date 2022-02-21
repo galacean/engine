@@ -123,7 +123,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const rhi = this.entity.engine._hardwareRenderer;
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    const maxJoints = Math.floor((maxAttribUniformVec4 - 24) / 4);
+    const maxJoints = Math.floor((maxAttribUniformVec4 - 30) / 4);
     const shaderData = this.shaderData;
     const jointCount = jointNodes.length;
 
