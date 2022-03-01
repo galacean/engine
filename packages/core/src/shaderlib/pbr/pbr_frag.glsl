@@ -1,4 +1,11 @@
-GeometricContext geometry = GeometricContext(v_pos, getNormal(), normalize(u_cameraPos - v_pos));
+GeometricContext geometry;
+geometry.position = v_pos;
+geometry.normal = getNormal();
+geometry.viewDir =  normalize(u_cameraPos - v_pos);
+#ifdef CLEARCOAT
+    geometry.clearcoatNormal = getClearcoatNormal();
+#endif
+
 PhysicalMaterial material = getPhysicalMaterial(u_baseColor, u_metal, u_roughness, u_specularColor, u_glossiness, u_alphaCutoff);
 ReflectedLight reflectedLight = ReflectedLight( vec3( 0 ), vec3( 0 ), vec3( 0 ), vec3( 0 ) );
 float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
@@ -21,8 +28,25 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
 reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 // IBL specular
-vec3 radiance = getLightProbeRadiance( geometry, material.roughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity);
-reflectedLight.indirectSpecular += radiance * envBRDFApprox(material.specularColor, material.roughness, dotNV );
+vec3 radiance = getLightProbeRadiance(geometry.viewDir, geometry.normal, material.roughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity);
+vec3 clearcoatRadiance = vec3(0);
+
+#ifdef CLEARCOAT
+     clearcoatRadiance = getLightProbeRadiance( geometry.viewDir, geometry.clearcoatNormal, material.clearcoatRoughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity );
+#endif
+
+#ifdef CLEARCOAT
+    float ccDotNV = saturate( dot( geometry.clearcoatNormal, geometry.viewDir ) );
+    reflectedLight.indirectSpecular += clearcoatRadiance * material.clearcoat * envBRDFApprox(vec3( 0.04 ), material.clearcoatRoughness, dotNV);
+    float ccDotNL = ccDotNV;
+    float clearcoatDHR = material.clearcoat * clearcoatDHRApprox( material.clearcoatRoughness, ccDotNL );
+#else
+    float clearcoatDHR = 0.0;
+#endif
+
+float clearcoatInv = 1.0 - clearcoatDHR;
+reflectedLight.indirectSpecular += clearcoatInv * radiance * envBRDFApprox(material.specularColor, material.roughness, dotNV );
+
 
 // Occlusion
 #ifdef HAS_OCCLUSIONMAP

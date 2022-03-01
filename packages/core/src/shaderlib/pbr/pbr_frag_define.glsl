@@ -7,6 +7,11 @@ uniform vec3 u_specularColor;
 uniform float u_glossiness;
 uniform vec3 u_emissiveColor;
 
+#ifdef CLEARCOAT
+    uniform float u_clearcoat;
+    uniform float u_clearcoatRoughness;
+#endif
+
 uniform float u_normalIntensity;
 uniform float u_occlusionStrength;
 
@@ -36,6 +41,19 @@ uniform float u_occlusionStrength;
     uniform sampler2D u_occlusionSampler;
 #endif
 
+#ifdef HAS_CLEARCOATTEXTURE
+    uniform sampler2D u_clearcoatTexture;
+#endif
+
+#ifdef HAS_CLEARCOATROUGHNESSTEXTURE
+    uniform sampler2D u_clearcoatRoughnessTexture;
+#endif
+
+#ifdef HAS_CLEARCOATNORMALTEXTURE
+    uniform sampler2D u_clearcoatNormalTexture;
+#endif
+
+
 
 struct ReflectedLight {
     vec3 directDiffuse;
@@ -43,14 +61,25 @@ struct ReflectedLight {
     vec3 indirectDiffuse;
     vec3 indirectSpecular;
 };
+
 struct GeometricContext {
     vec3  position;
     vec3  normal;
     vec3  viewDir;
+    #ifdef CLEARCOAT
+        vec3 clearcoatNormal;
+    #endif
+
 };
+
 struct PhysicalMaterial {
     vec3  diffuseColor;
     float roughness;
     vec3  specularColor;
     float opacity;
+    #ifdef CLEARCOAT
+        float clearcoat;
+        float clearcoatRoughness;
+    #endif
+
 };

@@ -4,9 +4,18 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
     vec3 irradiance = dotNL * color;
     irradiance *= PI;
     
-    reflectedLight.directSpecular += irradiance * BRDF_Specular_GGX( incidentDirection, geometry, material.specularColor, material.roughness);
+    #ifdef CLEARCOAT
+        float ccDotNL = saturate( dot( geometry.clearcoatNormal, incidentDirection ) );
+        vec3 ccIrradiance = ccDotNL * color;
+        float clearcoatDHR = material.clearcoat * clearcoatDHRApprox( material.clearcoatRoughness, ccDotNL );
+        reflectedLight.directSpecular += ccIrradiance * material.clearcoat * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.clearcoatNormal, vec3( 0.04 ), material.clearcoatRoughness );
+    #else
+        float clearcoatDHR = 0.0;
+    #endif
 
-    reflectedLight.directDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+    reflectedLight.directSpecular += ( 1.0 - clearcoatDHR ) * irradiance * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.normal, material.specularColor, material.roughness);
+
+    reflectedLight.directDiffuse += ( 1.0 - clearcoatDHR ) * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 }
 

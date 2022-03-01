@@ -39,15 +39,15 @@ float D_GGX(float alpha, float dotNH ) {
 }
 
 // GGX Distribution, Schlick Fresnel, GGX-Smith Visibility
-vec3 BRDF_Specular_GGX(vec3 incidentDirection, GeometricContext geometry, vec3 specularColor, float roughness ) {
+vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 viewDir, vec3 normal, vec3 specularColor, float roughness ) {
 
 	float alpha = pow2( roughness ); // UE4's roughness
 
-	vec3 halfDir = normalize( incidentDirection + geometry.viewDir );
+	vec3 halfDir = normalize( incidentDirection + viewDir );
 
-	float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
-	float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
-	float dotNH = saturate( dot( geometry.normal, halfDir ) );
+	float dotNL = saturate( dot( normal, incidentDirection ) );
+	float dotNV = saturate( dot( normal, viewDir ) );
+	float dotNH = saturate( dot( normal, halfDir ) );
 	float dotLH = saturate( dot( incidentDirection, halfDir ) );
 
 	vec3 F = F_Schlick( specularColor, dotLH );
@@ -58,4 +58,8 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, GeometricContext geometry, vec3 s
 
 	return F * ( G * D );
 
+}
+
+vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor ) {
+	return RECIPROCAL_PI * diffuseColor;
 }

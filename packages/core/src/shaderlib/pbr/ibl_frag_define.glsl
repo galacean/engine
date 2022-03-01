@@ -42,7 +42,7 @@ float getSpecularMIPLevel(float roughness, int maxMIPLevel ) {
     return roughness * float(maxMIPLevel);
 }
 
-vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMIPLevel, float specularIntensity) {
+vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMIPLevel, float specularIntensity) {
 
     #ifndef O3_USE_SPECULAR_ENV
 
@@ -50,7 +50,7 @@ vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMI
 
     #else
 
-        vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
+        vec3 reflectVec = reflect( -viewDir, normal );
         
         float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );
 
