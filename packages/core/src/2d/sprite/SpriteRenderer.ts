@@ -63,7 +63,7 @@ export class SpriteRenderer extends Renderer {
       this._sprite = value;
       this._setDirtyFlagTrue(DirtyFlag.Sprite);
       if (value) {
-        this._spriteDirty = value.registerUpdateFlag();
+        this._spriteDirty = value._registerUpdateFlag();
       }
     }
   }

@@ -199,10 +199,9 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Register update flag, update flag will be true if the sprite changes.
-   * @returns Update flag
+   * @internal
    */
-  registerUpdateFlag(): UpdateFlag {
+  _registerUpdateFlag(): UpdateFlag {
     return this._updateFlagManager.register();
   }
 
