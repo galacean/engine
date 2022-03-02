@@ -323,9 +323,7 @@ export class CollisionUtil {
       const plane = frustum.getPlane(i);
       const normal = plane.normal;
 
-      back.x = normal.x >= 0 ? min.x : max.x;
-      back.y = normal.y >= 0 ? min.y : max.y;
-      back.z = normal.z >= 0 ? min.z : max.z;
+      back.setValue(normal.x >= 0 ? min.x : max.x, normal.y >= 0 ? min.y : max.y, normal.z >= 0 ? min.z : max.z);
       if (Vector3.dot(plane.normal, back) > -plane.distance) {
         return false;
       }
