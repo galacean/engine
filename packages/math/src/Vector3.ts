@@ -256,10 +256,11 @@ export class Vector3 implements IClone {
   static transformToVec4(v: Vector3, m: Matrix, out: Vector4): void {
     const { _x, _y, _z } = v;
     const e = m.elements;
-    out.x = _x * e[0] + _y * e[4] + _z * e[8] + e[12];
-    out.y = _x * e[1] + _y * e[5] + _z * e[9] + e[13];
-    out.z = _x * e[2] + _y * e[6] + _z * e[10] + e[14];
-    out.w = _x * e[3] + _y * e[7] + _z * e[11] + e[15];
+    out._x = _x * e[0] + _y * e[4] + _z * e[8] + e[12];
+    out._y = _x * e[1] + _y * e[5] + _z * e[9] + e[13];
+    out._z = _x * e[2] + _y * e[6] + _z * e[10] + e[14];
+    out._w = _x * e[3] + _y * e[7] + _z * e[11] + e[15];
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
