@@ -55,7 +55,7 @@ export class AnimatorState {
   }
 
   /**
-   * The start time of the clip, the range is 0 to 1, default is 1.
+   * The end time of the clip, the range is 0 to 1, default is 1.
    */
   get clipEndTime() {
     return this._clipEndTime;
