@@ -1,4 +1,4 @@
-void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
     float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
 
     vec3 irradiance = dotNL * color;
@@ -21,7 +21,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
 
 #ifdef O3_DIRECT_LIGHT_COUNT
 
-    void addDirectionalDirectLightRadiance(DirectLight directionalLight, GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+    void addDirectionalDirectLightRadiance(DirectLight directionalLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
         vec3 color = directionalLight.color;
         vec3 direction = -directionalLight.direction;
 
@@ -33,7 +33,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
 
 #ifdef O3_POINT_LIGHT_COUNT
 
-	void addPointDirectLightRadiance(PointLight pointLight, GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+	void addPointDirectLightRadiance(PointLight pointLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
 
 		vec3 lVector = pointLight.position - geometry.position;
 		vec3 direction = normalize( lVector );
@@ -51,7 +51,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
 
 #ifdef O3_SPOT_LIGHT_COUNT
 
-	void addSpotDirectLightRadiance(SpotLight spotLight, GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+	void addSpotDirectLightRadiance(SpotLight spotLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
 
 		vec3 lVector = spotLight.position - geometry.position;
 		vec3 direction = normalize( lVector );
@@ -72,7 +72,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
 
 #endif
 
-void addTotalDirectRadiance(GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight){
+void addTotalDirectRadiance(Geometry geometry, Material material, inout ReflectedLight reflectedLight){
 	    #ifdef O3_DIRECT_LIGHT_COUNT
 
             DirectLight directionalLight;

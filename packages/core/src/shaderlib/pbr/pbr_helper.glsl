@@ -9,31 +9,40 @@ float clearcoatDHRApprox(float roughness, float dotNL) {
     return 0.04 + 0.96 * ( pow( 1.0 - dotNL, 5.0 ) * pow( 1.0 - roughness, 2.0 ) );
 }
 
-PhysicalMaterial getPhysicalMaterial(
-    vec4 diffuseColor,
-    float metal,
-    float roughness,
-    vec3 specularColor,
-    float glossiness,
-    float alphaCutoff
-    ){
-        PhysicalMaterial material;
+void initGeometry(out Geometry geometry){
+    geometry.position = v_pos;
+    geometry.normal = getNormal();
+    geometry.viewDir =  normalize(u_cameraPos - v_pos);
+    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
+
+    #ifdef CLEARCOAT
+        geometry.clearcoatNormal = getClearcoatNormal();
+    #endif
+}
+
+void initMaterial(out Material material){
+        vec4 baseColor = u_baseColor;
+        float metal = u_metal;
+        float roughness = u_roughness;
+        vec3 specularColor = u_specularColor;
+        float glossiness = u_glossiness;
+        float alphaCutoff = u_alphaCutoff;
 
         #ifdef HAS_BASECOLORMAP
-            vec4 baseColor = texture2D(u_baseColorSampler, v_uv);
+            vec4 baseTextureColor = texture2D(u_baseColorSampler, v_uv);
             #ifndef OASIS_COLORSPACE_GAMMA
-                baseColor = gammaToLinear(baseColor);
+                baseTextureColor = gammaToLinear(baseTextureColor);
             #endif
-            diffuseColor *= baseColor;
+            baseColor *= baseTextureColor;
         #endif
 
         #ifdef O3_HAS_VERTEXCOLOR
-            diffuseColor *= v_color;
+            baseColor *= v_color;
         #endif
 
 
         #ifdef ALPHA_CUTOFF
-            if( diffuseColor.a < alphaCutoff ) {
+            if( baseColor.a < alphaCutoff ) {
                 discard;
             }
         #endif
@@ -52,12 +61,12 @@ PhysicalMaterial getPhysicalMaterial(
 
 
         #ifdef IS_METALLIC_WORKFLOW
-            material.diffuseColor = diffuseColor.rgb * ( 1.0 - metal );
-            material.specularColor = mix( vec3( 0.04), diffuseColor.rgb, metal );
+            material.diffuseColor = baseColor.rgb * ( 1.0 - metal );
+            material.specularColor = mix( vec3( 0.04), baseColor.rgb, metal );
             material.roughness = clamp( roughness, 0.04, 1.0 );
         #else
             float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
-            material.diffuseColor = diffuseColor.rgb * ( 1.0 - specularStrength );
+            material.diffuseColor = baseColor.rgb * ( 1.0 - specularStrength );
             material.specularColor = specularColor;
             material.roughness = clamp( 1.0 - glossiness, 0.04, 1.0 );
         #endif
@@ -76,9 +85,7 @@ PhysicalMaterial getPhysicalMaterial(
         #endif
 
 
-        material.opacity = diffuseColor.a;
-        return material;
-
+        material.opacity = baseColor.a;
 }
 
 // direct + indirect

@@ -1,5 +1,4 @@
 uniform float u_alphaCutoff;
-
 uniform vec4 u_baseColor;
 uniform float u_metal;
 uniform float u_roughness;
@@ -16,6 +15,7 @@ uniform float u_normalIntensity;
 uniform float u_occlusionStrength;
 
 
+// Texture
 #ifdef HAS_BASECOLORMAP
     uniform sampler2D u_baseColorSampler;
 #endif
@@ -55,6 +55,7 @@ uniform float u_occlusionStrength;
 
 
 
+// Runtime
 struct ReflectedLight {
     vec3 directDiffuse;
     vec3 directSpecular;
@@ -62,17 +63,19 @@ struct ReflectedLight {
     vec3 indirectSpecular;
 };
 
-struct GeometricContext {
+struct Geometry {
     vec3  position;
     vec3  normal;
     vec3  viewDir;
+    float dotNV;
+    
     #ifdef CLEARCOAT
         vec3 clearcoatNormal;
     #endif
 
 };
 
-struct PhysicalMaterial {
+struct Material {
     vec3  diffuseColor;
     float roughness;
     vec3  specularColor;

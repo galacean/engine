@@ -1,14 +1,9 @@
-GeometricContext geometry;
-geometry.position = v_pos;
-geometry.normal = getNormal();
-geometry.viewDir =  normalize(u_cameraPos - v_pos);
-#ifdef CLEARCOAT
-    geometry.clearcoatNormal = getClearcoatNormal();
-#endif
+Geometry geometry;
+Material material;
+ReflectedLight reflectedLight;
 
-PhysicalMaterial material = getPhysicalMaterial(u_baseColor, u_metal, u_roughness, u_specularColor, u_glossiness, u_alphaCutoff);
-ReflectedLight reflectedLight = ReflectedLight( vec3( 0 ), vec3( 0 ), vec3( 0 ), vec3( 0 ) );
-float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
+initGeometry(geometry);
+initMaterial(material);
 
 // Direct Light
 addTotalDirectRadiance(geometry, material, reflectedLight);
@@ -37,7 +32,7 @@ vec3 clearcoatRadiance = vec3(0);
 
 #ifdef CLEARCOAT
     float ccDotNV = saturate( dot( geometry.clearcoatNormal, geometry.viewDir ) );
-    reflectedLight.indirectSpecular += clearcoatRadiance * material.clearcoat * envBRDFApprox(vec3( 0.04 ), material.clearcoatRoughness, dotNV);
+    reflectedLight.indirectSpecular += clearcoatRadiance * material.clearcoat * envBRDFApprox(vec3( 0.04 ), material.clearcoatRoughness, geometry.dotNV);
     float ccDotNL = ccDotNV;
     float clearcoatDHR = material.clearcoat * clearcoatDHRApprox( material.clearcoatRoughness, ccDotNL );
 #else
@@ -45,7 +40,7 @@ vec3 clearcoatRadiance = vec3(0);
 #endif
 
 float clearcoatInv = 1.0 - clearcoatDHR;
-reflectedLight.indirectSpecular += clearcoatInv * radiance * envBRDFApprox(material.specularColor, material.roughness, dotNV );
+reflectedLight.indirectSpecular += clearcoatInv * radiance * envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
 
 
 // Occlusion
@@ -53,7 +48,7 @@ reflectedLight.indirectSpecular += clearcoatInv * radiance * envBRDFApprox(mater
     float ambientOcclusion = (texture2D(u_occlusionSampler, v_uv).r - 1.0) * u_occlusionStrength + 1.0;
     reflectedLight.indirectDiffuse *= ambientOcclusion;
     #ifdef O3_USE_SPECULAR_ENV
-        reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, dotNV);
+        reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, geometry.dotNV);
     #endif
 #endif
 
