@@ -15,10 +15,11 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
    */
   constructor(uniqueID: number, material: PhysXPhysicsMaterial) {
     super();
+    this._rotation.setValue(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
 
     this._pxGeometry = new PhysXPhysics._physX.PxPlaneGeometry();
     this._allocShape(material);
-    this._setLocalPose();
+    this._setLocalPose(this._scale);
     this.setUniqueID(uniqueID);
   }
 
@@ -29,11 +30,13 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
     Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._rotation);
     Quaternion.rotateZ(this._rotation, Math.PI * 0.5, this._rotation);
     this._rotation.normalize();
-    this._setLocalPose();
+    this._setLocalPose(this._scale);
   }
 
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {}
+  setWorldScale(scale: Vector3): void {
+    this._setLocalPose(this._scale);
+  }
 }
