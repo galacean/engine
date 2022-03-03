@@ -281,9 +281,9 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Update mesh.
+   * @internal
    */
-  private _updateMesh(): void {
+  _updateMesh(): void {
     if (this._isContainDirtyFlag(DirtyFlag.positions)) {
       this._updatePositionsAndBounds();
     }
@@ -353,20 +353,8 @@ export class Sprite extends RefObject {
         uv[3].setValue(left, bottom);
       }
     }
-  }
 
-  /**
-   * @internal
-   * Update mesh data of the sprite.
-   * @returns True if the data is refreshed, false otherwise.
-   */
-  _updateMeshData(): boolean {
-    if (this._isContainDirtyFlag(DirtyFlag.all)) {
-      this._updateMesh();
-      this._setDirtyFlagFalse(DirtyFlag.all);
-      return true;
-    }
-    return false;
+    this._setDirtyFlagFalse(DirtyFlag.all);
   }
 
   private _isContainDirtyFlag(type: number): boolean {

@@ -34,6 +34,8 @@ export class SpriteMask extends Renderer {
   private _sprite: Sprite = null;
   @assignmentClone
   private _alphaCutoff: number = 0.5;
+  @ignoreClone
+  private _spriteDirty: UpdateFlag;
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
@@ -48,8 +50,11 @@ export class SpriteMask extends Renderer {
 
   set sprite(value: Sprite) {
     if (this._sprite !== value) {
+      this._spriteDirty && this._spriteDirty.destroy();
       this._sprite = value;
-      this._isSpriteDirty = true;
+      if (value) {
+        this._spriteDirty = value._registerUpdateFlag();
+      }
     }
   }
 
@@ -83,6 +88,7 @@ export class SpriteMask extends Renderer {
    */
   _onDestroy(): void {
     this._worldMatrixDirtyFlag.destroy();
+    this._spriteDirty && this._spriteDirty.destroy();
     super._onDestroy();
   }
 
@@ -104,9 +110,9 @@ export class SpriteMask extends Renderer {
     const transform = this.entity.transform;
 
     // Update sprite data.
-    const localDirty = sprite._updateMeshData();
+    sprite._updateMesh();
 
-    if (this._worldMatrixDirtyFlag.flag || localDirty || this._isSpriteDirty) {
+    if (this._worldMatrixDirtyFlag.flag || this._spriteDirty.flag) {
       const localPositions = sprite._positions;
       const localVertexPos = SpriteMask._tempVec3;
       const worldMatrix = transform.worldMatrix;
@@ -117,7 +123,7 @@ export class SpriteMask extends Renderer {
         Vector3.transformToVec3(localVertexPos, worldMatrix, positions[i]);
       }
 
-      this._isSpriteDirty = false;
+      this._spriteDirty.flag = false;
       this._worldMatrixDirtyFlag.flag = false;
     }
 
