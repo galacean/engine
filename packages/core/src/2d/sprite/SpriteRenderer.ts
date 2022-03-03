@@ -1,6 +1,7 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
@@ -14,7 +15,7 @@ import { Sprite } from "./Sprite";
 /**
  * Renders a Sprite for 2D graphics.
  */
-export class SpriteRenderer extends Renderer {
+export class SpriteRenderer extends Renderer implements ICustomClone {
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   private static _tempVec3: Vector3 = new Vector3();
 
@@ -27,7 +28,7 @@ export class SpriteRenderer extends Renderer {
 
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-  @assignmentClone
+  @ignoreClone
   private _sprite: Sprite = null;
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -40,7 +41,7 @@ export class SpriteRenderer extends Renderer {
   @assignmentClone
   private _cacheFlipY: boolean = false;
   @ignoreClone
-  private _dirtyFlag: number = DirtyFlag.All;
+  private _dirtyFlag: number = 0;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
   @ignoreClone
@@ -59,10 +60,10 @@ export class SpriteRenderer extends Renderer {
 
   set sprite(value: Sprite | null) {
     if (this._sprite !== value) {
+      this._spriteDirty && this._spriteDirty.destroy();
       this._sprite = value;
-      this._setDirtyFlagTrue(DirtyFlag.Sprite);
       if (value) {
-        this._spriteDirty = value.registerUpdateFlag();
+        this._spriteDirty = value._registerUpdateFlag();
       }
     }
   }
@@ -159,9 +160,9 @@ export class SpriteRenderer extends Renderer {
     const { transform } = this.entity;
 
     // Update sprite data.
-    sprite._updateMeshData();
+    sprite._updateMesh();
 
-    if (this._isWorldMatrixDirty.flag || this._spriteDirty.flag || this._isContainDirtyFlag(DirtyFlag.Sprite)) {
+    if (this._isWorldMatrixDirty.flag || this._spriteDirty.flag) {
       const localPositions = sprite._positions;
       const localVertexPos = SpriteRenderer._tempVec3;
       const worldMatrix = transform.worldMatrix;
@@ -174,7 +175,6 @@ export class SpriteRenderer extends Renderer {
       }
 
       this._setDirtyFlagFalse(DirtyFlag.Flip);
-      this._setDirtyFlagFalse(DirtyFlag.Sprite);
       this._isWorldMatrixDirty.flag = false;
       this._spriteDirty.flag = false;
       this._cacheFlipX = flipX;
@@ -223,6 +223,7 @@ export class SpriteRenderer extends Renderer {
    */
   _onDestroy(): void {
     this._isWorldMatrixDirty.destroy();
+    this._spriteDirty && this._spriteDirty.destroy();
     super._onDestroy();
   }
 
@@ -236,6 +237,13 @@ export class SpriteRenderer extends Renderer {
 
   private _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: SpriteRenderer): void {
+    target.sprite = this._sprite;
   }
 
   /**
@@ -285,7 +293,5 @@ export class SpriteRenderer extends Renderer {
 
 enum DirtyFlag {
   Flip = 0x1,
-  Sprite = 0x2,
-  All = 0x3,
-  MaskInteraction = 0x4
+  MaskInteraction = 0x2
 }
