@@ -343,9 +343,9 @@ export class Entity extends EngineObject {
     if (this._destroyed) return;
 
     super.destroy();
-    const abilityArray = this._components;
-    for (let i = abilityArray.length - 1; i >= 0; i--) {
-      abilityArray[i].destroy();
+    const components = this._components;
+    for (let i = components.length - 1; i >= 0; i--) {
+      components[i].destroy();
     }
     this._components.length = 0;
 
