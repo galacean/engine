@@ -29,7 +29,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   @ignoreClone
   private _worldMatrixDirtyFlag: UpdateFlag;
-  @assignmentClone
+  @ignoreClone
   private _sprite: Sprite = null;
   @assignmentClone
   private _alphaCutoff: number = 0.5;

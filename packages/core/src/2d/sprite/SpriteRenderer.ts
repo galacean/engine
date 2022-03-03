@@ -28,7 +28,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-  @assignmentClone
+  @ignoreClone
   private _sprite: Sprite = null;
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
