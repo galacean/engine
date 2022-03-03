@@ -41,7 +41,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @assignmentClone
   private _cacheFlipY: boolean = false;
   @ignoreClone
-  private _dirtyFlag: number = DirtyFlag.Flip;
+  private _dirtyFlag: number = 0;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
   @ignoreClone

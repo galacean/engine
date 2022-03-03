@@ -28,8 +28,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   @ignoreClone
-  private _isSpriteDirty: boolean = true;
-  @ignoreClone
   private _worldMatrixDirtyFlag: UpdateFlag;
   @assignmentClone
   private _sprite: Sprite = null;
