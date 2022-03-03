@@ -191,10 +191,27 @@ export class Camera extends Component {
    * View matrix.
    */
   get viewMatrix(): Readonly<Matrix> {
-    // Remove scale
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
       Matrix.invert(this._transform.worldMatrix, this._viewMatrix);
+      // Remove scale
+      const { x, y, z } = this._transform.scale;
+      const { elements } = this._viewMatrix;
+      elements[0] *= x;
+      elements[1] *= y;
+      elements[2] *= z;
+
+      elements[4] *= x;
+      elements[5] *= y;
+      elements[6] *= z;
+
+      elements[8] *= x;
+      elements[9] *= y;
+      elements[10] *= z;
+
+      elements[12] *= x;
+      elements[13] *= y;
+      elements[14] *= z;
     }
     return this._viewMatrix;
   }
