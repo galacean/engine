@@ -195,7 +195,7 @@ export class Camera extends Component {
       this._isViewMatrixDirty.flag = false;
       Matrix.invert(this._transform.worldMatrix, this._viewMatrix);
       // Remove scale
-      const { x, y, z } = this._transform.scale;
+      const { x, y, z } = this._transform.lossyWorldScale;
       const { elements } = this._viewMatrix;
       elements[0] *= x;
       elements[1] *= y;
