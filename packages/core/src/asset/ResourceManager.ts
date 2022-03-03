@@ -213,11 +213,12 @@ export class ResourceManager {
     promise
       .then((res: EngineObject) => {
         if (loader.useCache) this._addAsset(url, res);
-      })
-      .catch((err: Error) => Promise.reject(err))
-      .finally(() => {
         delete this._loadingPromises[url];
-      });
+      })
+      .catch((err: Error) => {
+        Promise.reject(err)
+        delete this._loadingPromises[url];
+      })
     return promise;
   }
 
