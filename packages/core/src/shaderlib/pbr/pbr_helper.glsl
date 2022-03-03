@@ -11,13 +11,25 @@ float clearcoatDHRApprox(float roughness, float dotNL) {
 
 void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
-    geometry.normal = getNormal();
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
-    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
+
+    geometry.normal = getNormal( 
+            #ifdef O3_NORMAL_TEXTURE
+                u_normalTexture,
+                u_normalIntensity
+            #endif
+    );
 
     #ifdef CLEARCOAT
-        geometry.clearcoatNormal = getClearcoatNormal();
+        geometry.clearcoatNormal = getNormal(
+              #ifdef HAS_CLEARCOATNORMALTEXTURE
+                u_clearcoatNormalTexture,
+                u_normalIntensity
+            #endif
+        );
     #endif
+
+    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
 }
 
 void initMaterial(out Material material){
