@@ -24,13 +24,10 @@ reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.di
 
 // IBL specular
 vec3 radiance = getLightProbeRadiance(geometry.viewDir, geometry.normal, material.roughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity);
-vec3 clearcoatRadiance = vec3(0);
 
 #ifdef CLEARCOAT
-     clearcoatRadiance = getLightProbeRadiance( geometry.viewDir, geometry.clearcoatNormal, material.clearcoatRoughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity );
-#endif
+    vec3 clearcoatRadiance = getLightProbeRadiance( geometry.viewDir, geometry.clearcoatNormal, material.clearcoatRoughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity );
 
-#ifdef CLEARCOAT
     float ccDotNV = saturate( dot( geometry.clearcoatNormal, geometry.viewDir ) );
     reflectedLight.indirectSpecular += clearcoatRadiance * material.clearcoat * envBRDFApprox(vec3( 0.04 ), material.clearcoatRoughness, geometry.dotNV);
     float ccDotNL = ccDotNV;
