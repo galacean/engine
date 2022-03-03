@@ -1,6 +1,7 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
@@ -14,7 +15,7 @@ import { Sprite } from "./Sprite";
 /**
  * Renders a Sprite for 2D graphics.
  */
-export class SpriteRenderer extends Renderer {
+export class SpriteRenderer extends Renderer implements ICustomClone {
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   private static _tempVec3: Vector3 = new Vector3();
 
@@ -236,6 +237,13 @@ export class SpriteRenderer extends Renderer {
 
   private _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: SpriteRenderer): void {
+    target.sprite = this._sprite;
   }
 
   /**

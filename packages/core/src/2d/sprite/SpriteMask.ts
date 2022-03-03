@@ -1,6 +1,7 @@
 import { Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
@@ -13,7 +14,7 @@ import { Sprite } from "./Sprite";
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer {
+export class SpriteMask extends Renderer implements ICustomClone {
   /** @internal */
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
   /** @internal */
@@ -135,5 +136,12 @@ export class SpriteMask extends Renderer {
 
     camera._renderPipeline._allSpriteMasks.add(this);
     this._maskElement = maskElement;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: SpriteMask): void {
+    target.sprite = this._sprite;
   }
 }
