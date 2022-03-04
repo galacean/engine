@@ -5,6 +5,15 @@ float computeSpecularOcclusion(float ambientOcclusion, float roughness, float do
     return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
 }
 
+float getAARoughnessFactor(vec3 normal) {
+    #ifdef HAS_DERIVATIVES
+        vec3 dxy = max( abs(dFdx(normal)), abs(dFdy(normal)) );
+        return max( max(dxy.x, dxy.y), dxy.z );
+    #else
+        return 0.0;
+    #endif
+}
+
 void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
@@ -29,7 +38,7 @@ void initGeometry(out Geometry geometry){
     geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
 }
 
-void initMaterial(out Material material){
+void initMaterial(out Material material, const in Geometry geometry){
         vec4 baseColor = u_baseColor;
         float metal = u_metal;
         float roughness = u_roughness;
@@ -75,27 +84,28 @@ void initMaterial(out Material material){
         #ifdef IS_METALLIC_WORKFLOW
             material.diffuseColor = baseColor.rgb * ( 1.0 - metal );
             material.specularColor = mix( vec3( 0.04), baseColor.rgb, metal );
-            material.roughness = clamp( roughness, 0.04, 1.0 );
+            material.roughness = roughness;
         #else
             float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
             material.diffuseColor = baseColor.rgb * ( 1.0 - specularStrength );
             material.specularColor = specularColor;
-            material.roughness = clamp( 1.0 - glossiness, 0.04, 1.0 );
+            material.roughness = 1.0 - glossiness;
         #endif
+
+        material.roughness = max(material.roughness, getAARoughnessFactor(geometry.normal));
 
         #ifdef CLEARCOAT
-             material.clearcoat = u_clearcoat;
-             material.clearcoatRoughness = u_clearcoatRoughness;
-             #ifdef HAS_CLEARCOATTEXTURE
-                 material.clearcoat *= texture2D( u_clearcoatTexture, v_uv ).r;
-             #endif
-             #ifdef HAS_CLEARCOATROUGHNESSTEXTURE
-                 material.clearcoatRoughness *= texture2D( u_clearcoatRoughnessTexture, v_uv ).g;
-             #endif
-             material.clearcoat = saturate( material.clearcoat );
-             material.clearcoatRoughness = clamp( material.clearcoatRoughness, 0.005, 1.0 );
+            material.clearcoat = u_clearcoat;
+            material.clearcoatRoughness = u_clearcoatRoughness;
+            #ifdef HAS_CLEARCOATTEXTURE
+                material.clearcoat *= texture2D( u_clearcoatTexture, v_uv ).r;
+            #endif
+            #ifdef HAS_CLEARCOATROUGHNESSTEXTURE
+                material.clearcoatRoughness *= texture2D( u_clearcoatRoughnessTexture, v_uv ).g;
+            #endif
+            material.clearcoat = saturate( material.clearcoat );
+            material.clearcoatRoughness = max(material.clearcoatRoughness, getAARoughnessFactor(geometry.clearcoatNormal));
         #endif
-
 
         material.opacity = baseColor.a;
 }

@@ -3,7 +3,7 @@ Material material;
 ReflectedLight reflectedLight;
 
 initGeometry(geometry);
-initMaterial(material);
+initMaterial(material, geometry);
 
 // Direct Light
 addTotalDirectRadiance(geometry, material, reflectedLight);
