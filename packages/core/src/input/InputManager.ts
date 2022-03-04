@@ -1,4 +1,6 @@
 import { Engine } from "../Engine";
+import { KeyboardManager } from "./keyboard/KeyboardManager";
+import { KeyCode } from "./keyboard/KeyCode";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
 
@@ -7,6 +9,7 @@ import { PointerManager } from "./pointer/PointerManager";
  */
 export class InputManager {
   private _pointerManager: PointerManager;
+  private _keyboardManager: KeyboardManager
 
   /**
    * Pointer List.
@@ -27,11 +30,55 @@ export class InputManager {
   }
 
   /**
+   * Whether the button is being held down.
+   * @param key 
+   * @returns 
+   */
+  getKey(key: KeyCode | string): Boolean {
+    if (typeof (key) === 'string') {
+      key = KeyCode[key];
+    }
+    return !!this._keyboardManager._curKeyState[key];
+  }
+
+  /**
+    * Whether the button is being held down.
+    * @param key 
+    * @returns 
+    */
+  getKeyDown(key: KeyCode | string): Boolean {
+    if (typeof (key) === 'string') {
+      key = KeyCode[key];
+    }
+    return this._keyboardManager._curFrameKeyDown[key] === this._keyboardManager._curFrameCount;
+
+  }
+
+  /**
+   * Whether the button is being held down.
+   * @param key 
+   * @returns 
+   */
+  getKeyUp(key: KeyCode | string): Boolean {
+    if (typeof (key) === 'string') {
+      key = KeyCode[key];
+    }
+    return this._keyboardManager._curFrameKeyUp[key] === this._keyboardManager._curFrameCount;
+  }
+
+  /**
    * @internal
    */
   constructor(engine: Engine) {
+    this._keyboardManager = new KeyboardManager(engine);
     // @ts-ignore
     this._pointerManager = new PointerManager(engine, engine.canvas._webCanvas);
+    window.addEventListener('blur', () => {
+      const { _curKeyState } = this._keyboardManager;
+      for (let i = _curKeyState.length - 1; i >= 0; i--) {
+        _curKeyState[i] && (_curKeyState[i] = false);
+      }
+    });
   }
 
   /**
@@ -39,6 +86,7 @@ export class InputManager {
    */
   _update(): void {
     this._pointerManager._update();
+    this._keyboardManager._update();
   }
 
   /**
@@ -46,5 +94,6 @@ export class InputManager {
    */
   _destroy(): void {
     this._pointerManager._destroy();
+    this._keyboardManager._destroy();
   }
 }

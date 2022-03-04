@@ -1,6 +1,7 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
+import { KeyEvent } from "./input/keyboard/KeyEvent";
 import { ColliderShape } from "./physics";
 
 /**
@@ -25,6 +26,12 @@ export class Script extends Component {
   /** @internal */
   @ignoreClone
   _onPostRenderIndex: number = -1;
+  /** @internal */
+  @ignoreClone
+  _onKeyDownIndex: number = -1;
+  /** @internal */
+  @ignoreClone
+  _onKeyUpIndex: number = -1;
   @ignoreClone
   _entityCacheIndex: number = -1;
 
@@ -118,6 +125,18 @@ export class Script extends Component {
   onPointerDrag(): void {}
 
   /**
+   * Called when the keyboard is pressed and don't save the evt.
+   * @param evt - Dispatched key event , only valid in the current frame
+   */
+  onKeyDown(evt: KeyEvent): void {}
+
+  /**
+   * Called when the keyboard is up.
+   * @param evt - Dispatched key event
+   */
+  onKeyUp(evt: KeyEvent): void {}
+
+  /**
    * Called when be disabled.
    */
   onDisable(): void {}
@@ -152,6 +171,12 @@ export class Script extends Component {
     }
     if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.addOnLateUpdateScript(this);
+    }
+    if (this.onKeyDown !== prototype.onKeyDown) {
+      componentsManager.addOnKeyDownScript(this);
+    }
+    if (this.onKeyUp !== prototype.onKeyUp) {
+      componentsManager.addOnKeyUpScript(this);
     }
     this._entity._addScript(this);
     this.onEnable();
