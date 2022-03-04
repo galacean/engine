@@ -1,3 +1,7 @@
+float F_Schlick(float dotLH) {
+	return 0.04 + 0.96 * (pow(1.0 - dotLH, 5.0));
+}
+
 vec3 F_Schlick(vec3 specularColor, float dotLH ) {
 
 	// Original approximation by Christophe Schlick '94

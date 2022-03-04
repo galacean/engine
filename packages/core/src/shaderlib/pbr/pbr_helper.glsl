@@ -5,10 +5,6 @@ float computeSpecularOcclusion(float ambientOcclusion, float roughness, float do
     return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
 }
 
-float clearcoatDHRApprox(float roughness, float dotNL) {
-    return 0.04 + 0.96 * ( pow( 1.0 - dotNL, 5.0 ) * pow( 1.0 - roughness, 2.0 ) );
-}
-
 void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
@@ -27,6 +23,7 @@ void initGeometry(out Geometry geometry){
                 u_normalIntensity
             #endif
         );
+        geometry.clearcoatDotNV = saturate( dot(geometry.clearcoatNormal, geometry.viewDir) );
     #endif
 
     geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );

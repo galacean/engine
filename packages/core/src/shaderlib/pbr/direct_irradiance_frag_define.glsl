@@ -1,21 +1,19 @@
 void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
-    float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
+    float attenuation = 1.0;
 
-    vec3 irradiance = dotNL * color;
-    irradiance *= PI;
-    
     #ifdef CLEARCOAT
-        float ccDotNL = saturate( dot( geometry.clearcoatNormal, incidentDirection ) );
-        vec3 ccIrradiance = ccDotNL * color;
-        float clearcoatDHR = material.clearcoat * clearcoatDHRApprox( material.clearcoatRoughness, ccDotNL );
-        reflectedLight.directSpecular += ccIrradiance * material.clearcoat * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.clearcoatNormal, vec3( 0.04 ), material.clearcoatRoughness );
-    #else
-        float clearcoatDHR = 0.0;
+        float clearcoatDotNL = saturate( dot( geometry.clearcoatNormal, incidentDirection ) );
+        vec3 clearcoatIrradiance = clearcoatDotNL * color;
+        
+        reflectedLight.directSpecular += material.clearcoat * clearcoatIrradiance * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.clearcoatNormal, vec3( 0.04 ), material.clearcoatRoughness );
+        attenuation -= material.clearcoat * F_Schlick(geometry.clearcoatDotNV);
     #endif
 
-    reflectedLight.directSpecular += ( 1.0 - clearcoatDHR ) * irradiance * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.normal, material.specularColor, material.roughness);
+    float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
+    vec3 irradiance = dotNL * color * PI;
 
-    reflectedLight.directDiffuse += ( 1.0 - clearcoatDHR ) * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+    reflectedLight.directSpecular += attenuation * irradiance * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.normal, material.specularColor, material.roughness);
+    reflectedLight.directDiffuse += attenuation * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 }
 

@@ -71,6 +71,7 @@ struct Geometry {
     
     #ifdef CLEARCOAT
         vec3 clearcoatNormal;
+        float clearcoatDotNV;
     #endif
 
 };
