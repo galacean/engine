@@ -476,22 +476,22 @@ describe("Transform", () => {
       child.transform.rotate(new Vector3(0, 0, 45), false);
       vector3CloseTo(child.transform.worldRotation, new Vector3(0, 0, -90));
     });
-    // it("rotateByAxis", () => {
-    //   const parent = new Entity(null,"parent");
-    //   const child = new Entity(null,"child");
-    //   parent.addChild(child);
-    //   child.transform.position = new Vector3(10, 0, 0);
-    //   parent.transform.rotateByAxis(new Vector3(0, 0, 1), 90, true);
-    //   vector3CloseTo(child.transform.worldPosition, new Vector3(0, 10, 0));
-    //   child.transform.rotateByAxis(new Vector3(0, 0, 1), 180, false);
-    //   vector3CloseTo(child.transform.worldPosition, new Vector3(0, 10, 0));
-    // });
-    // it("lookAt", () => {
-    //   const node = new Entity(null);
-    //   node.transform.position = new Vector3(0, 0, 1);
-    //   node.transform.lookAt(new Vector3(), new Vector3(0, 1, 0));
-    //   vector3CloseTo(node.transform.worldRotation, new Vector3(0, 0, 0));
-    // });
+    it("rotateByAxis", () => {
+      const parent = new Entity(null,"parent");
+      const child = new Entity(null,"child");
+      parent.addChild(child);
+      child.transform.position = new Vector3(10, 0, 0);
+      parent.transform.rotateByAxis(new Vector3(0, 0, 1), 90, true);
+      vector3CloseTo(child.transform.worldPosition, new Vector3(0, 10, 0));
+      child.transform.rotateByAxis(new Vector3(0, 0, 1), 180, false);
+      vector3CloseTo(child.transform.worldPosition, new Vector3(0, 10, 0));
+    });
+    it("lookAt", () => {
+      const node = new Entity(null);
+      node.transform.position = new Vector3(0, 0, 1);
+      node.transform.lookAt(new Vector3(), new Vector3(0, 1, 0));
+      vector3CloseTo(node.transform.worldRotation, new Vector3(0, 0, 0));
+    });
   });
 });
 
