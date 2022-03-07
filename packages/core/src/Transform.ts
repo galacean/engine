@@ -65,13 +65,16 @@ export class Transform extends Component {
    */
   get worldPosition(): Vector3 {
     if (this._isContainDirtyFlag(TransformFlag.WorldPosition)) {
+      this._worldPosition._disableValueChanged = true;
       if (this._getParentTransform()) {
         this.worldMatrix.getTranslation(this._worldPosition);
       } else {
         this._position.cloneTo(this._worldPosition);
       }
+      this._worldPosition._disableValueChanged = false;
       this._setDirtyFlagFalse(TransformFlag.WorldPosition);
     }
+
     return this._worldPosition;
   }
 
@@ -87,10 +90,13 @@ export class Transform extends Component {
    */
   get rotation(): Vector3 {
     if (this._isContainDirtyFlag(TransformFlag.LocalEuler)) {
+      this._rotation._disableValueChanged = true;
       this._rotationQuaternion.toEuler(this._rotation);
+      this._rotation._disableValueChanged = false;
       this._rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
       this._setDirtyFlagFalse(TransformFlag.LocalEuler);
     }
+
     return this._rotation;
   }
 
@@ -106,8 +112,10 @@ export class Transform extends Component {
    */
   get worldRotation(): Vector3 {
     if (this._isContainDirtyFlag(TransformFlag.WorldEuler)) {
+      this._worldRotation._disableValueChanged = true;
       this.worldRotationQuaternion.toEuler(this._worldRotation);
       this._worldRotation.scale(MathUtil.radToDegreeFactor); // Radian to angle
+      this._worldRotation._disableValueChanged = false;
       this._setDirtyFlagFalse(TransformFlag.WorldEuler);
     }
     return this._worldRotation;
@@ -124,12 +132,14 @@ export class Transform extends Component {
    */
   get rotationQuaternion(): Quaternion {
     if (this._isContainDirtyFlag(TransformFlag.LocalQuat)) {
+      this._rotationQuaternion._disableValueChanged = true;
       Quaternion.rotationEuler(
         MathUtil.degreeToRadian(this._rotation.x),
         MathUtil.degreeToRadian(this._rotation.y),
         MathUtil.degreeToRadian(this._rotation.z),
         this._rotationQuaternion
       );
+      this._rotationQuaternion._disableValueChanged = false;
       this._setDirtyFlagFalse(TransformFlag.LocalQuat);
     }
     return this._rotationQuaternion;
@@ -146,12 +156,14 @@ export class Transform extends Component {
    */
   get worldRotationQuaternion(): Quaternion {
     if (this._isContainDirtyFlag(TransformFlag.WorldQuat)) {
+      this._worldRotationQuaternion._disableValueChanged = true;
       const parent = this._getParentTransform();
       if (parent != null) {
         Quaternion.multiply(parent.worldRotationQuaternion, this.rotationQuaternion, this._worldRotationQuaternion);
       } else {
         this.rotationQuaternion.cloneTo(this._worldRotationQuaternion);
       }
+      this._worldRotationQuaternion._disableValueChanged = false;
       this._setDirtyFlagFalse(TransformFlag.WorldQuat);
     }
     return this._worldRotationQuaternion;
@@ -183,6 +195,7 @@ export class Transform extends Component {
    */
   get lossyWorldScale(): Vector3 {
     if (this._isContainDirtyFlag(TransformFlag.WorldScale)) {
+      this._lossyWorldScale._disableValueChanged = true;
       if (this._getParentTransform()) {
         const scaleMat = this._getScaleMatrix();
         const e = scaleMat.elements;
@@ -190,6 +203,7 @@ export class Transform extends Component {
       } else {
         this._scale.cloneTo(this._lossyWorldScale);
       }
+      this._lossyWorldScale._disableValueChanged = false;
       this._setDirtyFlagFalse(TransformFlag.WorldScale);
     }
     return this._lossyWorldScale;
@@ -695,10 +709,8 @@ export class Transform extends Component {
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean) {
     if (relativeToLocal) {
       Quaternion.multiply(this.rotationQuaternion, rotateQuat, this._rotationQuaternion);
-      this.rotationQuaternion = this._rotationQuaternion;
     } else {
       Quaternion.multiply(this.worldRotationQuaternion, rotateQuat, this._worldRotationQuaternion);
-      this.worldRotationQuaternion = this._worldRotationQuaternion;
     }
   }
 

@@ -23,7 +23,7 @@ export class Vector3 implements IClone {
     out._x = left._x + right._x;
     out._y = left._y + right._y;
     out._z = left._z + right._z;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -36,7 +36,7 @@ export class Vector3 implements IClone {
     out._x = left._x - right._x;
     out._y = left._y - right._y;
     out._z = left._z - right._z;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -49,7 +49,7 @@ export class Vector3 implements IClone {
     out._x = left._x * right._x;
     out._y = left._y * right._y;
     out._z = left._z * right._z;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -62,7 +62,7 @@ export class Vector3 implements IClone {
     out._x = left._x / right._x;
     out._y = left._y / right._y;
     out._z = left._z / right._z;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -142,7 +142,7 @@ export class Vector3 implements IClone {
     out._x = _x + (end._x - _x) * t;
     out._y = _y + (end._y - _y) * t;
     out._z = _z + (end._z - _z) * t;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -155,7 +155,7 @@ export class Vector3 implements IClone {
     out._x = Math.max(left._x, right._x);
     out._y = Math.max(left._y, right._y);
     out._z = Math.max(left._z, right._z);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -168,7 +168,7 @@ export class Vector3 implements IClone {
     out._x = Math.min(left._x, right._x);
     out._y = Math.min(left._y, right._y);
     out._z = Math.min(left._z, right._z);
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -180,7 +180,7 @@ export class Vector3 implements IClone {
     out._x = -a._x;
     out._y = -a._y;
     out._z = -a._z;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -207,7 +207,7 @@ export class Vector3 implements IClone {
     out._x = a._x * s;
     out._y = a._y * s;
     out._z = a._z * s;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -228,7 +228,7 @@ export class Vector3 implements IClone {
     out._x = _x * e[0] + _y * e[4] + _z * e[8];
     out._y = _x * e[1] + _y * e[5] + _z * e[9];
     out._z = _x * e[2] + _y * e[6] + _z * e[10];
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -244,7 +244,7 @@ export class Vector3 implements IClone {
     out._x = _x * e[0] + _y * e[4] + _z * e[8] + e[12];
     out._y = _x * e[1] + _y * e[5] + _z * e[9] + e[13];
     out._z = _x * e[2] + _y * e[6] + _z * e[10] + e[14];
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -260,7 +260,7 @@ export class Vector3 implements IClone {
     out._y = _x * e[1] + _y * e[5] + _z * e[9] + e[13];
     out._z = _x * e[2] + _y * e[6] + _z * e[10] + e[14];
     out._w = _x * e[3] + _y * e[7] + _z * e[11] + e[15];
-    out._onValueChanged && out._onValueChanged();
+    // out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -285,7 +285,7 @@ export class Vector3 implements IClone {
     out._x = (_x * e[0] + _y * e[4] + _z * e[8] + e[12]) * w;
     out._y = (_x * e[1] + _y * e[5] + _z * e[9] + e[13]) * w;
     out._z = (_x * e[2] + _y * e[6] + _z * e[10] + e[14]) * w;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /**
@@ -308,7 +308,7 @@ export class Vector3 implements IClone {
     out._x = ix * qw - iw * qx - iy * qz + iz * qy;
     out._y = iy * qw - iw * qy - iz * qx + ix * qz;
     out._z = iz * qw - iw * qz - ix * qy + iy * qx;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
   }
 
   /** @internal */
@@ -317,6 +317,8 @@ export class Vector3 implements IClone {
   _y: number;
   /** @internal */
   _z: number;
+
+  _disableValueChanged: boolean = false;
   /** @internal */
   _onValueChanged: () => void = null;
 
@@ -329,7 +331,7 @@ export class Vector3 implements IClone {
 
   public set x(value: number) {
     this._x = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
   }
 
   /**
@@ -341,7 +343,7 @@ export class Vector3 implements IClone {
 
   public set y(value: number) {
     this._y = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
   }
 
   /**
@@ -353,7 +355,7 @@ export class Vector3 implements IClone {
 
   public set z(value: number) {
     this._z = value;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
   }
 
   /**
@@ -379,7 +381,7 @@ export class Vector3 implements IClone {
     this._x = x;
     this._y = y;
     this._z = z;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -393,7 +395,7 @@ export class Vector3 implements IClone {
     this._x = array[offset];
     this._y = array[offset + 1];
     this._z = array[offset + 2];
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -406,7 +408,7 @@ export class Vector3 implements IClone {
     this._x += right._x;
     this._y += right._y;
     this._z += right._z;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -419,7 +421,7 @@ export class Vector3 implements IClone {
     this._x -= right._x;
     this._y -= right._y;
     this._z -= right._z;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -432,7 +434,7 @@ export class Vector3 implements IClone {
     this._x *= right._x;
     this._y *= right._y;
     this._z *= right._z;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -445,7 +447,7 @@ export class Vector3 implements IClone {
     this._x /= right._x;
     this._y /= right._y;
     this._z /= right._z;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -475,7 +477,7 @@ export class Vector3 implements IClone {
     this._x = -this._x;
     this._y = -this._y;
     this._z = -this._z;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -497,7 +499,7 @@ export class Vector3 implements IClone {
     this._x *= s;
     this._y *= s;
     this._z *= s;
-    this._onValueChanged && this._onValueChanged();
+    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -529,7 +531,7 @@ export class Vector3 implements IClone {
     out._x = this._x;
     out._y = this._y;
     out._z = this._z;
-    out._onValueChanged && out._onValueChanged();
+    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
     return out;
   }
 
