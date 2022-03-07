@@ -23,7 +23,7 @@ export class Quaternion implements IClone {
     out._y = left._y + right._y;
     out._z = left._z + right._z;
     out._w = left._w + right._w;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -46,7 +46,7 @@ export class Quaternion implements IClone {
     out._y = ay * bw + aw * by + az * bx - ax * bz;
     out._z = az * bw + aw * bz + ax * by - ay * bx;
     out._w = aw * bw - ax * bx - ay * by - az * bz;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -59,7 +59,7 @@ export class Quaternion implements IClone {
     out._y = -a._y;
     out._z = -a._z;
     out._w = a._w;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -102,7 +102,7 @@ export class Quaternion implements IClone {
     out._y = normalAxis._y * s;
     out._z = normalAxis._z * s;
     out._w = Math.cos(rad);
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -142,7 +142,7 @@ export class Quaternion implements IClone {
     out._y = sinYaw * cosPitch * cosRoll - cosYaw * sinPitch * sinRoll;
     out._z = cosYawPitch * sinRoll - sinYawPitch * cosRoll;
     out._w = cosYawPitch * cosRoll + sinYawPitch * sinRoll;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -197,7 +197,7 @@ export class Quaternion implements IClone {
       out._z = 0.5 * sqrt;
       out._w = (m12 - m21) * half;
     }
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -214,7 +214,7 @@ export class Quaternion implements IClone {
       out._y = -y * invDot;
       out._z = -z * invDot;
       out._w = w * invDot;
-      out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+      out._onValueChanged && out._onValueChanged();
     }
   }
 
@@ -288,7 +288,7 @@ export class Quaternion implements IClone {
     out._y = scale0 * ay + scale1 * by;
     out._z = scale0 * az + scale1 * bz;
     out._w = scale0 * aw + scale1 * bw;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -305,7 +305,7 @@ export class Quaternion implements IClone {
       out._y = _y * len;
       out._z = _z * len;
       out._w = _w * len;
-      out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+      out._onValueChanged && out._onValueChanged();
     }
   }
 
@@ -323,7 +323,7 @@ export class Quaternion implements IClone {
     out._y = 0;
     out._z = 0;
     out._w = c;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -340,7 +340,7 @@ export class Quaternion implements IClone {
     out._y = s;
     out._z = 0;
     out._w = c;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -357,7 +357,7 @@ export class Quaternion implements IClone {
     out._y = 0;
     out._z = s;
     out._w = c;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -376,7 +376,7 @@ export class Quaternion implements IClone {
     out._y = _y * bw + _z * bx;
     out._z = _z * bw - _y * bx;
     out._w = _w * bw - _x * bx;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -395,7 +395,7 @@ export class Quaternion implements IClone {
     out._y = _y * bw + _w * by;
     out._z = _z * bw + _x * by;
     out._w = _w * bw - _y * by;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -414,7 +414,7 @@ export class Quaternion implements IClone {
     out._y = _y * bw - _x * bz;
     out._z = _z * bw + _w * bz;
     out._w = _w * bw - _z * bz;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -428,7 +428,7 @@ export class Quaternion implements IClone {
     out._y = a._y * s;
     out._z = a._z * s;
     out._w = a._w * s;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
   }
 
   /** @internal */
@@ -439,7 +439,6 @@ export class Quaternion implements IClone {
   _z: number;
   /** @internal */
   _w: number;
-  _disableValueChanged: boolean = false;
   /** @internal */
   _onValueChanged: () => void = null;
 
@@ -452,7 +451,7 @@ export class Quaternion implements IClone {
 
   public set x(value: number) {
     this._x = value;
-    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -464,7 +463,7 @@ export class Quaternion implements IClone {
 
   public set y(value: number) {
     this._y = value;
-    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -476,7 +475,7 @@ export class Quaternion implements IClone {
 
   public set z(value: number) {
     this._z = value;
-    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -488,7 +487,7 @@ export class Quaternion implements IClone {
 
   public set w(value: number) {
     this._w = value;
-    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
+    this._onValueChanged && this._onValueChanged();
   }
 
   /**
@@ -518,7 +517,7 @@ export class Quaternion implements IClone {
     this._y = y;
     this._z = z;
     this._w = w;
-    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -533,7 +532,7 @@ export class Quaternion implements IClone {
     this._y = array[offset + 1];
     this._z = array[offset + 2];
     this._w = array[offset + 3];
-    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -545,7 +544,7 @@ export class Quaternion implements IClone {
     this._x *= -1;
     this._y *= -1;
     this._z *= -1;
-    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -583,7 +582,7 @@ export class Quaternion implements IClone {
     this._y = 0;
     this._z = 0;
     this._w = 1;
-    this._onValueChanged && !this._disableValueChanged && this._onValueChanged();
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -625,7 +624,7 @@ export class Quaternion implements IClone {
     const t = out._x;
     out._x = out._y;
     out._y = t;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
@@ -636,7 +635,7 @@ export class Quaternion implements IClone {
    */
   toYawPitchRoll(out: Vector3): Vector3 {
     this._toYawPitchRoll(out);
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
@@ -670,7 +669,7 @@ export class Quaternion implements IClone {
     out._y = this._y;
     out._z = this._z;
     out._w = this._w;
-    out._onValueChanged && !out._disableValueChanged && out._onValueChanged();
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
