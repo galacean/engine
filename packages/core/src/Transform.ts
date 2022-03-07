@@ -746,8 +746,9 @@ export class Transform extends Component {
     const worldRotationQuaternion = this._worldRotationQuaternion;
     const parent = this._getParentTransform();
     if (parent) {
-      Quaternion.invert(parent.worldRotationQuaternion, Transform._tempQuat0);
-      Quaternion.multiply(worldRotationQuaternion, Transform._tempQuat0, this._rotationQuaternion);
+      const invParentQuaternion = Transform._tempQuat0;
+      Quaternion.invert(parent.worldRotationQuaternion, invParentQuaternion);
+      Quaternion.multiply(worldRotationQuaternion, invParentQuaternion, this._rotationQuaternion);
     } else {
       worldRotationQuaternion.cloneTo(this._rotationQuaternion);
     }
