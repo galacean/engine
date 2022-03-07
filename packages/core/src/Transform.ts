@@ -244,7 +244,9 @@ export class Transform extends Component {
     this._rotationQuaternion._onValueChanged = null;
     //@ts-ignore
     this._scale._onValueChanged = null;
+
     this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
+    
     //@ts-ignore
     this._position._onValueChanged = this._onPositionChanged;
     //@ts-ignore
