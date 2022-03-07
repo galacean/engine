@@ -238,21 +238,8 @@ export class Transform extends Component {
     if (this._localMatrix !== value) {
       value.cloneTo(this._localMatrix);
     }
-    //@ts-ignore
-    this._position._onValueChanged = null;
-    //@ts-ignore
-    this._rotationQuaternion._onValueChanged = null;
-    //@ts-ignore
-    this._scale._onValueChanged = null;
 
     this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
-    
-    //@ts-ignore
-    this._position._onValueChanged = this._onPositionChanged;
-    //@ts-ignore
-    this._rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
-    //@ts-ignore
-    this._scale._onValueChanged = this._onScaleChanged;
 
     this._setDirtyFlagTrue(TransformFlag.LocalEuler);
     this._setDirtyFlagFalse(TransformFlag.LocalMatrix);
