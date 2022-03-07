@@ -64,20 +64,21 @@ export class Transform extends Component {
    * World position.
    */
   get worldPosition(): Vector3 {
+    const worldPosition = this._worldPosition;
     if (this._isContainDirtyFlag(TransformFlag.WorldPosition)) {
       //@ts-ignore
-      this._worldPosition._onValueChanged = null;
+      worldPosition._onValueChanged = null;
       if (this._getParentTransform()) {
-        this.worldMatrix.getTranslation(this._worldPosition);
+        this.worldMatrix.getTranslation(worldPosition);
       } else {
-        this._position.cloneTo(this._worldPosition);
+        this._position.cloneTo(worldPosition);
       }
       //@ts-ignore
-      this._worldPosition._onValueChanged = this._onWorldPositionChanged;
+      worldPosition._onValueChanged = this._onWorldPositionChanged;
       this._setDirtyFlagFalse(TransformFlag.WorldPosition);
     }
 
-    return this._worldPosition;
+    return worldPosition;
   }
 
   set worldPosition(value: Vector3) {
@@ -91,17 +92,18 @@ export class Transform extends Component {
    * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    */
   get rotation(): Vector3 {
+    const rotation = this._rotation;
     if (this._isContainDirtyFlag(TransformFlag.LocalEuler)) {
       //@ts-ignore
-      this._rotation._onValueChanged = null;
-      this._rotationQuaternion.toEuler(this._rotation);
+      rotation._onValueChanged = null;
+      this._rotationQuaternion.toEuler(rotation);
       //@ts-ignore
-      this._rotation._onValueChanged = this._onRotationChanged;
-      this._rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
+      rotation._onValueChanged = this._onRotationChanged;
+      rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
       this._setDirtyFlagFalse(TransformFlag.LocalEuler);
     }
 
-    return this._rotation;
+    return rotation;
   }
 
   set rotation(value: Vector3) {
@@ -115,16 +117,17 @@ export class Transform extends Component {
    * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    */
   get worldRotation(): Vector3 {
+    const worldRotation = this._worldRotation;
     if (this._isContainDirtyFlag(TransformFlag.WorldEuler)) {
       //@ts-ignore
-      this._worldRotation._onValueChanged = null;
-      this.worldRotationQuaternion.toEuler(this._worldRotation);
-      this._worldRotation.scale(MathUtil.radToDegreeFactor); // Radian to angle
+      worldRotation._onValueChanged = null;
+      this.worldRotationQuaternion.toEuler(worldRotation);
+      worldRotation.scale(MathUtil.radToDegreeFactor); // Radian to angle
       //@ts-ignore
-      this._worldRotation._onValueChanged = this._onWorldRotationChanged;
+      worldRotation._onValueChanged = this._onWorldRotationChanged;
       this._setDirtyFlagFalse(TransformFlag.WorldEuler);
     }
-    return this._worldRotation;
+    return worldRotation;
   }
 
   set worldRotation(value: Vector3) {
@@ -137,20 +140,21 @@ export class Transform extends Component {
    * Local rotation, defining the rotation by using a unit quaternion.
    */
   get rotationQuaternion(): Quaternion {
+    const rotationQuaternion = this._rotationQuaternion;
     if (this._isContainDirtyFlag(TransformFlag.LocalQuat)) {
       //@ts-ignore
-      this._rotationQuaternion._onValueChanged = null;
+      rotationQuaternion._onValueChanged = null;
       Quaternion.rotationEuler(
         MathUtil.degreeToRadian(this._rotation.x),
         MathUtil.degreeToRadian(this._rotation.y),
         MathUtil.degreeToRadian(this._rotation.z),
-        this._rotationQuaternion
+        rotationQuaternion
       );
       //@ts-ignore
-      this._rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+      rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
       this._setDirtyFlagFalse(TransformFlag.LocalQuat);
     }
-    return this._rotationQuaternion;
+    return rotationQuaternion;
   }
 
   set rotationQuaternion(value: Quaternion) {
@@ -163,20 +167,21 @@ export class Transform extends Component {
    * World rotation, defining the rotation by using a unit quaternion.
    */
   get worldRotationQuaternion(): Quaternion {
+    const worldRotationQuaternion = this._worldRotationQuaternion;
     if (this._isContainDirtyFlag(TransformFlag.WorldQuat)) {
       //@ts-ignore
-      this._worldRotationQuaternion._onValueChanged = null;
+      worldRotationQuaternion._onValueChanged = null;
       const parent = this._getParentTransform();
       if (parent != null) {
-        Quaternion.multiply(parent.worldRotationQuaternion, this.rotationQuaternion, this._worldRotationQuaternion);
+        Quaternion.multiply(parent.worldRotationQuaternion, this.rotationQuaternion, worldRotationQuaternion);
       } else {
-        this.rotationQuaternion.cloneTo(this._worldRotationQuaternion);
+        this.rotationQuaternion.cloneTo(worldRotationQuaternion);
       }
       //@ts-ignore
-      this._worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
+      worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
       this._setDirtyFlagFalse(TransformFlag.WorldQuat);
     }
-    return this._worldRotationQuaternion;
+    return worldRotationQuaternion;
   }
 
   set worldRotationQuaternion(value: Quaternion) {
