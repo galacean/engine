@@ -233,7 +233,20 @@ export class Transform extends Component {
     if (this._localMatrix !== value) {
       value.cloneTo(this._localMatrix);
     }
+    //@ts-ignore
+    this._position._onValueChanged = null;
+    //@ts-ignore
+    this._rotationQuaternion._onValueChanged = null;
+    //@ts-ignore
+    this._scale._onValueChanged = null;
     this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
+    //@ts-ignore
+    this._position._onValueChanged = this._onPositionChanged;
+    //@ts-ignore
+    this._rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    //@ts-ignore
+    this._scale._onValueChanged = this._onScaleChanged;
+
     this._setDirtyFlagTrue(TransformFlag.LocalEuler);
     this._setDirtyFlagFalse(TransformFlag.LocalMatrix);
     this._updateAllWorldFlag();
@@ -484,11 +497,10 @@ export class Transform extends Component {
       return;
     }
     const rotMat = Transform._tempMat43;
-    const worldRotationQuaternion = this._worldRotationQuaternion;
 
     worldUp = worldUp ?? Transform._tempVec3.setValue(0, 1, 0);
     Matrix.lookAt(position, worldPosition, worldUp, rotMat);
-    rotMat.getRotation(worldRotationQuaternion).invert();
+    Quaternion.invert(rotMat.getRotation(Transform._tempQuat0), this._worldRotationQuaternion);
   }
 
   /**
