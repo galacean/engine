@@ -287,6 +287,14 @@ export class Transform extends Component {
   constructor(entity: Entity) {
     super(entity);
 
+    this._onPositionChanged = this._onPositionChanged.bind(this);
+    this._onWorldPositionChanged = this._onWorldPositionChanged.bind(this);
+    this._onRotationChanged = this._onRotationChanged.bind(this);
+    this._onWorldRotationChanged = this._onWorldRotationChanged.bind(this);
+    this._onRotationQuaternionChanged = this._onRotationQuaternionChanged.bind(this);
+    this._onWorldRotationQuaternionChanged = this._onWorldRotationQuaternionChanged.bind(this);
+    this._onScaleChanged = this._onScaleChanged.bind(this);
+
     //@ts-ignore
     this._position._onValueChanged = this._onPositionChanged;
     //@ts-ignore
@@ -700,12 +708,12 @@ export class Transform extends Component {
     this._rotateByQuat(rotQuat, relativeToLocal);
   }
 
-  private _onPositionChanged: () => void = () => {
+  private _onPositionChanged(): void {
     this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
     this._updateWorldPositionFlag();
-  };
+  }
 
-  private _onWorldPositionChanged: () => void = () => {
+  private _onWorldPositionChanged(): void {
     const worldPosition = this._worldPosition;
     const parent = this._getParentTransform();
     if (parent) {
@@ -715,15 +723,15 @@ export class Transform extends Component {
       worldPosition.cloneTo(this._position);
     }
     this._setDirtyFlagFalse(TransformFlag.WorldPosition);
-  };
+  }
 
-  private _onRotationChanged: () => void = () => {
+  private _onRotationChanged(): void {
     this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalQuat);
     this._setDirtyFlagFalse(TransformFlag.LocalEuler);
     this._updateWorldRotationFlag();
-  };
+  }
 
-  private _onWorldRotationChanged: () => void = () => {
+  private _onWorldRotationChanged(): void {
     const worldRotation = this._worldRotation;
     Quaternion.rotationEuler(
       MathUtil.degreeToRadian(worldRotation.x),
@@ -732,15 +740,15 @@ export class Transform extends Component {
       this._worldRotationQuaternion
     );
     this._setDirtyFlagFalse(TransformFlag.WorldEuler);
-  };
+  }
 
-  private _onRotationQuaternionChanged: () => void = () => {
+  private _onRotationQuaternionChanged(): void {
     this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalEuler);
     this._setDirtyFlagFalse(TransformFlag.LocalQuat);
     this._updateWorldRotationFlag();
-  };
+  }
 
-  private _onWorldRotationQuaternionChanged: () => void = () => {
+  private _onWorldRotationQuaternionChanged(): void {
     const worldRotationQuaternion = this._worldRotationQuaternion;
     const parent = this._getParentTransform();
     if (parent) {
@@ -750,12 +758,12 @@ export class Transform extends Component {
       worldRotationQuaternion.cloneTo(this._rotationQuaternion);
     }
     this._setDirtyFlagFalse(TransformFlag.WorldQuat);
-  };
+  }
 
-  private _onScaleChanged: () => void = () => {
+  private _onScaleChanged(): void {
     this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
     this._updateWorldScaleFlag();
-  };
+  }
 }
 /**
  * Dirty flag of transform.
