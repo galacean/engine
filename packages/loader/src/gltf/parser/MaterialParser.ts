@@ -58,7 +58,12 @@ export class MaterialParser extends Parser {
           pbrMetallicRoughness;
 
         if (baseColorFactor) {
-          material.baseColor = new Color(...baseColorFactor);
+          material.baseColor = new Color(
+            Color.linearToGammaSpace(baseColorFactor[0]),
+            Color.linearToGammaSpace(baseColorFactor[1]),
+            Color.linearToGammaSpace(baseColorFactor[2]),
+            baseColorFactor[3]
+          );
         }
         if (baseColorTexture) {
           material.baseTexture = textures[baseColorTexture.index];
@@ -85,7 +90,11 @@ export class MaterialParser extends Parser {
         }
 
         if (emissiveFactor) {
-          m.emissiveColor = new Color(...emissiveFactor);
+          m.emissiveColor = new Color(
+            Color.linearToGammaSpace(emissiveFactor[0]),
+            Color.linearToGammaSpace(emissiveFactor[1]),
+            Color.linearToGammaSpace(emissiveFactor[2])
+          );
         }
 
         if (normalTexture) {

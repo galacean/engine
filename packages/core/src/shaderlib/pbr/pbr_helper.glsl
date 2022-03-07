@@ -51,6 +51,9 @@ PhysicalMaterial getPhysicalMaterial(
 
         #ifdef HAS_SPECULARGLOSSINESSMAP
             vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv );
+            #ifndef OASIS_COLORSPACE_GAMMA
+                specularGlossinessColor = gammaToLinear(specularGlossinessColor);
+            #endif
             specularColor *= specularGlossinessColor.rgb;
             glossiness *= specularGlossinessColor.a;
         #endif
