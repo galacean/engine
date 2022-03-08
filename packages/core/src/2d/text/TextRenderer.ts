@@ -287,29 +287,31 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.Style)) {
-      this._updateText();
-      this._setDirtyFlagFalse(DirtyFlag.Style);
-    }
-
     if (TextRenderer.needPremultiplyAlpha) {
       this.shaderData.enableMacro("NEED_PREMULTIPLY_ALPHA");
     } else {
       this.shaderData.disableMacro("NEED_PREMULTIPLY_ALPHA");
     }
 
+    const isStyleDirty = this._isContainDirtyFlag(DirtyFlag.Style);
+    if (isStyleDirty) {
+      this._updateText();
+    }
+
     const { _sprite: sprite } = this;
     const { texture } = sprite;
     if (!texture) {
+      this._setDirtyFlagFalse(DirtyFlag.Style);
       return;
     }
 
     // Update sprite data.
-    const localDirty = sprite._updateMeshData();
-    if (this._isWorldMatrixDirty.flag || localDirty) {
+    sprite._updateMesh();
+    if (this._isWorldMatrixDirty.flag || isStyleDirty) {
       this._updatePosition();
       this._isWorldMatrixDirty.flag = false;
     }
+    this._setDirtyFlagFalse(DirtyFlag.Style);
 
     if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
       this._updateStencilState();
