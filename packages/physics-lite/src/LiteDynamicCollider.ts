@@ -39,9 +39,9 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.putToSleep }
+   * {@inheritDoc IDynamicCollider.sleep }
    */
-  putToSleep(): void {
+  sleep(): void {
     throw "Physics-lite don't support putToSleep. Use Physics-PhysX instead!";
   }
 

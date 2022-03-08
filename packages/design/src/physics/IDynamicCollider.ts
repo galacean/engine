@@ -117,7 +117,7 @@ export interface IDynamicCollider extends ICollider {
   /**
    * Forces a collider to sleep at least one frame.
    */
-  putToSleep(): void;
+  sleep(): void;
 
   /**
    * Forces a collider to wake up.

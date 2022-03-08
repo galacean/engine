@@ -21,7 +21,7 @@ export class DynamicCollider extends Collider {
   private _solverIterations: number = 0;
   private _isKinematic: boolean = false;
   private _freezeRotation: boolean = false;
-  private _constraints: number = 0;
+  private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
 
   /**
@@ -191,11 +191,11 @@ export class DynamicCollider extends Collider {
   /**
    * The particular rigid dynamic lock flag.
    */
-  get constraints(): number {
+  get constraints(): DynamicColliderConstraints {
     return this._constraints;
   }
 
-  set constraints(newValue: number) {
+  set constraints(newValue: DynamicColliderConstraints) {
     this._constraints = newValue;
     (<IDynamicCollider>this._nativeCollider).setConstraints(newValue);
   }
@@ -242,21 +242,21 @@ export class DynamicCollider extends Collider {
    * @param position The desired position for the kinematic actor
    * @param rotation The desired rotation for the kinematic actor
    */
-  setKinematicTarget(position: Vector3, rotation: Quaternion) {
+  setKinematicTarget(position: Vector3, rotation: Quaternion): void {
     (<IDynamicCollider>this._nativeCollider).setKinematicTarget(position, rotation);
   }
 
   /**
    * Forces a collider to sleep at least one frame.
    */
-  putToSleep() {
-    (<IDynamicCollider>this._nativeCollider).putToSleep();
+  sleep(): void {
+    (<IDynamicCollider>this._nativeCollider).sleep();
   }
 
   /**
    * Forces a collider to wake up.
    */
-  wakeUp() {
+  wakeUp(): void {
     (<IDynamicCollider>this._nativeCollider).wakeUp();
   }
 
@@ -264,7 +264,7 @@ export class DynamicCollider extends Collider {
    * @override
    * @internal
    */
-  _onLateUpdate() {
+  _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
     this._nativeCollider.getWorldTransform(worldPosition, worldRotationQuaternion);
@@ -278,13 +278,13 @@ export class DynamicCollider extends Collider {
  * The collision detection mode constants.
  */
 export enum CollisionDetectionMode {
-  /// Continuous collision detection is off for this dynamic collider.
+  /** Continuous collision detection is off for this dynamic collider. */
   Discrete,
-  /// Continuous collision detection is on for colliding with static mesh geometry.
+  /** Continuous collision detection is on for colliding with static mesh geometry. */
   Continuous,
-  /// Continuous collision detection is on for colliding with static and dynamic geometry.
+  /** Continuous collision detection is on for colliding with static and dynamic geometry. */
   ContinuousDynamic,
-  /// Speculative continuous collision detection is on for static and dynamic geometries
+  /** Speculative continuous collision detection is on for static and dynamic geometries */
   ContinuousSpeculative
 }
 
@@ -292,6 +292,8 @@ export enum CollisionDetectionMode {
  * Use these flags to constrain motion of dynamic collider.
  */
 export enum DynamicColliderConstraints {
+  /** Not Freeze. */
+  None = 0,
   /** Freeze motion along the X-axis. */
   FreezePositionX = 1,
   /** Freeze motion along the Y-axis. */

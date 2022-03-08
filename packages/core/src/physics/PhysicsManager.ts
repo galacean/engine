@@ -21,12 +21,12 @@ export class PhysicsManager {
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
-      scripts.get(i).onContactEnter(shape2);
+      scripts.get(i).onCollisionEnter(shape2);
     }
 
     scripts = shape2.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
-      scripts.get(i).onContactEnter(shape1);
+      scripts.get(i).onCollisionEnter(shape1);
     }
   };
   private _onContactExit = (obj1: number, obj2: number) => {
@@ -35,12 +35,12 @@ export class PhysicsManager {
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
-      scripts.get(i).onContactExit(shape2);
+      scripts.get(i).onCollisionExit(shape2);
     }
 
     scripts = shape2.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
-      scripts.get(i).onContactExit(shape1);
+      scripts.get(i).onCollisionExit(shape1);
     }
   };
   private _onContactStay = (obj1: number, obj2: number) => {
@@ -49,12 +49,12 @@ export class PhysicsManager {
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
-      scripts.get(i).onContactStay(shape2);
+      scripts.get(i).onCollisionStay(shape2);
     }
 
     scripts = shape2.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
-      scripts.get(i).onContactStay(shape1);
+      scripts.get(i).onCollisionStay(shape1);
     }
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {

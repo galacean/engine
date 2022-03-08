@@ -173,16 +173,16 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.putToSleep }
+   * {@inheritDoc IDynamicCollider.sleep }
    */
-  putToSleep(): void {
+  sleep(): void {
     return this._pxActor.putToSleep();
   }
 
   /**
    * {@inheritDoc IDynamicCollider.wakeUp }
    */
-  wakeUp() {
+  wakeUp(): void {
     return this._pxActor.wakeUp();
   }
 }
