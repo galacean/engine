@@ -4,6 +4,10 @@ attribute vec3 POSITION;
     attribute vec2 TEXCOORD_0;
 #endif
 
+#ifdef O3_HAS_UV2
+    attribute vec2 TEXCOORD_1;
+#endif
+
 #ifdef O3_HAS_SKIN
     attribute vec4 JOINTS_0;
     attribute vec4 WEIGHTS_0;
