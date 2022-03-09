@@ -488,16 +488,16 @@ export class ModelMesh extends Mesh {
     const indexBuffer = this._indexBufferBinding?._buffer;
     if (_indices) {
       if (!indexBuffer || _indices.byteLength != indexBuffer.byteLength) {
-        this._indicesChangeFlag = false;
         indexBuffer?.destroy();
         const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
         this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
-      } else if (this._indicesChangeFlag) {
         this._indicesChangeFlag = false;
+      } else if (this._indicesChangeFlag) {
         indexBuffer.setData(_indices);
         if (this._indexBufferBinding._format !== this._indicesFormat) {
           this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
         }
+        this._indicesChangeFlag = false;
       }
     } else if (indexBuffer) {
       indexBuffer.destroy();
