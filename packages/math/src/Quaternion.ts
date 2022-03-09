@@ -206,7 +206,7 @@ export class Quaternion implements IClone {
    * @param out - The inverse of the specified quaternion
    */
   static invert(a: Quaternion, out: Quaternion): void {
-    const { x, y, z, w } = a;
+    const { _x: x, _y: y, _z: z, _w: w } = a;
     const dot = x * x + y * y + z * z + w * w;
     if (dot > MathUtil.zeroTolerance) {
       const invDot = 1.0 / dot;
