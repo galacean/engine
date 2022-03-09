@@ -488,6 +488,7 @@ export class ModelMesh extends Mesh {
     const indexBuffer = this._indexBufferBinding?._buffer;
     if (_indices) {
       if (!indexBuffer || _indices.byteLength != indexBuffer.byteLength) {
+        this._indicesChangeFlag = false;
         indexBuffer?.destroy();
         const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
         this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
