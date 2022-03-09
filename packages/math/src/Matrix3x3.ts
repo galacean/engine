@@ -156,7 +156,7 @@ export class Matrix3x3 implements IClone {
    */
   static rotationQuaternion(quaternion: Quaternion, out: Matrix3x3): void {
     const oe = out.elements;
-    const { x, y, z, w } = quaternion;
+    const { _x: x, _y: y, _z: z, _w: w } = quaternion;
     const x2 = x + x;
     const y2 = y + y;
     const z2 = z + z;
@@ -368,7 +368,7 @@ export class Matrix3x3 implements IClone {
    * @param out - The scaled matrix
    */
   static scale(m: Matrix3x3, s: Vector2, out: Matrix3x3): void {
-    const { x, y } = s;
+    const { _x: x, _y: y } = s;
     const ae = m.elements;
     const oe = out.elements;
 
@@ -392,7 +392,7 @@ export class Matrix3x3 implements IClone {
    * @param out - The translated matrix
    */
   static translate(m: Matrix3x3, translation: Vector2, out: Matrix3x3): void {
-    const { x, y } = translation;
+    const { _x: x, _y: y } = translation;
     const ae = m.elements;
     const oe = out.elements;
 

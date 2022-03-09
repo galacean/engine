@@ -170,7 +170,7 @@ export class Matrix implements IClone {
    */
   static rotationQuaternion(quaternion: Quaternion, out: Matrix): void {
     const oe = out.elements;
-    const { x, y, z, w } = quaternion;
+    const { _x: x, _y: y, _z: z, _w: w } = quaternion;
     let x2 = x + x;
     let y2 = y + y;
     let z2 = z + z;
@@ -214,7 +214,7 @@ export class Matrix implements IClone {
    */
   static rotationAxisAngle(axis: Vector3, r: number, out: Matrix): void {
     const oe = out.elements;
-    let { x, y, z } = axis;
+    let { _x: x, _y: y, _z: z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
     let s, c, t;
 
@@ -277,7 +277,7 @@ export class Matrix implements IClone {
    */
   static affineTransformation(scale: Vector3, rotation: Quaternion, translation: Vector3, out: Matrix): void {
     const oe = out.elements;
-    const { x, y, z, w } = rotation;
+    const { _x: x, _y: y, _z: z, _w: w } = rotation;
     let x2 = x + x;
     let y2 = y + y;
     let z2 = z + z;
@@ -557,7 +557,7 @@ export class Matrix implements IClone {
    * @param out - The rotated matrix
    */
   static rotateAxisAngle(m: Matrix, axis: Vector3, r: number, out: Matrix): void {
-    let { x, y, z } = axis;
+    let { _x: x, _y: y, _z: z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
     if (Math.abs(len) < MathUtil.zeroTolerance) {
@@ -635,7 +635,7 @@ export class Matrix implements IClone {
   static scale(m: Matrix, s: Vector3, out: Matrix): void {
     const me = m.elements;
     const oe = out.elements;
-    const { x, y, z } = s;
+    const { _x: x, _y: y, _z: z } = s;
 
     oe[0] = me[0] * x;
     oe[1] = me[1] * x;
@@ -667,7 +667,7 @@ export class Matrix implements IClone {
   static translate(m: Matrix, v: Vector3, out: Matrix): void {
     const me = m.elements;
     const oe = out.elements;
-    const { x, y, z } = v;
+    const { _x: x, _y: y, _z: z } = v;
 
     if (m === out) {
       oe[12] = me[0] * x + me[4] * y + me[8] * z + me[12];

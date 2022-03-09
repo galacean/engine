@@ -233,7 +233,7 @@ export class Vector4 implements IClone {
    * @param out - The transformed vector
    */
   static transformByQuat(v: Vector4, q: Quaternion, out: Vector4): void {
-    const { x, y, z, w } = v;
+    const { _x: x, _y: y, _z: z, _w: w } = v;
     const qx = q._x;
     const qy = q._y;
     const qz = q._z;
