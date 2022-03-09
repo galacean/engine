@@ -41,7 +41,7 @@ export class SphericalHarmonics3 implements IClone {
 
     const coe = this.coefficients;
 
-    const { x, y, z } = direction;
+    const { _x: x, _y: y, _z: z } = direction;
     const { r, g, b } = color;
 
     const bv0 = 0.282095; // basis0 = 0.886227
@@ -98,7 +98,7 @@ export class SphericalHarmonics3 implements IClone {
      */
 
     const coe = this.coefficients;
-    const { x, y, z } = direction;
+    const { _x: x, _y: y, _z: z } = direction;
 
     const bv0 = 0.886227; // kernel0 * basis0 = 0.886227
     const bv1 = -1.023327 * y; // kernel1 * basis1 = -1.023327
