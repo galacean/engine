@@ -84,12 +84,6 @@ export interface IDynamicCollider extends ICollider {
   setIsKinematic(value: boolean): void;
 
   /**
-   * Controls whether physics will change the rotation of the object.
-   * @param value is or not
-   */
-  setFreezeRotation(value: boolean): void;
-
-  /**
    * Raises or clears a particular rigid dynamic lock flag.
    * @param flags the flag to raise(set) or clear.
    */
@@ -109,10 +103,10 @@ export interface IDynamicCollider extends ICollider {
 
   /**
    * Moves kinematically controlled dynamic actors through the game world.
-   * @param position The desired position for the kinematic actor
+   * @param positionOrRotation The desired position or rotation for the kinematic actor
    * @param rotation The desired rotation for the kinematic actor
    */
-  setKinematicTarget(position: Vector3, rotation: Quaternion): void;
+  move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void;
 
   /**
    * Forces a collider to sleep at least one frame.

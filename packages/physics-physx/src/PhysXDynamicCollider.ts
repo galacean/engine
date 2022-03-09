@@ -21,6 +21,9 @@ export enum CollisionDetectionMode {
  * A dynamic collider can act with self-defined movement or physical force
  */
 export class PhysXDynamicCollider extends PhysXCollider implements IDynamicCollider {
+  private static _tempTranslation = new Vector3();
+  private static _tempRotation = new Quaternion();
+
   constructor(position: Vector3, rotation: Quaternion) {
     super();
     const transform = this._transform(position, rotation);
@@ -138,13 +141,6 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setFreezeRotation }
-   */
-  setFreezeRotation(value: boolean): void {
-    this._pxActor.setFreezeRotation(value);
-  }
-
-  /**
    * {@inheritDoc IDynamicCollider.setConstraints }
    */
   setConstraints(flags: number): void {
@@ -166,10 +162,22 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setKinematicTarget }
+   * {@inheritDoc IDynamicCollider.move }
    */
-  setKinematicTarget(position: Vector3, rotation: Quaternion): void {
-    this._pxActor.setKinematicTarget(position, rotation);
+  move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    if (rotation) {
+      this._pxActor.setKinematicTarget(positionOrRotation, rotation);
+      return;
+    }
+
+    const tempTranslation = PhysXDynamicCollider._tempTranslation;
+    const tempRotation = PhysXDynamicCollider._tempRotation;
+    this.getWorldTransform(tempTranslation, tempRotation);
+    if (positionOrRotation instanceof Vector3) {
+      this._pxActor.setKinematicTarget(positionOrRotation, tempRotation);
+    } else {
+      this._pxActor.setKinematicTarget(tempTranslation, positionOrRotation);
+    }
   }
 
   /**

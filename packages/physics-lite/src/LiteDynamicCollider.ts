@@ -32,10 +32,10 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   /**
-   * {@inheritDoc IDynamicCollider.setKinematicTarget }
+   * {@inheritDoc IDynamicCollider.move }
    */
-  setKinematicTarget(position: Vector3, rotation: Quaternion): void {
-    throw "Physics-lite don't support setKinematicTarget. Use Physics-PhysX instead!";
+  move(positionOrRotation: Vector3 | Quaternion, rotation?: Quaternion): void {
+    throw "Physics-lite don't support move. Use Physics-PhysX instead!";
   }
 
   /**
@@ -71,13 +71,6 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
    */
   setCollisionDetectionMode(value: number): void {
     throw "Physics-lite don't support setCollisionDetectionMode. Use Physics-PhysX instead!";
-  }
-
-  /**
-   * {@inheritDoc IDynamicCollider.setFreezeRotation }
-   */
-  setFreezeRotation(value: boolean): void {
-    throw "Physics-lite don't support setFreezeRotation. Use Physics-PhysX instead!";
   }
 
   /**

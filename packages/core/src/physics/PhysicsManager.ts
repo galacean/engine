@@ -106,10 +106,10 @@ export class PhysicsManager {
     return this._gravity;
   }
 
-  set gravity(g: Vector3) {
+  set gravity(value: Vector3) {
     const gravity = this._gravity;
-    if (this._gravity !== g) {
-      g.cloneTo(gravity);
+    if (this._gravity !== value) {
+      value.cloneTo(gravity);
     }
     this._nativePhysicsManager.setGravity(gravity);
   }
