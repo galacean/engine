@@ -191,12 +191,12 @@ export class Matrix3x3 implements IClone {
   static scaling(s: Vector2, out: Matrix3x3): void {
     const oe = out.elements;
 
-    oe[0] = s.x;
+    oe[0] = s._x;
     oe[1] = 0;
     oe[2] = 0;
 
     oe[3] = 0;
-    oe[4] = s.y;
+    oe[4] = s._y;
     oe[5] = 0;
 
     oe[6] = 0;
@@ -220,8 +220,8 @@ export class Matrix3x3 implements IClone {
     oe[4] = 1;
     oe[5] = 0;
 
-    oe[6] = translation.x;
-    oe[7] = translation.y;
+    oe[6] = translation._x;
+    oe[7] = translation._y;
     oe[8] = 1;
   }
 
