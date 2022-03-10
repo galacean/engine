@@ -55,7 +55,6 @@ struct EnvMapLight {
     float mipMapLevel;
     float diffuseIntensity;
     float specularIntensity;
-    mat4 modelMatrix;
 };
 
 
