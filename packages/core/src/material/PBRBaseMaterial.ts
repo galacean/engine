@@ -153,11 +153,10 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     }
   }
 
-
   /**
    * The clearcoat layer intensity, default 0.
    */
-   get clearcoat(): number {
+  get clearcoat(): number {
     return this.shaderData.getFloat(PBRBaseMaterial._clearcoatProp);
   }
 
@@ -253,7 +252,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.setFloat(PBRBaseMaterial._normalTextureIntensityProp, 1);
     shaderData.setFloat(PBRBaseMaterial._occlusionTextureIntensityProp, 1);
 
-    this.shaderData.setFloat(PBRBaseMaterial._clearcoatProp, 0);
-    this.shaderData.setFloat(PBRBaseMaterial._clearcoatRoughnessProp, 0);
+    shaderData.setFloat(PBRBaseMaterial._clearcoatProp, 0);
+    shaderData.setFloat(PBRBaseMaterial._clearcoatRoughnessProp, 0);
   }
 }
