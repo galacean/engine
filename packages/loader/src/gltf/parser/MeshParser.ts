@@ -164,15 +164,19 @@ export class MeshParser extends Parser {
         case "TEXCOORD_3":
           const texturecoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords3, 3);
+          break;
         case "TEXCOORD_4":
           const texturecoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords4, 4);
+          break;
         case "TEXCOORD_5":
           const texturecoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords5, 5);
+          break;
         case "TEXCOORD_6":
           const texturecoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords6, 6);
+          break;
         case "TEXCOORD_7":
           const texturecoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords7, 7);
