@@ -33,7 +33,7 @@ export class SpriteAtlasResource extends SchemaResource {
               schemaResourceManager.resourceIdMap.set(spriteResource, "" + assetID);
             }
             resolve(this);
-          })
+          });
       } else {
         if (!SpriteAtlasResource.defaultAtlas) {
           SpriteAtlasResource.defaultAtlas = new SpriteAtlas(resourceManager.engine);
