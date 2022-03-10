@@ -8,7 +8,7 @@ export class SpriteAtlasResource extends SchemaResource {
   static defaultAtlas: SpriteAtlas;
 
   load(resourceManager: ResourceManager, assetConfig: AssetConfig): Promise<SpriteAtlasResource> {
-    return new Promise((resolve, reject) => {
+    return new Promise((resolve) => {
       this.setMeta();
       if (assetConfig.source) {
         resourceManager
@@ -33,9 +33,7 @@ export class SpriteAtlasResource extends SchemaResource {
               schemaResourceManager.resourceIdMap.set(spriteResource, "" + assetID);
             }
             resolve(this);
-          }).catch((e) => {
-            reject(e);
-          });
+          })
       } else {
         if (!SpriteAtlasResource.defaultAtlas) {
           SpriteAtlasResource.defaultAtlas = new SpriteAtlas(resourceManager.engine);
