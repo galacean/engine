@@ -519,6 +519,7 @@ export class Animator extends Component {
 
     let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
+
     srcPlayData.update();
     destPlayData.update();
 
