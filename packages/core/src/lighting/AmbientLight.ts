@@ -1,4 +1,4 @@
-import { Color, Matrix, SphericalHarmonics3 } from "@oasis-engine/math";
+import { Color, SphericalHarmonics3 } from "@oasis-engine/math";
 import { Scene } from "../Scene";
 import { Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
@@ -32,17 +32,6 @@ export class AmbientLight {
   private _shArray: Float32Array = new Float32Array(27);
   private _scene: Scene;
   private _specularTextureDecodeRGBM: boolean = false;
-  private _rotationMatrix: Matrix = new Matrix();
-
-  set rotationMatrix(value: Matrix) {
-    if (this._rotationMatrix !== value) {
-      value.cloneTo(this._rotationMatrix);
-    }
-
-    if (!this._scene) return;
-
-    this._scene.shaderData.setMatrix("u_envMapLight.modelMatrix", this._rotationMatrix);
-  }
 
   /**
    * Whether to decode from specularTexture with RGBM format.
@@ -178,8 +167,6 @@ export class AmbientLight {
     this.specularTexture = this._specularReflection;
     this.specularIntensity = this._specularIntensity;
     this.specularTextureDecodeRGBM = this._specularTextureDecodeRGBM;
-    // this.rotation = this._rotation;
-    this.rotationMatrix = this._rotationMatrix;
   }
 
   private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
