@@ -37,6 +37,7 @@ export class PointerManager {
   /**
    * Create a PointerManager.
    * @param engine - The current engine instance
+   * @param htmlCanvas - HTMLCanvasElement
    */
   constructor(engine: Engine, htmlCanvas: HTMLCanvasElement) {
     this._engine = engine;
