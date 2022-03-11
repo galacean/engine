@@ -33,7 +33,8 @@ export class MaterialParser extends Parser {
         name = ""
       } = gltf.materials[i];
 
-      const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat } = extensions;
+      const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat, KHR_materials_sheen } =
+        extensions;
 
       let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
 
@@ -55,6 +56,10 @@ export class MaterialParser extends Parser {
 
       if (KHR_materials_clearcoat) {
         Parser.parseEngineResource("KHR_materials_clearcoat", KHR_materials_clearcoat, material, context);
+      }
+
+      if (KHR_materials_sheen) {
+        Parser.parseEngineResource("KHR_materials_sheen", KHR_materials_sheen, material, context);
       }
 
       if (pbrMetallicRoughness) {

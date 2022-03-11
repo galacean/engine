@@ -11,6 +11,11 @@ uniform vec3 u_emissiveColor;
     uniform float u_clearcoatRoughness;
 #endif
 
+#ifdef SHEEN
+    uniform vec3  u_sheenColor;
+    uniform float u_sheenRoughness;
+#endif
+
 uniform float u_normalIntensity;
 uniform float u_occlusionStrength;
 
@@ -53,6 +58,13 @@ uniform float u_occlusionStrength;
     uniform sampler2D u_clearcoatNormalTexture;
 #endif
 
+#ifdef HAS_SHEENCOLORTEXTURE
+    uniform sampler2D u_sheenColorTexture;
+#endif
+
+#ifdef HAS_SHEENROUGHNESSTEXTURE
+    uniform sampler2D u_sheenRoughnessTexture;
+#endif
 
 
 // Runtime
@@ -81,9 +93,17 @@ struct Material {
     float roughness;
     vec3  specularColor;
     float opacity;
+    float clearcoatAttenuation;
+    float sheenAttenuation;
+
     #ifdef CLEARCOAT
         float clearcoat;
         float clearcoatRoughness;
+    #endif
+    
+    #ifdef SHEEN
+        vec3  sheenColor;
+        float sheenRoughness;
     #endif
 
 };

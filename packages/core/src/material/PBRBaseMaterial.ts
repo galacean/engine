@@ -24,6 +24,13 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _clearcoatRoughnessTextureProp = Shader.getPropertyByName("u_clearcoatRoughnessTexture");
   private static _clearcoatNormalTextureProp = Shader.getPropertyByName("u_clearcoatNormalTexture");
 
+  private static _sheenColor = Shader.getPropertyByName("u_sheenColor");
+  private static _sheenColorTexture = Shader.getPropertyByName("u_sheenColorTexture");
+  private static _sheenRoughness = Shader.getPropertyByName("u_sheenRoughness");
+  private static _sheenRoughnessTexture = Shader.getPropertyByName("u_sheenRoughnessTexture");
+
+  private _sheenEnabled: boolean = false;
+
   /**
    * Base color.
    */
@@ -233,6 +240,84 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   /**
+   * Sheen enabled.
+   * @remark
+   */
+  get sheenEnabled(): boolean {
+    return this._sheenEnabled;
+  }
+
+  set sheenEnabled(value: boolean) {
+    this._sheenEnabled = value;
+
+    if (value) {
+      this.shaderData.enableMacro("SHEEN");
+    } else {
+      this.shaderData.disableMacro("SHEEN");
+    }
+  }
+
+  /**
+   * Sheen color, default [0,0,0].
+   */
+  get sheenColor(): Color {
+    return this.shaderData.getColor(PBRBaseMaterial._sheenColor);
+  }
+
+  set sheenColor(value: Color) {
+    const baseColor = this.shaderData.getColor(PBRBaseMaterial._sheenColor);
+
+    if (value !== baseColor) {
+      value.cloneTo(baseColor);
+    }
+  }
+
+  /**
+   * The sheen color texture.
+   */
+  get sheenColorTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._sheenColorTexture);
+  }
+
+  set sheenColorTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._sheenColorTexture, value);
+
+    if (value) {
+      this.shaderData.enableMacro("HAS_SHEENCOLORTEXTURE");
+    } else {
+      this.shaderData.disableMacro("HAS_SHEENCOLORTEXTURE");
+    }
+  }
+
+  /**
+   * Sheen roughness, default 0.
+   */
+  get sheenRoughness(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._sheenRoughness);
+  }
+
+  set sheenRoughness(value: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._sheenRoughness, value);
+  }
+
+  /**
+   * The sheen roughness texture.
+   */
+  get sheenRoughnessTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._sheenRoughnessTexture);
+  }
+
+  set sheenRoughnessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._sheenRoughnessTexture, value);
+
+    if (value) {
+      this.shaderData.enableMacro("HAS_SHEENROUGHNESSTEXTURE");
+    } else {
+      this.shaderData.disableMacro("HAS_SHEENROUGHNESSTEXTURE");
+    }
+  }
+
+  /**
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
@@ -254,5 +339,18 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     shaderData.setFloat(PBRBaseMaterial._clearcoatProp, 0);
     shaderData.setFloat(PBRBaseMaterial._clearcoatRoughnessProp, 0);
+
+    shaderData.setColor(PBRBaseMaterial._sheenColor, new Color(0, 0, 0, 1));
+    shaderData.setFloat(PBRBaseMaterial._sheenRoughness, 0);
+  }
+
+  /**
+   * @override
+   * Clone to the target material.
+   * @param target - target material
+   */
+  cloneTo(target: PBRBaseMaterial): void {
+    super.cloneTo(target);
+    target._sheenEnabled = this._sheenEnabled;
   }
 }

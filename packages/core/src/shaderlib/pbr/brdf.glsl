@@ -67,3 +67,31 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 viewDir, vec3 normal, vec3 s
 vec3 BRDF_Diffuse_Lambert(vec3 diffuseColor ) {
 	return RECIPROCAL_PI * diffuseColor;
 }
+
+
+#ifdef SHEEN
+	float D_Charlie(float roughness, float NoH) {
+		float alpha = pow2( roughness );
+    	// Estevez and Kulla 2017, "Production Friendly Microfacet Sheen BRDF"
+    	float invAlpha  = 1.0 / roughness;
+    	float cos2h = NoH * NoH;
+    	float sin2h = max(1.0 - cos2h, 0.0078125); // 2^(-14/2), so sin2h^2 > 0 in fp16
+
+    	return (2.0 + invAlpha) * pow(sin2h, invAlpha * 0.5) / (2.0 * PI);
+	}
+
+	float V_Neubelt(float NoV, float NoL) {
+    	// Neubelt and Pettineo 2013, "Crafting a Next-gen Material Pipeline for The Order: 1886"
+    	return saturate(1.0 / (4.0 * (NoL + NoV - NoL * NoV)));
+	}
+
+    vec3 BRDF_Specular_Sheen(vec3 lightDir, Geometry geometry, vec3 sheenColor, float sheenRoughness ) {
+        vec3 halfDir = normalize( lightDir + geometry.viewDir );
+        float dotNL = saturate( dot( geometry.normal, lightDir ) );
+        float dotNH = saturate( dot( geometry.normal, halfDir ) );
+        float D = D_Charlie( sheenRoughness, dotNH );
+        float V = V_Neubelt( geometry.dotNV, dotNL );
+
+        return sheenColor * ( D * V );
+    }
+#endif

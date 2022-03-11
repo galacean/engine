@@ -1,17 +1,20 @@
 void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
-    float attenuation = 1.0;
+    float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
+    vec3 irradiance = dotNL * color * PI;
 
     #ifdef CLEARCOAT
         float clearcoatDotNL = saturate( dot( geometry.clearcoatNormal, incidentDirection ) );
         vec3 clearcoatIrradiance = clearcoatDotNL * color;
         
         reflectedLight.directSpecular += material.clearcoat * clearcoatIrradiance * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.clearcoatNormal, vec3( 0.04 ), material.clearcoatRoughness );
-        attenuation -= material.clearcoat * F_Schlick(geometry.clearcoatDotNV);
+    #endif
+   
+    
+    #ifdef SHEEN
+         reflectedLight.directSpecular += material.clearcoatAttenuation * irradiance * BRDF_Specular_Sheen(incidentDirection, geometry, material.sheenColor, material.sheenRoughness);
     #endif
 
-    float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
-    vec3 irradiance = dotNL * color * PI;
-
+    float attenuation = material.clearcoatAttenuation * material.sheenAttenuation;
     reflectedLight.directSpecular += attenuation * irradiance * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.normal, material.specularColor, material.roughness);
     reflectedLight.directDiffuse += attenuation * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 

@@ -1,5 +1,9 @@
 #include <normal_get>
 
+// direct + indirect
+#include <brdf>
+#include <direct_irradiance_frag_define>
+#include <ibl_frag_define>
 
 float computeSpecularOcclusion(float ambientOcclusion, float roughness, float dotNV ) {
     return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
@@ -12,6 +16,11 @@ float getAARoughnessFactor(vec3 normal) {
     #else
         return 0.0;
     #endif
+}
+
+float getSheenAlbedoScaling(vec3 sheenColor){
+    // https://drive.google.com/file/d/1T0D1VSyR4AllqIJTQAraEIzjlb5h4FKH/view?usp=sharing
+	return 1.0 - 0.157 * max( max(sheenColor.r, sheenColor.g), sheenColor.b );
 }
 
 void initGeometry(out Geometry geometry){
@@ -105,12 +114,32 @@ void initMaterial(out Material material, const in Geometry geometry){
             #endif
             material.clearcoat = saturate( material.clearcoat );
             material.clearcoatRoughness = max(material.clearcoatRoughness, getAARoughnessFactor(geometry.clearcoatNormal));
+            material.clearcoatAttenuation = 1.0 - material.clearcoat * F_Schlick(geometry.clearcoatDotNV);
+        #else
+            material.clearcoatAttenuation = 1.0;
+        #endif
+
+        #ifdef SHEEN
+            material.sheenColor = u_sheenColor;
+
+            #ifdef HAS_SHEENCOLORTEXTURE
+                vec4 sheenColorTextureValue =  texture2D( u_sheenColorTexture, v_uv );
+                #ifndef OASIS_COLORSPACE_GAMMA
+                    sheenColorTextureValue = gammaToLinear(sheenColorTextureValue);
+                #endif
+                material.sheenColor *= sheenColorTextureValue.rgb;
+            #endif
+
+            material.sheenRoughness = max( u_sheenRoughness, 0.01 );
+
+            #ifdef HAS_SHEENROUGHNESSTEXTURE
+                material.sheenRoughness *= texture2D( u_sheenRoughnessTexture, v_uv ).a;
+            #endif
+
+            material.sheenAttenuation = getSheenAlbedoScaling(material.sheenColor);
+        #else
+            material.sheenAttenuation = 1.0;
         #endif
 
         material.opacity = baseColor.a;
 }
-
-// direct + indirect
-#include <brdf>
-#include <direct_irradiance_frag_define>
-#include <ibl_frag_define>
