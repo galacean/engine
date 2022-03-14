@@ -11,25 +11,25 @@ class KHR_lights {
     for (let i = 0; i < lights.length; i++) {
       const { name, type, spot } = lights[i];
       let { color, intensity } = lights[i];
-      let ability;
+      let component;
       let props;
       color = color ? color : [1, 1, 1];
       intensity = intensity === undefined ? 1 : intensity;
       switch (type) {
         case "ambient":
-          ability = AmbientLight;
+          component = AmbientLight;
           props = { name, color, intensity };
           break;
         case "directional":
-          ability = DirectLight;
+          component = DirectLight;
           props = { name, color, intensity };
           break;
         case "point":
-          ability = PointLight;
+          component = PointLight;
           props = { name, color, intensity };
           break;
         case "spot":
-          ability = SpotLight;
+          component = SpotLight;
           props = { name, color, intensity, angle: spot.outerConeAngle };
           break;
         default:
@@ -37,8 +37,8 @@ class KHR_lights {
           break;
       }
 
-      if (ability) {
-        results[i] = { ability, props };
+      if (component) {
+        results[i] = { component, props };
       }
     }
     return results;
