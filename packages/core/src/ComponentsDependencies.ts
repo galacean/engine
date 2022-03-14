@@ -70,8 +70,8 @@ export class ComponentsDependencies {
   private constructor() {}
 }
 
-export function dependencies(...abilityClass: ComponentConstructor[]) {
+export function dependencies(...componentClass: ComponentConstructor[]) {
   return function <T extends ComponentConstructor>(target: T): void {
-    abilityClass.forEach((ability) => ComponentsDependencies.register(target, ability));
+    componentClass.forEach((component) => ComponentsDependencies.register(target, component));
   };
 }

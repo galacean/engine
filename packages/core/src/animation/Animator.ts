@@ -653,9 +653,7 @@ export class Animator extends Component {
           value = Animator._tempQuaternion;
           break;
         case AnimationProperty.Scale: {
-          const scale = transform.scale;
           Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
-          transform.scale = scale;
           value = Animator._tempVector3;
           break;
         }
@@ -685,7 +683,6 @@ export class Animator extends Component {
           } else {
             const position = transform.position;
             Vector3.lerp(position, <Vector3>value, weight, position);
-            transform.position = position;
           }
           break;
         case AnimationProperty.Rotation:
@@ -694,7 +691,6 @@ export class Animator extends Component {
           } else {
             const rotationQuaternion = transform.rotationQuaternion;
             Quaternion.slerp(rotationQuaternion, <Quaternion>value, weight, rotationQuaternion);
-            transform.rotationQuaternion = rotationQuaternion;
           }
           break;
         case AnimationProperty.Scale:
@@ -703,7 +699,6 @@ export class Animator extends Component {
           } else {
             const scale = transform.scale;
             Vector3.lerp(scale, <Vector3>value, weight, scale);
-            transform.scale = scale;
           }
           break;
       }
