@@ -32,7 +32,7 @@ export class InputManager {
    * Whether to disable input.
    */
   get enabled(): boolean {
-    return true;
+    return this._enabled;
   }
 
   set enabled(value: boolean) {
