@@ -189,7 +189,7 @@ export class Vector2 implements IClone {
   /**
    * The x component of the vector.
    */
-  public get x() {
+  public get x(): number {
     return this._x;
   }
 
@@ -201,7 +201,7 @@ export class Vector2 implements IClone {
   /**
    * The y component of the vector.
    */
-  public get y() {
+  public get y(): number {
     return this._y;
   }
 
