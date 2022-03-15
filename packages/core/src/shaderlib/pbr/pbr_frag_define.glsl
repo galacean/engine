@@ -104,6 +104,7 @@ struct Material {
     #ifdef SHEEN
         vec3  sheenColor;
         float sheenRoughness;
+        float sheenEnvBRDF;
     #endif
 
 };

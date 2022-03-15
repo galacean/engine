@@ -76,3 +76,14 @@ vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMI
     #endif
 
 }
+
+#ifdef SHEEN
+    // https://drive.google.com/file/d/1T0D1VSyR4AllqIJTQAraEIzjlb5h4FKH
+	float envBRDFApprox_Sheen( float dotNV, float roughness) {
+   		 float r2 = pow2(roughness);
+   		 float a = roughness < 0.25 ? -339.2 * r2 + 161.4 * roughness - 25.9 : -8.48 * r2 + 14.3 * roughness - 9.95;
+   		 float b = roughness < 0.25 ? 44.0 * r2 - 23.7 * roughness + 3.26 : 1.97 * r2 - 3.27 * roughness + 0.72;
+   		 float DG = exp( a * dotNV + b ) + ( roughness < 0.25 ? 0.0 : 0.1 * ( roughness - 0.25 ) );
+   		 return saturate( DG );
+	}
+#endif

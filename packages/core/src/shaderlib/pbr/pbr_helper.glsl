@@ -18,9 +18,8 @@ float getAARoughnessFactor(vec3 normal) {
     #endif
 }
 
-float getSheenAlbedoScaling(vec3 sheenColor){
-    // https://drive.google.com/file/d/1T0D1VSyR4AllqIJTQAraEIzjlb5h4FKH/view?usp=sharing
-	return 1.0 - 0.157 * max( max(sheenColor.r, sheenColor.g), sheenColor.b );
+float getSheenAlbedoScaling(vec3 sheenColor, float sheenEnvBRDF){
+	return 1.0 - sheenEnvBRDF * max( max(sheenColor.r, sheenColor.g), sheenColor.b );
 }
 
 void initGeometry(out Geometry geometry){
@@ -136,7 +135,8 @@ void initMaterial(out Material material, const in Geometry geometry){
                 material.sheenRoughness *= texture2D( u_sheenRoughnessTexture, v_uv ).a;
             #endif
 
-            material.sheenAttenuation = getSheenAlbedoScaling(material.sheenColor);
+            material.sheenEnvBRDF = envBRDFApprox_Sheen(geometry.dotNV, material.sheenRoughness );
+            material.sheenAttenuation = getSheenAlbedoScaling(material.sheenColor, material.sheenEnvBRDF);
         #else
             material.sheenAttenuation = 1.0;
         #endif
