@@ -86,6 +86,13 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
+   * {@inheritDoc IPhysicsManager.setFrequency }
+   */
+  setFrequency(freq: number): void {
+    throw "Physics-lite don't support setFrequency. Use Physics-PhysX instead!";
+  }
+
+  /**
    * {@inheritDoc IPhysicsManager.update }
    */
   update(deltaTime: number): void {

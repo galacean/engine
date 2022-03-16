@@ -23,6 +23,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   private _pxScene: any;
+  private _restTime: number = 0;
+  private _frequency: number = 60;
+  private _singleStepTime: number = 1.0 / 60.0;
 
   private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
   private readonly _onContactExit?: (obj1: number, obj2: number) => void;
@@ -135,12 +138,24 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
+   * {@inheritDoc IPhysicsManager.setFrequency }
+   */
+  setFrequency(freq: number): void {
+    this._frequency = Math.floor(freq);
+    this._singleStepTime = 1 / Math.floor(freq);
+  }
+
+  /**
    * {@inheritDoc IPhysicsManager.update }
    */
   update(elapsedTime: number): void {
-    const step = Math.max(1, Math.floor(elapsedTime * 60));
+    const { _frequency: frequency, _singleStepTime: singleStepTime, _restTime: restTime } = this;
+
+    const simulateTime = elapsedTime + restTime;
+    const step = Math.floor(simulateTime * frequency);
+    this._restTime = simulateTime - step * singleStepTime;
     for (let i = 0; i < step; i++) {
-      this._simulate(1 / 60);
+      this._simulate(singleStepTime);
     }
 
     this._fetchResults();

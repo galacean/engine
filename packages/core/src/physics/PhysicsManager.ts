@@ -12,6 +12,7 @@ export class PhysicsManager {
   /** @internal */
   static _nativePhysics: IPhysics;
 
+  private _frequency: number = 60;
   private _gravity: Vector3 = new Vector3();
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap: Record<number, ColliderShape> = {};
@@ -225,6 +226,15 @@ export class PhysicsManager {
     } else {
       return this._nativePhysicsManager.raycast(ray, distance);
     }
+  }
+
+  get frequency() {
+    return this._frequency;
+  }
+
+  set frequency(value: number) {
+    this._frequency = value;
+    this._nativePhysicsManager.setFrequency(value);
   }
 
   /**

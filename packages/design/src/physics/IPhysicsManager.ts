@@ -43,6 +43,12 @@ export interface IPhysicsManager {
   update(elapsedTime: number): void;
 
   /**
+   * The times of update in one second.
+   * @param freq - Frequency.
+   */
+  setFrequency(freq: number): void;
+
+  /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
