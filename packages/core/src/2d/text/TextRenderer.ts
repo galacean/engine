@@ -33,15 +33,15 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _text: string = "";
   @assignmentClone
-  private _width: number = 0; // 3d space in unit
+  private _width: number = 0;
   @assignmentClone
-  private _height: number = 0; // 3d space in unit
+  private _height: number = 0;
   @assignmentClone
   private _fontName: string = "Arial";
   @assignmentClone
   private _fontSize: number = 24;
   @assignmentClone
-  private _lineSpace: number = 1; // pixel in unit
+  private _lineSpace: number = 0;
   @assignmentClone
   private _isBold: boolean = false;
   @assignmentClone

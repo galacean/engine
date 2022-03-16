@@ -7,25 +7,10 @@ import { Texture2D } from "../../texture/Texture2D";
  * Dynamic atlas manager for text.
  */
 export class DynamicAtlasManager {
-  private _enabled: boolean = false;
   private _maxAtlasCount: number = 2;
-  private _textureSize: number = 2048;
+  private _textureSize: number = 1024;
   private _atlases: Array<DynamicAtlas> = [];
   private _atlasIndex: number = -1;
-
-  /**
-   * Indicates whether the manager is enabled.
-   */
-  get enabled(): boolean {
-    return this._enabled;
-  }
-
-  set enabled(val: boolean) {
-    if (this._enabled !== val) {
-      this._enabled = val;
-      this.reset();
-    }
-  }
 
   /**
    * Indicates how many atlases should be created.
@@ -61,7 +46,7 @@ export class DynamicAtlasManager {
    * @returns the origin texture before batch if have, otherwise null
    */
   public addSprite(sprite: Sprite, imageSource: TexImageSource): Texture2D | null {
-    if (!this._enabled || this._atlasIndex >= this._maxAtlasCount) {
+    if (this._atlasIndex >= this._maxAtlasCount) {
       return null;
     }
 
@@ -90,7 +75,7 @@ export class DynamicAtlasManager {
    * @param sprite - the sprite to remove
    */
   public removeSprite(sprite: Sprite) {
-    if (!this._enabled || !sprite) return ;
+    if (!sprite) return ;
 
     const { _atlases } = this;
     for (let i = 0, l = _atlases.length; i < l; ++i) {

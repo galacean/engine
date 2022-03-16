@@ -131,6 +131,7 @@ export class TextUtils {
    * @returns the TextMetrics object
    */
   public static measureText(textContext: TextContext, textRenderer: TextRenderer, fontStr: string): TextMetrics {
+    const { _pixelsPerUnit } = TextUtils;
     const fontSize = TextUtils.measureFont(textContext, fontStr);
     const textMetrics: TextMetrics = {
       width: 0,
@@ -138,7 +139,7 @@ export class TextUtils {
       lines: TextUtils._wordWrap(textRenderer, fontStr),
       lineWidths: [],
       maxLineWidth: 0,
-      lineHeight: fontSize + textRenderer.lineSpace,
+      lineHeight: fontSize + textRenderer.lineSpace * _pixelsPerUnit,
       fontSize
     };
     const { context } = textContext;
@@ -162,7 +163,7 @@ export class TextUtils {
 
     // reset width and height.
     textMetrics.width = Math.min(maxLineWidth, TextUtils._maxWidth);
-    let height = textRenderer.height * TextUtils._pixelsPerUnit;
+    let height = textRenderer.height * _pixelsPerUnit;
     if (textRenderer.verticalOverflow === TextVerticalOverflow.Overflow) {
       height = Math.min(textMetrics.lineHeight * linesLen, TextUtils._maxHeight);
     }
