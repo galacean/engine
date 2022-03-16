@@ -1,4 +1,5 @@
 uniform float u_alphaCutoff;
+uniform float u_ior;
 uniform vec4 u_baseColor;
 uniform float u_metal;
 uniform float u_roughness;

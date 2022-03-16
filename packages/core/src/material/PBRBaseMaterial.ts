@@ -8,6 +8,7 @@ import { BaseMaterial } from "./BaseMaterial";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
+  private static _iorProp = Shader.getPropertyByName("u_ior");
   private static _baseColorProp = Shader.getPropertyByName("u_baseColor");
   private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
   private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
@@ -30,6 +31,18 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _sheenRoughnessTexture = Shader.getPropertyByName("u_sheenRoughnessTexture");
 
   private _sheenEnabled: boolean = false;
+
+  /**
+   * Index of refraction of the material, default 1.5 .
+   * @remarks It influence the F0 of dielectric materials.
+   */
+  get ior(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._iorProp);
+  }
+
+  set ior(value: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._iorProp, value);
+  }
 
   /**
    * Base color.
@@ -330,6 +343,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.enableMacro("O3_NEED_WORLDPOS");
     shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
+    shaderData.setFloat(PBRBaseMaterial._iorProp, 1.5);
     shaderData.setColor(PBRBaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(PBRBaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
     shaderData.setVector4(PBRBaseMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));

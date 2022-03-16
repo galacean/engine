@@ -22,6 +22,10 @@ float getSheenAlbedoScaling(vec3 sheenColor, float sheenEnvBRDF){
 	return 1.0 - sheenEnvBRDF * max( max(sheenColor.r, sheenColor.g), sheenColor.b );
 }
 
+float getF0(float ior, float outsideIor){
+ return pow2( (ior - outsideIor) / (ior + outsideIor) );
+}
+
 void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
@@ -53,6 +57,7 @@ void initMaterial(out Material material, const in Geometry geometry){
         vec3 specularColor = u_specularColor;
         float glossiness = u_glossiness;
         float alphaCutoff = u_alphaCutoff;
+        float F0 = getF0(u_ior, 1.0);
 
         #ifdef HAS_BASECOLORMAP
             vec4 baseTextureColor = texture2D(u_baseColorSampler, v_uv);
@@ -91,7 +96,7 @@ void initMaterial(out Material material, const in Geometry geometry){
 
         #ifdef IS_METALLIC_WORKFLOW
             material.diffuseColor = baseColor.rgb * ( 1.0 - metal );
-            material.specularColor = mix( vec3( 0.04), baseColor.rgb, metal );
+            material.specularColor = mix( vec3(F0), baseColor.rgb, metal );
             material.roughness = roughness;
         #else
             float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
