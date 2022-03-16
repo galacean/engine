@@ -10,6 +10,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _metallicProp = Shader.getPropertyByName("u_metal");
   private static _roughnessProp = Shader.getPropertyByName("u_roughness");
   private static _metallicRoughnessTextureProp = Shader.getPropertyByName("u_metallicRoughnessSampler");
+  private static _iorProp = Shader.getPropertyByName("u_ior");
 
   /**
    * Metallic, default 1.
@@ -51,13 +52,29 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
+   * Index of refraction of the material, default 1.5 .
+   * @remarks It influence the F0 of dielectric materials.
+   */
+  get ior(): number {
+    return this.shaderData.getFloat(PBRMaterial._iorProp);
+  }
+
+  set ior(value: number) {
+    this.shaderData.setFloat(PBRMaterial._iorProp, value);
+  }
+
+  /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
    */
   constructor(engine: Engine) {
     super(engine, Shader.find("pbr"));
-    this.shaderData.setFloat(PBRMaterial._metallicProp, 1);
-    this.shaderData.setFloat(PBRMaterial._roughnessProp, 1);
+
+    const shaderData = this.shaderData;
+
+    shaderData.setFloat(PBRMaterial._metallicProp, 1);
+    shaderData.setFloat(PBRMaterial._roughnessProp, 1);
+    shaderData.setFloat(PBRMaterial._iorProp, 1.5);
   }
 
   /**
