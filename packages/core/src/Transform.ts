@@ -159,7 +159,13 @@ export class Transform extends Component {
 
   set rotationQuaternion(value: Quaternion) {
     if (this._rotationQuaternion !== value) {
-      value.cloneTo(this._rotationQuaternion);
+      if (value.normalized) {
+        value.cloneTo(this._rotationQuaternion);
+      } else {
+        Quaternion.normalize(value, this._rotationQuaternion);
+      }
+    } else {
+      value.normalized || value.normalize();
     }
   }
 
@@ -186,8 +192,13 @@ export class Transform extends Component {
 
   set worldRotationQuaternion(value: Quaternion) {
     if (this._worldRotationQuaternion !== value) {
-      value.cloneTo(this._worldRotationQuaternion);
+      if (value.normalized) {
+        value.cloneTo(this._worldRotationQuaternion);
+      } else {
+        Quaternion.normalize(value, this._worldRotationQuaternion);
+      }
     }
+    value.normalized || value.normalize();
   }
 
   /**
