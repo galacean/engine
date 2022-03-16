@@ -267,7 +267,7 @@ export class Vector4 implements IClone {
   /**
    * The x component of the vector.
    */
-  public get x() {
+  public get x(): number {
     return this._x;
   }
 
@@ -279,7 +279,7 @@ export class Vector4 implements IClone {
   /**
    * The y component of the vector.
    */
-  public get y() {
+  public get y(): number {
     return this._y;
   }
 
@@ -291,7 +291,7 @@ export class Vector4 implements IClone {
   /**
    * The z component of the vector.
    */
-  public get z() {
+  public get z(): number {
     return this._z;
   }
 
@@ -303,7 +303,7 @@ export class Vector4 implements IClone {
   /**
    * The w component of the vector.
    */
-  public get w() {
+  public get w(): number {
     return this._w;
   }
 

@@ -37,15 +37,14 @@ export class PointerManager {
   /**
    * Create a PointerManager.
    * @param engine - The current engine instance
+   * @param htmlCanvas - HTMLCanvasElement
    */
-  constructor(engine: Engine) {
+  constructor(engine: Engine, htmlCanvas: HTMLCanvasElement) {
     this._engine = engine;
     this._canvas = engine.canvas;
-    // @ts-ignore
-    const htmlCanvas = this._canvas._webCanvas as HTMLCanvasElement;
     htmlCanvas.style.touchAction = "none";
     // prettier-ignore
-    htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = (evt:PointerEvent)=>{
+    htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = (evt: PointerEvent) => {
       this._nativeEvents.push(evt);
     };
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
