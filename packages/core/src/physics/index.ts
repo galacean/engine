@@ -12,4 +12,4 @@ export { CapsuleColliderShape } from "./shape/CapsuleColliderShape";
 
 export { Collider } from "./Collider";
 export { StaticCollider } from "./StaticCollider";
-export { DynamicCollider } from "./DynamicCollider";
+export { DynamicCollider, CollisionDetectionMode, DynamicColliderConstraints } from "./DynamicCollider";

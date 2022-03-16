@@ -138,7 +138,11 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.update }
    */
   update(elapsedTime: number): void {
-    this._simulate(elapsedTime);
+    const step = Math.max(1, Math.floor(elapsedTime * 60));
+    for (let i = 0; i < step; i++) {
+      this._simulate(1 / 60);
+    }
+
     this._fetchResults();
     this._fireEvent();
   }
@@ -195,7 +199,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = 0, n = currentEvents.length; i < n;) {
       const event = currentEvents.get(i);
       if (event.state == TriggerEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);
