@@ -22,8 +22,8 @@ float getSheenAlbedoScaling(vec3 sheenColor, float sheenEnvBRDF){
 	return 1.0 - sheenEnvBRDF * max( max(sheenColor.r, sheenColor.g), sheenColor.b );
 }
 
-float getF0(float ior, float outsideIor){
- return pow2( (ior - outsideIor) / (ior + outsideIor) );
+float getDielectricF0(float ior, float outsideIor){
+    return pow2( (ior - outsideIor) / (ior + outsideIor) );
 }
 
 void initGeometry(out Geometry geometry){
@@ -51,13 +51,15 @@ void initGeometry(out Geometry geometry){
 }
 
 void initMaterial(out Material material, const in Geometry geometry){
-        vec4 baseColor = u_baseColor;
+        vec4  baseColor = u_baseColor;
         float metal = u_metal;
         float roughness = u_roughness;
-        vec3 specularColor = u_specularColor;
+        vec3  specularColor = u_specularColor;
         float glossiness = u_glossiness;
         float alphaCutoff = u_alphaCutoff;
-        float F0 = getF0(u_ior, 1.0);
+        float dielectricSpecularIntensity = u_dielectricSpecularIntensity;
+        vec3  dielectricF0Color = u_dielectricF0Color;
+
 
         #ifdef HAS_BASECOLORMAP
             vec4 baseTextureColor = texture2D(u_baseColorSampler, v_uv);
@@ -93,15 +95,30 @@ void initMaterial(out Material material, const in Geometry geometry){
             glossiness *= specularGlossinessColor.a;
         #endif
 
+        #ifdef HAS_DIELECTRICSPECULARINTENSITYTEXTURE
+            dielectricSpecularIntensity *= texture2D(u_dielectricSpecularIntensityTexture, v_uv).a;
+        #endif
+
+        #ifdef HAS_DIELECTRICF0COLORTEXTURE
+            vec4 dielectricF0ColorTextureValue = texture2D(u_dielectricF0ColorTexture, v_uv);
+            #ifndef OASIS_COLORSPACE_GAMMA
+                    dielectricF0ColorTextureValue = gammaToLinear(dielectricF0ColorTextureValue);
+            #endif
+            dielectricF0Color *= dielectricF0ColorTextureValue.rgb;
+        #endif
 
         #ifdef IS_METALLIC_WORKFLOW
+            vec3 dielectricF0 = min(getDielectricF0(u_ior, 1.0) * dielectricF0Color, vec3(dielectricSpecularIntensity));
+
             material.diffuseColor = baseColor.rgb * ( 1.0 - metal );
-            material.specularColor = mix( vec3(F0), baseColor.rgb, metal );
+            material.specularColor = mix(dielectricF0, baseColor.rgb, metal);
+            material.F90 = mix(dielectricSpecularIntensity, 1.0, metal);
             material.roughness = roughness;
         #else
             float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );
             material.diffuseColor = baseColor.rgb * ( 1.0 - specularStrength );
             material.specularColor = specularColor;
+            material.F90 = 1.0;
             material.roughness = 1.0 - glossiness;
         #endif
 
@@ -118,7 +135,7 @@ void initMaterial(out Material material, const in Geometry geometry){
             #endif
             material.clearcoat = saturate( material.clearcoat );
             material.clearcoatRoughness = max(material.clearcoatRoughness, getAARoughnessFactor(geometry.clearcoatNormal));
-            material.clearcoatAttenuation = 1.0 - material.clearcoat * F_Schlick(geometry.clearcoatDotNV);
+            material.clearcoatAttenuation = 1.0 - material.clearcoat * F_Schlick(0.04, 1.0, geometry.clearcoatDotNV);
         #else
             material.clearcoatAttenuation = 1.0;
         #endif

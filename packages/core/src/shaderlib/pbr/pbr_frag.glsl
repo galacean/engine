@@ -27,7 +27,7 @@ vec3 radiance = getLightProbeRadiance(geometry.viewDir, geometry.normal, materia
 
 #ifdef CLEARCOAT
     vec3 clearcoatRadiance = getLightProbeRadiance( geometry.viewDir, geometry.clearcoatNormal, material.clearcoatRoughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity );
-    reflectedLight.indirectSpecular += clearcoatRadiance * material.clearcoat * envBRDFApprox(vec3( 0.04 ), material.clearcoatRoughness, geometry.clearcoatDotNV);
+    reflectedLight.indirectSpecular += clearcoatRadiance * material.clearcoat * envBRDFApprox(vec3( 0.04 ), 1.0, material.clearcoatRoughness, geometry.clearcoatDotNV);
 #endif
 
 #ifdef SHEEN
@@ -37,7 +37,7 @@ vec3 radiance = getLightProbeRadiance(geometry.viewDir, geometry.normal, materia
 
 // attenuation(total) = attenuation(clearcoat + sheen)
 float attenuation = material.clearcoatAttenuation * material.sheenAttenuation;
-reflectedLight.indirectSpecular += attenuation * radiance * envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
+reflectedLight.indirectSpecular += attenuation * radiance * envBRDFApprox(material.specularColor, material.F90, material.roughness, geometry.dotNV );
 
 
 /** ------ occlusion ------ */

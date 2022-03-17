@@ -1,3 +1,4 @@
+import { Color } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
@@ -11,6 +12,10 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _roughnessProp = Shader.getPropertyByName("u_roughness");
   private static _metallicRoughnessTextureProp = Shader.getPropertyByName("u_metallicRoughnessSampler");
   private static _iorProp = Shader.getPropertyByName("u_ior");
+  private static _dielectricSpecularIntensity = Shader.getPropertyByName("u_dielectricSpecularIntensity");
+  private static _dielectricSpecularIntensityTexture = Shader.getPropertyByName("u_dielectricSpecularIntensityTexture");
+  private static _dielectricF0Color = Shader.getPropertyByName("u_dielectricF0Color");
+  private static _dielectricF0ColorTexture = Shader.getPropertyByName("u_dielectricF0ColorTexture");
 
   /**
    * Metallic, default 1.
@@ -64,6 +69,60 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
+   * The strength of the specular reflection in the dielectric BRDF.
+   */
+  get dielectricSpecularIntensity(): number {
+    return this.shaderData.getFloat(PBRMaterial._dielectricSpecularIntensity);
+  }
+
+  set dielectricSpecularIntensity(value: number) {
+    this.shaderData.setFloat(PBRMaterial._dielectricSpecularIntensity, value);
+  }
+
+  /**
+   * Stored in the alpha (A) channel. This will be multiplied by dielectricSpecularIntensity.
+   */
+  get dielectricSpecularIntensityTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._dielectricSpecularIntensityTexture);
+  }
+
+  set dielectricSpecularIntensityTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._dielectricSpecularIntensityTexture, value);
+    if (value) {
+      this.shaderData.enableMacro("HAS_DIELECTRICSPECULARINTENSITYTEXTURE");
+    } else {
+      this.shaderData.disableMacro("HAS_DIELECTRICSPECULARINTENSITYTEXTURE");
+    }
+  }
+
+  /**
+   * The F0 color of the specular reflection in the dielectric BRDF.
+   */
+  get dielectricF0Color(): Color {
+    return this.shaderData.getColor(PBRMaterial._dielectricF0Color);
+  }
+
+  set dielectricF0Color(value: Color) {
+    this.shaderData.setColor(PBRMaterial._dielectricF0Color, value);
+  }
+
+  /**
+   * Stored in the RGB channels and encoded in sRGB. This texture will be multiplied by dielectricF0Color.
+   */
+  get dielectricF0ColorTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._dielectricF0ColorTexture);
+  }
+
+  set dielectricF0ColorTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRMaterial._dielectricF0ColorTexture, value);
+    if (value) {
+      this.shaderData.enableMacro("HAS_DIELECTRICF0COLORTEXTURE");
+    } else {
+      this.shaderData.disableMacro("HAS_DIELECTRICF0COLORTEXTURE");
+    }
+  }
+
+  /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
    */
@@ -75,6 +134,8 @@ export class PBRMaterial extends PBRBaseMaterial {
     shaderData.setFloat(PBRMaterial._metallicProp, 1);
     shaderData.setFloat(PBRMaterial._roughnessProp, 1);
     shaderData.setFloat(PBRMaterial._iorProp, 1.5);
+    shaderData.setFloat(PBRMaterial._dielectricSpecularIntensity, 1);
+    shaderData.setColor(PBRMaterial._dielectricF0Color, new Color(1, 1, 1));
   }
 
   /**

@@ -6,6 +6,8 @@ uniform float u_roughness;
 uniform vec3 u_specularColor;
 uniform float u_glossiness;
 uniform vec3 u_emissiveColor;
+uniform float u_dielectricSpecularIntensity;
+uniform vec3 u_dielectricF0Color;
 
 #ifdef CLEARCOAT
     uniform float u_clearcoat;
@@ -67,6 +69,14 @@ uniform float u_occlusionStrength;
     uniform sampler2D u_sheenRoughnessTexture;
 #endif
 
+#ifdef HAS_DIELECTRICSPECULARINTENSITYTEXTURE
+    uniform sampler2D u_dielectricSpecularIntensityTexture;
+#endif
+
+#ifdef HAS_DIELECTRICF0COLORTEXTURE
+    uniform sampler2D u_dielectricF0ColorTexture;
+#endif
+
 
 // Runtime
 struct ReflectedLight {
@@ -93,6 +103,7 @@ struct Material {
     vec3  diffuseColor;
     float roughness;
     vec3  specularColor;
+    float F90;
     float opacity;
     float clearcoatAttenuation;
     float sheenAttenuation;

@@ -83,6 +83,7 @@ export interface IKHRMaterialsSpecular {
   specularFactor: number;
   specularColorFactor: number[];
   specularTexture: ITextureInfo;
+  specularColorTexture: ITextureInfo;
 }
 
 /**

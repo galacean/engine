@@ -1,18 +1,9 @@
-float F_Schlick(float dotLH) {
-	return 0.04 + 0.96 * (pow(1.0 - dotLH, 5.0));
+vec3 F_Schlick(vec3 f0, float f90, float dotVH) {
+    return f0 + (f90 - f0) * pow(1.0 - dotVH, 5.0);
 }
 
-vec3 F_Schlick(vec3 specularColor, float dotLH ) {
-
-	// Original approximation by Christophe Schlick '94
-	// float fresnel = pow( 1.0 - dotLH, 5.0 );
-
-	// Optimized variant (presented by Epic at SIGGRAPH '13)
-	// https://cdn2.unrealengine.com/Resources/files/2013SiggraphPresentationsNotes-26915738.pdf
-	float fresnel = exp2( ( -5.55473 * dotLH - 6.98316 ) * dotLH );
-
-	return ( 1.0 - specularColor ) * fresnel + specularColor;
-
+float F_Schlick(float f0, float f90, float dotVH) {
+    return f0 + (f90 - f0) * pow(1.0 - dotVH, 5.0);
 }
 
 // Moving Frostbite to Physically Based Rendering 3.0 - page 12, listing 2
@@ -43,7 +34,7 @@ float D_GGX(float alpha, float dotNH ) {
 }
 
 // GGX Distribution, Schlick Fresnel, GGX-Smith Visibility
-vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 viewDir, vec3 normal, vec3 specularColor, float roughness ) {
+vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 viewDir, vec3 normal, vec3 f0, float f90, float roughness ) {
 
 	float alpha = pow2( roughness ); // UE4's roughness
 
@@ -54,7 +45,7 @@ vec3 BRDF_Specular_GGX(vec3 incidentDirection, vec3 viewDir, vec3 normal, vec3 s
 	float dotNH = saturate( dot( normal, halfDir ) );
 	float dotLH = saturate( dot( incidentDirection, halfDir ) );
 
-	vec3 F = F_Schlick( specularColor, dotLH );
+	vec3 F = F_Schlick( f0, f90, dotLH );
 
 	float G = G_GGX_SmithCorrelated( alpha, dotNL, dotNV );
 

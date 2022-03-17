@@ -38,7 +38,8 @@ export class MaterialParser extends Parser {
         KHR_materials_pbrSpecularGlossiness,
         KHR_materials_clearcoat,
         KHR_materials_sheen,
-        KHR_materials_ior
+        KHR_materials_ior,
+        KHR_materials_specular
       } = extensions;
 
       let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
@@ -69,6 +70,10 @@ export class MaterialParser extends Parser {
 
       if (KHR_materials_ior) {
         Parser.parseEngineResource("KHR_materials_ior", KHR_materials_ior, material, context);
+      }
+
+      if (KHR_materials_specular) {
+        Parser.parseEngineResource("KHR_materials_specular", KHR_materials_specular, material, context);
       }
 
       if (pbrMetallicRoughness) {
