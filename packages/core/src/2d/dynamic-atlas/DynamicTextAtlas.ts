@@ -2,7 +2,6 @@ import { Rect } from "@oasis-engine/math";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { Sprite } from "../sprite/Sprite";
-import { OriginInfo, OriginInfoObj } from "./types";
 
 /**
  * Dynamic atlas for text.
@@ -19,7 +18,7 @@ export class DynamicTextAtlas {
   private _curY: number = 1;
   private _nextY: number = 1;
 
-  private _originInfos: OriginInfoObj = {}; 
+  private _originInfos: Record<number, OriginInfo> = {};
 
   constructor(engine: Engine, width: number, height: number) {
     this._width = width;
@@ -33,16 +32,13 @@ export class DynamicTextAtlas {
    */
   public destroy() {
     const { _originInfos } = this;
-    const ids = Object.keys(_originInfos);
-    for (let i = 0, l = ids.length; i < l; ++i) {
-      const id = ids[i];
-      const info = <OriginInfo>_originInfos[id];
+    for (let id in _originInfos) {
+      const info = _originInfos[id];
       const originSprite = info.sprite;
       originSprite.texture = info.texture;
       originSprite.atlasRegion = info.atlasRegion;
       delete _originInfos[id];
     }
-
     this._texture.destroy(true);
   }
 
@@ -131,3 +127,10 @@ export class DynamicTextAtlas {
     return null;
   }
 }
+
+interface OriginInfo {
+  sprite: Sprite;
+  texture: Texture2D;
+  atlasRegion: Rect;
+}
+
