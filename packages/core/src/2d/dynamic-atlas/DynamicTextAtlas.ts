@@ -7,7 +7,7 @@ import { OriginInfo, OriginInfoObj } from "./types";
 /**
  * Dynamic atlas for text.
  */
-export class DynamicAtlas {
+export class DynamicTextAtlas {
   private static _region: Rect = new Rect();
 
   private _texture: Texture2D;
@@ -75,7 +75,7 @@ export class DynamicAtlas {
     texture.generateMipmaps();
 
     const { _width, _height } = this;
-    const region = DynamicAtlas._region;
+    const region = DynamicTextAtlas._region;
     region.setValue(this._curX / _width, this._curY / _height, width / _width, height / _height);
 
     // Cache origin texture.

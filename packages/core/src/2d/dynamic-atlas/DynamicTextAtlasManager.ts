@@ -1,15 +1,15 @@
 import { Sprite } from "../sprite/Sprite";
 import { Engine } from "../../Engine";
-import { DynamicAtlas } from "./DynamicAtlas";
+import { DynamicTextAtlas } from "./DynamicTextAtlas";
 import { Texture2D } from "../../texture/Texture2D";
 
 /**
  * Dynamic atlas manager for text.
  */
-export class DynamicAtlasManager {
+export class DynamicTextAtlasManager {
   private _maxAtlasCount: number = 2;
   private _textureSize: number = 1024;
-  private _atlases: Array<DynamicAtlas> = [];
+  private _atlases: Array<DynamicTextAtlas> = [];
   private _atlasIndex: number = -1;
 
   /**
@@ -97,10 +97,10 @@ export class DynamicAtlasManager {
     this._atlasIndex = -1;
   }
 
-  private _createAtlas(): DynamicAtlas {
+  private _createAtlas(): DynamicTextAtlas {
     this._atlasIndex++;
     const { _textureSize } = this;
-    const atlas = new DynamicAtlas(this.engine, _textureSize, _textureSize);
+    const atlas = new DynamicTextAtlas(this.engine, _textureSize, _textureSize);
     this._atlases.push(atlas);
     return atlas;
   }

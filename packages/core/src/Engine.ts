@@ -1,5 +1,5 @@
 import { IPhysics } from "@oasis-engine/design";
-import { ColorSpace, DynamicAtlasManager } from ".";
+import { ColorSpace, DynamicTextAtlasManager } from ".";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
@@ -73,13 +73,14 @@ export class Engine extends EventDispatcher {
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _dynamicTextAtlasManager: DynamicTextAtlasManager = new DynamicTextAtlasManager(this);
 
   protected _canvas: Canvas;
 
   private _settings: EngineSettings = {};
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
-  private _dynamicAtlasManager: DynamicAtlasManager = new DynamicAtlasManager(this);
   private _vSyncCount: number = 1;
   private _targetFrameRate: number = 60;
   private _time: Time = new Time();
@@ -128,13 +129,6 @@ export class Engine extends EventDispatcher {
    */
   get sceneManager(): SceneManager {
     return this._sceneManager;
-  }
-
-  /**
-   * Get the dynamic atlas manager.
-   */
-  get dynamicAtlasManager(): DynamicAtlasManager {
-    return this._dynamicAtlasManager;
   }
 
   /**

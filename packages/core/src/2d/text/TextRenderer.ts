@@ -337,7 +337,7 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   _onDestroy(): void {
-    this.engine.dynamicAtlasManager.removeSprite(this._sprite);
+    this.engine._dynamicTextAtlasManager.removeSprite(this._sprite);
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
   }
@@ -448,7 +448,7 @@ export class TextRenderer extends Renderer {
     this._clearTexture();
     const { _sprite } = this;
     _sprite.texture = texture;
-    this.engine.dynamicAtlasManager.addSprite(_sprite, canvas);
+    this.engine._dynamicTextAtlasManager.addSprite(_sprite, canvas);
   }
 
   private _calculateLinePosition(
@@ -525,7 +525,7 @@ export class TextRenderer extends Renderer {
   private _clearTexture() {
     const { _sprite } = this;
     // Remove sprite from dynamic atlas.
-    this.engine.dynamicAtlasManager.removeSprite(_sprite);
+    this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
     // Destroy current texture.
     const texture = _sprite.texture;
     _sprite.texture = null;
