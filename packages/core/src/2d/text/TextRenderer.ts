@@ -39,7 +39,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _fontSize: number = 24;
   @assignmentClone
-  private _lineSpace: number = 0;
+  private _lineSpacing: number = 0;
   @assignmentClone
   private _isBold: boolean = false;
   @assignmentClone
@@ -75,7 +75,7 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   * Rendering string for the TextRenderer.
+   * Rendering string for the Text.
    */
   get text(): string {
     return this._text;
@@ -149,13 +149,13 @@ export class TextRenderer extends Renderer {
   /**
    * The space between two lines (in pixels).
    */
-  get lineSpace(): number {
-    return this._lineSpace;
+  get lineSpacing(): number {
+    return this._lineSpacing;
   }
 
-  set lineSpace(value: number) {
-    if (this._lineSpace !== value) {
-      this._lineSpace = value;
+  set lineSpacing(value: number) {
+    if (this._lineSpacing !== value) {
+      this._lineSpacing = value;
       this._setDirtyFlagTrue(DirtyFlag.Style);
     }
   }

@@ -139,7 +139,7 @@ export class TextUtils {
       lines: TextUtils._wordWrap(textRenderer, fontStr),
       lineWidths: [],
       maxLineWidth: 0,
-      lineHeight: fontSize + textRenderer.lineSpace * _pixelsPerUnit,
+      lineHeight: fontSize + textRenderer.lineSpacing * _pixelsPerUnit,
       fontSize
     };
     const { context } = textContext;
