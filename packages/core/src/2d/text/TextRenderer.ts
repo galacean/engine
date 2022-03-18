@@ -11,8 +11,6 @@ import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverf
 import { TextUtils } from "./TextUtils";
 
 export class TextRenderer extends Renderer {
-  static needPremultiplyAlpha: boolean = false;
-
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   private static _tempVec2: Vector2 = new Vector2();
   private static _tempVec3: Vector3 = new Vector3();
@@ -287,12 +285,6 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    if (TextRenderer.needPremultiplyAlpha) {
-      this.shaderData.enableMacro("NEED_PREMULTIPLY_ALPHA");
-    } else {
-      this.shaderData.disableMacro("NEED_PREMULTIPLY_ALPHA");
-    }
-
     const isStyleDirty = this._isContainDirtyFlag(DirtyFlag.Style);
     if (isStyleDirty) {
       this._updateText();
@@ -438,11 +430,7 @@ export class TextRenderer extends Renderer {
     canvas.height = height;
     context.putImageData(data, 0, 0);
     const texture = new Texture2D(this.engine, width, height);
-    if (TextRenderer.needPremultiplyAlpha) {
-      texture.setImageSource(canvas, 0, false, true);
-    } else {
-      texture.setImageSource(canvas);
-    }
+    texture.setImageSource(canvas);
     texture.generateMipmaps();
 
     this._clearTexture();

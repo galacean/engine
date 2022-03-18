@@ -16,13 +16,5 @@ void main()
   vec4 baseColor = texture2D(u_spriteTexture, v_uv);
   #endif
 
-  #ifdef NEED_PREMULTIPLY_ALPHA
-  if (baseColor.a <= 0.0) {
-    gl_FragColor = baseColor * v_color;
-  } else {
-    gl_FragColor = vec4(baseColor.rgb/baseColor.a, baseColor.a) * v_color;
-  }
-  #else
   gl_FragColor = baseColor * v_color;
-  #endif
 }
