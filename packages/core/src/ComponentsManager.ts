@@ -7,7 +7,6 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Vector3 } from "@oasis-engine/math";
 import { Collider } from "./physics/Collider";
-import { KeyEvent } from "./input/keyboard/KeyEvent";
 
 /**
  * The manager of the components.
@@ -94,28 +93,6 @@ export class ComponentsManager {
     script._onLateUpdateIndex = -1;
   }
 
-  addOnKeyDownScript(script: Script): void {
-    script._onKeyDownIndex = this._onKeyDownScript.length;
-    this._onKeyDownScript.add(script);
-  }
-
-  removeOnKeyDownScript(script: Script): void {
-    const replaced = this._onKeyDownScript.deleteByIndex(script._onKeyDownIndex);
-    replaced && (replaced._onKeyDownIndex = script._onKeyDownIndex);
-    script._onKeyDownIndex = -1;
-  }
-
-  addOnKeyUpScript(script: Script): void {
-    script._onKeyUpIndex = this._onKeyUpScript.length;
-    this._onKeyUpScript.add(script);
-  }
-
-  removeOnKeyUpScript(script: Script): void {
-    const replaced = this._onKeyUpScript.deleteByIndex(script._onKeyUpIndex);
-    replaced && (replaced._onKeyUpIndex = script._onKeyUpIndex);
-    script._onKeyUpIndex = -1;
-  }
-
   addOnUpdateAnimations(animation: Component): void {
     //@ts-ignore
     animation._onUpdateIndex = this._onUpdateAnimations.length;
@@ -177,26 +154,6 @@ export class ComponentsManager {
       const element = elements[i];
       if (element._started) {
         element.onLateUpdate(deltaTime);
-      }
-    }
-  }
-
-  callScriptOnKeyDown(evt: KeyEvent): void {
-    const elements = this._onKeyDownScript._elements;
-    for (let i = this._onKeyDownScript.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (element._started) {
-        element.onKeyDown(evt);
-      }
-    }
-  }
-
-  callScriptOnKeyUp(evt: KeyEvent): void {
-    const elements = this._onKeyUpScript._elements;
-    for (let i = this._onKeyUpScript.length - 1; i >= 0; --i) {
-      const element = elements[i];
-      if (element._started) {
-        element.onKeyUp(evt);
       }
     }
   }

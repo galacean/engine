@@ -30,54 +30,53 @@ export class InputManager {
   }
 
   /**
-   * Whether the button is being held down.
-   * @param key 
+   * Whether the key is being held down, if there is no parameter, return whether any key is being held down.
+   * @param key KeyCode of key
    * @returns 
    */
-  getKey(key: KeyCode | string): Boolean {
-    if (typeof (key) === 'string') {
-      key = KeyCode[key];
+  isKeyHeldDown(key?: KeyCode): boolean {
+    if (key === undefined) {
+      return this._keyboardManager._curFrameHeldDownList.length > 0;
+    } else {
+      return !!this._keyboardManager._curHeldDownKey2IndexMap[key];
     }
-    return !!this._keyboardManager._curKeyState[key];
   }
 
   /**
-    * Whether the button is being held down.
-    * @param key 
+    * Whether the current frame key has been pressed, if there is no parameter, return whether any key has been pressed.
+    * @param key KeyCode of key
     * @returns 
     */
-  getKeyDown(key: KeyCode | string): Boolean {
-    if (typeof (key) === 'string') {
-      key = KeyCode[key];
+  isKeyDown(key?: KeyCode): boolean {
+    if (key === undefined) {
+      return this._keyboardManager._curFrameDownList.length > 0;
+    } else {
+      return this._keyboardManager._curFrameDownKey2FrameCountMap[key] === this._keyboardManager._curFrameCount;
     }
-    return this._keyboardManager._curFrameKeyDown[key] === this._keyboardManager._curFrameCount;
-
   }
 
   /**
-   * Whether the button is being held down.
-   * @param key 
+   * Whether the current frame key has been lifted, if there is no parameter, return whether any key has been lifted.
+   * @param key KeyCode of key
    * @returns 
    */
-  getKeyUp(key: KeyCode | string): Boolean {
-    if (typeof (key) === 'string') {
-      key = KeyCode[key];
+  isKeyUp(key?: KeyCode): boolean {
+    if (key === undefined) {
+      return this._keyboardManager._curFrameUpList.length > 0;
+    } else {
+      return this._keyboardManager._curFrameUpKey2FrameCountMap[key] === this._keyboardManager._curFrameCount;
     }
-    return this._keyboardManager._curFrameKeyUp[key] === this._keyboardManager._curFrameCount;
   }
 
   /**
    * @internal
    */
   constructor(engine: Engine) {
-    this._keyboardManager = new KeyboardManager(engine);
+    this._keyboardManager = new KeyboardManager();
     // @ts-ignore
     this._pointerManager = new PointerManager(engine, engine.canvas._webCanvas);
     window.addEventListener('blur', () => {
-      const { _curKeyState } = this._keyboardManager;
-      for (let i = _curKeyState.length - 1; i >= 0; i--) {
-        _curKeyState[i] && (_curKeyState[i] = false);
-      }
+      this._keyboardManager._onBlur();
     });
   }
 

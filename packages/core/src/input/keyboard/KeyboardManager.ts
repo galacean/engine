@@ -1,8 +1,6 @@
-import { Engine } from "../..";
-import { KeyEvent } from "./KeyEvent";
+
+import { DisorderedArray } from "../../DisorderedArray";
 import { KeyCode } from "./KeyCode";
-import { ComponentsManager } from "../../ComponentsManager";
-import { ClassPool } from "../../RenderPipeline/ClassPool";
 
 /**
  * Keyboard Manager.
@@ -12,24 +10,26 @@ export class KeyboardManager {
     /** @internal */
     _curFrameCount = 0;
     /** @internal */
-    _curKeyState: boolean[] = [];
+    _curHeldDownKey2IndexMap: number[] = [];
     /** @internal */
-    _curFrameKeyUp: number[] = [];
+    _curFrameUpKey2FrameCountMap: number[] = [];
     /** @internal */
-    _curFrameKeyDown: number[] = [];
+    _curFrameDownKey2FrameCountMap: number[] = [];
+
+    /** @internal */
+    _curFrameHeldDownList: DisorderedArray<KeyCode> = new DisorderedArray();
+    /** @internal */
+    _curFrameDownList: DisorderedArray<KeyCode> = new DisorderedArray();
+    /** @internal */
+    _curFrameUpList: DisorderedArray<KeyCode> = new DisorderedArray();
 
     private _nativeEvents: KeyboardEvent[] = [];
-    private _componentsManager: ComponentsManager;
-    private _keyEvtPool: ClassPool<KeyEvent> = new ClassPool(KeyEvent);
-
     private _onKeyEvent: (evt: KeyboardEvent) => void;
 
     /**
      * Create a KeyboardManager.
-     * @param engine - The current engine instance
      */
-    constructor(engine: Engine) {
-        this._componentsManager = engine._componentsManager;
+    constructor() {
         this._onKeyEvent = (evt: KeyboardEvent) => {
             this._nativeEvents.push(evt);
         }
@@ -41,37 +41,54 @@ export class KeyboardManager {
      * @internal
      */
     _update() {
-        const { _nativeEvents } = this;
-        this._curFrameCount = this._curFrameCount + 1;
+        this._curFrameCount++;
+        const { _nativeEvents, _curFrameDownList, _curFrameUpList } = this;
+        _curFrameDownList.length = 0;
+        _curFrameUpList.length = 0;
         if (_nativeEvents.length > 0) {
-            const { _curFrameCount, _curKeyState, _componentsManager, _keyEvtPool } = this;
+            const { _curFrameCount, _curHeldDownKey2IndexMap, _curFrameHeldDownList } = this;
             for (let i = 0, n = _nativeEvents.length; i < n; i++) {
                 const evt = _nativeEvents[i];
                 const codeNumber: KeyCode = KeyCode[evt.code];
                 switch (evt.type) {
                     case 'keydown':
-                        if (!_curKeyState[codeNumber]) {
-                            _curKeyState[codeNumber] = true;
-                            this._curFrameKeyDown[codeNumber] = _curFrameCount;
-                            const keyEvt = _keyEvtPool.getFromPool();
-                            keyEvt.setValue(evt.key, evt.code, codeNumber)
-                            _componentsManager.callScriptOnKeyDown(keyEvt);
+                        if (!_curHeldDownKey2IndexMap[codeNumber]) {
+                            _curFrameDownList.add(codeNumber);
+                            _curFrameHeldDownList.add(codeNumber);
+                            _curHeldDownKey2IndexMap[codeNumber] = _curFrameHeldDownList.length;
+                            this._curFrameDownKey2FrameCountMap[codeNumber] = _curFrameCount;
                         }
                         break;
                     case 'keyup':
-                        _curKeyState[codeNumber] = false;
-                        this._curFrameKeyUp[codeNumber] = _curFrameCount;
-                        const keyEvt = _keyEvtPool.getFromPool();
-                        keyEvt.setValue(evt.key, evt.code, codeNumber)
-                        _componentsManager.callScriptOnKeyUp(keyEvt);
+                        const delIndex = _curHeldDownKey2IndexMap[codeNumber];
+                        if (delIndex) {
+                            _curHeldDownKey2IndexMap[codeNumber] = null;
+                            const swapCode = _curFrameHeldDownList.deleteByIndex(delIndex - 1);
+                            swapCode && (_curHeldDownKey2IndexMap[swapCode] = delIndex);
+                        }
+                        _curFrameUpList.add(codeNumber);
+                        this._curFrameUpKey2FrameCountMap[codeNumber] = _curFrameCount;
                         break;
                     default:
                         break;
                 }
             }
-            _keyEvtPool.resetPool();
             _nativeEvents.length = 0;
         }
+    }
+
+    /**
+     * @internal
+     */
+    _onBlur() {
+        const { _curHeldDownKey2IndexMap } = this;
+        for (let i = _curHeldDownKey2IndexMap.length - 1; i >= 0; i--) {
+            _curHeldDownKey2IndexMap[i] && (_curHeldDownKey2IndexMap[i] = null);
+        }
+        this._nativeEvents.length = 0;
+        this._curFrameHeldDownList.length = 0;
+        this._curFrameDownList.length = 0;
+        this._curFrameUpList.length = 0;
     }
 
     /**
@@ -80,10 +97,13 @@ export class KeyboardManager {
     _destroy() {
         window.removeEventListener('keydown', this._onKeyEvent);
         window.removeEventListener('keyup', this._onKeyEvent);
-        this._curKeyState.length = 0;
-        this._curFrameKeyUp.length = 0;
-        this._curFrameKeyDown.length = 0;
+        this._curHeldDownKey2IndexMap.length = 0;
+        this._curFrameUpKey2FrameCountMap.length = 0;
+        this._curFrameDownKey2FrameCountMap.length = 0;
         this._nativeEvents.length = 0;
-        this._componentsManager = null;
+
+        this._curFrameHeldDownList.garbageCollection();
+        this._curFrameDownList.garbageCollection();
+        this._curFrameUpList.garbageCollection();
     }
 }
