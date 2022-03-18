@@ -8,6 +8,7 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
+import { TextStyle } from "./TextStyle";
 import { TextUtils } from "./TextUtils";
 
 export class TextRenderer extends Renderer {
@@ -37,13 +38,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _fontName: string = "Arial";
   @assignmentClone
-  private _fontSize: number = 24;
-  @assignmentClone
   private _lineSpacing: number = 0;
-  @assignmentClone
-  private _isBold: boolean = false;
-  @assignmentClone
-  private _isItalic: boolean = false;
   @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
@@ -52,8 +47,12 @@ export class TextRenderer extends Renderer {
   private _horizontalOverflow: TextHorizontalOverflow = TextHorizontalOverflow.Overflow;
   @assignmentClone
   private _verticalOverflow: TextVerticalOverflow = TextVerticalOverflow.Overflow;
+  @assignmentClone
+  private _style: TextStyle = null;
   @ignoreClone
-  private _dirtyFlag: number = DirtyFlag.Style;
+  private _dirtyFlag: number = DirtyFlag.Property;
+  @ignoreClone
+  private _styleDirty: UpdateFlag;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
   @assignmentClone
@@ -85,7 +84,7 @@ export class TextRenderer extends Renderer {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -99,7 +98,7 @@ export class TextRenderer extends Renderer {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -113,7 +112,7 @@ export class TextRenderer extends Renderer {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -128,21 +127,7 @@ export class TextRenderer extends Renderer {
     value = value || "Arial";
     if (this._fontName !== value) {
       this._fontName = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
-    }
-  }
-
-  /**
-   * The font size of the TextRenderer.
-   */
-  get fontSize(): number {
-    return this._fontSize;
-  }
-
-  set fontSize(value: number) {
-    if (this._fontSize !== value) {
-      this._fontSize = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -156,35 +141,7 @@ export class TextRenderer extends Renderer {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
-    }
-  }
-
-  /**
-   * The text is bold.
-   */
-  get bold(): boolean {
-    return this._isBold;
-  }
-
-  set bold(value: boolean) {
-    if (this._isBold !== value) {
-      this._isBold = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
-    }
-  }
-
-  /**
-   * The text is italic.
-   */
-  get italic(): boolean {
-    return this._isItalic;
-  }
-
-  set italic(value: boolean) {
-    if (this._isItalic !== value) {
-      this._isItalic = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -198,7 +155,7 @@ export class TextRenderer extends Renderer {
   set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -212,7 +169,7 @@ export class TextRenderer extends Renderer {
   set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -226,7 +183,7 @@ export class TextRenderer extends Renderer {
   set horizontalOverflow(value: TextHorizontalOverflow) {
     if (this._horizontalOverflow !== value) {
       this._horizontalOverflow = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -240,7 +197,24 @@ export class TextRenderer extends Renderer {
   set verticalOverflow(value: TextVerticalOverflow) {
     if (this._verticalOverflow !== value) {
       this._verticalOverflow = value;
-      this._setDirtyFlagTrue(DirtyFlag.Style);
+      this._setDirtyFlagTrue(DirtyFlag.Property);
+    }
+  }
+
+  /**
+   * The text style.
+   */
+  get style(): TextStyle {
+    return this._style;
+  }
+
+  set style(value: TextStyle) {
+    if (this._style !== value) {
+      this._styleDirty && this._styleDirty.destroy();
+      this._style = value;
+      if (value) {
+        this._styleDirty = value._registerUpdateFlag();
+      }
     }
   }
 
@@ -273,6 +247,7 @@ export class TextRenderer extends Renderer {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this._sprite = new Sprite(this.engine);
+    this.style = new TextStyle();
     this.setMaterial(this._engine._spriteDefaultMaterial);
   }
 
@@ -285,7 +260,7 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    const isStyleDirty = this._isContainDirtyFlag(DirtyFlag.Style);
+    const isStyleDirty = this._isContainDirtyFlag(DirtyFlag.Property) || this._styleDirty.flag;
     if (isStyleDirty) {
       this._updateText();
     }
@@ -293,7 +268,8 @@ export class TextRenderer extends Renderer {
     const { _sprite: sprite } = this;
     const { texture } = sprite;
     if (!texture) {
-      this._setDirtyFlagFalse(DirtyFlag.Style);
+      this._setDirtyFlagFalse(DirtyFlag.Property);
+      this._styleDirty.flag = false;
       return;
     }
 
@@ -303,7 +279,8 @@ export class TextRenderer extends Renderer {
       this._updatePosition();
       this._isWorldMatrixDirty.flag = false;
     }
-    this._setDirtyFlagFalse(DirtyFlag.Style);
+    this._setDirtyFlagFalse(DirtyFlag.Property);
+    this._styleDirty.flag = false;
 
     if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
       this._updateStencilState();
@@ -331,6 +308,7 @@ export class TextRenderer extends Renderer {
   _onDestroy(): void {
     this.engine._dynamicTextAtlasManager.removeSprite(this._sprite);
     this._isWorldMatrixDirty.destroy();
+    this._styleDirty && this._styleDirty.destroy();
     super._onDestroy();
   }
 
@@ -367,14 +345,15 @@ export class TextRenderer extends Renderer {
   }
 
   private _getFontString() {
+    const { style } = this;
     let str = "";
-    if (this.bold) {
+    if (style.bold) {
       str += "bold ";
     }
-    if (this.italic) {
+    if (style.italic) {
       str += "italic ";
     }
-    str += `${this._fontSize}px ${this._fontName}`;
+    str += `${style.fontSize}px ${this._fontName}`;
     return str;
   }
 
@@ -525,7 +504,7 @@ export class TextRenderer extends Renderer {
 }
 
 enum DirtyFlag {
-  Style = 0x1,
+  Property = 0x1,
   MaskInteraction = 0x2,
   All = 0x3
 }
