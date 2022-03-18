@@ -21,10 +21,6 @@ export class ComponentsManager {
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _destroyComponents: Script[] = [];
 
-  // keyboard
-  private _onKeyDownScript: DisorderedArray<Script> = new DisorderedArray();
-  private _onKeyUpScript: DisorderedArray<Script> = new DisorderedArray();
-
   // Animation
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
 
