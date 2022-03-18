@@ -1,6 +1,6 @@
 import { Engine } from "../Engine";
 import { KeyboardManager } from "./keyboard/KeyboardManager";
-import { KeyCode } from "./keyboard/KeyCode";
+import { KeyCode } from "./enums/KeyCode";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
 

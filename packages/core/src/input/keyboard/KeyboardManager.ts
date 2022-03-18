@@ -1,6 +1,6 @@
 
 import { DisorderedArray } from "../../DisorderedArray";
-import { KeyCode } from "./KeyCode";
+import { KeyCode } from "../enums/KeyCode";
 
 /**
  * Keyboard Manager.
