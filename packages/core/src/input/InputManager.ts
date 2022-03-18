@@ -31,40 +31,40 @@ export class InputManager {
 
   /**
    * Whether the key is being held down, if there is no parameter, return whether any key is being held down.
-   * @param key KeyCode of key
-   * @returns 
+   * @param key - KeyCode of key
+   * @returns Whether ths key is being held down.
    */
   isKeyHeldDown(key?: KeyCode): boolean {
     if (key === undefined) {
       return this._keyboardManager._curFrameHeldDownList.length > 0;
     } else {
-      return !!this._keyboardManager._curHeldDownKey2IndexMap[key];
+      return !!this._keyboardManager._curHeldDownKeyToIndexMap[key];
     }
   }
 
   /**
     * Whether the current frame key has been pressed, if there is no parameter, return whether any key has been pressed.
-    * @param key KeyCode of key
-    * @returns 
+    * @param key - KeyCode of key
+    * @returns Whether ths key has been pressed.
     */
   isKeyDown(key?: KeyCode): boolean {
     if (key === undefined) {
       return this._keyboardManager._curFrameDownList.length > 0;
     } else {
-      return this._keyboardManager._curFrameDownKey2FrameCountMap[key] === this._keyboardManager._curFrameCount;
+      return this._keyboardManager._curFrameDownKeyToFrameCountMap[key] === this._keyboardManager._curFrameCount;
     }
   }
 
   /**
    * Whether the current frame key has been lifted, if there is no parameter, return whether any key has been lifted.
-   * @param key KeyCode of key
-   * @returns 
+   * @param key - KeyCode of key
+   * @returns Whether ths key has been lifted.
    */
   isKeyUp(key?: KeyCode): boolean {
     if (key === undefined) {
       return this._keyboardManager._curFrameUpList.length > 0;
     } else {
-      return this._keyboardManager._curFrameUpKey2FrameCountMap[key] === this._keyboardManager._curFrameCount;
+      return this._keyboardManager._curFrameUpKeyToFrameCountMap[key] === this._keyboardManager._curFrameCount;
     }
   }
 

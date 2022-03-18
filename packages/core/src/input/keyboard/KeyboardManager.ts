@@ -8,13 +8,13 @@ import { KeyCode } from "./KeyCode";
  */
 export class KeyboardManager {
     /** @internal */
-    _curFrameCount = 0;
+    _curFrameCount: number = 0;
     /** @internal */
-    _curHeldDownKey2IndexMap: number[] = [];
+    _curHeldDownKeyToIndexMap: number[] = [];
     /** @internal */
-    _curFrameUpKey2FrameCountMap: number[] = [];
+    _curFrameUpKeyToFrameCountMap: number[] = [];
     /** @internal */
-    _curFrameDownKey2FrameCountMap: number[] = [];
+    _curFrameDownKeyToFrameCountMap: number[] = [];
 
     /** @internal */
     _curFrameHeldDownList: DisorderedArray<KeyCode> = new DisorderedArray();
@@ -40,34 +40,34 @@ export class KeyboardManager {
     /**
      * @internal
      */
-    _update() {
+    _update(): void {
         this._curFrameCount++;
         const { _nativeEvents, _curFrameDownList, _curFrameUpList } = this;
         _curFrameDownList.length = 0;
         _curFrameUpList.length = 0;
         if (_nativeEvents.length > 0) {
-            const { _curFrameCount, _curHeldDownKey2IndexMap, _curFrameHeldDownList } = this;
+            const { _curFrameCount, _curHeldDownKeyToIndexMap, _curFrameHeldDownList } = this;
             for (let i = 0, n = _nativeEvents.length; i < n; i++) {
                 const evt = _nativeEvents[i];
                 const codeNumber: KeyCode = KeyCode[evt.code];
                 switch (evt.type) {
                     case 'keydown':
-                        if (!_curHeldDownKey2IndexMap[codeNumber]) {
+                        if (!_curHeldDownKeyToIndexMap[codeNumber]) {
                             _curFrameDownList.add(codeNumber);
                             _curFrameHeldDownList.add(codeNumber);
-                            _curHeldDownKey2IndexMap[codeNumber] = _curFrameHeldDownList.length;
-                            this._curFrameDownKey2FrameCountMap[codeNumber] = _curFrameCount;
+                            _curHeldDownKeyToIndexMap[codeNumber] = _curFrameHeldDownList.length;
+                            this._curFrameDownKeyToFrameCountMap[codeNumber] = _curFrameCount;
                         }
                         break;
                     case 'keyup':
-                        const delIndex = _curHeldDownKey2IndexMap[codeNumber];
+                        const delIndex = _curHeldDownKeyToIndexMap[codeNumber];
                         if (delIndex) {
-                            _curHeldDownKey2IndexMap[codeNumber] = null;
+                            _curHeldDownKeyToIndexMap[codeNumber] = null;
                             const swapCode = _curFrameHeldDownList.deleteByIndex(delIndex - 1);
-                            swapCode && (_curHeldDownKey2IndexMap[swapCode] = delIndex);
+                            swapCode && (_curHeldDownKeyToIndexMap[swapCode] = delIndex);
                         }
                         _curFrameUpList.add(codeNumber);
-                        this._curFrameUpKey2FrameCountMap[codeNumber] = _curFrameCount;
+                        this._curFrameUpKeyToFrameCountMap[codeNumber] = _curFrameCount;
                         break;
                     default:
                         break;
@@ -80,10 +80,10 @@ export class KeyboardManager {
     /**
      * @internal
      */
-    _onBlur() {
-        const { _curHeldDownKey2IndexMap } = this;
-        for (let i = _curHeldDownKey2IndexMap.length - 1; i >= 0; i--) {
-            _curHeldDownKey2IndexMap[i] && (_curHeldDownKey2IndexMap[i] = null);
+    _onBlur(): void {
+        const { _curHeldDownKeyToIndexMap } = this;
+        for (let i = _curHeldDownKeyToIndexMap.length - 1; i >= 0; i--) {
+            _curHeldDownKeyToIndexMap[i] && (_curHeldDownKeyToIndexMap[i] = null);
         }
         this._nativeEvents.length = 0;
         this._curFrameHeldDownList.length = 0;
@@ -94,12 +94,12 @@ export class KeyboardManager {
     /**
      * @internal
      */
-    _destroy() {
+    _destroy(): void {
         window.removeEventListener('keydown', this._onKeyEvent);
         window.removeEventListener('keyup', this._onKeyEvent);
-        this._curHeldDownKey2IndexMap.length = 0;
-        this._curFrameUpKey2FrameCountMap.length = 0;
-        this._curFrameDownKey2FrameCountMap.length = 0;
+        this._curHeldDownKeyToIndexMap.length = 0;
+        this._curFrameUpKeyToFrameCountMap.length = 0;
+        this._curFrameDownKeyToFrameCountMap.length = 0;
         this._nativeEvents.length = 0;
 
         this._curFrameHeldDownList.garbageCollection();
