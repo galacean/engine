@@ -53,7 +53,7 @@ export class InputManager {
     if (key === undefined) {
       return this._keyboardManager._curFrameDownList.length > 0;
     } else {
-      return this._keyboardManager._curFrameDownKeyToFrameCountMap[key] === this._keyboardManager._curFrameCount;
+      return this._keyboardManager._downKeyToFrameCountMap[key] === this._keyboardManager._curFrameCount;
     }
   }
 
@@ -66,7 +66,7 @@ export class InputManager {
     if (key === undefined) {
       return this._keyboardManager._curFrameUpList.length > 0;
     } else {
-      return this._keyboardManager._curFrameUpKeyToFrameCountMap[key] === this._keyboardManager._curFrameCount;
+      return this._keyboardManager._upKeyToFrameCountMap[key] === this._keyboardManager._curFrameCount;
     }
   }
 
