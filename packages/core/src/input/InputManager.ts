@@ -33,7 +33,7 @@ export class InputManager {
 
   /**
    * Whether the key is being held down, if there is no parameter, return whether any key is being held down.
-   * @param key - KeyCode of key
+   * @param key - The keys of the keyboard
    * @returns Whether ths key is being held down.
    */
   isKeyHeldDown(key?: Keys): boolean {
@@ -45,9 +45,9 @@ export class InputManager {
   }
 
   /**
-    * Whether the current frame key has been pressed, if there is no parameter, return whether any key has been pressed.
-    * @param key - KeyCode of key
-    * @returns Whether ths key has been pressed.
+    * Return whether the key starts to be pressed down during the current frame, if there is no parameter, return whether any key starts to be pressed down during the current frame.
+    * @param key - The keys of the keyboard
+    * @returns Whether the key starts to be pressed down during the current frame.
     */
   isKeyDown(key?: Keys): boolean {
     if (key === undefined) {
@@ -58,9 +58,9 @@ export class InputManager {
   }
 
   /**
-   * Whether the current frame key has been lifted, if there is no parameter, return whether any key has been lifted.
-   * @param key - KeyCode of key
-   * @returns Whether ths key has been lifted.
+   * Return whether the key is released during the current frame, if there is no parameter, return whether any key released during the current frame.
+   * @param key - The keys of the keyboard
+   * @returns Whether the key is released during the current frame.
    */
   isKeyUp(key?: Keys): boolean {
     if (key === undefined) {
