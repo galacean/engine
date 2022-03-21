@@ -166,7 +166,14 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
-    const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    let event: TriggerEvent;
+    if (this._eventPool.length) {
+      event = this._eventPool.pop();
+      event.index1 = index1;
+      event.index2 = index2;
+    } else {
+      event = new TriggerEvent(index1, index2);
+    }
     this._eventMap[index1][index2] = event;
     return event;
   }
@@ -237,7 +244,7 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = 0, n = currentEvents.length; i < n;) {
       const event = currentEvents.get(i);
       if (!event.needUpdate) {
         if (event.state == TriggerEventState.Enter) {

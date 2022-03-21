@@ -51,9 +51,21 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
-      onContactBegin: (obj1, obj2) => {},
-      onContactEnd: (obj1, obj2) => {},
-      onContactPersist: (obj1, obj2) => {},
+      onContactBegin: (obj1, obj2) => {
+        const index1 = obj1.getQueryFilterData().word0;
+        const index2 = obj2.getQueryFilterData().word0;
+        this._onContactEnter(index1, index2);
+      },
+      onContactEnd: (obj1, obj2) => {
+        const index1 = obj1.getQueryFilterData().word0;
+        const index2 = obj2.getQueryFilterData().word0;
+        this._onContactExit(index1, index2);
+      },
+      onContactPersist: (obj1, obj2) => {
+        const index1 = obj1.getQueryFilterData().word0;
+        const index2 = obj2.getQueryFilterData().word0;
+        this._onContactStay(index1, index2);
+      },
       onTriggerBegin: (obj1, obj2) => {
         const index1 = obj1.getQueryFilterData().word0;
         const index2 = obj2.getQueryFilterData().word0;
@@ -169,7 +181,14 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
-    const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    let event: TriggerEvent;
+    if (this._eventPool.length) {
+      event = this._eventPool.pop();
+      event.index1 = index1;
+      event.index2 = index2;
+    } else {
+      event = new TriggerEvent(index1, index2);
+    }
     this._eventMap[index1][index2] = event;
     return event;
   }

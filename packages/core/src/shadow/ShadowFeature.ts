@@ -90,20 +90,20 @@ export class ShadowFeature extends SceneFeature {
     const items = renderQueue.items;
     for (let i = 0, len = items.length; i < len; i++) {
       const item = items[i];
-      const ability: Component = item.component;
+      const component: Component = item.component;
 
-      const receiveShadow = (ability as any).recieveShadow;
-      const castShadow = (ability as any).castShadow;
+      const receiveShadow = (component as any).recieveShadow;
+      const castShadow = (component as any).castShadow;
       if (receiveShadow === true) {
-        ability.entity.layer |= Layer.Layer30; //SHADOW;
+        component.entity.layer |= Layer.Layer30; //SHADOW;
       } else if (receiveShadow === false) {
-        ability.entity.layer &= ~Layer.Layer30; //SHADOW;
+        component.entity.layer &= ~Layer.Layer30; //SHADOW;
       }
 
       if (castShadow === true) {
-        ability.entity.layer |= Layer.Layer31; //SHADOW_MAP;
+        component.entity.layer |= Layer.Layer31; //SHADOW_MAP;
       } else if (castShadow === false) {
-        ability.entity.layer &= ~Layer.Layer31; //SHADOW_MAP;
+        component.entity.layer &= ~Layer.Layer31; //SHADOW_MAP;
       }
     }
   }
