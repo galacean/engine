@@ -1,6 +1,6 @@
 import { Engine } from "../Engine";
 import { KeyboardManager } from "./keyboard/KeyboardManager";
-import { KeyCode } from "./enums/KeyCode";
+import { Keys } from "./enums/Keys";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
 
@@ -36,7 +36,7 @@ export class InputManager {
    * @param key - KeyCode of key
    * @returns Whether ths key is being held down.
    */
-  isKeyHeldDown(key?: KeyCode): boolean {
+  isKeyHeldDown(key?: Keys): boolean {
     if (key === undefined) {
       return this._keyboardManager._curFrameHeldDownList.length > 0;
     } else {
@@ -49,7 +49,7 @@ export class InputManager {
     * @param key - KeyCode of key
     * @returns Whether ths key has been pressed.
     */
-  isKeyDown(key?: KeyCode): boolean {
+  isKeyDown(key?: Keys): boolean {
     if (key === undefined) {
       return this._keyboardManager._curFrameDownList.length > 0;
     } else {
@@ -62,7 +62,7 @@ export class InputManager {
    * @param key - KeyCode of key
    * @returns Whether ths key has been lifted.
    */
-  isKeyUp(key?: KeyCode): boolean {
+  isKeyUp(key?: Keys): boolean {
     if (key === undefined) {
       return this._keyboardManager._curFrameUpList.length > 0;
     } else {

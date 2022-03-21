@@ -1,10 +1,8 @@
 /**
- * The number of the code in the keyboard event.
- * Keep up with W3C standards.
- * https://www.w3.org/TR/2017/CR-uievents-code-20170601/
+ * The keys of the keyboard.
+ * Keep up with W3C standards.(https://www.w3.org/TR/2017/CR-uievents-code-20170601/)
  */
-export enum KeyCode {
-    /** List of code values for writing system keys in the Alphanumeric section. */
+export enum Keys {
     /** `~ on a US keyboard. This is the 半角/全角/漢字 (hankaku/zenkaku/kanji) key on Japanese keyboards. */
     Backquote,
     /** Used for both the US \| (on the 101-key layout) and also for the key located between the " and Enter keys on row C of the 102-, 104- and 106-key layouts. Labelled #~ on a UK (102) keyboard. */
@@ -108,7 +106,6 @@ export enum KeyCode {
     /** /? on a US keyboard. */
     Slash,
 
-    /** List of code values for functional keys in the Alphanumeric section. */
     /** Alt, Option or ⌥. */
     AltLeft,
     /** Alt, Option or ⌥. This is labelled AltGr key on many keyboard layouts. */
@@ -136,7 +133,6 @@ export enum KeyCode {
     /** Tab or ⇥. */
     Tab,
 
-    /** List of code values for functional keys found on Japanese and Korean keyboards. */
     /** Japanese: 変換 (henkan). */
     Convert,
     /** Japanese: カタカナ/ひらがな/ローマ字 (katakana/hiragana/romaji). */
@@ -160,7 +156,6 @@ export enum KeyCode {
     /** Japanese: 無変換 (muhenkan). */
     NonConvert,
 
-    /** List of code values for keys in the ControlPad section. */
     /** ⌦. The forward delete key. Note that on Apple keyboards, the key labelled Delete on the main part of the keyboard should be encoded as "Backspace". */
     Delete,
     /** Page Down, End or ↘. */
@@ -176,7 +171,6 @@ export enum KeyCode {
     /** Page Up, PgUp or ⇞. */
     PageUp,
 
-    /** List of code values for keys in the ArrowPad section. */
     /** ↓ */
     ArrowDown,
     /** ← */
@@ -186,7 +180,6 @@ export enum KeyCode {
     /** ↑ */
     ArrowUp,
 
-    /** List of code values for keys in the Numpad section. */
     /** On the Mac, the "NumLock" code should be used for the numpad Clear key. */
     NumLock,
     /** 
@@ -286,7 +279,6 @@ export enum KeyCode {
     /** - */
     NumpadSubtract,
 
-    /** List of code values for keys in the Function section. */
     /** Esc or ⎋. */
     Escape,
     /** F1 */
@@ -330,7 +322,6 @@ export enum KeyCode {
     /** Pause Break */
     Pause,
 
-    /** List of code values for media keys. */
     /** Some laptops place this key to the left of the ↑ key. */
     BrowserBack,
     /** Browser Favorites */
@@ -376,7 +367,6 @@ export enum KeyCode {
     /** Wake Up */
     WakeUp,
 
-    /** List of code values for legacy modifier keys. */
     /** Hyper */
     Hyper,
     /** Super */
@@ -384,7 +374,6 @@ export enum KeyCode {
     /** Turbo */
     Turbo,
 
-    /** List of code values for legacy process control keys. */
     /** Abort */
     Abort,
     /** Resume */
@@ -392,7 +381,6 @@ export enum KeyCode {
     /** Suspend */
     Suspend,
 
-    /** List of code values for legacy editing keys. */
     /** Found on Sun’s USB keyboard. */
     Again,
     /** Found on Sun’s USB keyboard. */
@@ -412,13 +400,11 @@ export enum KeyCode {
     /** Found on Sun’s USB keyboard. */
     Undo,
 
-    /** List of code values for keys found on international keyboards. */
     /** Use for dedicated ひらがな key found on some Japanese word processing keyboards. */
     Hiragana,
     /** Use for dedicated カタカナ key found on some Japanese word processing keyboards. */
     Katakana,
 
-    /** List of special code values. */
     /** This value code should be used when no other value given in this specification is appropriate. */
     Unidentified,
 }

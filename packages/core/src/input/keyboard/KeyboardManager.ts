@@ -1,6 +1,6 @@
 
 import { DisorderedArray } from "../../DisorderedArray";
-import { KeyCode } from "../enums/KeyCode";
+import { Keys } from "../enums/Keys";
 
 /**
  * Keyboard Manager.
@@ -17,11 +17,11 @@ export class KeyboardManager {
     _curFrameDownKeyToFrameCountMap: number[] = [];
 
     /** @internal */
-    _curFrameHeldDownList: DisorderedArray<KeyCode> = new DisorderedArray();
+    _curFrameHeldDownList: DisorderedArray<Keys> = new DisorderedArray();
     /** @internal */
-    _curFrameDownList: DisorderedArray<KeyCode> = new DisorderedArray();
+    _curFrameDownList: DisorderedArray<Keys> = new DisorderedArray();
     /** @internal */
-    _curFrameUpList: DisorderedArray<KeyCode> = new DisorderedArray();
+    _curFrameUpList: DisorderedArray<Keys> = new DisorderedArray();
 
     private _nativeEvents: KeyboardEvent[] = [];
     private _onKeyEvent: (evt: KeyboardEvent) => void;
@@ -49,21 +49,22 @@ export class KeyboardManager {
             const { _curFrameCount, _curHeldDownKeyToIndexMap, _curFrameHeldDownList } = this;
             for (let i = 0, n = _nativeEvents.length; i < n; i++) {
                 const evt = _nativeEvents[i];
-                const codeNumber: KeyCode = KeyCode[evt.code];
+                const codeNumber: Keys = Keys[evt.code];
                 switch (evt.type) {
                     case 'keydown':
-                        if (!_curHeldDownKeyToIndexMap[codeNumber]) {
+                        // Filter the repeated triggers of the keyboard.
+                        if (_curHeldDownKeyToIndexMap[codeNumber] == null) {
                             _curFrameDownList.add(codeNumber);
                             _curFrameHeldDownList.add(codeNumber);
-                            _curHeldDownKeyToIndexMap[codeNumber] = _curFrameHeldDownList.length;
+                            _curHeldDownKeyToIndexMap[codeNumber] = _curFrameHeldDownList.length - 1;
                             this._curFrameDownKeyToFrameCountMap[codeNumber] = _curFrameCount;
                         }
                         break;
                     case 'keyup':
                         const delIndex = _curHeldDownKeyToIndexMap[codeNumber];
-                        if (delIndex) {
+                        if (delIndex != null) {
                             _curHeldDownKeyToIndexMap[codeNumber] = null;
-                            const swapCode = _curFrameHeldDownList.deleteByIndex(delIndex - 1);
+                            const swapCode = _curFrameHeldDownList.deleteByIndex(delIndex);
                             swapCode && (_curHeldDownKeyToIndexMap[swapCode] = delIndex);
                         }
                         _curFrameUpList.add(codeNumber);
