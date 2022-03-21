@@ -45,7 +45,7 @@ export class InputManager {
   }
 
   /**
-    * Return whether the key starts to be pressed down during the current frame, if there is no parameter, return whether any key starts to be pressed down during the current frame.
+    * Whether the key starts to be pressed down during the current frame, if there is no parameter, return whether any key starts to be pressed down during the current frame.
     * @param key - The keys of the keyboard
     * @returns Whether the key starts to be pressed down during the current frame.
     */
@@ -58,7 +58,7 @@ export class InputManager {
   }
 
   /**
-   * Return whether the key is released during the current frame, if there is no parameter, return whether any key released during the current frame.
+   * Whether the key is released during the current frame, if there is no parameter, return whether any key released during the current frame.
    * @param key - The keys of the keyboard
    * @returns Whether the key is released during the current frame.
    */
