@@ -8,6 +8,7 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
+import { Font } from "./Font";
 import { TextStyle } from "./TextStyle";
 import { TextUtils } from "./TextUtils";
 
@@ -36,7 +37,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _height: number = 0;
   @assignmentClone
-  private _fontName: string = "Arial";
+  private _font: Font = null;
   @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
@@ -53,6 +54,8 @@ export class TextRenderer extends Renderer {
   private _dirtyFlag: number = DirtyFlag.Property;
   @ignoreClone
   private _styleDirty: UpdateFlag;
+  @ignoreClone
+  private _fontDirty: UpdateFlag;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
   @assignmentClone
@@ -119,15 +122,17 @@ export class TextRenderer extends Renderer {
   /**
    * The font name of the TextRenderer.
    */
-  get fontName(): string {
-    return this._fontName;
+  get font(): Font {
+    return this._font;
   }
 
-  set fontName(value: string) {
-    value = value || "Arial";
-    if (this._fontName !== value) {
-      this._fontName = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+  set font(value: Font) {
+    if (this._font !== value) {
+      this._fontDirty && this._fontDirty.destroy();
+      this._font = value;
+      if (value) {
+        this._fontDirty = value._registerUpdateFlag();
+      }
     }
   }
 
@@ -248,6 +253,7 @@ export class TextRenderer extends Renderer {
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this._sprite = new Sprite(this.engine);
     this.style = new TextStyle();
+    this.font = new Font(entity.engine);
     this.setMaterial(this._engine._spriteDefaultMaterial);
   }
 
@@ -260,8 +266,9 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    const isStyleDirty = this._isContainDirtyFlag(DirtyFlag.Property) || this._styleDirty.flag;
-    if (isStyleDirty) {
+    const { _styleDirty, _fontDirty } = this;
+    const isDirty = this._isContainDirtyFlag(DirtyFlag.Property) || _styleDirty.flag || _fontDirty.flag;
+    if (isDirty) {
       this._updateText();
     }
 
@@ -269,18 +276,20 @@ export class TextRenderer extends Renderer {
     const { texture } = sprite;
     if (!texture) {
       this._setDirtyFlagFalse(DirtyFlag.Property);
-      this._styleDirty.flag = false;
+      _styleDirty.flag = false;
+      _fontDirty.flag = false;
       return;
     }
 
     // Update sprite data.
     sprite._updateMesh();
-    if (this._isWorldMatrixDirty.flag || isStyleDirty) {
+    if (this._isWorldMatrixDirty.flag || isDirty) {
       this._updatePosition();
       this._isWorldMatrixDirty.flag = false;
     }
     this._setDirtyFlagFalse(DirtyFlag.Property);
-    this._styleDirty.flag = false;
+    _styleDirty.flag = false;
+    _fontDirty.flag = false;
 
     if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
       this._updateStencilState();
@@ -309,6 +318,7 @@ export class TextRenderer extends Renderer {
     this.engine._dynamicTextAtlasManager.removeSprite(this._sprite);
     this._isWorldMatrixDirty.destroy();
     this._styleDirty && this._styleDirty.destroy();
+    this._fontDirty && this._fontDirty.destroy();
     super._onDestroy();
   }
 
@@ -353,7 +363,7 @@ export class TextRenderer extends Renderer {
     if (style.italic) {
       str += "italic ";
     }
-    str += `${style.fontSize}px ${this._fontName}`;
+    str += `${style.fontSize}px ${this._font.fontName}`;
     return str;
   }
 
