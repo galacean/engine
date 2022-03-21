@@ -7,7 +7,7 @@ import { Entity } from "../../Entity";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
-import { TextVerticalOverflow } from "../enums/TextOverflow";
+import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
 import { TextStyle } from "./TextStyle";
 import { TextUtils } from "./TextUtils";
@@ -47,7 +47,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _enableWarpping: boolean = false;
   @assignmentClone
-  private _verticalOverflow: TextVerticalOverflow = TextVerticalOverflow.Overflow;
+  private _overflowMode: OverflowMode = OverflowMode.Overflow;
   @assignmentClone
   private _style: TextStyle = null;
   @ignoreClone
@@ -193,15 +193,15 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   * The vertical overflow.
+   * The overflow mode.
    */
-  get verticalOverflow(): TextVerticalOverflow {
-    return this._verticalOverflow;
+  get overflowMode(): OverflowMode {
+    return this._overflowMode;
   }
 
-  set verticalOverflow(value: TextVerticalOverflow) {
-    if (this._verticalOverflow !== value) {
-      this._verticalOverflow = value;
+  set overflowMode(value: OverflowMode) {
+    if (this._overflowMode !== value) {
+      this._overflowMode = value;
       this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }

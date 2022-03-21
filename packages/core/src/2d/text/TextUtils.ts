@@ -1,4 +1,4 @@
-import { TextVerticalOverflow } from "../enums/TextOverflow";
+import { OverflowMode } from "../enums/TextOverflow";
 import { TextRenderer } from "./TextRenderer";
 
 /**
@@ -164,7 +164,7 @@ export class TextUtils {
     // reset width and height.
     textMetrics.width = Math.min(maxLineWidth, TextUtils._maxWidth);
     let height = textRenderer.height * _pixelsPerUnit;
-    if (textRenderer.verticalOverflow === TextVerticalOverflow.Overflow) {
+    if (textRenderer.overflowMode === OverflowMode.Overflow) {
       height = Math.min(textMetrics.lineHeight * linesLen, TextUtils._maxHeight);
     }
     textMetrics.height = height;
@@ -236,12 +236,12 @@ export class TextUtils {
   }
 
   private static _wordWrap(textRenderer: TextRenderer, fontStr: string): Array<string> {
-    const { width, height, enableWarpping, verticalOverflow } = textRenderer;
+    const { width, height, enableWarpping, overflowMode } = textRenderer;
 
     if (enableWarpping && width <= 0) {
       return [];
     }
-    if (verticalOverflow === TextVerticalOverflow.Truncate && height <= 0) {
+    if (overflowMode === OverflowMode.Truncate && height <= 0) {
       return [];
     }
 

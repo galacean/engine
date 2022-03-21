@@ -1,7 +1,7 @@
 /**
  * The way to handle the situation where wrapped text is too tall to fit in the height.
  */
-export enum TextVerticalOverflow {
+export enum OverflowMode {
   /** Overflow when the text is too tall */
   Overflow = 0,
   /** Truncate with height when the text is too tall */
