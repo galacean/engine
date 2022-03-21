@@ -74,7 +74,6 @@ export class InputManager {
    * @internal
    */
   constructor(engine: Engine) {
-    this._keyboardManager = new KeyboardManager();
     // @ts-ignore
     const canvas = engine._canvas._webCanvas;
     if (canvas instanceof HTMLCanvasElement) {

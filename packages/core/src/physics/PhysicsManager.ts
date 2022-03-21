@@ -1,5 +1,5 @@
 import { HitResult } from "./HitResult";
-import { Ray } from "@oasis-engine/math";
+import { Ray, Vector3 } from "@oasis-engine/math";
 import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Collider } from "./Collider";
 import { Layer } from "../Layer";
@@ -12,11 +12,51 @@ export class PhysicsManager {
   /** @internal */
   static _nativePhysics: IPhysics;
 
+  private _gravity: Vector3 = new Vector3();
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap: Record<number, ColliderShape> = {};
-  private _onContactEnter = (obj1: number, obj2: number) => {};
-  private _onContactExit = (obj1: number, obj2: number) => {};
-  private _onContactStay = (obj1: number, obj2: number) => {};
+  private _onContactEnter = (obj1: number, obj2: number) => {
+    const shape1 = this._physicalObjectsMap[obj1];
+    const shape2 = this._physicalObjectsMap[obj2];
+
+    let scripts = shape1.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onCollisionEnter(shape2);
+    }
+
+    scripts = shape2.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onCollisionEnter(shape1);
+    }
+  };
+  private _onContactExit = (obj1: number, obj2: number) => {
+    const shape1 = this._physicalObjectsMap[obj1];
+    const shape2 = this._physicalObjectsMap[obj2];
+
+    let scripts = shape1.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onCollisionExit(shape2);
+    }
+
+    scripts = shape2.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onCollisionExit(shape1);
+    }
+  };
+  private _onContactStay = (obj1: number, obj2: number) => {
+    const shape1 = this._physicalObjectsMap[obj1];
+    const shape2 = this._physicalObjectsMap[obj2];
+
+    let scripts = shape1.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onCollisionStay(shape2);
+    }
+
+    scripts = shape2.collider.entity._scripts;
+    for (let i = 0, len = scripts.length; i < len; i++) {
+      scripts.get(i).onCollisionStay(shape1);
+    }
+  };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap[obj1];
     const shape2 = this._physicalObjectsMap[obj2];
@@ -61,6 +101,18 @@ export class PhysicsManager {
       scripts.get(i).onTriggerStay(shape1);
     }
   };
+
+  get gravity(): Vector3 {
+    return this._gravity;
+  }
+
+  set gravity(value: Vector3) {
+    const gravity = this._gravity;
+    if (gravity !== value) {
+      value.cloneTo(gravity);
+    }
+    this._nativePhysicsManager.setGravity(gravity);
+  }
 
   constructor() {
     this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(

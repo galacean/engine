@@ -24,7 +24,7 @@ describe("camera test", function () {
     expect(camera.aspectRatio).toEqual(1);
     expect(camera._renderPipeline).not.toBeUndefined();
     expect(camera.entity.transform.worldPosition).not.toBeUndefined();
-    expect(camera.viewport).toEqual({ x: 0, y: 0, z: 1, w: 1 });
+    vector4CloseTo(camera.viewport, new Vector4(0, 0, 1, 1));
     expect(camera.fieldOfView).toEqual(45);
     expect(camera.isOrthographic).toEqual(false);
   });
@@ -94,12 +94,10 @@ describe("camera test", function () {
     camera.projectionMatrix;
     //@ts-ignore
     camera._orthographicSize = 4;
-
     const width = (camera.orthographicSize * 400) / 400;
     const height = camera.orthographicSize;
     const result = new Matrix();
     Matrix.ortho(-width, width, -height, height, camera.nearClipPlane, camera.farClipPlane, result);
-
     expect(camera.projectionMatrix).not.toEqual(result);
   });
 
@@ -138,7 +136,7 @@ describe("camera test", function () {
     );
     camera.entity.transform.worldMatrix = new Matrix();
     const out = camera.worldToViewportPoint(new Vector3(1, 1, -100), new Vector3());
-    expect(out).toEqual({ x: 0.5154036617279053, y: 0.4913397705554962, z: 100 });
+    vector3CloseTo(out, new Vector3(0.5154036617279053, 0.4913397705554962, 100));
   });
 
   it("viewport to world", () => {
@@ -186,7 +184,6 @@ describe("camera test", function () {
     );
     camera.entity.transform.worldMatrix = mat;
     const ray = camera.viewportPointToRay(new Vector2(0.4472140669822693, 0.4436090290546417), new Ray());
-
     arrayCloseTo(
       [ray.origin.x, ray.origin.y, ray.origin.z],
       Float32Array.from([0.0017142786925635912, 5.017240249493299, 17.047073454417177])
@@ -220,4 +217,17 @@ function arrayCloseTo(arr1: ArrayLike<number>, arr2: ArrayLike<number>) {
   for (let i = 0; i < len; i++) {
     expect(arr1[i]).toBeCloseTo(arr2[i]);
   }
+}
+
+function vector3CloseTo(vec1: Vector3, vec2: Vector3): void {
+  expect(vec1.x).toBeCloseTo(vec2.x);
+  expect(vec1.y).toBeCloseTo(vec2.y);
+  expect(vec1.z).toBeCloseTo(vec2.z);
+}
+
+function vector4CloseTo(vec1: Vector4, vec2: Vector4): void {
+  expect(vec1.x).toBeCloseTo(vec2.x);
+  expect(vec1.y).toBeCloseTo(vec2.y);
+  expect(vec1.z).toBeCloseTo(vec2.z);
+  expect(vec1.w).toBeCloseTo(vec2.w);
 }
