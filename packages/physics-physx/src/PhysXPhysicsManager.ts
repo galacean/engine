@@ -23,9 +23,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   private _pxScene: any;
-  private _restTime: number = 0;
-  private _frequency: number = 60;
-  private _singleStepTime: number = 1.0 / 60.0;
 
   private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
   private readonly _onContactExit?: (obj1: number, obj2: number) => void;
@@ -138,26 +135,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.setFrequency }
-   */
-  setFrequency(freq: number): void {
-    this._frequency = Math.floor(freq);
-    this._singleStepTime = 1 / Math.floor(freq);
-  }
-
-  /**
    * {@inheritDoc IPhysicsManager.update }
    */
   update(elapsedTime: number): void {
-    const { _frequency: frequency, _singleStepTime: singleStepTime, _restTime: restTime } = this;
-
-    const simulateTime = elapsedTime + restTime;
-    const step = Math.floor(simulateTime * frequency);
-    this._restTime = simulateTime - step * singleStepTime;
-    for (let i = 0; i < step; i++) {
-      this._simulate(singleStepTime);
-    }
-
+    this._simulate(elapsedTime);
     this._fetchResults();
     this._fireEvent();
   }
@@ -214,7 +195,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n;) {
+    for (let i = 0, n = currentEvents.length; i < n; ) {
       const event = currentEvents.get(i);
       if (event.state == TriggerEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);

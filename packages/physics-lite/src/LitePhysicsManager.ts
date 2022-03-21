@@ -86,13 +86,6 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.setFrequency }
-   */
-  setFrequency(freq: number): void {
-    throw "Physics-lite don't support setFrequency. Use Physics-PhysX instead!";
-  }
-
-  /**
    * {@inheritDoc IPhysicsManager.update }
    */
   update(deltaTime: number): void {
@@ -251,7 +244,7 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n;) {
+    for (let i = 0, n = currentEvents.length; i < n; ) {
       const event = currentEvents.get(i);
       if (!event.needUpdate) {
         if (event.state == TriggerEventState.Enter) {

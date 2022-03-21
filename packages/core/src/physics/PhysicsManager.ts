@@ -4,6 +4,7 @@ import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Collider } from "./Collider";
 import { Layer } from "../Layer";
 import { ColliderShape } from "./shape/ColliderShape";
+import { Engine } from "../Engine";
 
 /**
  * A physics manager is a collection of bodies and constraints which can interact.
@@ -12,7 +13,12 @@ export class PhysicsManager {
   /** @internal */
   static _nativePhysics: IPhysics;
 
-  private _frequency: number = 60;
+  private _engine: Engine;
+  private _fixedTimeStep: number = 1 / 60;
+  private _maxSumTimeStep: number = 1 / 3;
+  private _maxStepCount = 20;
+  private _restTime: number = 0;
+
   private _gravity: Vector3 = new Vector3();
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap: Record<number, ColliderShape> = {};
@@ -115,7 +121,32 @@ export class PhysicsManager {
     this._nativePhysicsManager.setGravity(gravity);
   }
 
-  constructor() {
+  /**
+   * The fixed time step in seconds at which physics are performed.
+   */
+  get fixedTimeStep() {
+    return this._fixedTimeStep;
+  }
+
+  set setFixedTimeStep(value: number) {
+    this._fixedTimeStep = value;
+    this._maxStepCount = Math.floor(this._maxSumTimeStep / value);
+  }
+
+  /**
+   * The max sum of time step in seconds one frame.
+   */
+  get maxSumTimeStep() {
+    return this._maxSumTimeStep;
+  }
+
+  set setMaxSumTimeStep(value: number) {
+    this._maxSumTimeStep = value;
+    this._maxStepCount = Math.floor(value / this._fixedTimeStep);
+  }
+
+  constructor(engine: Engine) {
+    this._engine = engine;
     this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
       this._onContactEnter,
       this._onContactExit,
@@ -228,21 +259,26 @@ export class PhysicsManager {
     }
   }
 
-  get frequency() {
-    return this._frequency;
-  }
-
-  set frequency(value: number) {
-    this._frequency = value;
-    this._nativePhysicsManager.setFrequency(value);
-  }
-
   /**
    * Call on every frame to update pose of objects.
    * @internal
    */
   _update(deltaTime: number): void {
-    this._nativePhysicsManager.update(deltaTime);
+    const {
+      _fixedTimeStep: fixedTimeStep,
+      _maxStepCount: maxStepCount,
+      _restTime: restTime,
+      _nativePhysicsManager: nativePhysicsManager
+    } = this;
+    const componentManager = this._engine._componentsManager;
+
+    const simulateTime = deltaTime + restTime;
+    const step = Math.min(maxStepCount, Math.floor(simulateTime / fixedTimeStep));
+    this._restTime = simulateTime - step * fixedTimeStep;
+    for (let i = 0; i < step; i++) {
+      componentManager.callScriptOnPhysicsUpdate();
+      nativePhysicsManager.update(fixedTimeStep);
+    }
   }
 
   /**
