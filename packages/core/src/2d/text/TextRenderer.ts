@@ -7,7 +7,7 @@ import { Entity } from "../../Entity";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
-import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
+import { TextVerticalOverflow } from "../enums/TextOverflow";
 import { Font } from "./Font";
 import { TextStyle } from "./TextStyle";
 import { TextUtils } from "./TextUtils";
@@ -45,7 +45,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
   @assignmentClone
-  private _horizontalOverflow: TextHorizontalOverflow = TextHorizontalOverflow.Overflow;
+  private _enableWarpping: boolean = false;
   @assignmentClone
   private _verticalOverflow: TextVerticalOverflow = TextVerticalOverflow.Overflow;
   @assignmentClone
@@ -179,15 +179,15 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   * The horizontal overflow.
+   * Whether wrap text to next line when exceeds the width of the container.
    */
-  get horizontalOverflow(): TextHorizontalOverflow {
-    return this._horizontalOverflow;
+  get enableWarpping(): boolean {
+    return this._enableWarpping;
   }
 
-  set horizontalOverflow(value: TextHorizontalOverflow) {
-    if (this._horizontalOverflow !== value) {
-      this._horizontalOverflow = value;
+  set enableWarpping(value: boolean) {
+    if (this._enableWarpping !== value) {
+      this._enableWarpping = value;
       this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }

@@ -1,4 +1,4 @@
-import { TextHorizontalOverflow, TextVerticalOverflow } from "../enums/TextOverflow";
+import { TextVerticalOverflow } from "../enums/TextOverflow";
 import { TextRenderer } from "./TextRenderer";
 
 /**
@@ -236,10 +236,9 @@ export class TextUtils {
   }
 
   private static _wordWrap(textRenderer: TextRenderer, fontStr: string): Array<string> {
-    const { width, height, horizontalOverflow, verticalOverflow } = textRenderer;
-    const isWrap = horizontalOverflow === TextHorizontalOverflow.Wrap;
+    const { width, height, enableWarpping, verticalOverflow } = textRenderer;
 
-    if (isWrap && width <= 0) {
+    if (enableWarpping && width <= 0) {
       return [];
     }
     if (verticalOverflow === TextVerticalOverflow.Truncate && height <= 0) {
@@ -257,7 +256,7 @@ export class TextUtils {
     for (let i = 0, l = textArr.length; i < l; ++i) {
       const curText = textArr[i];
       const curWidth = Math.ceil(context.measureText(curText).width);
-      const needWrap = isWrap || curWidth > maxWidth;
+      const needWrap = enableWarpping || curWidth > maxWidth;
       const wrapWidth = Math.min(widthInPixel, maxWidth);
       if (needWrap) {
         if (curWidth <= wrapWidth) {
