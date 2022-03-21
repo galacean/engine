@@ -8,6 +8,8 @@ import { PointerManager } from "./pointer/PointerManager";
  * InputManager manages device input such as mouse, touch, keyboard, etc.
  */
 export class InputManager {
+  /** Disable input for offscreen rendering. */
+  private _enabled: boolean = true;
   private _pointerManager: PointerManager;
   private _keyboardManager: KeyboardManager
 
@@ -15,18 +17,18 @@ export class InputManager {
    * Pointer List.
    */
   get pointers(): Readonly<Pointer[]> {
-    return this._pointerManager._pointers;
+    return this._enabled ? this._pointerManager._pointers : null;
   }
 
   /**
    *  Whether to handle multi-pointer.
    */
   get multiPointerEnabled(): boolean {
-    return this._pointerManager._multiPointerEnabled;
+    return this._enabled ? this._pointerManager._multiPointerEnabled : false;
   }
 
   set multiPointerEnabled(enabled: boolean) {
-    this._pointerManager._multiPointerEnabled = enabled;
+    this._enabled && (this._pointerManager._multiPointerEnabled = enabled);
   }
 
   /**
@@ -74,25 +76,36 @@ export class InputManager {
   constructor(engine: Engine) {
     this._keyboardManager = new KeyboardManager();
     // @ts-ignore
-    this._pointerManager = new PointerManager(engine, engine.canvas._webCanvas);
-    window.addEventListener('blur', () => {
-      this._keyboardManager._onBlur();
-    });
+    const canvas = engine._canvas._webCanvas;
+    if (canvas instanceof HTMLCanvasElement) {
+      this._enabled = true;
+      this._pointerManager = new PointerManager(engine, canvas);
+      this._keyboardManager = new KeyboardManager();
+      window.addEventListener('blur', () => {
+        this._keyboardManager._onBlur();
+      });
+    } else {
+      this._enabled = false;
+    }
   }
 
   /**
    * @internal
    */
   _update(): void {
-    this._pointerManager._update();
-    this._keyboardManager._update();
+    if (this._enabled) {
+      this._pointerManager._update();
+      this._keyboardManager._update();
+    }
   }
 
   /**
    * @internal
    */
   _destroy(): void {
-    this._pointerManager._destroy();
-    this._keyboardManager._destroy();
+    if (this._enabled) {
+      this._pointerManager._destroy();
+      this._keyboardManager._destroy();
+    }
   }
 }
