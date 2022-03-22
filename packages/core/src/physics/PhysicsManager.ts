@@ -16,7 +16,7 @@ export class PhysicsManager {
   private _engine: Engine;
   private _fixedTimeStep: number = 1 / 60;
   private _maxSumTimeStep: number = 1 / 3;
-  private _maxStepCount = 20;
+  private _maxStepCount: number = 20;
   private _restTime: number = 0;
 
   private _gravity: Vector3 = new Vector3();
@@ -124,11 +124,11 @@ export class PhysicsManager {
   /**
    * The fixed time step in seconds at which physics are performed.
    */
-  get fixedTimeStep() {
+  get fixedTimeStep(): number {
     return this._fixedTimeStep;
   }
 
-  set setFixedTimeStep(value: number) {
+  set fixedTimeStep(value: number) {
     this._fixedTimeStep = value;
     this._maxStepCount = Math.floor(this._maxSumTimeStep / value);
   }
@@ -136,11 +136,11 @@ export class PhysicsManager {
   /**
    * The max sum of time step in seconds one frame.
    */
-  get maxSumTimeStep() {
+  get maxSumTimeStep(): number {
     return this._maxSumTimeStep;
   }
 
-  set setMaxSumTimeStep(value: number) {
+  set maxSumTimeStep(value: number) {
     this._maxSumTimeStep = value;
     this._maxStepCount = Math.floor(value / this._fixedTimeStep);
   }
@@ -266,14 +266,12 @@ export class PhysicsManager {
   _update(deltaTime: number): void {
     const {
       _fixedTimeStep: fixedTimeStep,
-      _maxStepCount: maxStepCount,
-      _restTime: restTime,
       _nativePhysicsManager: nativePhysicsManager
     } = this;
     const componentManager = this._engine._componentsManager;
 
-    const simulateTime = deltaTime + restTime;
-    const step = Math.min(maxStepCount, Math.floor(simulateTime / fixedTimeStep));
+    const simulateTime = deltaTime + this._restTime;
+    const step = Math.min(this._maxStepCount, Math.floor(simulateTime / fixedTimeStep));
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       componentManager.callScriptOnPhysicsUpdate();
