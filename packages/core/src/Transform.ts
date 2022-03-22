@@ -513,16 +513,16 @@ export class Transform extends Component {
     const yAxis = Transform._tempVec32;
     Vector3.cross(zAxis, xAxis, yAxis);
 
-    const { elements: oe } = Transform._tempMat41;
-    oe[0] = xAxis.x;
-    oe[1] = xAxis.y;
-    oe[2] = xAxis.z;
-    oe[4] = yAxis.x;
-    oe[5] = yAxis.y;
-    oe[6] = yAxis.z;
-    oe[8] = zAxis.x;
-    oe[9] = zAxis.y;
-    oe[10] = zAxis.z;
+    const { elements: e } = Transform._tempMat41;
+    e[0] = xAxis.x;
+    e[1] = xAxis.y;
+    e[2] = xAxis.z;
+    e[4] = yAxis.x;
+    e[5] = yAxis.y;
+    e[6] = yAxis.z;
+    e[8] = zAxis.x;
+    e[9] = zAxis.y;
+    e[10] = zAxis.z;
     Transform._tempMat41.getRotation(this._worldRotationQuaternion);
   }
 
