@@ -713,7 +713,7 @@ export class Transform extends Component {
     if (relativeToLocal) {
       Quaternion.multiply(this.rotationQuaternion, rotateQuat, this._rotationQuaternion);
     } else {
-      Quaternion.multiply(this.worldRotationQuaternion, rotateQuat, this._worldRotationQuaternion);
+      Quaternion.multiply(rotateQuat, this.rotationQuaternion, this._rotationQuaternion);
     }
   }
 
