@@ -14,9 +14,6 @@ export class PhysicsManager {
   static _nativePhysics: IPhysics;
 
   private _engine: Engine;
-  private _fixedTimeStep: number = 1 / 60;
-  private _maxSumTimeStep: number = 1 / 3;
-  private _maxStepCount: number = 20;
   private _restTime: number = 0;
 
   private _gravity: Vector3 = new Vector3();
@@ -109,6 +106,12 @@ export class PhysicsManager {
     }
   };
 
+  /** The fixed time step in seconds at which physics are performed. */
+  fixedTimeStep: number = 1 / 60;
+
+  /** The max sum of time step in seconds one frame. */
+  maxSumTimeStep: number = 1 / 3;
+
   get gravity(): Vector3 {
     return this._gravity;
   }
@@ -119,30 +122,6 @@ export class PhysicsManager {
       value.cloneTo(gravity);
     }
     this._nativePhysicsManager.setGravity(gravity);
-  }
-
-  /**
-   * The fixed time step in seconds at which physics are performed.
-   */
-  get fixedTimeStep(): number {
-    return this._fixedTimeStep;
-  }
-
-  set fixedTimeStep(value: number) {
-    this._fixedTimeStep = value;
-    this._maxStepCount = Math.floor(this._maxSumTimeStep / value);
-  }
-
-  /**
-   * The max sum of time step in seconds one frame.
-   */
-  get maxSumTimeStep(): number {
-    return this._maxSumTimeStep;
-  }
-
-  set maxSumTimeStep(value: number) {
-    this._maxSumTimeStep = value;
-    this._maxStepCount = Math.floor(value / this._fixedTimeStep);
   }
 
   constructor(engine: Engine) {
@@ -264,14 +243,11 @@ export class PhysicsManager {
    * @internal
    */
   _update(deltaTime: number): void {
-    const {
-      _fixedTimeStep: fixedTimeStep,
-      _nativePhysicsManager: nativePhysicsManager
-    } = this;
+    const { fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
     const componentManager = this._engine._componentsManager;
 
     const simulateTime = deltaTime + this._restTime;
-    const step = Math.min(this._maxStepCount, Math.floor(simulateTime / fixedTimeStep));
+    const step = Math.floor(Math.min(this.maxSumTimeStep, simulateTime) / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       componentManager.callScriptOnPhysicsUpdate();
