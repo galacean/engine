@@ -486,7 +486,7 @@ export class Transform extends Component {
   }
 
   /**
-   * Adjust the rotation so that the -Z axis is towards the target.
+   * Rotate and ensure that the world front vector points to the target world position.
    * @param targetPosition - Target world position
    * @param worldUp - Up direction in world space, default is Vector3(0, 1, 0)
    */
