@@ -21,6 +21,9 @@ export class Script extends Component {
   _onLateUpdateIndex: number = -1;
   /** @internal */
   @ignoreClone
+  _onPhysicsUpdateIndex: number = -1;
+  /** @internal */
+  @ignoreClone
   _onPreRenderIndex: number = -1;
   /** @internal */
   @ignoreClone
@@ -68,40 +71,45 @@ export class Script extends Component {
   onEndRender(camera: Camera): void {}
 
   /**
+   * Called before physics calculations, the number of times is related to the physical update frequency.
+   */
+  onPhysicsUpdate(): void {}
+
+  /**
    * Called when the collision enter.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onTriggerEnter(other: ColliderShape): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onTriggerExit(other: ColliderShape): void {}
 
   /**
    * Called when the collision exit.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onTriggerStay(other: ColliderShape): void {}
 
   /**
    * Called when the collision enter.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onCollisionEnter(other: ColliderShape): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onCollisionExit(other: ColliderShape): void {}
 
   /**
    * Called when the collision exit.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onCollisionStay(other: ColliderShape): void {}
 
@@ -172,6 +180,9 @@ export class Script extends Component {
     if (this.onLateUpdate !== prototype.onLateUpdate) {
       componentsManager.addOnLateUpdateScript(this);
     }
+    if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
+      componentsManager.addOnPhysicsUpdateScript(this);
+    }
     this._entity._addScript(this);
     this.onEnable();
   }
@@ -193,6 +204,9 @@ export class Script extends Component {
     }
     if (this._onLateUpdateIndex !== -1) {
       componentsManager.removeOnLateUpdateScript(this);
+    }
+    if (this._onPhysicsUpdateIndex !== -1) {
+      componentsManager.removeOnPhysicsUpdateScript(this);
     }
     if (this._entityCacheIndex !== -1) {
       this._entity._removeScript(this);
