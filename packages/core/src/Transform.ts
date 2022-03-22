@@ -10,7 +10,9 @@ import { UpdateFlagManager } from "./UpdateFlagManager";
  */
 export class Transform extends Component {
   private static _tempQuat0: Quaternion = new Quaternion();
-  private static _tempVec3: Vector3 = new Vector3();
+  private static _tempVec30: Vector3 = new Vector3();
+  private static _tempVec31: Vector3 = new Vector3();
+  private static _tempVec32: Vector3 = new Vector3();
   private static _tempMat30: Matrix3x3 = new Matrix3x3();
   private static _tempMat31: Matrix3x3 = new Matrix3x3();
   private static _tempMat32: Matrix3x3 = new Matrix3x3();
@@ -445,7 +447,7 @@ export class Transform extends Component {
     relativeToLocal?: boolean
   ): void {
     if (typeof translationOrX === "number") {
-      const translate = Transform._tempVec3;
+      const translate = Transform._tempVec30;
       translate.setValue(translationOrX, <number>relativeToLocalOrY, z);
       this._translate(translate, relativeToLocal);
     } else {
@@ -495,25 +497,44 @@ export class Transform extends Component {
   }
 
   /**
-   * Rotate and ensure that the world front vector points to the target world position.
-   * @param worldPosition - Target world position
+   * Adjust the rotation so that the -Z axis is towards the target.
+   * @param targetPosition - Target world position
    * @param worldUp - Up direction in world space, default is Vector3(0, 1, 0)
    */
-  lookAt(worldPosition: Vector3, worldUp?: Vector3): void {
-    const position = this.worldPosition;
-    const EPSILON = MathUtil.zeroTolerance;
-    if (
-      Math.abs(position.x - worldPosition.x) < EPSILON &&
-      Math.abs(position.y - worldPosition.y) < EPSILON &&
-      Math.abs(position.z - worldPosition.z) < EPSILON
-    ) {
+  lookAt(targetPosition: Vector3, worldUp?: Vector3): void {
+    const eyePosition = this.worldPosition;
+    const zAxis = Transform._tempVec30;
+    Vector3.subtract(eyePosition, targetPosition, zAxis);
+    let axisLen = zAxis.length();
+    if (axisLen <= MathUtil.zeroTolerance) {
       return;
     }
-    const rotMat = Transform._tempMat43;
+    zAxis.scale(1 / axisLen);
+    const xAxis = Transform._tempVec31;
+    if (worldUp) {
+      Vector3.cross(worldUp, zAxis, xAxis);
+    } else {
+      xAxis.setValue(zAxis.z, 0, -zAxis.x);
+    }
+    axisLen = xAxis.length();
+    if (axisLen <= MathUtil.zeroTolerance) {
+      return;
+    }
+    xAxis.scale(1 / axisLen);
+    const yAxis = Transform._tempVec32;
+    Vector3.cross(zAxis, xAxis, yAxis);
 
-    worldUp = worldUp ?? Transform._tempVec3.setValue(0, 1, 0);
-    Matrix.lookAt(position, worldPosition, worldUp, rotMat);
-    Quaternion.invert(rotMat.getRotation(Transform._tempQuat0), this._worldRotationQuaternion);
+    const { elements: oe } = Transform._tempMat41;
+    oe[0] = xAxis.x;
+    oe[1] = xAxis.y;
+    oe[2] = xAxis.z;
+    oe[4] = yAxis.x;
+    oe[5] = yAxis.y;
+    oe[6] = yAxis.z;
+    oe[8] = zAxis.x;
+    oe[9] = zAxis.y;
+    oe[10] = zAxis.z;
+    Transform._tempMat41.getRotation(this._worldRotationQuaternion);
   }
 
   /**
