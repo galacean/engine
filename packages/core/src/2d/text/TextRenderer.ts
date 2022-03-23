@@ -64,7 +64,7 @@ export class TextRenderer extends Renderer {
   private _maskLayer: number = SpriteMaskLayer.Layer0;
 
   /**
-   * Rendering color for the TextRenderer.
+   * Rendering color for the Text.
    */
   get color(): Color {
     return this._color;
