@@ -41,7 +41,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _fontSize: number = 24;
   @assignmentClone
-  private _fontStyle: number = FontStyle.None;
+  private _fontStyle: FontStyle = FontStyle.None;
   @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
@@ -153,11 +153,11 @@ export class TextRenderer extends Renderer {
   /**
    * The style of the font.
    */
-  get fontStyle(): number {
+  get fontStyle(): FontStyle {
     return this._fontStyle;
   }
 
-  set fontStyle(value: number) {
+  set fontStyle(value: FontStyle) {
     if (this.fontStyle !== value) {
       this._fontStyle = value;
       this._setDirtyFlagTrue(DirtyFlag.Property);
@@ -359,6 +359,13 @@ export class TextRenderer extends Renderer {
 
   private _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: TextRenderer): void {
+    target.font = this._font;
   }
 
   private _getFontString() {
