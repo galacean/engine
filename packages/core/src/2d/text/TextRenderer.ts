@@ -6,10 +6,10 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { Entity } from "../../Entity";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
+import { FontStyle } from "../enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
-import { TextStyle } from "./TextStyle";
 import { TextUtils } from "./TextUtils";
 
 export class TextRenderer extends Renderer {
@@ -39,6 +39,10 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _font: Font = null;
   @assignmentClone
+  private _fontSize: number = 24;
+  @assignmentClone
+  private _fontStyle: number = FontStyle.None;
+  @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
@@ -48,12 +52,8 @@ export class TextRenderer extends Renderer {
   private _enableWrapping: boolean = false;
   @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
-  @assignmentClone
-  private _style: TextStyle = null;
   @ignoreClone
   private _dirtyFlag: number = DirtyFlag.Property;
-  @ignoreClone
-  private _styleDirty: UpdateFlag;
   @ignoreClone
   private _fontDirty: UpdateFlag;
   @ignoreClone
@@ -137,6 +137,34 @@ export class TextRenderer extends Renderer {
   }
 
   /**
+   * The font size of the Text.
+   */
+  get fontSize(): number {
+    return this._fontSize;
+  }
+
+  set fontSize(value: number) {
+    if (this._fontSize !== value) {
+      this._fontSize = value;
+      this._setDirtyFlagTrue(DirtyFlag.Property);
+    }
+  }
+
+  /**
+   * The style of the font.
+   */
+  get fontStyle(): number {
+    return this._fontStyle;
+  }
+
+  set fontStyle(value: number) {
+    if (this.fontStyle !== value) {
+      this._fontStyle = value;
+      this._setDirtyFlagTrue(DirtyFlag.Property);
+    }
+  }
+
+  /**
    * The space between two lines (in pixels).
    */
   get lineSpacing(): number {
@@ -207,23 +235,6 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   * The text style.
-   */
-  get style(): TextStyle {
-    return this._style;
-  }
-
-  set style(value: TextStyle) {
-    if (this._style !== value) {
-      this._styleDirty && this._styleDirty.destroy();
-      this._style = value;
-      if (value) {
-        this._styleDirty = value._registerUpdateFlag();
-      }
-    }
-  }
-
-  /**
    * Interacts with the masks.
    */
   get maskInteraction(): SpriteMaskInteraction {
@@ -252,7 +263,6 @@ export class TextRenderer extends Renderer {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this._sprite = new Sprite(this.engine);
-    this.style = new TextStyle();
     this.font = new Font(entity.engine);
     this.setMaterial(this._engine._spriteDefaultMaterial);
   }
@@ -266,8 +276,8 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    const { _styleDirty, _fontDirty } = this;
-    const isDirty = this._isContainDirtyFlag(DirtyFlag.Property) || _styleDirty.flag || _fontDirty.flag;
+    const { _fontDirty } = this;
+    const isDirty = this._isContainDirtyFlag(DirtyFlag.Property) || _fontDirty.flag;
     if (isDirty) {
       this._updateText();
     }
@@ -276,7 +286,6 @@ export class TextRenderer extends Renderer {
     const { texture } = sprite;
     if (!texture) {
       this._setDirtyFlagFalse(DirtyFlag.Property);
-      _styleDirty.flag = false;
       _fontDirty.flag = false;
       return;
     }
@@ -288,7 +297,6 @@ export class TextRenderer extends Renderer {
       this._isWorldMatrixDirty.flag = false;
     }
     this._setDirtyFlagFalse(DirtyFlag.Property);
-    _styleDirty.flag = false;
     _fontDirty.flag = false;
 
     if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
@@ -317,7 +325,6 @@ export class TextRenderer extends Renderer {
   _onDestroy(): void {
     this.engine._dynamicTextAtlasManager.removeSprite(this._sprite);
     this._isWorldMatrixDirty.destroy();
-    this._styleDirty && this._styleDirty.destroy();
     this._fontDirty && this._fontDirty.destroy();
     super._onDestroy();
   }
@@ -355,15 +362,15 @@ export class TextRenderer extends Renderer {
   }
 
   private _getFontString() {
-    const { style } = this;
+    const { _fontStyle: style } = this;
     let str = "";
-    if (style.bold) {
+    if (style & FontStyle.Bold) {
       str += "bold ";
     }
-    if (style.italic) {
+    if (style & FontStyle.Italic) {
       str += "italic ";
     }
-    str += `${style.fontSize}px ${this._font.fontName}`;
+    str += `${this.fontSize}px ${this._font.fontName}`;
     return str;
   }
 
