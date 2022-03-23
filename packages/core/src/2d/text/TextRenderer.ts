@@ -45,7 +45,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
   @assignmentClone
-  private _enableWarpping: boolean = false;
+  private _enableWrapping: boolean = false;
   @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
   @assignmentClone
@@ -181,13 +181,13 @@ export class TextRenderer extends Renderer {
   /**
    * Whether wrap text to next line when exceeds the width of the container.
    */
-  get enableWarpping(): boolean {
-    return this._enableWarpping;
+  get enableWrapping(): boolean {
+    return this._enableWrapping;
   }
 
-  set enableWarpping(value: boolean) {
-    if (this._enableWarpping !== value) {
-      this._enableWarpping = value;
+  set enableWrapping(value: boolean) {
+    if (this._enableWrapping !== value) {
+      this._enableWrapping = value;
       this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
