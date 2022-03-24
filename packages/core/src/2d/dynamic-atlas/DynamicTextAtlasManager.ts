@@ -1,7 +1,6 @@
 import { Sprite } from "../sprite/Sprite";
 import { Engine } from "../../Engine";
 import { DynamicTextAtlas } from "./DynamicTextAtlas";
-import { Texture2D } from "../../texture/Texture2D";
 
 /**
  * Dynamic atlas manager for text.
