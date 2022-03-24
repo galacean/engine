@@ -372,7 +372,12 @@ export class TextRenderer extends Renderer {
     const { _fontStyle: style } = this;
     let str = style & FontStyle.Bold ? "bold" : "";
     style & FontStyle.Italic && (str += "italic ");
-    str += `${this.fontSize}px ${this._font.name}`;
+    // Check if font already contains strings
+    let fontFamily = this._font.name;
+    if (!(/([\"\'])[^\'\"]+\1/).test(fontFamily) && TextUtils._genericFontFamilies.indexOf(fontFamily) == -1) {
+      fontFamily = `"${fontFamily}"`;
+    }
+    str += `${this.fontSize}px ${fontFamily}`;
     return str;
   }
 

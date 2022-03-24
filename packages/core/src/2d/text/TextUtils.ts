@@ -26,6 +26,18 @@ export interface TextMetrics {
  * TextUtils includes some helper function for text.
  */
 export class TextUtils {
+  /** @internal */
+  static _genericFontFamilies: Array<string> = [
+    "serif",
+    "sans-serif",
+    "monospace",
+    "cursive",
+    "fantasy",
+    "system-ui",
+    "math",
+    "emoji",
+    "fangsong"
+  ];
   /** These characters are all tall to help calculate the height required for text. */
   private static _testString: string = "|ÉqÅ";
   private static _testBaseline: string = "M";
