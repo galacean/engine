@@ -11,7 +11,7 @@ export class Font extends RefObject {
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
-   * The font name of the TextRenderer.
+   * The name of the font.
    */
   get name(): string {
     return this._name;
@@ -26,9 +26,9 @@ export class Font extends RefObject {
   }
 
   /**
-   * Create a material instance.
+   * Create a font instance.
    * @param engine - Engine to which the material belongs
-   * @param shader - Shader used by the material
+   * @param name - The name of font
    */
   constructor(engine: Engine, name: string = "") {
     super(engine);
