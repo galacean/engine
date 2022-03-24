@@ -4,6 +4,9 @@ import { Engine } from "../../Engine";
 import { UpdateFlag } from "../../UpdateFlag";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
+/**
+ * Font.
+ */
 export class Font extends RefObject {
   @assignmentClone
   private _name: string = "Arial";
@@ -27,7 +30,7 @@ export class Font extends RefObject {
 
   /**
    * Create a font instance.
-   * @param engine - Engine to which the material belongs
+   * @param engine - Engine to which the font belongs
    * @param name - The name of font
    */
   constructor(engine: Engine, name: string = "") {
