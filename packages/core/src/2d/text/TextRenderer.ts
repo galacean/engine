@@ -120,7 +120,7 @@ export class TextRenderer extends Renderer {
   }
 
   /**
-   * The font name of the TextRenderer.
+   * The font of the Text.
    */
   get font(): Font {
     return this._font;
@@ -330,6 +330,13 @@ export class TextRenderer extends Renderer {
   }
 
   /**
+   * @internal
+   */
+  _cloneTo(target: TextRenderer): void {
+    target.font = this._font;
+  }
+
+  /**
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
@@ -361,30 +368,18 @@ export class TextRenderer extends Renderer {
     this._dirtyFlag &= ~type;
   }
 
-  /**
-   * @internal
-   */
-  _cloneTo(target: TextRenderer): void {
-    target.font = this._font;
-  }
-
-  private _getFontString() {
+  private _getNativeFontString(): string {
     const { _fontStyle: style } = this;
-    let str = "";
-    if (style & FontStyle.Bold) {
-      str += "bold ";
-    }
-    if (style & FontStyle.Italic) {
-      str += "italic ";
-    }
+    let str = style & FontStyle.Bold ? "bold" : "";
+    style & FontStyle.Italic && (str += "italic ");
     str += `${this.fontSize}px ${this._font.name}`;
     return str;
   }
 
-  private _updateText() {
+  private _updateText(): void {
     const textContext = TextUtils.textContext();
     const { canvas, context } = textContext;
-    const fontStr = this._getFontString();
+    const fontStr = this._getNativeFontString();
     const textMetrics = TextUtils.measureText(textContext, this, fontStr);
     const { width, height } = textMetrics;
     if (width === 0 || height === 0) {
@@ -418,7 +413,7 @@ export class TextRenderer extends Renderer {
     this._updateTexture();
   }
 
-  private _updateTexture() {
+  private _updateTexture(): void {
     const textContext = TextUtils.textContext();
     const { canvas, context } = textContext;
     const trimData = TextUtils.trimCanvas(textContext);
@@ -450,7 +445,7 @@ export class TextRenderer extends Renderer {
     index: number,
     length: number,
     out: Vector2
-  ) {
+  ): void {
     switch (this._verticalAlignment) {
       case TextVerticalAlignment.Top:
         out.y = index * lineHeight;
@@ -500,7 +495,7 @@ export class TextRenderer extends Renderer {
     }
   }
 
-  private _updatePosition() {
+  private _updatePosition(): void {
     const localPositions = this._sprite._positions;
     const localVertexPos = TextRenderer._tempVec3;
     const worldMatrix = this.entity.transform.worldMatrix;
@@ -513,7 +508,7 @@ export class TextRenderer extends Renderer {
     }
   }
 
-  private _clearTexture() {
+  private _clearTexture(): void {
     const { _sprite } = this;
     // Remove sprite from dynamic atlas.
     this.engine._dynamicTextAtlasManager.removeSprite(_sprite);

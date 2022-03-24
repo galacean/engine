@@ -26,14 +26,14 @@ export interface TextMetrics {
  * TextUtils includes some helper function for text.
  */
 export class TextUtils {
-  private static _testString = "qpjÉÅ";
-  private static _testBaseline = "M";
-  private static _heightMultiplier = 2;
-  private static _baselineMultiplier = 1.4;
-  private static _maxWidth = 2048;
-  private static _maxHeight = 2048;
-  private static _pixelsPerUnit = 128;
-  private static _fontSizes: { [font: string]: number } = {};
+  private static _testString: string = "qpjÉÅ";
+  private static _testBaseline: string = "M";
+  private static _heightMultiplier: number = 2;
+  private static _baselineMultiplier: number = 1.4;
+  private static _maxWidth: number = 2048;
+  private static _maxHeight: number = 2048;
+  private static _pixelsPerUnit: number = 128;
+  private static _fontSizeCache: Record<string, number> = {};
   private static _textContext: TextContext = null;
 
   /**
@@ -59,9 +59,9 @@ export class TextUtils {
    * @returns the font size
    */
   public static measureFont(textContext: TextContext, font: string): number {
-    const { _fontSizes: fontSizes } = TextUtils;
-    if (fontSizes[font]) {
-      return fontSizes[font];
+    const { _fontSizeCache: fontSizeCache } = TextUtils;
+    if (fontSizeCache[font]) {
+      return fontSizeCache[font];
     }
 
     const { canvas, context } = textContext;
@@ -119,7 +119,7 @@ export class TextUtils {
 
     const descent = i - baseline + 1;
     const fontSize = ascent + descent;
-    TextUtils._fontSizes[font] = fontSize;
+    TextUtils._fontSizeCache[font] = fontSize;
     return fontSize;
   }
 

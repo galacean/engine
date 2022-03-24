@@ -1,5 +1,4 @@
 import { RefObject } from "../../asset/RefObject"
-import { assignmentClone } from "../../clone/CloneManager";
 import { Engine } from "../../Engine";
 import { UpdateFlag } from "../../UpdateFlag";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
@@ -8,9 +7,7 @@ import { UpdateFlagManager } from "../../UpdateFlagManager";
  * Font.
  */
 export class Font extends RefObject {
-  @assignmentClone
   private _name: string = "Arial";
-
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
