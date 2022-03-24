@@ -370,11 +370,11 @@ export class TextRenderer extends Renderer {
 
   private _getNativeFontString(): string {
     const { _fontStyle: style } = this;
-    let str = style & FontStyle.Bold ? "bold" : "";
+    let str = style & FontStyle.Bold ? "bold " : "";
     style & FontStyle.Italic && (str += "italic ");
     // Check if font already contains strings
     let fontFamily = this._font.name;
-    if (!(/([\"\'])[^\'\"]+\1/).test(fontFamily) && TextUtils._genericFontFamilies.indexOf(fontFamily) == -1) {
+    if (!/([\"\'])[^\'\"]+\1/.test(fontFamily) && TextUtils._genericFontFamilies.indexOf(fontFamily) == -1) {
       fontFamily = `"${fontFamily}"`;
     }
     str += `${this.fontSize}px ${fontFamily}`;
@@ -382,10 +382,25 @@ export class TextRenderer extends Renderer {
   }
 
   private _updateText(): void {
+    const { width: originWidth, height: originHeight, enableWrapping, overflowMode } = this;
+    if ((enableWrapping && originWidth <= 0) || (overflowMode === OverflowMode.Truncate && originHeight <= 0)) {
+      this._clearTexture();
+      return;
+    }
+
     const textContext = TextUtils.textContext();
     const { canvas, context } = textContext;
     const fontStr = this._getNativeFontString();
-    const textMetrics = TextUtils.measureText(textContext, this, fontStr);
+    const textMetrics = TextUtils.measureText(
+      textContext,
+      this.text,
+      originWidth,
+      originHeight,
+      this.lineSpacing,
+      enableWrapping,
+      overflowMode,
+      fontStr
+    );
     const { width, height } = textMetrics;
     if (width === 0 || height === 0) {
       this._clearTexture();

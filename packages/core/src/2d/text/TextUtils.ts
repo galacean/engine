@@ -1,5 +1,4 @@
 import { OverflowMode } from "../enums/TextOverflow";
-import { TextRenderer } from "./TextRenderer";
 
 /**
  * TextContext.
@@ -73,8 +72,9 @@ export class TextUtils {
    */
   public static measureFont(textContext: TextContext, font: string): number {
     const { _fontSizeCache: fontSizeCache } = TextUtils;
-    if (fontSizeCache[font]) {
-      return fontSizeCache[font];
+    let fontSize = fontSizeCache[font];
+    if (fontSize) {
+      return fontSize;
     }
 
     const { canvas, context } = textContext;
@@ -83,7 +83,7 @@ export class TextUtils {
     const width = Math.ceil(context.measureText(testStr).width);
     let baseline = Math.ceil(context.measureText(TextUtils._testBaseline).width);
     const height = baseline * TextUtils._heightMultiplier;
-    baseline = TextUtils._baselineMultiplier * baseline | 0;
+    baseline = (TextUtils._baselineMultiplier * baseline) | 0;
 
     canvas.width = width;
     canvas.height = height;
@@ -131,39 +131,42 @@ export class TextUtils {
     }
 
     const descent = i - baseline + 1;
-    const fontSize = ascent + descent;
-    TextUtils._fontSizeCache[font] = fontSize;
+    fontSize = ascent + descent;
+    fontSizeCache[font] = fontSize;
     return fontSize;
   }
 
   /**
    * Measure the text.
    * @param textContext - text context includes 2d context and canvas
-   * @param textRenderer - the text renderer
-   * @param fontStr - the string of font
+   * @param text - rendering string
+   * @param originWidth - the width of the TextRenderer
+   * @param originHeight - the height of the TextRenderer
+   * @param lineSpacing - the space between two lines
+   * @param enableWrapping - whether wrap text to next line when exceeds the width of the container
+   * @param overflowMode - the overflow mode
+   * @param fontStr
    * @returns the TextMetrics object
    */
-  public static measureText(textContext: TextContext, textRenderer: TextRenderer, fontStr: string): TextMetrics {
+  public static measureText(
+    textContext: TextContext,
+    text: string,
+    originWidth: number,
+    originHeight: number,
+    lineSpacing: number,
+    enableWrapping: boolean,
+    overflowMode: OverflowMode,
+    fontStr: string
+  ): TextMetrics {
     const { _pixelsPerUnit } = TextUtils;
     const fontSize = TextUtils.measureFont(textContext, fontStr);
-    const textMetrics: TextMetrics = {
-      width: 0,
-      height: 0,
-      lines: TextUtils._wordWrap(textRenderer, fontStr),
-      lineWidths: [],
-      maxLineWidth: 0,
-      lineHeight: fontSize + textRenderer.lineSpacing * _pixelsPerUnit,
-      fontSize
-    };
     const { context } = textContext;
-    const { lines } = textMetrics;
-    const linesLen = lines.length;
-    if (linesLen === 0) {
-      return textMetrics;
-    }
-
     context.font = fontStr;
-    const { lineWidths } = textMetrics;
+    const lines = TextUtils._wordWrap(text, originWidth, enableWrapping, fontStr);
+    const linesLen = lines.length;
+    const lineWidths = new Array<number>();
+    const lineHeight = fontSize + lineSpacing * _pixelsPerUnit;
+    // Calculate max width of all lines.
     let maxLineWidth = 0;
     for (let i = 0; i < linesLen; ++i) {
       const width = Math.ceil(context.measureText(lines[i]).width);
@@ -172,17 +175,25 @@ export class TextUtils {
       }
       lineWidths.push(width);
     }
-    textMetrics.maxLineWidth = maxLineWidth;
+    maxLineWidth = maxLineWidth;
 
-    // reset width and height.
-    textMetrics.width = Math.min(maxLineWidth, TextUtils._maxWidth);
-    let height = textRenderer.height * _pixelsPerUnit;
-    if (textRenderer.overflowMode === OverflowMode.Overflow) {
-      height = Math.min(textMetrics.lineHeight * linesLen, TextUtils._maxHeight);
+    // Reset width and height.
+    const width = Math.min(maxLineWidth, TextUtils._maxWidth);
+    let height = originHeight * _pixelsPerUnit;
+    if (overflowMode === OverflowMode.Overflow) {
+      height = Math.min(lineHeight * linesLen, TextUtils._maxHeight);
     }
-    textMetrics.height = height;
+    height = height;
 
-    return textMetrics;
+    return {
+      width,
+      height,
+      lines,
+      lineWidths,
+      maxLineWidth,
+      lineHeight,
+      fontSize
+    };
   }
 
   /**
@@ -248,21 +259,11 @@ export class TextUtils {
     };
   }
 
-  private static _wordWrap(textRenderer: TextRenderer, fontStr: string): Array<string> {
-    const { width, height, enableWrapping, overflowMode } = textRenderer;
-
-    if (enableWrapping && width <= 0) {
-      return [];
-    }
-    if (overflowMode === OverflowMode.Truncate && height <= 0) {
-      return [];
-    }
-
+  private static _wordWrap(text: string, width: number, enableWrapping: boolean, fontStr: string): Array<string> {
     const { context } = TextUtils.textContext();
     const { _maxWidth: maxWidth } = TextUtils;
-    const { text } = textRenderer;
     const widthInPixel = width * TextUtils._pixelsPerUnit;
-    const output: Array<string> = [];
+    const output = new Array<string>();
     context.font = fontStr;
     const textArr = text.split(/(?:\r\n|\r|\n)/);
 
