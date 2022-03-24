@@ -124,6 +124,14 @@ void initMaterial(out Material material, const in Geometry geometry){
 
         material.roughness = max(material.roughness, getAARoughnessFactor(geometry.normal));
 
+        #ifdef REFRACTION
+            float refraction = u_refraction;
+            #ifdef HAS_REFRACTIONINTENSITYTEXTURE
+                refraction *= texture2D(u_refractionIntensityTexture, v_uv).r;
+            #endif
+            material.diffuseColor *= 1.0 - refraction;
+        #endif
+
         #ifdef CLEARCOAT
             material.clearcoat = u_clearcoat;
             material.clearcoatRoughness = u_clearcoatRoughness;

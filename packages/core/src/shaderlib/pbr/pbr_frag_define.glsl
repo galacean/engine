@@ -19,6 +19,10 @@ uniform vec3 u_dielectricF0Color;
     uniform float u_sheenRoughness;
 #endif
 
+#ifdef REFRACTION
+    uniform float u_refraction;
+#endif
+
 uniform float u_normalIntensity;
 uniform float u_occlusionStrength;
 
@@ -75,6 +79,10 @@ uniform float u_occlusionStrength;
 
 #ifdef HAS_DIELECTRICF0COLORTEXTURE
     uniform sampler2D u_dielectricF0ColorTexture;
+#endif
+
+#ifdef HAS_REFRACTIONINTENSITYTEXTURE
+    uniform sampler2D u_refractionIntensityTexture;
 #endif
 
 

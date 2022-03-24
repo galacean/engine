@@ -29,6 +29,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _sheenRoughness = Shader.getPropertyByName("u_sheenRoughness");
   private static _sheenRoughnessTexture = Shader.getPropertyByName("u_sheenRoughnessTexture");
 
+  private static _refractionProp = Shader.getPropertyByName("u_refraction");
+  private static _refractionIntensityTextureProp = Shader.getPropertyByName("u_refractionIntensityTexture");
+
   private _sheenEnabled: boolean = false;
 
   /**
@@ -318,6 +321,40 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   /**
+   * Refraction intensity, default 0.
+   */
+  get refraction(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._refractionProp);
+  }
+
+  set refraction(value: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._refractionProp, value);
+
+    if (value === 0) {
+      this.shaderData.disableMacro("REFRACTION");
+    } else {
+      this.shaderData.enableMacro("REFRACTION");
+    }
+  }
+
+  /**
+   * Texture that defines the refraction intensity of the sub surface, stored in the R channel. This will be multiplied by refraction.
+   */
+  get refractionIntensityTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._refractionIntensityTextureProp);
+  }
+
+  set refractionIntensityTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._refractionIntensityTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("HAS_REFRACTIONINTENSITYTEXTURE");
+    } else {
+      this.shaderData.disableMacro("HAS_REFRACTIONINTENSITYTEXTURE");
+    }
+  }
+
+  /**
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
@@ -342,6 +379,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     shaderData.setColor(PBRBaseMaterial._sheenColor, new Color(0, 0, 0, 1));
     shaderData.setFloat(PBRBaseMaterial._sheenRoughness, 0);
+
+    shaderData.setFloat(PBRBaseMaterial._refractionProp, 0);
   }
 
   /**
