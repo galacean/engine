@@ -4,6 +4,5 @@ export { TextHorizontalAlignment, TextVerticalAlignment } from "./enums/TextAlig
 export { OverflowMode } from "./enums/TextOverflow";
 export { FontStyle } from "./enums/FontStyle";
 export { SpriteAtlas } from "./atlas/SpriteAtlas";
-export { DynamicTextAtlasManager } from "./dynamic-atlas/DynamicTextAtlasManager";
 export * from "./sprite/index";
 export * from "./text/index";

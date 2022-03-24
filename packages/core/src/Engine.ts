@@ -1,5 +1,6 @@
 import { IPhysics } from "@oasis-engine/design";
-import { ColorSpace, DynamicTextAtlasManager } from ".";
+import { ColorSpace } from ".";
+import { DynamicTextAtlasManager } from "./2d/dynamic-atlas/DynamicTextAtlasManager";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
