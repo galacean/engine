@@ -11,6 +11,7 @@ export class DynamicTextAtlasManager {
   private _textureSize: number = 1024;
   private _atlases: Array<DynamicTextAtlas> = [];
   private _atlasIndex: number = -1;
+  private _spritesInAtlasIndex: Record<number, number> = {};
 
   /**
    * Indicates how many atlases should be created.
@@ -43,45 +44,63 @@ export class DynamicTextAtlasManager {
    * Add a sprite to atlas.
    * @param sprite - the sprite to add
    * @param imageSource - The source of texture
-   * @returns the origin texture before batch if have, otherwise null
+   * @returns true if add sprite success, otherwise false
    */
-  public addSprite(sprite: Sprite, imageSource: TexImageSource): Texture2D | null {
+  public addSprite(sprite: Sprite, imageSource: TexImageSource): boolean {
     if (this._atlasIndex >= this._maxAtlasCount) {
-      return null;
+      return false;
     }
 
-    let atlas = this._atlases[this._atlasIndex];
+    // Remove sprite if the sprite has been add.
+    const { _spritesInAtlasIndex, _atlases } = this;
+    const id = sprite.instanceId;
+    const atlasIndex = _spritesInAtlasIndex[id];
+    if (atlasIndex) {
+      _atlases[atlasIndex].removeSprite(sprite);
+      delete _spritesInAtlasIndex[id];
+    }
+
+    let atlas = _atlases[this._atlasIndex];
     if (!atlas) {
       atlas = this._createAtlas();
     }
 
-    const originTexture = atlas.getOriginTextureById(sprite.instanceId);
     if (atlas.addSprite(sprite, imageSource)) {
-      return originTexture || null;
+      _spritesInAtlasIndex[id] = this._atlasIndex;
+      return true;
     }
 
     if (this._atlasIndex + 1 >= this._maxAtlasCount) {
       this._atlasIndex = this._maxAtlasCount;
-      return null;
+      return false;
     }
 
     atlas = this._createAtlas();
-    atlas.addSprite(sprite, imageSource);
-    return null;
+    if (atlas.addSprite(sprite, imageSource)) {
+      _spritesInAtlasIndex[id] = this._atlasIndex;
+      return true;
+    }
+    return false;
   }
 
   /**
    * Remove a sprite from atlas.
    * @param sprite - the sprite to remove
+   * @returns true if remove sprite success, otherwise false
    */
-  public removeSprite(sprite: Sprite) {
-    if (!sprite) return ;
+  public removeSprite(sprite: Sprite): boolean {
+    if (!sprite) return false;
 
     const { _atlases } = this;
-    for (let i = 0, l = _atlases.length; i < l; ++i) {
+    for (let i = _atlases.length - 1; i >= 0; --i) {
       const atlas = _atlases[i];
-      atlas.removeSprite(sprite);
+      if(atlas.removeSprite(sprite)) {
+        delete this._spritesInAtlasIndex[i];
+        return true;
+      }
     }
+
+    return false;
   }
 
   /**
@@ -95,6 +114,7 @@ export class DynamicTextAtlasManager {
 
     _atlases.length = 0;
     this._atlasIndex = -1;
+    this._spritesInAtlasIndex = {};
   }
 
   private _createAtlas(): DynamicTextAtlas {

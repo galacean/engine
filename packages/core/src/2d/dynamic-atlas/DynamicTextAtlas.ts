@@ -18,7 +18,7 @@ export class DynamicTextAtlas {
   private _curY: number = 1;
   private _nextY: number = 1;
 
-  private _originInfos: Record<number, OriginInfo> = {};
+  private _sprites: Record<number, Sprite> = {};
 
   constructor(engine: Engine, width: number, height: number) {
     this._width = width;
@@ -31,14 +31,7 @@ export class DynamicTextAtlas {
    * Destroy atlas, it will release the texture.
    */
   public destroy() {
-    const { _originInfos } = this;
-    for (let id in _originInfos) {
-      const info = _originInfos[id];
-      const originSprite = info.sprite;
-      originSprite.texture = info.texture;
-      originSprite.atlasRegion = info.atlasRegion;
-      delete _originInfos[id];
-    }
+    this._sprites = {};
     this._texture.destroy(true);
   }
 
@@ -74,23 +67,8 @@ export class DynamicTextAtlas {
     const region = DynamicTextAtlas._region;
     region.setValue(this._curX / _width, this._curY / _height, width / _width, height / _height);
 
-    // Cache origin texture.
-    const originTexture = sprite.texture;
-    const id = sprite.instanceId;
-    const { _originInfos } = this;
-    const originInfo = _originInfos[id];
-    if (originInfo) {
-      originInfo.sprite = sprite;
-      originInfo.texture = originTexture;
-      originInfo.atlasRegion = sprite.atlasRegion.clone();
-    } else {
-      _originInfos[id] = {
-        sprite: sprite,
-        texture: originTexture,
-        atlasRegion: sprite.atlasRegion.clone()
-      };
-    }
-
+    // destroy origin texture.
+    sprite.texture.destroy();
     // Update atlas texture.
     sprite.atlasRegion = region;
     sprite.texture = texture;
@@ -102,35 +80,16 @@ export class DynamicTextAtlas {
   /**
    * Remove a sprite.
    * @param sprite - the sprite to remove
+   * @returns true if remove sprite success, otherwise false
    */
-  public removeSprite(sprite: Sprite) {
+  public removeSprite(sprite: Sprite): boolean {
     const id = sprite.instanceId;
-    const { _originInfos } = this;
-    const info = _originInfos[id];
-    if (info) {
-      const texture = info.texture;
-      texture.destroy();
+    const { _sprites } = this;
+    if (_sprites[id]) {
+      delete _sprites[id];
+      return true;
     }
-    delete _originInfos[id];
+    return false;
   }
-
-  /**
-   * The origin texture before batch for the sprite.
-   * @param id - the id of the sprite
-   * @returns the origin texture before batch if have, otherwise null
-   */
-  public getOriginTextureById(id: number): Texture2D | null {
-    const info = this._originInfos[id];
-    if (info) {
-      return info.texture;
-    }
-    return null;
-  }
-}
-
-interface OriginInfo {
-  sprite: Sprite;
-  texture: Texture2D;
-  atlasRegion: Rect;
 }
 

@@ -517,13 +517,8 @@ export class TextRenderer extends Renderer {
     const { _sprite } = this;
     // Remove sprite from dynamic atlas.
     this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
-    // Destroy current texture.
-    const texture = _sprite.texture;
-    _sprite.texture = null;
-    if (texture) {
-      this.shaderData.setTexture(TextRenderer._textureProperty, null);
-      texture.destroy();
-    }
+    this.shaderData.setTexture(TextRenderer._textureProperty, null);
+    _sprite.atlasRegion = _sprite.region;
   }
 }
 
