@@ -4,6 +4,7 @@ import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Collider } from "./Collider";
 import { Layer } from "../Layer";
 import { ColliderShape } from "./shape/ColliderShape";
+import { Engine } from "../Engine";
 
 /**
  * A physics manager is a collection of bodies and constraints which can interact.
@@ -11,6 +12,9 @@ import { ColliderShape } from "./shape/ColliderShape";
 export class PhysicsManager {
   /** @internal */
   static _nativePhysics: IPhysics;
+
+  private _engine: Engine;
+  private _restTime: number = 0;
 
   private _gravity: Vector3 = new Vector3();
   private _nativePhysicsManager: IPhysicsManager;
@@ -102,6 +106,12 @@ export class PhysicsManager {
     }
   };
 
+  /** The fixed time step in seconds at which physics are performed. */
+  fixedTimeStep: number = 1 / 60;
+
+  /** The max sum of time step in seconds one frame. */
+  maxSumTimeStep: number = 1 / 3;
+
   get gravity(): Vector3 {
     return this._gravity;
   }
@@ -114,7 +124,8 @@ export class PhysicsManager {
     this._nativePhysicsManager.setGravity(gravity);
   }
 
-  constructor() {
+  constructor(engine: Engine) {
+    this._engine = engine;
     this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
       this._onContactEnter,
       this._onContactExit,
@@ -232,7 +243,16 @@ export class PhysicsManager {
    * @internal
    */
   _update(deltaTime: number): void {
-    this._nativePhysicsManager.update(deltaTime);
+    const { fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
+    const componentManager = this._engine._componentsManager;
+
+    const simulateTime = deltaTime + this._restTime;
+    const step = Math.floor(Math.min(this.maxSumTimeStep, simulateTime) / fixedTimeStep);
+    this._restTime = simulateTime - step * fixedTimeStep;
+    for (let i = 0; i < step; i++) {
+      componentManager.callScriptOnPhysicsUpdate();
+      nativePhysicsManager.update(fixedTimeStep);
+    }
   }
 
   /**

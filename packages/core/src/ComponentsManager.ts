@@ -6,7 +6,7 @@ import { Script } from "./Script";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Vector3 } from "@oasis-engine/math";
-import { Collider } from "./physics/Collider";
+import { Collider } from "./physics";
 
 /**
  * The manager of the components.
@@ -19,6 +19,7 @@ export class ComponentsManager {
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
+  private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _destroyComponents: Script[] = [];
 
   // Animation
@@ -89,6 +90,17 @@ export class ComponentsManager {
     script._onLateUpdateIndex = -1;
   }
 
+  addOnPhysicsUpdateScript(script: Script): void {
+    script._onPhysicsUpdateIndex = this._onPhysicsUpdateScripts.length;
+    this._onPhysicsUpdateScripts.add(script);
+  }
+
+  removeOnPhysicsUpdateScript(script: Script): void {
+    const replaced = this._onPhysicsUpdateScripts.deleteByIndex(script._onPhysicsUpdateIndex);
+    replaced && (replaced._onPhysicsUpdateIndex = script._onPhysicsUpdateIndex);
+    script._onPhysicsUpdateIndex = -1;
+  }
+
   addOnUpdateAnimations(animation: Component): void {
     //@ts-ignore
     animation._onUpdateIndex = this._onUpdateAnimations.length;
@@ -150,6 +162,16 @@ export class ComponentsManager {
       const element = elements[i];
       if (element._started) {
         element.onLateUpdate(deltaTime);
+      }
+    }
+  }
+
+  callScriptOnPhysicsUpdate(): void {
+    const elements = this._onPhysicsUpdateScripts._elements;
+    for (let i = this._onPhysicsUpdateScripts.length - 1; i >= 0; --i) {
+      const element = elements[i];
+      if (element._started) {
+        element.onPhysicsUpdate();
       }
     }
   }
