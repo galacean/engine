@@ -26,7 +26,8 @@ export interface TextMetrics {
  * TextUtils includes some helper function for text.
  */
 export class TextUtils {
-  private static _testString: string = "qpjÉÅ";
+  /** These characters are all tall to help calculate the height required for text. */
+  private static _testString: string = "|ÉqÅ";
   private static _testBaseline: string = "M";
   private static _heightMultiplier: number = 2;
   private static _baselineMultiplier: number = 1.4;
@@ -70,7 +71,7 @@ export class TextUtils {
     const width = Math.ceil(context.measureText(testStr).width);
     let baseline = Math.ceil(context.measureText(TextUtils._testBaseline).width);
     const height = baseline * TextUtils._heightMultiplier;
-    baseline = Math.floor(TextUtils._baselineMultiplier * baseline);
+    baseline = TextUtils._baselineMultiplier * baseline | 0;
 
     canvas.width = width;
     canvas.height = height;
