@@ -377,7 +377,7 @@ export class TextRenderer extends Renderer {
     if (style & FontStyle.Italic) {
       str += "italic ";
     }
-    str += `${this.fontSize}px ${this._font.fontName}`;
+    str += `${this.fontSize}px ${this._font.name}`;
     return str;
   }
 

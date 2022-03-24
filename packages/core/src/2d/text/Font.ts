@@ -6,21 +6,21 @@ import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 export class Font extends RefObject {
   @assignmentClone
-  private _fontName: string = "Arial";
+  private _name: string = "Arial";
 
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * The font name of the TextRenderer.
    */
-  get fontName(): string {
-    return this._fontName;
+  get name(): string {
+    return this._name;
   }
 
-  set fontName(value: string) {
+  set name(value: string) {
     value = value || "Arial";
-    if (this._fontName !== value) {
-      this._fontName = value;
+    if (this._name !== value) {
+      this._name = value;
       this._updateFlagManager.distribute();
     }
   }
@@ -32,7 +32,7 @@ export class Font extends RefObject {
    */
   constructor(engine: Engine, name: string = "") {
     super(engine);
-    this._fontName = name || "Arial";
+    this._name = name || "Arial";
   }
 
   /**
