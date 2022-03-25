@@ -45,7 +45,7 @@ export class DynamicTextAtlasManager {
    * @param imageSource - The source of texture
    * @returns true if add sprite success, otherwise false
    */
-  public addSprite(sprite: Sprite, imageSource: TexImageSource): boolean {
+  public addSprite(sprite: Sprite, imageSource: TexImageSource | OffscreenCanvas): boolean {
     // Remove sprite if the sprite has been add.
     const { _spritesInAtlasIndex, _atlases } = this;
     const id = sprite.instanceId;

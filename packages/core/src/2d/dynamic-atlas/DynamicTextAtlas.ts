@@ -41,7 +41,7 @@ export class DynamicTextAtlas {
    * @param imageSource - The source of texture
    * @returns true if add sprite success, otherwise false
    */
-  public addSprite(sprite: Sprite, imageSource: TexImageSource): boolean {
+  public addSprite(sprite: Sprite, imageSource: TexImageSource | OffscreenCanvas): boolean {
     const { _space: space, _texture: texture } = this;
     const { width, height } = imageSource;
 
