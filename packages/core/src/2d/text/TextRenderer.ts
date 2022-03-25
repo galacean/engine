@@ -377,8 +377,6 @@ export class TextRenderer extends Renderer {
 
   private _updateText(): void {
     const { width: originWidth, height: originHeight, enableWrapping, overflowMode } = this;
-
-    const { canvas, context } = TextUtils.textContext();
     const fontStr = this._getNativeFontString();
     const textMetrics = TextUtils.measureText(
       this.text,
@@ -389,46 +387,14 @@ export class TextRenderer extends Renderer {
       overflowMode,
       fontStr
     );
-    const { width, height } = textMetrics;
-    // reset canvas's width and height.
-    canvas.width = width;
-    canvas.height = height;
-    // clear canvas.
-    context.font = fontStr;
-    context.clearRect(0, 0, width, height);
-    // set canvas font info.
-    context.textBaseline = "top";
-    context.fillStyle = "#fff";
-
-    // draw lines.
-    const { lines, lineHeight, lineWidths } = textMetrics;
-    for (let i = 0, l = lines.length; i < l; ++i) {
-      const lineWidth = lineWidths[i];
-      const pos = TextRenderer._tempVec2;
-      this._calculateLinePosition(width, height, lineWidth, lineHeight, i, l, pos);
-      const { x, y } = pos;
-      if (y + lineHeight >= 0 && y < height) {
-        // +1, for chrome.
-        context.fillText(lines[i], x, y + 1);
-      }
-    }
-
+    TextUtils.updateText(textMetrics, fontStr, this.horizontalAlignment, this.verticalAlignment);
     this._updateTexture();
   }
 
   private _updateTexture(): void {
-    const { canvas, context } = TextUtils.textContext();
     const trimData = TextUtils.trimCanvas();
-    const { data } = trimData;
-    if (!data) {
-      this._clearTexture();
-      return;
-    }
-
     const { width, height } = trimData;
-    canvas.width = width;
-    canvas.height = height;
-    context.putImageData(data, 0, 0);
+    const canvas = TextUtils.updateCanvas(width, height, trimData.data);
     this._clearTexture();
     const { _sprite: sprite } = this;
     // If add fail, set texture for sprite.
@@ -440,40 +406,6 @@ export class TextRenderer extends Renderer {
     }
     // Update sprite data.
     sprite._updateMesh();
-  }
-
-  private _calculateLinePosition(
-    width: number,
-    height: number,
-    lineWidth: number,
-    lineHeight: number,
-    index: number,
-    length: number,
-    out: Vector2
-  ): void {
-    switch (this._verticalAlignment) {
-      case TextVerticalAlignment.Top:
-        out.y = index * lineHeight;
-        break;
-      case TextVerticalAlignment.Bottom:
-        out.y = height - (length - index) * lineHeight;
-        break;
-      default:
-        out.y = 0.5 * height - 0.5 * length * lineHeight + index * lineHeight;
-        break;
-    }
-
-    switch (this._horizontalAlignment) {
-      case TextHorizontalAlignment.Left:
-        out.x = 0;
-        break;
-      case TextHorizontalAlignment.Right:
-        out.x = width - lineWidth;
-        break;
-      default:
-        out.x = (width - lineWidth) * 0.5;
-        break;
-    }
   }
 
   private _updateStencilState(): void {

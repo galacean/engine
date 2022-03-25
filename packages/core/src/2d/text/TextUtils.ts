@@ -1,11 +1,13 @@
+import { Vector2 } from "@oasis-engine/math";
+import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 
 /**
  * TextContext.
  */
 export interface TextContext {
-  canvas: HTMLCanvasElement;
-  context: CanvasRenderingContext2D;
+  canvas: HTMLCanvasElement | OffscreenCanvas;
+  context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 }
 
 /**
@@ -47,6 +49,7 @@ export class TextUtils {
   private static _pixelsPerUnit: number = 128;
   private static _fontSizeCache: Record<string, number> = {};
   private static _textContext: TextContext = null;
+  private static _tempVec2: Vector2 = new Vector2();
 
   /**
    * The instance function to get an object includes 2d context and canvas.
@@ -54,17 +57,17 @@ export class TextUtils {
    */
   public static textContext(): TextContext {
     if (!TextUtils._textContext) {
-      let canvas = new OffscreenCanvas(0, 0);
-      if (canvas) {
-        const context = canvas.getContext("2d");
+      const offscreenCanvas = new OffscreenCanvas(0, 0);
+      if (offscreenCanvas) {
+        const context = offscreenCanvas.getContext("2d");
         if (context && context.measureText) {
-          TextUtils._textContext = { canvas, context };
+          TextUtils._textContext = { canvas: offscreenCanvas, context };
           return TextUtils._textContext;
         }
       }
 
-      canvas = document.createElement("canvas");
-      TextUtils._textContext = { canvas, context: canvas.getContext("2d") };
+      const canvas = document.createElement("canvas");
+      TextUtils._textContext = { canvas, context: offscreenCanvas.getContext("2d") };
     }
 
     return TextUtils._textContext;
@@ -149,7 +152,7 @@ export class TextUtils {
    * @param lineSpacing - the space between two lines
    * @param enableWrapping - whether wrap text to next line when exceeds the width of the container
    * @param overflowMode - the overflow mode
-   * @param fontStr
+   * @param fontStr - the font string
    * @returns the TextMetrics object
    */
   public static measureText(
@@ -179,7 +182,6 @@ export class TextUtils {
       }
       lineWidths.push(width);
     }
-    maxLineWidth = maxLineWidth;
 
     // Reset width and height.
     const width = Math.min(maxLineWidth, TextUtils._maxWidth);
@@ -187,7 +189,6 @@ export class TextUtils {
     if (overflowMode === OverflowMode.Overflow) {
       height = Math.min(lineHeight * linesLen, TextUtils._maxHeight);
     }
-    height = height;
 
     return {
       width,
@@ -262,6 +263,70 @@ export class TextUtils {
     };
   }
 
+  /**
+   * Update text.
+   * @param textMetrics - the text metrics object
+   * @param fontStr - the font string
+   * @param horizontalAlignment - the horizontal alignment
+   * @param verticalAlignment - the vertical alignment
+   */
+  public static updateText(
+    textMetrics: TextMetrics,
+    fontStr: string,
+    horizontalAlignment: TextHorizontalAlignment,
+    verticalAlignment: TextVerticalAlignment
+  ): void {
+    const { canvas, context } = TextUtils.textContext();
+    const { width, height } = textMetrics;
+    // reset canvas's width and height.
+    canvas.width = width;
+    canvas.height = height;
+    // clear canvas.
+    context.font = fontStr;
+    context.clearRect(0, 0, width, height);
+    // set canvas font info.
+    context.textBaseline = "top";
+    context.fillStyle = "#fff";
+
+    // draw lines.
+    const { lines, lineHeight, lineWidths } = textMetrics;
+    for (let i = 0, l = lines.length; i < l; ++i) {
+      const lineWidth = lineWidths[i];
+      const pos = TextUtils._tempVec2;
+      TextUtils._calculateLinePosition(
+        width,
+        height,
+        lineWidth,
+        lineHeight,
+        i,
+        l,
+        horizontalAlignment,
+        verticalAlignment,
+        pos
+      );
+      const { x, y } = pos;
+      if (y + lineHeight >= 0 && y < height) {
+        // +1, for chrome.
+        context.fillText(lines[i], x, y + 1);
+      }
+    }
+  }
+
+  /**
+   * Update canvas with the data.
+   * @param width - the new width of canvas
+   * @param height - the new height of canvas
+   * @param data - the new data of canvas
+   * @returns the canvas after update
+   */
+  public static updateCanvas(width: number, height: number, data: ImageData): HTMLCanvasElement | OffscreenCanvas {
+    const { canvas, context } = TextUtils.textContext();
+    canvas.width = width;
+    canvas.height = height;
+    context.putImageData(data, 0, 0);
+    return canvas;
+  }
+
   private static _wordWrap(text: string, width: number, enableWrapping: boolean, fontStr: string): Array<string> {
     const { context } = TextUtils.textContext();
     const { _maxWidth: maxWidth } = TextUtils;
@@ -309,5 +374,40 @@ export class TextUtils {
 
     return output;
   }
-}
 
+  private static _calculateLinePosition(
+    width: number,
+    height: number,
+    lineWidth: number,
+    lineHeight: number,
+    index: number,
+    length: number,
+    horizontalAlignment: TextHorizontalAlignment,
+    verticalAlignment: TextVerticalAlignment,
+    out: Vector2
+  ): void {
+    switch (verticalAlignment) {
+      case TextVerticalAlignment.Top:
+        out.y = index * lineHeight;
+        break;
+      case TextVerticalAlignment.Bottom:
+        out.y = height - (length - index) * lineHeight;
+        break;
+      default:
+        out.y = 0.5 * height - 0.5 * length * lineHeight + index * lineHeight;
+        break;
+    }
+
+    switch (horizontalAlignment) {
+      case TextHorizontalAlignment.Left:
+        out.x = 0;
+        break;
+      case TextHorizontalAlignment.Right:
+        out.x = width - lineWidth;
+        break;
+      default:
+        out.x = (width - lineWidth) * 0.5;
+        break;
+    }
+  }
+}
