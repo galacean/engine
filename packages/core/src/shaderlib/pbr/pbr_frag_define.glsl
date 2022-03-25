@@ -20,7 +20,7 @@ uniform vec3 u_dielectricF0Color;
 #endif
 
 #ifdef REFRACTION
-    uniform float u_refraction;
+    uniform float u_refractionIntensity;
 #endif
 
 uniform float u_normalIntensity;

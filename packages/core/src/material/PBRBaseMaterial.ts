@@ -29,7 +29,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _sheenRoughness = Shader.getPropertyByName("u_sheenRoughness");
   private static _sheenRoughnessTexture = Shader.getPropertyByName("u_sheenRoughnessTexture");
 
-  private static _refractionProp = Shader.getPropertyByName("u_refraction");
+  private static _refractionIntensityProp = Shader.getPropertyByName("u_refractionIntensity");
   private static _refractionIntensityTextureProp = Shader.getPropertyByName("u_refractionIntensityTexture");
 
   private _sheenEnabled: boolean = false;
@@ -323,12 +323,12 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   /**
    * Refraction intensity, default 0.
    */
-  get refraction(): number {
-    return this.shaderData.getFloat(PBRBaseMaterial._refractionProp);
+  get refractionIntensity(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._refractionIntensityProp);
   }
 
-  set refraction(value: number) {
-    this.shaderData.setFloat(PBRBaseMaterial._refractionProp, value);
+  set refractionIntensity(value: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._refractionIntensityProp, value);
 
     if (value === 0) {
       this.shaderData.disableMacro("REFRACTION");
@@ -380,7 +380,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.setColor(PBRBaseMaterial._sheenColor, new Color(0, 0, 0, 1));
     shaderData.setFloat(PBRBaseMaterial._sheenRoughness, 0);
 
-    shaderData.setFloat(PBRBaseMaterial._refractionProp, 0);
+    shaderData.setFloat(PBRBaseMaterial._refractionIntensityProp, 0);
   }
 
   /**

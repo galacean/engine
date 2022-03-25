@@ -11,7 +11,7 @@ class KHR_materials_transmission extends ExtensionParser {
     const { textures } = context;
     const { transmissionFactor = 0, transmissionTexture } = schema;
 
-    material.refraction = transmissionFactor;
+    material.refractionIntensity = transmissionFactor;
 
     if (transmissionTexture) {
       material.refractionIntensityTexture = textures[transmissionTexture.index];
