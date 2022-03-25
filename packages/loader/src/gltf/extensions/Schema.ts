@@ -95,11 +95,13 @@ export interface IKHRMaterialsTransmission {
 }
 
 /**
- * Interfaces from the KHR_materials_translucency extension
+ * Interfaces from the KHR_materials_volume extension
  */
-export interface IKHRMaterialsTranslucency {
-  translucencyFactor?: number;
-  translucencyTexture?: ITextureInfo;
+export interface IKHRMaterialsVolume {
+  attenuationColor?: number[];
+  attenuationDistance?: number;
+  thicknessTexture?: ITextureInfo;
+  thicknessFactor?: number;
 }
 
 /**
@@ -164,7 +166,7 @@ export type ExtensionSchema =
   | IKHRMaterialsSheen
   | IKHRMaterialsSpecular
   | IKHRMaterialsTransmission
-  | IKHRMaterialsTranslucency
+  | IKHRMaterialsVolume
   | IKHRMaterialVariants_Mapping
   | IKHRMaterialVariants_Variants
   | IKHRTextureBasisU

@@ -8,6 +8,7 @@ import { BaseMaterial } from "./BaseMaterial";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
+  private static _iorProp = Shader.getPropertyByName("u_ior");
   private static _baseColorProp = Shader.getPropertyByName("u_baseColor");
   private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
   private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
@@ -31,8 +32,24 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
   private static _refractionIntensityProp = Shader.getPropertyByName("u_refractionIntensity");
   private static _refractionIntensityTextureProp = Shader.getPropertyByName("u_refractionIntensityTexture");
+  private static _thicknessProp = Shader.getPropertyByName("u_thickness");
+  private static _thicknessTextureProp = Shader.getPropertyByName("u_thicknessTexture");
+  private static _attenuationDistanceProp = Shader.getPropertyByName("u_attenuationDistance");
+  private static _attenuationColorProp = Shader.getPropertyByName("u_attenuationColor");
 
   private _sheenEnabled: boolean = false;
+
+  /**
+   * Index of refraction of the material, default 1.5 .
+   * @remarks It influence the F0 of dielectric materials and refraction.
+   */
+  get ior(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._iorProp);
+  }
+
+  set ior(value: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._iorProp, value);
+  }
 
   /**
    * Base color.
@@ -338,7 +355,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   /**
-   * Texture that defines the refraction intensity of the sub surface, stored in the R channel. This will be multiplied by refraction.
+   * Texture that defines the refraction intensity of the sub surface, stored in the R channel. This will be multiplied by refractionIntensity.
    */
   get refractionIntensityTexture(): Texture2D {
     return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._refractionIntensityTextureProp);
@@ -355,6 +372,63 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   /**
+   * The thickness of the volume beneath the surface, default 0.
+   * @remarks The value is given in the coordinate space of the mesh. If the value is 0 the material is thin-walled. Otherwise the material is a volume boundary. Range is [0, +inf).
+   */
+  get thickness(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._thicknessProp);
+  }
+
+  set thickness(value: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._thicknessProp, value);
+  }
+
+  /**
+   * Texture that defines the thickness, stored in the G channel. This will be multiplied by thickness.
+   */
+  get thicknessTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._thicknessTextureProp);
+  }
+
+  set thicknessTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._thicknessTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("HAS_THICKNESSTEXTURE");
+    } else {
+      this.shaderData.disableMacro("HAS_THICKNESSTEXTURE");
+    }
+  }
+
+  /**
+   *
+   * Density of the medium given as the average distance that light travels in the medium before interacting with a particle.
+   * @remarks Defines the distance at which the attenuation color should be found in the media. Range is (0, +inf).
+   */
+  get attenuationDistance(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._attenuationDistanceProp);
+  }
+
+  set attenuationDistance(value: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._attenuationDistanceProp, value);
+  }
+
+  /**
+   * The color that light turns into due to absorption when reaching the attenuation distance.
+   */
+  get attenuationColor(): Color {
+    return this.shaderData.getColor(PBRBaseMaterial._attenuationColorProp);
+  }
+
+  set attenuationColor(value: Color) {
+    const color = this.shaderData.getColor(PBRBaseMaterial._attenuationColorProp);
+
+    if (value !== color) {
+      value.cloneTo(color);
+    }
+  }
+
+  /**
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
@@ -367,6 +441,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.enableMacro("O3_NEED_WORLDPOS");
     shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
+    shaderData.setFloat(PBRBaseMaterial._iorProp, 1.5);
     shaderData.setColor(PBRBaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(PBRBaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
     shaderData.setVector4(PBRBaseMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
@@ -381,6 +456,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.setFloat(PBRBaseMaterial._sheenRoughness, 0);
 
     shaderData.setFloat(PBRBaseMaterial._refractionIntensityProp, 0);
+    shaderData.setFloat(PBRBaseMaterial._thicknessProp, 0);
+    shaderData.setFloat(PBRBaseMaterial._attenuationDistanceProp, 0);
+    shaderData.setColor(PBRBaseMaterial._attenuationColorProp, new Color(1, 1, 1));
   }
 
   /**

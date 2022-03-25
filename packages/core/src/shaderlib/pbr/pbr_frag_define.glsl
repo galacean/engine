@@ -21,6 +21,9 @@ uniform vec3 u_dielectricF0Color;
 
 #ifdef REFRACTION
     uniform float u_refractionIntensity;
+    uniform float u_thickness;
+    uniform float u_attenuationDistance;
+    uniform vec3  u_attenuationColor;
 #endif
 
 uniform float u_normalIntensity;
@@ -83,6 +86,10 @@ uniform float u_occlusionStrength;
 
 #ifdef HAS_REFRACTIONINTENSITYTEXTURE
     uniform sampler2D u_refractionIntensityTexture;
+#endif
+
+#ifdef HAS_THICKNESSTEXTURE
+    uniform sampler2D u_thicknessTexture;
 #endif
 
 

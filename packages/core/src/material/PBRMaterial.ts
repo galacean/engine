@@ -11,7 +11,6 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _metallicProp = Shader.getPropertyByName("u_metal");
   private static _roughnessProp = Shader.getPropertyByName("u_roughness");
   private static _metallicRoughnessTextureProp = Shader.getPropertyByName("u_metallicRoughnessSampler");
-  private static _iorProp = Shader.getPropertyByName("u_ior");
   private static _dielectricSpecularIntensity = Shader.getPropertyByName("u_dielectricSpecularIntensity");
   private static _dielectricSpecularIntensityTexture = Shader.getPropertyByName("u_dielectricSpecularIntensityTexture");
   private static _dielectricF0Color = Shader.getPropertyByName("u_dielectricF0Color");
@@ -54,18 +53,6 @@ export class PBRMaterial extends PBRBaseMaterial {
     } else {
       this.shaderData.disableMacro("HAS_METALROUGHNESSMAP");
     }
-  }
-
-  /**
-   * Index of refraction of the material, default 1.5 .
-   * @remarks It influence the F0 of dielectric materials.
-   */
-  get ior(): number {
-    return this.shaderData.getFloat(PBRMaterial._iorProp);
-  }
-
-  set ior(value: number) {
-    this.shaderData.setFloat(PBRMaterial._iorProp, value);
   }
 
   /**
@@ -133,7 +120,6 @@ export class PBRMaterial extends PBRBaseMaterial {
 
     shaderData.setFloat(PBRMaterial._metallicProp, 1);
     shaderData.setFloat(PBRMaterial._roughnessProp, 1);
-    shaderData.setFloat(PBRMaterial._iorProp, 1.5);
     shaderData.setFloat(PBRMaterial._dielectricSpecularIntensity, 1);
     shaderData.setColor(PBRMaterial._dielectricF0Color, new Color(1, 1, 1));
   }
