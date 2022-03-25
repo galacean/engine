@@ -20,7 +20,6 @@ export class DynamicCollider extends Collider {
   private _sleepThreshold: number = 0;
   private _solverIterations: number = 0;
   private _isKinematic: boolean = false;
-  private _freezeRotation: boolean = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
 
@@ -227,20 +226,20 @@ export class DynamicCollider extends Collider {
 
   /**
    * Moves kinematically controlled dynamic actors through the game world.
-   * @param position The desired position for the kinematic actor
+   * @param position - The desired position for the kinematic actor
    */
   move(position: Vector3): void;
 
   /**
    * Moves kinematically controlled dynamic actors through the game world.
-   * @param rotation The desired rotation for the kinematic actor
+   * @param rotation - The desired rotation for the kinematic actor
    */
   move(rotation: Quaternion): void;
 
   /**
    * Moves kinematically controlled dynamic actors through the game world.
-   * @param position The desired position for the kinematic actor
-   * @param rotation The desired rotation for the kinematic actor
+   * @param position - The desired position for the kinematic actor
+   * @param rotation - The desired rotation for the kinematic actor
    */
   move(position: Vector3, rotation: Quaternion): void;
 

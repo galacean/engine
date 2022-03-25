@@ -497,16 +497,16 @@ export class Transform extends Component {
   }
 
   /**
-   * Adjust the rotation so that the -Z axis is towards the target.
+   * Rotate and ensure that the world front vector points to the target world position.
    * @param targetPosition - Target world position
    * @param worldUp - Up direction in world space, default is Vector3(0, 1, 0)
    */
   lookAt(targetPosition: Vector3, worldUp?: Vector3): void {
-    const eyePosition = this.worldPosition;
     const zAxis = Transform._tempVec30;
-    Vector3.subtract(eyePosition, targetPosition, zAxis);
+    Vector3.subtract(this.worldPosition, targetPosition, zAxis);
     let axisLen = zAxis.length();
     if (axisLen <= MathUtil.zeroTolerance) {
+      // The current position and the target position are almost the same.
       return;
     }
     zAxis.scale(1 / axisLen);
@@ -518,23 +518,21 @@ export class Transform extends Component {
     }
     axisLen = xAxis.length();
     if (axisLen <= MathUtil.zeroTolerance) {
+      // @todo:
+      // 1.worldUp is（0,0,0）
+      // 2.worldUp is parallel to zAxis
       return;
     }
     xAxis.scale(1 / axisLen);
     const yAxis = Transform._tempVec32;
     Vector3.cross(zAxis, xAxis, yAxis);
 
-    const { elements: oe } = Transform._tempMat41;
-    oe[0] = xAxis.x;
-    oe[1] = xAxis.y;
-    oe[2] = xAxis.z;
-    oe[4] = yAxis.x;
-    oe[5] = yAxis.y;
-    oe[6] = yAxis.z;
-    oe[8] = zAxis.x;
-    oe[9] = zAxis.y;
-    oe[10] = zAxis.z;
-    Transform._tempMat41.getRotation(this._worldRotationQuaternion);
+    const rotMat = Transform._tempMat41;
+    const { elements: e } = rotMat;
+    (e[0] = xAxis.x), (e[1] = xAxis.y), (e[2] = xAxis.z);
+    (e[4] = yAxis.x), (e[5] = yAxis.y), (e[6] = yAxis.z);
+    (e[8] = zAxis.x), (e[9] = zAxis.y), (e[10] = zAxis.z);
+    rotMat.getRotation(this._worldRotationQuaternion);
   }
 
   /**
@@ -715,7 +713,7 @@ export class Transform extends Component {
     if (relativeToLocal) {
       Quaternion.multiply(this.rotationQuaternion, rotateQuat, this._rotationQuaternion);
     } else {
-      Quaternion.multiply(this.worldRotationQuaternion, rotateQuat, this._worldRotationQuaternion);
+      Quaternion.multiply(rotateQuat, this.worldRotationQuaternion, this._worldRotationQuaternion);
     }
   }
 
@@ -780,7 +778,7 @@ export class Transform extends Component {
     if (parent) {
       const invParentQuaternion = Transform._tempQuat0;
       Quaternion.invert(parent.worldRotationQuaternion, invParentQuaternion);
-      Quaternion.multiply(worldRotationQuaternion, invParentQuaternion, this._rotationQuaternion);
+      Quaternion.multiply(invParentQuaternion, worldRotationQuaternion, this._rotationQuaternion);
     } else {
       worldRotationQuaternion.cloneTo(this._rotationQuaternion);
     }
