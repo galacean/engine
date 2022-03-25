@@ -241,7 +241,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
   /**
    * Sheen enabled.
-   * @remark
+   * @remarks sheenEnabled must be set to true even if sheenColor is greater than 0.
    */
   get sheenEnabled(): boolean {
     return this._sheenEnabled;
