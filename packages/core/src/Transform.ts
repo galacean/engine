@@ -719,7 +719,17 @@ export class Transform extends Component {
 
   private _translate(translation: Vector3, relativeToLocal: boolean = true): void {
     if (relativeToLocal) {
-      this._position.add(translation);
+      const distance = translation.length();
+      if (distance <= MathUtil.zeroTolerance) {
+        // The distance moved is too short.
+        return;
+      }
+      const axisLen = translation.transformToVec3(this.localMatrix).length();
+      if (axisLen <= MathUtil.zeroTolerance) {
+        // Scale value is too extreme.
+        return;
+      }
+      this._position.add(translation.scale(distance / axisLen));
     } else {
       this._worldPosition.add(translation);
     }
