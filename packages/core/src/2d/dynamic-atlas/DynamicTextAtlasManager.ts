@@ -46,10 +46,6 @@ export class DynamicTextAtlasManager {
    * @returns true if add sprite success, otherwise false
    */
   public addSprite(sprite: Sprite, imageSource: TexImageSource): boolean {
-    if (this._atlasIndex >= this._maxAtlasCount) {
-      return false;
-    }
-
     // Remove sprite if the sprite has been add.
     const { _spritesInAtlasIndex, _atlases } = this;
     const id = sprite.instanceId;
@@ -57,6 +53,10 @@ export class DynamicTextAtlasManager {
     if (atlasIndex) {
       _atlases[atlasIndex].removeSprite(sprite);
       delete _spritesInAtlasIndex[id];
+    }
+
+    if (this._atlasIndex >= this._maxAtlasCount) {
+      return false;
     }
 
     let atlas = _atlases[this._atlasIndex];

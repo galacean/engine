@@ -444,14 +444,15 @@ export class TextRenderer extends Renderer {
     canvas.width = width;
     canvas.height = height;
     context.putImageData(data, 0, 0);
-    const texture = new Texture2D(this.engine, width, height);
-    texture.setImageSource(canvas);
-    texture.generateMipmaps();
-
     this._clearTexture();
     const { _sprite } = this;
-    _sprite.texture = texture;
-    this.engine._dynamicTextAtlasManager.addSprite(_sprite, canvas);
+    // If add fail, set texture for sprite.
+    if (!this.engine._dynamicTextAtlasManager.addSprite(_sprite, canvas)) {
+      const texture = new Texture2D(this.engine, width, height);
+      texture.setImageSource(canvas);
+      texture.generateMipmaps();
+      _sprite.texture = texture;
+    }
   }
 
   private _calculateLinePosition(

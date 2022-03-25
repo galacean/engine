@@ -68,7 +68,7 @@ export class DynamicTextAtlas {
     region.setValue(this._curX / _width, this._curY / _height, width / _width, height / _height);
 
     // destroy origin texture.
-    sprite.texture.destroy();
+    sprite.texture && sprite.texture.destroy();
     // Update atlas texture.
     sprite.atlasRegion = region;
     sprite.texture = texture;
