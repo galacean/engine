@@ -388,11 +388,9 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    const textContext = TextUtils.textContext();
-    const { canvas, context } = textContext;
+    const { canvas, context } = TextUtils.textContext();
     const fontStr = this._getNativeFontString();
     const textMetrics = TextUtils.measureText(
-      textContext,
       this.text,
       originWidth,
       originHeight,
@@ -434,9 +432,8 @@ export class TextRenderer extends Renderer {
   }
 
   private _updateTexture(): void {
-    const textContext = TextUtils.textContext();
-    const { canvas, context } = textContext;
-    const trimData = TextUtils.trimCanvas(textContext);
+    const { canvas, context } = TextUtils.textContext();
+    const trimData = TextUtils.trimCanvas();
     const { data } = trimData;
     if (!data) {
       this._clearTexture();

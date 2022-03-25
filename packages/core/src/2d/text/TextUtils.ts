@@ -54,11 +54,17 @@ export class TextUtils {
    */
   public static textContext(): TextContext {
     if (!TextUtils._textContext) {
-      const canvas = document.createElement("canvas");
-      TextUtils._textContext = {
-        canvas: canvas,
-        context: canvas.getContext("2d")
-      };
+      let canvas = new OffscreenCanvas(0, 0);
+      if (canvas) {
+        const context = canvas.getContext("2d");
+        if (context && context.measureText) {
+          TextUtils._textContext = { canvas, context };
+          return TextUtils._textContext;
+        }
+      }
+
+      canvas = document.createElement("canvas");
+      TextUtils._textContext = { canvas, context: canvas.getContext("2d") };
     }
 
     return TextUtils._textContext;
@@ -66,18 +72,17 @@ export class TextUtils {
 
   /**
    * Measure the font.
-   * @param textContext - text context includes 2d context and canvas
    * @param font - the string of the font
    * @returns the font size
    */
-  public static measureFont(textContext: TextContext, font: string): number {
+  public static measureFont(font: string): number {
     const { _fontSizeCache: fontSizeCache } = TextUtils;
     let fontSize = fontSizeCache[font];
     if (fontSize) {
       return fontSize;
     }
 
-    const { canvas, context } = textContext;
+    const { canvas, context } = TextUtils.textContext();
     context.font = font;
     const testStr = TextUtils._testString;
     const width = Math.ceil(context.measureText(testStr).width);
@@ -138,7 +143,6 @@ export class TextUtils {
 
   /**
    * Measure the text.
-   * @param textContext - text context includes 2d context and canvas
    * @param text - rendering string
    * @param originWidth - the width of the TextRenderer
    * @param originHeight - the height of the TextRenderer
@@ -149,7 +153,6 @@ export class TextUtils {
    * @returns the TextMetrics object
    */
   public static measureText(
-    textContext: TextContext,
     text: string,
     originWidth: number,
     originHeight: number,
@@ -159,7 +162,8 @@ export class TextUtils {
     fontStr: string
   ): TextMetrics {
     const { _pixelsPerUnit } = TextUtils;
-    const fontSize = TextUtils.measureFont(textContext, fontStr);
+    const fontSize = TextUtils.measureFont(fontStr);
+    const textContext = TextUtils.textContext();
     const { context } = textContext;
     context.font = fontStr;
     const lines = TextUtils._wordWrap(text, originWidth, enableWrapping, fontStr);
@@ -198,13 +202,12 @@ export class TextUtils {
 
   /**
    * Trim canvas.
-   * @param textContext - text context includes gl context and canvas
    * @returns the width and height after trim, and the image data
    */
-  public static trimCanvas(textContext: TextContext): { width: number; height: number; data?: ImageData } {
+  public static trimCanvas(): { width: number; height: number; data?: ImageData } {
     // https://gist.github.com/remy/784508
 
-    const { canvas, context } = textContext;
+    const { canvas, context } = TextUtils.textContext();
     let { width, height } = canvas;
 
     const imageData = context.getImageData(0, 0, width, height).data;
@@ -307,3 +310,4 @@ export class TextUtils {
     return output;
   }
 }
+
