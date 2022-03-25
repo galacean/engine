@@ -271,40 +271,34 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   _render(camera: Camera): void {
-    if (this._text === "") {
+    if (
+      this._text === "" ||
+      (this.enableWrapping && this.width <= 0) ||
+      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
+    ) {
       this._clearTexture();
       return;
     }
 
-    const { _fontDirty } = this;
-    const isDirty = this._isContainDirtyFlag(DirtyFlag.Property) || _fontDirty.flag;
-    if (isDirty) {
+    const { _fontDirty: fontDirty, _sprite: sprite } = this;
+    const isTextureDirty = this._isContainDirtyFlag(DirtyFlag.Property) || fontDirty.flag;
+    if (isTextureDirty) {
       this._updateText();
-    }
-
-    const { _sprite: sprite } = this;
-    const { texture } = sprite;
-    if (!texture) {
       this._setDirtyFlagFalse(DirtyFlag.Property);
-      _fontDirty.flag = false;
-      return;
+      fontDirty.flag = false;
     }
 
-    // Update sprite data.
-    sprite._updateMesh();
-    if (this._isWorldMatrixDirty.flag || isDirty) {
+    if (this._isWorldMatrixDirty.flag || isTextureDirty) {
       this._updatePosition();
       this._isWorldMatrixDirty.flag = false;
     }
-    this._setDirtyFlagFalse(DirtyFlag.Property);
-    _fontDirty.flag = false;
 
     if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
       this._updateStencilState();
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    this.shaderData.setTexture(TextRenderer._textureProperty, texture);
+    this.shaderData.setTexture(TextRenderer._textureProperty, sprite.texture);
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
     spriteElement.setValue(
@@ -383,10 +377,6 @@ export class TextRenderer extends Renderer {
 
   private _updateText(): void {
     const { width: originWidth, height: originHeight, enableWrapping, overflowMode } = this;
-    if ((enableWrapping && originWidth <= 0) || (overflowMode === OverflowMode.Truncate && originHeight <= 0)) {
-      this._clearTexture();
-      return;
-    }
 
     const { canvas, context } = TextUtils.textContext();
     const fontStr = this._getNativeFontString();
@@ -400,11 +390,6 @@ export class TextRenderer extends Renderer {
       fontStr
     );
     const { width, height } = textMetrics;
-    if (width === 0 || height === 0) {
-      this._clearTexture();
-      return;
-    }
-
     // reset canvas's width and height.
     canvas.width = width;
     canvas.height = height;
@@ -445,14 +430,16 @@ export class TextRenderer extends Renderer {
     canvas.height = height;
     context.putImageData(data, 0, 0);
     this._clearTexture();
-    const { _sprite } = this;
+    const { _sprite: sprite } = this;
     // If add fail, set texture for sprite.
-    if (!this.engine._dynamicTextAtlasManager.addSprite(_sprite, canvas)) {
+    if (!this.engine._dynamicTextAtlasManager.addSprite(sprite, canvas)) {
       const texture = new Texture2D(this.engine, width, height);
       texture.setImageSource(canvas);
       texture.generateMipmaps();
-      _sprite.texture = texture;
+      sprite.texture = texture;
     }
+    // Update sprite data.
+    sprite._updateMesh();
   }
 
   private _calculateLinePosition(
