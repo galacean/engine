@@ -3,6 +3,7 @@ import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAli
 import { OverflowMode } from "../enums/TextOverflow";
 
 /**
+ * @internal
  * TextContext.
  */
 export interface TextContext {
@@ -11,6 +12,7 @@ export interface TextContext {
 }
 
 /**
+ * @internal
  * TextMetrics.
  */
 export interface TextMetrics {
@@ -24,10 +26,10 @@ export interface TextMetrics {
 }
 
 /**
+ * @internal
  * TextUtils includes some helper function for text.
  */
 export class TextUtils {
-  /** @internal */
   static _genericFontFamilies: Array<string> = [
     "serif",
     "sans-serif",

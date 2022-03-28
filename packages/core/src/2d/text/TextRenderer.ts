@@ -12,6 +12,9 @@ import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
 import { TextUtils } from "./TextUtils";
 
+/**
+ * Renders a text for 2D graphics.
+ */
 export class TextRenderer extends Renderer {
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   private static _tempVec3: Vector3 = new Vector3();

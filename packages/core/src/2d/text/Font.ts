@@ -10,7 +10,8 @@ export class Font extends RefObject {
   /**
    * Create a font from OS.
    * @param engine - Engine to which the font belongs
-   * @param fontName - The name of font.
+   * @param fontName - The name of font
+   * @returns The font object has been create
    */
   static createFromOS(engine: Engine, fontName: string = ""): Font{
     const fontMap = Font._fontMap;
