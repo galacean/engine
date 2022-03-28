@@ -350,6 +350,7 @@ export class TextUtils {
     const { context } = TextUtils.textContext();
     const { _maxWidth: maxWidth } = TextUtils;
     const widthInPixel = width * TextUtils._pixelsPerUnit;
+    const wrapWidth = Math.min(widthInPixel, maxWidth);
     const output = new Array<string>();
     context.font = fontStr;
     const textArr = text.split(/(?:\r\n|\r|\n)/);
@@ -358,7 +359,6 @@ export class TextUtils {
       const curText = textArr[i];
       const curWidth = Math.ceil(context.measureText(curText).width);
       const needWrap = enableWrapping || curWidth > maxWidth;
-      const wrapWidth = Math.min(widthInPixel, maxWidth);
       if (needWrap) {
         if (curWidth <= wrapWidth) {
           output.push(curText);
