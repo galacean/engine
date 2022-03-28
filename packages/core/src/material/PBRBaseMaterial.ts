@@ -30,6 +30,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _sheenRoughness = Shader.getPropertyByName("u_sheenRoughness");
   private static _sheenRoughnessTexture = Shader.getPropertyByName("u_sheenRoughnessTexture");
 
+  private static _refractionTextureProp = Shader.getPropertyByName("u_refractionTexture");
   private static _refractionIntensityProp = Shader.getPropertyByName("u_refractionIntensity");
   private static _refractionIntensityTextureProp = Shader.getPropertyByName("u_refractionIntensityTexture");
   private static _thicknessProp = Shader.getPropertyByName("u_thickness");
@@ -335,6 +336,17 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     } else {
       this.shaderData.disableMacro("HAS_SHEENROUGHNESSTEXTURE");
     }
+  }
+
+  /**
+   * Refraction texture, only take effect when refractionIntensity > 0
+   */
+  get refractionTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._refractionTextureProp);
+  }
+
+  set refractionTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._refractionTextureProp, value);
   }
 
   /**
