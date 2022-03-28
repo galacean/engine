@@ -258,10 +258,11 @@ export class TextRenderer extends Renderer {
 
   constructor(entity: Entity) {
     super(entity);
+    const { engine } = this;
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    this._sprite = new Sprite(this.engine);
-    this.font = Font.createFromOS(entity.engine);
-    this.setMaterial(this._engine._spriteDefaultMaterial);
+    this._sprite = new Sprite(engine);
+    this.font = Font.createFromOS(engine);
+    this.setMaterial(engine._spriteDefaultMaterial);
   }
 
   /**
