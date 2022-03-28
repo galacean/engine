@@ -1,28 +1,32 @@
 import { RefObject } from "../../asset/RefObject"
 import { Engine } from "../../Engine";
-import { UpdateFlag } from "../../UpdateFlag";
-import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
  * Font.
  */
 export class Font extends RefObject {
-  private _name: string = "Arial";
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  private static _fontMap: Record<string, Font> = {};
 
   /**
-   * The name of the font.
+   * Create a font.
+   * @param engine - Engine to which the font belongs
+   * @param fontName - The name of font.
+   */
+  static create(engine: Engine, fontName: string = "Arial"): Font{
+    const fontMap = Font._fontMap;
+    if (fontMap[fontName]) {
+      return fontMap[fontName];
+    }
+    return (fontMap[fontName] = new Font(engine, fontName));
+  }
+
+  private _name: string = "Arial";
+
+  /**
+   * The name of the font object.
    */
   get name(): string {
     return this._name;
-  }
-
-  set name(value: string) {
-    value = value || "Arial";
-    if (this._name !== value) {
-      this._name = value;
-      this._updateFlagManager.distribute();
-    }
   }
 
   /**
@@ -30,16 +34,9 @@ export class Font extends RefObject {
    * @param engine - Engine to which the font belongs
    * @param name - The name of font
    */
-  constructor(engine: Engine, name: string = "") {
+  private constructor(engine: Engine, name: string = "") {
     super(engine);
     this._name = name || "Arial";
-  }
-
-  /**
-   * @internal
-   */
-  _registerUpdateFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
   }
 
   /**

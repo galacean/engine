@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Vector2, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Sprite, SpriteMaskInteraction, SpriteMaskLayer } from "..";
 import { CompareFunction, Renderer, Shader, UpdateFlag } from "../..";
 import { Camera } from "../../Camera";
@@ -14,7 +14,6 @@ import { TextUtils } from "./TextUtils";
 
 export class TextRenderer extends Renderer {
   private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
-  private static _tempVec2: Vector2 = new Vector2();
   private static _tempVec3: Vector3 = new Vector3();
 
   /** @internal temp solution. */
@@ -54,8 +53,6 @@ export class TextRenderer extends Renderer {
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
   @ignoreClone
   private _dirtyFlag: number = DirtyFlag.Property;
-  @ignoreClone
-  private _fontDirty: UpdateFlag;
   @ignoreClone
   private _isWorldMatrixDirty: UpdateFlag;
   @assignmentClone
@@ -128,11 +125,8 @@ export class TextRenderer extends Renderer {
 
   set font(value: Font) {
     if (this._font !== value) {
-      this._fontDirty && this._fontDirty.destroy();
       this._font = value;
-      if (value) {
-        this._fontDirty = value._registerUpdateFlag();
-      }
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -263,7 +257,7 @@ export class TextRenderer extends Renderer {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this._sprite = new Sprite(this.engine);
-    this.font = new Font(entity.engine);
+    this.font = Font.create(entity.engine);
     this.setMaterial(this._engine._spriteDefaultMaterial);
   }
 
@@ -280,12 +274,11 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    const { _fontDirty: fontDirty, _sprite: sprite } = this;
-    const isTextureDirty = this._isContainDirtyFlag(DirtyFlag.Property) || fontDirty.flag;
+    const { _sprite: sprite } = this;
+    const isTextureDirty = this._isContainDirtyFlag(DirtyFlag.Property);
     if (isTextureDirty) {
       this._updateText();
       this._setDirtyFlagFalse(DirtyFlag.Property);
-      fontDirty.flag = false;
     }
 
     if (this._isWorldMatrixDirty.flag || isTextureDirty) {
@@ -319,7 +312,6 @@ export class TextRenderer extends Renderer {
   _onDestroy(): void {
     this.engine._dynamicTextAtlasManager.removeSprite(this._sprite);
     this._isWorldMatrixDirty.destroy();
-    this._fontDirty && this._fontDirty.destroy();
     super._onDestroy();
   }
 
