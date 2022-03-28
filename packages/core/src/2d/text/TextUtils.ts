@@ -21,9 +21,7 @@ export interface TextMetrics {
   height: number;
   lines: Array<string>;
   lineWidths: Array<number>;
-  maxLineWidth: number;
   lineHeight: number;
-  fontSize: number;
 }
 
 /**
@@ -43,8 +41,8 @@ export class TextUtils {
     "fangsong"
   ];
   /** These characters are all tall to help calculate the height required for text. */
-  private static _testString: string = "|ÉqÅ";
-  private static _testBaseline: string = "M";
+  private static _measureString: string = "|ÉqÅ";
+  private static _measureBaseline: string = "M";
   private static _heightMultiplier: number = 2;
   private static _baselineMultiplier: number = 1.4;
   private static _maxWidth: number = 2048;
@@ -63,7 +61,7 @@ export class TextUtils {
     if (!textContext) {
       let canvas: HTMLCanvasElement | OffscreenCanvas;
       try {
-        canvas =  new OffscreenCanvas(0, 0);
+        canvas = new OffscreenCanvas(0, 0);
       } catch {
         canvas = document.createElement("canvas");
       }
@@ -88,9 +86,9 @@ export class TextUtils {
 
     const { canvas, context } = TextUtils.textContext();
     context.font = font;
-    const testStr = TextUtils._testString;
-    const width = Math.ceil(context.measureText(testStr).width);
-    let baseline = Math.ceil(context.measureText(TextUtils._testBaseline).width);
+    const measureString = TextUtils._measureString;
+    const width = Math.ceil(context.measureText(measureString).width);
+    let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     const height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
 
@@ -102,39 +100,39 @@ export class TextUtils {
     context.clearRect(0, 0, width, height);
     context.textBaseline = "alphabetic";
     context.fillStyle = "#f00";
-    context.fillText(testStr, 0, baseline);
+    context.fillText(measureString, 0, baseline);
 
     const imgData = context.getImageData(0, 0, width, height).data;
     const lineDataCount = width * 4;
-    let flag = false;
+    let stop = false;
     let i = 0;
-    let startIndex = 0;
+    let offset = 0;
 
     for (i = 0; i < baseline; ++i) {
-      startIndex = i * lineDataCount;
+      offset = i * lineDataCount;
       for (let j = 0; j < lineDataCount; j += 4) {
-        if (imgData[startIndex + j] !== 0) {
-          flag = true;
+        if (imgData[offset + j] !== 0) {
+          stop = true;
           break;
         }
       }
-      if (flag) {
+      if (stop) {
         break;
       }
     }
 
     const ascent = baseline - i;
-    flag = false;
+    stop = false;
 
     for (i = height - 1; i >= baseline; --i) {
-      startIndex = i * lineDataCount;
+      offset = i * lineDataCount;
       for (let j = 0; j < lineDataCount; j += 4) {
-        if (imgData[startIndex + j] !== 0) {
-          flag = true;
+        if (imgData[offset + j] !== 0) {
+          stop = true;
           break;
         }
       }
-      if (flag) {
+      if (stop) {
         break;
       }
     }
@@ -153,7 +151,7 @@ export class TextUtils {
    * @param lineSpacing - the space between two lines
    * @param enableWrapping - whether wrap text to next line when exceeds the width of the container
    * @param overflowMode - the overflow mode
-   * @param fontStr - the font string
+   * @param fontString - the font string
    * @returns the TextMetrics object
    */
   public static measureText(
@@ -163,32 +161,30 @@ export class TextUtils {
     lineSpacing: number,
     enableWrapping: boolean,
     overflowMode: OverflowMode,
-    fontStr: string
+    fontString: string
   ): TextMetrics {
     const { _pixelsPerUnit } = TextUtils;
-    const fontSize = TextUtils.measureFont(fontStr);
-    const textContext = TextUtils.textContext();
-    const { context } = textContext;
-    context.font = fontStr;
-    const lines = TextUtils._wordWrap(text, originWidth, enableWrapping, fontStr);
-    const linesLen = lines.length;
+    const fontSize = TextUtils.measureFont(fontString);
+    const context = TextUtils.textContext().context;
+    const lines = TextUtils._wordWrap(text, originWidth, enableWrapping, fontString);
+    const lineCount = lines.length;
     const lineWidths = new Array<number>();
     const lineHeight = fontSize + lineSpacing * _pixelsPerUnit;
+    context.font = fontString;
     // Calculate max width of all lines.
-    let maxLineWidth = 0;
-    for (let i = 0; i < linesLen; ++i) {
-      const width = Math.ceil(context.measureText(lines[i]).width);
-      if (width > maxLineWidth) {
-        maxLineWidth = width;
+    let width = 0;
+    for (let i = 0; i < lineCount; ++i) {
+      const lineWidth = Math.ceil(context.measureText(lines[i]).width);
+      if (lineWidth > width) {
+        width = lineWidth;
       }
-      lineWidths.push(width);
+      lineWidths.push(lineWidth);
     }
 
     // Reset width and height.
-    const width = Math.min(maxLineWidth, TextUtils._maxWidth);
     let height = originHeight * _pixelsPerUnit;
     if (overflowMode === OverflowMode.Overflow) {
-      height = Math.min(lineHeight * linesLen, TextUtils._maxHeight);
+      height = Math.min(lineHeight * lineCount, TextUtils._maxHeight);
     }
 
     return {
@@ -196,9 +192,7 @@ export class TextUtils {
       height,
       lines,
       lineWidths,
-      maxLineWidth,
-      lineHeight,
-      fontSize
+      lineHeight
     };
   }
 
@@ -346,52 +340,52 @@ export class TextUtils {
     return canvas;
   }
 
-  private static _wordWrap(text: string, width: number, enableWrapping: boolean, fontStr: string): Array<string> {
+  private static _wordWrap(text: string, width: number, enableWrapping: boolean, fontString: string): Array<string> {
     const { context } = TextUtils.textContext();
     const { _maxWidth: maxWidth } = TextUtils;
     const widthInPixel = width * TextUtils._pixelsPerUnit;
     const wrapWidth = Math.min(widthInPixel, maxWidth);
-    const output = new Array<string>();
-    context.font = fontStr;
-    const textArr = text.split(/(?:\r\n|\r|\n)/);
+    const wrappedSubTexts = new Array<string>();
+    const subTexts = text.split(/(?:\r\n|\r|\n)/);
+    context.font = fontString;
 
-    for (let i = 0, l = textArr.length; i < l; ++i) {
-      const curText = textArr[i];
-      const curWidth = Math.ceil(context.measureText(curText).width);
-      const needWrap = enableWrapping || curWidth > maxWidth;
+    for (let i = 0, n = subTexts.length; i < n; ++i) {
+      const subText = subTexts[i];
+      const subWidth = Math.ceil(context.measureText(subText).width);
+      const needWrap = enableWrapping || subWidth > maxWidth;
       if (needWrap) {
-        if (curWidth <= wrapWidth) {
-          output.push(curText);
+        if (subWidth <= wrapWidth) {
+          wrappedSubTexts.push(subText);
         } else {
           let chars = "";
           let charsWidth = 0;
-          for (let j = 0, l = curText.length; j < l; ++j) {
-            const curChar = curText[j];
-            const curCharWidth = Math.ceil(context.measureText(curChar).width);
-            if (charsWidth + curCharWidth > wrapWidth) {
+          for (let j = 0, m = subText.length; j < m; ++j) {
+            const char = subText[j];
+            const charWidth = Math.ceil(context.measureText(char).width);
+            if (charsWidth + charWidth > wrapWidth) {
               // The width of text renderer is shorter than current char.
               if (charsWidth === 0) {
-                output.push(curChar);
+                wrappedSubTexts.push(char);
               } else {
-                output.push(chars);
-                chars = curChar;
-                charsWidth = curCharWidth;
+                wrappedSubTexts.push(chars);
+                chars = char;
+                charsWidth = charWidth;
               }
             } else {
-              chars += curChar;
-              charsWidth += curCharWidth;
+              chars += char;
+              charsWidth += charWidth;
             }
           }
           if (charsWidth > 0) {
-            output.push(chars);
+            wrappedSubTexts.push(chars);
           }
         }
       } else {
-        output.push(curText);
+        wrappedSubTexts.push(subText);
       }
     }
 
-    return output;
+    return wrappedSubTexts;
   }
 
   private static _calculateLinePosition(
