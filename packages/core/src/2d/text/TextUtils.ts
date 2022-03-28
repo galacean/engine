@@ -1,4 +1,5 @@
 import { Vector2 } from "@oasis-engine/math";
+import { FontStyle } from "../enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 
@@ -58,21 +59,19 @@ export class TextUtils {
    * @returns the TextContext object
    */
   public static textContext(): TextContext {
-    if (!TextUtils._textContext) {
-      const offscreenCanvas = new OffscreenCanvas(0, 0);
-      if (offscreenCanvas) {
-        const context = offscreenCanvas.getContext("2d");
-        if (context && context.measureText) {
-          TextUtils._textContext = { canvas: offscreenCanvas, context };
-          return TextUtils._textContext;
-        }
+    let { _textContext: textContext } = TextUtils;
+    if (!textContext) {
+      let canvas: HTMLCanvasElement | OffscreenCanvas;
+      try {
+        canvas =  new OffscreenCanvas(0, 0);
+      } catch {
+        canvas = document.createElement("canvas");
       }
-
-      const canvas = document.createElement("canvas");
-      TextUtils._textContext = { canvas, context: offscreenCanvas.getContext("2d") };
+      const context = canvas.getContext("2d");
+      textContext = { canvas, context };
+      TextUtils._textContext = textContext;
     }
-
-    return TextUtils._textContext;
+    return textContext;
   }
 
   /**
@@ -266,6 +265,24 @@ export class TextUtils {
   }
 
   /**
+   * Get native font string.
+   * @param fontName - The font name
+   * @param fontSize - The font size
+   * @param style - The font style
+   * @returns The native font string
+   */
+  public static getNativeFontString(fontName: string, fontSize: number, style: FontStyle): string {
+    let str = style & FontStyle.Bold ? "bold " : "";
+    style & FontStyle.Italic && (str += "italic ");
+    // Check if font already contains strings
+    if (!/([\"\'])[^\'\"]+\1/.test(fontName) && TextUtils._genericFontFamilies.indexOf(fontName) == -1) {
+      fontName = `"${fontName}"`;
+    }
+    str += `${fontSize}px ${fontName}`;
+    return str;
+  }
+
+  /**
    * Update text.
    * @param textMetrics - the text metrics object
    * @param fontStr - the font string
@@ -287,11 +304,12 @@ export class TextUtils {
     context.font = fontStr;
     context.clearRect(0, 0, width, height);
     // set canvas font info.
-    context.textBaseline = "top";
+    context.textBaseline = "middle";
     context.fillStyle = "#fff";
 
     // draw lines.
     const { lines, lineHeight, lineWidths } = textMetrics;
+    const halfLineHeight = lineHeight * 0.5;
     for (let i = 0, l = lines.length; i < l; ++i) {
       const lineWidth = lineWidths[i];
       const pos = TextUtils._tempVec2;
@@ -308,8 +326,7 @@ export class TextUtils {
       );
       const { x, y } = pos;
       if (y + lineHeight >= 0 && y < height) {
-        // +1, for chrome.
-        context.fillText(lines[i], x, y + 1);
+        context.fillText(lines[i], x, y + halfLineHeight);
       }
     }
   }

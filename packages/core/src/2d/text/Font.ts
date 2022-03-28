@@ -1,4 +1,4 @@
-import { RefObject } from "../../asset/RefObject"
+import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 
 /**
@@ -13,12 +13,15 @@ export class Font extends RefObject {
    * @param fontName - The name of font
    * @returns The font object has been create
    */
-  static createFromOS(engine: Engine, fontName: string = ""): Font{
+  static createFromOS(engine: Engine, fontName: string = ""): Font {
     const fontMap = Font._fontMap;
-    if (fontMap[fontName]) {
-      return fontMap[fontName];
+    let font = fontMap[fontName];
+    if (font) {
+      return font;
     }
-    return (fontMap[fontName] = new Font(engine, fontName));
+    font = new Font(engine, fontName);
+    fontMap[fontName] = font;
+    return font;
   }
 
   private _name: string = "";
@@ -30,11 +33,6 @@ export class Font extends RefObject {
     return this._name;
   }
 
-  /**
-   * Create a font instance.
-   * @param engine - Engine to which the font belongs
-   * @param name - The name of font
-   */
   private constructor(engine: Engine, name: string = "") {
     super(engine);
     this._name = name;
@@ -45,4 +43,3 @@ export class Font extends RefObject {
    */
   protected _onDestroy(): void {}
 }
-
