@@ -237,11 +237,11 @@ export class TextUtils {
           left = x;
         }
 
-        if (right === null || x > right) {
+        if (right === -1 || x > right) {
           right = x;
         }
 
-        if (bottom === null || y > bottom) {
+        if (bottom === -1 || y > bottom) {
           bottom = y;
         }
       }
