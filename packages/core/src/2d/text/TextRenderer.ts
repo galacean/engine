@@ -257,7 +257,7 @@ export class TextRenderer extends Renderer {
     super(entity);
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this._sprite = new Sprite(this.engine);
-    this.font = Font.create(entity.engine);
+    this.font = Font.createFromOS(entity.engine);
     this.setMaterial(this._engine._spriteDefaultMaterial);
   }
 

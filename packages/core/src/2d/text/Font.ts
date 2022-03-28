@@ -8,11 +8,11 @@ export class Font extends RefObject {
   private static _fontMap: Record<string, Font> = {};
 
   /**
-   * Create a font.
+   * Create a font from OS.
    * @param engine - Engine to which the font belongs
    * @param fontName - The name of font.
    */
-  static create(engine: Engine, fontName: string = "Arial"): Font{
+  static createFromOS(engine: Engine, fontName: string = ""): Font{
     const fontMap = Font._fontMap;
     if (fontMap[fontName]) {
       return fontMap[fontName];
@@ -20,7 +20,7 @@ export class Font extends RefObject {
     return (fontMap[fontName] = new Font(engine, fontName));
   }
 
-  private _name: string = "Arial";
+  private _name: string = "";
 
   /**
    * The name of the font object.
@@ -36,7 +36,7 @@ export class Font extends RefObject {
    */
   private constructor(engine: Engine, name: string = "") {
     super(engine);
-    this._name = name || "Arial";
+    this._name = name;
   }
 
   /**
