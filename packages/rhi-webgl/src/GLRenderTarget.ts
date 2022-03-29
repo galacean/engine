@@ -59,11 +59,11 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     }
 
     if (_colorTextures.some((v: Texture) => v.width !== width || v.height !== height)) {
-      throw new Error("RenderColorTexture's size must as same as RenderTarget");
+      throw new Error("ColorTexture's size must as same as RenderTarget");
     }
 
     if (_depth instanceof Texture && (_depth.width !== width || _depth.height !== height)) {
-      throw new Error("RenderDepthTexture's size must as same as RenderTarget");
+      throw new Error("DepthTexture's size must as same as RenderTarget");
     }
 
     // todo: necessary to support MRT + Cube + [,MSAA] ?

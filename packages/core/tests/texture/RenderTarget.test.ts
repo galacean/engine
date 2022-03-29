@@ -2,7 +2,7 @@
 // @todo: jest `_depth instanceof RenderDepthTexture` in `GLRenderTarget.ts` always return `false`, so test with depthTexture in renderTarget is ignored.
 
 import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
-import { RenderBufferDepthFormat, RenderColorTexture, RenderDepthTexture, RenderTarget } from "../../src/texture";
+import { Texture2D, RenderTarget,TextureFormat } from "../../src/texture";
 
 describe("RenderTarget", () => {
   const width = 1024;
@@ -20,9 +20,9 @@ describe("RenderTarget", () => {
   });
 
   describe("创建渲染目标", () => {
-    const renderColorTexture = new RenderColorTexture(engine, width, height);
-    const renderColorTexture2 = new RenderColorTexture(engine, width, height);
-    const renderDepthTexture = new RenderDepthTexture(engine, width, height);
+    const renderColorTexture = new Texture2D(engine, width, height);
+    const renderColorTexture2 = new Texture2D(engine, width, height);
+    const renderDepthTexture = new Texture2D(engine, width, height);
 
     it("创建渲染目标-通过颜色纹理和深度格式", () => {
       const renderTarget = new RenderTarget(engine, width, height, renderColorTexture);
@@ -72,14 +72,14 @@ describe("RenderTarget", () => {
     it("创建失败-不支持高精度深度缓冲", () => {
       expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
-        new RenderTarget(engine, width, height, renderColorTexture, RenderBufferDepthFormat.Depth32);
+        new RenderTarget(engine, width, height, renderColorTexture, TextureFormat.Depth32);
       }).toThrow();
     });
 
     it("创建失败-不支持高精度深度模版缓冲", () => {
       expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
-        new RenderTarget(engine, width, height, renderColorTexture, RenderBufferDepthFormat.Depth32Stencil8);
+        new RenderTarget(engine, width, height, renderColorTexture, TextureFormat.Depth32Stencil8);
       }).toThrow();
     });
 
@@ -92,7 +92,7 @@ describe("RenderTarget", () => {
 
     it("创建失败-不支持MRT+Cube+[,MSAA]", () => {
       expect(() => {
-        const cubeRenderColorTexture = new RenderColorTexture(engine, width, height, undefined, undefined, true);
+        const cubeRenderColorTexture = new Texture2D(engine, width, height, undefined, undefined, true);
         new RenderTarget(engine, width, height, [renderColorTexture, cubeRenderColorTexture]);
       }).toThrow();
     });
