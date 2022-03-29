@@ -269,7 +269,6 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   _render(camera: Camera): void {
-    debugger;
     if (
       this._text === "" ||
       (this.enableWrapping && this.width <= 0) ||
