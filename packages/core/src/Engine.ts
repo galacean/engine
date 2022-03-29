@@ -1,5 +1,6 @@
 import { IPhysics } from "@oasis-engine/design";
 import { ColorSpace } from ".";
+import { DynamicTextAtlasManager } from "./2d/dynamic-atlas/DynamicTextAtlasManager";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
@@ -73,6 +74,8 @@ export class Engine extends EventDispatcher {
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _dynamicTextAtlasManager: DynamicTextAtlasManager = new DynamicTextAtlasManager(this);
 
   protected _canvas: Canvas;
 
