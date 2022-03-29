@@ -26,7 +26,7 @@ export class TextRenderer extends Renderer {
   @ignoreClone
   _customRootEntity: Entity = null;
 
-  @assignmentClone
+  @ignoreClone
   private _sprite: Sprite = null;
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
@@ -269,6 +269,7 @@ export class TextRenderer extends Renderer {
    * @internal
    */
   _render(camera: Camera): void {
+    debugger;
     if (
       this._text === "" ||
       (this.enableWrapping && this.width <= 0) ||
