@@ -2,14 +2,12 @@ import {
   GLCapabilityType,
   IPlatformRenderTarget,
   Logger,
-  RenderBufferDepthFormat,
-  RenderColorTexture,
-  RenderDepthTexture,
   RenderTarget,
-  TextureCubeFace
+  Texture,
+  TextureCube,
+  TextureCubeFace,
+  TextureFormat
 } from "@oasis-engine/core";
-import { GLRenderColorTexture } from "./GLRenderColorTexture";
-import { GLRenderDepthTexture } from "./GLRenderDepthTexture";
 import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
@@ -45,24 +43,31 @@ export class GLRenderTarget implements IPlatformRenderTarget {
      * MRT + MSAA
      */
 
-    if (!(_depth instanceof RenderDepthTexture) && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi, false)) {
-      throw new Error(`RenderBufferDepthFormat is not supported:${RenderBufferDepthFormat[_depth]}`);
+    for (let i = 0, n = _colorTextures.length; i < n; i++) {
+      const format = _colorTextures[i]._format;
+      if (!GLTexture._supportRenderBufferColorFormat(format, rhi)) {
+        throw new Error(`RenderBufferColorFormat is not supported:${TextureFormat[format]}`);
+      }
+    }
+
+    if (!GLTexture._supportRenderBufferDepthFormat(_depth, rhi, _depth instanceof Texture)) {
+      throw new Error(`RenderBufferDepthFormat is not supported:${TextureFormat[_depth]}`);
     }
 
     if (_colorTextures.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
       throw new Error("MRT is not supported");
     }
 
-    if (_colorTextures.some((v: RenderColorTexture) => v.width !== width || v.height !== height)) {
+    if (_colorTextures.some((v: Texture) => v.width !== width || v.height !== height)) {
       throw new Error("RenderColorTexture's size must as same as RenderTarget");
     }
 
-    if (_depth instanceof RenderDepthTexture && (_depth.width !== width || _depth.height !== height)) {
+    if (_depth instanceof Texture && (_depth.width !== width || _depth.height !== height)) {
       throw new Error("RenderDepthTexture's size must as same as RenderTarget");
     }
 
     // todo: necessary to support MRT + Cube + [,MSAA] ?
-    if (_colorTextures.length > 1 && _colorTextures.some((v: RenderColorTexture) => v.isCube)) {
+    if (_colorTextures.length > 1 && _colorTextures.some((v: Texture) => v instanceof TextureCube)) {
       throw new Error("MRT+Cube+[,MSAA] is not supported");
     }
 
@@ -100,7 +105,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     gl.bindFramebuffer(gl.FRAMEBUFFER, this._frameBuffer);
 
     if (colorTexture) {
-      const isCube = colorTexture.isCube;
+      const isCube = colorTexture instanceof TextureCube;
       if (mipChanged || isCube) {
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
@@ -113,7 +118,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
     if (depthTexture) {
-      const isCube = depthTexture.isCube;
+      const isCube = depthTexture instanceof TextureCube;
       if (mipChanged || isCube) {
         /** @ts-ignore */
         const { _platformTexture: platformTexture } = depthTexture;
@@ -207,6 +212,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   }
 
   private _bindMainFBO(): void {
+    debugger;
     const gl = this._gl;
     const isWebGL2: boolean = this._isWebGL2;
 
@@ -223,7 +229,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
       drawBuffers[i] = attachment;
 
-      if (!colorTexture.isCube) {
+      if (!(colorTexture instanceof TextureCube)) {
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
           attachment,
@@ -242,8 +248,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     /** depth render buffer */
     if (_depth !== null) {
-      if (_depth instanceof RenderDepthTexture) {
-        if (!_depth.isCube) {
+      if (_depth instanceof Texture) {
+        if (!(_depth instanceof TextureCube)) {
           gl.framebufferTexture2D(
             gl.FRAMEBUFFER,
             /** @ts-ignore */
@@ -306,7 +312,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     // prepare MSAA depth RBO
     if (_depth !== null) {
       const { internalFormat, attachment } =
-        _depth instanceof RenderDepthTexture
+        _depth instanceof Texture
           ? /** @ts-ignore */
             (_depth._platformTexture as GLRenderDepthTexture)._formatDetail
           : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);

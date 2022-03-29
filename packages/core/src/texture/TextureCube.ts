@@ -9,7 +9,7 @@ import { Texture } from "./Texture";
 /**
  * Cube texture.
  */
-export class TextureCubeMap extends Texture {
+export class TextureCube extends Texture {
   private _format: TextureFormat;
 
   /**

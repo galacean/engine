@@ -6,12 +6,12 @@ import {
   resourceLoader,
   ResourceManager,
   TextureCubeFace,
-  TextureCubeMap
+  TextureCube
 } from "@oasis-engine/core";
 
 @resourceLoader(AssetType.TextureCube, [""])
-class TextureCubeLoader extends Loader<TextureCubeMap> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCubeMap> {
+class TextureCubeLoader extends Loader<TextureCube> {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
         item.urls.map((url) =>
@@ -29,7 +29,7 @@ class TextureCubeLoader extends Loader<TextureCubeMap> {
             return;
           }
 
-          const tex = new TextureCubeMap(resourceManager.engine, width);
+          const tex = new TextureCube(resourceManager.engine, width);
 
           /** @ts-ignore */
           if (!tex._platformTexture) return;
