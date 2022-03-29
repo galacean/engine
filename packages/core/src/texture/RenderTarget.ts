@@ -17,7 +17,7 @@ export class RenderTarget extends EngineObject {
   /** @internal */
   _antiAliasing: number;
 
-  private _autoMipmap: boolean = false;
+  private _autoMipmap: boolean = true;
   private _width: number;
   private _height: number;
   private _colorTextures: Texture[];
@@ -195,7 +195,7 @@ export class RenderTarget extends EngineObject {
     }
 
     if (this.autoGenerateMipmaps) {
-      this._depthTexture.generateMipmaps();
+      this._depthTexture && this._depthTexture.generateMipmaps();
     }
   }
 
