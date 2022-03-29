@@ -2,7 +2,7 @@
 // @todo: jest `_depth instanceof RenderDepthTexture` in `GLRenderTarget.ts` always return `false`, so test with depthTexture in renderTarget is ignored.
 
 import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
-import { Texture2D, RenderTarget,TextureFormat } from "../../src/texture";
+import { Texture2D, RenderTarget, TextureFormat,TextureCube } from "../../src/texture";
 
 describe("RenderTarget", () => {
   const width = 1024;
@@ -92,7 +92,7 @@ describe("RenderTarget", () => {
 
     it("创建失败-不支持MRT+Cube+[,MSAA]", () => {
       expect(() => {
-        const cubeRenderColorTexture = new Texture2D(engine, width, height, undefined, undefined, true);
+        const cubeRenderColorTexture = new TextureCube(engine, width);
         new RenderTarget(engine, width, height, [renderColorTexture, cubeRenderColorTexture]);
       }).toThrow();
     });
