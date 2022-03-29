@@ -211,7 +211,7 @@ export class TextUtils {
 
     let top = -1;
     let bottom = -1;
-    let left = -1;
+    let left = width;
     let right = -1;
     let data = null;
     let x;
@@ -227,15 +227,15 @@ export class TextUtils {
           top = y;
         }
 
-        if (left === -1 || x < left) {
+        if (x < left) {
           left = x;
         }
 
-        if (right === -1 || x > right) {
+        if (x > right) {
           right = x;
         }
 
-        if (bottom === -1 || y > bottom) {
+        if (y > bottom) {
           bottom = y;
         }
       }
