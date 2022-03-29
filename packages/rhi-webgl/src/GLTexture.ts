@@ -82,6 +82,13 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.UNSIGNED_BYTE,
           isCompressed: false
         };
+      case TextureFormat.R16G16B16A16:
+        return {
+          internalFormat: gl.RGBA16F,
+          baseFormat: gl.RGBA,
+          dataType: gl.HALF_FLOAT,
+          isCompressed: false
+        };
       case TextureFormat.R32G32B32A32:
         return {
           internalFormat: gl.RGBA32F,
@@ -171,76 +178,6 @@ export class GLTexture implements IPlatformTexture {
         };
       default:
         throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
-    }
-  }
-
-  /**
-   * @internal
-   */
-  static _getRenderBufferColorFormatDetail(
-    format: TextureFormat,
-    gl: WebGLRenderingContext & WebGL2RenderingContext,
-    isWebGL2: boolean
-  ): TextureFormatDetail {
-    switch (format) {
-      case TextureFormat.R8G8B8:
-        return {
-          internalFormat: isWebGL2 ? gl.RGB8 : gl.RGB,
-          baseFormat: gl.RGB,
-          dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false
-        };
-      case TextureFormat.R8G8B8A8:
-        return {
-          internalFormat: isWebGL2 ? gl.RGBA8 : gl.RGBA,
-          baseFormat: gl.RGBA,
-          dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false
-        };
-      case TextureFormat.R4G4B4A4:
-        return {
-          internalFormat: isWebGL2 ? gl.RGBA4 : gl.RGBA,
-          baseFormat: gl.RGBA,
-          dataType: gl.UNSIGNED_SHORT_4_4_4_4,
-          isCompressed: false
-        };
-      case TextureFormat.R5G5B5A1:
-        return {
-          internalFormat: isWebGL2 ? gl.RGB5_A1 : gl.RGBA,
-          baseFormat: gl.RGBA,
-          dataType: gl.UNSIGNED_SHORT_5_5_5_1,
-          isCompressed: false
-        };
-      case TextureFormat.R5G6B5:
-        return {
-          internalFormat: isWebGL2 ? gl.RGB565 : gl.RGB,
-          baseFormat: gl.RGB,
-          dataType: gl.UNSIGNED_SHORT_5_6_5,
-          isCompressed: false
-        };
-      case TextureFormat.Alpha8:
-        return {
-          internalFormat: gl.ALPHA,
-          baseFormat: gl.ALPHA,
-          dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false
-        };
-      case TextureFormat.R16G16B16A16:
-        return {
-          internalFormat: gl.RGBA16F,
-          baseFormat: gl.RGBA,
-          dataType: gl.HALF_FLOAT,
-          isCompressed: false
-        };
-      case TextureFormat.R32G32B32A32:
-        return {
-          internalFormat: gl.RGBA32F,
-          baseFormat: gl.RGBA,
-          dataType: gl.FLOAT,
-          isCompressed: false
-        };
-      default:
-        throw new Error(`this RenderBufferColorFormat is not supported in Oasis Engine: ${format}`);
     }
   }
 
