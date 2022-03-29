@@ -2,7 +2,11 @@
 // @todo: jest `_depth instanceof RenderDepthTexture` in `GLRenderTarget.ts` always return `false`, so test with depthTexture in renderTarget is ignored.
 
 import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
+<<<<<<< HEAD
 import { Texture2D, RenderTarget, TextureFormat,TextureCube } from "../../src/texture";
+=======
+import { Texture2D, RenderTarget,TextureFormat } from "../../src/texture";
+>>>>>>> 7c6ee058ee3185f190fb1e97b2e00759ac91057d
 
 describe("RenderTarget", () => {
   const width = 1024;
