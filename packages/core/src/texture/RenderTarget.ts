@@ -17,7 +17,7 @@ export class RenderTarget extends EngineObject {
   /** @internal */
   _antiAliasing: number;
 
-  private _autoMipmap: boolean = true;
+  private _autoGenerateMipmaps: boolean = true;
   private _width: number;
   private _height: number;
   private _colorTextures: Texture[];
@@ -27,11 +27,11 @@ export class RenderTarget extends EngineObject {
    * Whether to automatically generate multi-level textures.
    */
   get autoGenerateMipmaps(): boolean {
-    return this._autoMipmap;
+    return this._autoGenerateMipmaps;
   }
 
   set autoGenerateMipmaps(value: boolean) {
-    this._autoMipmap = value;
+    this._autoGenerateMipmaps = value;
   }
 
   /**
@@ -187,14 +187,12 @@ export class RenderTarget extends EngineObject {
    * Generate the mipmap of each attachment texture of the renderTarget according to the configuration.
    */
   generateMipmaps(): void {
-    for (let i = 0, n = this._colorTextures.length; i < n; i++) {
-      const colorTexture = this._colorTextures[i];
-      if (this.autoGenerateMipmaps) {
+    if (this._autoGenerateMipmaps) {
+      const colorTextures = this._colorTextures;
+      for (let i = 0, n = colorTextures.length; i < n; i++) {
+        const colorTexture = colorTextures[i];
         colorTexture.generateMipmaps();
       }
-    }
-
-    if (this.autoGenerateMipmaps) {
       this._depthTexture && this._depthTexture.generateMipmaps();
     }
   }
