@@ -256,7 +256,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       default:
-        throw new Error(`this RenderBufferDepthFormat is not supported in Oasis Engine: ${format}`);
+        throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
     }
   }
 
