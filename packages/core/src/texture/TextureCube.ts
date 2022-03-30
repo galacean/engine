@@ -35,7 +35,7 @@ export class TextureCube extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
-    this._platformTexture = engine._hardwareRenderer.createPlatformTextureCubeMap(this);
+    this._platformTexture = engine._hardwareRenderer.createPlatformTextureCube(this);
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;

@@ -46,12 +46,12 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     for (let i = 0, n = _colorTextures.length; i < n; i++) {
       const format = _colorTextures[i]._format;
       if (!GLTexture._supportRenderBufferColorFormat(format, rhi)) {
-        throw new Error(`RenderBufferColorFormat is not supported:${TextureFormat[format]}`);
+        throw new Error(`TextureFormat is not supported:${TextureFormat[format]} in RenderTarget`);
       }
     }
 
     if (!GLTexture._supportRenderBufferDepthFormat(_depth, rhi, _depth instanceof Texture)) {
-      throw new Error(`RenderBufferDepthFormat is not supported:${TextureFormat[_depth]}`);
+      throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
     }
 
     if (_colorTextures.length > 1 && !rhi.canIUse(GLCapabilityType.drawBuffers)) {
@@ -112,7 +112,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           gl.COLOR_ATTACHMENT0,
           isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
           /** @ts-ignore */
-          (colorTexture._platformTexture as GLRenderColorTexture)._glTexture,
+          (colorTexture._platformTexture as GLTexture)._glTexture,
           mipLevel
         );
       }
@@ -234,7 +234,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           attachment,
           gl.TEXTURE_2D,
           /** @ts-ignore */
-          (colorTexture._platformTexture as GLRenderColorTexture)._glTexture,
+          (colorTexture._platformTexture as GLTexture)._glTexture,
           0
         );
       }
@@ -300,7 +300,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
         gl.RENDERBUFFER,
         antiAliasing,
         /** @ts-ignore */
-        (this._target.getColorTexture(i)._platformTexture as GLRenderColorTexture)._formatDetail.internalFormat,
+        (this._target.getColorTexture(i)._platformTexture as GLTexture)._formatDetail.internalFormat,
         width,
         height
       );

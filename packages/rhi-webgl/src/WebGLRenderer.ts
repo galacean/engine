@@ -152,7 +152,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     return new GLTexture2D(this, texture2D);
   }
 
-  createPlatformTextureCubeMap(textureCube: TextureCube): IPlatformTextureCube {
+  createPlatformTextureCube(textureCube: TextureCube): IPlatformTextureCube {
     return new GLTextureCube(this, textureCube);
   }
 
