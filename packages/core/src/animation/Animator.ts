@@ -517,7 +517,7 @@ export class Animator extends Component {
     const { clipTime: lastSrcClipTime } = srcPlayData;
     const { clipTime: lastDestClipTime } = destPlayData;
 
-    let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight = Math.abs(destPlayData.frameTime) / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
     srcPlayData.update();
@@ -584,7 +584,7 @@ export class Animator extends Component {
     const { _curveBindings: curves } = state.clip;
     const { clipTime: lastDestClipTime } = destPlayData;
 
-    let crossWeight = destPlayData.frameTime / (state._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight = Math.abs(destPlayData.frameTime) / (state._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
     destPlayData.update();
@@ -838,13 +838,22 @@ export class Animator extends Component {
   ): void {
     const { state } = playState;
     const clipDuration = state.clip.length;
-    // TODO: If play backward, not work.
-    if (clipTime < lastClipTime) {
-      this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
-      playState.currentEventIndex = 0;
-      this._fireSubAnimationEvents(playState, eventHandlers, state.clipStartTime * clipDuration, clipTime);
+    if (this.speed >= 0) {
+      if (clipTime < lastClipTime) {
+        this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
+        playState.currentEventIndex = 0;
+        this._fireSubAnimationEvents(playState, eventHandlers, state.clipStartTime * clipDuration, clipTime);
+      } else {
+        this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      }
     } else {
-      this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      if (clipTime > lastClipTime) {
+        this._fireBackwardSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipStartTime * clipDuration);
+        playState.currentEventIndex = 0;
+        this._fireBackwardSubAnimationEvents(playState, eventHandlers, state.clipEndTime * clipDuration, clipTime);
+      } else {
+        this._fireBackwardSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      }
     }
   }
 
@@ -864,6 +873,30 @@ export class Animator extends Component {
 
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
+        for (let j = handlers.length - 1; j >= 0; j--) {
+          handlers[j](parameter);
+        }
+        playState.currentEventIndex = i + 1;
+      }
+    }
+  }
+
+  private _fireBackwardSubAnimationEvents(
+    playState: AnimatorStatePlayData,
+    eventHandlers: AnimationEventHandler[],
+    lastClipTime: number,
+    curClipTime: number
+  ): void {
+    for (let i = playState.currentEventIndex, n = eventHandlers.length; i < n; i++) {
+      const eventHandler = eventHandlers[n - 1 - i];
+      const { time, parameter } = eventHandler.event;
+
+      if (time < curClipTime) {
+        break;
+      }
+
+      const { handlers } = eventHandler;
+      if (time <= lastClipTime) {
         for (let j = handlers.length - 1; j >= 0; j--) {
           handlers[j](parameter);
         }
