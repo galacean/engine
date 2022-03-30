@@ -6,7 +6,10 @@ import {
   Loader,
   LoadItem,
   resourceLoader,
-  ResourceManager, TextureCube, TextureCubeFace, TextureFilterMode
+  ResourceManager,
+  TextureCube,
+  TextureCubeFace,
+  TextureFilterMode
 } from "@oasis-engine/core";
 import { SphericalHarmonics3 } from "@oasis-engine/math";
 
