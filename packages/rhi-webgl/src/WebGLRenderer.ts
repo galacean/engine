@@ -8,7 +8,7 @@ import {
   IHardwareRenderer,
   IPlatformRenderTarget,
   IPlatformTexture2D,
-  IPlatformTextureCubeMap,
+  IPlatformTextureCube,
   Logger,
   Mesh,
   RenderTarget,
@@ -25,7 +25,7 @@ import { GLRenderStates } from "./GLRenderStates";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLTexture } from "./GLTexture";
 import { GLTexture2D } from "./GLTexture2D";
-import { GLTextureCubeMap } from "./GLTextureCubeMap";
+import { GLTextureCube } from "./GLTextureCube";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
 
@@ -152,8 +152,8 @@ export class WebGLRenderer implements IHardwareRenderer {
     return new GLTexture2D(this, texture2D);
   }
 
-  createPlatformTextureCubeMap(textureCube: TextureCube): IPlatformTextureCubeMap {
-    return new GLTextureCubeMap(this, textureCube);
+  createPlatformTextureCubeMap(textureCube: TextureCube): IPlatformTextureCube {
+    return new GLTextureCube(this, textureCube);
   }
 
   createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget {

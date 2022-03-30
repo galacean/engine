@@ -212,7 +212,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
   }
 
   private _bindMainFBO(): void {
-    debugger;
     const gl = this._gl;
     const isWebGL2: boolean = this._isWebGL2;
 

@@ -1,5 +1,5 @@
 import { Engine } from "../Engine";
-import { IPlatformTextureCubeMap } from "../renderingHardwareInterface";
+import { IPlatformTextureCube } from "../renderingHardwareInterface";
 import { TextureCubeFace } from "./enums/TextureCubeFace";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
@@ -61,7 +61,7 @@ export class TextureCube extends Texture {
     width?: number,
     height?: number
   ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
+    (this._platformTexture as IPlatformTextureCube).setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
   }
 
   /**
@@ -83,7 +83,7 @@ export class TextureCube extends Texture {
     x?: number,
     y?: number
   ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).setImageSource(
+    (this._platformTexture as IPlatformTextureCube).setImageSource(
       face,
       imageSource,
       mipLevel,
@@ -154,7 +154,7 @@ export class TextureCube extends Texture {
   ): void {
     const argsLength = arguments.length;
     if (argsLength === 2) {
-      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
         face,
         0,
         0,
@@ -164,7 +164,7 @@ export class TextureCube extends Texture {
         <ArrayBufferView>xOrMipLevelOrOut
       );
     } else if (argsLength === 3) {
-      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
         face,
         0,
         0,
@@ -174,7 +174,7 @@ export class TextureCube extends Texture {
         <ArrayBufferView>yOrMipLevel
       );
     } else if (argsLength === 6) {
-      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
         face,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
@@ -184,7 +184,7 @@ export class TextureCube extends Texture {
         <ArrayBufferView>mipLevelOrOut
       );
     } else if (argsLength === 7) {
-      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
         face,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,

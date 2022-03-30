@@ -1,11 +1,11 @@
-import { IPlatformTextureCubeMap, Logger, TextureCubeFace, TextureCube, TextureFormat } from "@oasis-engine/core";
+import { IPlatformTextureCube, Logger, TextureCubeFace, TextureCube, TextureFormat } from "@oasis-engine/core";
 import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
  * Cube texture in WebGL platform.
  */
-export class GLTextureCubeMap extends GLTexture implements IPlatformTextureCubeMap {
+export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   /**
    * Backward compatible with WebGL1.0.。
    */
