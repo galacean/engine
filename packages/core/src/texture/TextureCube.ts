@@ -10,15 +10,6 @@ import { Texture } from "./Texture";
  * Cube texture.
  */
 export class TextureCube extends Texture {
-  private _format: TextureFormat;
-
-  /**
-   * Texture format.
-   */
-  get format(): TextureFormat {
-    return this._format;
-  }
-
   /**
    * Create TextureCube.
    * @param engine - Define the engine to use to render this texture
@@ -168,8 +159,8 @@ export class TextureCube extends Texture {
         face,
         0,
         0,
-        this._width >> <number>xOrMipLevelOrOut,
-        this._height >> <number>xOrMipLevelOrOut,
+        this._width >> (<number>xOrMipLevelOrOut),
+        this._height >> (<number>xOrMipLevelOrOut),
         <number>xOrMipLevelOrOut,
         <ArrayBufferView>yOrMipLevel
       );
