@@ -24,6 +24,7 @@ export abstract class Mesh extends RefObject {
   _vertexElementMap: Record<string, VertexElement> = {};
   _glIndexType: number;
   _glIndexByteCount: number;
+  _vaoDirty: boolean;
   _platformPrimitive: IPlatformPrimitive;
 
   /** @internal */
@@ -122,7 +123,8 @@ export abstract class Mesh extends RefObject {
    * @internal
    */
   _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
-    this._platformPrimitive.draw(shaderProgram, subMesh);
+    this._platformPrimitive.draw(shaderProgram, subMesh, this._vaoDirty);
+    this._vaoDirty = false;
   }
 
   /**
@@ -153,25 +155,36 @@ export abstract class Mesh extends RefObject {
     for (let i = 0, n = elements.length; i < n; i++) {
       this._addVertexElement(elements[i]);
     }
+    this._vaoDirty = true;
   }
 
   protected _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    const lastBinding = this._vertexBufferBindings[index];
     if (this._getRefCount() > 0) {
-      const lastBinding = this._vertexBufferBindings[index];
       lastBinding && lastBinding._buffer._addRefCount(-1);
       binding._buffer._addRefCount(1);
     }
     this._vertexBufferBindings[index] = binding;
+    if (lastBinding && (lastBinding._buffer !== binding._buffer || lastBinding._stride !== binding._stride)) {
+      this._vaoDirty = true;
+    }
   }
 
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
+    const lastBinding = this._indexBufferBinding;
     if (binding) {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);
       this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
+      if (lastBinding && lastBinding._buffer !== binding._buffer) {
+        this._vaoDirty = true;
+      }
     } else {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
+      if (lastBinding) {
+        this._vaoDirty = true;
+      }
     }
   }
 

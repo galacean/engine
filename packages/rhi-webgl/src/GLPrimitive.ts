@@ -6,7 +6,6 @@ import { WebGLRenderer } from "./WebGLRenderer";
 /**
  * Improvement of VAO:
  * 1) WebGL2.0 must support VAO, almost all devices support vao extensions in webgl1.0, we can use PollyFill,only keep VAO mode.
- * 2) VAO implementation now has bugs, change IndexBuffer、VertexBuffer、VertexElements need to update VAO.
  */
 
 /**
@@ -19,6 +18,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   protected readonly canUseInstancedArrays: boolean;
 
   private gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private vaoVersion: number = 0;
   private vao: Map<number, WebGLVertexArrayObject> = new Map();
   private readonly _useVao: boolean;
 
@@ -32,11 +32,14 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Draw the primitive.
    */
-  draw(shaderProgram: any, subMesh: SubMesh): void {
+  draw(shaderProgram: any, subMesh: SubMesh, vaoNeedUpdate?: boolean): void {
     const gl = this.gl;
     const primitive = this._primitive;
 
     if (this._useVao) {
+      if (vaoNeedUpdate) {
+        this.clearVAO();
+      }
       if (!this.vao.has(shaderProgram.id)) {
         this.registerVAO(shaderProgram);
       }
@@ -91,13 +94,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   }
 
   destroy() {
-    if (this._useVao) {
-      const gl = this.gl;
-      this.vao.forEach((vao) => {
-        gl.deleteVertexArray(vao);
-      });
-      this.vao.clear();
-    }
+    this.clearVAO();
   }
 
   /**
@@ -172,5 +169,15 @@ export class GLPrimitive implements IPlatformPrimitive {
     this.disableAttrib();
 
     this.vao.set(shaderProgram.id, vao);
+  }
+
+  private clearVAO() {
+    if (this._useVao) {
+      const gl = this.gl;
+      this.vao.forEach((vao) => {
+        gl.deleteVertexArray(vao);
+      });
+      this.vao.clear();
+    }
   }
 }

@@ -519,7 +519,7 @@ export class Transform extends Component {
     axisLen = xAxis.length();
     if (axisLen <= MathUtil.zeroTolerance) {
       // @todo:
-      // 1.worldUp is（0,0,0）
+      // 1.worldup is（0,0,0）
       // 2.worldUp is parallel to zAxis
       return;
     }
