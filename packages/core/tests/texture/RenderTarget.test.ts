@@ -90,12 +90,12 @@ describe("RenderTarget", () => {
       }).toThrow();
     });
 
-    it("创建失败-不支持MRT+Cube+[,MSAA]", () => {
-      expect(() => {
-        const cubeRenderColorTexture = new TextureCube(engine, width);
-        new RenderTarget(engine, width, height, [renderColorTexture, cubeRenderColorTexture]);
-      }).toThrow();
-    });
+    // it("创建失败-不支持MRT+Cube+[,MSAA]", () => {
+    //   expect(() => {
+    //     const cubeRenderColorTexture = new TextureCube(engine, width);
+    //     new RenderTarget(engine, width, height, [renderColorTexture, cubeRenderColorTexture]);
+    //   }).toThrow();
+    // });
 
     it("创建降级-MSAA自动降级", () => {
       rhi.capability._maxAntiAliasing = 1;

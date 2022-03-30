@@ -1,10 +1,9 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
-import { Sprite, SpriteMaskInteraction, SpriteMaskLayer } from "..";
-import { CompareFunction, Renderer, Shader, UpdateFlag } from "../..";
+import { Sprite, SpriteMaskInteraction, SpriteMaskLayer, SpriteRenderer } from "..";
+import { CompareFunction, Renderer, UpdateFlag } from "../..";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
-import { ShaderProperty } from "../../shader/ShaderProperty";
 import { Texture2D } from "../../texture";
 import { FontStyle } from "../enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
@@ -16,7 +15,6 @@ import { TextUtils } from "./TextUtils";
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   private static _tempVec3: Vector3 = new Vector3();
 
   /** @internal temp solution. */
@@ -295,7 +293,7 @@ export class TextRenderer extends Renderer {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    this.shaderData.setTexture(TextRenderer._textureProperty, sprite.texture);
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, sprite.texture);
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
     spriteElement.setValue(
@@ -432,7 +430,7 @@ export class TextRenderer extends Renderer {
     const { _sprite } = this;
     // Remove sprite from dynamic atlas.
     this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
-    this.shaderData.setTexture(TextRenderer._textureProperty, null);
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
     _sprite.atlasRegion = _sprite.region;
   }
 }
