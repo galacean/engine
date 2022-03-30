@@ -94,7 +94,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   }
 
   destroy() {
-    this.clearVAO();
+    this._useVao && this.clearVAO();
   }
 
   /**
@@ -172,12 +172,10 @@ export class GLPrimitive implements IPlatformPrimitive {
   }
 
   private clearVAO() {
-    if (this._useVao) {
-      const gl = this.gl;
-      this.vao.forEach((vao) => {
-        gl.deleteVertexArray(vao);
-      });
-      this.vao.clear();
-    }
+    const gl = this.gl;
+    this.vao.forEach((vao) => {
+      gl.deleteVertexArray(vao);
+    });
+    this.vao.clear();
   }
 }
