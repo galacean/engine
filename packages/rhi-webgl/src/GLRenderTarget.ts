@@ -252,10 +252,10 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           gl.framebufferTexture2D(
             gl.FRAMEBUFFER,
             /** @ts-ignore */
-            (_depth._platformTexture as GLRenderDepthTexture)._formatDetail.attachment,
+            (_depth._platformTexture as GLTexture)._formatDetail.attachment,
             gl.TEXTURE_2D,
             /** @ts-ignore */
-            (_depth._platformTexture as GLRenderDepthTexture)._glTexture,
+            (_depth._platformTexture as GLTexture)._glTexture,
             0
           );
         }
@@ -313,7 +313,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       const { internalFormat, attachment } =
         _depth instanceof Texture
           ? /** @ts-ignore */
-            (_depth._platformTexture as GLRenderDepthTexture)._formatDetail
+            (_depth._platformTexture as GLTexture)._formatDetail
           : GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
 
       gl.bindRenderbuffer(gl.RENDERBUFFER, MSAADepthRenderBuffer);

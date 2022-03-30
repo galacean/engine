@@ -76,7 +76,7 @@ export class RenderTarget extends EngineObject {
    * @param width - Render target width
    * @param height - Render target height
    * @param colorTexture - Render color texture
-   * @param depthFormat - Depth format. default RenderBufferDepthFormat.Depth, engine will automatically select the supported precision
+   * @param depthFormat - Depth format. default TextureFormat.Depth, engine will automatically select the supported precision
    * @param antiAliasing - Anti-aliasing level, default is 1
    */
   constructor(
@@ -113,7 +113,7 @@ export class RenderTarget extends EngineObject {
    * @param width - Render target width
    * @param height - Render target height
    * @param colorTextures - Render color texture array
-   * @param depthFormat - Depth format. default RenderBufferDepthFormat.Depth,engine will automatically select the supported precision
+   * @param depthFormat - Depth format. default TextureFormat.Depth,engine will automatically select the supported precision
    * @param antiAliasing - Anti-aliasing level, default is 1
    */
   constructor(
