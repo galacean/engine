@@ -153,7 +153,7 @@ export class ComponentsManager {
     }
   }
 
-  callScriptOnUpdate(deltaTime): void {
+  callScriptOnUpdate(deltaTime: number): void {
     const elements = this._onUpdateScripts._elements;
     for (let i = this._onUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
@@ -163,7 +163,7 @@ export class ComponentsManager {
     }
   }
 
-  callScriptOnLateUpdate(deltaTime): void {
+  callScriptOnLateUpdate(deltaTime: number): void {
     const elements = this._onLateUpdateScripts._elements;
     for (let i = this._onLateUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
@@ -183,7 +183,7 @@ export class ComponentsManager {
     }
   }
 
-  callAnimationUpdate(deltaTime): void {
+  callAnimationUpdate(deltaTime: number): void {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
       //@ts-ignore
@@ -262,7 +262,7 @@ export class ComponentsManager {
     }
   }
 
-  callCameraOnBeginRender(camera: Camera) {
+  callCameraOnBeginRender(camera: Camera): void {
     const camComps = camera.entity._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];
@@ -270,7 +270,7 @@ export class ComponentsManager {
     }
   }
 
-  callCameraOnEndRender(camera: Camera) {
+  callCameraOnEndRender(camera: Camera): void {
     const camComps = camera.entity._components;
     for (let i = camComps.length - 1; i >= 0; --i) {
       const camComp = camComps[i];
@@ -278,14 +278,14 @@ export class ComponentsManager {
     }
   }
 
-  callColliderOnUpdate() {
+  callColliderOnUpdate(): void {
     const elements = this._colliders._elements;
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onUpdate();
     }
   }
 
-  callColliderOnLateUpdate() {
+  callColliderOnLateUpdate(): void {
     const elements = this._colliders._elements;
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onLateUpdate();
