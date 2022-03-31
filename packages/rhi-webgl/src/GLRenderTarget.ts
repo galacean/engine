@@ -37,6 +37,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     /** @ts-ignore */
     const { _colorTextures, _depth, width, height } = target;
+    const isDepthTexture = _depth instanceof Texture;
 
     /** todo
      * MRT + Cube + [,MSAA]
@@ -50,7 +51,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
 
-    if (!GLTexture._supportRenderBufferDepthFormat(_depth, rhi, _depth instanceof Texture)) {
+    if (!GLTexture._supportRenderBufferDepthFormat(isDepthTexture ? _depth.format : _depth, rhi, isDepthTexture)) {
       throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
     }
 
@@ -62,7 +63,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       throw new Error("ColorTexture's size must as same as RenderTarget");
     }
 
-    if (_depth instanceof Texture && (_depth.width !== width || _depth.height !== height)) {
+    if (isDepthTexture && (_depth.width !== width || _depth.height !== height)) {
       throw new Error("DepthTexture's size must as same as RenderTarget");
     }
 
