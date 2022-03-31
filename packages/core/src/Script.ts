@@ -29,7 +29,7 @@ export class Script extends Component {
   @ignoreClone
   _onPostRenderIndex: number = -1;
   @ignoreClone
-  _entityCacheIndex: number = -1;
+  _entityScriptsIndex: number = -1;
   @ignoreClone
   _waitApplyDisable: boolean = false;
 
@@ -233,7 +233,7 @@ export class Script extends Component {
     if (this._onPhysicsUpdateIndex !== -1) {
       componentsManager.removeOnPhysicsUpdateScript(this);
     }
-    if (this._entityCacheIndex !== -1) {
+    if (this._entityScriptsIndex !== -1) {
       this._entity._removeScript(this);
     }
     this._waitApplyDisable = false;

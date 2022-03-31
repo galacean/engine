@@ -375,7 +375,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _addScript(script: Script) {
-    script._entityCacheIndex = this._scripts.length;
+    script._entityScriptsIndex = this._scripts.length;
     this._scripts.add(script);
   }
 
@@ -383,9 +383,9 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeScript(script: Script): void {
-    const replaced = this._scripts.deleteByIndex(script._entityCacheIndex);
-    replaced && (replaced._entityCacheIndex = script._entityCacheIndex);
-    script._entityCacheIndex = -1;
+    const replaced = this._scripts.deleteByIndex(script._entityScriptsIndex);
+    replaced && (replaced._entityScriptsIndex = script._entityScriptsIndex);
+    script._entityScriptsIndex = -1;
   }
 
   /**
