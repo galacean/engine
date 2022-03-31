@@ -130,4 +130,11 @@ export abstract class Component extends EngineObject {
       this._onInActive();
     }
   }
+
+  /**
+   * @internal
+   */
+  _isValid(): boolean {
+    return !this._destroyed && this._entity._isActiveInHierarchy && this._enabled;
+  }
 }

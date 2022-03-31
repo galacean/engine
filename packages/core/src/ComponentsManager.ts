@@ -1,12 +1,12 @@
+import { Vector3 } from "@oasis-engine/math";
 import { Camera } from "./Camera";
-import { DisorderedArray } from "./DisorderedArray";
 import { Component } from "./Component";
+import { DisorderedArray } from "./DisorderedArray";
+import { Collider } from "./physics";
 import { Renderer } from "./Renderer";
+import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Script } from "./Script";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { RenderContext } from "./RenderPipeline/RenderContext";
-import { Vector3 } from "@oasis-engine/math";
-import { Collider } from "./physics";
 
 /**
  * The manager of the components.
@@ -20,7 +20,8 @@ export class ComponentsManager {
   private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _destroyComponents: Script[] = [];
+  private _disableScripts: Script[] = [];
+  private _destroyScripts: Script[] = [];
 
   // Animation
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
@@ -127,8 +128,12 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
-  addDestroyComponent(component): void {
-    this._destroyComponents.push(component);
+  addDisableScript(component: Script): void {
+    this._disableScripts.push(component);
+  }
+
+  addDestroyScript(component: Script): void {
+    this._destroyScripts.push(component);
   }
 
   callScriptOnStart(): void {
@@ -234,14 +239,23 @@ export class ComponentsManager {
     }
   }
 
-  callComponentDestroy(): void {
-    const destroyComponents = this._destroyComponents;
-    const length = destroyComponents.length;
+  handlingInvalidScripts(): void {
+    const { _disableScripts: disableScripts, _destroyScripts: destroyScripts } = this;
+
+    let length = disableScripts.length;
     if (length > 0) {
-      for (let i = length - 1; i >= 0; --i) {
-        destroyComponents[i].onDestroy();
+      for (let i = length - 1; i >= 0; i--) {
+        disableScripts[i]._applyDisable();
       }
-      destroyComponents.length = 0;
+      disableScripts.length = 0;
+    }
+
+    length = destroyScripts.length;
+    if (length > 0) {
+      for (let i = length - 1; i >= 0; i--) {
+        destroyScripts[i].onDestroy();
+      }
+      destroyScripts.length = 0;
     }
   }
 
