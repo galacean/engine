@@ -1,4 +1,4 @@
-import { Camera, Entity, RenderColorTexture, RenderTarget, Script } from "oasis-engine";
+import { Camera, Entity, RenderTarget, Script, Texture2D } from "oasis-engine";
 import { ColorRenderPass } from "./ColorRenderPass";
 
 /**
@@ -32,12 +32,7 @@ export class FramebufferPicker extends Script {
     super(entity);
     const width = 1024;
     const height = 1024;
-    this.colorRenderTarget = new RenderTarget(
-      this.engine,
-      width,
-      height,
-      new RenderColorTexture(this.engine, width, height)
-    );
+    this.colorRenderTarget = new RenderTarget(this.engine, width, height, new Texture2D(this.engine, width, height));
     this.colorRenderPass = new ColorRenderPass("ColorRenderTarget_FBP", -1, this.colorRenderTarget, 0, this.engine);
   }
 

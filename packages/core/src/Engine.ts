@@ -33,7 +33,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
-import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
+import { Texture2D, TextureCubeFace, TextureCube, TextureFormat } from "./texture";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -63,7 +63,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _whiteTexture2D: Texture2D;
   /* @internal */
-  _whiteTextureCube: TextureCubeMap;
+  _whiteTextureCube: TextureCube;
   /* @internal */
   _backgroundTextureMaterial: Material;
   /* @internal */
@@ -205,7 +205,7 @@ export class Engine extends EventDispatcher {
     whiteTexture2D.setPixelBuffer(whitePixel);
     whiteTexture2D.isGCIgnored = true;
 
-    const whiteTextureCube = new TextureCubeMap(this, 1, TextureFormat.R8G8B8A8, false);
+    const whiteTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
     whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
     whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
     whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
