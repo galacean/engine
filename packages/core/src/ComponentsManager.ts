@@ -167,7 +167,7 @@ export class ComponentsManager {
     const elements = this._onLateUpdateScripts._elements;
     for (let i = this._onLateUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (element._isValid() &&element._started) {
+      if (element._isValid() && element._started) {
         element.onLateUpdate(deltaTime);
       }
     }
@@ -177,7 +177,7 @@ export class ComponentsManager {
     const elements = this._onPhysicsUpdateScripts._elements;
     for (let i = this._onPhysicsUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (element._isValid() &&element._started) {
+      if (element._isValid() && element._started) {
         element.onPhysicsUpdate();
       }
     }
