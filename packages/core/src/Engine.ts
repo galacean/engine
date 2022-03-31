@@ -364,16 +364,13 @@ export class Engine extends EventDispatcher {
     scene._updateShaderData();
 
     if (cameras.length > 0) {
-      for (let i = 0, l = cameras.length; i < l; i++) {
+      for (let i = 0, n = cameras.length; i < n; i++) {
         const camera = cameras[i];
-        const cameraEntity = camera.entity;
-        if (camera.enabled && cameraEntity.isActiveInHierarchy) {
-          componentsManager.callCameraOnBeginRender(camera);
-          Scene.sceneFeatureManager.callFeatureMethod(scene, "preRender", [scene, camera]); //TODO: will be removed
-          camera.render();
-          Scene.sceneFeatureManager.callFeatureMethod(scene, "postRender", [scene, camera]); //TODO: will be removed
-          componentsManager.callCameraOnEndRender(camera);
-        }
+        componentsManager.callCameraOnBeginRender(camera);
+        Scene.sceneFeatureManager.callFeatureMethod(scene, "preRender", [scene, camera]); //TODO: will be removed
+        camera.render();
+        Scene.sceneFeatureManager.callFeatureMethod(scene, "postRender", [scene, camera]); //TODO: will be removed
+        componentsManager.callCameraOnEndRender(camera);
       }
     } else {
       Logger.debug("NO active camera.");

@@ -240,7 +240,11 @@ export class Camera extends Component {
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
       // Ignore scale.
-      Camera._rotationTranslationInv(this._transform.worldRotationQuaternion, this._transform.worldPosition, this._viewMatrix);
+      Camera._rotationTranslationInv(
+        this._transform.worldRotationQuaternion,
+        this._transform.worldPosition,
+        this._viewMatrix
+      );
     }
     return this._viewMatrix;
   }
@@ -501,7 +505,7 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onActive() {
+  _onEnable(): void {
     this.entity.scene._attachRenderCamera(this);
   }
 
@@ -509,7 +513,7 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onInActive() {
+  _onDisable(): void {
     this.entity.scene._detachRenderCamera(this);
   }
 
@@ -517,14 +521,14 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onDestroy() {
+  _onDestroy(): void {
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
     this.shaderData._addRefCount(-1);
   }
 
-  private _projMatChange() {
+  private _projMatChange(): void {
     this._isFrustumProjectDirty = true;
     this._isProjectionDirty = true;
     this._isInvProjMatDirty = true;
