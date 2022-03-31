@@ -31,7 +31,7 @@ export class Script extends Component {
   @ignoreClone
   _entityScriptsIndex: number = -1;
   @ignoreClone
-  _waitApplyDisable: boolean = false;
+  _waitHandlingDisable: boolean = false;
 
   /**
    * Called when be enabled first time, only once.
@@ -171,8 +171,8 @@ export class Script extends Component {
    * @override
    */
   _onEnable(): void {
-    if (this._waitApplyDisable) {
-      this._waitApplyDisable = false;
+    if (this._waitHandlingDisable) {
+      this._waitHandlingDisable = false;
     } else {
       const { _componentsManager: componentsManager } = this.engine;
       const { prototype } = Script;
@@ -201,7 +201,7 @@ export class Script extends Component {
    */
   _onDisable(): void {
     this._engine._componentsManager.addDisableScript(this);
-    this._waitApplyDisable = true;
+    this._waitHandlingDisable = true;
     this.onDisable();
   }
 
@@ -217,7 +217,7 @@ export class Script extends Component {
   /**
    * @internal
    */
-  _applyDisable(): void {
+  _handlingDisable(): void {
     const componentsManager = this.engine._componentsManager;
     // Use "xxIndex" is more safe.
     // When call onDisable it maybe it still not in script queue,for example write "entity.isActive = false" in onWake().
@@ -236,6 +236,6 @@ export class Script extends Component {
     if (this._entityScriptsIndex !== -1) {
       this._entity._removeScript(this);
     }
-    this._waitApplyDisable = false;
+    this._waitHandlingDisable = false;
   }
 }

@@ -246,7 +246,7 @@ export class ComponentsManager {
     if (length > 0) {
       for (let i = length - 1; i >= 0; i--) {
         const disableScript = disableScripts[i];
-        disableScript._waitApplyDisable && disableScript._applyDisable();
+        disableScript._waitHandlingDisable && disableScript._handlingDisable();
       }
       disableScripts.length = 0;
     }
