@@ -30,8 +30,8 @@ export class Script extends Component {
   _onPostRenderIndex: number = -1;
   @ignoreClone
   _entityCacheIndex: number = -1;
-
-  private _waitApplyDisable: boolean = false;
+  @ignoreClone
+  _waitApplyDisable: boolean = false;
 
   /**
    * Called when be enabled first time, only once.
