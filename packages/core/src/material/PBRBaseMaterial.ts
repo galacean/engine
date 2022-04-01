@@ -17,6 +17,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionStrength");
   private static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveSampler");
   private static _occlusionTextureProp = Shader.getPropertyByName("u_occlusionSampler");
+  private static _parallaxTextureProp = Shader.getPropertyByName("u_parallaxTexture");
+  private static _parallaxTextureIntensityProp = Shader.getPropertyByName("u_parallaxTextureIntensity");
 
   private static _clearcoatProp = Shader.getPropertyByName("u_clearcoat");
   private static _clearcoatTextureProp = Shader.getPropertyByName("u_clearcoatTexture");
@@ -233,6 +235,34 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   /**
+   * The parallax texture.
+   */
+  get parallaxTexture(): Texture2D {
+    return <Texture2D>this.shaderData.getTexture(PBRBaseMaterial._parallaxTextureProp);
+  }
+
+  set parallaxTexture(value: Texture2D) {
+    this.shaderData.setTexture(PBRBaseMaterial._parallaxTextureProp, value);
+
+    if (value) {
+      this.shaderData.enableMacro("HAS_PARALLAXTEXTURE");
+    } else {
+      this.shaderData.disableMacro("HAS_PARALLAXTEXTURE");
+    }
+  }
+
+  /**
+   * The parallax intensity.
+   */
+  get parallaxTextureIntensity(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._parallaxTextureIntensityProp);
+  }
+
+  set parallaxTextureIntensity(value: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._parallaxTextureIntensityProp, value);
+  }
+
+  /**
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
@@ -254,5 +284,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     shaderData.setFloat(PBRBaseMaterial._clearcoatProp, 0);
     shaderData.setFloat(PBRBaseMaterial._clearcoatRoughnessProp, 0);
+
+    shaderData.setFloat(PBRBaseMaterial._parallaxTextureIntensityProp, 1);
   }
 }

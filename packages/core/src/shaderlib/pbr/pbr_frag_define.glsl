@@ -53,6 +53,11 @@ uniform float u_occlusionStrength;
     uniform sampler2D u_clearcoatNormalTexture;
 #endif
 
+#ifdef HAS_PARALLAXTEXTURE
+    uniform sampler2D u_parallaxTexture;
+    uniform float u_parallaxTextureIntensity;
+#endif
+
 
 
 // Runtime
