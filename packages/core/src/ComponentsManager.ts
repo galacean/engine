@@ -265,7 +265,7 @@ export class ComponentsManager {
   callCameraOnBeginRender(camera: Camera): void {
     const scripts = camera.entity._scripts;
     for (let i = scripts.length - 1; i >= 0; --i) {
-      const script = scripts[i];
+      const script = scripts.get(i);
       script._waitHandlingInValid || script.onBeginRender(camera);
     }
   }
@@ -273,7 +273,7 @@ export class ComponentsManager {
   callCameraOnEndRender(camera: Camera): void {
     const scripts = camera.entity._scripts;
     for (let i = scripts.length - 1; i >= 0; --i) {
-      const script = scripts[i];
+      const script = scripts.get(i);
       script._waitHandlingInValid || script.onEndRender(camera);
     }
   }
