@@ -1,8 +1,37 @@
+mat3 getTBN(vec3 normal, vec3 position, vec2 uv){
+    #if defined(O3_HAS_NORMAL) && defined(O3_HAS_TANGENT) && defined( O3_NORMAL_TEXTURE )
+        mat3 tbn = v_TBN;
+    #else
+        #ifdef HAS_DERIVATIVES
+            // ref: http://www.thetenthplanet.de/archives/1180
+            // get edge vectors of the pixel triangle
+	        vec3 dp1 = dFdx(position);
+	        vec3 dp2 = dFdy(position);
+	        vec2 duv1 = dFdx(uv);
+	        vec2 duv2 = dFdy(uv);
+
+	        // solve the linear system
+	        vec3 dp2perp = cross(dp2, normal);
+	        vec3 dp1perp = cross(normal, dp1);
+	        vec3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
+	        vec3 binormal = dp2perp * duv1.y + dp1perp * duv2.y;
+
+	        // construct a scale-invariant frame 
+	        float invmax = inversesqrt(max(dot(tangent, tangent), dot(binormal, binormal)));
+	        mat3 tbn = mat3(tangent * invmax, binormal * invmax, normal);
+        #else
+            mat3 tbn = mat3(vec3(0.0), vec3(0.0), normal);
+        #endif
+    #endif
+	
+    return tbn;
+}
+
 vec3 getNormal(){
     vec3 normal = vec3(0, 0, 1);
 
     #ifdef O3_HAS_NORMAL
-         normal = normalize(v_normal);
+         normal = v_normal;
     #elif defined(HAS_DERIVATIVES)
         vec3 pos_dx = dFdx(v_pos);
         vec3 pos_dy = dFdy(v_pos);
@@ -15,33 +44,13 @@ vec3 getNormal(){
 
 vec3 getNormal(sampler2D normalTexture, float normalIntensity)
 {
-    
-    #if defined(O3_HAS_NORMAL) && defined(O3_HAS_TANGENT) && defined( O3_NORMAL_TEXTURE )
-        mat3 tbn = v_TBN;
-    #else
-        #ifdef HAS_DERIVATIVES
-            vec3 pos_dx = dFdx(v_pos);
-            vec3 pos_dy = dFdy(v_pos);
-            vec3 tex_dx = dFdx(vec3(v_uv, 0.0));
-            vec3 tex_dy = dFdy(vec3(v_uv, 0.0));
-            vec3 t = (tex_dy.t * pos_dx - tex_dx.t * pos_dy) / (tex_dx.s * tex_dy.t - tex_dy.s * tex_dx.t);
-            #ifdef O3_HAS_NORMAL
-                vec3 ng = normalize(v_normal);
-            #else
-                vec3 ng = normalize( cross(pos_dx, pos_dy) );
-            #endif
-            t = normalize(t - ng * dot(ng, t));
-            vec3 b = normalize(cross(ng, t));
-            mat3 tbn = mat3(t, b, ng);
+    mat3 tbn = getTBN( 
+        #ifdef O3_HAS_NORMAL
+            v_normal,
         #else
-            #ifdef O3_HAS_NORMAL
-                vec3 ng = normalize(v_normal);
-            #else
-                vec3 ng = vec3(0.0, 0.0, 1.0);
-            #endif
-            mat3 tbn = mat3(vec3(0.0), vec3(0.0), ng);
+            vec3(0.0, 0.0, 1.0),
         #endif
-    #endif
+        v_pos, v_uv);
 
     vec3 normal = texture2D(normalTexture, v_uv ).rgb;
     normal = normalize(tbn * ((2.0 * normal - 1.0) * vec3(normalIntensity, normalIntensity, 1.0)));
