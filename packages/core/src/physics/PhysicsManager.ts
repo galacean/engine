@@ -12,6 +12,8 @@ import { ColliderShape } from "./shape/ColliderShape";
 export class PhysicsManager {
   /** @internal */
   static _nativePhysics: IPhysics;
+  /** @internal */
+  _initialized: boolean = false;
 
   private _engine: Engine;
   private _restTime: number = 0;
@@ -64,7 +66,7 @@ export class PhysicsManager {
     scripts = shape2.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid ||script.onCollisionStay(shape1);
+      script._waitHandlingInValid || script.onCollisionStay(shape1);
     }
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
@@ -80,7 +82,7 @@ export class PhysicsManager {
     scripts = shape2.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid ||script.onTriggerEnter(shape1);
+      script._waitHandlingInValid || script.onTriggerEnter(shape1);
     }
   };
 
@@ -138,6 +140,17 @@ export class PhysicsManager {
 
   constructor(engine: Engine) {
     this._engine = engine;
+  }
+
+  /**
+   * initialize PhysicsManager.
+   * @param physics - Physics Engine
+   */
+  initialize(physics: IPhysics): void {
+    if (PhysicsManager._nativePhysics) {
+      return;
+    }
+    PhysicsManager._nativePhysics = physics;
     this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
       this._onContactEnter,
       this._onContactExit,
@@ -146,6 +159,7 @@ export class PhysicsManager {
       this._onTriggerExit,
       this._onTriggerStay
     );
+    this._initialized = true;
   }
 
   /**
