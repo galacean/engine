@@ -143,7 +143,7 @@ export class ComponentsManager {
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
       for (let i = 0; i < onStartScripts.length; i++) {
         const script = elements[i];
-        if (script._isValid()) {
+        if (!script._waitHandlingInValid) {
           script._started = true;
           script._onStartIndex = -1;
           script.onStart();
@@ -157,7 +157,7 @@ export class ComponentsManager {
     const elements = this._onUpdateScripts._elements;
     for (let i = this._onUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (element._isValid() && element._started) {
+      if (!element._waitHandlingInValid && element._started) {
         element.onUpdate(deltaTime);
       }
     }
@@ -167,7 +167,7 @@ export class ComponentsManager {
     const elements = this._onLateUpdateScripts._elements;
     for (let i = this._onLateUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (element._isValid() && element._started) {
+      if (!element._waitHandlingInValid && element._started) {
         element.onLateUpdate(deltaTime);
       }
     }
@@ -177,7 +177,7 @@ export class ComponentsManager {
     const elements = this._onPhysicsUpdateScripts._elements;
     for (let i = this._onPhysicsUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (element._isValid() && element._started) {
+      if (!element._waitHandlingInValid && element._started) {
         element.onPhysicsUpdate();
       }
     }
@@ -248,7 +248,7 @@ export class ComponentsManager {
     if (length > 0) {
       for (let i = length - 1; i >= 0; i--) {
         const disableScript = disableScripts[i];
-        disableScript._waitHandlingDisable && disableScript._handlingDisable();
+        disableScript._waitHandlingInValid && disableScript._handlingInValid();
       }
       disableScripts.length = 0;
     }

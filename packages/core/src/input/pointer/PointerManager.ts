@@ -261,7 +261,7 @@ export class PointerManager {
       const scripts = this._currentPressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
-        script._isValid() && script.onPointerDrag();
+        script._waitHandlingInValid || script.onPointerDrag();
       }
     }
   }
@@ -272,14 +272,14 @@ export class PointerManager {
         const scripts = this._currentEnteredEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
           const script = scripts.get(i);
-          script._isValid() && script.onPointerExit();
+          script._waitHandlingInValid || script.onPointerExit();
         }
       }
       if (rayCastEntity) {
         const scripts = rayCastEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
           const script = scripts.get(i);
-          script._isValid() && script.onPointerEnter();
+          script._waitHandlingInValid || script.onPointerEnter();
         }
       }
       this._currentEnteredEntity = rayCastEntity;
@@ -291,7 +291,7 @@ export class PointerManager {
       const scripts = rayCastEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
-        script._isValid() && script.onPointerDown();
+        script._waitHandlingInValid || script.onPointerDown();
       }
     }
     this._currentPressedEntity = rayCastEntity;
@@ -304,7 +304,7 @@ export class PointerManager {
       const scripts = pressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
-        if (script._isValid()) {
+        if (!script._waitHandlingInValid) {
           sameTarget && script.onPointerClick();
           script.onPointerUp();
         }

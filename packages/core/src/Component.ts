@@ -1,6 +1,5 @@
 import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
-import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
 
@@ -116,12 +115,5 @@ export abstract class Component extends EngineObject {
     } else {
       this._enabled && this._onDisable();
     }
-  }
-
-  /**
-   * @internal
-   */
-  _isValid(): boolean {
-    return !this._destroyed && this._entity._isActiveInHierarchy && this._enabled;
   }
 }
