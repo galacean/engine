@@ -33,7 +33,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
-import { Texture2D, TextureCubeFace, TextureCube, TextureFormat } from "./texture";
+import { Texture2D, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -283,11 +283,10 @@ export class Engine extends EventDispatcher {
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
+      componentsManager.handlingInvalidScripts();
 
       this._render(scene);
     }
-
-    this._componentsManager.callComponentDestroy();
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
   }
@@ -320,8 +319,8 @@ export class Engine extends EventDispatcher {
 
       this._sceneManager._activeScene.destroy();
       this._resourceManager._destroy();
-      // If engine destroy, callComponentDestroy() maybe will not call anymore.
-      this._componentsManager.callComponentDestroy();
+      // If engine destroy, applyScriptsInvalid() maybe will not call anymore.
+      this._componentsManager.handlingInvalidScripts();
       this._sceneManager = null;
       this._resourceManager = null;
 
@@ -365,16 +364,13 @@ export class Engine extends EventDispatcher {
     scene._updateShaderData();
 
     if (cameras.length > 0) {
-      for (let i = 0, l = cameras.length; i < l; i++) {
+      for (let i = 0, n = cameras.length; i < n; i++) {
         const camera = cameras[i];
-        const cameraEntity = camera.entity;
-        if (camera.enabled && cameraEntity.isActiveInHierarchy) {
-          componentsManager.callCameraOnBeginRender(camera);
-          Scene.sceneFeatureManager.callFeatureMethod(scene, "preRender", [scene, camera]); //TODO: will be removed
-          camera.render();
-          Scene.sceneFeatureManager.callFeatureMethod(scene, "postRender", [scene, camera]); //TODO: will be removed
-          componentsManager.callCameraOnEndRender(camera);
-        }
+        componentsManager.callCameraOnBeginRender(camera);
+        Scene.sceneFeatureManager.callFeatureMethod(scene, "preRender", [scene, camera]); //TODO: will be removed
+        camera.render();
+        Scene.sceneFeatureManager.callFeatureMethod(scene, "postRender", [scene, camera]); //TODO: will be removed
+        componentsManager.callCameraOnEndRender(camera);
       }
     } else {
       Logger.debug("NO active camera.");

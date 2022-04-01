@@ -29,7 +29,9 @@ export class Script extends Component {
   @ignoreClone
   _onPostRenderIndex: number = -1;
   @ignoreClone
-  _entityCacheIndex: number = -1;
+  _entityScriptsIndex: number = -1;
+  @ignoreClone
+  _waitHandlingInValid: boolean = false;
 
   /**
    * Called when be enabled first time, only once.
@@ -169,21 +171,26 @@ export class Script extends Component {
    * @override
    */
   _onEnable(): void {
-    const componentsManager = this.engine._componentsManager;
-    const prototype = Script.prototype;
-    if (!this._started) {
-      componentsManager.addOnStartScript(this);
+    if (this._waitHandlingInValid) {
+      this._waitHandlingInValid = false;
+    } else {
+      const { _componentsManager: componentsManager } = this.engine;
+      const { prototype } = Script;
+      if (!this._started) {
+        componentsManager.addOnStartScript(this);
+      }
+      if (this.onUpdate !== prototype.onUpdate) {
+        componentsManager.addOnUpdateScript(this);
+      }
+      if (this.onLateUpdate !== prototype.onLateUpdate) {
+        componentsManager.addOnLateUpdateScript(this);
+      }
+      if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
+        componentsManager.addOnPhysicsUpdateScript(this);
+      }
+      this._entity._addScript(this);
     }
-    if (this.onUpdate !== prototype.onUpdate) {
-      componentsManager.addOnUpdateScript(this);
-    }
-    if (this.onLateUpdate !== prototype.onLateUpdate) {
-      componentsManager.addOnLateUpdateScript(this);
-    }
-    if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
-      componentsManager.addOnPhysicsUpdateScript(this);
-    }
-    this._entity._addScript(this);
+
     this.onEnable();
   }
 
@@ -193,6 +200,24 @@ export class Script extends Component {
    * @override
    */
   _onDisable(): void {
+    this._waitHandlingInValid = true;
+    this._engine._componentsManager.addDisableScript(this);
+    this.onDisable();
+  }
+
+  /**
+   * @internal
+   * @inheritDoc
+   * @override
+   */
+  _onDestroy(): void {
+    this._engine._componentsManager.addDestroyScript(this);
+  }
+
+  /**
+   * @internal
+   */
+  _handlingInValid(): void {
     const componentsManager = this.engine._componentsManager;
     // Use "xxIndex" is more safe.
     // When call onDisable it maybe it still not in script queue,for example write "entity.isActive = false" in onWake().
@@ -208,18 +233,9 @@ export class Script extends Component {
     if (this._onPhysicsUpdateIndex !== -1) {
       componentsManager.removeOnPhysicsUpdateScript(this);
     }
-    if (this._entityCacheIndex !== -1) {
+    if (this._entityScriptsIndex !== -1) {
       this._entity._removeScript(this);
     }
-    this.onDisable();
-  }
-
-  /**
-   * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onDestroy(): void {
-    this.engine._componentsManager.addDestroyComponent(this);
+    this._waitHandlingInValid = false;
   }
 }
