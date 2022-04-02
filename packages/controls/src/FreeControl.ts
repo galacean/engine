@@ -72,7 +72,7 @@ export class FreeControl extends Script {
     this.camera = entity;
     // @ts-ignore
     // @todo In the future, the dependence on html elements will be removed and realized through the input of the packaging engine.
-    this.mainElement = this.scene.engine.canvas._webCanvas;
+    this.mainElement = this.engine.canvas._webCanvas;
     this.domElement = document;
 
     this.movementSpeed = 1.0;
