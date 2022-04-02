@@ -46,7 +46,7 @@ mat3 getTBN(){
 
 	        // construct a scale-invariant frame 
 	        float invmax = inversesqrt(max(dot(tangent, tangent), dot(binormal, binormal)));
-	        mat3 tbn = mat3(normalize(tangent * invmax), normalize(binormal * invmax), normal);
+	        mat3 tbn = mat3(tangent * invmax, binormal * invmax, normal);
         #else
             mat3 tbn = mat3(vec3(0.0), vec3(0.0), normal);
         #endif

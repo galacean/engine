@@ -253,16 +253,14 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
   /**
    * The parallax intensity.
-   * @remarks This value will remap to [0.05, 0.1] in shader.
+   * @remarks This value between 0.05 and 0.1 is reasonable in Parallax
    */
   get parallaxTextureIntensity(): number {
-    const value = this.shaderData.getFloat(PBRBaseMaterial._parallaxTextureIntensityProp);
-    return 20 * value - 1;
+    return this.shaderData.getFloat(PBRBaseMaterial._parallaxTextureIntensityProp);
   }
 
   set parallaxTextureIntensity(value: number) {
-    const remapValue = 0.1 * value + (1 - value) * 0.05;
-    this.shaderData.setFloat(PBRBaseMaterial._parallaxTextureIntensityProp, remapValue);
+    this.shaderData.setFloat(PBRBaseMaterial._parallaxTextureIntensityProp, value);
   }
 
   /**
@@ -288,6 +286,6 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.setFloat(PBRBaseMaterial._clearcoatProp, 0);
     shaderData.setFloat(PBRBaseMaterial._clearcoatRoughnessProp, 0);
 
-    this.parallaxTextureIntensity = 1;
+    shaderData.setFloat(PBRBaseMaterial._parallaxTextureIntensityProp, 0.05);
   }
 }
