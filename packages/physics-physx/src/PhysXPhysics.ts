@@ -36,7 +36,7 @@ export class PhysXPhysics {
    * @param runtimeMode - Runtime mode
    * @returns Promise object
    */
-  public static init(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto): Promise<void> {
+  public static initialize(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto): Promise<void> {
     const scriptPromise = new Promise((resolve) => {
       const script = document.createElement("script");
       document.body.appendChild(script);

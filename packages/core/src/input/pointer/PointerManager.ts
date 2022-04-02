@@ -3,7 +3,7 @@ import { Canvas } from "../../Canvas";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
-import { HitResult } from "../../physics";
+import { HitResult, PhysicsManager } from "../../physics";
 import { PointerPhase } from "../enums/PointerPhase";
 import { Pointer } from "./Pointer";
 
@@ -20,8 +20,6 @@ export class PointerManager {
   _pointers: Pointer[] = [];
   /** @internal */
   _multiPointerEnabled: boolean = true;
-  /** @internal */
-  _enablePhysics: boolean = false;
 
   private _engine: Engine;
   private _canvas: Canvas;
@@ -49,7 +47,6 @@ export class PointerManager {
     };
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
     this._pointerPool = new Array<Pointer>(11);
-    this._enablePhysics = engine.physicsManager ? true : false;
   }
 
   /**
@@ -58,7 +55,7 @@ export class PointerManager {
   _update(): void {
     this._needOverallPointers && this._overallPointers();
     this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents);
-    if (this._enablePhysics) {
+    if (this._engine.physicsManager._initialized) {
       const rayCastEntity = this._pointerRayCast();
       const { _keyEventCount: keyEventCount } = this;
       if (keyEventCount > 0) {

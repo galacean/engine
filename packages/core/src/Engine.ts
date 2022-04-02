@@ -1,4 +1,3 @@
-import { IPhysics } from "@oasis-engine/design";
 import { ColorSpace } from ".";
 import { DynamicTextAtlasManager } from "./2d/dynamic-atlas/DynamicTextAtlasManager";
 import { ResourceManager } from "./asset/ResourceManager";
@@ -178,16 +177,14 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
-   * @param physics - native physics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics, settings?: EngineSettings) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, settings?: EngineSettings) {
     super();
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
-    if (physics) {
-      PhysicsManager._nativePhysics = physics;
-      this.physicsManager = new PhysicsManager(this);
-    }
+
+    this.physicsManager = new PhysicsManager(this);
+
     this._canvas = canvas;
     // @todo delete
     engineFeatureManager.addObject(this);
@@ -274,7 +271,7 @@ export class Engine extends EventDispatcher {
       scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
 
       componentsManager.callScriptOnStart();
-      if (this.physicsManager) {
+      if (this.physicsManager._initialized) {
         componentsManager.callColliderOnUpdate();
         this.physicsManager._update(deltaTime / 1000.0);
         componentsManager.callColliderOnLateUpdate();
