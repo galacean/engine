@@ -26,6 +26,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _clearcoatRoughnessTextureProp = Shader.getPropertyByName("u_clearcoatRoughnessTexture");
   private static _clearcoatNormalTextureProp = Shader.getPropertyByName("u_clearcoatNormalTexture");
 
+  private _useParallaxOcclusion: boolean = false;
+
   /**
    * Base color.
    */
@@ -264,6 +266,23 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   /**
+   * Parallax occlusion mapping (POM) is an enhancement of the parallax mapping technique.
+   */
+  get useParallaxOcclusion(): boolean {
+    return this._useParallaxOcclusion;
+  }
+
+  set useParallaxOcclusion(value: boolean) {
+    this._useParallaxOcclusion = value;
+
+    if (value) {
+      this.shaderData.enableMacro("PARALLAX_OCCLUSION");
+    } else {
+      this.shaderData.disableMacro("PARALLAX_OCCLUSION");
+    }
+  }
+
+  /**
    * Create a pbr base material instance.
    * @param engine - Engine to which the material belongs
    * @param shader - Shader used by the material
@@ -287,5 +306,15 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.setFloat(PBRBaseMaterial._clearcoatRoughnessProp, 0);
 
     shaderData.setFloat(PBRBaseMaterial._parallaxTextureIntensityProp, 0.05);
+  }
+
+  /**
+   * @override
+   * Clone to the target material.
+   * @param target - target material
+   */
+  cloneTo(target: PBRBaseMaterial): void {
+    super.cloneTo(target);
+    target._useParallaxOcclusion = this._useParallaxOcclusion;
   }
 }

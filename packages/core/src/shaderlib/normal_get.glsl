@@ -13,8 +13,7 @@ vec3 getNormal(){
     return normal;
 }
 
-vec3 getNormal(mat3 tbn, sampler2D normalTexture, float normalIntensity)
-{
+vec3 getNormal(mat3 tbn, sampler2D normalTexture, float normalIntensity){
     vec3 normal = texture2D(normalTexture, v_uv ).rgb;
     normal = normalize(tbn * ((2.0 * normal - 1.0) * vec3(normalIntensity, normalIntensity, 1.0)));
     normal *= float( gl_FrontFacing ) * 2.0 - 1.0;
@@ -58,7 +57,44 @@ mat3 getTBN(){
 
 #ifdef HAS_PARALLAXTEXTURE
     vec2 parallaxOffset(vec3 viewDir, float height, float heightScale){
-		vec2 texCoordOffset = viewDir.xy * height * heightScale;
-		return texCoordOffset;
+		vec2 uvOffset = viewDir.xy * height * heightScale;
+		return uvOffset;
 	}
+
+    vec2 parallaxOcclusionOffset(vec3 viewDir, vec2 uv, float heightScale){ 
+      const float minSamples = 10.0;
+      const float maxSamples = 20.0;
+      float numSamples = mix(maxSamples, minSamples, dot(vec3(0.0, 0.0, 1.0), viewDir)); 
+      int iteratorCount = int(numSamples + 1.0);
+      float deltaDepth = 1.0 / numSamples;
+      vec2 deltaUV = viewDir.xy * heightScale / numSamples;
+  
+      float currentDepth = 0.0;
+      vec2 uvOffset = vec2(0.0);
+      vec2 lastUVOffset = vec2(0.0);
+      float lastDepthMapValue = 0.0;
+      float currentDepthMapValue = 0.0;
+
+      for(int i = 0; i < iteratorCount; i++){
+            currentDepthMapValue =  texture2D(u_parallaxTexture, uv + uvOffset).r;
+
+            if(currentDepth < currentDepthMapValue){
+                lastUVOffset = uvOffset;
+                lastDepthMapValue = currentDepthMapValue;
+
+                uvOffset += deltaUV;
+                currentDepth += deltaDepth;  
+            } else {
+                break;
+            }
+      }  
+    
+
+        float difLast = lastDepthMapValue - (currentDepth - deltaDepth);
+        float difNow = currentDepth - currentDepthMapValue;
+        float ratio = difLast / (difLast + difNow);
+        uvOffset = lastUVOffset + ratio * deltaUV;
+
+        return uvOffset;
+    }
 #endif

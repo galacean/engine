@@ -59,9 +59,14 @@ void initGeometry(out Geometry geometry){
 
     #ifdef HAS_PARALLAXTEXTURE
         mat3 invTBN = transposeMat3(tbn);
-        float height = texture2D(u_parallaxTexture, v_uv).r;
-        vec2 uvOffset = parallaxOffset(invTBN * geometry.viewDir, height, u_parallaxTextureIntensity);
-        geometry.uv += uvOffset;
+        vec3 viewDirInTBN = invTBN * geometry.viewDir;
+
+        #ifdef PARALLAX_OCCLUSION
+            geometry.uv += parallaxOcclusionOffset(viewDirInTBN, geometry.uv, u_parallaxTextureIntensity);
+        #else
+            float height = texture2D(u_parallaxTexture, v_uv).r;
+            geometry.uv += parallaxOffset(viewDirInTBN, height, u_parallaxTextureIntensity);;
+        #endif
     #endif
 
 }
