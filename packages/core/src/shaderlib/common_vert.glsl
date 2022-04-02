@@ -4,7 +4,7 @@ attribute vec3 POSITION;
     attribute vec2 TEXCOORD_0;
 #endif
 
-#ifdef O3_HAS_UV2
+#ifdef O3_HAS_UV1
     attribute vec2 TEXCOORD_1;
 #endif
 

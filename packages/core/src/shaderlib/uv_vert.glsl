@@ -5,8 +5,8 @@
     v_uv = vec2( 0., 0. );
 #endif
 
-#ifdef O3_HAS_UV2
-    v_uv2 = TEXCOORD_1;
+#ifdef O3_HAS_UV1
+    v_uv1 = TEXCOORD_1;
 #endif
 
 #ifdef O3_NEED_TILINGOFFSET

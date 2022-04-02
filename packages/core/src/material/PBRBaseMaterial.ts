@@ -137,9 +137,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
   /**
    * Occlusion texture uv coordinate.
-   * @remark Must be UV0 or UV1.
+   * @remarks Must be UV0 or UV1.
    */
-  get occlusionTextureCoord(): number {
+  get occlusionTextureCoord(): TextureCoordinate {
     return this.shaderData.getFloat(PBRBaseMaterial._occlusionTextureCoordProp);
   }
 
