@@ -1,6 +1,5 @@
 #include <normal_get>
 
-
 float computeSpecularOcclusion(float ambientOcclusion, float roughness, float dotNV ) {
     return saturate( pow( dotNV + ambientOcclusion, exp2( - 16.0 * roughness - 1.0 ) ) - 1.0 + ambientOcclusion );
 }
@@ -12,6 +11,20 @@ float getAARoughnessFactor(vec3 normal) {
     #else
         return 0.0;
     #endif
+}
+
+mat3 transposeMat3(mat3 inMatrix) {
+    vec3 i0 = inMatrix[0];
+    vec3 i1 = inMatrix[1];
+    vec3 i2 = inMatrix[2];
+
+    mat3 outMatrix = mat3(
+        vec3(i0.x, i1.x, i2.x),
+        vec3(i0.y, i1.y, i2.y),
+        vec3(i0.z, i1.z, i2.z)
+        );
+
+    return outMatrix;
 }
 
 void initGeometry(out Geometry geometry){
@@ -30,6 +43,9 @@ void initGeometry(out Geometry geometry){
             #endif
     );
 
+    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
+    geometry.uv = v_uv;
+
     #ifdef CLEARCOAT
         geometry.clearcoatNormal = getNormal(
               #ifdef HAS_CLEARCOATNORMALTEXTURE
@@ -42,10 +58,12 @@ void initGeometry(out Geometry geometry){
     #endif
 
     #ifdef HAS_PARALLAXTEXTURE
-        
+        mat3 invTBN = transposeMat3(tbn);
+        float height = texture2D(u_parallaxTexture, v_uv).r;
+        vec2 uvOffset = parallaxOffset(invTBN * geometry.viewDir, height, u_parallaxTextureIntensity);
+        geometry.uv += uvOffset;
     #endif
 
-    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
 }
 
 void initMaterial(out Material material, const in Geometry geometry){
@@ -57,7 +75,7 @@ void initMaterial(out Material material, const in Geometry geometry){
         float alphaCutoff = u_alphaCutoff;
 
         #ifdef HAS_BASECOLORMAP
-            vec4 baseTextureColor = texture2D(u_baseColorSampler, v_uv);
+            vec4 baseTextureColor = texture2D(u_baseColorSampler, geometry.uv);
             #ifndef OASIS_COLORSPACE_GAMMA
                 baseTextureColor = gammaToLinear(baseTextureColor);
             #endif
@@ -76,13 +94,13 @@ void initMaterial(out Material material, const in Geometry geometry){
         #endif
 
         #ifdef HAS_METALROUGHNESSMAP
-            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv );
+            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, geometry.uv );
             roughness *= metalRoughMapColor.g;
             metal *= metalRoughMapColor.b;
         #endif
 
         #ifdef HAS_SPECULARGLOSSINESSMAP
-            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv );
+            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, geometry.uv );
             #ifndef OASIS_COLORSPACE_GAMMA
                 specularGlossinessColor = gammaToLinear(specularGlossinessColor);
             #endif
@@ -108,10 +126,10 @@ void initMaterial(out Material material, const in Geometry geometry){
             material.clearcoat = u_clearcoat;
             material.clearcoatRoughness = u_clearcoatRoughness;
             #ifdef HAS_CLEARCOATTEXTURE
-                material.clearcoat *= texture2D( u_clearcoatTexture, v_uv ).r;
+                material.clearcoat *= texture2D( u_clearcoatTexture, geometry.uv ).r;
             #endif
             #ifdef HAS_CLEARCOATROUGHNESSTEXTURE
-                material.clearcoatRoughness *= texture2D( u_clearcoatRoughnessTexture, v_uv ).g;
+                material.clearcoatRoughness *= texture2D( u_clearcoatRoughnessTexture, geometry.uv ).g;
             #endif
             material.clearcoat = saturate( material.clearcoat );
             material.clearcoatRoughness = max(material.clearcoatRoughness, getAARoughnessFactor(geometry.clearcoatNormal));

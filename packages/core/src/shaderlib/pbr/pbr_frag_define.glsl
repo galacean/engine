@@ -73,6 +73,7 @@ struct Geometry {
     vec3  normal;
     vec3  viewDir;
     float dotNV;
+    vec2  uv;
     
     #ifdef CLEARCOAT
         vec3 clearcoatNormal;

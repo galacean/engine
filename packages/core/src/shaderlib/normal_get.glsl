@@ -54,3 +54,11 @@ mat3 getTBN(){
 	
     return tbn;
 }
+
+
+#ifdef HAS_PARALLAXTEXTURE
+    vec2 parallaxOffset(vec3 viewDir, float height, float heightScale){
+		vec2 texCoordOffset = viewDir.xy * height * heightScale;
+		return -texCoordOffset;
+	}
+#endif
