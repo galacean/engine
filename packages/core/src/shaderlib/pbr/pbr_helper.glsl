@@ -18,8 +18,13 @@ void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
 
+    #if defined(O3_NORMAL_TEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) || defined(HAS_PARALLAXTEXTURE) 
+        mat3 tbn = getTBN();
+    #endif
+
     geometry.normal = getNormal( 
             #ifdef O3_NORMAL_TEXTURE
+                tbn,
                 u_normalTexture,
                 u_normalIntensity
             #endif
@@ -28,11 +33,16 @@ void initGeometry(out Geometry geometry){
     #ifdef CLEARCOAT
         geometry.clearcoatNormal = getNormal(
               #ifdef HAS_CLEARCOATNORMALTEXTURE
+                tbn,
                 u_clearcoatNormalTexture,
                 u_normalIntensity
             #endif
         );
         geometry.clearcoatDotNV = saturate( dot(geometry.clearcoatNormal, geometry.viewDir) );
+    #endif
+
+    #ifdef HAS_PARALLAXTEXTURE
+        
     #endif
 
     geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
