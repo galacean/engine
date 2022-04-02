@@ -13,8 +13,8 @@ vec3 getNormal(){
     return normal;
 }
 
-vec3 getNormal(mat3 tbn, sampler2D normalTexture, float normalIntensity){
-    vec3 normal = texture2D(normalTexture, v_uv ).rgb;
+vec3 getNormal(mat3 tbn, sampler2D normalTexture, float normalIntensity, vec2 uv){
+    vec3 normal = texture2D(normalTexture, uv).rgb;
     normal = normalize(tbn * ((2.0 * normal - 1.0) * vec3(normalIntensity, normalIntensity, 1.0)));
     normal *= float( gl_FrontFacing ) * 2.0 - 1.0;
 
@@ -27,7 +27,7 @@ mat3 getTBN(){
     #else
         vec3 normal = getNormal();
         vec3 position = v_pos;
-        vec2 uv = v_uv;
+        vec2 uv = gl_FrontFacing? v_uv: -v_uv;
 
         #ifdef HAS_DERIVATIVES
             // ref: http://www.thetenthplanet.de/archives/1180

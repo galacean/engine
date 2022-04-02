@@ -30,31 +30,10 @@ mat3 transposeMat3(mat3 inMatrix) {
 void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
+    vec2 uv = v_uv;
 
     #if defined(O3_NORMAL_TEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) || defined(HAS_PARALLAXTEXTURE) 
         mat3 tbn = getTBN();
-    #endif
-
-    geometry.normal = getNormal( 
-            #ifdef O3_NORMAL_TEXTURE
-                tbn,
-                u_normalTexture,
-                u_normalIntensity
-            #endif
-    );
-
-    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
-    geometry.uv = v_uv;
-
-    #ifdef CLEARCOAT
-        geometry.clearcoatNormal = getNormal(
-              #ifdef HAS_CLEARCOATNORMALTEXTURE
-                tbn,
-                u_clearcoatNormalTexture,
-                u_normalIntensity
-            #endif
-        );
-        geometry.clearcoatDotNV = saturate( dot(geometry.clearcoatNormal, geometry.viewDir) );
     #endif
 
     #ifdef HAS_PARALLAXTEXTURE
@@ -62,13 +41,35 @@ void initGeometry(out Geometry geometry){
         vec3 viewDirInTBN = invTBN * geometry.viewDir;
 
         #ifdef PARALLAX_OCCLUSION
-            geometry.uv += parallaxOcclusionOffset(viewDirInTBN, geometry.uv, u_parallaxTextureIntensity);
+            uv += parallaxOcclusionOffset(viewDirInTBN, uv, u_parallaxTextureIntensity);
         #else
-            float height = texture2D(u_parallaxTexture, v_uv).r;
-            geometry.uv += parallaxOffset(viewDirInTBN, height, u_parallaxTextureIntensity);;
+            float height = texture2D(u_parallaxTexture, uv).r;
+            uv += parallaxOffset(viewDirInTBN, height, u_parallaxTextureIntensity);;
         #endif
     #endif
 
+    geometry.uv = uv;
+    geometry.normal = getNormal( 
+            #ifdef O3_NORMAL_TEXTURE
+                tbn,
+                u_normalTexture,
+                u_normalIntensity,
+                geometry.uv
+            #endif
+    );
+    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
+
+    #ifdef CLEARCOAT
+        geometry.clearcoatNormal = getNormal(
+              #ifdef HAS_CLEARCOATNORMALTEXTURE
+                tbn,
+                u_clearcoatNormalTexture,
+                u_normalIntensity,
+                geometry.uv
+            #endif
+        );
+        geometry.clearcoatDotNV = saturate( dot(geometry.clearcoatNormal, geometry.viewDir) );
+    #endif
 }
 
 void initMaterial(out Material material, const in Geometry geometry){
