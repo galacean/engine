@@ -1,5 +1,5 @@
 mat3 getTBN(vec3 normal, vec3 position, vec2 uv){
-    #if defined(O3_HAS_NORMAL) && defined(O3_HAS_TANGENT) && defined( O3_NORMAL_TEXTURE )
+    #if defined(O3_HAS_NORMAL) && defined(O3_HAS_TANGENT) && ( defined(O3_NORMAL_TEXTURE) || defined(HAS_PARALLAXTEXTURE) )
         mat3 tbn = v_TBN;
     #else
         #ifdef HAS_DERIVATIVES

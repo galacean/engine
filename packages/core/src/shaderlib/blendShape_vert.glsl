@@ -15,7 +15,7 @@
 				normal.xyz += NORMAL_BS3 * u_blendShapeWeights[3];
 			#endif
 
-			#if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE ) && defined(OASIS_BLENDSHAPE_TANGENT)
+			#if defined( O3_HAS_TANGENT ) && ( defined(O3_NORMAL_TEXTURE) || defined(HAS_PARALLAXTEXTURE) ) && defined(OASIS_BLENDSHAPE_TANGENT)
 				tangent.xyz += TANGENT_BS0 * u_blendShapeWeights[0];
 				tangent.xyz += TANGENT_BS1 * u_blendShapeWeights[1];
 				tangent.xyz += TANGENT_BS2 * u_blendShapeWeights[2];
