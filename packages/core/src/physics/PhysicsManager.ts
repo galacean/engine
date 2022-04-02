@@ -147,7 +147,7 @@ export class PhysicsManager {
    * @param physics - Physics Engine
    */
   initialize(physics: IPhysics): void {
-    if (PhysicsManager._nativePhysics) {
+    if (this._initialized) {
       return;
     }
     PhysicsManager._nativePhysics = physics;
