@@ -26,21 +26,19 @@ reflectedLight.indirectSpecular += radiance * envBRDFApprox(material.specularCol
 
 // Occlusion
 #ifdef HAS_OCCLUSIONMAP
-    float ambientOcclusion = 1.0;  
+    vec2 aoUV = v_uv;
     if(u_occlusionTextureCoord == 1.0){
-         #ifdef O3_HAS_UV2
-            ambientOcclusion = (texture2D(u_occlusionSampler, v_uv2).r - 1.0) * u_occlusionStrength + 1.0;
-         #else
-            ambientOcclusion = (texture2D(u_occlusionSampler, v_uv).r - 1.0) * u_occlusionStrength + 1.0;
-         #endif
-    } else {
-        ambientOcclusion = (texture2D(u_occlusionSampler, v_uv).r - 1.0) * u_occlusionStrength + 1.0;
+        #ifdef O3_HAS_UV2
+            aoUV = v_uv2;
+        #endif
     }
+    float ambientOcclusion = (texture2D(u_occlusionSampler, aoUV).r - 1.0) * u_occlusionStrength + 1.0;
     reflectedLight.indirectDiffuse *= ambientOcclusion;
     #ifdef O3_USE_SPECULAR_ENV
         reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, dotNV);
     #endif
 #endif
+
 
 // Emissive
 vec3 emissiveRadiance = u_emissiveColor;
