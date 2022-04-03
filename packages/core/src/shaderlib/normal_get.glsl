@@ -76,24 +76,23 @@ mat3 getTBN(){
       float currentDepthMapValue = 0.0;
 
       for(int i = 0; i < iteratorCount; i++){
-            currentDepthMapValue =  texture2D(u_parallaxTexture, uv + uvOffset).r;
+            currentDepthMapValue = 1.0 - texture2D(u_parallaxTexture, uv + uvOffset).r;
 
             if(currentDepth < currentDepthMapValue){
                 lastUVOffset = uvOffset;
                 lastDepthMapValue = currentDepthMapValue;
 
-                uvOffset += deltaUV;
+                uvOffset -= deltaUV;
                 currentDepth += deltaDepth;  
             } else {
                 break;
             }
       }  
-    
 
         float difLast = lastDepthMapValue - (currentDepth - deltaDepth);
         float difNow = currentDepth - currentDepthMapValue;
         float ratio = difLast / (difLast + difNow);
-        uvOffset = lastUVOffset + ratio * deltaUV;
+        uvOffset = lastUVOffset - ratio * deltaUV;
 
         return uvOffset;
     }
