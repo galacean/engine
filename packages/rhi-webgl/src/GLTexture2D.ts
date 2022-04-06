@@ -41,8 +41,8 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   setPixelBuffer(
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
-    x?: number,
-    y?: number,
+    x: number,
+    y: number,
     width?: number,
     height?: number
   ): void {
@@ -52,8 +52,6 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     const mipWidth = Math.max(1, this._texture.width >> mipLevel);
     const mipHeight = Math.max(1, this._texture.height >> mipLevel);
 
-    x = x || 0;
-    y = y || 0;
     width = width || mipWidth - x;
     height = height || mipHeight - y;
 
@@ -80,11 +78,11 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
    */
   setImageSource(
     imageSource: TexImageSource,
-    mipLevel: number = 0,
-    flipY: boolean = false,
-    premultiplyAlpha: boolean = false,
-    x?: number,
-    y?: number
+    mipLevel: number,
+    flipY: boolean,
+    premultiplyAlpha: boolean,
+    x: number,
+    y: number
   ): void {
     const gl = this._gl;
     const { baseFormat, dataType } = this._formatDetail;

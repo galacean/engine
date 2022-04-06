@@ -41,9 +41,9 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   setPixelBuffer(
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
-    mipLevel: number = 0,
-    x?: number,
-    y?: number,
+    mipLevel: number,
+    x: number,
+    y: number,
     width?: number,
     height?: number
   ): void {
@@ -52,8 +52,6 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
     const mipSize = Math.max(1, this._texture.width >> mipLevel);
 
-    x = x || 0;
-    y = y || 0;
     width = width || mipSize - x;
     height = height || mipSize - y;
 
@@ -108,11 +106,11 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
   setImageSource(
     face: TextureCubeFace,
     imageSource: TexImageSource,
-    mipLevel: number = 0,
-    flipY: boolean = false,
-    premultiplyAlpha: boolean = false,
-    x?: number,
-    y?: number
+    mipLevel: number,
+    flipY: boolean,
+    premultiplyAlpha: boolean,
+    x: number,
+    y: number
   ): void {
     const gl = this._gl;
     const { baseFormat, dataType } = this._formatDetail;

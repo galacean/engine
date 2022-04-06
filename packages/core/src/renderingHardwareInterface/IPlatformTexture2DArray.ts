@@ -18,9 +18,9 @@ export interface IPlatformTexture2DArray extends IPlatformTexture {
   setPixelBuffer(
     elementIndex: number,
     colorBuffer: ArrayBufferView,
-    mipLevel?: number,
-    x?: number,
-    y?: number,
+    mipLevel: number,
+    x: number,
+    y: number,
     width?: number,
     height?: number
   ): void;
@@ -38,11 +38,11 @@ export interface IPlatformTexture2DArray extends IPlatformTexture {
   setImageSource(
     elementIndex: number,
     imageSource: TexImageSource | OffscreenCanvas,
-    mipLevel?: number,
-    flipY?: boolean,
-    premultiplyAlpha?: boolean,
-    x?: number,
-    y?: number
+    mipLevel: number,
+    flipY: boolean,
+    premultiplyAlpha: boolean,
+    x: number,
+    y: number
   ): void;
 
   /**

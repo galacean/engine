@@ -3,7 +3,7 @@ import { GLTexture } from "./GLTexture";
 import { WebGLRenderer } from "./WebGLRenderer";
 
 /**
- * Texture 2D in WebGL platform.
+ * Texture 2D array in WebGL platform.
  */
 export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArray {
   constructor(rhi: WebGLRenderer, texture2DArray: Texture2DArray) {
@@ -58,11 +58,11 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
   setImageSource(
     elementIndex: number,
     imageSource: TexImageSource,
-    mipLevel: number = 0,
-    flipY: boolean = false,
-    premultiplyAlpha: boolean = false,
-    x: number = 0,
-    y: number = 0
+    mipLevel: number,
+    flipY: boolean,
+    premultiplyAlpha: boolean,
+    x: number,
+    y: number
   ): void {
     const gl = this._gl;
     const { baseFormat, dataType } = this._formatDetail;
