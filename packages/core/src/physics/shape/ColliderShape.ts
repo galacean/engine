@@ -92,6 +92,7 @@ export abstract class ColliderShape {
    * @internal
    */
   _destroy() {
+    this._material._destroy();
     this._nativeShape.destroy();
   }
 }
