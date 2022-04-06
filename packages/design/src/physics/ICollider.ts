@@ -30,4 +30,9 @@ export interface ICollider {
    * @param shape - The collider shape attached
    */
   removeShape(shape: IColliderShape): void;
+
+  /**
+   * Deletes the collider.
+   */
+  destroy(): void;
 }
