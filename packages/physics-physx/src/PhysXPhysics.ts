@@ -28,6 +28,8 @@ import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 export class PhysXPhysics {
   /** @internal PhysX wasm object */
   static _physX: any;
+  /** @internal PhysX Foundation SDK singleton class */
+  static _pxFoundation: any;
   /** @internal Physx physics object */
   static _pxPhysics: any;
 
@@ -62,9 +64,11 @@ export class PhysXPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
+        script.src =
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
+        script.src =
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
       }
     });
 
@@ -78,6 +82,11 @@ export class PhysXPhysics {
         });
       });
     });
+  }
+
+  public static destroy(): void {
+    this._pxFoundation.release();
+    this._pxPhysics.release();
   }
 
   /**
@@ -170,11 +179,11 @@ export class PhysXPhysics {
     const version = PhysXPhysics._physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new PhysXPhysics._physX.PxDefaultErrorCallback();
     const allocator = new PhysXPhysics._physX.PxDefaultAllocator();
-    const foundation = PhysXPhysics._physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
+    PhysXPhysics._pxFoundation = PhysXPhysics._physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
 
     this._pxPhysics = PhysXPhysics._physX.PxCreatePhysics(
       version,
-      foundation,
+      PhysXPhysics._pxFoundation,
       new PhysXPhysics._physX.PxTolerancesScale(),
       false,
       null

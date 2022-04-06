@@ -270,14 +270,16 @@ export class PhysicsManager {
    */
   _update(deltaTime: number): void {
     const { fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
-    const componentManager = this._engine._componentsManager;
+    const componentsManager = this._engine._componentsManager;
 
     const simulateTime = deltaTime + this._restTime;
     const step = Math.floor(Math.min(this.maxSumTimeStep, simulateTime) / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
-      componentManager.callScriptOnPhysicsUpdate();
+      componentsManager.callScriptOnPhysicsUpdate();
+      componentsManager.callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
+      componentsManager.callColliderOnLateUpdate();
     }
   }
 

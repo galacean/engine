@@ -87,4 +87,11 @@ export abstract class ColliderShape {
     this._position.setValue(x, y, z);
     this._nativeShape.setPosition(this._position);
   }
+
+  /**
+   * @internal
+   */
+  _destroy() {
+    this._nativeShape.destroy();
+  }
 }

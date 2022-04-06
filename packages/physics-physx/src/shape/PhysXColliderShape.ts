@@ -87,6 +87,13 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
+   * {@inheritDoc IColliderShape.destroy }
+   */
+  destroy(): void {
+    this._pxShape.release();
+  }
+
+  /**
    *  @internal
    */
   _setShapeFlags(flags: ShapeFlag) {
