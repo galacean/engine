@@ -16,9 +16,6 @@ import { WebGLRenderer } from "./WebGLRenderer";
  */
 export class GLTexture implements IPlatformTexture {
   /** @internal */
-  static _readFrameBuffer: WebGLFramebuffer = null;
-
-  /** @internal */
   static _isPowerOf2(v: number): boolean {
     return (v & (v - 1)) === 0;
   }
@@ -514,11 +511,7 @@ export class GLTexture implements IPlatformTexture {
     const gl = this._gl;
     const { baseFormat, dataType } = this._formatDetail;
 
-    if (!GLTexture._readFrameBuffer) {
-      GLTexture._readFrameBuffer = gl.createFramebuffer();
-    }
-
-    gl.bindFramebuffer(gl.FRAMEBUFFER, GLTexture._readFrameBuffer);
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this._getReadFrameBuffer());
 
     if (mipLevel > 0 && !this._isWebGL2) {
       mipLevel = 0;
@@ -569,5 +562,13 @@ export class GLTexture implements IPlatformTexture {
         gl.texParameteri(target, pname, gl.MIRRORED_REPEAT);
         break;
     }
+  }
+
+  protected _getReadFrameBuffer(): WebGLFramebuffer {
+    let frameBuffer = this._rhi._readFrameBuffer;
+    if (!frameBuffer) {
+      this._rhi._readFrameBuffer = frameBuffer = this._gl.createFramebuffer();
+    }
+    return frameBuffer;
   }
 }

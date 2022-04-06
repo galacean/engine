@@ -53,6 +53,9 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
  * WebGL renderer, including WebGL1.0 and WebGL2.0.
  */
 export class WebGLRenderer implements IHardwareRenderer {
+  /** @internal */
+  _readFrameBuffer: WebGLFramebuffer;
+
   _currentBind: any;
 
   private _options: WebGLRendererOptions;
