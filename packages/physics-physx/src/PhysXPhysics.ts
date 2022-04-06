@@ -84,6 +84,9 @@ export class PhysXPhysics {
     });
   }
 
+  /**
+   * Destroy PhysXPhysics.
+   */
   public static destroy(): void {
     this._pxFoundation.release();
     this._pxPhysics.release();
