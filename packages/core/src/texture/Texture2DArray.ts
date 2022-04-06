@@ -9,13 +9,13 @@ import { Texture } from "./Texture";
  * Two-dimensional texture array.
  */
 export class Texture2DArray extends Texture {
-  private _depth: number;
+  private _length: number;
 
   /**
-   * The depth of the texture.
+   * The length of the texture.
    */
-  get depth(): number {
-    return this._depth;
+  get length(): number {
+    return this._length;
   }
 
   /**
@@ -23,7 +23,7 @@ export class Texture2DArray extends Texture {
    * @param engine - Define the engine to use to render this texture
    * @param width - Texture width
    * @param height - Texture height
-   * @param depth - Texture depth
+   * @param length - Texture length
    * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
    */
@@ -31,7 +31,7 @@ export class Texture2DArray extends Texture {
     engine: Engine,
     width: number,
     height: number,
-    depth: number,
+    length: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
     mipmap: boolean = true
   ) {
@@ -39,7 +39,7 @@ export class Texture2DArray extends Texture {
     this._mipmap = mipmap;
     this._width = width;
     this._height = height;
-    this._depth = depth;
+    this._length = length;
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 

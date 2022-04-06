@@ -9,7 +9,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
   constructor(rhi: WebGLRenderer, texture2DArray: Texture2DArray) {
     super(rhi, texture2DArray, (<WebGL2RenderingContext>rhi.gl).TEXTURE_2D_ARRAY);
 
-    const { format, width, height, depth, mipmapCount } = texture2DArray;
+    const { format, width, height, length, mipmapCount } = texture2DArray;
 
     if (!this._isWebGL2) {
       throw new Error(`Texture2D Array is not supported in WebGL1.0`);
@@ -20,7 +20,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     }
 
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, true);
-    this._gl.texStorage3D(this._target, mipmapCount, this._formatDetail.internalFormat, width, height, depth);
+    this._gl.texStorage3D(this._target, mipmapCount, this._formatDetail.internalFormat, width, height, length);
   }
 
   /**
