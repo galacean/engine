@@ -19,7 +19,7 @@ export class Texture2DArray extends Texture {
   }
 
   /**
-   * Create Texture2D.
+   * Create Texture2D Array.
    * @param engine - Define the engine to use to render this texture
    * @param width - Texture width
    * @param height - Texture height
@@ -64,8 +64,8 @@ export class Texture2DArray extends Texture {
     elementIndex: number,
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
-    x?: number,
-    y?: number,
+    x: number = 0,
+    y: number = 0,
     width?: number,
     height?: number
   ): void {
@@ -95,8 +95,8 @@ export class Texture2DArray extends Texture {
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
-    x?: number,
-    y?: number
+    x: number = 0,
+    y: number = 0
   ): void {
     (this._platformTexture as IPlatformTexture2DArray).setImageSource(
       elementIndex,
