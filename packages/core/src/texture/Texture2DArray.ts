@@ -24,7 +24,7 @@ export class Texture2DArray extends Texture {
    * @param width - Texture width
    * @param height - Texture height
    * @param length - Texture length
-   * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
+   * @param format - Texture format. default `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
    */
   constructor(
