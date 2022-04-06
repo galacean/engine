@@ -32,6 +32,7 @@ import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 export class Animator extends Component {
   private static _tempVector3: Vector3 = new Vector3();
   private static _tempQuaternion: Quaternion = new Quaternion();
+  private static _tempFloat32Array: Float32Array = new Float32Array();
   private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
 
   protected _animatorController: AnimatorController;
@@ -418,6 +419,12 @@ export class Animator extends Component {
           const scale = Animator._tempVector3;
           Vector3.divide(<Vector3>value, <Vector3>baseValue, <Vector3>scale);
           return scale;
+        case AnimationProperty.BlendShapeWeights:
+          const weight = Animator._tempFloat32Array;
+          for (let i = 0, length = (<Float32Array>baseValue).length; i < length; ++i) {
+            weight[i] = value[i] - baseValue[i];
+          }
+          return weight;
       }
     }
     return value;
@@ -519,7 +526,8 @@ export class Animator extends Component {
     const { clipTime: lastSrcClipTime } = srcPlayData;
     const { clipTime: lastDestClipTime } = destPlayData;
 
-    let crossWeight = Math.abs(destPlayData.frameTime) / (destState._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight =
+      Math.abs(destPlayData.frameTime) / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
     srcPlayData.update();
@@ -586,7 +594,8 @@ export class Animator extends Component {
     const { _curveBindings: curves } = state.clip;
     const { clipTime: lastDestClipTime } = destPlayData;
 
-    let crossWeight = Math.abs(destPlayData.frameTime) / (state._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight =
+      Math.abs(destPlayData.frameTime) / (state._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
     destPlayData.update();
@@ -660,11 +669,11 @@ export class Animator extends Component {
           break;
         }
       }
-    } else if (owner.type === SkinnedMeshRenderer) {
-      switch (owner.property) {
-        case AnimationProperty.BlendShapeWeights:
-          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
-          break;
+    } else if (owner.type === SkinnedMeshRenderer && owner.property === AnimationProperty.BlendShapeWeights) {
+      const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+      value = Animator._tempFloat32Array;
+      for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+        value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
       }
     }
 
@@ -704,11 +713,14 @@ export class Animator extends Component {
           }
           break;
       }
-    } else if (owner.type === SkinnedMeshRenderer) {
-      switch (owner.property) {
-        case AnimationProperty.BlendShapeWeights:
-          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
-          break;
+    } else if (owner.type === SkinnedMeshRenderer && owner.property === AnimationProperty.BlendShapeWeights) {
+      if (weight === 1.0) {
+        (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+      } else {
+        const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+        for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+          blendShapeWeights[i] = value[i] * weight;
+        }
       }
     }
   }
@@ -737,6 +749,11 @@ export class Animator extends Component {
           Vector3.multiply(scale, <Vector3>additiveValue, scale);
           transform.scale = scale;
           break;
+      }
+    } else if (owner.type === SkinnedMeshRenderer && owner.property === AnimationProperty.BlendShapeWeights) {
+      const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+      for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+        (<SkinnedMeshRenderer>owner.component).blendShapeWeights[i] = additiveValue[i] * weight;
       }
     }
   }
@@ -915,7 +932,12 @@ export class Animator extends Component {
       }
     } else {
       if (clipTime > lastClipTime) {
-        this._fireBackwardSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipStartTime * clipDuration);
+        this._fireBackwardSubAnimationEvents(
+          playState,
+          eventHandlers,
+          lastClipTime,
+          state.clipStartTime * clipDuration
+        );
         playState.currentEventIndex = 0;
         this._fireBackwardSubAnimationEvents(playState, eventHandlers, state.clipEndTime * clipDuration, clipTime);
       } else {

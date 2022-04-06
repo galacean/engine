@@ -85,7 +85,7 @@ export class AnimationClip extends Motion {
    * Add curve binding for the clip.
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type- The class type of the component that is animated
-   * @param propertyName - The name to the property being animated
+   * @param propertyName - The name or path to the property being animated.
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
@@ -109,11 +109,14 @@ export class AnimationClip extends Motion {
         property = AnimationProperty.BlendShapeWeights;
         break;
       default:
+        property = AnimationProperty.Other;
+        break;
     }
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;
     curveBinding.type = type;
     curveBinding.property = property;
+    curveBinding.propertyName = propertyName;
     curveBinding.curve = curve;
     if (curve.length > this._length) {
       this._length = curve.length;
