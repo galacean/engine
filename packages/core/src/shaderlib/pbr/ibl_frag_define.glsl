@@ -2,6 +2,7 @@
 
 // sh need be pre-scaled in CPU.
 vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
+      normal.x *= -1.0;
       vec3 result = sh[0] +
 
             sh[1] * (normal.y) +
@@ -51,7 +52,8 @@ vec3 getLightProbeRadiance(GeometricContext geometry, float roughness, int maxMI
     #else
 
         vec3 reflectVec = reflect( -geometry.viewDir, geometry.normal );
-        
+        reflectVec.x *= -1.0;  
+              
         float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
