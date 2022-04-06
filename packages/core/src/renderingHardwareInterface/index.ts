@@ -4,4 +4,3 @@ export type { IPlatformTexture } from "./IPlatformTexture";
 export type { IPlatformTexture2D } from "./IPlatformTexture2D";
 export type { IPlatformTexture2DArray } from "./IPlatformTexture2DArray";
 export type { IPlatformTextureCube } from "./IPlatformTextureCube";
-
