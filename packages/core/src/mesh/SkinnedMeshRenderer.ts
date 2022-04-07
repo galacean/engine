@@ -23,6 +23,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
   private static _blendShapeWeightsProperty = Shader.getPropertyByName("u_blendShapeWeights");
+  private static _blendShapeTextureProperty = Shader.getPropertyByName("u_blendShapeTexture");
+  private static _blendShapeTextureInfoProperty = Shader.getPropertyByName("u_blendShapeTextureInfo");
 
   private static _maxJoints: number = 0;
 
@@ -78,8 +80,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const blendShapeManager = (<ModelMesh>this.mesh)._blendShapeManager;
     if (blendShapeManager._hasBlendShape) {
-      shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
+      shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
 
       if (blendShapeManager._useBlendShapeNormal) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
