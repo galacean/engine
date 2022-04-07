@@ -1,3 +1,4 @@
+import { Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { VertexElement, VertexElementFormat } from "../graphic";
 import { Texture2DArray, TextureFilterMode, TextureFormat } from "../texture";
@@ -23,6 +24,8 @@ export class BlendShapeManager {
   _usingTextureStoreData: boolean = false;
   /** @internal */
   _blendShapeDataTexture: Texture2DArray;
+  /** @internal */
+  _blendShapeDataTextureInfo: Vector3 = new Vector3();
 
   private _engine: Engine;
 
@@ -216,6 +219,7 @@ export class BlendShapeManager {
       blendShapeDataTexture.filterMode = TextureFilterMode.Point;
       blendShapeDataTexture.setPixelBuffer(0, bufferData);
       this._blendShapeDataTexture = blendShapeDataTexture;
+      this._blendShapeDataTextureInfo.setValue(pixelStride, textureWidth, textureHeight);
     }
 
     const blendShapes = this._blendShapes;

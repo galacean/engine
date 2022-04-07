@@ -82,6 +82,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (blendShapeManager._hasBlendShape) {
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
       shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
+      if (blendShapeManager._usingTextureStoreData) {
+        shaderData.setTexture(SkinnedMeshRenderer._blendShapeTextureProperty, blendShapeManager._blendShapeDataTexture);
+        shaderData.setVector3(
+          SkinnedMeshRenderer._blendShapeTextureInfoProperty,
+          blendShapeManager._blendShapeDataTextureInfo
+        );
+      }
 
       if (blendShapeManager._useBlendShapeNormal) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
