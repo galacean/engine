@@ -52,31 +52,34 @@ export class Texture2DArray extends Texture {
   /**
    * Setting pixels data through color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
    * @remarks If it is the WebGL1.0 platform and the texture format is compressed, the first upload must be filled with textures.
-   * @param elementIndex - The texture array element index
+   * @param offsetIndex - The texture array element offset index
    * @param colorBuffer - Color buffer data
    * @param mipLevel - Texture mipmapping level
    * @param x - X coordinate of area start
    * @param y - Y coordinate of area start
    * @param width - Data width. if it's empty, width is the width corresponding to mipLevel minus x , width corresponding to mipLevel is Math.max(1, this.width >> mipLevel)
    * @param height - Data height. if it's empty, height is the height corresponding to mipLevel minus y , height corresponding to mipLevel is Math.max(1, this.height >> mipLevel)
+   * @param length - Data length. if it's empty, length is the length of Texture2DArray.length
    */
   setPixelBuffer(
-    elementIndex: number,
+    offsetIndex: number,
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
     x: number = 0,
     y: number = 0,
     width?: number,
-    height?: number
+    height?: number,
+    length?: number
   ): void {
     (this._platformTexture as IPlatformTexture2DArray).setPixelBuffer(
-      elementIndex,
+      offsetIndex,
       colorBuffer,
       mipLevel,
       x,
       y,
       width,
-      height
+      height,
+      length
     );
   }
 

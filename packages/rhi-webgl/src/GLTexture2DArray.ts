@@ -27,28 +27,41 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
    * {@inheritDoc IPlatformTexture2DArray.setPixelBuffer}
    */
   setPixelBuffer(
-    elementIndex: number,
+    offsetIndex: number,
     colorBuffer: ArrayBufferView,
-    mipLevel: number = 0,
-    x: number = 0,
-    y: number = 0,
+    mipLevel: number,
+    x: number,
+    y: number,
     width?: number,
-    height?: number
+    height?: number,
+    length?: number
   ): void {
     const { _target: target, _gl: gl } = this;
     const { internalFormat, baseFormat, dataType, isCompressed } = this._formatDetail;
 
     width = width || Math.max(1, this._texture.width >> mipLevel) - x;
     height = height || Math.max(1, this._texture.height >> mipLevel) - y;
+    length = length || (<Texture2DArray>this._texture).length;
 
     this._bind();
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 0);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, 0);
 
     if (isCompressed) {
-      gl.compressedTexSubImage3D(target, mipLevel, x, y, elementIndex, width, height, 1, internalFormat, colorBuffer);
+      gl.compressedTexSubImage3D(
+        target,
+        mipLevel,
+        x,
+        y,
+        offsetIndex,
+        width,
+        height,
+        length,
+        internalFormat,
+        colorBuffer
+      );
     } else {
-      gl.texSubImage3D(target, mipLevel, x, y, elementIndex, width, height, 1, baseFormat, dataType, colorBuffer);
+      gl.texSubImage3D(target, mipLevel, x, y, offsetIndex, width, height, length, baseFormat, dataType, colorBuffer);
     }
   }
 

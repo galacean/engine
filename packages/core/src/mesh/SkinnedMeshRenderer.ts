@@ -76,17 +76,17 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
     }
 
-    const mesh = <ModelMesh>this.mesh;
-    if (mesh._hasBlendShape) {
+    const blendShapeManager = (<ModelMesh>this.mesh)._blendShapeManager;
+    if (blendShapeManager._hasBlendShape) {
       shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
 
-      if (mesh._useBlendShapeNormal) {
+      if (blendShapeManager._useBlendShapeNormal) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
       } else {
         shaderData.disableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
       }
-      if (mesh._useBlendShapeTangent) {
+      if (blendShapeManager._useBlendShapeTangent) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
       } else {
         shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);

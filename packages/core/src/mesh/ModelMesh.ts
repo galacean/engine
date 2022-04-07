@@ -1,31 +1,24 @@
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { Mesh } from "../graphic/Mesh";
-import { Buffer } from "../graphic/Buffer";
 import { Engine } from "../Engine";
+import { IndexBufferBinding } from "../graphic";
+import { Buffer } from "../graphic/Buffer";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexElement } from "../graphic/VertexElement";
-import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { Mesh } from "../graphic/Mesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { IndexBufferBinding } from "../graphic";
+import { VertexElement } from "../graphic/VertexElement";
+import { Texture2DArray, TextureFilterMode, TextureFormat } from "../texture";
 import { BlendShape } from "./BlendShape";
-import { UpdateFlag } from "../UpdateFlag";
-import { Texture2D } from "../texture/Texture2D";
-import { TextureFilterMode, TextureFormat } from "../texture";
+import { BlendShapeManager } from "./BlendShapeManager";
 
 /**
  * Mesh containing common vertex elements of the model.
  */
 export class ModelMesh extends Mesh {
   /** @internal */
-  _hasBlendShape: boolean = false;
-  /** @internal */
-  _useBlendShapeNormal: boolean = false;
-  /** @internal */
-  _useBlendShapeTangent: boolean = false;
-  /** @internal */
-  _blendShapeTexture: Texture2D;
+  _blendShapeManager: BlendShapeManager;
 
   private _vertexCount: number = 0;
   private _accessible: boolean = true;
@@ -53,8 +46,6 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
-  private _blendShapes: BlendShape[] = [];
-  private _blendShapeUpdateFlags: UpdateFlag[] = [];
 
   /**
    * Whether to access data of the mesh.
@@ -77,7 +68,7 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._blendShapes;
+    return this._blendShapeManager._blendShapes;
   }
 
   /**
@@ -88,6 +79,7 @@ export class ModelMesh extends Mesh {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
+    this._blendShapeManager = new BlendShapeManager(engine);
   }
 
   /**
@@ -412,11 +404,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexChangeFlag |= ValueChanged.BlendShape;
-    this._useBlendShapeNormal = this._useBlendShapeNormal || blendShape._useBlendShapeNormal;
-    this._useBlendShapeTangent = this._useBlendShapeTangent || blendShape._useBlendShapeTangent;
-    this._blendShapes.push(blendShape);
-    this._blendShapeUpdateFlags.push(blendShape._registerChangeFlag());
-    this._hasBlendShape = true;
+    this._blendShapeManager._addBlendShape(blendShape);
   }
 
   /**
@@ -427,15 +415,7 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
     this._vertexChangeFlag |= ValueChanged.BlendShape;
-    this._useBlendShapeNormal = false;
-    this._useBlendShapeTangent = false;
-    this._blendShapes.length = 0;
-    const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
-    for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
-      blendShapeUpdateFlags[i].destroy();
-    }
-    blendShapeUpdateFlags.length = 0;
-    this._hasBlendShape = false;
+    this._blendShapeManager._clearBlendShapes();
   }
 
   /**
@@ -592,17 +572,18 @@ export class ModelMesh extends Mesh {
       elementCount += 2;
     }
 
-    const blendShapeCount = Math.min(this._blendShapes.length, 4);
+    const blendShapeManager = this._blendShapeManager;
+    const blendShapeCount = Math.min(blendShapeManager._blendShapes.length, 4);
     for (let i = 0, n = blendShapeCount; i < n; i++) {
       vertexElements.push(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       elementCount += 3;
-      if (this._useBlendShapeNormal) {
+      if (blendShapeManager._useBlendShapeNormal) {
         vertexElements.push(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         offset += 12;
         elementCount += 3;
       }
-      if (this._useBlendShapeTangent) {
+      if (blendShapeManager._useBlendShapeTangent) {
         vertexElements.push(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         offset += 12;
         elementCount += 3;
@@ -815,23 +796,24 @@ export class ModelMesh extends Mesh {
 
     // BlendShape.
     if (_vertexChangeFlag & ValueChanged.BlendShape) {
-      const blendShapes = this._blendShapes;
-      const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
+      const blendShapeManager = this._blendShapeManager;
+      const blendShapes = blendShapeManager._blendShapes;
+      const blendShapeUpdateFlags = blendShapeManager._blendShapeUpdateFlags;
       const blendShapeCount = Math.min(blendShapes.length, 4);
 
       const rhi = this.engine._hardwareRenderer;
       if (/*rhi.canUseFloatTextureBlendShape*/ false) {
         let stride = 1;
-        this._useBlendShapeNormal && stride++;
-        this._useBlendShapeTangent && stride++;
+        blendShapeManager._useBlendShapeNormal && stride++;
+        blendShapeManager._useBlendShapeTangent && stride++;
 
         const maxTextureSize = rhi.renderStates.getParameter(rhi.gl.MAX_TEXTURE_SIZE);
         const pixelCount = this._vertexCount * stride;
         const height = Math.ceil(pixelCount / maxTextureSize);
         const width = height > 1 ? maxTextureSize : pixelCount;
 
-        this._blendShapeTexture = new Texture2D(this.engine, 0, 0, TextureFormat.R32G32B32A32, false);
-        this._blendShapeTexture.filterMode = TextureFilterMode.Point;
+        blendShapeManager._blendShapeDataTexture = new Texture2DArray(this.engine, 0, 0, TextureFormat.R32G32B32A32);
+        blendShapeManager._blendShapeDataTexture.filterMode = TextureFilterMode.Point;
       } else {
         for (let i = 0; i < blendShapeCount; i++) {
           const blendShapeUpdateFlag = blendShapeUpdateFlags[i];
@@ -856,7 +838,7 @@ export class ModelMesh extends Mesh {
             }
             offset += 3;
 
-            if (this._useBlendShapeNormal) {
+            if (blendShapeManager._useBlendShapeNormal) {
               const { deltaNormals } = endFrame;
               if (deltaNormals) {
                 for (let j = 0; j < _vertexCount; j++) {
@@ -872,7 +854,7 @@ export class ModelMesh extends Mesh {
               offset += 3;
             }
 
-            if (this._useBlendShapeTangent) {
+            if (blendShapeManager._useBlendShapeTangent) {
               const { deltaTangents } = endFrame;
               if (deltaTangents) {
                 for (let j = 0; j < _vertexCount; j++) {
@@ -897,11 +879,6 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
-    const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
-    for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
-      blendShapeUpdateFlags[i].destroy();
-    }
-
     this._verticesUint8 = null;
     this._indices = null;
     this._verticesFloat32 = null;
@@ -917,8 +894,7 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
-    this._blendShapes = null;
-    this._blendShapeUpdateFlags = null;
+    this._blendShapeManager._releaseCache();
   }
 }
 
