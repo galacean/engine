@@ -27,8 +27,6 @@ interface IHDRHeader {
 
 @resourceLoader(AssetType.HDR, ["hdr"])
 class HDRLoader extends Loader<TextureCube> {
-  private static _cubeSize = 256;
-
   private static _faceRight = [
     new Vector3(1.0, -1.0, -1.0),
     new Vector3(1.0, -1.0, 1.0),
@@ -344,7 +342,6 @@ class HDRLoader extends Loader<TextureCube> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const engine = resourceManager.engine;
-      const cubeSize = HDRLoader._cubeSize;
 
       resourceManager
         .load<ArrayBuffer>({
@@ -355,6 +352,8 @@ class HDRLoader extends Loader<TextureCube> {
           const uint8Array = new Uint8Array(buffer);
           const { width, height, dataPosition } = HDRLoader._parseHeader(uint8Array);
           const pixels = HDRLoader._readPixels(uint8Array.subarray(dataPosition), width, height);
+          const cubeSize = height >> 1;
+
           const cubeMapData = HDRLoader._convertToCubemap(pixels, width, height, cubeSize);
           const texture = new TextureCube(engine, cubeSize);
 
