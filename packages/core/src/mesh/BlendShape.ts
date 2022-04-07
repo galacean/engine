@@ -1,7 +1,7 @@
-import { BlendShapeFrame } from "./BlendShapeFrame";
 import { Vector3 } from "@oasis-engine/math";
 import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
+import { BlendShapeFrame } from "./BlendShapeFrame";
 
 /**
  * BlendShape.
@@ -11,9 +11,9 @@ export class BlendShape {
   name: string;
 
   /** @internal */
-  _useBlendShapeNormal: boolean = false;
+  _useBlendShapeNormal: boolean = true;
   /** @internal */
-  _useBlendShapeTangent: boolean = false;
+  _useBlendShapeTangent: boolean = true;
 
   private _frames: BlendShapeFrame[] = [];
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
@@ -66,7 +66,6 @@ export class BlendShape {
     } else {
       this._addFrame(frameOrWeight);
     }
-    this._updateFlagManager.distribute();
   }
 
   /**
@@ -75,8 +74,8 @@ export class BlendShape {
   clearFrames(): void {
     this._frames.length = 0;
     this._updateFlagManager.distribute();
-    this._useBlendShapeNormal = false;
-    this._useBlendShapeTangent = false;
+    this._useBlendShapeNormal = true;
+    this._useBlendShapeTangent = true;
   }
 
   /**
@@ -92,9 +91,14 @@ export class BlendShape {
     if (frameCount > 0 && frame.deltaPositions.length !== frames[frameCount - 1].deltaPositions.length) {
       throw "Frame's deltaPositions length must same with before frame deltaPositions length.";
     }
-
-    this._useBlendShapeNormal = this._useBlendShapeNormal || frame.deltaNormals !== null;
-    this._useBlendShapeTangent = this._useBlendShapeTangent || frame.deltaTangents !== null;
     this._frames.push(frame);
+
+    const hasNormals = !!frame.deltaNormals;
+    const hasTangents = !!frame.deltaTangents;
+    if (this._useBlendShapeNormal !== hasNormals || this._useBlendShapeTangent !== hasTangents) {
+      this._useBlendShapeNormal = hasNormals;
+      this._useBlendShapeTangent = hasTangents;
+    }
+    this._updateFlagManager.distribute();
   }
 }
