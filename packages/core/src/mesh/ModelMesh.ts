@@ -9,7 +9,6 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Mesh } from "../graphic/Mesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { Texture2DArray, TextureFilterMode, TextureFormat } from "../texture";
 import { BlendShape } from "./BlendShape";
 import { BlendShapeManager } from "./BlendShapeManager";
 
@@ -484,6 +483,10 @@ export class ModelMesh extends Mesh {
       this._setIndexBufferBinding(null);
     }
 
+    if (this._blendShapeManager._usingTextureStoreData) {
+      this._blendShapeManager._updateDataToTexture();
+    }
+
     if (noLongerAccessible) {
       this._accessible = false;
       this._releaseCache();
@@ -572,22 +575,8 @@ export class ModelMesh extends Mesh {
       elementCount += 2;
     }
 
-    const blendShapeManager = this._blendShapeManager;
-    const blendShapeCount = Math.min(blendShapeManager._blendShapes.length, 4);
-    for (let i = 0, n = blendShapeCount; i < n; i++) {
-      vertexElements.push(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
-      offset += 12;
-      elementCount += 3;
-      if (blendShapeManager._useBlendShapeNormal) {
-        vertexElements.push(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
-        offset += 12;
-        elementCount += 3;
-      }
-      if (blendShapeManager._useBlendShapeTangent) {
-        vertexElements.push(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
-        offset += 12;
-        elementCount += 3;
-      }
+    if (!this._blendShapeManager._usingTextureStoreData) {
+      elementCount += this._blendShapeManager._supplementalVertexElement(vertexElements, offset);
     }
 
     this._elementCount = elementCount;
@@ -794,85 +783,9 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
 
-    // BlendShape.
-    if (_vertexChangeFlag & ValueChanged.BlendShape) {
-      const blendShapeManager = this._blendShapeManager;
-      const blendShapes = blendShapeManager._blendShapes;
-      const blendShapeUpdateFlags = blendShapeManager._blendShapeUpdateFlags;
-      const blendShapeCount = Math.min(blendShapes.length, 4);
-
-      const rhi = this.engine._hardwareRenderer;
-      if (/*rhi.canUseFloatTextureBlendShape*/ false) {
-        let stride = 1;
-        blendShapeManager._useBlendShapeNormal && stride++;
-        blendShapeManager._useBlendShapeTangent && stride++;
-
-        const maxTextureSize = rhi.renderStates.getParameter(rhi.gl.MAX_TEXTURE_SIZE);
-        const pixelCount = this._vertexCount * stride;
-        const height = Math.ceil(pixelCount / maxTextureSize);
-        const width = height > 1 ? maxTextureSize : pixelCount;
-
-        blendShapeManager._blendShapeDataTexture = new Texture2DArray(this.engine, 0, 0, TextureFormat.R32G32B32A32);
-        blendShapeManager._blendShapeDataTexture.filterMode = TextureFilterMode.Point;
-      } else {
-        for (let i = 0; i < blendShapeCount; i++) {
-          const blendShapeUpdateFlag = blendShapeUpdateFlags[i];
-          if (blendShapeUpdateFlag.flag) {
-            const blendShape = blendShapes[i];
-            const { frames } = blendShape;
-            const frameCount = frames.length;
-            const endFrame = frames[frameCount - 1];
-            if (frameCount > 0 && endFrame.deltaPositions.length !== this._vertexCount) {
-              throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
-            }
-
-            const { deltaPositions } = endFrame;
-            for (let j = 0; j < _vertexCount; j++) {
-              const start = _elementCount * j + offset;
-              const deltaPosition = deltaPositions[j];
-              if (deltaPosition) {
-                vertices[start] = deltaPosition.x;
-                vertices[start + 1] = deltaPosition.y;
-                vertices[start + 2] = deltaPosition.z;
-              }
-            }
-            offset += 3;
-
-            if (blendShapeManager._useBlendShapeNormal) {
-              const { deltaNormals } = endFrame;
-              if (deltaNormals) {
-                for (let j = 0; j < _vertexCount; j++) {
-                  const start = _elementCount * j + offset;
-                  const deltaNormal = deltaNormals[j];
-                  if (deltaNormal) {
-                    vertices[start] = deltaNormal.x;
-                    vertices[start + 1] = deltaNormal.y;
-                    vertices[start + 2] = deltaNormal.z;
-                  }
-                }
-              }
-              offset += 3;
-            }
-
-            if (blendShapeManager._useBlendShapeTangent) {
-              const { deltaTangents } = endFrame;
-              if (deltaTangents) {
-                for (let j = 0; j < _vertexCount; j++) {
-                  const start = _elementCount * j + offset;
-                  const deltaTangent = deltaTangents[j];
-                  if (deltaTangent) {
-                    vertices[start] = deltaTangent.x;
-                    vertices[start + 1] = deltaTangent.y;
-                    vertices[start + 2] = deltaTangent.z;
-                  }
-                }
-              }
-              offset += 3;
-            }
-            blendShapeUpdateFlag.flag = false;
-          }
-        }
-      }
+    // BlendShape
+    if (!this._blendShapeManager._blendShapeDataTexture && _vertexChangeFlag & ValueChanged.BlendShape) {
+      this._blendShapeManager._updateDataToVertices(vertices, offset, _vertexCount, _elementCount);
     }
 
     this._vertexChangeFlag = 0;
