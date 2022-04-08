@@ -19,6 +19,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
 
+    this._bind();
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, true);
     this._gl.texStorage3D(this._target, mipmapCount, this._formatDetail.internalFormat, width, height, length);
   }

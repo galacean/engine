@@ -22,7 +22,7 @@
 			attribute vec3 TANGENT_BS3;
 		#endif
 	#endif
-	uniform float u_blendShapeWeights[4];
+	uniform float u_blendShapeWeights[8];
 
 
 	#ifdef OASIS_BLENDSHAPE_TEXTURE

@@ -5,6 +5,10 @@
 		position.xyz += readFromBlendShapeTexture(1, vertexID) * u_blendShapeWeights[1];
 		position.xyz += readFromBlendShapeTexture(2, vertexID) * u_blendShapeWeights[2];
 		position.xyz += readFromBlendShapeTexture(3, vertexID) * u_blendShapeWeights[3];
+		position.xyz += readFromBlendShapeTexture(4, vertexID) * u_blendShapeWeights[4];
+		position.xyz += readFromBlendShapeTexture(5, vertexID) * u_blendShapeWeights[5];
+		position.xyz += readFromBlendShapeTexture(6, vertexID) * u_blendShapeWeights[6];
+		position.xyz += readFromBlendShapeTexture(7, vertexID) * u_blendShapeWeights[7];
 		
 
 		#ifndef OMIT_NORMAL
@@ -14,6 +18,10 @@
 				normal.xyz += readFromBlendShapeTexture(1, vertexID) * u_blendShapeWeights[1];
 				normal.xyz += readFromBlendShapeTexture(2, vertexID) * u_blendShapeWeights[2];
 				normal.xyz += readFromBlendShapeTexture(3, vertexID) * u_blendShapeWeights[3];
+				normal.xyz += readFromBlendShapeTexture(4, vertexID) * u_blendShapeWeights[4];
+				normal.xyz += readFromBlendShapeTexture(5, vertexID) * u_blendShapeWeights[5];
+				normal.xyz += readFromBlendShapeTexture(6, vertexID) * u_blendShapeWeights[6];
+				normal.xyz += readFromBlendShapeTexture(7, vertexID) * u_blendShapeWeights[7];
 			#endif
 
 			#if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE ) && defined( OASIS_BLENDSHAPE_TANGENT )
@@ -22,6 +30,10 @@
 				tangent.xyz += readFromBlendShapeTexture(1, vertexID) * u_blendShapeWeights[1];
 				tangent.xyz += readFromBlendShapeTexture(2, vertexID) * u_blendShapeWeights[2];
 				tangent.xyz += readFromBlendShapeTexture(3, vertexID) * u_blendShapeWeights[3];
+				tangent.xyz += readFromBlendShapeTexture(4, vertexID) * u_blendShapeWeights[4];
+				tangent.xyz += readFromBlendShapeTexture(5, vertexID) * u_blendShapeWeights[5];
+				tangent.xyz += readFromBlendShapeTexture(6, vertexID) * u_blendShapeWeights[6];
+				tangent.xyz += readFromBlendShapeTexture(7, vertexID) * u_blendShapeWeights[7];
 			#endif
 		#endif
 	#else
