@@ -1,22 +1,22 @@
 #ifdef OASIS_BLENDSHAPE
 	#ifdef OASIS_BLENDSHAPE_TEXTURE	
 		float vertexElementOffset = float(gl_VertexID) * u_blendShapeTextureInfo.x;
-		for(int i=0; i<8; i++){
-			position.xyz += readFromBlendShapeTexture(i, vertexElementOffset) * u_blendShapeWeights[i];
+		for(int i = 0; i < 8; i++){
+			position.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * u_blendShapeWeights[i];
 		}
 		
 		#ifndef OMIT_NORMAL
 			#if defined( O3_HAS_NORMAL ) && defined( OASIS_BLENDSHAPE_NORMAL )
 			    vertexElementOffset += 1.0;
-				for(int i=0; i<8; i++){
-					normal.xyz += readFromBlendShapeTexture(i, vertexElementOffset) * u_blendShapeWeights[i];
+				for(int i = 0; i < 8; i++){
+					normal.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * u_blendShapeWeights[i];
 				}
 			#endif
 
 			#if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE ) && defined( OASIS_BLENDSHAPE_TANGENT )
 			    vertexElementOffset += 1.0;
-				for(int i=0; i<8; i++){
-					tangent.xyz += readFromBlendShapeTexture(i, vertexElementOffset) * u_blendShapeWeights[i];
+				for(int i = 0; i< 8; i++){
+					tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * u_blendShapeWeights[i];
 				}
 			#endif
 		#endif
@@ -43,3 +43,5 @@
 		#endif
 	#endif
 #endif
+
+

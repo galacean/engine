@@ -26,7 +26,7 @@
 
 
 	#ifdef OASIS_BLENDSHAPE_TEXTURE
-		vec3 readFromBlendShapeTexture(int blendShapeIndex, float vertexIndex)
+		vec3 getBlendShapeVertexElement(int blendShapeIndex, float vertexIndex)
 		{			
 			float y = floor(vertexIndex / u_blendShapeTextureInfo.y);
 			float x = vertexIndex - y * u_blendShapeTextureInfo.y;
