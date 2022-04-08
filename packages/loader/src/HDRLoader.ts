@@ -351,7 +351,7 @@ class HDRLoader extends Loader<TextureCube> {
 
   private static _linearToRGBM(color: Color, maxRange: number): void {
     const maxRGB = Math.max(color.r, Math.max(color.g, color.b));
-    let M = Math.min(Math.max(0, maxRGB / maxRange), 1);
+    let M = Math.min(maxRGB / maxRange, 1);
     M = Math.ceil(M * 255.0) / 255.0;
     const scaleFactor = 255 / (M * maxRange);
 
