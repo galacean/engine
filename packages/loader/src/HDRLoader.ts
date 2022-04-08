@@ -80,7 +80,7 @@ class HDRLoader extends Loader<TextureCube> {
     inputWidth: number,
     inputHeight: number,
     size: number
-  ): Uint8Array[] {
+  ): Uint8ClampedArray[] {
     if (!pixels) {
       throw "ConvertPanoramaToCubemap: input cannot be null";
     }
@@ -105,8 +105,8 @@ class HDRLoader extends Loader<TextureCube> {
     pixels: Uint8Array,
     inputWidth: number,
     inputHeight: number
-  ): Uint8Array {
-    const textureArray = new Uint8Array(texSize * texSize * 4);
+  ): Uint8ClampedArray {
+    const textureArray = new Uint8ClampedArray(texSize * texSize * 4);
     const rotDX1 = this._tempVector3
       .setValue(0, 0, 0)
       .add(faceData[1])
@@ -130,6 +130,8 @@ class HDRLoader extends Loader<TextureCube> {
         v.normalize();
 
         const color = this._calcProjectionSpherical(v, pixels, inputWidth, inputHeight);
+        this._RGBEToLinear(color);
+        this._linearToRGBM(color, 5);
 
         // 4 channels per pixels
         textureArray[y * texSize * 4 + x * 4] = color.r;
@@ -337,6 +339,26 @@ class HDRLoader extends Loader<TextureCube> {
     }
 
     return data_rgba;
+  }
+
+  private static _RGBEToLinear(color: Color): void {
+    const scaleFactor = Math.pow(2, color.a - 136);
+    color.r *= scaleFactor;
+    color.g *= scaleFactor;
+    color.b *= scaleFactor;
+    color.a = 1;
+  }
+
+  private static _linearToRGBM(color: Color, maxRange: number): void {
+    const maxRGB = Math.max(color.r, Math.max(color.g, color.b));
+    let M = Math.min(Math.max(0, maxRGB / maxRange), 1);
+    M = Math.ceil(M * 255.0) / 255.0;
+    const scaleFactor = 255 / (M * maxRange);
+
+    color.r *= scaleFactor;
+    color.g *= scaleFactor;
+    color.b *= scaleFactor;
+    color.a *= M * 255;
   }
 
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
