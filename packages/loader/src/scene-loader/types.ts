@@ -137,7 +137,7 @@ export interface Options {
   config?: Schema;
   /** Call engine.run() automatically */
   autoPlay?: boolean;
-  onProgress?: () => {};
+  onProgress?: (e: number) => void;
   local?: boolean;
   scripts?: { [name: string]: any };
   /** Attributes of GLContext */

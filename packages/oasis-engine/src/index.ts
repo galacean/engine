@@ -17,6 +17,12 @@ import {
 } from "@oasis-engine/core";
 import { GLTFModel, Parser, Model } from "@oasis-engine/loader";
 
+import * as CoreObjects from "@oasis-engine/core";
+import { Loader } from "@oasis-engine/core";
+for (let key in CoreObjects) {
+  Loader.register(key, CoreObjects[key]);
+}
+
 Parser.registerComponents("o3", {
   GLTFModel,
   SpriteRenderer,

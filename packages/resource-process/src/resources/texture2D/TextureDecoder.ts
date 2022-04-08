@@ -27,12 +27,12 @@ export class Texture2DDecoder {
       texture2D.wrapModeV = wrapModeV;
 
       if (isPixelBuffer) {
-        const pixelBuffer = new Uint8Array(imagesData[0].buffer);
+        const pixelBuffer = new Uint8Array(imagesData[0]);
         texture2D.setPixelBuffer(pixelBuffer);
         if (mipmap) {
           texture2D.generateMipmaps();
           for (let i = 1; i < mipCount; i++) {
-            const pixelBuffer = new Uint8Array(imagesData[i].buffer);
+            const pixelBuffer = new Uint8Array(imagesData[i]);
             texture2D.setPixelBuffer(pixelBuffer, i);
           }
         }
@@ -40,7 +40,7 @@ export class Texture2DDecoder {
         engine.resourceManager._objectPool[objectId] = texture2D;
         resolve(texture2D);
       } else {
-        const blob = new window.Blob([imagesData[0].buffer]);
+        const blob = new window.Blob([imagesData[0]]);
         const img = new Image();
         img.src = URL.createObjectURL(blob);
         img.onload = () => {
@@ -56,7 +56,7 @@ export class Texture2DDecoder {
           if (mipmap) {
             texture2D.generateMipmaps();
             for (let i = 1; i < mipCount; i++) {
-              const blob = new window.Blob([imagesData[i].buffer]);
+              const blob = new window.Blob([imagesData[i]]);
               const img = new Image();
               img.src = URL.createObjectURL(blob);
               img.onload = () => {

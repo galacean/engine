@@ -12,6 +12,8 @@ export { encoder, decoder } from "./utils/Decorator";
 export { UniformType } from "./resources/material/type";
 export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
 export { Texture2DEncoder } from "./resources/texture2D/TextureEncoder";
+export { ReflectionParser } from "./resources/prefab/ReflectionParser";
+export { PrefabParser } from "./resources/prefab/PrefabParser";
 
 /**
  * Decode engine binary resource.
@@ -49,3 +51,5 @@ export function encode(main: any, meta: any, byteLength: number = 10000): ArrayB
   bufferWriter.writeLen(totalLength);
   return bufferWriter.buffer.slice(0, bufferWriter.totalLen);
 }
+
+export * from "./resources/prefab/PrefabDesign";

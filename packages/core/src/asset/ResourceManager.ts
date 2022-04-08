@@ -1,6 +1,7 @@
 import { Engine, EngineObject } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
+import { AssetType } from "./AssetType";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
@@ -150,6 +151,10 @@ export class ResourceManager {
     return this._objectPool[objectId];
   }
 
+  getResourceByRef(ref: { objectId: string; path: string }) {
+    return this.load({ type: AssetType.Oasis, url: ref.path }).then(() => this.getResourceFromObjectId(ref.objectId));
+  }
+
   /**
    * Add resource to object pool.
    * @param objectId - object id
@@ -241,7 +246,7 @@ export class ResourceManager {
         delete this._loadingPromises[url];
       })
       .catch((err: Error) => {
-        Promise.reject(err)
+        Promise.reject(err);
         delete this._loadingPromises[url];
       });
     return promise;

@@ -110,27 +110,25 @@ export class BufferWriter {
   /**
    * Image data at last.
    */
-  writeImageData({ type, buffer }: ImageData) {
-    this.writeUint8(BufferWriter.imageMapping[type]);
+  writeImageData({ buffer }: ImageData) {
     this.writeArrayBuffer(buffer);
   }
 
-  writeImagesData(imagesData: ImageData[]) {
+  writeImagesData(imagesData: ArrayBuffer[]) {
     const len = imagesData.length;
     let size = 0;
     for (let i = 0; i < len; i++) {
       const imageData = imagesData[i];
-      const byteLen = imageData.buffer.byteLength;
+      const byteLen = imageData.byteLength;
       this.writeUint32(byteLen);
-      this.writeUint8(BufferWriter.imageMapping[imageData.type]);
       size += byteLen;
     }
     const temp = new Uint8Array(size);
     let tempOffset = 0;
     for (let i = 0; i < len; i++) {
-      const { buffer } = imagesData[i];
-      temp.set(new Uint8Array(buffer), tempOffset);
-      tempOffset += buffer.byteLength;
+      const imageData = imagesData[i];
+      temp.set(new Uint8Array(imageData), tempOffset);
+      tempOffset += imageData.byteLength;
     }
     this._dynamicExplansion(temp.byteLength);
     this._uint8Array.set(temp, this._offset);

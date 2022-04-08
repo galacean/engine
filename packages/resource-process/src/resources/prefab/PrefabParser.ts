@@ -16,7 +16,7 @@ export class PrefabParser {
     }
 
     return Promise.all(promises).then((entities) => {
-      const rootId = entitiesMap[0].id;
+      const rootId = entitiesConfig[0].id;
       entities.forEach((entity, index) => {
         entitiesMap[entitiesConfig[index].id] = entity;
       });
