@@ -14,6 +14,7 @@ import {
   RenderTarget,
   SubMesh,
   Texture2D,
+  Texture2DArray,
   TextureCube
 } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
@@ -25,6 +26,7 @@ import { GLRenderStates } from "./GLRenderStates";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLTexture } from "./GLTexture";
 import { GLTexture2D } from "./GLTexture2D";
+import { GLTexture2DArray } from "./GLTexture2DArray";
 import { GLTextureCube } from "./GLTextureCube";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
@@ -153,6 +155,10 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   createPlatformTexture2D(texture2D: Texture2D): IPlatformTexture2D {
     return new GLTexture2D(this, texture2D);
+  }
+
+  createPlatformTexture2DArray(texture2D: Texture2DArray): GLTexture2DArray {
+    return new GLTexture2DArray(this, texture2D);
   }
 
   createPlatformTextureCube(textureCube: TextureCube): IPlatformTextureCube {

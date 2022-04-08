@@ -483,8 +483,13 @@ export class ModelMesh extends Mesh {
       this._setIndexBufferBinding(null);
     }
 
-    if (this._blendShapeManager._usingTextureStoreData) {
-      this._blendShapeManager._updateDataToTexture();
+    if (this._blendShapeManager._blendShapes.length > 0) {
+      //CM: need optimize
+      this._blendShapeManager._update();
+
+      if (this._blendShapeManager._usingTextureStoreData) {
+        this._blendShapeManager._updateDataToTexture();
+      }
     }
 
     if (noLongerAccessible) {

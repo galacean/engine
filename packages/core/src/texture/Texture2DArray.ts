@@ -43,7 +43,7 @@ export class Texture2DArray extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
-    this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
+    this._platformTexture = engine._hardwareRenderer.createPlatformTexture2DArray(this);
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;

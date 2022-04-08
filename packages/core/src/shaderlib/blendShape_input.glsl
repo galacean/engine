@@ -1,6 +1,6 @@
 #ifdef OASIS_BLENDSHAPE
 	#ifdef OASIS_BLENDSHAPE_TEXTURE
-		uniform sampler2DArray u_blendShapeTexture;
+		uniform mediump sampler2DArray u_blendShapeTexture;
 		uniform vec3 u_blendShapeTextureInfo;
 	#else
 		attribute vec3 POSITION_BS0;

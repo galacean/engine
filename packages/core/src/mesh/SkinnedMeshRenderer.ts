@@ -16,6 +16,7 @@ import { Skin } from "./Skin";
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
   private static _blendShapeMacro = Shader.getMacroByName("OASIS_BLENDSHAPE");
+  private static _blendShapeTextureMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TEXTURE");
   private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
   private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
 
@@ -81,6 +82,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const blendShapeManager = (<ModelMesh>this.mesh)._blendShapeManager;
     if (blendShapeManager._hasBlendShape) {
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
+      if (blendShapeManager._usingTextureStoreData) {
+        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
+      } else {
+        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
+      }
+
       shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
       if (blendShapeManager._usingTextureStoreData) {
         shaderData.setTexture(SkinnedMeshRenderer._blendShapeTextureProperty, blendShapeManager._blendShapeDataTexture);

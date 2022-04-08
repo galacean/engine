@@ -401,7 +401,9 @@ export class ShaderProgram {
           break;
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:
+        case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
           const defaultTexture = type === gl.SAMPLER_2D ? this._engine._whiteTexture2D : this._engine._whiteTextureCube;
+          //CM: SAMPLER_2D_ARRAY defaultTexture
 
           isTexture = true;
           if (isArray) {

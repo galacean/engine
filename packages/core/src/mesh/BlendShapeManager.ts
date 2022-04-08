@@ -21,13 +21,14 @@ export class BlendShapeManager {
   _blendShapeUpdateFlags: UpdateFlag[] = [];
 
   /** @internal */
-  _usingTextureStoreData: boolean = false;
+  _usingTextureStoreData: boolean = true;
   /** @internal */
   _blendShapeDataTexture: Texture2DArray;
   /** @internal */
   _blendShapeDataTextureInfo: Vector3 = new Vector3();
 
   private _engine: Engine;
+  private _vertexCount: number = 0;
 
   constructor(engine: Engine) {
     this._engine = engine;
@@ -57,6 +58,21 @@ export class BlendShapeManager {
     }
     blendShapeUpdateFlags.length = 0;
     this._hasBlendShape = false;
+  }
+
+  /**
+   * @internal
+   */
+  _update(): void {
+    this._vertexCount = 0;
+    for (let i = 0, n = this._blendShapes.length; i < n; i++) {
+      const blendShape = this._blendShapes[i];
+      if (i === 0) {
+        this._vertexCount = blendShape.frames[0].deltaPositions.length;
+      } else if (this._vertexCount !== blendShape.frames[0].deltaPositions.length) {
+        throw "Each BlendShape must all have the same vertices count.";
+      }
+    }
   }
 
   /**
@@ -154,8 +170,8 @@ export class BlendShapeManager {
    * @internal
    */
   _updateDataToTexture(): void {
-    const vertexCount = 0;
-    const maxTextureSize = 0;
+    const maxTextureSize = 2048; // CM: todo
+    const { _vertexCount: vertexCount } = this;
 
     let pixelStride = 1;
     this._useBlendShapeNormal && pixelStride++;
@@ -168,17 +184,18 @@ export class BlendShapeManager {
       textureHeight = Math.ceil(textureWidth / maxTextureSize);
     }
 
+    const blendShapes = this._blendShapes;
+    let shapeCount = blendShapes.length;
     let blendShapeDataTexture = this._blendShapeDataTexture;
+    const blendShapeCount = this._blendShapes.length;
     if (
       !blendShapeDataTexture ||
       blendShapeDataTexture.width !== textureWidth ||
       blendShapeDataTexture.height !== textureHeight ||
-      blendShapeDataTexture.length !== this._blendShapes.length
+      blendShapeDataTexture.length !== shapeCount
     ) {
       blendShapeDataTexture && blendShapeDataTexture.destroy();
 
-      const blendShapes = this._blendShapes;
-      let shapeCount = blendShapes.length;
       let bufferData = new Float32Array(shapeCount * textureWidth * textureHeight * 4);
 
       let offset = 0;
@@ -215,15 +232,19 @@ export class BlendShapeManager {
         }
       }
 
-      blendShapeDataTexture = new Texture2DArray(this._engine, textureWidth, textureHeight, TextureFormat.R32G32B32A32);
+      blendShapeDataTexture = new Texture2DArray(
+        this._engine,
+        textureWidth,
+        textureHeight,
+        blendShapeCount,
+        TextureFormat.R32G32B32A32,
+        false
+      );
       blendShapeDataTexture.filterMode = TextureFilterMode.Point;
       blendShapeDataTexture.setPixelBuffer(0, bufferData);
       this._blendShapeDataTexture = blendShapeDataTexture;
       this._blendShapeDataTextureInfo.setValue(pixelStride, textureWidth, textureHeight);
     }
-
-    const blendShapes = this._blendShapes;
-    for (let i = 0, n = blendShapes.length; i < n; i++) {}
   }
 
   /**
