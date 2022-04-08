@@ -173,15 +173,15 @@ export class BlendShapeManager {
     const maxTextureSize = 2048; // CM: todo
     const { _vertexCount: vertexCount } = this;
 
-    let pixelStride = 1;
-    this._useBlendShapeNormal && pixelStride++;
-    this._useBlendShapeTangent && pixelStride++;
+    let vertexPixelStride = 1;
+    this._useBlendShapeNormal && vertexPixelStride++;
+    this._useBlendShapeTangent && vertexPixelStride++;
 
-    let textureWidth = pixelStride * vertexCount;
+    let textureWidth = vertexPixelStride * vertexCount;
     let textureHeight = 1;
     if (textureWidth > maxTextureSize) {
-      textureWidth = maxTextureSize;
       textureHeight = Math.ceil(textureWidth / maxTextureSize);
+      textureWidth = maxTextureSize;
     }
 
     const blendShapes = this._blendShapes;
@@ -243,7 +243,7 @@ export class BlendShapeManager {
       blendShapeDataTexture.filterMode = TextureFilterMode.Point;
       blendShapeDataTexture.setPixelBuffer(0, bufferData);
       this._blendShapeDataTexture = blendShapeDataTexture;
-      this._blendShapeDataTextureInfo.setValue(pixelStride, textureWidth, textureHeight);
+      this._blendShapeDataTextureInfo.setValue(vertexPixelStride, textureWidth, textureHeight);
     }
   }
 
