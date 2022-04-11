@@ -46,4 +46,11 @@ export class LitePhysicsMaterial implements IPhysicsMaterial {
   setFrictionCombine(value: number): void {
     throw "Physics-lite don't support physics material. Use Physics-PhysX instead!";
   }
+
+  /**
+   * {@inheritDoc IPhysicsMaterial.destroy }
+   */
+  destroy(): void {
+    throw "Physics-lite don't support physics material. Use Physics-PhysX instead!";
+  }
 }

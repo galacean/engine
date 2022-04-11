@@ -84,4 +84,11 @@ export class PhysicsMaterial {
     this._frictionCombine = value;
     this._nativeMaterial.setFrictionCombine(value);
   }
+
+  /**
+   * @internal
+   */
+  _destroy() {
+    this._nativeMaterial.destroy();
+  }
 }

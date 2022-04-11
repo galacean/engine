@@ -1,4 +1,12 @@
-import { Material, PBRMaterial, PBRSpecularMaterial, RenderFace, UnlitMaterial } from "@oasis-engine/core";
+import {
+  Logger,
+  Material,
+  PBRMaterial,
+  PBRSpecularMaterial,
+  RenderFace,
+  TextureCoordinate,
+  UnlitMaterial
+} from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { MaterialAlphaMode } from "../Schema";
@@ -111,11 +119,16 @@ export class MaterialParser extends Parser {
         }
 
         if (occlusionTexture) {
-          const { index, strength } = occlusionTexture;
+          const { index, strength, texCoord } = occlusionTexture;
           m.occlusionTexture = textures[index];
           MaterialParser._parseTextureTransform(material, occlusionTexture.extensions, context);
           if (strength !== undefined) {
             m.occlusionTextureIntensity = strength;
+          }
+          if (texCoord === TextureCoordinate.UV1) {
+            m.occlusionTextureCoord = TextureCoordinate.UV1;
+          } else if (texCoord > TextureCoordinate.UV1) {
+            Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
           }
         }
       }

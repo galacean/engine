@@ -5,7 +5,7 @@ import { PointLight } from "../lighting/PointLight";
 import { SpotLight } from "../lighting/SpotLight";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
-import { RenderColorTexture } from "../texture/RenderColorTexture";
+import { Texture2D } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 
 /**
@@ -87,7 +87,7 @@ export class LightShadow {
     const { engine, width, height } = props;
 
     this._mapSize = new Vector2(width, height);
-    this._renderTarget = new RenderTarget(engine, width, height, new RenderColorTexture(engine, width, height));
+    this._renderTarget = new RenderTarget(engine, width, height, new Texture2D(engine, width, height));
   }
 
   /**
@@ -100,8 +100,8 @@ export class LightShadow {
   /**
    * Shadow map's color render texture.
    */
-  get map(): RenderColorTexture {
-    return this._renderTarget.getColorTexture();
+  get map(): Texture2D {
+    return <Texture2D>this._renderTarget.getColorTexture();
   }
 
   /**

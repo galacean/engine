@@ -445,7 +445,7 @@ export class Quaternion implements IClone {
   /**
    * The x component of the quaternion.
    */
-  public get x() {
+  public get x(): number {
     return this._x;
   }
 
@@ -457,7 +457,7 @@ export class Quaternion implements IClone {
   /**
    * The y component of the quaternion.
    */
-  public get y() {
+  public get y(): number {
     return this._y;
   }
 
@@ -469,13 +469,23 @@ export class Quaternion implements IClone {
   /**
    * The z component of the quaternion.
    */
-  public get z() {
+  public get z(): number {
     return this._z;
   }
 
   public set z(value: number) {
     this._z = value;
     this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * Indicting whether this instance is normalized.
+   */
+  public get normalized(): boolean {
+    return (
+      Math.abs(this._x * this._x + this._y * this._y + this._z * this._z + this._w * this._w - 1) <
+      MathUtil.zeroTolerance
+    );
   }
 
   /**
