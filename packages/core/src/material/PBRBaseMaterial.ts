@@ -1,8 +1,10 @@
 import { Color, Vector4 } from "@oasis-engine/math";
+import { Logger } from "..";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
+import { TextureCoordinate } from "./enums/TextureCoordinate";
 
 /**
  * PBR (Physically-Based Rendering) Material.
@@ -15,6 +17,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _normalTextureProp = Shader.getPropertyByName("u_normalTexture");
   private static _normalTextureIntensityProp = Shader.getPropertyByName("u_normalIntensity");
   private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionStrength");
+  private static _occlusionTextureCoordProp = Shader.getPropertyByName("u_occlusionTextureCoord");
   private static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveSampler");
   private static _occlusionTextureProp = Shader.getPropertyByName("u_occlusionSampler");
   private static _parallaxTextureProp = Shader.getPropertyByName("u_parallaxTexture");
@@ -83,7 +86,6 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
   set normalTextureIntensity(value: number) {
     this.shaderData.setFloat(PBRBaseMaterial._normalTextureIntensityProp, value);
-    this.shaderData.setFloat("u_normalIntensity", value);
   }
 
   /**
@@ -141,6 +143,21 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
   set occlusionTextureIntensity(value: number) {
     this.shaderData.setFloat(PBRBaseMaterial._occlusionTextureIntensityProp, value);
+  }
+
+  /**
+   * Occlusion texture uv coordinate.
+   * @remarks Must be UV0 or UV1.
+   */
+  get occlusionTextureCoord(): TextureCoordinate {
+    return this.shaderData.getFloat(PBRBaseMaterial._occlusionTextureCoordProp);
+  }
+
+  set occlusionTextureCoord(value: TextureCoordinate) {
+    if (value > TextureCoordinate.UV1) {
+      Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
+    }
+    this.shaderData.setFloat(PBRBaseMaterial._occlusionTextureCoordProp, value);
   }
 
   /**
@@ -301,6 +318,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     shaderData.setFloat(PBRBaseMaterial._normalTextureIntensityProp, 1);
     shaderData.setFloat(PBRBaseMaterial._occlusionTextureIntensityProp, 1);
+    shaderData.setFloat(PBRBaseMaterial._occlusionTextureCoordProp, TextureCoordinate.UV0);
 
     shaderData.setFloat(PBRBaseMaterial._clearcoatProp, 0);
     shaderData.setFloat(PBRBaseMaterial._clearcoatRoughnessProp, 0);

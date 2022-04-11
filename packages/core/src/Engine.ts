@@ -1,5 +1,5 @@
-import { IPhysics } from "@oasis-engine/design";
 import { ColorSpace } from ".";
+import { DynamicTextAtlasManager } from "./2d/dynamic-atlas/DynamicTextAtlasManager";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
@@ -32,7 +32,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
-import { Texture2D, TextureCubeFace, TextureCubeMap, TextureFormat } from "./texture";
+import { Texture2D, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -62,7 +62,7 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _whiteTexture2D: Texture2D;
   /* @internal */
-  _whiteTextureCube: TextureCubeMap;
+  _whiteTextureCube: TextureCube;
   /* @internal */
   _backgroundTextureMaterial: Material;
   /* @internal */
@@ -73,6 +73,8 @@ export class Engine extends EventDispatcher {
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _dynamicTextAtlasManager: DynamicTextAtlasManager = new DynamicTextAtlasManager(this);
 
   protected _canvas: Canvas;
 
@@ -175,16 +177,14 @@ export class Engine extends EventDispatcher {
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
-   * @param physics - native physics Engine
    */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, physics?: IPhysics, settings?: EngineSettings) {
+  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, settings?: EngineSettings) {
     super();
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas);
-    if (physics) {
-      PhysicsManager._nativePhysics = physics;
-      this.physicsManager = new PhysicsManager();
-    }
+
+    this.physicsManager = new PhysicsManager(this);
+
     this._canvas = canvas;
     // @todo delete
     engineFeatureManager.addObject(this);
@@ -202,7 +202,7 @@ export class Engine extends EventDispatcher {
     whiteTexture2D.setPixelBuffer(whitePixel);
     whiteTexture2D.isGCIgnored = true;
 
-    const whiteTextureCube = new TextureCubeMap(this, 1, TextureFormat.R8G8B8A8, false);
+    const whiteTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
     whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
     whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
     whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
@@ -271,20 +271,17 @@ export class Engine extends EventDispatcher {
       scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
 
       componentsManager.callScriptOnStart();
-      if (this.physicsManager) {
-        componentsManager.callColliderOnUpdate();
+      if (this.physicsManager._initialized) {
         this.physicsManager._update(deltaTime / 1000.0);
-        componentsManager.callColliderOnLateUpdate();
       }
       this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
+      componentsManager.handlingInvalidScripts();
 
       this._render(scene);
     }
-
-    this._componentsManager.callComponentDestroy();
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
   }
@@ -317,8 +314,8 @@ export class Engine extends EventDispatcher {
 
       this._sceneManager._activeScene.destroy();
       this._resourceManager._destroy();
-      // If engine destroy, callComponentDestroy() maybe will not call anymore.
-      this._componentsManager.callComponentDestroy();
+      // If engine destroy, applyScriptsInvalid() maybe will not call anymore.
+      this._componentsManager.handlingInvalidScripts();
       this._sceneManager = null;
       this._resourceManager = null;
 
@@ -362,16 +359,13 @@ export class Engine extends EventDispatcher {
     scene._updateShaderData();
 
     if (cameras.length > 0) {
-      for (let i = 0, l = cameras.length; i < l; i++) {
+      for (let i = 0, n = cameras.length; i < n; i++) {
         const camera = cameras[i];
-        const cameraEntity = camera.entity;
-        if (camera.enabled && cameraEntity.isActiveInHierarchy) {
-          componentsManager.callCameraOnBeginRender(camera);
-          Scene.sceneFeatureManager.callFeatureMethod(scene, "preRender", [scene, camera]); //TODO: will be removed
-          camera.render();
-          Scene.sceneFeatureManager.callFeatureMethod(scene, "postRender", [scene, camera]); //TODO: will be removed
-          componentsManager.callCameraOnEndRender(camera);
-        }
+        componentsManager.callCameraOnBeginRender(camera);
+        Scene.sceneFeatureManager.callFeatureMethod(scene, "preRender", [scene, camera]); //TODO: will be removed
+        camera.render();
+        Scene.sceneFeatureManager.callFeatureMethod(scene, "postRender", [scene, camera]); //TODO: will be removed
+        componentsManager.callCameraOnEndRender(camera);
       }
     } else {
       Logger.debug("NO active camera.");

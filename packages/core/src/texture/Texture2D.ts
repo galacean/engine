@@ -9,15 +9,6 @@ import { Texture } from "./Texture";
  * Two-dimensional texture.
  */
 export class Texture2D extends Texture {
-  private _format: TextureFormat;
-
-  /**
-   * Texture format.
-   */
-  get format(): TextureFormat {
-    return this._format;
-  }
-
   /**
    * Create Texture2D.
    * @param engine - Define the engine to use to render this texture
@@ -77,7 +68,7 @@ export class Texture2D extends Texture {
    * @param y - Y coordinate of area start
    */
   setImageSource(
-    imageSource: TexImageSource,
+    imageSource: TexImageSource | OffscreenCanvas,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
@@ -143,8 +134,8 @@ export class Texture2D extends Texture {
       (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
         0,
         0,
-        this._width >> <number>xOrMipLevelOrOut,
-        this._height >> <number>xOrMipLevelOrOut,
+        this._width >> (<number>xOrMipLevelOrOut),
+        this._height >> (<number>xOrMipLevelOrOut),
         <number>xOrMipLevelOrOut,
         <ArrayBufferView>yOrMipLevel
       );
