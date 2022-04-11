@@ -18,24 +18,33 @@ void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
 
+    #if defined(O3_NORMAL_TEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE)
+        mat3 tbn = getTBN();
+    #endif
+
     geometry.normal = getNormal( 
             #ifdef O3_NORMAL_TEXTURE
+                tbn,
                 u_normalTexture,
-                u_normalIntensity
+                u_normalIntensity,
+                v_uv
             #endif
     );
+    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
+
 
     #ifdef CLEARCOAT
         geometry.clearcoatNormal = getNormal(
               #ifdef HAS_CLEARCOATNORMALTEXTURE
+                tbn,
                 u_clearcoatNormalTexture,
-                u_normalIntensity
+                u_normalIntensity,
+                v_uv
             #endif
         );
         geometry.clearcoatDotNV = saturate( dot(geometry.clearcoatNormal, geometry.viewDir) );
     #endif
 
-    geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
 }
 
 void initMaterial(out Material material, const in Geometry geometry){

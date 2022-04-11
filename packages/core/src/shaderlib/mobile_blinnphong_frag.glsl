@@ -1,7 +1,10 @@
+    mat3 tbn = getTBN();
     vec3 N = getNormal( 
             #ifdef O3_NORMAL_TEXTURE
+                tbn,
                 u_normalTexture,
-                u_normalIntensity
+                u_normalIntensity,
+                v_uv
             #endif
     );
     vec3 lightDiffuse = vec3( 0.0, 0.0, 0.0 );
