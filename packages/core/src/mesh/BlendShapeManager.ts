@@ -34,6 +34,7 @@ export class BlendShapeManager {
 
   constructor(engine: Engine) {
     this._engine = engine;
+    this._usingTextureStoreData = this._engine._hardwareRenderer.capability.canUseFloatTextureBlendShape;
   }
 
   /**
@@ -174,7 +175,7 @@ export class BlendShapeManager {
    * @internal
    */
   _updateDataToTexture(): void {
-    const maxTextureSize = 2048; // CM: todo
+    const maxTextureSize = this._engine._hardwareRenderer.capability.maxTextureSize;
     const { _vertexCount: vertexCount } = this;
 
     let vertexPixelStride = 1;
