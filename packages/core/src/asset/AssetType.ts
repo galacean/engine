@@ -37,6 +37,6 @@ export enum AssetType {
   SpriteAtlas = "sprite-atlas",
   /** ambient light */
   Env = "environment",
-  /** HDR  to cube */
-  HDR = "hdr"
+  /** HDR to cube */
+  HDR = "HDR"
 }
