@@ -34,6 +34,7 @@ export class BlendShapeManager {
 
   constructor(engine: Engine) {
     this._engine = engine;
+    // CM: try use attribute first
     this._usingTextureStoreData = this._engine._hardwareRenderer.capability.canUseFloatTextureBlendShape;
   }
 

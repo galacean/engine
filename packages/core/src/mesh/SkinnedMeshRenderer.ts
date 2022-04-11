@@ -19,7 +19,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _blendShapeTextureMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TEXTURE");
   private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
   private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
-  private static _blendShapeCountMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_COUNT");
 
   private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
