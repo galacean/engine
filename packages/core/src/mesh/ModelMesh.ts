@@ -61,13 +61,20 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * BlendShape count of this ModelMesh.
+   * BlendShapes of this ModelMesh.
    */
   get blendShapes(): Readonly<BlendShape[]> {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._blendShapeManager._blendShapes;
+  }
+
+  /**
+   * BlendShape count of this ModelMesh.
+   */
+  get blendShapeCount(): number {
+    return this._blendShapeManager._blendShapeCount;
   }
 
   /**
@@ -812,7 +819,7 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
-    this._blendShapeManager._releaseCache();
+    this._blendShapeManager._releaseMemoryCache();
   }
 }
 

@@ -18,6 +18,8 @@ export class BlendShapeManager {
   /** @internal */
   _blendShapes: BlendShape[] = [];
   /** @internal */
+  _blendShapeCount: number = 0;
+  /** @internal */
   _blendShapeUpdateFlags: UpdateFlag[] = [];
 
   /** @internal */
@@ -43,6 +45,7 @@ export class BlendShapeManager {
     this._blendShapes.push(blendShape);
     this._blendShapeUpdateFlags.push(blendShape._registerChangeFlag());
     this._hasBlendShape = true;
+    this._blendShapeCount++;
   }
 
   /**
@@ -58,6 +61,7 @@ export class BlendShapeManager {
     }
     blendShapeUpdateFlags.length = 0;
     this._hasBlendShape = false;
+    this._blendShapeCount = 0;
   }
 
   /**
@@ -250,7 +254,7 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _releaseCache(): void {
+  _releaseMemoryCache(): void {
     const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
     for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
       blendShapeUpdateFlags[i].destroy();

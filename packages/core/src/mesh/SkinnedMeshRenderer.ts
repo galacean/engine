@@ -19,6 +19,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _blendShapeTextureMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TEXTURE");
   private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
   private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
+  private static _blendShapeCountMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_COUNT");
 
   private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
@@ -84,8 +85,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
       if (blendShapeManager._usingTextureStoreData) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
+        shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeManager._blendShapeCount.toString());
       } else {
         shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
+        shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
       }
 
       shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
