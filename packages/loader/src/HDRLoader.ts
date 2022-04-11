@@ -80,7 +80,7 @@ class HDRLoader extends Loader<TextureCube> {
     inputWidth: number,
     inputHeight: number,
     size: number
-  ): Uint8ClampedArray[] {
+  ): Uint8Array[] {
     if (!pixels) {
       throw "ConvertPanoramaToCubemap: input cannot be null";
     }
@@ -105,8 +105,8 @@ class HDRLoader extends Loader<TextureCube> {
     pixels: Uint8Array,
     inputWidth: number,
     inputHeight: number
-  ): Uint8ClampedArray {
-    const textureArray = new Uint8ClampedArray(texSize * texSize * 4);
+  ): Uint8Array {
+    const textureArray = new Uint8Array(texSize * texSize * 4);
     const rotDX1 = this._tempVector3
       .setValue(0, 0, 0)
       .add(faceData[1])
@@ -130,8 +130,8 @@ class HDRLoader extends Loader<TextureCube> {
         v.normalize();
 
         const color = this._calcProjectionSpherical(v, pixels, inputWidth, inputHeight);
-        this._RGBEToLinear(color);
-        this._linearToRGBM(color, 5);
+        // this._RGBEToLinear(color);
+        // this._linearToRGBM(color, 5);
 
         // 4 channels per pixels
         textureArray[y * texSize * 4 + x * 4] = color.r;
