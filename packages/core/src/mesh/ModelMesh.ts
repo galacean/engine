@@ -441,7 +441,7 @@ export class ModelMesh extends Mesh {
     // Vertex element change
     if (vertexElementUpdate) {
       const vertexElements = this._vertexElementsCache;
-      this._updateVertexElements(vertexElements);
+      this._updateVertexElements(vertexElements, blendShapeTextureStore);
       this._setVertexElements(vertexElements);
     }
 
@@ -457,7 +457,7 @@ export class ModelMesh extends Mesh {
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
-      this._updateVertices(vertices, true);
+      this._updateVertices(vertices, blendShapeTextureStore, true);
 
       const newVertexBuffer = new Buffer(
         this._engine,
@@ -468,9 +468,13 @@ export class ModelMesh extends Mesh {
 
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
       this._lastUploadVertexCount = vertexCount;
-    } else if (this._vertexChangeFlag & ValueChanged.All || (!blendShapeTextureStore && blendShapeDataUpdate)) {
+    } else if (
+      vertexElementUpdate ||
+      this._vertexChangeFlag & ValueChanged.All ||
+      (!blendShapeTextureStore && blendShapeDataUpdate)
+    ) {
       const vertices = this._verticesFloat32;
-      this._updateVertices(vertices, vertexElementUpdate);
+      this._updateVertices(vertices, blendShapeTextureStore, vertexElementUpdate);
       vertexBuffer.setData(vertices);
     }
 
@@ -518,7 +522,7 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
-  private _updateVertexElements(vertexElements: VertexElement[]): void {
+  private _updateVertexElements(vertexElements: VertexElement[], blendShapeTextureStore: boolean): void {
     vertexElements.length = 1;
     vertexElements[0] = POSITION_VERTEX_ELEMENT;
 
@@ -591,15 +595,14 @@ export class ModelMesh extends Mesh {
     }
     this._vertexSlotChanged = false;
 
-    const blendShapeManager = this._blendShapeManager;
-    if (!blendShapeManager._useTextureStore()) {
-      elementCount += blendShapeManager._updateVertexElements(vertexElements, offset);
+    if (!blendShapeTextureStore) {
+      elementCount += this._blendShapeManager._updateVertexElements(vertexElements, offset);
     }
 
     this._elementCount = elementCount;
   }
 
-  private _updateVertices(vertices: Float32Array, force: boolean): void {
+  private _updateVertices(vertices: Float32Array, blendShapeTextureStore: boolean, force: boolean): void {
     // prettier-ignore
     const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
@@ -801,7 +804,7 @@ export class ModelMesh extends Mesh {
     }
     this._vertexChangeFlag = 0;
 
-    if (!this._blendShapeManager._useTextureStore()) {
+    if (!blendShapeTextureStore) {
       this._blendShapeManager._updateDataToVertices(vertices, offset, _vertexCount, _elementCount, force);
     }
   }
