@@ -432,16 +432,16 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    const blendShapeManager = this._blendShapeManager;
-    const blendShapeTextureStore = blendShapeManager._useTextureStore();
-    const blendShapeLayoutOrCountChange = blendShapeManager._layoutOrCountChange();
-    const blendShapeDataUpdate = blendShapeManager._needUpdateData();
-    const vertexElementUpdate = this._vertexSlotChanged || (!blendShapeTextureStore && blendShapeLayoutOrCountChange);
+    const blendManager = this._blendShapeManager;
+    const blendTextureStore = blendManager._useTextureStore();
+    const blendLayoutOrCountChange = blendManager._layoutOrCountChange();
+    const blendDataUpdate = blendManager._needUpdateData();
+    const vertexElementUpdate = this._vertexSlotChanged || (!blendTextureStore && blendLayoutOrCountChange);
 
     // Vertex element change
     if (vertexElementUpdate) {
       const vertexElements = this._vertexElementsCache;
-      this._updateVertexElements(vertexElements, blendShapeTextureStore);
+      this._updateVertexElements(vertexElements, blendTextureStore);
       this._setVertexElements(vertexElements);
     }
 
@@ -457,7 +457,7 @@ export class ModelMesh extends Mesh {
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
-      this._updateVertices(vertices, blendShapeTextureStore, true);
+      this._updateVertices(vertices, blendTextureStore, true);
 
       const newVertexBuffer = new Buffer(
         this._engine,
@@ -471,10 +471,10 @@ export class ModelMesh extends Mesh {
     } else if (
       vertexElementUpdate ||
       this._vertexChangeFlag & ValueChanged.All ||
-      (!blendShapeTextureStore && blendShapeDataUpdate)
+      (!blendTextureStore && blendDataUpdate)
     ) {
       const vertices = this._verticesFloat32;
-      this._updateVertices(vertices, blendShapeTextureStore, vertexElementUpdate);
+      this._updateVertices(vertices, blendTextureStore, vertexElementUpdate);
       vertexBuffer.setData(vertices);
     }
 
@@ -498,13 +498,8 @@ export class ModelMesh extends Mesh {
       this._setIndexBufferBinding(null);
     }
 
-    if (blendShapeTextureStore) {
-      blendShapeManager._updateTexture(
-        blendShapeLayoutOrCountChange,
-        vertexCountChange,
-        blendShapeDataUpdate,
-        vertexCount
-      );
+    if (blendTextureStore) {
+      blendManager._updateTexture(blendLayoutOrCountChange, vertexCountChange, blendDataUpdate, vertexCount);
     }
 
     if (noLongerAccessible) {
