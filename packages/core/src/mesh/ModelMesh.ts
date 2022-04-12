@@ -468,7 +468,7 @@ export class ModelMesh extends Mesh {
 
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
       this._lastUploadVertexCount = vertexCount;
-    } else if (this._vertexChangeFlag & ValueChanged.All || blendShapeDataUpdate) {
+    } else if (this._vertexChangeFlag & ValueChanged.All || (!blendShapeTextureStore && blendShapeDataUpdate)) {
       const vertices = this._verticesFloat32;
       this._updateVertices(vertices, vertexElementUpdate);
       vertexBuffer.setData(vertices);
