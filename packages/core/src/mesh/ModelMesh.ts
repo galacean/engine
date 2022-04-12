@@ -602,6 +602,7 @@ export class ModelMesh extends Mesh {
     const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     force && (this._vertexChangeFlag = ValueChanged.All);
+    
     if (_vertexChangeFlag & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
         const start = _elementCount * i;
