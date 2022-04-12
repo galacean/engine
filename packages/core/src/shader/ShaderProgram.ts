@@ -402,8 +402,20 @@ export class ShaderProgram {
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:
         case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
-          const defaultTexture = type === gl.SAMPLER_2D ? this._engine._whiteTexture2D : this._engine._whiteTextureCube;
-          //CM: SAMPLER_2D_ARRAY defaultTexture
+          let defaultTexture: Texture;
+          switch (type) {
+            case gl.SAMPLER_2D:
+              defaultTexture = this._engine._whiteTexture2D;
+              break;
+            case gl.SAMPLER_CUBE:
+              defaultTexture = this._engine._whiteTextureCube;
+              break;
+            case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
+              defaultTexture = this._engine._whiteTexture2DArray;
+              break;
+            default:
+              throw new Error("Unsupported texture type.");
+          }
 
           isTexture = true;
           if (isArray) {
@@ -445,7 +457,7 @@ export class ShaderProgram {
   private _getUniformInfos(): WebGLActiveInfo[] {
     const gl = this._gl;
     const program = this._glProgram;
-    const uniformInfos: WebGLActiveInfo[] = [];
+    const uniformInfos = new Array<WebGLActiveInfo>();
 
     const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
     for (let i = 0; i < uniformCount; ++i) {
@@ -459,7 +471,7 @@ export class ShaderProgram {
   private _getAttributeInfos(): WebGLActiveInfo[] {
     const gl = this._gl;
     const program = this._glProgram;
-    const attributeInfos: WebGLActiveInfo[] = [];
+    const attributeInfos = new Array<WebGLActiveInfo>();
 
     const attributeCount = gl.getProgramParameter(program, gl.ACTIVE_ATTRIBUTES);
     for (let i = 0; i < attributeCount; ++i) {
