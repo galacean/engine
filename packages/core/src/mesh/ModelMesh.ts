@@ -436,12 +436,13 @@ export class ModelMesh extends Mesh {
     const blendTextureStore = blendManager._useTextureStore();
     const blendLayoutOrCountChange = blendManager._layoutOrCountChange();
     const blendDataUpdate = blendManager._needUpdateData();
-    const vertexElementUpdate = this._vertexSlotChanged || (!blendTextureStore && blendLayoutOrCountChange);
+    const blendVertexElementChanged = !blendTextureStore && blendLayoutOrCountChange;
+    const vertexElementUpdate = this._vertexSlotChanged || blendVertexElementChanged;
 
     // Vertex element change
     if (vertexElementUpdate) {
       const vertexElements = this._vertexElementsCache;
-      this._updateVertexElements(vertexElements, blendTextureStore);
+      this._updateVertexElements(vertexElements, blendVertexElementChanged);
       this._setVertexElements(vertexElements);
     }
 
@@ -457,7 +458,7 @@ export class ModelMesh extends Mesh {
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
-      this._updateVertices(vertices, blendTextureStore, true);
+      this._updateVertices(vertices, !blendTextureStore, true);
 
       const newVertexBuffer = new Buffer(
         this._engine,
@@ -468,14 +469,13 @@ export class ModelMesh extends Mesh {
 
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
       this._lastUploadVertexCount = vertexCount;
-    } else if (
-      vertexElementUpdate ||
-      this._vertexChangeFlag & ValueChanged.All ||
-      (!blendTextureStore && blendDataUpdate)
-    ) {
-      const vertices = this._verticesFloat32;
-      this._updateVertices(vertices, blendTextureStore, vertexElementUpdate);
-      vertexBuffer.setData(vertices);
+    } else {
+      const blendVerticesUpdate = !blendTextureStore && blendDataUpdate;
+      if (this._vertexChangeFlag & ValueChanged.All || blendVerticesUpdate) {
+        const vertices = this._verticesFloat32;
+        this._updateVertices(vertices, blendVerticesUpdate, vertexElementUpdate);
+        vertexBuffer.setData(vertices);
+      }
     }
 
     const { _indices } = this;
@@ -517,7 +517,7 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
-  private _updateVertexElements(vertexElements: VertexElement[], blendShapeTextureStore: boolean): void {
+  private _updateVertexElements(vertexElements: VertexElement[], blendVertexElementChanged: boolean): void {
     vertexElements.length = 1;
     vertexElements[0] = POSITION_VERTEX_ELEMENT;
 
@@ -590,14 +590,14 @@ export class ModelMesh extends Mesh {
     }
     this._vertexSlotChanged = false;
 
-    if (!blendShapeTextureStore) {
+    if (blendVertexElementChanged) {
       elementCount += this._blendShapeManager._updateVertexElements(vertexElements, offset);
     }
 
     this._elementCount = elementCount;
   }
 
-  private _updateVertices(vertices: Float32Array, blendShapeTextureStore: boolean, force: boolean): void {
+  private _updateVertices(vertices: Float32Array, blendVerticesUpdate: boolean, force: boolean): void {
     // prettier-ignore
     const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
@@ -799,7 +799,7 @@ export class ModelMesh extends Mesh {
     }
     this._vertexChangeFlag = 0;
 
-    if (!blendShapeTextureStore) {
+    if (blendVerticesUpdate) {
       this._blendShapeManager._updateDataToVertices(vertices, offset, _vertexCount, _elementCount, force);
     }
   }
