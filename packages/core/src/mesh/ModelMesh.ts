@@ -433,7 +433,7 @@ export class ModelMesh extends Mesh {
     }
 
     const blendShapeManager = this._blendShapeManager;
-    const blendShapeTextureStore = blendShapeManager._getUseTextureStore();
+    const blendShapeTextureStore = blendShapeManager._useTextureStore();
     const blendShapeLayoutOrCountChange = blendShapeManager._layoutOrCountChange();
     const blendShapeDataUpdate = blendShapeManager._needUpdateData();
     const vertexElementUpdate = this._vertexSlotChanged || (!blendShapeTextureStore && blendShapeLayoutOrCountChange);
@@ -592,7 +592,7 @@ export class ModelMesh extends Mesh {
     this._vertexSlotChanged = false;
 
     const blendShapeManager = this._blendShapeManager;
-    if (!blendShapeManager._getUseTextureStore()) {
+    if (!blendShapeManager._useTextureStore()) {
       elementCount += blendShapeManager._updateVertexElements(vertexElements, offset);
     }
 
@@ -801,7 +801,7 @@ export class ModelMesh extends Mesh {
     }
     this._vertexChangeFlag = 0;
 
-    if (!this._blendShapeManager._getUseTextureStore()) {
+    if (!this._blendShapeManager._useTextureStore()) {
       this._blendShapeManager._updateDataToVertices(vertices, offset, _vertexCount, _elementCount, force);
     }
   }

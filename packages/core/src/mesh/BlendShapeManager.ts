@@ -31,8 +31,7 @@ export class BlendShapeManager {
   _dataTextureInfo: Vector3 = new Vector3();
 
   private _engine: Engine;
-  /* x:vertexElementCount, y:useNormal, z:useTangent */
-  private _lastUpdateVertexElementInfo: Vector3 = new Vector3(0, 0, 0);
+  private _lastUpdateLayoutAndCountInfo: Vector3 = new Vector3(0, 0, 0);
   private _canUseTextureStoreData: boolean = true;
 
   constructor(engine: Engine) {
@@ -74,7 +73,7 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _getUseTextureStore(): boolean {
+  _useTextureStore(): boolean {
     return this._blendShapeCount > 4 && this._canUseTextureStoreData;
   }
 
@@ -82,13 +81,24 @@ export class BlendShapeManager {
    * @internal
    */
   _layoutOrCountChange(): boolean {
-    const lastInfo = this._lastUpdateVertexElementInfo;
+    const lastInfo = this._lastUpdateLayoutAndCountInfo;
     if (
       lastInfo.x !== this._blendShapeCount ||
       !!lastInfo.y !== this._useBlendNormal ||
       !!lastInfo.z !== this._useBlendTangent
     ) {
       return true;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _needUpdateData(): boolean {
+    for (let i = 0, n = this._subDataDirtyFlags.length; i < n; i++) {
+      if (this._subDataDirtyFlags[i].flag) {
+        return true;
+      }
     }
   }
 
@@ -112,19 +122,8 @@ export class BlendShapeManager {
       }
     }
 
-    this._lastUpdateVertexElementInfo.setValue(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
+    this._lastUpdateLayoutAndCountInfo.setValue(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
     return elementCount;
-  }
-
-  /**
-   * @internal
-   */
-  _needUpdateData(): boolean {
-    for (let i = 0, n = this._subDataDirtyFlags.length; i < n; i++) {
-      if (this._subDataDirtyFlags[i].flag) {
-        return true;
-      }
-    }
   }
 
   /**
@@ -197,12 +196,6 @@ export class BlendShapeManager {
     }
   }
 
-  _needCreateDataTexture(): boolean {
-    if (!this._dataTexture) {
-      return false;
-    }
-  }
-
   /**
    * @internal
    */
@@ -215,6 +208,7 @@ export class BlendShapeManager {
     let reCreateTexture = !this._dataTexture || layoutOrCountChange || vertexCountChange;
     if (reCreateTexture) {
       this._createDataTexture(vertexCount);
+      this._lastUpdateLayoutAndCountInfo.setValue(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
     }
     if (needUpdateBlendShape) {
       this._updateDataToTexture(vertexCount, reCreateTexture);

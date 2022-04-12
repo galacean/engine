@@ -82,7 +82,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const blendShapeManager = (<ModelMesh>this.mesh)._blendShapeManager;
     if (blendShapeManager._blendShapeCount > 0) {
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
-      if (blendShapeManager._getUseTextureStore()) {
+      if (blendShapeManager._useTextureStore()) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
         shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeManager._blendShapeCount.toString());
 
