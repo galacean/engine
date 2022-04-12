@@ -9,7 +9,7 @@ uniform vec3 u_emissiveColor;
 
 uniform float u_normalIntensity;
 uniform float u_occlusionStrength;
-
+uniform float u_occlusionTextureCoord;
 
 #ifdef HAS_BASECOLORMAP
     uniform sampler2D u_baseColorSampler;

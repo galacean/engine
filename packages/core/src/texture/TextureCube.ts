@@ -1,5 +1,5 @@
 import { Engine } from "../Engine";
-import { IPlatformTextureCubeMap } from "../renderingHardwareInterface";
+import { IPlatformTextureCube } from "../renderingHardwareInterface";
 import { TextureCubeFace } from "./enums/TextureCubeFace";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
@@ -9,16 +9,7 @@ import { Texture } from "./Texture";
 /**
  * Cube texture.
  */
-export class TextureCubeMap extends Texture {
-  private _format: TextureFormat;
-
-  /**
-   * Texture format.
-   */
-  get format(): TextureFormat {
-    return this._format;
-  }
-
+export class TextureCube extends Texture {
   /**
    * Create TextureCube.
    * @param engine - Define the engine to use to render this texture
@@ -35,7 +26,7 @@ export class TextureCubeMap extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
-    this._platformTexture = engine._hardwareRenderer.createPlatformTextureCubeMap(this);
+    this._platformTexture = engine._hardwareRenderer.createPlatformTextureCube(this);
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Clamp;
@@ -61,7 +52,7 @@ export class TextureCubeMap extends Texture {
     width?: number,
     height?: number
   ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
+    (this._platformTexture as IPlatformTextureCube).setPixelBuffer(face, colorBuffer, mipLevel, x, y, width, height);
   }
 
   /**
@@ -83,7 +74,7 @@ export class TextureCubeMap extends Texture {
     x?: number,
     y?: number
   ): void {
-    (this._platformTexture as IPlatformTextureCubeMap).setImageSource(
+    (this._platformTexture as IPlatformTextureCube).setImageSource(
       face,
       imageSource,
       mipLevel,
@@ -154,7 +145,7 @@ export class TextureCubeMap extends Texture {
   ): void {
     const argsLength = arguments.length;
     if (argsLength === 2) {
-      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
         face,
         0,
         0,
@@ -164,17 +155,17 @@ export class TextureCubeMap extends Texture {
         <ArrayBufferView>xOrMipLevelOrOut
       );
     } else if (argsLength === 3) {
-      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
         face,
         0,
         0,
-        this._width >> <number>xOrMipLevelOrOut,
-        this._height >> <number>xOrMipLevelOrOut,
+        this._width >> (<number>xOrMipLevelOrOut),
+        this._height >> (<number>xOrMipLevelOrOut),
         <number>xOrMipLevelOrOut,
         <ArrayBufferView>yOrMipLevel
       );
     } else if (argsLength === 6) {
-      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
         face,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,
@@ -184,7 +175,7 @@ export class TextureCubeMap extends Texture {
         <ArrayBufferView>mipLevelOrOut
       );
     } else if (argsLength === 7) {
-      (this._platformTexture as IPlatformTextureCubeMap).getPixelBuffer(
+      (this._platformTexture as IPlatformTextureCube).getPixelBuffer(
         face,
         <number>xOrMipLevelOrOut,
         <number>yOrMipLevel,

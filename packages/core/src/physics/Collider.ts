@@ -68,8 +68,10 @@ export abstract class Collider extends Component {
   clearShapes(): void {
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._nativeCollider.removeShape(shapes[i]._nativeShape);
-      this.engine.physicsManager._removeColliderShape(shapes[i]);
+      const shape = shapes[i];
+      this._nativeCollider.removeShape(shape._nativeShape);
+      this.engine.physicsManager._removeColliderShape(shape);
+      shape._destroy();
     }
     shapes.length = 0;
   }
@@ -119,5 +121,6 @@ export abstract class Collider extends Component {
    */
   _onDestroy() {
     this.clearShapes();
+    this._nativeCollider.destroy();
   }
 }
