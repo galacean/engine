@@ -11,17 +11,15 @@ import { BlendShape } from "./BlendShape";
  */
 export class BlendShapeManager {
   /** @internal */
-  _useBlendNormal: boolean = false;
+  _useBlendNormal: boolean = true;
   /** @internal */
-  _useBlendTangent: boolean = false;
+  _useBlendTangent: boolean = true;
   /** @internal */
   _blendShapes: BlendShape[] = [];
   /** @internal */
   _blendShapeCount: number = 0;
   /** @internal */
   _layoutDirtyFlag: ListenerUpdateFlag = new ListenerUpdateFlag();
-  /** @internal */
-  _updateAllDataToVertices: boolean = false;
   /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
 
@@ -136,16 +134,21 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _updateDataToVertices(vertices: Float32Array, offset: number, vertexCount: number, elementCount: number): void {
+  _updateDataToVertices(
+    vertices: Float32Array,
+    offset: number,
+    vertexCount: number,
+    elementCount: number,
+    force: boolean
+  ): void {
     if (this._canUseTextureStoreData) {
       return;
     }
     const blendShapes = this._blendShapes;
     const subDataDirtyFlags = this._subDataDirtyFlags;
-    const updateAllDataToVertices = this._updateAllDataToVertices;
     for (let i = 0, n = blendShapes.length; i < n; i++) {
       const dataChangedFlag = subDataDirtyFlags[i];
-      if (updateAllDataToVertices || dataChangedFlag.flag) {
+      if (force || dataChangedFlag.flag) {
         const { frames } = blendShapes[i];
         const frameCount = frames.length;
         const endFrame = frames[frameCount - 1];
@@ -199,7 +202,6 @@ export class BlendShapeManager {
         dataChangedFlag.flag = false;
       }
     }
-    this._updateAllDataToVertices = false;
   }
 
   _needCreateDataTexture(): boolean {
@@ -217,11 +219,12 @@ export class BlendShapeManager {
     needUpdateBlendShape: boolean,
     vertexCount: number
   ): void {
-    if (!this._dataTexture || layoutOrCountChange || vertexCountChange) {
+    let reCreateTexture = !this._dataTexture || layoutOrCountChange || vertexCountChange;
+    if (reCreateTexture) {
       this._createDataTexture(vertexCount);
     }
     if (needUpdateBlendShape) {
-      this._updateDataToTexture(vertexCount);
+      this._updateDataToTexture(vertexCount, reCreateTexture);
     }
   }
 
@@ -260,7 +263,7 @@ export class BlendShapeManager {
     this._dataTextureInfo.setValue(vertexPixelStride, textureWidth, textureHeight);
   }
 
-  private _updateDataToTexture(vertexCount: number): void {
+  private _updateDataToTexture(vertexCount: number, force: boolean): void {
     const {
       _blendShapes: blendShapes,
       _dataTexture: dataTexture,
@@ -268,11 +271,11 @@ export class BlendShapeManager {
       _subDataDirtyFlags: subDataDirtyFlags
     } = this;
 
-    const updateAllDataToVertices = this._updateAllDataToVertices;
     let offset = 0;
     for (let i = 0, n = blendShapes.length; i < n; i++) {
       const subDirtyFlag = subDataDirtyFlags[i];
-      if (updateAllDataToVertices || subDirtyFlag.flag) {
+      const subBlendShapeDataStride = dataTexture.width * dataTexture.height * 4;
+      if (force || subDirtyFlag.flag) {
         const { frames } = blendShapes[i];
         const frameCount = frames.length;
         const endFrame = frames[frameCount - 1];
@@ -280,7 +283,7 @@ export class BlendShapeManager {
           throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
         }
         const { deltaPositions, deltaNormals, deltaTangents } = endFrame;
-        offset = i * dataTexture.width * dataTexture.height * 4;
+        offset = i * subBlendShapeDataStride;
         for (let j = 0; j < vertexCount; j++) {
           const position = deltaPositions[j];
           buffer[offset] = position.x;
@@ -308,7 +311,6 @@ export class BlendShapeManager {
       }
     }
     dataTexture.setPixelBuffer(0, buffer);
-    this._updateAllDataToVertices = false;
   }
 
   /**

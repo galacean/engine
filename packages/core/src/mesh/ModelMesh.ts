@@ -435,14 +435,14 @@ export class ModelMesh extends Mesh {
     const blendShapeManager = this._blendShapeManager;
     const blendShapeLayoutOrCountChange = blendShapeManager._layoutOrCountChange();
     const blendShapeDataUpdate = blendShapeManager._needUpdateData();
+    const vertexElementUpdate = this._vertexSlotChanged || blendShapeLayoutOrCountChange;
 
     // Vertex element change
-    if (this._vertexSlotChanged || blendShapeLayoutOrCountChange) {
+    if (vertexElementUpdate) {
       const vertexElements = this._vertexElementsCache;
       this._updateVertexElements(vertexElements);
       this._setVertexElements(vertexElements);
       this._vertexChangeFlag = ValueChanged.All;
-      blendShapeManager._updateAllDataToVertices = true;
     }
 
     const { _vertexCount: vertexCount } = this;
@@ -459,8 +459,7 @@ export class ModelMesh extends Mesh {
       this._verticesUint8 = new Uint8Array(vertices.buffer);
 
       this._vertexChangeFlag = ValueChanged.All;
-      blendShapeManager._updateAllDataToVertices = true;
-      this._updateVertices(vertices);
+      this._updateVertices(vertices, true);
 
       const newVertexBuffer = new Buffer(
         this._engine,
@@ -473,7 +472,7 @@ export class ModelMesh extends Mesh {
       this._lastUploadVertexCount = vertexCount;
     } else if (this._vertexChangeFlag & ValueChanged.All || blendShapeDataUpdate) {
       const vertices = this._verticesFloat32;
-      this._updateVertices(vertices);
+      this._updateVertices(vertices, vertexElementUpdate);
       vertexBuffer.setData(vertices);
     }
 
@@ -602,7 +601,7 @@ export class ModelMesh extends Mesh {
     this._elementCount = elementCount;
   }
 
-  private _updateVertices(vertices: Float32Array): void {
+  private _updateVertices(vertices: Float32Array, force: boolean): void {
     // prettier-ignore
     const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
@@ -803,7 +802,7 @@ export class ModelMesh extends Mesh {
     }
     this._vertexChangeFlag = 0;
 
-    this._blendShapeManager._updateDataToVertices(vertices, offset, _vertexCount, _elementCount);
+    this._blendShapeManager._updateDataToVertices(vertices, offset, _vertexCount, _elementCount, force);
   }
 
   private _releaseCache(): void {
