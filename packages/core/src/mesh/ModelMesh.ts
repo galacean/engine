@@ -433,17 +433,16 @@ export class ModelMesh extends Mesh {
     }
 
     const blendShapeManager = this._blendShapeManager;
+    const blendShapeTextureStore = blendShapeManager._getUseTextureStore();
     const blendShapeLayoutOrCountChange = blendShapeManager._layoutOrCountChange();
     const blendShapeDataUpdate = blendShapeManager._needUpdateData();
-    const vertexElementUpdate =
-      this._vertexSlotChanged || (!blendShapeManager._getUseTextureStore() && blendShapeLayoutOrCountChange);
+    const vertexElementUpdate = this._vertexSlotChanged || (!blendShapeTextureStore && blendShapeLayoutOrCountChange);
 
     // Vertex element change
     if (vertexElementUpdate) {
       const vertexElements = this._vertexElementsCache;
       this._updateVertexElements(vertexElements);
       this._setVertexElements(vertexElements);
-      this._vertexChangeFlag = ValueChanged.All;
     }
 
     const { _vertexCount: vertexCount } = this;
@@ -458,8 +457,6 @@ export class ModelMesh extends Mesh {
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
-
-      this._vertexChangeFlag = ValueChanged.All;
       this._updateVertices(vertices, true);
 
       const newVertexBuffer = new Buffer(
@@ -497,7 +494,7 @@ export class ModelMesh extends Mesh {
       this._setIndexBufferBinding(null);
     }
 
-    if (blendShapeManager._getUseTextureStore()) {
+    if (blendShapeTextureStore) {
       blendShapeManager._updateTexture(
         blendShapeLayoutOrCountChange,
         vertexCountChange,
@@ -606,6 +603,7 @@ export class ModelMesh extends Mesh {
     // prettier-ignore
     const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
+    force && (this._vertexChangeFlag = ValueChanged.All);
     if (_vertexChangeFlag & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
         const start = _elementCount * i;
