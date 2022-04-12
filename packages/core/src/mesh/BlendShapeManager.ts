@@ -82,10 +82,6 @@ export class BlendShapeManager {
    * @internal
    */
   _layoutOrCountChange(): boolean {
-    if (this._dataTexture) {
-      return false;
-    }
-
     const lastInfo = this._lastUpdateVertexElementInfo;
     if (
       lastInfo.x !== this._blendShapeCount ||
@@ -141,9 +137,6 @@ export class BlendShapeManager {
     elementCount: number,
     force: boolean
   ): void {
-    if (this._canUseTextureStoreData) {
-      return;
-    }
     const blendShapes = this._blendShapes;
     const subDataDirtyFlags = this._subDataDirtyFlags;
     for (let i = 0, n = blendShapes.length; i < n; i++) {

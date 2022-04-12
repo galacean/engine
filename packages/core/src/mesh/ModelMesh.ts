@@ -435,7 +435,8 @@ export class ModelMesh extends Mesh {
     const blendShapeManager = this._blendShapeManager;
     const blendShapeLayoutOrCountChange = blendShapeManager._layoutOrCountChange();
     const blendShapeDataUpdate = blendShapeManager._needUpdateData();
-    const vertexElementUpdate = this._vertexSlotChanged || blendShapeLayoutOrCountChange;
+    const vertexElementUpdate =
+      this._vertexSlotChanged || (!blendShapeManager._getUseTextureStore() && blendShapeLayoutOrCountChange);
 
     // Vertex element change
     if (vertexElementUpdate) {
@@ -802,7 +803,9 @@ export class ModelMesh extends Mesh {
     }
     this._vertexChangeFlag = 0;
 
-    this._blendShapeManager._updateDataToVertices(vertices, offset, _vertexCount, _elementCount, force);
+    if (!this._blendShapeManager._getUseTextureStore()) {
+      this._blendShapeManager._updateDataToVertices(vertices, offset, _vertexCount, _elementCount, force);
+    }
   }
 
   private _releaseCache(): void {
