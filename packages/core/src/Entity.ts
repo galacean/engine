@@ -1,5 +1,6 @@
 import { Matrix } from "@oasis-engine/math";
 import { EngineObject } from "./base";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
@@ -484,7 +485,7 @@ export class Entity extends EngineObject {
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   private _invModelMatrix: Matrix = new Matrix();
-  private _inverseWorldMatFlag: UpdateFlag;
+  private _inverseWorldMatFlag: BoolUpdateFlag;
 
   /**
    * @deprecated

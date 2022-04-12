@@ -1,4 +1,5 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
@@ -539,8 +540,8 @@ export class Transform extends Component {
    * Register world transform change flag.
    * @returns Change flag
    */
-  registerWorldChangeFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  registerWorldChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
   /**
@@ -706,7 +707,7 @@ export class Transform extends Component {
 
   private _worldAssociatedChange(type: number): void {
     this._dirtyFlag |= type;
-    this._updateFlagManager.distribute();
+    this._updateFlagManager.dispatch();
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean) {

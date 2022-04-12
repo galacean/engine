@@ -1,4 +1,5 @@
 import { Animator, AnimatorController, AnimatorState, Component, Entity, UpdateFlag } from "@oasis-engine/core";
+import { BoolUpdateFlag } from "@oasis-engine/core/types/BoolUpdateFlag";
 import { GLTFResource } from "../gltf/GLTFResource";
 
 /**
@@ -14,7 +15,7 @@ export class GLTFModel extends Component {
   private _glTFEntity: Entity;
   private _clipPreview: string;
   private _hasBuiltNode: boolean = false;
-  private _controllerUpdateFlag: UpdateFlag;
+  private _controllerUpdateFlag: BoolUpdateFlag;
 
   get asset() {
     return this._asset;
@@ -52,7 +53,7 @@ export class GLTFModel extends Component {
   set animatorController(animatorController: AnimatorController) {
     const { _animator: animator } = this;
     if (animatorController !== this._animatorController) {
-      this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
+      this._controllerUpdateFlag && this._controllerUpdateFlag.clearFromManagers();
       // @ts-ignore
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;

@@ -1,5 +1,6 @@
 import { BoundingBox } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
@@ -22,7 +23,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   private _mesh: Mesh;
   @ignoreClone
-  private _meshUpdateFlag: UpdateFlag;
+  private _meshUpdateFlag: BoolUpdateFlag;
 
   /**
    * @internal

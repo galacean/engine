@@ -1,6 +1,7 @@
 import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
@@ -114,8 +115,8 @@ export abstract class Mesh extends RefObject {
    * Register update flag, update flag will be true if the vertex element changes.
    * @returns Update flag
    */
-  registerUpdateFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  registerUpdateFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
   /**
@@ -187,6 +188,6 @@ export abstract class Mesh extends RefObject {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-    this._updateFlagManager.distribute();
+    this._updateFlagManager.dispatch();
   }
 }

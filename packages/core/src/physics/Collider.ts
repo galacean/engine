@@ -4,6 +4,7 @@ import { ICollider } from "@oasis-engine/design";
 import { ColliderShape } from "./shape/ColliderShape";
 import { UpdateFlag } from "../UpdateFlag";
 import { Entity } from "../Entity";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 
 /**
  * Abstract class for collider shapes.
@@ -15,7 +16,7 @@ export abstract class Collider extends Component {
   /** @internal */
   _nativeCollider: ICollider;
 
-  protected _updateFlag: UpdateFlag;
+  protected _updateFlag: BoolUpdateFlag;
 
   private _shapes: ColliderShape[] = [];
 

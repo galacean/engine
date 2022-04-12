@@ -1,4 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { BlendShapeFrame } from "./BlendShapeFrame";
@@ -15,8 +16,9 @@ export class BlendShape {
   /** @internal */
   _useBlendShapeTangent: boolean = true;
 
+  private _layoutChangeManager: UpdateFlagManager = new UpdateFlagManager();
+  private _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
   private _frames: BlendShapeFrame[] = [];
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * Frames of BlendShape.
@@ -73,16 +75,29 @@ export class BlendShape {
    */
   clearFrames(): void {
     this._frames.length = 0;
-    this._updateFlagManager.distribute();
-    this._useBlendShapeNormal = true;
-    this._useBlendShapeTangent = true;
+    this._updateUseNormalAndTangent(true, true);
+    this._dataChangeManager.dispatch();
   }
 
   /**
    * @internal
    */
-  _registerChangeFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  _addLayoutChangeFlag(flag: UpdateFlag): void {
+    this._layoutChangeManager.addFlag(flag);
+  }
+
+  /**
+   * @internal
+   */
+  _addDataDirtyFlag(flag: UpdateFlag): void {
+    this._dataChangeManager.addFlag(flag);
+  }
+
+  /**
+   * @internal
+   */
+  _createSubDataDirtyFlag(): BoolUpdateFlag {
+    return this._dataChangeManager.createFlag(BoolUpdateFlag);
   }
 
   private _addFrame(frame: BlendShapeFrame): void {
@@ -93,12 +108,17 @@ export class BlendShape {
     }
     this._frames.push(frame);
 
-    const hasNormals = !!frame.deltaNormals;
-    const hasTangents = !!frame.deltaTangents;
-    if (this._useBlendShapeNormal !== hasNormals || this._useBlendShapeTangent !== hasTangents) {
-      this._useBlendShapeNormal = hasNormals;
-      this._useBlendShapeTangent = hasTangents;
+    this._updateUseNormalAndTangent(!!frame.deltaNormals, !!frame.deltaTangents);
+    this._dataChangeManager.dispatch();
+  }
+
+  private _updateUseNormalAndTangent(useNormal: boolean, useTangent: boolean): void {
+    const useBlendShapeNormal = this._useBlendShapeNormal && useNormal;
+    const useBlendShapeTangent = this._useBlendShapeTangent && useTangent;
+    if (this._useBlendShapeNormal !== useBlendShapeNormal || this._useBlendShapeTangent !== useBlendShapeTangent) {
+      this._useBlendShapeNormal = useBlendShapeNormal;
+      this._useBlendShapeTangent = useBlendShapeTangent;
+      this._layoutChangeManager.dispatch(this);
     }
-    this._updateFlagManager.distribute();
   }
 }
