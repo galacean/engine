@@ -1,5 +1,4 @@
 import { UpdateFlag } from "./UpdateFlag";
-import { UpdateFlagManager } from "./UpdateFlagManager";
 
 /**
  * Used to update tags.
