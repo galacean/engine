@@ -8,6 +8,10 @@ export abstract class UpdateFlag {
   /** @internal */
   _flagManagers: UpdateFlagManager[] = [];
 
+  /**
+   * Dispatch.
+   * @param param - Parameter
+   */
   abstract dispatch(param?: Object): void;
 
   /**

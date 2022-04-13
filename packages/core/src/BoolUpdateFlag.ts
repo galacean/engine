@@ -11,6 +11,9 @@ export class BoolUpdateFlag extends UpdateFlag {
   /** Flag. */
   flag = true;
 
+  /**
+   * @inheritdoc
+   */
   dispatch(): void {
     this.flag = true;
   }
