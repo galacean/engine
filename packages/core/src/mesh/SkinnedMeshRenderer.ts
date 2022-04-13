@@ -82,15 +82,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const blendShapeManager = (<ModelMesh>this.mesh)._blendShapeManager;
     if (blendShapeManager._blendShapeCount > 0) {
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
+      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeManager._blendShapeCount.toString());
       if (blendShapeManager._useTextureStore()) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
-        shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeManager._blendShapeCount.toString());
-
         shaderData.setTexture(SkinnedMeshRenderer._blendShapeTextureProperty, blendShapeManager._dataTexture);
         shaderData.setVector3(SkinnedMeshRenderer._blendShapeTextureInfoProperty, blendShapeManager._dataTextureInfo);
       } else {
         shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
-        shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
       }
 
       shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
@@ -107,6 +105,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       }
     } else {
       shaderData.disableMacro(SkinnedMeshRenderer._blendShapeMacro);
+      shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
     }
   }
 
