@@ -1,4 +1,3 @@
-import { removeFromArray } from "./base/Util";
 import { UpdateFlag } from "./UpdateFlag";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
@@ -14,15 +13,5 @@ export class BoolUpdateFlag extends UpdateFlag {
 
   dispatch(): void {
     this.flag = true;
-  }
-
-  /**
-   * Destroy.
-   */
-  destroy(): void {
-    for (let i = 0, n = this._flagManagers.length; i < n; i++) {
-      removeFromArray(this._flagManagers[i]._updateFlags, this);
-    }
-    this._flagManagers.length = 0;
   }
 }
