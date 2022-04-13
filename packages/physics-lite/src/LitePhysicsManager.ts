@@ -65,6 +65,16 @@ export class LitePhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeColliderShape }
    */
   removeColliderShape(colliderShape: LiteColliderShape): void {
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    for (let i = currentEvents.length - 1; i >= 0; i--) {
+      const event = currentEvents.get(i);
+      if (event.index1 == colliderShape._id || event.index2 == colliderShape._id) {
+        event.state = TriggerEventState.Exit;
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+      }
+    }
+
     delete this._eventMap[colliderShape._id];
   }
 
@@ -244,17 +254,15 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = currentEvents.length - 1; i >= 0; i--) {
       const event = currentEvents.get(i);
       if (!event.needUpdate) {
         if (event.state == TriggerEventState.Enter) {
           this._onTriggerEnter(event.index1, event.index2);
           event.needUpdate = true;
-          i++;
         } else if (event.state == TriggerEventState.Stay) {
           this._onTriggerStay(event.index1, event.index2);
           event.needUpdate = true;
-          i++;
         }
       } else {
         event.state = TriggerEventState.Exit;
@@ -264,7 +272,6 @@ export class LitePhysicsManager implements IPhysicsManager {
 
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
-        n--;
       }
     }
   }
