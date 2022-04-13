@@ -55,6 +55,13 @@ export class PhysXPhysicsMaterial implements IPhysicsMaterial {
   setFrictionCombine(value: CombineMode) {
     this._pxMaterial.setFrictionCombineMode(value);
   }
+
+  /**
+   * {@inheritDoc IPhysicsMaterial.destroy }
+   */
+  destroy(): void {
+    this._pxMaterial.release();
+  }
 }
 
 /**

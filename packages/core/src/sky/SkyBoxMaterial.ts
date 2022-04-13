@@ -4,7 +4,7 @@ import { Material } from "../material/Material";
 import { CompareFunction } from "../shader/enums/CompareFunction";
 import { CullMode } from "../shader/enums/CullMode";
 import { Shader } from "../shader/Shader";
-import { TextureCubeMap } from "../texture";
+import { TextureCube } from "../texture";
 
 /**
  * SkyboxMaterial
@@ -37,11 +37,11 @@ export class SkyBoxMaterial extends Material {
   /**
    * Texture cube map of the sky box material.
    */
-  get textureCubeMap(): TextureCubeMap {
-    return this.shaderData.getTexture("u_cube") as TextureCubeMap;
+  get textureCubeMap(): TextureCube {
+    return this.shaderData.getTexture("u_cube") as TextureCube;
   }
 
-  set textureCubeMap(v: TextureCubeMap) {
+  set textureCubeMap(v: TextureCube) {
     this.shaderData.setTexture("u_cube", v);
   }
 

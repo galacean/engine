@@ -16,7 +16,9 @@ import { Sprite } from "./Sprite";
  * Renders a Sprite for 2D graphics.
  */
 export class SpriteRenderer extends Renderer implements ICustomClone {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
+  /** @internal */
+  static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
+  
   private static _tempVec3: Vector3 = new Vector3();
 
   /** @internal temp solution. */

@@ -3,7 +3,7 @@ import { Canvas } from "../../Canvas";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
-import { HitResult } from "../../physics";
+import { HitResult, PhysicsManager } from "../../physics";
 import { PointerPhase } from "../enums/PointerPhase";
 import { Pointer } from "./Pointer";
 
@@ -20,8 +20,6 @@ export class PointerManager {
   _pointers: Pointer[] = [];
   /** @internal */
   _multiPointerEnabled: boolean = true;
-  /** @internal */
-  _enablePhysics: boolean = false;
 
   private _engine: Engine;
   private _canvas: Canvas;
@@ -49,7 +47,6 @@ export class PointerManager {
     };
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
     this._pointerPool = new Array<Pointer>(11);
-    this._enablePhysics = engine.physicsManager ? true : false;
   }
 
   /**
@@ -58,7 +55,7 @@ export class PointerManager {
   _update(): void {
     this._needOverallPointers && this._overallPointers();
     this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents);
-    if (this._enablePhysics) {
+    if (this._engine.physicsManager._initialized) {
       const rayCastEntity = this._pointerRayCast();
       const { _keyEventCount: keyEventCount } = this;
       if (keyEventCount > 0) {
@@ -260,7 +257,8 @@ export class PointerManager {
     if (this._currentPressedEntity) {
       const scripts = this._currentPressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
-        scripts.get(i).onPointerDrag();
+        const script = scripts.get(i);
+        script._waitHandlingInValid || script.onPointerDrag();
       }
     }
   }
@@ -270,13 +268,15 @@ export class PointerManager {
       if (this._currentEnteredEntity) {
         const scripts = this._currentEnteredEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
-          scripts.get(i).onPointerExit();
+          const script = scripts.get(i);
+          script._waitHandlingInValid || script.onPointerExit();
         }
       }
       if (rayCastEntity) {
         const scripts = rayCastEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
-          scripts.get(i).onPointerEnter();
+          const script = scripts.get(i);
+          script._waitHandlingInValid || script.onPointerEnter();
         }
       }
       this._currentEnteredEntity = rayCastEntity;
@@ -287,7 +287,8 @@ export class PointerManager {
     if (rayCastEntity) {
       const scripts = rayCastEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
-        scripts.get(i).onPointerDown();
+        const script = scripts.get(i);
+        script._waitHandlingInValid || script.onPointerDown();
       }
     }
     this._currentPressedEntity = rayCastEntity;
@@ -300,8 +301,10 @@ export class PointerManager {
       const scripts = pressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
-        sameTarget && script.onPointerClick();
-        script.onPointerUp();
+        if (!script._waitHandlingInValid) {
+          sameTarget && script.onPointerClick();
+          script.onPointerUp();
+        }
       }
       this._currentPressedEntity = null;
     }
