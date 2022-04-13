@@ -1,19 +1,20 @@
 #ifdef OASIS_BLENDSHAPE
 	#ifdef OASIS_BLENDSHAPE_TEXTURE	
-		float vertexOffset = float(gl_VertexID) * u_blendShapeTextureInfo.x;
+		int vertexOffset = gl_VertexID * u_blendShapeTextureInfo.x;
 		for(int i = 0; i < OASIS_BLENDSHAPE_COUNT; i++){
-			float vertexElementOffset = vertexOffset;
-			position.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * u_blendShapeWeights[i];
+			int vertexElementOffset = vertexOffset;
+			float weight = u_blendShapeWeights[i];
+			position.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 			
 			#ifndef OMIT_NORMAL
 				#if defined( O3_HAS_NORMAL ) && defined( OASIS_BLENDSHAPE_NORMAL )
-					vertexElementOffset += 1.0;
-					normal.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * u_blendShapeWeights[i];
+					vertexElementOffset += 1;
+					normal += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 				#endif
 
 				#if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE ) && defined( OASIS_BLENDSHAPE_TANGENT )
-					vertexElementOffset += 1.0;
-					tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * u_blendShapeWeights[i];
+					vertexElementOffset += 1;
+					tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 				#endif
 			#endif
 		}
@@ -26,10 +27,10 @@
 		#if defined( OASIS_BLENDSHAPE_NORMAL ) || defined( OASIS_BLENDSHAPE_TANGENT )
 			#ifndef OMIT_NORMAL
 				#if defined( O3_HAS_NORMAL ) && defined( OASIS_BLENDSHAPE_NORMAL )
-					normal.xyz += NORMAL_BS0 * u_blendShapeWeights[0];
-					normal.xyz += NORMAL_BS1 * u_blendShapeWeights[1];
-					normal.xyz += NORMAL_BS2 * u_blendShapeWeights[2];
-					normal.xyz += NORMAL_BS3 * u_blendShapeWeights[3];
+					normal += NORMAL_BS0 * u_blendShapeWeights[0];
+					normal += NORMAL_BS1 * u_blendShapeWeights[1];
+					normal += NORMAL_BS2 * u_blendShapeWeights[2];
+					normal += NORMAL_BS3 * u_blendShapeWeights[3];
 				#endif
 
 				#if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE ) && defined( OASIS_BLENDSHAPE_TANGENT )

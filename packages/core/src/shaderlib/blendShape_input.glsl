@@ -1,7 +1,7 @@
 #ifdef OASIS_BLENDSHAPE
 	#ifdef OASIS_BLENDSHAPE_TEXTURE
 		uniform mediump sampler2DArray u_blendShapeTexture;
-		uniform vec3 u_blendShapeTextureInfo;
+		uniform ivec3 u_blendShapeTextureInfo;
 	#else
 		attribute vec3 POSITION_BS0;
 		attribute vec3 POSITION_BS1;
@@ -33,12 +33,12 @@
 	uniform float u_blendShapeWeights[OASIS_BLENDSHAPE_COUNT];
 
 	#ifdef OASIS_BLENDSHAPE_TEXTURE
-		vec3 getBlendShapeVertexElement(int blendShapeIndex, float vertexElementIndex)
+		vec3 getBlendShapeVertexElement(int blendShapeIndex, int vertexElementIndex)
 		{			
-			float y = floor(vertexElementIndex / u_blendShapeTextureInfo.y);
-			float x = vertexElementIndex - y * u_blendShapeTextureInfo.y;
-			vec3 textureUV = vec3((x + 0.5) / u_blendShapeTextureInfo.y, (y + 0.5) / u_blendShapeTextureInfo.z, blendShapeIndex);
-			return texture(u_blendShapeTexture, textureUV).xyz;
+			int y = vertexElementIndex / u_blendShapeTextureInfo.y;
+			int x = vertexElementIndex - y * u_blendShapeTextureInfo.y;
+			ivec3 uv = ivec3(x, y , blendShapeIndex);
+			return texelFetch(u_blendShapeTexture, uv, 0).xyz;
 		}
 	#endif
 #endif
