@@ -2,6 +2,7 @@
 	#ifdef OASIS_BLENDSHAPE_TEXTURE
 		uniform mediump sampler2DArray u_blendShapeTexture;
 		uniform ivec3 u_blendShapeTextureInfo;
+		uniform float u_blendShapeWeights[OASIS_BLENDSHAPE_COUNT];
 	#else
 		attribute vec3 POSITION_BS0;
 		attribute vec3 POSITION_BS1;
@@ -22,15 +23,17 @@
 				attribute vec3 TANGENT_BS2;
 				attribute vec3 TANGENT_BS3;
 			#endif
+			uniform float u_blendShapeWeights[4];
 		#else
 			attribute vec3 POSITION_BS4;
 			attribute vec3 POSITION_BS5;
 			attribute vec3 POSITION_BS6;
 			attribute vec3 POSITION_BS7;
+			uniform float u_blendShapeWeights[8];
 		#endif
 	#endif
 
-	uniform float u_blendShapeWeights[OASIS_BLENDSHAPE_COUNT];
+	
 
 	#ifdef OASIS_BLENDSHAPE_TEXTURE
 		vec3 getBlendShapeVertexElement(int blendShapeIndex, int vertexElementIndex)
