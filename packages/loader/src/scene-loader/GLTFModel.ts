@@ -1,4 +1,4 @@
-import { Animator, AnimatorController, AnimatorState, Component, Entity, UpdateFlag } from "@oasis-engine/core";
+import { Animator, AnimatorController, Component, Entity } from "@oasis-engine/core";
 import { BoolUpdateFlag } from "@oasis-engine/core/types/BoolUpdateFlag";
 import { GLTFResource } from "../gltf/GLTFResource";
 
@@ -165,7 +165,7 @@ export class GLTFModel extends Component {
         this._animator.play(playStateName, 0);
       }
     } else {
-       // @ts-ignore
+      // @ts-ignore
       this._animator._reset();
     }
     if (this._controllerUpdateFlag?.flag) {
@@ -185,7 +185,7 @@ export class GLTFModel extends Component {
         if (defaultStateName) {
           animator.play(defaultStateName, i);
         } else {
-           // @ts-ignore
+          // @ts-ignore
           animator._reset();
         }
         if (this._controllerUpdateFlag?.flag) {
