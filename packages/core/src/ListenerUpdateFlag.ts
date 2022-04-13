@@ -17,7 +17,7 @@ export class ListenerUpdateFlag extends UpdateFlag {
   }
 
   /**
-   * Clear.
+   * Destroy.
    */
   destroy(): void {
     for (let i = 0, n = this._flagManagers.length; i < n; i++) {
