@@ -424,6 +424,20 @@ export class ModelMesh extends Mesh {
   }
 
   /**
+   * Get index of BlendShape by given name.
+   * @param name - The name of BlendShape
+   * @returns The index of BlendShape
+   */
+  getBlendShapeIndex(name: string): number {
+    const blendShapes = this._blendShapeManager._blendShapes;
+    for (let i = 0, n = blendShapes.length; i < n; i++) {
+      if (blendShapes[i].name === name) {
+        return i;
+      }
+    }
+  }
+
+  /**
    * Upload Mesh Data to the graphics API.
    * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
@@ -602,7 +616,7 @@ export class ModelMesh extends Mesh {
     const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     force && (this._vertexChangeFlag = ValueChanged.All);
-    
+
     if (_vertexChangeFlag & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
         const start = _elementCount * i;
