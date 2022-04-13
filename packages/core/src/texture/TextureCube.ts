@@ -67,7 +67,7 @@ export class TextureCube extends Texture {
    */
   setImageSource(
     face: TextureCubeFace,
-    imageSource: TexImageSource,
+    imageSource: TexImageSource | OffscreenCanvas,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,

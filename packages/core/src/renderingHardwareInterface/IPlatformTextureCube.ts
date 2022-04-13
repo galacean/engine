@@ -38,7 +38,7 @@ export interface IPlatformTextureCube extends IPlatformTexture {
    */
   setImageSource(
     face: TextureCubeFace,
-    imageSource: TexImageSource,
+    imageSource: TexImageSource | OffscreenCanvas,
     mipLevel: number,
     flipY: boolean,
     premultiplyAlpha: boolean,
