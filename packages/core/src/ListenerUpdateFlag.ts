@@ -5,9 +5,6 @@ import { UpdateFlagManager } from "./UpdateFlagManager";
  * Used to update tags.
  */
 export class ListenerUpdateFlag extends UpdateFlag {
-  /** @internal */
-  _flagManagers: UpdateFlagManager[] = [];
-
   /** Listener. */
   listener: Function;
 
