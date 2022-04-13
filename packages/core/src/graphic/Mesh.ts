@@ -122,6 +122,27 @@ export abstract class Mesh extends RefObject {
   /**
    * @internal
    */
+  _clearVertexElements(): void {
+    this._vertexElements.length = 0;
+    const vertexElementMap = this._vertexElementMap;
+    for (const k in vertexElementMap) {
+      delete vertexElementMap[k];
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _addVertexElement(element: VertexElement): void {
+    const { semantic } = element;
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.push(element);
+    this._updateFlagManager.dispatch();
+  }
+
+  /**
+   * @internal
+   */
   _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
     this._platformPrimitive.draw(shaderProgram, subMesh);
   }
@@ -174,20 +195,5 @@ export abstract class Mesh extends RefObject {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
     }
-  }
-
-  private _clearVertexElements(): void {
-    this._vertexElements.length = 0;
-    const vertexElementMap = this._vertexElementMap;
-    for (const k in vertexElementMap) {
-      delete vertexElementMap[k];
-    }
-  }
-
-  private _addVertexElement(element: VertexElement): void {
-    const { semantic } = element;
-    this._vertexElementMap[semantic] = element;
-    this._vertexElements.push(element);
-    this._updateFlagManager.dispatch();
   }
 }

@@ -5,6 +5,7 @@ import { VertexElement, VertexElementFormat } from "../graphic";
 import { ListenerUpdateFlag } from "../ListenerUpdateFlag";
 import { Texture2DArray, TextureFilterMode, TextureFormat } from "../texture";
 import { BlendShape } from "./BlendShape";
+import { ModelMesh } from "./ModelMesh";
 
 /**
  * @internal
@@ -113,19 +114,19 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _updateVertexElements(vertexElements: VertexElement[], offset: number): number {
+  _updateVertexElements(modelMesh: ModelMesh, offset: number): number {
     let elementCount = 0;
     for (let i = 0, n = this._blendShapeCount; i < n; i++) {
-      vertexElements.push(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+      modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       elementCount += 3;
       if (this._useBlendNormal) {
-        vertexElements.push(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+        modelMesh._addVertexElement(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         offset += 12;
         elementCount += 3;
       }
       if (this._useBlendTangent) {
-        vertexElements.push(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+        modelMesh._addVertexElement(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         elementCount += 3;
       }
     }
