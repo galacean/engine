@@ -130,8 +130,8 @@ class HDRLoader extends Loader<TextureCube> {
         v.normalize();
 
         const color = this._calcProjectionSpherical(v, pixels, inputWidth, inputHeight);
-        // this._RGBEToLinear(color);
-        // this._linearToRGBM(color, 5);
+        this._RGBEToLinear(color);
+        this._linearToRGBM(color, 5);
 
         // 4 channels per pixels
         textureArray[y * texSize * 4 + x * 4] = color.r;
