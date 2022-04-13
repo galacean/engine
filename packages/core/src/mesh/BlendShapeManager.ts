@@ -74,7 +74,15 @@ export class BlendShapeManager {
    * @internal
    */
   _useTextureStore(): boolean {
-    return this._blendShapeCount > 4 && this._canUseTextureStoreData;
+    if (!this._canUseTextureStoreData) {
+      return false;
+    }
+
+    if (this._useBlendNormal || this._useBlendTangent) {
+      return this._blendShapeCount > 4;
+    } else {
+      return this._blendShapeCount > 8;
+    }
   }
 
   /**
