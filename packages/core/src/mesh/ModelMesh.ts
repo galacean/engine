@@ -429,11 +429,15 @@ export class ModelMesh extends Mesh {
    * @returns The index of BlendShape
    */
   getBlendShapeIndex(name: string): number {
-    const blendShapes = this._blendShapeManager._blendShapes;
-    for (let i = 0, n = blendShapes.length; i < n; i++) {
-      if (blendShapes[i].name === name) {
-        return i;
+    if (this._accessible) {
+      const blendShapes = this._blendShapeManager._blendShapes;
+      for (let i = 0, n = blendShapes.length; i < n; i++) {
+        if (blendShapes[i].name === name) {
+          return i;
+        }
       }
+    } else {
+      return this._blendShapeManager._blendShapeNamesMap[name];
     }
   }
 
