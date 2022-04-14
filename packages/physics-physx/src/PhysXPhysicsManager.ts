@@ -118,16 +118,15 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    */
   removeColliderShape(colliderShape: PhysXColliderShape) {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    const { _id: shapeID } = colliderShape;
     for (let i = currentEvents.length - 1; i >= 0; i--) {
       const event = currentEvents.get(i);
-      if (event.index1 == colliderShape._id || event.index2 == colliderShape._id) {
-        event.state = TriggerEventState.Exit;
+      if (event.index1 == shapeID || event.index2 == shapeID) {
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
       }
     }
-
-    delete this._eventMap[colliderShape._id];
+    delete this._eventMap[shapeID];
   }
 
   /**
