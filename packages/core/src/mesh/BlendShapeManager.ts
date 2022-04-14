@@ -17,7 +17,7 @@ export class BlendShapeManager {
   /** @internal */
   _blendShapes: BlendShape[] = [];
   /** @internal */
-  _blendShapeNamesMap: Record<string, number>;
+  _blendShapeNames: string[];
   /** @internal */
   _blendShapeCount: number = 0;
   /** @internal */
@@ -314,12 +314,12 @@ export class BlendShapeManager {
    * @internal
    */
   _releaseMemoryCache(): void {
-    const blendShapeNamesMap: Record<string, number> = {};
     const { _blendShapes: blendShapes } = this;
+    const blendShapeNamesMap = new Array<string>(blendShapes.length);
     for (let i = 0, n = blendShapes.length; i < n; i++) {
-      blendShapeNamesMap[blendShapes[i].name] = i;
+      blendShapeNamesMap[i] = blendShapes[i].name;
     }
-    this._blendShapeNamesMap = blendShapeNamesMap;
+    this._blendShapeNames = blendShapeNamesMap;
 
     this._layoutDirtyFlag.destroy();
     const dataChangedFlags = this._subDataDirtyFlags;
