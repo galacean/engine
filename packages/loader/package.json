@@ -4,7 +4,8 @@
   "license": "MIT",
   "types": "types/index.d.ts",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "watch:types": "tsc -w"
   },
   "main": "dist/main.js",
   "module": "dist/module.js",

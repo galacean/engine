@@ -5,7 +5,8 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "watch:types": "tsc -w"
   },
   "files": [
     "dist/**/*",

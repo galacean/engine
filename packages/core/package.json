@@ -7,7 +7,8 @@
   "types": "types/index.d.ts",
   "debug": "src/index.ts",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "watch:types": "tsc -w"
   },
   "files": [
     "dist/**/*",

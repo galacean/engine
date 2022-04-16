@@ -14,6 +14,7 @@
     "watch": "cross-env NODE_ENV=development BUILD_TYPE=MODULE rollup -cw -m inline",
     "watch:umd": "cross-env NODE_ENV=development BUILD_TYPE=UMD rollup -cw -m inline",
     "b:types": "lerna run b:types",
+    "watch:types": "lerna run watch:types --parallel",
     "b:module": "cross-env BUILD_TYPE=MODULE rollup -c",
     "b:umd": "cross-env BUILD_TYPE=UMD rollup -c",
     "b:miniprogram": "cross-env BUILD_TYPE=MINI rollup -c",
@@ -71,5 +72,8 @@
       "eslint --fix",
       "git add"
     ]
+  },
+  "dependencies": {
+    "@swc/core": "^1.2.161"
   }
 }

@@ -6,7 +6,8 @@
   "module": "dist/module.js",
   "browser": "dist/browser.js",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "watch:types": "tsc -w"
   },
   "types": "types/index.d.ts",
   "files": [
