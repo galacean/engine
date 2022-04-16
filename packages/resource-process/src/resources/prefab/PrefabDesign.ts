@@ -2,9 +2,7 @@ export interface IPrefabFile {
   entities: Array<IEntity>;
 }
 
-export interface IScene extends IPrefabFile {
-  scene: {};
-}
+export interface IScene extends IPrefabFile {}
 
 export interface IVector3 {
   x: number;
@@ -41,4 +39,4 @@ export type IClassObject = {
 
 export type IBasicType = string | number | boolean | null | undefined | IReferenceType | IClassObject | IMethodParams;
 
-export type IReferenceType = { objectId: string; path: string, reflect: IBasicType };
+export type IReferenceType = { objectId: string; path: string; reflect: IBasicType };
