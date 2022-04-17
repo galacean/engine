@@ -137,7 +137,7 @@ export class Scene extends EngineObject {
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
       this._removeEntity(entity);
-      this._isActiveInEngine && entity._processInActive();
+      this._isActiveInEngine && entity._isActiveInHierarchy && entity._processInActive();
       Entity._traverseSetOwnerScene(entity, null);
     }
   }
