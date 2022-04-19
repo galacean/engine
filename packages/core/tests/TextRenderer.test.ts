@@ -1,3 +1,4 @@
+// @ts-nocheck
 import { WebGLEngine } from "../../rhi-webgl/src/WebGLEngine";
 import { TextRenderer } from "../src/index";
 
@@ -55,3 +56,4 @@ describe("TextRenderer", () => {
     expect(textRenderer.enableWrapping).toEqual(true);
   });
 });
+
