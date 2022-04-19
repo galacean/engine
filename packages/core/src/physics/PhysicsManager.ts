@@ -18,7 +18,7 @@ export class PhysicsManager {
   private _engine: Engine;
   private _restTime: number = 0;
 
-  private _gravity: Vector3 = new Vector3();
+  private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap: Record<number, ColliderShape> = {};
   private _onContactEnter = (obj1: number, obj2: number) => {
