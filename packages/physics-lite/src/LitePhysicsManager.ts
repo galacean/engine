@@ -70,7 +70,6 @@ export class LitePhysicsManager implements IPhysicsManager {
     for (let i = currentEvents.length - 1; i >= 0; i--) {
       const event = currentEvents.get(i);
       if (event.index1 == shapeID || event.index2 == shapeID) {
-        event.state = TriggerEventState.Exit;
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
       }
