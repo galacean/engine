@@ -151,7 +151,7 @@ describe("Script", () => {
       const component = entity.addComponent(TheScript);
       engine.update();
       engine.update();
-      expect(component.onStart).toHaveBeenCalledTimes(0);
+      expect(component.onStart).toHaveBeenCalledTimes(1);
     });
 
     it("inActive", () => {

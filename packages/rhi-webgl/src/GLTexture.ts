@@ -187,7 +187,7 @@ export class GLTexture implements IPlatformTexture {
    * @internal
    */
   static _getRenderBufferDepthFormatDetail(
-    format: TextureFormat,
+    format: TextureFormat | RenderBufferDepthFormat,
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
   ): TextureFormatDetail {
@@ -325,7 +325,11 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferDepthFormat(format: TextureFormat, rhi: WebGLRenderer, isTexture: boolean): boolean {
+  static _supportRenderBufferDepthFormat(
+    format: TextureFormat | RenderBufferDepthFormat,
+    rhi: WebGLRenderer,
+    isTexture: boolean
+  ): boolean {
     const isWebGL2: boolean = rhi.isWebGL2;
     let isSupported = true;
 
