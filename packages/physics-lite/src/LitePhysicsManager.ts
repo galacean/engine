@@ -74,7 +74,6 @@ export class LitePhysicsManager implements IPhysicsManager {
         eventPool.push(event);
       }
     }
-
     delete this._eventMap[shapeID];
   }
 
