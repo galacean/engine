@@ -31,13 +31,13 @@ export class AnimatorStatePlayData {
     this.playState = AnimatorStatePlayState.Playing;
     if (state.wrapMode === WrapMode.Loop) {
       time = time % duration;
-      time < 0 && (time += duration);
     } else {
       if (Math.abs(time) > duration) {
         time = isBackwards ? -duration : duration;
         this.playState = AnimatorStatePlayState.Finished;
       }
     }
+    time < 0 && (time += duration);
     this.clipTime = time + state.clipStartTime * state.clip.length;
   }
 }
