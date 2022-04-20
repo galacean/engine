@@ -29,7 +29,6 @@ export class ModelMesh extends Mesh {
   private _vertexChangeFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
   private _elementCount: number = 0;
-  private _vertexElementsCache: VertexElement[] = [];
   private _lastUploadVertexCount: number = 0;
 
   private _positions: Vector3[] = [];
@@ -455,9 +454,7 @@ export class ModelMesh extends Mesh {
 
     // Vertex element change
     if (vertexElementUpdate) {
-      const vertexElements = this._vertexElementsCache;
-      this._updateVertexElements(vertexElements, blendVertexElementChanged);
-      this._setVertexElements(vertexElements);
+      this._updateVertexElements(blendVertexElementChanged);
     }
 
     const { _vertexCount: vertexCount } = this;
@@ -531,81 +528,81 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
-  private _updateVertexElements(vertexElements: VertexElement[], blendVertexElementChanged: boolean): void {
-    vertexElements.length = 1;
-    vertexElements[0] = POSITION_VERTEX_ELEMENT;
+  private _updateVertexElements(blendVertexElementChanged: boolean): void {
+    this._clearVertexElements();
+    this._addVertexElement(POSITION_VERTEX_ELEMENT);
 
     let offset = 12;
     let elementCount = 3;
     if (this._normals) {
-      vertexElements.push(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
+      this._addVertexElement(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       elementCount += 3;
     }
     if (this._colors) {
-      vertexElements.push(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
+      this._addVertexElement(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
       elementCount += 4;
     }
     if (this._boneWeights) {
-      vertexElements.push(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
+      this._addVertexElement(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
       elementCount += 4;
     }
     if (this._boneIndices) {
-      vertexElements.push(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
+      this._addVertexElement(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
       offset += 4;
       elementCount += 1;
     }
     if (this._tangents) {
-      vertexElements.push(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
+      this._addVertexElement(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
       offset += 16;
       elementCount += 4;
     }
     if (this._uv) {
-      vertexElements.push(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
+      this._addVertexElement(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
     if (this._uv1) {
-      vertexElements.push(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
+      this._addVertexElement(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
     if (this._uv2) {
-      vertexElements.push(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
+      this._addVertexElement(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
     if (this._uv3) {
-      vertexElements.push(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
+      this._addVertexElement(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
     if (this._uv4) {
-      vertexElements.push(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
+      this._addVertexElement(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
     if (this._uv5) {
-      vertexElements.push(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
+      this._addVertexElement(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
     if (this._uv6) {
-      vertexElements.push(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
+      this._addVertexElement(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
     if (this._uv7) {
-      vertexElements.push(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
+      this._addVertexElement(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
       offset += 8;
       elementCount += 2;
     }
     this._vertexSlotChanged = false;
 
     if (blendVertexElementChanged) {
-      elementCount += this._blendShapeManager._updateVertexElements(vertexElements, offset);
+      elementCount += this._blendShapeManager._updateVertexElements(this, offset);
     }
 
     this._elementCount = elementCount;
