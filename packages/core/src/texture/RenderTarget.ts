@@ -1,8 +1,8 @@
 import { EngineObject } from "../base";
 import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
+import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 import { TextureCubeFace } from "./enums/TextureCubeFace";
-import { TextureFormat } from "./enums/TextureFormat";
 import { Texture } from "./Texture";
 
 /**
@@ -13,7 +13,7 @@ export class RenderTarget extends EngineObject {
   _platformRenderTarget: IPlatformRenderTarget;
 
   /** @internal */
-  _depth: Texture | TextureFormat | null;
+  _depth: Texture | RenderBufferDepthFormat | null;
   /** @internal */
   _antiAliasing: number;
 
@@ -76,7 +76,7 @@ export class RenderTarget extends EngineObject {
    * @param width - Render target width
    * @param height - Render target height
    * @param colorTexture - Render color texture
-   * @param depthFormat - Depth format. default TextureFormat.Depth, engine will automatically select the supported precision
+   * @param depthFormat - Depth format. default RenderBufferDepthFormat.Depth, engine will automatically select the supported precision
    * @param antiAliasing - Anti-aliasing level, default is 1
    */
   constructor(
@@ -84,7 +84,7 @@ export class RenderTarget extends EngineObject {
     width: number,
     height: number,
     colorTexture: Texture,
-    depthFormat?: TextureFormat | null,
+    depthFormat?: RenderBufferDepthFormat | null,
     antiAliasing?: number
   );
 
@@ -113,7 +113,7 @@ export class RenderTarget extends EngineObject {
    * @param width - Render target width
    * @param height - Render target height
    * @param colorTextures - Render color texture array
-   * @param depthFormat - Depth format. default TextureFormat.Depth,engine will automatically select the supported precision
+   * @param depthFormat - Depth format. default RenderBufferDepthFormat.Depth,engine will automatically select the supported precision
    * @param antiAliasing - Anti-aliasing level, default is 1
    */
   constructor(
@@ -121,7 +121,7 @@ export class RenderTarget extends EngineObject {
     width: number,
     height: number,
     colorTextures: Texture[],
-    depthFormat?: TextureFormat | null,
+    depthFormat?: RenderBufferDepthFormat | null,
     antiAliasing?: number
   );
 
@@ -151,7 +151,7 @@ export class RenderTarget extends EngineObject {
     width: number,
     height: number,
     renderTexture: Texture | Array<Texture> | null,
-    depth: Texture | TextureFormat | null = TextureFormat.Depth,
+    depth: Texture | RenderBufferDepthFormat | null = RenderBufferDepthFormat.Depth,
     antiAliasing: number = 1
   ) {
     super(engine);

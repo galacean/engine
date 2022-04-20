@@ -18,21 +18,22 @@ export abstract class UpdateFlag {
    * Clear.
    */
   clearFromManagers(): void {
-    const flagManagers = this._flagManagers;
-    for (let i = 0, n = flagManagers.length; i < n; i++) {
-      removeFromArray(flagManagers[i]._updateFlags, this);
-    }
-    flagManagers.length = 0;
+    this._removeFromManagers();
+    this._flagManagers.length = 0;
   }
 
   /**
    * Destroy.
    */
   destroy(): void {
+    this._removeFromManagers();
+    this._flagManagers = null;
+  }
+
+  private _removeFromManagers(): void {
     const flagManagers = this._flagManagers;
     for (let i = 0, n = flagManagers.length; i < n; i++) {
       removeFromArray(flagManagers[i]._updateFlags, this);
     }
-    this._flagManagers = null;
   }
 }

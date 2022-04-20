@@ -5,7 +5,6 @@ import { VertexElement, VertexElementFormat } from "../graphic";
 import { ListenerUpdateFlag } from "../ListenerUpdateFlag";
 import { Texture2DArray, TextureFilterMode, TextureFormat } from "../texture";
 import { BlendShape } from "./BlendShape";
-import { ModelMesh } from "./ModelMesh";
 
 /**
  * @internal
@@ -18,6 +17,8 @@ export class BlendShapeManager {
   /** @internal */
   _blendShapes: BlendShape[] = [];
   /** @internal */
+  _blendShapeNames: string[];
+  /** @internal */
   _blendShapeCount: number = 0;
   /** @internal */
   _layoutDirtyFlag: ListenerUpdateFlag = new ListenerUpdateFlag();
@@ -29,11 +30,11 @@ export class BlendShapeManager {
   /** @internal */
   _dataTexture: Texture2DArray;
   /** @internal */
-  _dataTextureInfo: Vector3 = new Vector3();
+  readonly _dataTextureInfo: Vector3 = new Vector3();
 
-  private _engine: Engine;
-  private _lastUpdateLayoutAndCountInfo: Vector3 = new Vector3(0, 0, 0);
-  private _canUseTextureStoreData: boolean = true;
+  private readonly _engine: Engine;
+  private readonly _lastUpdateLayoutAndCountInfo: Vector3 = new Vector3(0, 0, 0);
+  private readonly _canUseTextureStoreData: boolean = true;
 
   constructor(engine: Engine) {
     this._engine = engine;
@@ -104,29 +105,31 @@ export class BlendShapeManager {
    * @internal
    */
   _needUpdateData(): boolean {
-    for (let i = 0, n = this._subDataDirtyFlags.length; i < n; i++) {
-      if (this._subDataDirtyFlags[i].flag) {
+    const subDataDirtyFlags = this._subDataDirtyFlags;
+    for (let i = 0, n = subDataDirtyFlags.length; i < n; i++) {
+      if (subDataDirtyFlags[i].flag) {
         return true;
       }
     }
+    return false;
   }
 
   /**
    * @internal
    */
-  _updateVertexElements(modelMesh: ModelMesh, offset: number): number {
+  _updateVertexElements(vertexElements: VertexElement[], offset: number): number {
     let elementCount = 0;
     for (let i = 0, n = this._blendShapeCount; i < n; i++) {
-      modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+      vertexElements.push(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       elementCount += 3;
       if (this._useBlendNormal) {
-        modelMesh._addVertexElement(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+        vertexElements.push(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         offset += 12;
         elementCount += 3;
       }
       if (this._useBlendTangent) {
-        modelMesh._addVertexElement(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+        vertexElements.push(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         elementCount += 3;
       }
     }
@@ -238,7 +241,6 @@ export class BlendShapeManager {
       textureWidth = maxTextureSize;
     }
 
-    const shapeCount = this._blendShapes.length;
     let blendShapeDataTexture = this._dataTexture;
     const blendShapeCount = this._blendShapes.length;
 
@@ -254,7 +256,7 @@ export class BlendShapeManager {
     );
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
 
-    this._dataTextureBuffer = new Float32Array(shapeCount * textureWidth * textureHeight * 4);
+    this._dataTextureBuffer = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);
     this._dataTexture = blendShapeDataTexture;
     this._dataTextureInfo.setValue(vertexPixelStride, textureWidth, textureHeight);
   }
@@ -313,6 +315,13 @@ export class BlendShapeManager {
    * @internal
    */
   _releaseMemoryCache(): void {
+    const { _blendShapes: blendShapes } = this;
+    const blendShapeNamesMap = new Array<string>(blendShapes.length);
+    for (let i = 0, n = blendShapes.length; i < n; i++) {
+      blendShapeNamesMap[i] = blendShapes[i].name;
+    }
+    this._blendShapeNames = blendShapeNamesMap;
+
     this._layoutDirtyFlag.destroy();
     const dataChangedFlags = this._subDataDirtyFlags;
     for (let i = 0, n = dataChangedFlags.length; i < n; i++) {

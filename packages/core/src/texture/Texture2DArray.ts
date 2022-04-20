@@ -9,7 +9,7 @@ import { Texture } from "./Texture";
  * Two-dimensional texture array.
  */
 export class Texture2DArray extends Texture {
-  private _length: number;
+  private readonly _length: number;
 
   /**
    * The length of the texture.
@@ -87,6 +87,7 @@ export class Texture2DArray extends Texture {
    * Setting pixels data through TexImageSource, designated area and texture mipmapping level.
    * @param elementIndex - The texture array element index
    * @param imageSource - The source of texture
+   * @param mipLevel - Texture mipmapping level
    * @param flipY - Whether to flip the Y axis
    * @param premultiplyAlpha - Whether to premultiply the transparent channel
    * @param x - X coordinate of area start
@@ -114,6 +115,7 @@ export class Texture2DArray extends Texture {
 
   /**
    * Get pixel color buffer.
+   * @param elementIndex - The texture array element index
    * @param out - Color buffer
    */
   getPixelBuffer(elementIndex: number, out: ArrayBufferView): void;
