@@ -18,8 +18,8 @@ describe("TextRenderer", () => {
     const textRenderer = rootEntity.addComponent(TextRenderer);
 
     expect(textRenderer instanceof TextRenderer).toEqual(true);
-    expect(textRenderer.text).toEqual("");
-    expect(textRenderer.fontSize).toEqual(26);
+    expect(textRenderer.text == "").toEqual(true);
+    expect(textRenderer.fontSize).toEqual(24);
     expect(textRenderer.lineSpacing).toEqual(0);
     expect(textRenderer.enableWrapping).toEqual(false);
   });
