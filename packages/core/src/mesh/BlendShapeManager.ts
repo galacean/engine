@@ -105,11 +105,13 @@ export class BlendShapeManager {
    * @internal
    */
   _needUpdateData(): boolean {
-    for (let i = 0, n = this._subDataDirtyFlags.length; i < n; i++) {
-      if (this._subDataDirtyFlags[i].flag) {
+    const subDataDirtyFlags = this._subDataDirtyFlags;
+    for (let i = 0, n = subDataDirtyFlags.length; i < n; i++) {
+      if (subDataDirtyFlags[i].flag) {
         return true;
       }
     }
+    return false;
   }
 
   /**
@@ -239,7 +241,6 @@ export class BlendShapeManager {
       textureWidth = maxTextureSize;
     }
 
-    const shapeCount = this._blendShapes.length;
     let blendShapeDataTexture = this._dataTexture;
     const blendShapeCount = this._blendShapes.length;
 
@@ -255,7 +256,7 @@ export class BlendShapeManager {
     );
     blendShapeDataTexture.filterMode = TextureFilterMode.Point;
 
-    this._dataTextureBuffer = new Float32Array(shapeCount * textureWidth * textureHeight * 4);
+    this._dataTextureBuffer = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);
     this._dataTexture = blendShapeDataTexture;
     this._dataTextureInfo.setValue(vertexPixelStride, textureWidth, textureHeight);
   }
