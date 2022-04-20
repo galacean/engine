@@ -1,5 +1,6 @@
 import { BoundingFrustum, MathUtil, Matrix, Quaternion, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Logger } from "./base";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependencies } from "./ComponentsDependencies";
@@ -124,13 +125,13 @@ export class Camera extends Component {
   private _renderTarget: RenderTarget = null;
 
   @ignoreClone
-  private _frustumViewChangeFlag: UpdateFlag;
+  private _frustumViewChangeFlag: BoolUpdateFlag;
   @ignoreClone
   private _transform: Transform;
   @ignoreClone
-  private _isViewMatrixDirty: UpdateFlag;
+  private _isViewMatrixDirty: BoolUpdateFlag;
   @ignoreClone
-  private _isInvViewProjDirty: UpdateFlag;
+  private _isInvViewProjDirty: BoolUpdateFlag;
   @deepClone
   private _projectionMatrix: Matrix = new Matrix();
   @deepClone

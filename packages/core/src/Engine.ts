@@ -32,7 +32,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
-import { Texture2D, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
 /** TODO: delete */
 const engineFeatureManager = new FeatureManager<EngineFeature>();
@@ -63,6 +63,8 @@ export class Engine extends EventDispatcher {
   _whiteTexture2D: Texture2D;
   /* @internal */
   _whiteTextureCube: TextureCube;
+  /* @internal */
+  _whiteTexture2DArray: Texture2DArray;
   /* @internal */
   _backgroundTextureMaterial: Material;
   /* @internal */
@@ -213,6 +215,13 @@ export class Engine extends EventDispatcher {
 
     this._whiteTexture2D = whiteTexture2D;
     this._whiteTextureCube = whiteTextureCube;
+
+    if (hardwareRenderer.isWebGL2) {
+      const whiteTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
+      whiteTexture2DArray.setPixelBuffer(0, whitePixel);
+      whiteTexture2DArray.isGCIgnored = true;
+      this._whiteTexture2DArray = whiteTexture2DArray;
+    }
 
     this._backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
     this._backgroundTextureMaterial.isGCIgnored = true;

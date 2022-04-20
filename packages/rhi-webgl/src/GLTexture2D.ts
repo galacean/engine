@@ -6,14 +6,9 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * Texture 2d in WebGL platform.
  */
 export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
-  /**
-   * Backward compatible with WebGL1.0.
-   */
+  /** Backward compatible with WebGL1.0. */
   private _compressedMipFilled: number = 0;
 
-  /**
-   * Create texture2D in WebGL platform.
-   */
   constructor(rhi: WebGLRenderer, texture2D: Texture2D) {
     super(rhi, texture2D, rhi.gl.TEXTURE_2D);
 
@@ -41,20 +36,13 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   }
 
   /**
-   * Setting pixels data through color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
-   * @remarks If it is the WebGL1.0 platform and the texture format is compressed, the first upload must be filled with textures.
-   * @param colorBuffer - Color buffer data
-   * @param mipLevel - Texture mipmapping level
-   * @param x - X coordinate of area start
-   * @param y - Y coordinate of area start
-   * @param width - Data width. if it's empty, width is the width corresponding to mipLevel minus x , width corresponding to mipLevel is Math.max(1, this.width >> mipLevel)
-   * @param height - Data height. if it's empty, height is the height corresponding to mipLevel minus y , height corresponding to mipLevel is Math.max(1, this.height >> mipLevel)
+   * {@inheritDoc IPlatformTexture2D.setPixelBuffer}
    */
   setPixelBuffer(
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
-    x?: number,
-    y?: number,
+    x: number,
+    y: number,
     width?: number,
     height?: number
   ): void {
@@ -64,8 +52,6 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     const mipWidth = Math.max(1, this._texture.width >> mipLevel);
     const mipHeight = Math.max(1, this._texture.height >> mipLevel);
 
-    x = x || 0;
-    y = y || 0;
     width = width || mipWidth - x;
     height = height || mipHeight - y;
 
@@ -88,21 +74,15 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   }
 
   /**
-   * Setting pixels data through TexImageSource, designated area and texture mipmapping level.
-   * @param imageSource - The source of texture
-   * @param mipLevel - Texture mipmapping level
-   * @param flipY - Whether to flip the Y axis
-   * @param premultiplyAlpha - Whether to premultiply the transparent channel
-   * @param x - X coordinate of area start
-   * @param y - Y coordinate of area start
+   * {@inheritDoc IPlatformTexture2D.setImageSource}
    */
   setImageSource(
     imageSource: TexImageSource,
-    mipLevel: number = 0,
-    flipY: boolean = false,
-    premultiplyAlpha: boolean = false,
-    x?: number,
-    y?: number
+    mipLevel: number,
+    flipY: boolean,
+    premultiplyAlpha: boolean,
+    x: number,
+    y: number
   ): void {
     const gl = this._gl;
     const { baseFormat, dataType } = this._formatDetail;
@@ -114,13 +94,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
   }
 
   /**
-   * Get the pixel color buffer according to the specified area.
-   * @param x - X coordinate of area start
-   * @param y - Y coordinate of area start
-   * @param width - Area width
-   * @param height - Area height
-   * @param mipLevel - Set mip level the data want to get from
-   * @param out - Color buffer
+   * {@inheritDoc IPlatformTexture2D.getPixelBuffer }
    */
   getPixelBuffer(x: number, y: number, width: number, height: number, mipLevel: number, out: ArrayBufferView): void {
     if (this._formatDetail.isCompressed) {

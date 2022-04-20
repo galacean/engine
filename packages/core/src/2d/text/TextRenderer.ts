@@ -1,6 +1,7 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Sprite, SpriteMaskInteraction, SpriteMaskLayer, SpriteRenderer } from "..";
 import { CompareFunction, Renderer, UpdateFlag } from "../..";
+import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
@@ -55,7 +56,7 @@ export class TextRenderer extends Renderer {
   @ignoreClone
   private _dirtyFlag: number = DirtyFlag.Property;
   @ignoreClone
-  private _isWorldMatrixDirty: UpdateFlag;
+  private _isWorldMatrixDirty: BoolUpdateFlag;
   @assignmentClone
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   @assignmentClone

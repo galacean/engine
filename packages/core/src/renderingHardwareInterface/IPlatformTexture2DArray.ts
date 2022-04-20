@@ -1,34 +1,34 @@
-import { TextureCubeFace } from "../texture";
 import { IPlatformTexture } from "./IPlatformTexture";
 
 /**
- * Cube texture interface specification.
+ * 2D texture array interface specification.
  */
-export interface IPlatformTextureCube extends IPlatformTexture {
+export interface IPlatformTexture2DArray extends IPlatformTexture {
   /**
-   * Setting pixels data through cube face,color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
-   * @remarks When compressed texture is in WebGL1, the texture must be filled first before writing the sub-region
-   * @param face - Cube face
+   * Setting pixels data through color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
+   * @param offsetIndex - The texture array element offset index
    * @param colorBuffer - Color buffer data
    * @param mipLevel - Texture mipmapping level
    * @param x - X coordinate of area start
-   * @param y -  Y coordinate of area start
-   * @param width - Data width.if it's empty, width is the width corresponding to mipLevel minus x , width corresponding to mipLevel is Math.max(1, this.width >> mipLevel)
-   * @param height - Data height.if it's empty, height is the height corresponding to mipLevel minus y , height corresponding to mipLevel is Math.max(1, this.height >> mipLevel)
+   * @param y - Y coordinate of area start
+   * @param width - Data width. if it's empty, width is the width corresponding to mipLevel minus x , width corresponding to mipLevel is Math.max(1, this.width >> mipLevel)
+   * @param height - Data height. if it's empty, height is the height corresponding to mipLevel minus y , height corresponding to mipLevel is Math.max(1, this.height >> mipLevel)
+   * @param length - Data length.
    */
   setPixelBuffer(
-    face: TextureCubeFace,
+    offsetIndex: number,
     colorBuffer: ArrayBufferView,
     mipLevel: number,
     x: number,
     y: number,
     width?: number,
-    height?: number
+    height?: number,
+    length?: number
   ): void;
 
   /**
-   * Setting pixels data through cube face, TexImageSource, designated area and texture mipmapping level.
-   * @param face - Cube face
+   * Setting pixels data through TexImageSource, designated area and texture mipmapping level.
+   * @param index - The texture array element index
    * @param imageSource - The source of texture
    * @param mipLevel - Texture mipmapping level
    * @param flipY - Whether to flip the Y axis
@@ -37,7 +37,7 @@ export interface IPlatformTextureCube extends IPlatformTexture {
    * @param y - Y coordinate of area start
    */
   setImageSource(
-    face: TextureCubeFace,
+    index: number,
     imageSource: TexImageSource | OffscreenCanvas,
     mipLevel: number,
     flipY: boolean,
@@ -47,8 +47,8 @@ export interface IPlatformTextureCube extends IPlatformTexture {
   ): void;
 
   /**
-   * Get the pixel color buffer according to the specified cube face and area.
-   * @param face - You can choose which cube face to read
+   * Get the pixel color buffer according to the specified area.
+   * @param elementIndex - The texture array element index
    * @param x - X coordinate of area start
    * @param y - Y coordinate of area start
    * @param width - Area width
@@ -57,7 +57,7 @@ export interface IPlatformTextureCube extends IPlatformTexture {
    * @param out - Color buffer
    */
   getPixelBuffer(
-    face: TextureCubeFace,
+    elementIndex: number,
     x: number,
     y: number,
     width: number,

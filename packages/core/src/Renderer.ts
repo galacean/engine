@@ -1,4 +1,5 @@
 import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Camera } from "./Camera";
 import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
@@ -52,7 +53,7 @@ export abstract class Renderer extends Component {
   protected _materials: Material[] = [];
 
   @ignoreClone
-  private _transformChangeFlag: UpdateFlag;
+  private _transformChangeFlag: BoolUpdateFlag;
   @deepClone
   private _bounds: BoundingBox = new BoundingBox(new Vector3(), new Vector3());
   @ignoreClone
