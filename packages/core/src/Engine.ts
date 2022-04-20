@@ -278,9 +278,8 @@ export class Engine extends EventDispatcher {
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
-      componentsManager.handlingInvalidScripts();
-
       this._render(scene);
+      componentsManager.handlingInvalidScripts();
     }
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
