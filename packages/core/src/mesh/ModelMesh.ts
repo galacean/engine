@@ -29,7 +29,7 @@ export class ModelMesh extends Mesh {
   private _vertexChangeFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
   private _elementCount: number = 0;
-  private _lastUploadVertexCount: number = 0;
+  private _lastUploadVertexCount: number = -1;
 
   private _positions: Vector3[] = [];
   private _normals: Vector3[] | null = null;
@@ -97,13 +97,9 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    const count = positions.length;
     this._positions = positions;
+    this._vertexCount = positions.length;
     this._vertexChangeFlag |= ValueChanged.Position;
-
-    if (this._vertexCount !== count) {
-      this._vertexCount = count;
-    }
   }
 
   /**
