@@ -9,7 +9,7 @@ export interface IVector3 {
   y: number;
   z: number;
 }
-export interface IEntity {
+export interface IBasicEntity {
   name?: string;
   id?: string;
   components?: Array<IComponent>;
@@ -21,7 +21,9 @@ export interface IEntity {
   parent?: string;
 }
 
-export interface IRefEntity extends IEntity {
+export type IEntity = IBasicEntity | IRefEntity;
+
+export interface IRefEntity extends IBasicEntity {
   assetRefId: string;
   key?: string;
 }
@@ -39,4 +41,4 @@ export type IClassObject = {
 
 export type IBasicType = string | number | boolean | null | undefined | IReferenceType | IClassObject | IMethodParams;
 
-export type IReferenceType = { objectId: string; path: string; reflect: IBasicType };
+export type IReferenceType = { key?: string; refId: string };
