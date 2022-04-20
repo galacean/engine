@@ -30,11 +30,11 @@ export class BlendShapeManager {
   /** @internal */
   _dataTexture: Texture2DArray;
   /** @internal */
-  _dataTextureInfo: Vector3 = new Vector3();
+  readonly _dataTextureInfo: Vector3 = new Vector3();
 
-  private _engine: Engine;
-  private _lastUpdateLayoutAndCountInfo: Vector3 = new Vector3(0, 0, 0);
-  private _canUseTextureStoreData: boolean = true;
+  private readonly _engine: Engine;
+  private readonly _lastUpdateLayoutAndCountInfo: Vector3 = new Vector3(0, 0, 0);
+  private readonly _canUseTextureStoreData: boolean = true;
 
   constructor(engine: Engine) {
     this._engine = engine;
