@@ -1,4 +1,4 @@
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
@@ -15,7 +15,7 @@ import { AnimationProperty } from "./enums/AnimationProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
-import { AnimationCurveOwner } from "./internal/AnimationCurveOwner";
+import { AnimationCurveOwner, PropertyReference } from "./internal/AnimationCurveOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
@@ -25,13 +25,17 @@ import { CrossCurveData } from "./internal/CrossCurveData";
 import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
 import { AnimatorCondition } from "./AnimatorCondition";
 import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
 
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
+  private static _tempVector2: Vector2 = new Vector2();
   private static _tempVector3: Vector3 = new Vector3();
+  private static _tempVector4: Vector4 = new Vector4();
   private static _tempQuaternion: Quaternion = new Quaternion();
+  private static _tempColor: Color = new Color();
   private static _tempFloat32Array: Float32Array = new Float32Array();
   private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
 
@@ -274,8 +278,7 @@ export class Animator extends Component {
       const { instanceId } = targetEntity;
       const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
       curveOwners[i] =
-        propertyOwners[property] ||
-        (propertyOwners[property] = new AnimationCurveOwner(targetEntity, curve.type, property));
+        propertyOwners[property] || (propertyOwners[property] = new AnimationCurveOwner(targetEntity, curve));
     }
   }
 
@@ -396,7 +399,7 @@ export class Animator extends Component {
   }
 
   private _evaluateCurve(
-    property: AnimationProperty,
+    property: AnimationProperty | string,
     curve: AnimationCurve,
     time: number,
     additive: boolean
@@ -405,26 +408,50 @@ export class Animator extends Component {
 
     if (additive) {
       const baseValue = (<UnionInterpolableKeyframe>curve.keys[0]).value;
-      switch (property) {
-        case AnimationProperty.Position:
-          const pos = Animator._tempVector3;
-          Vector3.subtract(<Vector3>value, <Vector3>baseValue, pos);
-          return pos;
-        case AnimationProperty.Rotation:
-          const rot = Animator._tempQuaternion;
-          Quaternion.conjugate(<Quaternion>baseValue, rot);
-          Quaternion.multiply(rot, <Quaternion>value, <Quaternion>rot);
-          return rot;
-        case AnimationProperty.Scale:
-          const scale = Animator._tempVector3;
-          Vector3.divide(<Vector3>value, <Vector3>baseValue, <Vector3>scale);
-          return scale;
-        case AnimationProperty.BlendShapeWeights:
-          const weight = Animator._tempFloat32Array;
+      switch (curve._valueType) {
+        case InterpolableValueType.Float: {
+          return <number>value - <number>baseValue;
+        }
+        case InterpolableValueType.FloatArray: {
+          const val = Animator._tempFloat32Array;
           for (let i = 0, length = (<Float32Array>baseValue).length; i < length; ++i) {
-            weight[i] = value[i] - baseValue[i];
+            val[i] = value[i] - baseValue[i];
           }
-          return weight;
+          return val;
+        }
+        case InterpolableValueType.Vector2: {
+          const val = Animator._tempVector2;
+          Vector2.subtract(<Vector2>value, <Vector2>baseValue, val);
+          return val;
+        }
+        case InterpolableValueType.Vector3: {
+          const val = Animator._tempVector3;
+          if (property === AnimationProperty.Scale) {
+            Vector3.divide(<Vector3>value, <Vector3>baseValue, <Vector3>val);
+            return val;
+          }
+          Vector3.subtract(<Vector3>value, <Vector3>baseValue, val);
+          return val;
+        }
+        case InterpolableValueType.Vector4: {
+          const val = Animator._tempVector4;
+          Vector4.subtract(<Vector4>value, <Vector4>baseValue, val);
+          return val;
+        }
+        case InterpolableValueType.Color: {
+          const val = Animator._tempColor;
+          val.r = (<Color>value).r - (<Color>baseValue).r;
+          val.g = (<Color>value).g - (<Color>baseValue).g;
+          val.b = (<Color>value).b - (<Color>baseValue).b;
+          val.a = (<Color>value).a - (<Color>baseValue).a;
+          return val;
+        }
+        case InterpolableValueType.Quaternion: {
+          const val = Animator._tempQuaternion;
+          Quaternion.conjugate(<Quaternion>baseValue, val);
+          Quaternion.multiply(val, <Quaternion>value, <Quaternion>val);
+          return val;
+        }
       }
     }
     return value;
@@ -493,7 +520,7 @@ export class Animator extends Component {
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive);
+      const value = this._evaluateCurve(owner.curveBinding.property, curves[i].curve, clipTime, additive);
       if (additive) {
         this._applyClipValueAdditive(owner, value, weight);
       } else {
@@ -565,7 +592,8 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
-      const { property, defaultValue } = curveOwner;
+      const { curveBinding, defaultValue } = curveOwner;
+      const { property } = curveBinding;
 
       const srcValue =
         srcCurveIndex >= 0
@@ -576,7 +604,14 @@ export class Animator extends Component {
           ? this._evaluateCurve(property, destCurves[destCurveIndex].curve, destClipTime, additive)
           : defaultValue;
 
-      this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
+      this._applyCrossClipValue(
+        curveOwner,
+        srcValue,
+        destValue,
+        crossWeight,
+        weight,
+        additive
+      );
     }
   }
 
@@ -621,10 +656,17 @@ export class Animator extends Component {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
       const destValue =
         destCurveIndex >= 0
-          ? this._evaluateCurve(curveOwner.property, curves[destCurveIndex].curve, destClipTime, additive)
+          ? this._evaluateCurve(curveOwner.curveBinding.property, curves[destCurveIndex].curve, destClipTime, additive)
           : curveOwner.defaultValue;
 
-      this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
+      this._applyCrossClipValue(
+        curveOwner,
+        curveOwner.fixedPoseValue,
+        destValue,
+        crossWeight,
+        weight,
+        additive
+      );
     }
   }
 
@@ -651,10 +693,11 @@ export class Animator extends Component {
     layerWeight: number,
     additive: boolean
   ): void {
+    const { curveBinding } = owner;
+    const { type, property } = curveBinding;
     let value: InterpolableValue;
-    if (owner.type === Transform) {
-      const transform = owner.target.transform;
-      switch (owner.property) {
+    if (type === Transform) {
+      switch (property) {
         case AnimationProperty.Position:
           Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
           value = Animator._tempVector3;
@@ -669,7 +712,7 @@ export class Animator extends Component {
           break;
         }
       }
-    } else if (owner.type === SkinnedMeshRenderer && owner.property === AnimationProperty.BlendShapeWeights) {
+    } else if (type === SkinnedMeshRenderer && property === AnimationProperty.BlendShapeWeights) {
       const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
       value = Animator._tempFloat32Array;
       for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
@@ -685,9 +728,11 @@ export class Animator extends Component {
   }
 
   private _applyClipValue(owner: AnimationCurveOwner, value: InterpolableValue, weight: number): void {
-    if (owner.type === Transform) {
+    const { curveBinding } = owner;
+    const { type, property } = curveBinding;
+    if (type === Transform) {
       const transform = owner.target.transform;
-      switch (owner.property) {
+      switch (property) {
         case AnimationProperty.Position:
           if (weight === 1.0) {
             transform.position = <Vector3>value;
@@ -713,7 +758,7 @@ export class Animator extends Component {
           }
           break;
       }
-    } else if (owner.type === SkinnedMeshRenderer && owner.property === AnimationProperty.BlendShapeWeights) {
+    } else if (type === SkinnedMeshRenderer && property === AnimationProperty.BlendShapeWeights) {
       if (weight === 1.0) {
         (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
       } else {
@@ -722,13 +767,58 @@ export class Animator extends Component {
           blendShapeWeights[i] = value[i] * weight;
         }
       }
+    } else {
+      const { propertyReference } = owner;
+      if (weight === 1.0) {
+        propertyReference.mounted[propertyReference.propertyName] = <number>value;
+      } else {
+        switch (curveBinding.curve._valueType) {
+          case InterpolableValueType.Float:
+            propertyReference.mounted[propertyReference.propertyName] = <number>value * weight
+            break;
+          case InterpolableValueType.FloatArray:
+            const arr = new Float32Array();
+            for (let i = 0, length = (<Float32Array>value).length; i < length; ++i) {
+              arr[i] = value[i] * weight;
+            }
+            propertyReference.mounted[propertyReference.propertyName] = arr;
+            break;
+          case InterpolableValueType.Vector2:
+            const vec2 = <Vector2>propertyReference.mounted[propertyReference.propertyName];
+            Vector2.lerp(vec2, <Vector2>value, weight, vec2);
+            propertyReference.mounted[propertyReference.propertyName] = vec2.clone();
+            break;
+          case InterpolableValueType.Vector3:
+            const vec3 = <Vector3>propertyReference.mounted[propertyReference.propertyName];
+            Vector3.lerp(vec3, <Vector3>value, weight, vec3);
+            propertyReference.mounted[propertyReference.propertyName] = vec3.clone();
+            break;
+          case InterpolableValueType.Vector4:
+            const vec4 = <Vector4>propertyReference.mounted[propertyReference.propertyName];
+            Vector4.lerp(vec4, <Vector4>value, weight, vec4);
+            propertyReference.mounted[propertyReference.propertyName] = vec4.clone();
+            break;
+          case InterpolableValueType.Quaternion:
+            const quat = <Quaternion>propertyReference.mounted[propertyReference.propertyName];
+            Quaternion.slerp(quat, <Quaternion>value, weight, quat);
+            propertyReference.mounted[propertyReference.propertyName] = quat.clone();
+            break;
+          case InterpolableValueType.Color:
+            const color = <Color>propertyReference.mounted[propertyReference.propertyName];
+            Color.lerp(color, <Color>value, weight, color);
+            propertyReference.mounted[propertyReference.propertyName] = color.clone();
+            break;
+        }
+      }
     }
   }
 
   private _applyClipValueAdditive(owner: AnimationCurveOwner, additiveValue: InterpolableValue, weight: number): void {
-    if (owner.type === Transform) {
+    const { curveBinding } = owner;
+    const { type, property } = curveBinding;
+    if (type === Transform) {
       const transform = (<Entity>owner.target).transform;
-      switch (owner.property) {
+      switch (property) {
         case AnimationProperty.Position:
           const position = transform.position;
           position.x += (<Vector3>additiveValue).x * weight;
@@ -750,7 +840,7 @@ export class Animator extends Component {
           transform.scale = scale;
           break;
       }
-    } else if (owner.type === SkinnedMeshRenderer && owner.property === AnimationProperty.BlendShapeWeights) {
+    } else if (type === SkinnedMeshRenderer && property === AnimationProperty.BlendShapeWeights) {
       const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
       for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
         (<SkinnedMeshRenderer>owner.component).blendShapeWeights[i] = additiveValue[i] * weight;
@@ -767,7 +857,7 @@ export class Animator extends Component {
         const owner = curveOwners[i];
         const { transform } = owner.target;
         if (!owner._hasSavedDefaultValue) continue;
-        switch (owner.property) {
+        switch (owner.curveBinding.property) {
           case AnimationProperty.Position:
             transform.position = <Vector3>owner.defaultValue;
             break;

@@ -12,10 +12,8 @@ export class AnimationClipCurveBinding {
   relativePath: string;
   /** The class type of the component that is animated. */
   type: new (entity: Entity) => Component;
-  /** The name or path to the property being animated. */
-  propertyName: string;
   /** The property being animated. */
-  property: AnimationProperty;
+  property: AnimationProperty | string;
   /** The animation curve. */
   curve: AnimationCurve;
 }

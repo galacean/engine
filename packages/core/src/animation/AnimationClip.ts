@@ -94,7 +94,7 @@ export class AnimationClip extends Motion {
     propertyName: string,
     curve: AnimationCurve
   ): void {
-    let property: AnimationProperty;
+    let property: AnimationProperty | string;
     switch (propertyName) {
       case "position":
         property = AnimationProperty.Position;
@@ -109,14 +109,13 @@ export class AnimationClip extends Motion {
         property = AnimationProperty.BlendShapeWeights;
         break;
       default:
-        property = AnimationProperty.Other;
+        property = propertyName;
         break;
     }
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;
     curveBinding.type = type;
     curveBinding.property = property;
-    curveBinding.propertyName = propertyName;
     curveBinding.curve = curve;
     if (curve.length > this._length) {
       this._length = curve.length;

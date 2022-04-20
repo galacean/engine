@@ -4,5 +4,6 @@ export enum InterpolableValueType {
   Vector2,
   Vector3,
   Vector4,
-  Quaternion
+  Quaternion,
+  Color
 }

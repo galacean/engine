@@ -1,7 +1,8 @@
-import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { InterpolationType } from "./enums/InterpolationType";
 import {
+  ColorKeyframe,
   FloatArrayKeyframe,
   FloatKeyframe,
   InterpolableValue,
@@ -75,7 +76,11 @@ export class AnimationCurve {
         this._valueType = InterpolableValueType.Quaternion;
         this._currentValue = new Quaternion();
       }
-
+      if (key.value instanceof Color) {
+        this._valueSize = 4;
+        this._valueType = InterpolableValueType.Color;
+        this._currentValue = new Color();
+      }
       if (key.value instanceof Float32Array) {
         const size = key.value.length;
         this._valueSize = size;
@@ -128,7 +133,7 @@ export class AnimationCurve {
           value = this._evaluateLinear(curIndex, nextIndex, t);
           break;
         case InterpolationType.Step:
-          value = this._evaluateStep(nextIndex);
+          value = this._evaluateStep(curIndex);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
@@ -169,14 +174,6 @@ export class AnimationCurve {
     switch (_valueType) {
       case InterpolableValueType.Float:
         return (<FloatKeyframe>keys[frameIndex]).value * (1 - t) + (<FloatKeyframe>keys[nextFrameIndex]).value * t;
-      case InterpolableValueType.FloatArray:
-        const curValue = this._currentValue;
-        const value = (<FloatArrayKeyframe>keys[frameIndex]).value;
-        const nextValue = (<FloatArrayKeyframe>keys[nextFrameIndex]).value;
-        for (let i = 0, n = value.length; i < n; i++) {
-          curValue[i] = value[i] * (1 - t) + nextValue[i] * t;
-        }
-        return curValue;
       case InterpolableValueType.Vector2:
         Vector2.lerp(
           (<Vector2Keyframe>keys[frameIndex]).value,
@@ -193,6 +190,14 @@ export class AnimationCurve {
           <Vector3>this._currentValue
         );
         return this._currentValue;
+      case InterpolableValueType.Vector4:
+        Vector4.lerp(
+          (<Vector4Keyframe>keys[frameIndex]).value,
+          (<Vector4Keyframe>keys[nextFrameIndex]).value,
+          t,
+          <Vector4>this._currentValue
+        );
+        return this._currentValue;
       case InterpolableValueType.Quaternion:
         Quaternion.slerp(
           (<QuaternionKeyframe>keys[frameIndex]).value,
@@ -201,11 +206,27 @@ export class AnimationCurve {
           <Quaternion>this._currentValue
         );
         return this._currentValue;
+      case InterpolableValueType.Color:
+        Color.lerp(
+          (<ColorKeyframe>keys[frameIndex]).value,
+          (<ColorKeyframe>keys[nextFrameIndex]).value,
+          t,
+          <Color>this._currentValue
+        );
+        return this._currentValue;
+      case InterpolableValueType.FloatArray:
+        const curValue = this._currentValue;
+        const value = (<FloatArrayKeyframe>keys[frameIndex]).value;
+        const nextValue = (<FloatArrayKeyframe>keys[nextFrameIndex]).value;
+        for (let i = 0, n = value.length; i < n; i++) {
+          curValue[i] = value[i] * (1 - t) + nextValue[i] * t;
+        }
+        return curValue;
     }
   }
 
-  private _evaluateStep(nextFrameIndex: number): InterpolableValue {
-    return (<UnionInterpolableKeyframe>this.keys[nextFrameIndex]).value;
+  private _evaluateStep(frameIndex: number): InterpolableValue {
+    return (<UnionInterpolableKeyframe>this.keys[frameIndex]).value;
   }
 
   private _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number): InterpolableValue {
@@ -338,6 +359,49 @@ export class AnimationCurve {
           (<Vector4 | Quaternion>this._currentValue).w = p0.w;
         }
         return <Vector4 | Quaternion>this._currentValue;
+      }
+      case InterpolableValueType.Color: {
+        const p0 = (<ColorKeyframe>curKey).value;
+        const tan0 = (<ColorKeyframe>curKey).outTangent;
+        const p1 = (<ColorKeyframe>nextKey).value;
+        const tan1 = (<ColorKeyframe>nextKey).inTangent;
+
+        const t2 = t * t;
+        const t3 = t2 * t;
+        const a = 2.0 * t3 - 3.0 * t2 + 1.0;
+        const b = t3 - 2.0 * t2 + t;
+        const c = t3 - t2;
+        const d = -2.0 * t3 + 3.0 * t2;
+
+        let t0 = tan0.x,
+          t1 = tan1.x;
+        if (Number.isFinite(t0) && Number.isFinite(t1)) {
+          (<Color>this._currentValue).r = a * p0.r + b * t0 * dur + c * t1 * dur + d * p1.r;
+        } else {
+          (<Color>this._currentValue).r = p0.r;
+        }
+
+        (t0 = tan0.y), (t1 = tan1.y);
+        if (Number.isFinite(t0) && Number.isFinite(t1)) {
+          (<Color>this._currentValue).g = a * p0.g + b * t0 * dur + c * t1 * dur + d * p1.g;
+        } else {
+          (<Color>this._currentValue).g = p0.g;
+        }
+
+        (t0 = tan0.z), (t1 = tan1.z);
+        if (Number.isFinite(t0) && Number.isFinite(t1)) {
+          (<Color>this._currentValue).b = a * p0.b + b * t0 * dur + c * t1 * dur + d * p1.b;
+        } else {
+          (<Color>this._currentValue).b = p0.b;
+        }
+
+        (t0 = tan0.w), (t1 = tan1.w);
+        if (Number.isFinite(t0) && Number.isFinite(t1)) {
+          (<Color>this._currentValue).a = a * p0.a + b * t0 * dur + c * t1 * dur + d * p1.a;
+        } else {
+          (<Color>this._currentValue).a = p0.a;
+        }
+        return <Color>this._currentValue;
       }
       case InterpolableValueType.FloatArray: {
         const t0 = (<FloatArrayKeyframe>curKey).outTangent,
