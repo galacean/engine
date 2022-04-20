@@ -219,11 +219,8 @@ export class Script extends Component {
    */
   _handlingInValid(): void {
     const componentsManager = this.engine._componentsManager;
-    // Use "xxIndex" is more safe.
-    // When call onDisable it maybe it still not in script queue,for example write "entity.isActive = false" in onWake().
-    if (this._onStartIndex !== -1) {
-      componentsManager.removeOnStartScript(this);
-    }
+    // Use "xxIndex !== -1" to project.
+    // Maybe call onDisable it is still not in script queue, for example write "entity.isActive = false" in onWake().
     if (this._onUpdateIndex !== -1) {
       componentsManager.removeOnUpdateScript(this);
     }

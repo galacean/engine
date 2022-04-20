@@ -1,3 +1,4 @@
+export { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 export { TextureCubeFace } from "./enums/TextureCubeFace";
 export { TextureFilterMode } from "./enums/TextureFilterMode";
 export { TextureFormat } from "./enums/TextureFormat";

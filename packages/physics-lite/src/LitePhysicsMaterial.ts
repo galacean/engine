@@ -50,7 +50,5 @@ export class LitePhysicsMaterial implements IPhysicsMaterial {
   /**
    * {@inheritDoc IPhysicsMaterial.destroy }
    */
-  destroy(): void {
-    throw "Physics-lite don't support physics material. Use Physics-PhysX instead!";
-  }
+  destroy(): void {}
 }
