@@ -34,7 +34,7 @@ export class AnimatorStatePlayData {
       time < 0 && (time += duration);
     } else {
       if (Math.abs(time) > duration) {
-        time = isBackwards ? 0 : duration;
+        time = isBackwards ? -duration : duration;
         this.playState = AnimatorStatePlayState.Finished;
       }
     }
