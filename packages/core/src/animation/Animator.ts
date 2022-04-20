@@ -467,7 +467,7 @@ export class Animator extends Component {
     const { state, playState: lastPlayState, clipTime: lastClipTime } = playData;
     const { _curveBindings: curves } = state.clip;
 
-    playData.update();
+    playData.update(this.speed < 0);
 
     const { clipTime, playState } = playData;
 
@@ -521,8 +521,8 @@ export class Animator extends Component {
       Math.abs(destPlayData.frameTime) / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
-    srcPlayData.update();
-    destPlayData.update();
+    srcPlayData.update(this.speed < 0);
+    destPlayData.update(this.speed < 0);
 
     const { playState: srcPlayState } = srcPlayData;
     const { playState: destPlayState } = destPlayData;
@@ -589,7 +589,7 @@ export class Animator extends Component {
       Math.abs(destPlayData.frameTime) / (state._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
-    destPlayData.update();
+    destPlayData.update(this.speed < 0);
 
     const { playState } = destPlayData;
 

@@ -23,21 +23,25 @@ export class AnimatorStatePlayData {
     this.currentEventIndex = 0;
   }
 
-  update(): void {
+  update(isBackwards: boolean): void {
     const state = this.state;
     let time = this.frameTime;
     const duration = state._getDuration();
-    const isBackwards = time < 0;
     this.playState = AnimatorStatePlayState.Playing;
     if (state.wrapMode === WrapMode.Loop) {
       time = time % duration;
     } else {
       if (Math.abs(time) > duration) {
-        time = isBackwards ? -duration : duration;
+        time = time < 0 ? -duration : duration;
         this.playState = AnimatorStatePlayState.Finished;
       }
     }
-    time < 0 && (time += duration);
-    this.clipTime = time + state.clipStartTime * state.clip.length;
+
+    if (isBackwards && time === 0) {
+      this.clipTime = state.clipEndTime * state.clip.length;
+    } else {
+      time < 0 && (time += duration);
+      this.clipTime = time + state.clipStartTime * state.clip.length;
+    }
   }
 }
