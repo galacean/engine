@@ -13,8 +13,5 @@
   "files": [
     "dist/**/*",
     "types/**/*"
-  ],
-  "devDependencies": {
-    "@oasis-engine/design": "0.7.0-beta.0"
-  }
+  ]
 }
