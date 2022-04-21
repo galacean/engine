@@ -17,19 +17,19 @@ class KHR_materials_clearcoat extends ExtensionParser {
       clearcoatNormalTexture
     } = schema;
 
-    material.clearcoat = clearcoatFactor;
-    material.clearcoatRoughness = clearcoatRoughnessFactor;
+    material.clearCoat = clearcoatFactor;
+    material.clearCoatRoughness = clearcoatRoughnessFactor;
 
     if (clearcoatTexture) {
-      material.clearcoatTexture = textures[clearcoatTexture.index];
+      material.clearCoatTexture = textures[clearcoatTexture.index];
       MaterialParser._parseTextureTransform(material, clearcoatTexture.extensions, context);
     }
     if (clearcoatRoughnessTexture) {
-      material.clearcoatRoughnessTexture = textures[clearcoatRoughnessTexture.index];
+      material.clearCoatRoughnessTexture = textures[clearcoatRoughnessTexture.index];
       MaterialParser._parseTextureTransform(material, clearcoatRoughnessTexture.extensions, context);
     }
     if (clearcoatNormalTexture) {
-      material.clearcoatNormalTexture = textures[clearcoatNormalTexture.index];
+      material.clearCoatNormalTexture = textures[clearcoatNormalTexture.index];
       MaterialParser._parseTextureTransform(material, clearcoatNormalTexture.extensions, context);
     }
   }

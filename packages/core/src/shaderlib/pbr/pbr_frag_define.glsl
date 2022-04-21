@@ -7,8 +7,8 @@ uniform float u_glossiness;
 uniform vec3 u_emissiveColor;
 
 #ifdef CLEARCOAT
-    uniform float u_clearcoat;
-    uniform float u_clearcoatRoughness;
+    uniform float u_clearCoat;
+    uniform float u_clearCoatRoughness;
 #endif
 
 uniform float u_normalIntensity;
@@ -42,15 +42,15 @@ uniform float u_occlusionTextureCoord;
 #endif
 
 #ifdef HAS_CLEARCOATTEXTURE
-    uniform sampler2D u_clearcoatTexture;
+    uniform sampler2D u_clearCoatTexture;
 #endif
 
 #ifdef HAS_CLEARCOATROUGHNESSTEXTURE
-    uniform sampler2D u_clearcoatRoughnessTexture;
+    uniform sampler2D u_clearCoatRoughnessTexture;
 #endif
 
 #ifdef HAS_CLEARCOATNORMALTEXTURE
-    uniform sampler2D u_clearcoatNormalTexture;
+    uniform sampler2D u_clearCoatNormalTexture;
 #endif
 
 
@@ -70,8 +70,8 @@ struct Geometry {
     float dotNV;
     
     #ifdef CLEARCOAT
-        vec3 clearcoatNormal;
-        float clearcoatDotNV;
+        vec3 clearCoatNormal;
+        float clearCoatDotNV;
     #endif
 
 };
@@ -82,8 +82,8 @@ struct Material {
     vec3  specularColor;
     float opacity;
     #ifdef CLEARCOAT
-        float clearcoat;
-        float clearcoatRoughness;
+        float clearCoat;
+        float clearCoatRoughness;
     #endif
 
 };

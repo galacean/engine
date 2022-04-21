@@ -34,15 +34,15 @@ void initGeometry(out Geometry geometry){
 
 
     #ifdef CLEARCOAT
-        geometry.clearcoatNormal = getNormal(
+        geometry.clearCoatNormal = getNormal(
               #ifdef HAS_CLEARCOATNORMALTEXTURE
                 tbn,
-                u_clearcoatNormalTexture,
+                u_clearCoatNormalTexture,
                 u_normalIntensity,
                 v_uv
             #endif
         );
-        geometry.clearcoatDotNV = saturate( dot(geometry.clearcoatNormal, geometry.viewDir) );
+        geometry.clearCoatDotNV = saturate( dot(geometry.clearCoatNormal, geometry.viewDir) );
     #endif
 
 }
@@ -104,16 +104,16 @@ void initMaterial(out Material material, const in Geometry geometry){
         material.roughness = max(material.roughness, getAARoughnessFactor(geometry.normal));
 
         #ifdef CLEARCOAT
-            material.clearcoat = u_clearcoat;
-            material.clearcoatRoughness = u_clearcoatRoughness;
+            material.clearCoat = u_clearCoat;
+            material.clearCoatRoughness = u_clearCoatRoughness;
             #ifdef HAS_CLEARCOATTEXTURE
-                material.clearcoat *= texture2D( u_clearcoatTexture, v_uv ).r;
+                material.clearCoat *= texture2D( u_clearCoatTexture, v_uv ).r;
             #endif
             #ifdef HAS_CLEARCOATROUGHNESSTEXTURE
-                material.clearcoatRoughness *= texture2D( u_clearcoatRoughnessTexture, v_uv ).g;
+                material.clearCoatRoughness *= texture2D( u_clearCoatRoughnessTexture, v_uv ).g;
             #endif
-            material.clearcoat = saturate( material.clearcoat );
-            material.clearcoatRoughness = max(material.clearcoatRoughness, getAARoughnessFactor(geometry.clearcoatNormal));
+            material.clearCoat = saturate( material.clearCoat );
+            material.clearCoatRoughness = max(material.clearCoatRoughness, getAARoughnessFactor(geometry.clearCoatNormal));
         #endif
 
         material.opacity = baseColor.a;
