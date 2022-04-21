@@ -178,13 +178,14 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   }
 
   set clearcoat(value: number) {
-    this.shaderData.setFloat(PBRBaseMaterial._clearcoatProp, value);
-
-    if (value === 0) {
-      this.shaderData.disableMacro("CLEARCOAT");
-    } else {
-      this.shaderData.enableMacro("CLEARCOAT");
+    if (!!this.shaderData.getFloat(PBRBaseMaterial._clearcoatProp) !== !!value) {
+      if (value === 0) {
+        this.shaderData.disableMacro("CLEARCOAT");
+      } else {
+        this.shaderData.enableMacro("CLEARCOAT");
+      }
     }
+    this.shaderData.setFloat(PBRBaseMaterial._clearcoatProp, value);
   }
 
   /**

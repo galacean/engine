@@ -10,7 +10,7 @@ float getAARoughnessFactor(vec3 normal) {
         vec3 dxy = max( abs(dFdx(normal)), abs(dFdy(normal)) );
         return max( max(dxy.x, dxy.y), dxy.z );
     #else
-        return 0.0;
+        return 0.04;
     #endif
 }
 
