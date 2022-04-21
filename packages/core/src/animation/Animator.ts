@@ -1,4 +1,5 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
@@ -36,7 +37,7 @@ export class Animator extends Component {
   @assignmentClone
   protected _speed: number = 1.0;
   @ignoreClone
-  protected _controllerUpdateFlag: UpdateFlag;
+  protected _controllerUpdateFlag: BoolUpdateFlag;
 
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];

@@ -2,7 +2,7 @@
 // @todo: jest `_depth instanceof RenderDepthTexture` in `GLRenderTarget.ts` always return `false`, so test with depthTexture in renderTarget is ignored.
 
 import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
-import { Texture2D, RenderTarget, TextureFormat,TextureCube } from "../../src/texture";
+import { RenderBufferDepthFormat, RenderTarget, Texture2D } from "../../src/texture";
 
 describe("RenderTarget", () => {
   const width = 1024;
@@ -72,14 +72,14 @@ describe("RenderTarget", () => {
     it("创建失败-不支持高精度深度缓冲", () => {
       expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
-        new RenderTarget(engine, width, height, renderColorTexture, TextureFormat.Depth32);
+        new RenderTarget(engine, width, height, renderColorTexture, RenderBufferDepthFormat.Depth32);
       }).toThrow();
     });
 
     it("创建失败-不支持高精度深度模版缓冲", () => {
       expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
-        new RenderTarget(engine, width, height, renderColorTexture, TextureFormat.Depth32Stencil8);
+        new RenderTarget(engine, width, height, renderColorTexture, RenderBufferDepthFormat.Depth32Stencil8);
       }).toThrow();
     });
 
