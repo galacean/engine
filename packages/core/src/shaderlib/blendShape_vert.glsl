@@ -12,7 +12,7 @@
 					normal += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 				#endif
 
-				#if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE ) && defined( OASIS_BLENDSHAPE_TANGENT )
+				#if defined( O3_HAS_TANGENT ) && defined(OASIS_BLENDSHAPE_TANGENT) && ( defined(O3_NORMAL_TEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
 					vertexElementOffset += 1;
 					tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 				#endif
@@ -33,7 +33,7 @@
 					normal += NORMAL_BS3 * u_blendShapeWeights[3];
 				#endif
 
-				#if defined( O3_HAS_TANGENT ) && defined( O3_NORMAL_TEXTURE ) && defined( OASIS_BLENDSHAPE_TANGENT )
+				#if defined( O3_HAS_TANGENT ) && defined(OASIS_BLENDSHAPE_TANGENT) && ( defined(O3_NORMAL_TEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
 					tangent.xyz += TANGENT_BS0 * u_blendShapeWeights[0];
 					tangent.xyz += TANGENT_BS1 * u_blendShapeWeights[1];
 					tangent.xyz += TANGENT_BS2 * u_blendShapeWeights[2];
