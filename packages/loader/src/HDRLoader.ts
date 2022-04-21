@@ -274,25 +274,25 @@ class HDRLoader extends Loader<TextureCube> {
   }
 
   private static _readPixels(buffer: Uint8Array, width: number, height: number): Uint8Array {
-    const scanline_width = width;
+    const scanLineWidth = width;
     const byteLength = buffer.byteLength;
 
-    const data_rgba = new Uint8Array(4 * width * height);
+    const dataRGBA = new Uint8Array(4 * width * height);
 
     let offset = 0,
       pos = 0;
-    const ptr_end = 4 * scanline_width;
+    const ptrEnd = 4 * scanLineWidth;
     const rgbeStart = new Uint8Array(4);
-    const scanline_buffer = new Uint8Array(ptr_end);
-    let num_scanlines = height; // read in each successive scanline
+    const scanLineBuffer = new Uint8Array(ptrEnd);
+    let numScanLines = height; // read in each successive scanLine
 
-    while (num_scanlines > 0 && pos < byteLength) {
+    while (numScanLines > 0 && pos < byteLength) {
       rgbeStart[0] = buffer[pos++];
       rgbeStart[1] = buffer[pos++];
       rgbeStart[2] = buffer[pos++];
       rgbeStart[3] = buffer[pos++];
 
-      if (2 != rgbeStart[0] || 2 != rgbeStart[1] || ((rgbeStart[2] << 8) | rgbeStart[3]) != scanline_width) {
+      if (2 != rgbeStart[0] || 2 != rgbeStart[1] || ((rgbeStart[2] << 8) | rgbeStart[3]) != scanLineWidth) {
         throw "HDR Bad header format, wrong scan line width";
       }
 
@@ -302,12 +302,12 @@ class HDRLoader extends Loader<TextureCube> {
       let ptr = 0,
         count;
 
-      while (ptr < ptr_end && pos < byteLength) {
+      while (ptr < ptrEnd && pos < byteLength) {
         count = buffer[pos++];
         const isEncodedRun = count > 128;
         if (isEncodedRun) count -= 128;
 
-        if (0 === count || ptr + count > ptr_end) {
+        if (0 === count || ptr + count > ptrEnd) {
           throw "HDR Bad Format, bad scanline data (run)";
         }
 
@@ -316,38 +316,38 @@ class HDRLoader extends Loader<TextureCube> {
           const byteValue = buffer[pos++];
 
           for (let i = 0; i < count; i++) {
-            scanline_buffer[ptr++] = byteValue;
+            scanLineBuffer[ptr++] = byteValue;
           } //ptr += count;
         } else {
           // a literal-run
-          scanline_buffer.set(buffer.subarray(pos, pos + count), ptr);
+          scanLineBuffer.set(buffer.subarray(pos, pos + count), ptr);
           ptr += count;
           pos += count;
         }
       } // now convert data from buffer into rgba
       // first red, then green, then blue, then exponent (alpha)
 
-      const l = scanline_width; //scanline_buffer.byteLength;
+      const l = scanLineWidth; //scanLine_buffer.byteLength;
 
       for (let i = 0; i < l; i++) {
         let off = 0;
-        data_rgba[offset] = scanline_buffer[i + off];
-        off += scanline_width;
+        dataRGBA[offset] = scanLineBuffer[i + off];
+        off += scanLineWidth;
 
-        data_rgba[offset + 1] = scanline_buffer[i + off];
-        off += scanline_width;
+        dataRGBA[offset + 1] = scanLineBuffer[i + off];
+        off += scanLineWidth;
 
-        data_rgba[offset + 2] = scanline_buffer[i + off];
-        off += scanline_width;
+        dataRGBA[offset + 2] = scanLineBuffer[i + off];
+        off += scanLineWidth;
 
-        data_rgba[offset + 3] = scanline_buffer[i + off];
+        dataRGBA[offset + 3] = scanLineBuffer[i + off];
         offset += 4;
       }
 
-      num_scanlines--;
+      numScanLines--;
     }
 
-    return data_rgba;
+    return dataRGBA;
   }
 
   private static _RGBEToLinear(color: Color): void {
