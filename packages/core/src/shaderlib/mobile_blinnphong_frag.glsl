@@ -1,6 +1,6 @@
     #ifdef O3_NORMAL_TEXTURE
         mat3 tbn = getTBN();
-        vec3 N = getNormal(tbn, u_normalTexture, u_normalIntensity, v_uv);
+        vec3 N = getNormalByNormalTexture(tbn, u_normalTexture, u_normalIntensity, v_uv);
     #else
         vec3 N = getNormal();
     #endif

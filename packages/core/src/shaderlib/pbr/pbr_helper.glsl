@@ -22,26 +22,21 @@ void initGeometry(out Geometry geometry){
         mat3 tbn = getTBN();
     #endif
 
-    geometry.normal = getNormal( 
-            #ifdef O3_NORMAL_TEXTURE
-                tbn,
-                u_normalTexture,
-                u_normalIntensity,
-                v_uv
-            #endif
-    );
+    #ifdef O3_NORMAL_TEXTURE
+        geometry.normal = getNormalByNormalTexture(tbn, u_normalTexture, u_normalIntensity, v_uv);
+    #else
+        geometry.normal = getNormal();
+    #endif
+
     geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
 
 
     #ifdef CLEARCOAT
-        geometry.clearCoatNormal = getNormal(
-              #ifdef HAS_CLEARCOATNORMALTEXTURE
-                tbn,
-                u_clearCoatNormalTexture,
-                u_normalIntensity,
-                v_uv
-            #endif
-        );
+        #ifdef HAS_CLEARCOATNORMALTEXTURE
+            geometry.clearCoatNormal = getNormalByNormalTexture(tbn, u_clearCoatNormalTexture, u_normalIntensity, v_uv);
+        #else
+            geometry.clearCoatNormal = getNormal();
+        #endif
         geometry.clearCoatDotNV = saturate( dot(geometry.clearCoatNormal, geometry.viewDir) );
     #endif
 

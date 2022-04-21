@@ -13,7 +13,7 @@ vec3 getNormal(){
     return normal;
 }
 
-vec3 getNormal(mat3 tbn, sampler2D normalTexture, float normalIntensity, vec2 uv){
+vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalIntensity, vec2 uv){
     vec3 normal = texture2D(normalTexture, uv).rgb;
     normal = normalize(tbn * ((2.0 * normal - 1.0) * vec3(normalIntensity, normalIntensity, 1.0)));
     normal *= float( gl_FrontFacing ) * 2.0 - 1.0;
