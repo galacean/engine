@@ -122,7 +122,8 @@ function requestRes<T>(url: string, config: RequestConfig): AssetPromise<T> {
         xhr.setRequestHeader(name, headers[name]);
       });
     }
-    xhr.send(config.body as any);
+    // @ts-ignore
+    xhr.send(config.body as XMLHttpRequestBodyInit);
   });
 }
 
