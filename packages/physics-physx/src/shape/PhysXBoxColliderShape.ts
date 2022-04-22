@@ -46,8 +46,6 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    this._setLocalPose();
-
     scale.cloneTo(this._scale);
     this._setLocalPose();
 
