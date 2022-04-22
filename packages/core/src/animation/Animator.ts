@@ -6,7 +6,6 @@ import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh";
 import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Transform } from "../Transform";
-import { UpdateFlag } from "../UpdateFlag";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
@@ -645,7 +644,6 @@ export class Animator extends Component {
   ): void {
     let value: InterpolableValue;
     if (owner.type === Transform) {
-      const transform = owner.target.transform;
       switch (owner.property) {
         case AnimationProperty.Position:
           Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
