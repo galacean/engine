@@ -11,6 +11,7 @@ import {
   PointLight,
   SpriteRenderer,
   SpriteMask,
+  TextRenderer,
   Animator,
   StaticCollider,
   DynamicCollider
@@ -21,6 +22,7 @@ Parser.registerComponents("o3", {
   GLTFModel,
   SpriteRenderer,
   SpriteMask,
+  TextRenderer,
   PointLight,
   AmbientLight,
   DirectLight,

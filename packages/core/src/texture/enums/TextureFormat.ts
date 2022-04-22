@@ -16,8 +16,11 @@ export enum TextureFormat {
   Alpha8,
   /** Luminance/alpha in RGB channel, alpha in A channel. */
   LuminanceAlpha,
+  /** RGBA format,16 bits per channel. */
+  R16G16B16A16,
   /** RGBA format,32 bits per channel. */
   R32G32B32A32,
+
   /** RGB compressed format。*/
   DXT1,
   /** RGBA compressed format。*/
@@ -49,5 +52,22 @@ export enum TextureFormat {
   /** RGB(A) compressed format,128 bits per 10x10 pixel block. */
   ASTC_10x10,
   /** RGB(A) compressed format,128 bits per 12x12 pixel block. */
-  ASTC_12x12
+  ASTC_12x12,
+
+  /** Render to depth buffer,engine will automatically select the supported precision. */
+  Depth,
+  /** Render to depth stencil buffer, engine will automatically select the supported precision. */
+  DepthStencil,
+  /** Render to stencil buffer. */
+  Stencil,
+  /** Force 16-bit depth buffer. */
+  Depth16,
+  /** Force 24-bit depth buffer. */
+  Depth24,
+  /** Force 32-bit depth buffer. */
+  Depth32,
+  /** Force 16-bit depth + 8-bit stencil buffer. */
+  Depth24Stencil8,
+  /** Force 32-bit depth + 8-bit stencil buffer. */
+  Depth32Stencil8
 }

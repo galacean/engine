@@ -86,7 +86,7 @@ export class TrailRenderer extends MeshRenderer {
       appendNewPoint = false;
     } else if (this._curPointNum > 0) {
       const lastPoint = this._points[this._points.length - 1];
-      if (Vector3.distance(this.entity.worldPosition, lastPoint) < this._minSeg) {
+      if (Vector3.distance(this.entity.transform.worldPosition, lastPoint) < this._minSeg) {
         appendNewPoint = false;
       } else {
         // debugger
@@ -95,7 +95,7 @@ export class TrailRenderer extends MeshRenderer {
 
     if (appendNewPoint) {
       this._pointStates[this._curPointNum] = this._lifetime;
-      this.entity.worldPosition.cloneTo(this._points[this._curPointNum]);
+      this.entity.transform.worldPosition.cloneTo(this._points[this._curPointNum]);
 
       this._curPointNum++;
     }

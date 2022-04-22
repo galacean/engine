@@ -1,6 +1,8 @@
-import { WebCanvas, WebGLRenderer } from "../../rhi-webgl";
-import { Engine, Texture2D } from "../src";
+import { WebCanvas } from "../../rhi-webgl/src/WebCanvas";
+import { WebGLRenderer } from "../../rhi-webgl/src/WebGLRenderer";
+import { Engine } from "../src/Engine";
 import { BackgroundTextureFillMode } from "../src/enums/BackgroundTextureFillMode";
+import { Texture2D } from "../src/texture/Texture2D";
 
 describe("Background Test", function () {
   const hardwareRenderer = new WebGLRenderer();
@@ -13,7 +15,7 @@ describe("Background Test", function () {
     const texture = new Texture2D(engine, 50, 100);
     scene.background._resizeBackgroundTexture();
     scene.background.texture = texture;
-    expect(scene.background.texture).toEqual(texture)
+    expect(scene.background.texture).toEqual(texture);
     scene.background.texture = texture;
     expect(scene.background.texture).toEqual(texture);
     expect(scene.background.textureFillMode).toEqual(BackgroundTextureFillMode.AspectFitHeight);

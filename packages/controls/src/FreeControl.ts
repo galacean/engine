@@ -281,7 +281,7 @@ export class FreeControl extends Script {
    */
   updateSpherical(): void {
     this._v3Cache.setValue(0, 0, -1);
-    Vector3.transformByQuat(this._v3Cache, this.camera.rotation, this._v3Cache);
+    Vector3.transformByQuat(this._v3Cache, this.camera.transform.rotationQuaternion, this._v3Cache);
     this._spherical.setFromVec3(this._v3Cache);
     this._theta = this._spherical.theta;
     this._phi = this._spherical.phi;

@@ -6,6 +6,10 @@
 #define saturate( a ) clamp( a, 0.0, 1.0 )
 #define whiteCompliment(a) ( 1.0 - saturate( a ) )
 
+float pow2(float x ) {
+    return x * x;
+}
+
 vec4 RGBMToLinear(vec4 value, float maxRange ) {
     return vec4( value.rgb * value.a * maxRange, 1.0 );
 }

@@ -168,6 +168,9 @@ describe("ModelMesh Test", function () {
     expect(frame0.deltaTangents).toBe(deltaTangents);
 
     modelMesh.setPositions(positionsX);
+    modelMesh.clearBlendShapes();
+    expect(modelMesh.blendShapes.length).toBe(0);
+
     expect(modelMesh.vertexCount).toBe(4);
     // @ts-ignore
     const vertices = modelMesh._verticesFloat32;
@@ -184,9 +187,6 @@ describe("ModelMesh Test", function () {
 
     modelMesh.setIndices(null);
     modelMesh.setPositions(positions);
-
-    modelMesh.clearBlendShapes();
-    expect(modelMesh.blendShapes.length).toBe(0);
   });
   it("upload data with no longer used", () => {
     modelMesh.uploadData(true);

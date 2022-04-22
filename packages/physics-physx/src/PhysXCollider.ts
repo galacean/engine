@@ -45,6 +45,13 @@ export abstract class PhysXCollider implements ICollider {
   }
 
   /**
+   * {@inheritDoc ICollider.destroy }
+   */
+  destroy(): void {
+    this._pxActor.release();
+  }
+
+  /**
    * @internal
    */
   _transform(pos: Vector3, rot: Quaternion): { translation: Vector3; rotation: Quaternion } {

@@ -15,6 +15,10 @@ export class GLCapability {
   _rhi: WebGLRenderer;
   capabilityList: Map<GLCapabilityType, boolean>;
 
+  get maxTextureSize(): boolean {
+    return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_TEXTURE_SIZE);
+  }
+
   get canUseFloatTextureBlendShape(): boolean {
     return (
       this.canIUse(GLCapabilityType.shaderVertexID) &&

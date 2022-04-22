@@ -1,10 +1,10 @@
 import { BoundingBox } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
@@ -15,6 +15,7 @@ import { UpdateFlag } from "../UpdateFlag";
  */
 export class MeshRenderer extends Renderer implements ICustomClone {
   private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
+  private static _uv1Macro = Shader.getMacroByName("O3_HAS_UV1");
   private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
   private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
   private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
@@ -22,7 +23,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   private _mesh: Mesh;
   @ignoreClone
-  private _meshUpdateFlag: UpdateFlag;
+  private _meshUpdateFlag: BoolUpdateFlag;
 
   /**
    * @internal
@@ -64,6 +65,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         const vertexElements = mesh._vertexElements;
 
         shaderData.disableMacro(MeshRenderer._uvMacro);
+        shaderData.disableMacro(MeshRenderer._uv1Macro);
         shaderData.disableMacro(MeshRenderer._normalMacro);
         shaderData.disableMacro(MeshRenderer._tangentMacro);
         shaderData.disableMacro(MeshRenderer._vertexColorMacro);
@@ -73,6 +75,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
           switch (semantic) {
             case "TEXCOORD_0":
               shaderData.enableMacro(MeshRenderer._uvMacro);
+              break;
+            case "TEXCOORD_1":
+              shaderData.enableMacro(MeshRenderer._uv1Macro);
               break;
             case "NORMAL":
               shaderData.enableMacro(MeshRenderer._normalMacro);

@@ -1,4 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
@@ -28,13 +29,13 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @deepClone
   private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   @ignoreClone
-  private _worldMatrixDirtyFlag: UpdateFlag;
+  private _worldMatrixDirtyFlag: BoolUpdateFlag;
   @ignoreClone
   private _sprite: Sprite = null;
   @assignmentClone
   private _alphaCutoff: number = 0.5;
   @ignoreClone
-  private _spriteDirty: UpdateFlag;
+  private _spriteDirty: BoolUpdateFlag;
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone

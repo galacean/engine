@@ -1,4 +1,4 @@
-import { Camera, Engine, Layer, RenderPass, RenderTarget } from "oasis-engine";
+import { Camera, Engine, Layer, RenderPass, RenderTarget, Texture2D } from "oasis-engine";
 import { ColorMaterial } from "./ColorMaterial";
 
 /**
@@ -76,7 +76,7 @@ class ColorRenderPass extends RenderPass {
     const bottom = Math.floor((1 - ny) * (this.renderTarget.height - 1));
     const pixel = new Uint8Array(4);
 
-    this.renderTarget.getColorTexture().getPixelBuffer(null, left, bottom, 1, 1, 0, pixel);
+    (<Texture2D>this.renderTarget.getColorTexture()).getPixelBuffer(left, bottom, 1, 1, 0, pixel);
     return pixel;
   }
 }
