@@ -32,19 +32,19 @@
   │       │
   │       └─⫸ Commit Scope: |core|2d|rhi-webgl|animations|loaders|controls|math|framebuffer-picker
   │                                          
-  └─⫸ Commit Type: feat|fix|breaking|build|ci|docs|perf|refactor|test|types|style
+  └─⫸ Commit Type: build|ci|docs|feat|fix|perf|refactor|test|types|style
 ```
 
 <br />The `<type>` and `<summary>` fields are mandatory, the `(<scope>)` field is optional.<br />
 
 ## Explains
 
-- **feat**: A new feature
-- **fix**: A bug fix
-- **breaking**: A breaking change
+
 - **build**: Changes that affect the build system or external dependencies
 - **ci**: Changes to our CI configuration files and scripts
 - **docs**: Changes that only affect documentions
+- **feat**: A new feature
+- **fix**: A  bug fix
 - **perf**: A code change that improves performance
 - **refactor**: A code change that neither fixes a bug nor adds a feature
 - **test**: adding missing tests, refactoring tests; no production code change
