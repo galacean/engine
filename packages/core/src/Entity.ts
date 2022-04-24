@@ -323,7 +323,6 @@ export class Entity extends EngineObject {
     for (let i = 0, len = this._children.length; i < len; i++) {
       const child = children[i];
       cloneEntity.addChild(child.clone());
-      
     }
 
     const components = this._components;
