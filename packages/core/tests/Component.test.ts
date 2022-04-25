@@ -101,12 +101,10 @@ describe("Component", () => {
       //@ts-ignore
       entity.parent = scene.getRootEntity();
       TestComponent.prototype._onDisable = jest.fn();
-      TestComponent.prototype._onInActive = jest.fn();
       TestComponent.prototype._onDestroy = jest.fn();
       const component = entity.addComponent(TestComponent);
       component.destroy();
       expect(component._onDisable).toHaveBeenCalledTimes(1);
-      expect(component._onInActive).toHaveBeenCalledTimes(1);
       expect(component._onDestroy).toHaveBeenCalledTimes(1);
     });
   });
@@ -138,23 +136,23 @@ describe("Component", () => {
   });
 
   describe("active", () => {
-    it("onActive", () => {
+    it("onEnable", () => {
       const entity = new Entity(engine, "entity");
       //@ts-ignore
       entity.parent = scene.getRootEntity();
-      TestComponent.prototype._onActive = jest.fn();
+      TestComponent.prototype._onEnable = jest.fn();
       const component = entity.addComponent(TestComponent);
-      expect(component._onActive).toHaveBeenCalledTimes(1);
+      expect(component._onEnable).toHaveBeenCalledTimes(1);
     });
 
-    it("onInActive", () => {
+    it("onDisable", () => {
       const entity = new Entity(engine, "entity");
       //@ts-ignore
       entity.parent = scene.getRootEntity();
-      TestComponent.prototype._onInActive = jest.fn();
+      TestComponent.prototype._onDisable = jest.fn();
       const component = entity.addComponent(TestComponent);
       entity.isActive = false;
-      expect(component._onInActive).toHaveBeenCalledTimes(1);
+      expect(component._onDisable).toHaveBeenCalledTimes(1);
     });
 
     it("inActiveHierarchy", () => {
@@ -163,10 +161,10 @@ describe("Component", () => {
       parent.parent = scene.getRootEntity();
       const child = new Entity(engine, "child");
       child.parent = parent;
-      TestComponent.prototype._onInActive = jest.fn();
+      TestComponent.prototype._onDisable = jest.fn();
       const component = child.addComponent(TestComponent);
       parent.isActive = false;
-      expect(component._onInActive).toHaveBeenCalledTimes(1);
+      expect(component._onDisable).toHaveBeenCalledTimes(1);
     });
   });
 });

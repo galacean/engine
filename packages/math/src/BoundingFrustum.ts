@@ -1,8 +1,8 @@
-import { IClone } from "./IClone";
 import { BoundingBox } from "./BoundingBox";
 import { BoundingSphere } from "./BoundingSphere";
 import { CollisionUtil } from "./CollisionUtil";
 import { ContainmentType } from "./enums/ContainmentType";
+import { IClone } from "./IClone";
 import { Matrix } from "./Matrix";
 import { Plane } from "./Plane";
 
@@ -118,50 +118,38 @@ export class BoundingFrustum implements IClone {
 
     // near
     const nearNormal = this.near.normal;
-    nearNormal.x = -m14 - m13;
-    nearNormal.y = -m24 - m23;
-    nearNormal.z = -m34 - m33;
+    nearNormal.setValue(-m14 - m13, -m24 - m23, -m34 - m33);
     this.near.distance = -m44 - m43;
     this.near.normalize();
 
     // far
     const farNormal = this.far.normal;
-    farNormal.x = m13 - m14;
-    farNormal.y = m23 - m24;
-    farNormal.z = m33 - m34;
+    farNormal.setValue(m13 - m14, m23 - m24, m33 - m34);
     this.far.distance = m43 - m44;
 
     this.far.normalize();
 
     // left
     const leftNormal = this.left.normal;
-    leftNormal.x = -m14 - m11;
-    leftNormal.y = -m24 - m21;
-    leftNormal.z = -m34 - m31;
+    leftNormal.setValue(-m14 - m11, -m24 - m21, -m34 - m31);
     this.left.distance = -m44 - m41;
     this.left.normalize();
 
     // right
     const rightNormal = this.right.normal;
-    rightNormal.x = m11 - m14;
-    rightNormal.y = m21 - m24;
-    rightNormal.z = m31 - m34;
+    rightNormal.setValue(m11 - m14, m21 - m24, m31 - m34);
     this.right.distance = m41 - m44;
     this.right.normalize();
 
     // top
     const topNormal = this.top.normal;
-    topNormal.x = m12 - m14;
-    topNormal.y = m22 - m24;
-    topNormal.z = m32 - m34;
+    topNormal.setValue(m12 - m14, m22 - m24, m32 - m34);
     this.top.distance = m42 - m44;
     this.top.normalize();
 
     // bottom
     const bottomNormal = this.bottom.normal;
-    bottomNormal.x = -m14 - m12;
-    bottomNormal.y = -m24 - m22;
-    bottomNormal.z = -m34 - m32;
+    bottomNormal.setValue(-m14 - m12, -m24 - m22, -m34 - m32);
     this.bottom.distance = -m44 - m42;
     this.bottom.normalize();
   }

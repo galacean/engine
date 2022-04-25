@@ -3,9 +3,7 @@ import { Logger } from "../base/Logger";
 
 class ShaderFactory {
   static parseCustomMacros(macros: string[]) {
-    return (
-      macros.map((m) => `#define ${m}\n`).join("")
-    );
+    return macros.map((m) => `#define ${m}\n`).join("");
   }
 
   static parseIncludes(src: string) {
@@ -27,12 +25,10 @@ class ShaderFactory {
 
   /**
    * GLSL extension.
-   * @param {string[]} extensions - such as ["GL_EXT_shader_texture_lod"]
+   * @param extensions - such as ["GL_EXT_shader_texture_lod"]
    * */
-  static parseExtension(extensions: string[]) {
-    return (
-      extensions.map((e) => `#extension ${e} : enable\n`).join("")
-    );
+  static parseExtension(extensions: string[]): string {
+    return extensions.map((e) => `#extension ${e} : enable\n`).join("");
   }
 
   /**

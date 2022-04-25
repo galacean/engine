@@ -16,6 +16,7 @@ import { Skin } from "./Skin";
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
   private static _blendShapeMacro = Shader.getMacroByName("OASIS_BLENDSHAPE");
+  private static _blendShapeTextureMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TEXTURE");
   private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
   private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
 
@@ -23,6 +24,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
   private static _blendShapeWeightsProperty = Shader.getPropertyByName("u_blendShapeWeights");
+  private static _blendShapeTextureProperty = Shader.getPropertyByName("u_blendShapeTexture");
+  private static _blendShapeTextureInfoProperty = Shader.getPropertyByName("u_blendShapeTextureInfo");
 
   private static _maxJoints: number = 0;
 
@@ -76,23 +79,33 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
     }
 
-    const mesh = <ModelMesh>this.mesh;
-    if (mesh._hasBlendShape) {
-      shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
+    const blendShapeManager = (<ModelMesh>this.mesh)._blendShapeManager;
+    if (blendShapeManager._blendShapeCount > 0) {
       shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
+      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeManager._blendShapeCount.toString());
+      if (blendShapeManager._useTextureStore()) {
+        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
+        shaderData.setTexture(SkinnedMeshRenderer._blendShapeTextureProperty, blendShapeManager._dataTexture);
+        shaderData.setVector3(SkinnedMeshRenderer._blendShapeTextureInfoProperty, blendShapeManager._dataTextureInfo);
+      } else {
+        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
+      }
 
-      if (mesh._useBlendShapeNormal) {
+      shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
+
+      if (blendShapeManager._useBlendNormal) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
       } else {
         shaderData.disableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
       }
-      if (mesh._useBlendShapeTangent) {
+      if (blendShapeManager._useBlendTangent) {
         shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
       } else {
         shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
       }
     } else {
       shaderData.disableMacro(SkinnedMeshRenderer._blendShapeMacro);
+      shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
     }
   }
 
@@ -123,23 +136,24 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const rhi = this.entity.engine._hardwareRenderer;
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    const maxJoints = Math.floor((maxAttribUniformVec4 - 20) / 4);
+    const maxJoints = Math.floor((maxAttribUniformVec4 - 30) / 4);
     const shaderData = this.shaderData;
-    const jointCount = this.jointNodes?.length;
+    const jointCount = jointNodes.length;
+
     if (jointCount) {
       shaderData.enableMacro("O3_HAS_SKIN");
       shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
-      if (joints.length > maxJoints) {
+      if (jointCount > maxJoints) {
         if (rhi.canIUseMoreJoints) {
           this._useJointTexture = true;
         } else {
           Logger.error(
-            `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
+            `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
             this
           );
         }
       } else {
-        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, joints.length);
+        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, jointCount);
         SkinnedMeshRenderer._maxJoints = maxJoints;
         shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
         shaderData.enableMacro("O3_JOINTS_NUM", maxJoints.toString());

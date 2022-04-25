@@ -1,7 +1,9 @@
-GeometricContext geometry = GeometricContext(v_pos, getNormal(), normalize(u_cameraPos - v_pos));
-PhysicalMaterial material = getPhysicalMaterial(u_baseColor, u_metal, u_roughness, u_specularColor, u_glossiness, u_alphaCutoff);
-ReflectedLight reflectedLight = ReflectedLight( vec3( 0 ), vec3( 0 ), vec3( 0 ), vec3( 0 ) );
-float dotNV = saturate( dot( geometry.normal, geometry.viewDir ) );
+Geometry geometry;
+Material material;
+ReflectedLight reflectedLight;
+
+initGeometry(geometry);
+initMaterial(material, geometry);
 
 // Direct Light
 addTotalDirectRadiance(geometry, material, reflectedLight);
@@ -21,17 +23,34 @@ addTotalDirectRadiance(geometry, material, reflectedLight);
 reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 // IBL specular
-vec3 radiance = getLightProbeRadiance( geometry, material.roughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity);
-reflectedLight.indirectSpecular += radiance * envBRDFApprox(material.specularColor, material.roughness, dotNV );
+vec3 radiance = getLightProbeRadiance(geometry.viewDir, geometry.normal, material.roughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity);
+float radianceAttenuation = 1.0;
+
+#ifdef CLEARCOAT
+    vec3 clearCoatRadiance = getLightProbeRadiance( geometry.viewDir, geometry.clearCoatNormal, material.clearCoatRoughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity );
+
+    reflectedLight.indirectSpecular += clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), material.clearCoatRoughness, geometry.clearCoatDotNV);
+    radianceAttenuation -= material.clearCoat * F_Schlick(geometry.clearCoatDotNV);
+#endif
+
+reflectedLight.indirectSpecular += radianceAttenuation * radiance * envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
+
 
 // Occlusion
 #ifdef HAS_OCCLUSIONMAP
-    float ambientOcclusion = (texture2D(u_occlusionSampler, v_uv).r - 1.0) * u_occlusionStrength + 1.0;
+    vec2 aoUV = v_uv;
+    #ifdef O3_HAS_UV1
+        if(u_occlusionTextureCoord == 1.0){
+            aoUV = v_uv1;
+        }
+    #endif
+    float ambientOcclusion = (texture2D(u_occlusionSampler, aoUV).r - 1.0) * u_occlusionStrength + 1.0;
     reflectedLight.indirectDiffuse *= ambientOcclusion;
     #ifdef O3_USE_SPECULAR_ENV
-        reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, dotNV);
+        reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, geometry.dotNV);
     #endif
 #endif
+
 
 // Emissive
 vec3 emissiveRadiance = u_emissiveColor;

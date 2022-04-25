@@ -1,4 +1,4 @@
-import { UpdateFlag } from "../UpdateFlag";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 
@@ -60,11 +60,11 @@ export class AnimatorController {
   /**
    * @internal
    */
-  _registerChangeFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  _registerChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
   private _distributeUpdateFlag(): void {
-    this._updateFlagManager.distribute();
+    this._updateFlagManager.dispatch();
   }
 }
