@@ -41,7 +41,11 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    this._transform.setScale(scale.x, scale.y, scale.z);
+    const position = this._transform.position;
+    Vector3.multiply(position, scale, position);
+    this._transform.position = position;
+
+    Vector3.multiply(this._halfSize, scale, this._halfSize);
   }
 
   /**
