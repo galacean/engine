@@ -11,10 +11,10 @@ changelog:
       labels:
         - feature
         - enhancement
-    - title: Fixed 
+    - title: Fixed 🐞
       labels:
         - bug
-    - title: Other Changes 🐞
+    - title: Other Changes
       labels:
         - test
         - "*"
