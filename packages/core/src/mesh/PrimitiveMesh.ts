@@ -682,7 +682,7 @@ export class PrimitiveMesh {
    * @param noLongerAccessible - No longer access the vertices of the mesh after creation
    * @returns Capsule model mesh
    */
-  static createCapsule(
+   static createCapsule(
     engine: Engine,
     radius: number = 0.5,
     height: number = 2,
@@ -716,8 +716,8 @@ export class PrimitiveMesh {
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
 
-    const halfPI = Math.PI / 2;
-    const doublePI = Math.PI * 2;
+    const thetaStart = Math.PI;
+    const thetaRange = Math.PI * 2;
 
     const positions = new Array<Vector3>(totalVertexCount);
     const normals = new Array<Vector3>(totalVertexCount);
@@ -731,7 +731,7 @@ export class PrimitiveMesh {
       const y = (i * radialCountReciprocal) | 0;
       const u = x * radialSegmentsReciprocal;
       const v = y * heightSegmentsReciprocal;
-      const theta = -halfPI + u * doublePI;
+      const theta = thetaStart + u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
 
@@ -761,7 +761,7 @@ export class PrimitiveMesh {
       radius,
       height,
       radialSegments,
-      doublePI,
+      thetaRange,
       torsoVertexCount,
       1,
       positions,
@@ -775,7 +775,7 @@ export class PrimitiveMesh {
       radius,
       height,
       radialSegments,
-      -doublePI,
+      -thetaRange,
       torsoVertexCount + capVertexCount,
       -1,
       positions,
@@ -838,7 +838,7 @@ export class PrimitiveMesh {
     indicesOffset: number
   ) {
     const radialCount = radialSegments + 1;
-    const halfHeight = height * 0.5;
+    const halfHeight = height * 0.5 * posIndex;
     const capVertexCount = radialCount * radialCount;
     const capRectangleCount = radialSegments * radialSegments;
     const radialCountReciprocal = 1.0 / radialCount;
@@ -854,12 +854,12 @@ export class PrimitiveMesh {
       const sinTheta = Math.sin(thetaDelta);
 
       const posX = -radius * Math.cos(alphaDelta) * sinTheta;
-      const posY = (radius * Math.cos(thetaDelta) + halfHeight) * posIndex;
+      const posY = radius * Math.cos(thetaDelta) * posIndex + halfHeight;
       const posZ = radius * Math.sin(alphaDelta) * sinTheta;
 
       const index = i + offset;
       positions[index] = new Vector3(posX, posY, posZ);
-      normals[index] = new Vector3(posX, posY, posZ);
+      normals[index] = new Vector3(posX, posY - halfHeight, posZ);
       uvs[index] = new Vector2(u, v);
     }
 
