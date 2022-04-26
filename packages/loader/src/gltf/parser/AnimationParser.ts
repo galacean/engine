@@ -142,14 +142,14 @@ export class AnimationParser extends Parser {
     for (let j = 0, n = input.length; j < n; j++) {
       const offset = j * outputSize;
       if (interpolableValueType === InterpolableValueType.Float) {
-        let keyframe = new InterpolableKeyframe<number, number>();
+        const keyframe = new InterpolableKeyframe<number, number>();
         keyframe.time = input[j];
         keyframe.inTangent = 0;
         keyframe.outTangent = 0;
         keyframe.value = output[offset];
         curve.addKey(keyframe);
       } else if (interpolableValueType === InterpolableValueType.FloatArray) {
-        let keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
+        const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
         keyframe.time = input[j];
         keyframe.inTangent = new Float32Array(outputSize);
         keyframe.outTangent = new Float32Array(outputSize);
