@@ -1,13 +1,13 @@
 import { IClone } from "./../../../math/src/IClone";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh";
 import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Transform } from "../Transform";
-import { UpdateFlag } from "../UpdateFlag";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
@@ -38,7 +38,7 @@ export class Animator extends Component {
   @assignmentClone
   protected _speed: number = 1.0;
   @ignoreClone
-  protected _controllerUpdateFlag: UpdateFlag;
+  protected _controllerUpdateFlag: BoolUpdateFlag;
 
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
@@ -662,7 +662,6 @@ export class Animator extends Component {
   ): void {
     let value: InterpolableValue;
     if (owner.type === Transform) {
-      const transform = owner.target.transform;
       switch (owner.property) {
         case AnimationProperty.Position:
           Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);

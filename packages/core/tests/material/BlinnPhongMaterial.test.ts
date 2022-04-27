@@ -49,11 +49,13 @@ describe("BlinnPhongMaterial", () => {
     material.specularTexture = null;
     material.emissiveTexture = null;
     material.normalTexture = null;
+    material.shininess = 0;
 
     expect(material.baseTexture).toBeNull();
     expect(material.specularTexture).toBeNull();
     expect(material.emissiveTexture).toBeNull();
     expect(material.normalTexture).toBeNull();
+    expect(material.shininess).toBe(1e-4);
   });
 
   it("clone", () => {

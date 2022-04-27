@@ -1,5 +1,6 @@
 import { WebGLEngine } from "../../rhi-webgl/src/WebGLEngine";
-import { Entity, Component } from "../src/index";
+import { Component } from "../src/Component";
+import { Entity } from "../src/Entity";
 class TestComponent extends Component {}
 
 describe("Entity", () => {

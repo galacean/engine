@@ -1,5 +1,6 @@
 import { Matrix } from "@oasis-engine/math";
 import { EngineObject } from "./base";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
 import { ComponentsDependencies } from "./ComponentsDependencies";
@@ -375,7 +376,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _addScript(script: Script) {
-    script._entityCacheIndex = this._scripts.length;
+    script._entityScriptsIndex = this._scripts.length;
     this._scripts.add(script);
   }
 
@@ -383,9 +384,9 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeScript(script: Script): void {
-    const replaced = this._scripts.deleteByIndex(script._entityCacheIndex);
-    replaced && (replaced._entityCacheIndex = script._entityCacheIndex);
-    script._entityCacheIndex = -1;
+    const replaced = this._scripts.deleteByIndex(script._entityScriptsIndex);
+    replaced && (replaced._entityScriptsIndex = script._entityScriptsIndex);
+    script._entityScriptsIndex = -1;
   }
 
   /**
@@ -454,7 +455,7 @@ export class Entity extends EngineObject {
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-      const child: Entity = children[i];
+      const child = children[i];
       child.isActive && child._setActiveInHierarchy(activeChangedComponents);
     }
   }
@@ -484,7 +485,7 @@ export class Entity extends EngineObject {
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   private _invModelMatrix: Matrix = new Matrix();
-  private _inverseWorldMatFlag: UpdateFlag;
+  private _inverseWorldMatFlag: BoolUpdateFlag;
 
   /**
    * @deprecated

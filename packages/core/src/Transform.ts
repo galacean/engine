@@ -1,4 +1,5 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
@@ -10,7 +11,9 @@ import { UpdateFlagManager } from "./UpdateFlagManager";
  */
 export class Transform extends Component {
   private static _tempQuat0: Quaternion = new Quaternion();
-  private static _tempVec3: Vector3 = new Vector3();
+  private static _tempVec30: Vector3 = new Vector3();
+  private static _tempVec31: Vector3 = new Vector3();
+  private static _tempVec32: Vector3 = new Vector3();
   private static _tempMat30: Matrix3x3 = new Matrix3x3();
   private static _tempMat31: Matrix3x3 = new Matrix3x3();
   private static _tempMat32: Matrix3x3 = new Matrix3x3();
@@ -64,15 +67,21 @@ export class Transform extends Component {
    * World position.
    */
   get worldPosition(): Vector3 {
+    const worldPosition = this._worldPosition;
     if (this._isContainDirtyFlag(TransformFlag.WorldPosition)) {
+      //@ts-ignore
+      worldPosition._onValueChanged = null;
       if (this._getParentTransform()) {
-        this.worldMatrix.getTranslation(this._worldPosition);
+        this.worldMatrix.getTranslation(worldPosition);
       } else {
-        this._position.cloneTo(this._worldPosition);
+        this._position.cloneTo(worldPosition);
       }
+      //@ts-ignore
+      worldPosition._onValueChanged = this._onWorldPositionChanged;
       this._setDirtyFlagFalse(TransformFlag.WorldPosition);
     }
-    return this._worldPosition;
+
+    return worldPosition;
   }
 
   set worldPosition(value: Vector3) {
@@ -86,12 +95,18 @@ export class Transform extends Component {
    * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    */
   get rotation(): Vector3 {
+    const rotation = this._rotation;
     if (this._isContainDirtyFlag(TransformFlag.LocalEuler)) {
-      this._rotationQuaternion.toEuler(this._rotation);
-      this._rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
+      //@ts-ignore
+      rotation._onValueChanged = null;
+      this._rotationQuaternion.toEuler(rotation);
+      //@ts-ignore
+      rotation._onValueChanged = this._onRotationChanged;
+      rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
       this._setDirtyFlagFalse(TransformFlag.LocalEuler);
     }
-    return this._rotation;
+
+    return rotation;
   }
 
   set rotation(value: Vector3) {
@@ -105,12 +120,17 @@ export class Transform extends Component {
    * Rotations are performed around the Y axis, the X axis, and the Z axis, in that order.
    */
   get worldRotation(): Vector3 {
+    const worldRotation = this._worldRotation;
     if (this._isContainDirtyFlag(TransformFlag.WorldEuler)) {
-      this.worldRotationQuaternion.toEuler(this._worldRotation);
-      this._worldRotation.scale(MathUtil.radToDegreeFactor); // Radian to angle
+      //@ts-ignore
+      worldRotation._onValueChanged = null;
+      this.worldRotationQuaternion.toEuler(worldRotation);
+      worldRotation.scale(MathUtil.radToDegreeFactor); // Radian to angle
+      //@ts-ignore
+      worldRotation._onValueChanged = this._onWorldRotationChanged;
       this._setDirtyFlagFalse(TransformFlag.WorldEuler);
     }
-    return this._worldRotation;
+    return worldRotation;
   }
 
   set worldRotation(value: Vector3) {
@@ -123,21 +143,32 @@ export class Transform extends Component {
    * Local rotation, defining the rotation by using a unit quaternion.
    */
   get rotationQuaternion(): Quaternion {
+    const rotationQuaternion = this._rotationQuaternion;
     if (this._isContainDirtyFlag(TransformFlag.LocalQuat)) {
+      //@ts-ignore
+      rotationQuaternion._onValueChanged = null;
       Quaternion.rotationEuler(
         MathUtil.degreeToRadian(this._rotation.x),
         MathUtil.degreeToRadian(this._rotation.y),
         MathUtil.degreeToRadian(this._rotation.z),
-        this._rotationQuaternion
+        rotationQuaternion
       );
+      //@ts-ignore
+      rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
       this._setDirtyFlagFalse(TransformFlag.LocalQuat);
     }
-    return this._rotationQuaternion;
+    return rotationQuaternion;
   }
 
   set rotationQuaternion(value: Quaternion) {
     if (this._rotationQuaternion !== value) {
-      value.cloneTo(this._rotationQuaternion);
+      if (value.normalized) {
+        value.cloneTo(this._rotationQuaternion);
+      } else {
+        Quaternion.normalize(value, this._rotationQuaternion);
+      }
+    } else {
+      value.normalized || value.normalize();
     }
   }
 
@@ -145,22 +176,32 @@ export class Transform extends Component {
    * World rotation, defining the rotation by using a unit quaternion.
    */
   get worldRotationQuaternion(): Quaternion {
+    const worldRotationQuaternion = this._worldRotationQuaternion;
     if (this._isContainDirtyFlag(TransformFlag.WorldQuat)) {
+      //@ts-ignore
+      worldRotationQuaternion._onValueChanged = null;
       const parent = this._getParentTransform();
       if (parent != null) {
-        Quaternion.multiply(parent.worldRotationQuaternion, this.rotationQuaternion, this._worldRotationQuaternion);
+        Quaternion.multiply(parent.worldRotationQuaternion, this.rotationQuaternion, worldRotationQuaternion);
       } else {
-        this.rotationQuaternion.cloneTo(this._worldRotationQuaternion);
+        this.rotationQuaternion.cloneTo(worldRotationQuaternion);
       }
+      //@ts-ignore
+      worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
       this._setDirtyFlagFalse(TransformFlag.WorldQuat);
     }
-    return this._worldRotationQuaternion;
+    return worldRotationQuaternion;
   }
 
   set worldRotationQuaternion(value: Quaternion) {
     if (this._worldRotationQuaternion !== value) {
-      value.cloneTo(this._worldRotationQuaternion);
+      if (value.normalized) {
+        value.cloneTo(this._worldRotationQuaternion);
+      } else {
+        Quaternion.normalize(value, this._worldRotationQuaternion);
+      }
     }
+    value.normalized || value.normalize();
   }
 
   /**
@@ -211,7 +252,9 @@ export class Transform extends Component {
     if (this._localMatrix !== value) {
       value.cloneTo(this._localMatrix);
     }
+
     this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
+
     this._setDirtyFlagTrue(TransformFlag.LocalEuler);
     this._setDirtyFlagFalse(TransformFlag.LocalMatrix);
     this._updateAllWorldFlag();
@@ -252,69 +295,28 @@ export class Transform extends Component {
   constructor(entity: Entity) {
     super(entity);
 
-    //@ts-ignore
-    this._position._onValueChanged = () => {
-      this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
-      this._updateWorldPositionFlag();
-    };
+    this._onPositionChanged = this._onPositionChanged.bind(this);
+    this._onWorldPositionChanged = this._onWorldPositionChanged.bind(this);
+    this._onRotationChanged = this._onRotationChanged.bind(this);
+    this._onWorldRotationChanged = this._onWorldRotationChanged.bind(this);
+    this._onRotationQuaternionChanged = this._onRotationQuaternionChanged.bind(this);
+    this._onWorldRotationQuaternionChanged = this._onWorldRotationQuaternionChanged.bind(this);
+    this._onScaleChanged = this._onScaleChanged.bind(this);
 
     //@ts-ignore
-    this._worldPosition._onValueChanged = () => {
-      const worldPosition = this._worldPosition;
-      const parent = this._getParentTransform();
-      if (parent) {
-        Matrix.invert(parent.worldMatrix, Transform._tempMat41);
-        Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
-      } else {
-        worldPosition.cloneTo(this._position);
-      }
-      this._setDirtyFlagFalse(TransformFlag.WorldPosition);
-    };
-
+    this._position._onValueChanged = this._onPositionChanged;
     //@ts-ignore
-    this._rotation._onValueChanged = () => {
-      this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalQuat);
-      this._setDirtyFlagFalse(TransformFlag.LocalEuler);
-      this._updateWorldRotationFlag();
-    };
-
+    this._worldPosition._onValueChanged = this._onWorldPositionChanged;
     //@ts-ignore
-    this._worldRotation._onValueChanged = () => {
-      const worldRotation = this._worldRotation;
-      Quaternion.rotationEuler(
-        MathUtil.degreeToRadian(worldRotation.x),
-        MathUtil.degreeToRadian(worldRotation.y),
-        MathUtil.degreeToRadian(worldRotation.z),
-        this._worldRotationQuaternion
-      );
-      this._setDirtyFlagFalse(TransformFlag.WorldEuler);
-    };
-
+    this._rotation._onValueChanged = this._onRotationChanged;
     //@ts-ignore
-    this._rotationQuaternion._onValueChanged = () => {
-      this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalEuler);
-      this._setDirtyFlagFalse(TransformFlag.LocalQuat);
-      this._updateWorldRotationFlag();
-    };
-
+    this._worldRotation._onValueChanged = this._onWorldRotationChanged;
     //@ts-ignore
-    this._worldRotationQuaternion._onValueChanged = () => {
-      const worldRotationQuaternion = this._worldRotationQuaternion;
-      const parent = this._getParentTransform();
-      if (parent) {
-        Quaternion.invert(parent.worldRotationQuaternion, Transform._tempQuat0);
-        Quaternion.multiply(worldRotationQuaternion, Transform._tempQuat0, this._rotationQuaternion);
-      } else {
-        worldRotationQuaternion.cloneTo(this._rotationQuaternion);
-      }
-      this._setDirtyFlagFalse(TransformFlag.WorldQuat);
-    };
-
+    this._rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
     //@ts-ignore
-    this._scale._onValueChanged = () => {
-      this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
-      this._updateWorldScaleFlag();
-    };
+    this._worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
+    //@ts-ignore
+    this._scale._onValueChanged = this._onScaleChanged;
   }
 
   /**
@@ -446,7 +448,7 @@ export class Transform extends Component {
     relativeToLocal?: boolean
   ): void {
     if (typeof translationOrX === "number") {
-      const translate = Transform._tempVec3;
+      const translate = Transform._tempVec30;
       translate.setValue(translationOrX, <number>relativeToLocalOrY, z);
       this._translate(translate, relativeToLocal);
     } else {
@@ -497,33 +499,49 @@ export class Transform extends Component {
 
   /**
    * Rotate and ensure that the world front vector points to the target world position.
-   * @param worldPosition - Target world position
+   * @param targetPosition - Target world position
    * @param worldUp - Up direction in world space, default is Vector3(0, 1, 0)
    */
-  lookAt(worldPosition: Vector3, worldUp?: Vector3): void {
-    const position = this.worldPosition;
-    const EPSILON = MathUtil.zeroTolerance;
-    if (
-      Math.abs(position.x - worldPosition.x) < EPSILON &&
-      Math.abs(position.y - worldPosition.y) < EPSILON &&
-      Math.abs(position.z - worldPosition.z) < EPSILON
-    ) {
+  lookAt(targetPosition: Vector3, worldUp?: Vector3): void {
+    const zAxis = Transform._tempVec30;
+    Vector3.subtract(this.worldPosition, targetPosition, zAxis);
+    let axisLen = zAxis.length();
+    if (axisLen <= MathUtil.zeroTolerance) {
+      // The current position and the target position are almost the same.
       return;
     }
-    const rotMat = Transform._tempMat43;
-    const worldRotationQuaternion = this._worldRotationQuaternion;
+    zAxis.scale(1 / axisLen);
+    const xAxis = Transform._tempVec31;
+    if (worldUp) {
+      Vector3.cross(worldUp, zAxis, xAxis);
+    } else {
+      xAxis.setValue(zAxis.z, 0, -zAxis.x);
+    }
+    axisLen = xAxis.length();
+    if (axisLen <= MathUtil.zeroTolerance) {
+      // @todo:
+      // 1.worldup is（0,0,0）
+      // 2.worldUp is parallel to zAxis
+      return;
+    }
+    xAxis.scale(1 / axisLen);
+    const yAxis = Transform._tempVec32;
+    Vector3.cross(zAxis, xAxis, yAxis);
 
-    worldUp = worldUp ?? Transform._tempVec3.setValue(0, 1, 0);
-    Matrix.lookAt(position, worldPosition, worldUp, rotMat);
-    rotMat.getRotation(worldRotationQuaternion).invert();
+    const rotMat = Transform._tempMat41;
+    const { elements: e } = rotMat;
+    (e[0] = xAxis.x), (e[1] = xAxis.y), (e[2] = xAxis.z);
+    (e[4] = yAxis.x), (e[5] = yAxis.y), (e[6] = yAxis.z);
+    (e[8] = zAxis.x), (e[9] = zAxis.y), (e[10] = zAxis.z);
+    rotMat.getRotation(this._worldRotationQuaternion);
   }
 
   /**
    * Register world transform change flag.
    * @returns Change flag
    */
-  registerWorldChangeFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  registerWorldChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
   /**
@@ -689,16 +707,14 @@ export class Transform extends Component {
 
   private _worldAssociatedChange(type: number): void {
     this._dirtyFlag |= type;
-    this._updateFlagManager.distribute();
+    this._updateFlagManager.dispatch();
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean) {
     if (relativeToLocal) {
       Quaternion.multiply(this.rotationQuaternion, rotateQuat, this._rotationQuaternion);
-      this.rotationQuaternion = this._rotationQuaternion;
     } else {
-      Quaternion.multiply(this.worldRotationQuaternion, rotateQuat, this._worldRotationQuaternion);
-      this.worldRotationQuaternion = this._worldRotationQuaternion;
+      Quaternion.multiply(rotateQuat, this.worldRotationQuaternion, this._worldRotationQuaternion);
     }
   }
 
@@ -716,8 +732,65 @@ export class Transform extends Component {
     Quaternion.rotationEuler(x * radFactor, y * radFactor, z * radFactor, rotQuat);
     this._rotateByQuat(rotQuat, relativeToLocal);
   }
-}
 
+  private _onPositionChanged(): void {
+    this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
+    this._updateWorldPositionFlag();
+  }
+
+  private _onWorldPositionChanged(): void {
+    const worldPosition = this._worldPosition;
+    const parent = this._getParentTransform();
+    if (parent) {
+      Matrix.invert(parent.worldMatrix, Transform._tempMat41);
+      Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
+    } else {
+      worldPosition.cloneTo(this._position);
+    }
+    this._setDirtyFlagFalse(TransformFlag.WorldPosition);
+  }
+
+  private _onRotationChanged(): void {
+    this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalQuat);
+    this._setDirtyFlagFalse(TransformFlag.LocalEuler);
+    this._updateWorldRotationFlag();
+  }
+
+  private _onWorldRotationChanged(): void {
+    const worldRotation = this._worldRotation;
+    Quaternion.rotationEuler(
+      MathUtil.degreeToRadian(worldRotation.x),
+      MathUtil.degreeToRadian(worldRotation.y),
+      MathUtil.degreeToRadian(worldRotation.z),
+      this._worldRotationQuaternion
+    );
+    this._setDirtyFlagFalse(TransformFlag.WorldEuler);
+  }
+
+  private _onRotationQuaternionChanged(): void {
+    this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalEuler);
+    this._setDirtyFlagFalse(TransformFlag.LocalQuat);
+    this._updateWorldRotationFlag();
+  }
+
+  private _onWorldRotationQuaternionChanged(): void {
+    const worldRotationQuaternion = this._worldRotationQuaternion;
+    const parent = this._getParentTransform();
+    if (parent) {
+      const invParentQuaternion = Transform._tempQuat0;
+      Quaternion.invert(parent.worldRotationQuaternion, invParentQuaternion);
+      Quaternion.multiply(invParentQuaternion, worldRotationQuaternion, this._rotationQuaternion);
+    } else {
+      worldRotationQuaternion.cloneTo(this._rotationQuaternion);
+    }
+    this._setDirtyFlagFalse(TransformFlag.WorldQuat);
+  }
+
+  private _onScaleChanged(): void {
+    this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
+    this._updateWorldScaleFlag();
+  }
+}
 /**
  * Dirty flag of transform.
  */
