@@ -1,3 +1,5 @@
+import { IClone } from "./../../../math/src/IClone";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
@@ -396,7 +398,8 @@ export class Animator extends Component {
     property: AnimationProperty,
     curve: AnimationCurve,
     time: number,
-    additive: boolean
+    additive: boolean,
+    out: InterpolableValue
   ): InterpolableValue {
     const value = curve.evaluate(time);
 
@@ -418,7 +421,22 @@ export class Animator extends Component {
           return scale;
       }
     }
-    return value;
+
+    switch (curve._valueType) {
+      case InterpolableValueType.Float:
+        return value;
+      case InterpolableValueType.FloatArray:
+        for (let i = 0, n = (<Float32Array>value).length; i < n; i++) {
+          out[i] = value[i];
+        }
+        return out;
+      case InterpolableValueType.Vector2:
+      case InterpolableValueType.Vector3:
+      case InterpolableValueType.Vector4:
+      case InterpolableValueType.Quaternion:
+        (value as IClone).cloneTo(out as IClone);
+        return out;
+    }
   }
 
   private _getAnimatorLayerData(layerIndex: number): AnimatorLayerData {
@@ -484,7 +502,7 @@ export class Animator extends Component {
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive);
+      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive, owner.currentValue);
       if (additive) {
         this._applyClipValueAdditive(owner, value, weight);
       } else {
@@ -556,15 +574,15 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
-      const { property, defaultValue } = curveOwner;
+      const { property, currentValue, defaultValue } = curveOwner;
 
       const srcValue =
         srcCurveIndex >= 0
-          ? this._evaluateCurve(property, srcCurves[srcCurveIndex].curve, srcClipTime, additive)
+          ? this._evaluateCurve(property, srcCurves[srcCurveIndex].curve, srcClipTime, additive, currentValue)
           : defaultValue;
       const destValue =
         destCurveIndex >= 0
-          ? this._evaluateCurve(property, destCurves[destCurveIndex].curve, destClipTime, additive)
+          ? this._evaluateCurve(property, destCurves[destCurveIndex].curve, destClipTime, additive, currentValue)
           : defaultValue;
 
       this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
@@ -612,7 +630,7 @@ export class Animator extends Component {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
       const destValue =
         destCurveIndex >= 0
-          ? this._evaluateCurve(curveOwner.property, curves[destCurveIndex].curve, destClipTime, additive)
+          ? this._evaluateCurve(curveOwner.property, curves[destCurveIndex].curve, destClipTime, additive, curveOwner.currentValue)
           : curveOwner.defaultValue;
 
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);

@@ -11,6 +11,7 @@ import { InterpolableValue } from "../KeyFrame";
 export class AnimationCurveOwner {
   crossCurveMark: number = 0;
   crossCurveIndex: number;
+  currentValue: InterpolableValue;
 
   readonly target: Entity;
   readonly type: new (entity: Entity) => Component;
@@ -28,21 +29,25 @@ export class AnimationCurveOwner {
     this.property = property;
     switch (property) {
       case AnimationProperty.Position:
+        this.currentValue = new Vector3();
         this.defaultValue = new Vector3();
         this.fixedPoseValue = new Vector3();
         this.component = target.transform;
         break;
       case AnimationProperty.Rotation:
+        this.currentValue = new Quaternion();
         this.defaultValue = new Quaternion();
         this.fixedPoseValue = new Quaternion();
         this.component = target.transform;
         break;
       case AnimationProperty.Scale:
+        this.currentValue = new Vector3();
         this.defaultValue = new Vector3();
         this.fixedPoseValue = new Vector3();
         this.component = target.transform;
         break;
       case AnimationProperty.BlendShapeWeights:
+        this.currentValue = new Float32Array(4);
         this.defaultValue = new Float32Array(4);
         this.fixedPoseValue = new Float32Array(4);
         this.component = target.getComponent(SkinnedMeshRenderer);
