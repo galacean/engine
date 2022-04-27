@@ -1,6 +1,6 @@
 vec3 getNormal(){
     #ifdef O3_HAS_NORMAL
-        vec3 normal = v_normal;
+        vec3 normal = normalize(v_normal);
     #elif defined(HAS_DERIVATIVES)
         vec3 pos_dx = dFdx(v_pos);
         vec3 pos_dy = dFdy(v_pos);
