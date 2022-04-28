@@ -8,7 +8,7 @@ float computeSpecularOcclusion(float ambientOcclusion, float roughness, float do
 float getAARoughnessFactor(vec3 normal) {
     #ifdef HAS_DERIVATIVES
         vec3 dxy = max( abs(dFdx(normal)), abs(dFdy(normal)) );
-        return max( max(dxy.x, dxy.y), dxy.z );
+        return 0.04 + max( max(dxy.x, dxy.y), dxy.z );
     #else
         return 0.04;
     #endif
