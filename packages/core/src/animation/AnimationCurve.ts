@@ -90,6 +90,42 @@ export class AnimationCurve {
    * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): InterpolableValue {
+    return this._evaluate(time, this._currentValue);
+  }
+
+  /**
+   * Removes the keyframe at index and inserts key.
+   * @param index - The index of the key to move
+   * @param key - The key to insert
+   */
+  moveKey(index: number, key: UnionInterpolableKeyframe): void {
+    this.keys[index] = key;
+  }
+
+  /**
+   * Removes a key.
+   * @param index - The index of the key to remove
+   */
+  removeKey(index: number): void {
+    this.keys.splice(index, 1);
+    const { keys } = this;
+    const count = this.keys.length;
+    let newLength = 0;
+    for (let i = count - 1; i >= 0; i--) {
+      if (keys[i].time > length) {
+        newLength = keys[i].time;
+      }
+    }
+    this._length = newLength;
+  }
+
+  /**
+   * @internal
+   * Samples an animation at a given time.
+   * @param time - The time to sample an animation
+   * @param out - The value calculated
+   */
+  _evaluate(time: number, out: InterpolableValue) {
     const { keys, interpolation } = this;
     const { length } = this.keys;
 
@@ -125,82 +161,55 @@ export class AnimationCurve {
 
       switch (interpolation) {
         case InterpolationType.Linear:
-          value = this._evaluateLinear(curIndex, nextIndex, t);
+          value = this._evaluateLinear(curIndex, nextIndex, t, out);
           break;
         case InterpolationType.Step:
           value = this._evaluateStep(nextIndex);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
-          value = this._evaluateHermite(curIndex, nextIndex, t, dur);
+          value = this._evaluateHermite(curIndex, nextIndex, t, dur, out);
       }
     }
     return value;
   }
 
-  /**
-   * Removes the keyframe at index and inserts key.
-   * @param index - The index of the key to move
-   * @param key - The key to insert
-   */
-  moveKey(index: number, key: UnionInterpolableKeyframe): void {
-    this.keys[index] = key;
-  }
-
-  /**
-   * Removes a key.
-   * @param index - The index of the key to remove
-   */
-  removeKey(index: number): void {
-    this.keys.splice(index, 1);
-    const { keys } = this;
-    const count = this.keys.length;
-    let newLength = 0;
-    for (let i = count - 1; i >= 0; i--) {
-      if (keys[i].time > length) {
-        newLength = keys[i].time;
-      }
-    }
-    this._length = newLength;
-  }
-
-  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number): InterpolableValue {
+  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: InterpolableValue): InterpolableValue {
     const { _valueType, keys } = this;
     switch (_valueType) {
       case InterpolableValueType.Float:
         return (<FloatKeyframe>keys[frameIndex]).value * (1 - t) + (<FloatKeyframe>keys[nextFrameIndex]).value * t;
       case InterpolableValueType.FloatArray:
-        const curValue = this._currentValue;
         const value = (<FloatArrayKeyframe>keys[frameIndex]).value;
         const nextValue = (<FloatArrayKeyframe>keys[nextFrameIndex]).value;
         for (let i = 0, n = value.length; i < n; i++) {
-          curValue[i] = value[i] * (1 - t) + nextValue[i] * t;
+          out[i] = value[i] * (1 - t) + nextValue[i] * t;
         }
-        return curValue;
+        return out;
       case InterpolableValueType.Vector2:
         Vector2.lerp(
           (<Vector2Keyframe>keys[frameIndex]).value,
           (<Vector2Keyframe>keys[nextFrameIndex]).value,
           t,
-          <Vector2>this._currentValue
+          <Vector2>out
         );
-        return this._currentValue;
+        return out;
       case InterpolableValueType.Vector3:
         Vector3.lerp(
           (<Vector3Keyframe>keys[frameIndex]).value,
           (<Vector3Keyframe>keys[nextFrameIndex]).value,
           t,
-          <Vector3>this._currentValue
+          <Vector3>out
         );
-        return this._currentValue;
+        return out;
       case InterpolableValueType.Quaternion:
         Quaternion.slerp(
           (<QuaternionKeyframe>keys[frameIndex]).value,
           (<QuaternionKeyframe>keys[nextFrameIndex]).value,
           t,
-          <Quaternion>this._currentValue
+          <Quaternion>out
         );
-        return this._currentValue;
+        return out;
     }
   }
 
@@ -213,7 +222,7 @@ export class AnimationCurve {
     }
   }
 
-  private _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number): InterpolableValue {
+  private _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number, out: InterpolableValue): InterpolableValue {
     const { _valueSize, keys } = this;
     const curKey = keys[frameIndex];
     const nextKey = keys[nextFrameIndex];
@@ -251,18 +260,18 @@ export class AnimationCurve {
         let t0 = tan0.x,
           t1 = tan1.x;
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
-          (<Vector2>this._currentValue).x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
+          (<Vector2>out).x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
         } else {
-          (<Vector2>this._currentValue).x = p0.x;
+          (<Vector2>out).x = p0.x;
         }
 
         (t0 = tan0.y), (t1 = tan1.y);
         if (Number.isFinite(t0) && Number.isFinite(t1))
-          (<Vector2>this._currentValue).y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
+          (<Vector2>out).y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
         else {
-          (<Vector2>this._currentValue).y = p0.y;
+          (<Vector2>out).y = p0.y;
         }
-        return this._currentValue;
+        return out;
       }
       case 3: {
         const p0 = (<Vector3Keyframe>curKey).value;
@@ -280,25 +289,25 @@ export class AnimationCurve {
         let t0 = tan0.x,
           t1 = tan1.x;
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
-          (<Vector3>this._currentValue).x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
+          (<Vector3>out).x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
         } else {
-          (<Vector3>this._currentValue).x = p0.x;
+          (<Vector3>out).x = p0.x;
         }
 
         (t0 = tan0.y), (t1 = tan1.y);
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
-          (<Vector3>this._currentValue).y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
+          (<Vector3>out).y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
         } else {
-          (<Vector3>this._currentValue).y = p0.y;
+          (<Vector3>out).y = p0.y;
         }
 
         (t0 = tan0.z), (t1 = tan1.z);
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
-          (<Vector3>this._currentValue).z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
+          (<Vector3>out).z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
         } else {
-          (<Vector3>this._currentValue).z = p0.z;
+          (<Vector3>out).z = p0.z;
         }
-        return <Vector3>this._currentValue;
+        return <Vector3>out;
       }
       case 4: {
         const p0 = (<QuaternionKeyframe>curKey).value;
@@ -316,32 +325,32 @@ export class AnimationCurve {
         let t0 = tan0.x,
           t1 = tan1.x;
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
-          (<Quaternion>this._currentValue).x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
+          (<Quaternion>out).x = a * p0.x + b * t0 * dur + c * t1 * dur + d * p1.x;
         } else {
-          (<Quaternion>this._currentValue).x = p0.x;
+          (<Quaternion>out).x = p0.x;
         }
 
         (t0 = tan0.y), (t1 = tan1.y);
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
-          (<Quaternion>this._currentValue).y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
+          (<Quaternion>out).y = a * p0.y + b * t0 * dur + c * t1 * dur + d * p1.y;
         } else {
-          (<Quaternion>this._currentValue).y = p0.y;
+          (<Quaternion>out).y = p0.y;
         }
 
         (t0 = tan0.z), (t1 = tan1.z);
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
-          (<Quaternion>this._currentValue).z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
+          (<Quaternion>out).z = a * p0.z + b * t0 * dur + c * t1 * dur + d * p1.z;
         } else {
-          (<Quaternion>this._currentValue).z = p0.z;
+          (<Quaternion>out).z = p0.z;
         }
 
         (t0 = tan0.w), (t1 = tan1.w);
         if (Number.isFinite(t0) && Number.isFinite(t1)) {
-          (<Quaternion>this._currentValue).w = a * p0.w + b * t0 * dur + c * t1 * dur + d * p1.w;
+          (<Quaternion>out).w = a * p0.w + b * t0 * dur + c * t1 * dur + d * p1.w;
         } else {
-          (<Quaternion>this._currentValue).w = p0.w;
+          (<Quaternion>out).w = p0.w;
         }
-        return <Quaternion>this._currentValue;
+        return <Quaternion>out;
       }
     }
   }
