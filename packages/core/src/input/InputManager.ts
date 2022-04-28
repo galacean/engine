@@ -11,7 +11,7 @@ export class InputManager {
   /** Disable input for offscreen rendering. */
   private _enabled: boolean = true;
   private _pointerManager: PointerManager;
-  private _keyboardManager: KeyboardManager
+  private _keyboardManager: KeyboardManager;
 
   /**
    * Pointer List.
@@ -34,7 +34,7 @@ export class InputManager {
   /**
    * Whether the key is being held down, if there is no parameter, return whether any key is being held down.
    * @param key - The keys of the keyboard
-   * @returns Whether ths key is being held down.
+   * @returns Whether the key is being held down.
    */
   isKeyHeldDown(key?: Keys): boolean {
     if (key === undefined) {
@@ -45,10 +45,10 @@ export class InputManager {
   }
 
   /**
-    * Whether the key starts to be pressed down during the current frame, if there is no parameter, return whether any key starts to be pressed down during the current frame.
-    * @param key - The keys of the keyboard
-    * @returns Whether the key starts to be pressed down during the current frame.
-    */
+   * Whether the key starts to be pressed down during the current frame, if there is no parameter, return whether any key starts to be pressed down during the current frame.
+   * @param key - The keys of the keyboard
+   * @returns Whether the key starts to be pressed down during the current frame.
+   */
   isKeyDown(key?: Keys): boolean {
     if (key === undefined) {
       return this._keyboardManager._curFrameDownList.length > 0;
@@ -80,9 +80,8 @@ export class InputManager {
       this._enabled = true;
       this._pointerManager = new PointerManager(engine, canvas);
       this._keyboardManager = new KeyboardManager();
-      window.addEventListener('blur', () => {
-        this._keyboardManager._onBlur();
-      });
+      this._onBlur = this._onBlur.bind(this);
+      window.addEventListener("blur", this._onBlur);
     } else {
       this._enabled = false;
     }
@@ -103,8 +102,15 @@ export class InputManager {
    */
   _destroy(): void {
     if (this._enabled) {
+      window.removeEventListener("blur", this._onBlur);
       this._pointerManager._destroy();
       this._keyboardManager._destroy();
+    }
+  }
+
+  private _onBlur(): void {
+    if (this._enabled) {
+      this._keyboardManager._onBlur();
     }
   }
 }
