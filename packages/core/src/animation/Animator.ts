@@ -473,6 +473,18 @@ export class Animator extends Component {
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
+    for (let i = curves.length - 1; i >= 0; i--) {
+      const owner = curveOwners[i];
+      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive);
+      if (additive) {
+        this._applyClipValueAdditive(owner, value, weight);
+      } else {
+        this._applyClipValue(owner, value, weight);
+      }
+    }
+    playData.frameTime += state.speed * delta;
+
+
     if (playState === AnimatorStatePlayState.Finished) {
       layerData.layerState = LayerState.Standby;
     }
@@ -485,17 +497,6 @@ export class Animator extends Component {
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
-
-    for (let i = curves.length - 1; i >= 0; i--) {
-      const owner = curveOwners[i];
-      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive);
-      if (additive) {
-        this._applyClipValueAdditive(owner, value, weight);
-      } else {
-        this._applyClipValue(owner, value, weight);
-      }
-    }
-    playData.frameTime += state.speed * delta;
   }
 
   private _updateCrossFade(
