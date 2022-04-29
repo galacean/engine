@@ -484,7 +484,6 @@ export class Animator extends Component {
     }
     playData.frameTime += state.speed * delta;
 
-
     if (playState === AnimatorStatePlayState.Finished) {
       layerData.layerState = LayerState.Standby;
     }
