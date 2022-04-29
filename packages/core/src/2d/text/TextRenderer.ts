@@ -382,16 +382,18 @@ export class TextRenderer extends Renderer {
 
     // Handle the case that width of text is larger than real width.
     const originWidthInPixel = this.width * sprite.pixelsPerUnit;
+    const pivot = sprite.pivot;
     if (originWidthInPixel > width && horizontalAlignment !== TextHorizontalAlignment.Center) {
       const diffWidth = (originWidthInPixel - width) * 0.5;
-      const pivot = sprite.pivot;
       if (horizontalAlignment === TextHorizontalAlignment.Left) {
         pivot.x = 0.5 + diffWidth / width;
       } else {
         pivot.x = 0.5 - diffWidth / width;
       }
-      sprite.pivot = pivot;
+    } else {
+      pivot.x = 0.5;
     }
+    sprite.pivot = pivot;
 
     // If add fail, set texture for sprite.
     if (!this.engine._dynamicTextAtlasManager.addSprite(sprite, canvas)) {
