@@ -473,11 +473,16 @@ export class Animator extends Component {
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
+    if (playState === AnimatorStatePlayState.Finished) {
+      layerData.layerState = LayerState.Standby;
+    }
+
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(state, layerIndex);
     }
     if (playState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(state, layerIndex);
+      return;
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
@@ -492,10 +497,6 @@ export class Animator extends Component {
       }
     }
     playData.frameTime += state.speed * delta;
-
-    if (playState === AnimatorStatePlayState.Finished) {
-      layerData.layerState = LayerState.Standby;
-    }
   }
 
   private _updateCrossFade(
