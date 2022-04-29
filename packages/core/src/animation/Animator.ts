@@ -482,7 +482,6 @@ export class Animator extends Component {
     }
     if (playState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(state, layerIndex);
-      return;
     } else {
       this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
