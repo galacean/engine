@@ -1,6 +1,6 @@
 Geometry geometry;
 Material material;
-ReflectedLight reflectedLight;
+ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );;
 
 initGeometry(geometry);
 initMaterial(material, geometry);
