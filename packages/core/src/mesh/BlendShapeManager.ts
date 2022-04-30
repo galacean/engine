@@ -335,7 +335,7 @@ export class BlendShapeManager {
   }
 
   private _updateUsePropertyFlag(blendShape: BlendShape): void {
-    this._useBlendNormal &&= blendShape._useBlendShapeNormal;
-    this._useBlendTangent &&= blendShape._useBlendShapeTangent;
+    this._useBlendNormal = blendShape._useBlendShapeNormal && this._useBlendNormal;
+    this._useBlendTangent = blendShape._useBlendShapeTangent && this._useBlendTangent;
   }
 }

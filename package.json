@@ -19,8 +19,7 @@
     "b:umd": "cross-env BUILD_TYPE=UMD rollup -c",
     "b:miniprogram": "cross-env BUILD_TYPE=MINI rollup -c",
     "b:all": "npm run b:types && cross-env BUILD_TYPE=ALL rollup -c",
-    "clean": "lerna exec -- rm -rf dist && lerna clean",
-    "changelog": "node tools/gen-changelog.js"
+    "clean": "lerna exec -- rm -rf dist && lerna clean"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
@@ -45,7 +44,6 @@
     "@typescript-eslint/parser": "^4.12.0",
     "babel-loader": "^8.2.2",
     "chai": "^4.3.6",
-    "conventional-changelog": "^3.1.24",
     "cross-env": "^5.2.0",
     "electron": "^13",
     "eslint": "^7.17.0",
