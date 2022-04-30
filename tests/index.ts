@@ -1,7 +1,5 @@
 import fs from "fs";
 import path from "path";
-// const fs = require("fs")
-// const path = require("path")
 
 fs.readdirSync(path.join(__dirname, "src")).forEach((file) => {
   const root = path.join(__dirname, "src", file);
