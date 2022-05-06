@@ -5,7 +5,8 @@
     "hoist": true
   },
   "packages": [
-    "packages/*"
+    "packages/*",
+    "tests/**"
   ],
   "loglevel": "verbose"
 }
