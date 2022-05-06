@@ -8,7 +8,7 @@
   "types": "types/index.d.ts",
   "debug": "src/index.ts",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "echo hi"
   },
   "files": [
     "dist/**/*",
