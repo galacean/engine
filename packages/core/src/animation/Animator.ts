@@ -473,15 +473,6 @@ export class Animator extends Component {
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
-    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(state, layerIndex);
-    }
-    if (playState === AnimatorStatePlayState.Finished) {
-      this._callAnimatorScriptOnExit(state, layerIndex);
-    } else {
-      this._callAnimatorScriptOnUpdate(state, layerIndex);
-    }
-
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
       const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive);
@@ -495,6 +486,15 @@ export class Animator extends Component {
 
     if (playState === AnimatorStatePlayState.Finished) {
       layerData.layerState = LayerState.Standby;
+    }
+
+    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
+      this._callAnimatorScriptOnEnter(state, layerIndex);
+    }
+    if (playState === AnimatorStatePlayState.Finished) {
+      this._callAnimatorScriptOnExit(state, layerIndex);
+    } else {
+      this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
   }
 
