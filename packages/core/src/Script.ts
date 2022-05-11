@@ -21,12 +21,17 @@ export class Script extends Component {
   _onLateUpdateIndex: number = -1;
   /** @internal */
   @ignoreClone
+  _onPhysicsUpdateIndex: number = -1;
+  /** @internal */
+  @ignoreClone
   _onPreRenderIndex: number = -1;
   /** @internal */
   @ignoreClone
   _onPostRenderIndex: number = -1;
   @ignoreClone
-  _entityCacheIndex: number = -1;
+  _entityScriptsIndex: number = -1;
+  @ignoreClone
+  _waitHandlingInValid: boolean = false;
 
   /**
    * Called when be enabled first time, only once.
@@ -68,23 +73,47 @@ export class Script extends Component {
   onEndRender(camera: Camera): void {}
 
   /**
+   * Called before physics calculations, the number of times is related to the physical update frequency.
+   */
+  onPhysicsUpdate(): void {}
+
+  /**
    * Called when the collision enter.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onTriggerEnter(other: ColliderShape): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onTriggerExit(other: ColliderShape): void {}
 
   /**
    * Called when the collision exit.
-   * @param other ColliderShape
+   * @param other - ColliderShape
    */
   onTriggerStay(other: ColliderShape): void {}
+
+  /**
+   * Called when the collision enter.
+   * @param other - ColliderShape
+   */
+  onCollisionEnter(other: ColliderShape): void {}
+
+  /**
+   * Called when the collision stay.
+   * @remarks onTriggerStay is called every frame while the collision stay.
+   * @param other - ColliderShape
+   */
+  onCollisionExit(other: ColliderShape): void {}
+
+  /**
+   * Called when the collision exit.
+   * @param other - ColliderShape
+   */
+  onCollisionStay(other: ColliderShape): void {}
 
   /**
    * Called when the pointer is down while over the ColliderShape.
@@ -142,18 +171,26 @@ export class Script extends Component {
    * @override
    */
   _onEnable(): void {
-    const componentsManager = this.engine._componentsManager;
-    const prototype = Script.prototype;
-    if (!this._started) {
-      componentsManager.addOnStartScript(this);
+    if (this._waitHandlingInValid) {
+      this._waitHandlingInValid = false;
+    } else {
+      const { _componentsManager: componentsManager } = this.engine;
+      const { prototype } = Script;
+      if (!this._started) {
+        componentsManager.addOnStartScript(this);
+      }
+      if (this.onUpdate !== prototype.onUpdate) {
+        componentsManager.addOnUpdateScript(this);
+      }
+      if (this.onLateUpdate !== prototype.onLateUpdate) {
+        componentsManager.addOnLateUpdateScript(this);
+      }
+      if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
+        componentsManager.addOnPhysicsUpdateScript(this);
+      }
+      this._entity._addScript(this);
     }
-    if (this.onUpdate !== prototype.onUpdate) {
-      componentsManager.addOnUpdateScript(this);
-    }
-    if (this.onLateUpdate !== prototype.onLateUpdate) {
-      componentsManager.addOnLateUpdateScript(this);
-    }
-    this._entity._addScript(this);
+
     this.onEnable();
   }
 
@@ -163,21 +200,8 @@ export class Script extends Component {
    * @override
    */
   _onDisable(): void {
-    const componentsManager = this.engine._componentsManager;
-    // Use "xxIndex" is more safe.
-    // When call onDisable it maybe it still not in script queue,for example write "entity.isActive = false" in onWake().
-    if (this._onStartIndex !== -1) {
-      componentsManager.removeOnStartScript(this);
-    }
-    if (this._onUpdateIndex !== -1) {
-      componentsManager.removeOnUpdateScript(this);
-    }
-    if (this._onLateUpdateIndex !== -1) {
-      componentsManager.removeOnLateUpdateScript(this);
-    }
-    if (this._entityCacheIndex !== -1) {
-      this._entity._removeScript(this);
-    }
+    this._waitHandlingInValid = true;
+    this._engine._componentsManager.addDisableScript(this);
     this.onDisable();
   }
 
@@ -187,6 +211,28 @@ export class Script extends Component {
    * @override
    */
   _onDestroy(): void {
-    this.engine._componentsManager.addDestroyComponent(this);
+    this._engine._componentsManager.addDestroyScript(this);
+  }
+
+  /**
+   * @internal
+   */
+  _handlingInValid(): void {
+    const componentsManager = this.engine._componentsManager;
+    // Use "xxIndex !== -1" to project.
+    // Maybe call onDisable it is still not in script queue, for example write "entity.isActive = false" in onWake().
+    if (this._onUpdateIndex !== -1) {
+      componentsManager.removeOnUpdateScript(this);
+    }
+    if (this._onLateUpdateIndex !== -1) {
+      componentsManager.removeOnLateUpdateScript(this);
+    }
+    if (this._onPhysicsUpdateIndex !== -1) {
+      componentsManager.removeOnPhysicsUpdateScript(this);
+    }
+    if (this._entityScriptsIndex !== -1) {
+      this._entity._removeScript(this);
+    }
+    this._waitHandlingInValid = false;
   }
 }

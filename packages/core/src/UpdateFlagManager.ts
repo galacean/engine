@@ -4,16 +4,35 @@ import { UpdateFlag } from "./UpdateFlag";
  * @internal
  */
 export class UpdateFlagManager {
-  private _updateFlags: UpdateFlag[] = [];
+  /** @internal */
+  _updateFlags: UpdateFlag[] = [];
 
-  register(): UpdateFlag {
-    return new UpdateFlag(this._updateFlags);
+  /**
+   * Create a UpdateFlag.
+   * @returns - The UpdateFlag.
+   */
+  createFlag<T extends UpdateFlag>(type: new () => T): T {
+    const flag = new type();
+    this.addFlag(flag);
+    return flag;
   }
 
-  distribute(): void {
+  /**
+   * Add a UpdateFlag.
+   * @param flag - The UpdateFlag.
+   */
+  addFlag(flag: UpdateFlag): void {
+    this._updateFlags.push(flag);
+    flag._flagManagers.push(this);
+  }
+
+  /**
+   * Dispatch.
+   */
+  dispatch(param?: Object): void {
     const updateFlags = this._updateFlags;
     for (let i = updateFlags.length - 1; i >= 0; i--) {
-      updateFlags[i].flag = true;
+      updateFlags[i].dispatch(param);
     }
   }
 }

@@ -1,8 +1,7 @@
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { Script } from "../Script";
-import { RenderBufferDepthFormat } from "../texture/enums/RenderBufferDepthFormat";
-import { RenderColorTexture } from "../texture/RenderColorTexture";
+import { RenderBufferDepthFormat, Texture, Texture2D, TextureCube, TextureFormat } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 
 /**
@@ -49,7 +48,7 @@ export abstract class Probe extends Script {
   private _camera: Camera;
   private _oriCameraCullingMask: Layer;
 
-  private get _texture(): RenderColorTexture {
+  private get _texture(): Texture {
     return this._activeRenderTarget?.getColorTexture();
   }
 
@@ -57,7 +56,7 @@ export abstract class Probe extends Script {
    * Provide hooks for users to exchange Texture.
    * @remarks Prevent issue: Feedback Loops Between Textures and the Framebuffer.
    */
-  onTextureChange(renderColorTexture: RenderColorTexture) {}
+  onTextureChange(renderColorTexture: Texture) {}
 
   /**
    * @override
@@ -77,7 +76,7 @@ export abstract class Probe extends Script {
         this.engine,
         this.width,
         this.height,
-        new RenderColorTexture(this.engine, this.width, this.height, undefined, undefined, this._isCube),
+        this._isCube ? new TextureCube(this.engine, this.width) : new Texture2D(this.engine, this.width, this.height),
         RenderBufferDepthFormat.Depth,
         this.antiAliasing
       );
@@ -86,7 +85,7 @@ export abstract class Probe extends Script {
         this.engine,
         this.width,
         this.height,
-        new RenderColorTexture(this.engine, this.width, this.height, undefined, undefined, this._isCube),
+        this._isCube ? new TextureCube(this.engine, this.width) : new Texture2D(this.engine, this.width, this.height),
         RenderBufferDepthFormat.Depth,
         this.antiAliasing
       );

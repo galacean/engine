@@ -4,6 +4,7 @@ import {
   Component,
   Entity,
   InterpolableKeyframe,
+  InterpolableValueType,
   InterpolationType,
   SkinnedMeshRenderer,
   Transform,
@@ -88,27 +89,32 @@ export class AnimationParser extends Parser {
 
         let compType: new (entity: Entity) => Component;
         let propertyName: string;
+        let interpolableValueType: InterpolableValueType;
         switch (target.path) {
           case AnimationChannelTargetPath.TRANSLATION:
             compType = Transform;
             propertyName = "position";
+            interpolableValueType = InterpolableValueType.Vector3;
             break;
           case AnimationChannelTargetPath.ROTATION:
             compType = Transform;
             propertyName = "rotation";
+            interpolableValueType = InterpolableValueType.Quaternion;
             break;
           case AnimationChannelTargetPath.SCALE:
             compType = Transform;
             propertyName = "scale";
+            interpolableValueType = InterpolableValueType.Vector3;
             break;
           case AnimationChannelTargetPath.WEIGHTS:
             compType = SkinnedMeshRenderer;
             propertyName = "blendShapeWeights";
+            interpolableValueType = InterpolableValueType.FloatArray;
             break;
           default:
         }
 
-        const curve = this._addCurve(gltfChannel, sampleDataCollection);
+        const curve = this._addCurve(interpolableValueType, gltfChannel, sampleDataCollection);
         animationClip.addCurveBinding(relativePath, compType, propertyName, curve);
       }
 
@@ -123,42 +129,54 @@ export class AnimationParser extends Parser {
     context._animationsIndices = animationsIndices;
   }
 
-  private _addCurve(gltfChannel: IAnimationChannel, sampleDataCollection: SampleData[]): AnimationCurve {
+  private _addCurve(
+    interpolableValueType: InterpolableValueType,
+    gltfChannel: IAnimationChannel,
+    sampleDataCollection: SampleData[]
+  ): AnimationCurve {
     const curve = new AnimationCurve();
     const sampleData = sampleDataCollection[gltfChannel.sampler];
-    const { type, input, output, outputSize } = sampleData;
+    const { input, output, outputSize } = sampleData;
 
     curve.interpolation = sampleData.interpolation;
     for (let j = 0, n = input.length; j < n; j++) {
       const offset = j * outputSize;
-      if (type === AccessorType.SCALAR) {
-        let keyframe =
-          outputSize > 1
-            ? new InterpolableKeyframe<Float32Array, Float32Array>()
-            : new InterpolableKeyframe<number, number>();
+      if (interpolableValueType === InterpolableValueType.Float) {
+        const keyframe = new InterpolableKeyframe<number, number>();
         keyframe.time = input[j];
         keyframe.inTangent = 0;
         keyframe.outTangent = 0;
-        keyframe.value = outputSize > 1 ? <Float32Array>output.subarray(offset, offset + outputSize) : output[offset];
+        keyframe.value = output[offset];
         curve.addKey(keyframe);
-      }
-      if (type === AccessorType.VEC2) {
+      } else if (interpolableValueType === InterpolableValueType.FloatArray) {
+        const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
+        keyframe.time = input[j];
+        keyframe.inTangent = new Float32Array(outputSize);
+        keyframe.outTangent = new Float32Array(outputSize);
+        keyframe.value = <Float32Array>output.subarray(offset, offset + outputSize);
+        curve.addKey(keyframe);
+      } else if (interpolableValueType === InterpolableValueType.Vector2) {
         const keyframe = new InterpolableKeyframe<Vector2, Vector2>();
         keyframe.time = input[j];
         keyframe.value = new Vector2(output[offset], output[offset + 1]);
         keyframe.inTangent = new Vector2();
         keyframe.outTangent = new Vector2();
         curve.addKey(keyframe);
-      }
-      if (type === AccessorType.VEC3) {
+      } else if (interpolableValueType === InterpolableValueType.Vector3) {
         const keyframe = new InterpolableKeyframe<Vector3, Vector3>();
         keyframe.time = input[j];
         keyframe.value = new Vector3(output[offset], output[offset + 1], output[offset + 2]);
         keyframe.inTangent = new Vector3();
         keyframe.outTangent = new Vector3();
         curve.addKey(keyframe);
-      }
-      if (type === AccessorType.VEC4) {
+      } else if (interpolableValueType === InterpolableValueType.Vector4) {
+        const keyframe = new InterpolableKeyframe<Vector4, Vector4>();
+        keyframe.time = input[j];
+        keyframe.value = new Vector4(output[offset], output[offset + 1], output[offset + 2], output[offset + 3]);
+        keyframe.inTangent = new Vector4();
+        keyframe.outTangent = new Vector4();
+        curve.addKey(keyframe);
+      } else if (interpolableValueType === InterpolableValueType.Quaternion) {
         const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
         keyframe.time = input[j];
         keyframe.value = new Quaternion(output[offset], output[offset + 1], output[offset + 2], output[offset + 3]);
@@ -170,7 +188,6 @@ export class AnimationParser extends Parser {
     return curve;
   }
 }
-
 interface SampleData {
   type: AccessorType;
   input: TypedArray;

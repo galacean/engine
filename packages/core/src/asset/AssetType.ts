@@ -40,5 +40,7 @@ export enum AssetType {
   /** ambient light */
   Env = "environment",
   /** scene */
-  Scene = "scene"
+  Scene = "scene",
+  /** HDR to cube */
+  HDR = "HDR"
 }

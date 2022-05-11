@@ -60,16 +60,6 @@ describe("Script", () => {
       expect(component.onDisable).toHaveBeenCalledTimes(1);
     });
 
-    it("_onInActive", () => {
-      class TheScript extends Script {}
-      const entity = new Entity(engine, "entity");
-      entity.parent = scene.getRootEntity();
-      TheScript.prototype._onInActive = jest.fn();
-      const component = entity.addComponent(TheScript);
-      component.destroy();
-      expect(component._onInActive).toHaveBeenCalledTimes(1);
-    });
-
     it("_onDestroy", () => {
       class TheScript extends Script {}
       const entity = new Entity(engine, "entity");
@@ -107,23 +97,23 @@ describe("Script", () => {
   });
 
   describe("active", () => {
-    it("onActive", () => {
+    it("onEnable", () => {
       class TheScript extends Script {}
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
-      TheScript.prototype._onActive = jest.fn();
+      TheScript.prototype._onEnable = jest.fn();
       const component = entity.addComponent(TheScript);
-      expect(component._onActive).toHaveBeenCalledTimes(1);
+      expect(component._onEnable).toHaveBeenCalledTimes(1);
     });
 
-    it("onInActive", () => {
+    it("onDisable", () => {
       class TheScript extends Script {}
       const entity = new Entity(engine, "entity");
       entity.parent = scene.getRootEntity();
-      TheScript.prototype._onInActive = jest.fn();
+      TheScript.prototype._onDisable = jest.fn();
       const component = entity.addComponent(TheScript);
       entity.isActive = false;
-      expect(component._onInActive).toHaveBeenCalledTimes(1);
+      expect(component._onDisable).toHaveBeenCalledTimes(1);
     });
 
     it("inActiveHierarchy", () => {
@@ -132,10 +122,10 @@ describe("Script", () => {
       parent.parent = scene.getRootEntity();
       const child = new Entity(engine, "child");
       child.parent = parent;
-      TheScript.prototype._onInActive = jest.fn();
+      TheScript.prototype._onDisable = jest.fn();
       const component = child.addComponent(TheScript);
       parent.isActive = false;
-      expect(component._onInActive).toHaveBeenCalledTimes(1);
+      expect(component._onDisable).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -281,7 +271,7 @@ describe("Script", () => {
       const root = scene.getRootEntity();
       const component = root.addComponent(TheScript);
       component.destroy();
-      engine._componentsManager.callComponentDestroy();
+      engine._componentsManager.handlingInvalidScripts();
       expect(component.onDestroy).toHaveBeenCalledTimes(1);
     });
   });

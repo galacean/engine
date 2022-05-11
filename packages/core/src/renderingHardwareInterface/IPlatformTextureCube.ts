@@ -4,7 +4,7 @@ import { IPlatformTexture } from "./IPlatformTexture";
 /**
  * Cube texture interface specification.
  */
-export interface IPlatformTextureCubeMap extends IPlatformTexture {
+export interface IPlatformTextureCube extends IPlatformTexture {
   /**
    * Setting pixels data through cube face,color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
    * @remarks When compressed texture is in WebGL1, the texture must be filled first before writing the sub-region
@@ -19,9 +19,9 @@ export interface IPlatformTextureCubeMap extends IPlatformTexture {
   setPixelBuffer(
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
-    mipLevel?: number,
-    x?: number,
-    y?: number,
+    mipLevel: number,
+    x: number,
+    y: number,
     width?: number,
     height?: number
   ): void;
@@ -38,12 +38,12 @@ export interface IPlatformTextureCubeMap extends IPlatformTexture {
    */
   setImageSource(
     face: TextureCubeFace,
-    imageSource: TexImageSource,
-    mipLevel?: number,
-    flipY?: boolean,
-    premultiplyAlpha?: boolean,
-    x?: number,
-    y?: number
+    imageSource: TexImageSource | OffscreenCanvas,
+    mipLevel: number,
+    flipY: boolean,
+    premultiplyAlpha: boolean,
+    x: number,
+    y: number
   ): void;
 
   /**
