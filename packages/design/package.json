@@ -1,11 +1,12 @@
 {
   "name": "@oasis-engine/design",
-  "version": "0.6.6",
+  "version": "0.7.0-beta.4",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "watch:types": "tsc -w"
   },
   "files": [
     "dist/**/*",
@@ -13,6 +14,6 @@
   ],
   "types": "types/index.d.ts",
   "dependencies": {
-    "@oasis-engine/math": "0.6.6"
+    "@oasis-engine/math": "0.7.0-beta.4"
   }
 }

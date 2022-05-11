@@ -38,5 +38,9 @@ export enum AssetType {
   /** Oasis specific file. */
   Oasis = "oasis",
   /** ambient light */
-  Env = "environment"
+  Env = "environment",
+  /** scene */
+  Scene = "scene",
+  /** HDR to cube */
+  HDR = "HDR"
 }

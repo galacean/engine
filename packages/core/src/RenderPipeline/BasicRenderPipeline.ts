@@ -180,10 +180,12 @@ export class BasicRenderPipeline {
       } else {
         this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
-        if (background.mode === BackgroundMode.Sky) {
-          this._drawSky(engine, camera, background.sky);
-        } else if (background.mode === BackgroundMode.Texture && background.texture) {
-          this._drawBackgroundTexture(engine, background);
+        if (camera.clearFlags === CameraClearFlags.DepthColor) {
+          if (background.mode === BackgroundMode.Sky) {
+            this._drawSky(engine, camera, background.sky);
+          } else if (background.mode === BackgroundMode.Texture && background.texture) {
+            this._drawBackgroundTexture(engine, background);
+          }
         }
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }

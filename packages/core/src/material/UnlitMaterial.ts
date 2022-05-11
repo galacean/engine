@@ -4,6 +4,13 @@ import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
 
+interface IColor {
+  r: number;
+  g: number;
+  b: number;
+  a: number;
+}
+
 /**
  * Unlit Material.
  */
@@ -22,7 +29,7 @@ export class UnlitMaterial extends BaseMaterial {
   set baseColor(value: Color) {
     const baseColor = this.shaderData.getColor(UnlitMaterial._baseColorProp);
     if (value !== baseColor) {
-      value.cloneTo(baseColor);
+      baseColor.setValue(value.r, value.g, value.b, value.a);
     }
   }
 

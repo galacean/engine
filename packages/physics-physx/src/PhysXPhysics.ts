@@ -28,6 +28,8 @@ import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 export class PhysXPhysics {
   /** @internal PhysX wasm object */
   static _physX: any;
+  /** @internal PhysX Foundation SDK singleton class */
+  static _pxFoundation: any;
   /** @internal Physx physics object */
   static _pxPhysics: any;
 
@@ -36,7 +38,7 @@ export class PhysXPhysics {
    * @param runtimeMode - Runtime mode
    * @returns Promise object
    */
-  public static init(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto): Promise<void> {
+  public static initialize(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto): Promise<void> {
     const scriptPromise = new Promise((resolve) => {
       const script = document.createElement("script");
       document.body.appendChild(script);
@@ -62,9 +64,11 @@ export class PhysXPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
+        script.src =
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.7.0-beta.1/dist/physx.release.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
+        script.src =
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.7.0-beta.1/dist/physx.release.js";
       }
     });
 
@@ -78,6 +82,14 @@ export class PhysXPhysics {
         });
       });
     });
+  }
+
+  /**
+   * Destroy PhysXPhysics.
+   */
+  public static destroy(): void {
+    this._pxFoundation.release();
+    this._pxPhysics.release();
   }
 
   /**
@@ -170,11 +182,11 @@ export class PhysXPhysics {
     const version = PhysXPhysics._physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new PhysXPhysics._physX.PxDefaultErrorCallback();
     const allocator = new PhysXPhysics._physX.PxDefaultAllocator();
-    const foundation = PhysXPhysics._physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
+    PhysXPhysics._pxFoundation = PhysXPhysics._physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
 
     this._pxPhysics = PhysXPhysics._physX.PxCreatePhysics(
       version,
-      foundation,
+      PhysXPhysics._pxFoundation,
       new PhysXPhysics._physX.PxTolerancesScale(),
       false,
       null

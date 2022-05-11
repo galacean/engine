@@ -39,4 +39,13 @@ export class BlendShapeFrame {
     this.deltaNormals = deltaNormals;
     this.deltaTangents = deltaTangents;
   }
+
+  toJSON() {
+    return {
+      weight: this.weight,
+      deltaPositions: this.deltaPositions.map((v) => v.toJSON()),
+      deltaNormals: this.deltaNormals?.map((v) => v.toJSON()),
+      deltaTangents: this.deltaTangents?.map((v) => v.toJSON())
+    };
+  }
 }

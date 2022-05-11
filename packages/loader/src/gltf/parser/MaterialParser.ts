@@ -1,4 +1,12 @@
-import { Material, PBRMaterial, PBRSpecularMaterial, RenderFace, UnlitMaterial } from "@oasis-engine/core";
+import {
+  Logger,
+  Material,
+  PBRMaterial,
+  PBRSpecularMaterial,
+  RenderFace,
+  TextureCoordinate,
+  UnlitMaterial
+} from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
 import { MaterialAlphaMode } from "../Schema";
@@ -33,7 +41,7 @@ export class MaterialParser extends Parser {
         name = ""
       } = gltf.materials[i];
 
-      const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness } = extensions;
+      const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat } = extensions;
 
       let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
 
@@ -53,12 +61,21 @@ export class MaterialParser extends Parser {
 
       material.name = name;
 
+      if (KHR_materials_clearcoat) {
+        Parser.parseEngineResource("KHR_materials_clearcoat", KHR_materials_clearcoat, material, context);
+      }
+
       if (pbrMetallicRoughness) {
         const { baseColorFactor, baseColorTexture, metallicFactor, roughnessFactor, metallicRoughnessTexture } =
           pbrMetallicRoughness;
 
         if (baseColorFactor) {
-          material.baseColor = new Color(...baseColorFactor);
+          material.baseColor = new Color(
+            Color.linearToGammaSpace(baseColorFactor[0]),
+            Color.linearToGammaSpace(baseColorFactor[1]),
+            Color.linearToGammaSpace(baseColorFactor[2]),
+            baseColorFactor[3]
+          );
         }
         if (baseColorTexture) {
           material.baseTexture = textures[baseColorTexture.index];
@@ -85,7 +102,11 @@ export class MaterialParser extends Parser {
         }
 
         if (emissiveFactor) {
-          m.emissiveColor = new Color(...emissiveFactor);
+          m.emissiveColor = new Color(
+            Color.linearToGammaSpace(emissiveFactor[0]),
+            Color.linearToGammaSpace(emissiveFactor[1]),
+            Color.linearToGammaSpace(emissiveFactor[2])
+          );
         }
 
         if (normalTexture) {
@@ -98,11 +119,16 @@ export class MaterialParser extends Parser {
         }
 
         if (occlusionTexture) {
-          const { index, strength } = occlusionTexture;
+          const { index, strength, texCoord } = occlusionTexture;
           m.occlusionTexture = textures[index];
           MaterialParser._parseTextureTransform(material, occlusionTexture.extensions, context);
           if (strength !== undefined) {
             m.occlusionTextureIntensity = strength;
+          }
+          if (texCoord === TextureCoordinate.UV1) {
+            m.occlusionTextureCoord = TextureCoordinate.UV1;
+          } else if (texCoord > TextureCoordinate.UV1) {
+            Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
           }
         }
       }

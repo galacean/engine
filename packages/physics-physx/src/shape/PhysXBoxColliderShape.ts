@@ -1,8 +1,8 @@
 import { IBoxColliderShape } from "@oasis-engine/design";
 import { Vector3 } from "oasis-engine";
 import { PhysXPhysics } from "../PhysXPhysics";
-import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { PhysXColliderShape } from "./PhysXColliderShape";
 
 /**
  * Box collider shape in PhysX.
@@ -47,6 +47,8 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    */
   setWorldScale(scale: Vector3): void {
     scale.cloneTo(this._scale);
+    this._setLocalPose();
+
     Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
     this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
     this._pxShape.setGeometry(this._pxGeometry);

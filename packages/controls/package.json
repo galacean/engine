@@ -1,9 +1,10 @@
 {
   "name": "@oasis-engine/controls",
-  "version": "0.6.6",
+  "version": "0.7.0-beta.4",
   "license": "MIT",
   "scripts": {
     "b:types": "tsc",
+    "watch:types": "tsc -w",
     "lint:fix": "tslint --fix --project ./tsconfig.json"
   },
   "types": "types/index.d.ts",
@@ -15,6 +16,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "oasis-engine": "0.6.6"
+    "oasis-engine": "0.7.0-beta.4"
   }
 }

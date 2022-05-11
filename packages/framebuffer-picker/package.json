@@ -1,12 +1,13 @@
 {
   "name": "@oasis-engine/framebuffer-picker",
-  "version": "0.6.6",
+  "version": "0.7.0-beta.4",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
   "browser": "dist/browser.js",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "watch:types": "tsc -w"
   },
   "types": "types/index.d.ts",
   "files": [
@@ -14,6 +15,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "oasis-engine": "0.6.6"
+    "oasis-engine": "0.7.0-beta.4"
   }
 }

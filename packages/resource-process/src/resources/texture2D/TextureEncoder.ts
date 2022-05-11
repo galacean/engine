@@ -5,7 +5,6 @@ import { BufferWriter } from "../../utils/BufferWriter";
 export class Texture2DEncoder {
   static encode(bufferWriter: BufferWriter, data: ArrayBuffer[], meta: any) {
     const {
-      type,
       objectId,
       mipmap = 1,
       filterMode = 1,
@@ -31,9 +30,8 @@ export class Texture2DEncoder {
     bufferWriter.writeUint8(isPixelBuffer);
 
     // convert to ImageData
-    const imagesData = data.map((buffer) => ({ type, buffer }));
-    bufferWriter.writeUint8(imagesData.length);
-    bufferWriter.writeImagesData(imagesData);
+    bufferWriter.writeUint8(data.length);
+    bufferWriter.writeImagesData(data);
 
     return bufferWriter.buffer;
   }

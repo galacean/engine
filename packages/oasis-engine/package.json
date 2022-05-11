@@ -1,22 +1,23 @@
 {
   "name": "oasis-engine",
-  "version": "0.6.6",
+  "version": "0.7.0-beta.4",
   "license": "MIT",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "watch:types": "tsc -w"
   },
   "types": "types/index.d.ts",
-  "main": "dist/browser.min.js",
+  "main": "dist/browser.js",
   "module": "dist/module.js",
-  "browser": "dist/browser.min.js",
+  "browser": "dist/browser.js",
   "files": [
     "dist/**/*",
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.6.6",
-    "@oasis-engine/loader": "0.6.6",
-    "@oasis-engine/math": "0.6.6",
-    "@oasis-engine/rhi-webgl": "0.6.6"
+    "@oasis-engine/core": "0.7.0-beta.4",
+    "@oasis-engine/loader": "0.7.0-beta.4",
+    "@oasis-engine/math": "0.7.0-beta.4",
+    "@oasis-engine/rhi-webgl": "0.7.0-beta.4"
   }
 }

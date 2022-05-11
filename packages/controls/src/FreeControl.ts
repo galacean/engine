@@ -72,7 +72,7 @@ export class FreeControl extends Script {
     this.camera = entity;
     // @ts-ignore
     // @todo In the future, the dependence on html elements will be removed and realized through the input of the packaging engine.
-    this.mainElement = this.scene.engine.canvas._webCanvas;
+    this.mainElement = this.engine.canvas._webCanvas;
     this.domElement = document;
 
     this.movementSpeed = 1.0;
@@ -281,7 +281,7 @@ export class FreeControl extends Script {
    */
   updateSpherical(): void {
     this._v3Cache.setValue(0, 0, -1);
-    Vector3.transformByQuat(this._v3Cache, this.camera.rotation, this._v3Cache);
+    Vector3.transformByQuat(this._v3Cache, this.camera.transform.rotationQuaternion, this._v3Cache);
     this._spherical.setFromVec3(this._v3Cache);
     this._theta = this._spherical.theta;
     this._phi = this._spherical.phi;

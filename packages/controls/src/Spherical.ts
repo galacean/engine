@@ -43,10 +43,11 @@ export class Spherical {
 
   setToVec3(v3: Vector3) {
     const sinPhiRadius = Math.sin(this.phi) * this.radius;
-
-    v3.x = sinPhiRadius * Math.sin(this.theta);
-    v3.y = Math.cos(this.phi) * this.radius;
-    v3.z = sinPhiRadius * Math.cos(this.theta);
+    v3.setValue(
+      sinPhiRadius * Math.sin(this.theta),
+      Math.cos(this.phi) * this.radius,
+      sinPhiRadius * Math.cos(this.theta)
+    );
 
     return this;
   }

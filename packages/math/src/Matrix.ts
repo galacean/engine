@@ -170,7 +170,7 @@ export class Matrix implements IClone {
    */
   static rotationQuaternion(quaternion: Quaternion, out: Matrix): void {
     const oe = out.elements;
-    const { x, y, z, w } = quaternion;
+    const { _x: x, _y: y, _z: z, _w: w } = quaternion;
     let x2 = x + x;
     let y2 = y + y;
     let z2 = z + z;
@@ -214,7 +214,7 @@ export class Matrix implements IClone {
    */
   static rotationAxisAngle(axis: Vector3, r: number, out: Matrix): void {
     const oe = out.elements;
-    let { x, y, z } = axis;
+    let { _x: x, _y: y, _z: z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
     let s, c, t;
 
@@ -263,9 +263,9 @@ export class Matrix implements IClone {
     Matrix.rotationQuaternion(quaternion, out);
 
     const oe = out.elements;
-    oe[12] = translation.x;
-    oe[13] = translation.y;
-    oe[14] = translation.z;
+    oe[12] = translation._x;
+    oe[13] = translation._y;
+    oe[14] = translation._z;
   }
 
   /**
@@ -277,7 +277,7 @@ export class Matrix implements IClone {
    */
   static affineTransformation(scale: Vector3, rotation: Quaternion, translation: Vector3, out: Matrix): void {
     const oe = out.elements;
-    const { x, y, z, w } = rotation;
+    const { _x: x, _y: y, _z: z, _w: w } = rotation;
     let x2 = x + x;
     let y2 = y + y;
     let z2 = z + z;
@@ -291,9 +291,9 @@ export class Matrix implements IClone {
     let wx = w * x2;
     let wy = w * y2;
     let wz = w * z2;
-    let sx = scale.x;
-    let sy = scale.y;
-    let sz = scale.z;
+    let sx = scale._x;
+    let sy = scale._y;
+    let sz = scale._z;
 
     oe[0] = (1 - (yy + zz)) * sx;
     oe[1] = (xy + wz) * sx;
@@ -310,9 +310,9 @@ export class Matrix implements IClone {
     oe[10] = (1 - (xx + yy)) * sz;
     oe[11] = 0;
 
-    oe[12] = translation.x;
-    oe[13] = translation.y;
-    oe[14] = translation.z;
+    oe[12] = translation._x;
+    oe[13] = translation._y;
+    oe[14] = translation._z;
     oe[15] = 1;
   }
 
@@ -323,19 +323,19 @@ export class Matrix implements IClone {
    */
   static scaling(s: Vector3, out: Matrix): void {
     const oe = out.elements;
-    oe[0] = s.x;
+    oe[0] = s._x;
     oe[1] = 0;
     oe[2] = 0;
     oe[3] = 0;
 
     oe[4] = 0;
-    oe[5] = s.y;
+    oe[5] = s._y;
     oe[6] = 0;
     oe[7] = 0;
 
     oe[8] = 0;
     oe[9] = 0;
-    oe[10] = s.z;
+    oe[10] = s._z;
     oe[11] = 0;
 
     oe[12] = 0;
@@ -366,9 +366,9 @@ export class Matrix implements IClone {
     oe[10] = 1;
     oe[11] = 0;
 
-    oe[12] = translation.x;
-    oe[13] = translation.y;
-    oe[14] = translation.z;
+    oe[12] = translation._x;
+    oe[13] = translation._y;
+    oe[14] = translation._z;
     oe[15] = 1;
   }
 
@@ -457,19 +457,19 @@ export class Matrix implements IClone {
     xAxis.normalize();
     Vector3.cross(zAxis, xAxis, yAxis);
 
-    oe[0] = xAxis.x;
-    oe[1] = yAxis.x;
-    oe[2] = zAxis.x;
+    oe[0] = xAxis._x;
+    oe[1] = yAxis._x;
+    oe[2] = zAxis._x;
     oe[3] = 0;
 
-    oe[4] = xAxis.y;
-    oe[5] = yAxis.y;
-    oe[6] = zAxis.y;
+    oe[4] = xAxis._y;
+    oe[5] = yAxis._y;
+    oe[6] = zAxis._y;
     oe[7] = 0;
 
-    oe[8] = xAxis.z;
-    oe[9] = yAxis.z;
-    oe[10] = zAxis.z;
+    oe[8] = xAxis._z;
+    oe[9] = yAxis._z;
+    oe[10] = zAxis._z;
     oe[11] = 0;
 
     oe[12] = -Vector3.dot(xAxis, eye);
@@ -557,7 +557,7 @@ export class Matrix implements IClone {
    * @param out - The rotated matrix
    */
   static rotateAxisAngle(m: Matrix, axis: Vector3, r: number, out: Matrix): void {
-    let { x, y, z } = axis;
+    let { _x: x, _y: y, _z: z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
     if (Math.abs(len) < MathUtil.zeroTolerance) {
@@ -635,7 +635,7 @@ export class Matrix implements IClone {
   static scale(m: Matrix, s: Vector3, out: Matrix): void {
     const me = m.elements;
     const oe = out.elements;
-    const { x, y, z } = s;
+    const { _x: x, _y: y, _z: z } = s;
 
     oe[0] = me[0] * x;
     oe[1] = me[1] * x;
@@ -667,7 +667,7 @@ export class Matrix implements IClone {
   static translate(m: Matrix, v: Vector3, out: Matrix): void {
     const me = m.elements;
     const oe = out.elements;
-    const { x, y, z } = v;
+    const { _x: x, _y: y, _z: z } = v;
 
     if (m === out) {
       oe[12] = me[0] * x + me[4] * y + me[8] * z + me[12];
@@ -1064,10 +1064,7 @@ export class Matrix implements IClone {
     const m32 = e[9];
     const m33 = e[10];
     const m34 = e[11];
-
-    translation.x = e[12];
-    translation.y = e[13];
-    translation.z = e[14];
+    translation.setValue(e[12], e[13], e[14]);
 
     const xs = Math.sign(m11 * m12 * m13 * m14) < 0 ? -1 : 1;
     const ys = Math.sign(m21 * m22 * m23 * m24) < 0 ? -1 : 1;
@@ -1076,10 +1073,7 @@ export class Matrix implements IClone {
     const sx = xs * Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
     const sy = ys * Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
     const sz = zs * Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
-
-    scale.x = sx;
-    scale.y = sy;
-    scale.z = sz;
+    scale.setValue(sx, sy, sz);
 
     if (
       Math.abs(sx) < MathUtil.zeroTolerance ||
@@ -1117,31 +1111,32 @@ export class Matrix implements IClone {
     let trace = e[0] + e[5] + e[10];
 
     if (trace > MathUtil.zeroTolerance) {
-      let S = Math.sqrt(trace + 1.0) * 2;
-      out.w = 0.25 * S;
-      out.x = (e[6] - e[9]) / S;
-      out.y = (e[8] - e[2]) / S;
-      out.z = (e[1] - e[4]) / S;
+      let s = Math.sqrt(trace + 1.0) * 2;
+      out._w = 0.25 * s;
+      out._x = (e[6] - e[9]) / s;
+      out._y = (e[8] - e[2]) / s;
+      out._z = (e[1] - e[4]) / s;
     } else if (e[0] > e[5] && e[0] > e[10]) {
-      let S = Math.sqrt(1.0 + e[0] - e[5] - e[10]) * 2;
-      out.w = (e[6] - e[9]) / S;
-      out.x = 0.25 * S;
-      out.y = (e[1] + e[4]) / S;
-      out.z = (e[8] + e[2]) / S;
+      let s = Math.sqrt(1.0 + e[0] - e[5] - e[10]) * 2;
+      out._w = (e[6] - e[9]) / s;
+      out._x = 0.25 * s;
+      out._y = (e[1] + e[4]) / s;
+      out._z = (e[8] + e[2]) / s;
     } else if (e[5] > e[10]) {
-      let S = Math.sqrt(1.0 + e[5] - e[0] - e[10]) * 2;
-      out.w = (e[8] - e[2]) / S;
-      out.x = (e[1] + e[4]) / S;
-      out.y = 0.25 * S;
-      out.z = (e[6] + e[9]) / S;
+      let s = Math.sqrt(1.0 + e[5] - e[0] - e[10]) * 2;
+      out._w = (e[8] - e[2]) / s;
+      out._x = (e[1] + e[4]) / s;
+      out._y = 0.25 * s;
+      out._z = (e[6] + e[9]) / s;
     } else {
-      let S = Math.sqrt(1.0 + e[10] - e[0] - e[5]) * 2;
-      out.w = (e[1] - e[4]) / S;
-      out.x = (e[8] + e[2]) / S;
-      out.y = (e[6] + e[9]) / S;
-      out.z = 0.25 * S;
+      let s = Math.sqrt(1.0 + e[10] - e[0] - e[5]) * 2;
+      out._w = (e[1] - e[4]) / s;
+      out._x = (e[8] + e[2]) / s;
+      out._y = (e[6] + e[9]) / s;
+      out._z = 0.25 * s;
     }
 
+    out._onValueChanged && out._onValueChanged();
     return out;
   }
 
@@ -1163,9 +1158,7 @@ export class Matrix implements IClone {
       m32 = e[9],
       m33 = e[10];
 
-    out.x = Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
-    out.y = Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
-    out.z = Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
+    out.setValue(Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13), Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23), Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33));
 
     return out;
   }
@@ -1177,11 +1170,7 @@ export class Matrix implements IClone {
    */
   getTranslation(out: Vector3): Vector3 {
     const e = this.elements;
-
-    out.x = e[12];
-    out.y = e[13];
-    out.z = e[14];
-
+    out.setValue(e[12], e[13], e[14]);
     return out;
   }
 

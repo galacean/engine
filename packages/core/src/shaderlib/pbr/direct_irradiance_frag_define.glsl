@@ -1,18 +1,25 @@
-void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
+    float attenuation = 1.0;
+
+    #ifdef CLEARCOAT
+        float clearCoatDotNL = saturate( dot( geometry.clearCoatNormal, incidentDirection ) );
+        vec3 clearCoatIrradiance = clearCoatDotNL * color;
+        
+        reflectedLight.directSpecular += material.clearCoat * clearCoatIrradiance * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.clearCoatNormal, vec3( 0.04 ), material.clearCoatRoughness );
+        attenuation -= material.clearCoat * F_Schlick(geometry.clearCoatDotNV);
+    #endif
+
     float dotNL = saturate( dot( geometry.normal, incidentDirection ) );
+    vec3 irradiance = dotNL * color * PI;
 
-    vec3 irradiance = dotNL * color;
-    irradiance *= PI;
-    
-    reflectedLight.directSpecular += irradiance * BRDF_Specular_GGX( incidentDirection, geometry, material.specularColor, material.roughness);
-
-    reflectedLight.directDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
+    reflectedLight.directSpecular += attenuation * irradiance * BRDF_Specular_GGX( incidentDirection, geometry.viewDir, geometry.normal, material.specularColor, material.roughness);
+    reflectedLight.directDiffuse += attenuation * irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 }
 
 #ifdef O3_DIRECT_LIGHT_COUNT
 
-    void addDirectionalDirectLightRadiance(DirectLight directionalLight, GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+    void addDirectionalDirectLightRadiance(DirectLight directionalLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
         vec3 color = directionalLight.color;
         vec3 direction = -directionalLight.direction;
 
@@ -24,7 +31,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
 
 #ifdef O3_POINT_LIGHT_COUNT
 
-	void addPointDirectLightRadiance(PointLight pointLight, GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+	void addPointDirectLightRadiance(PointLight pointLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
 
 		vec3 lVector = pointLight.position - geometry.position;
 		vec3 direction = normalize( lVector );
@@ -42,7 +49,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
 
 #ifdef O3_SPOT_LIGHT_COUNT
 
-	void addSpotDirectLightRadiance(SpotLight spotLight, GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight) {
+	void addSpotDirectLightRadiance(SpotLight spotLight, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
 
 		vec3 lVector = spotLight.position - geometry.position;
 		vec3 direction = normalize( lVector );
@@ -63,7 +70,7 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, GeometricContext geom
 
 #endif
 
-void addTotalDirectRadiance(GeometricContext geometry, PhysicalMaterial material, inout ReflectedLight reflectedLight){
+void addTotalDirectRadiance(Geometry geometry, Material material, inout ReflectedLight reflectedLight){
 	    #ifdef O3_DIRECT_LIGHT_COUNT
 
             DirectLight directionalLight;

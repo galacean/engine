@@ -25,6 +25,7 @@ class EditorFileLoader<T> extends Loader<T> {
           resourceManager.baseUrl = "";
         })
         .catch((err) => {
+          console.error(`load ${item.url} error`);
           reject(err);
         });
     });

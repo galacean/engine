@@ -145,7 +145,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
   }
 
   set shininess(value: number) {
-    this.shaderData.setFloat(BlinnPhongMaterial._shininessProp, value);
+    this.shaderData.setFloat(BlinnPhongMaterial._shininessProp, Math.max(value, 1e-4));
   }
 
   /**

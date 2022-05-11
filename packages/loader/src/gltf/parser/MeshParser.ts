@@ -7,10 +7,12 @@ import { Parser } from "./Parser";
 
 export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
+  private keepModelData = false;
   parse(context: GLTFResource): Promise<void> {
     const { engine, gltf, buffers } = context;
     if (!gltf.meshes) return;
 
+    this.keepModelData = context.keepModelData;
     const meshPromises: Promise<ModelMesh[]>[] = [];
 
     for (let i = 0; i < gltf.meshes.length; i++) {
@@ -164,15 +166,19 @@ export class MeshParser extends Parser {
         case "TEXCOORD_3":
           const texturecoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords3, 3);
+          break;
         case "TEXCOORD_4":
           const texturecoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords4, 4);
+          break;
         case "TEXCOORD_5":
           const texturecoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords5, 5);
+          break;
         case "TEXCOORD_6":
           const texturecoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords6, 6);
+          break;
         case "TEXCOORD_7":
           const texturecoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords7, 7);
@@ -216,7 +222,7 @@ export class MeshParser extends Parser {
     // BlendShapes
     targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
-    mesh.uploadData(true);
+    mesh.uploadData(!this.keepModelData);
     return Promise.resolve(mesh);
   }
 

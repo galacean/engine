@@ -1,9 +1,10 @@
 {
   "name": "@oasis-engine/stats",
-  "version": "0.6.6",
+  "version": "0.7.0-beta.4",
   "license": "MIT",
   "scripts": {
-    "b:types": "tsc"
+    "b:types": "tsc",
+    "watch:types": "tsc -w"
   },
   "types": "types/index.d.ts",
   "main": "dist/main.js",
@@ -14,6 +15,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "oasis-engine": "0.6.6"
+    "oasis-engine": "0.7.0-beta.4"
   }
 }

@@ -92,6 +92,9 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
+    scale.cloneTo(this._scale);
+    this._setLocalPose();
+
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
         this._pxGeometry.radius = this._radius * Math.max(scale.y, scale.z);

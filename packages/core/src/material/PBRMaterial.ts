@@ -12,7 +12,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _metallicRoughnessTextureProp = Shader.getPropertyByName("u_metallicRoughnessSampler");
 
   /**
-   * Metallic.
+   * Metallic, default 1.0.
    */
   get metallic(): number {
     return this.shaderData.getFloat(PBRMaterial._metallicProp);
@@ -23,7 +23,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * Roughness.
+   * Roughness, default 1.0.
    */
   get roughness(): number {
     return this.shaderData.getFloat(PBRMaterial._roughnessProp);
@@ -56,8 +56,8 @@ export class PBRMaterial extends PBRBaseMaterial {
    */
   constructor(engine: Engine) {
     super(engine, Shader.find("pbr"));
-    this.shaderData.setFloat(PBRMaterial._metallicProp, 1.0);
-    this.shaderData.setFloat(PBRMaterial._roughnessProp, 1.0);
+    this.shaderData.setFloat(PBRMaterial._metallicProp, 1);
+    this.shaderData.setFloat(PBRMaterial._roughnessProp, 1);
   }
 
   /**

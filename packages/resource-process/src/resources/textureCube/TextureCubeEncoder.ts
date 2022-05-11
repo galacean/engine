@@ -31,9 +31,8 @@ export class Texture2DEncoder {
     data.forEach((mipData) => {
       flatData.push(...mipData);
     });
-    const imagesData = flatData.map((buffer) => ({ type, buffer }));
-    bufferWriter.writeUint8(imagesData.length);
-    bufferWriter.writeImagesData(imagesData);
+    bufferWriter.writeUint8(flatData.length);
+    bufferWriter.writeImagesData(flatData);
 
     return bufferWriter.buffer;
   }

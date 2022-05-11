@@ -102,14 +102,11 @@ export class BufferReader {
   /**
    * image data 放在最后
    */
-  nextImageData(count: number = 0): ImageData {
-    const imageData = new ImageData();
-    imageData.type = BufferReader.imageMapping[this.nextUint8()];
-    imageData.buffer = this.buffer.slice(this._offset);
-    return imageData;
+  nextImageData(count: number = 0): ArrayBuffer {
+    return this.buffer.slice(this._offset);
   }
 
-  nextImagesData(count: number): ImageData[] {
+  nextImagesData(count: number): ArrayBuffer[] {
     const imagesLen = new Array(count);
     // Start offset of Uint32Array should be a multiple of 4. ref: https://stackoverflow.com/questions/15417310/why-typed-array-constructors-require-offset-to-be-multiple-of-underlying-type-si
     for (let i = 0; i < count; i++) {
@@ -117,16 +114,13 @@ export class BufferReader {
       imagesLen[i] = len;
       this._offset += 4;
     }
-    const imagesType = this.nextUint8Array(count);
-    const imagesData: ImageData[] = [];
+    const imagesData: ArrayBuffer[] = [];
 
     for (let i = 0; i < count; i++) {
       const len = imagesLen[i];
-      const imageData = new ImageData();
-      imageData.type = BufferReader.imageMapping[imagesType[i]];
-      imageData.buffer = this.buffer.slice(this._offset, this._offset + len);
+      const buffer = this.buffer.slice(this._offset, this._offset + len);
       this._offset += len;
-      imagesData.push(imageData);
+      imagesData.push(buffer);
     }
     return imagesData;
   }

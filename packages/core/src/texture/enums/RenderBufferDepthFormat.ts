@@ -3,20 +3,20 @@
  */
 export enum RenderBufferDepthFormat {
   /** Render to depth buffer,engine will automatically select the supported precision. */
-  Depth = 0,
+  Depth,
   /** Render to depth stencil buffer, engine will automatically select the supported precision. */
-  DepthStencil = 1,
+  DepthStencil,
   /** Render to stencil buffer. */
-  Stencil = 2,
+  Stencil,
 
   /** Force 16-bit depth buffer. */
-  Depth16 = 3,
+  Depth16,
   /** Force 24-bit depth buffer. */
-  Depth24 = 4,
+  Depth24,
   /** Force 32-bit depth buffer. */
-  Depth32 = 5,
+  Depth32,
   /** Force 16-bit depth + 8-bit stencil buffer. */
-  Depth24Stencil8 = 6,
+  Depth24Stencil8,
   /** Force 32-bit depth + 8-bit stencil buffer. */
-  Depth32Stencil8 = 7
+  Depth32Stencil8
 }

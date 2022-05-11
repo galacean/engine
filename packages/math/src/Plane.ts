@@ -12,12 +12,9 @@ export class Plane implements IClone {
    */
   static normalize(p: Plane, out: Plane): void {
     const { normal } = p;
-    const factor = 1.0 / normal.length();
 
-    const outNormal = out.normal;
-    outNormal.x = normal.x * factor;
-    outNormal.y = normal.y * factor;
-    outNormal.z = normal.z * factor;
+    const factor = 1.0 / normal.length();
+    Vector3.scale(normal, factor, out.normal);
     out.distance = p.distance * factor;
   }
 

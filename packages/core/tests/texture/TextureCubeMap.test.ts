@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { TextureCubeFace, TextureCubeMap, TextureFormat } from "../../src/texture";
+import { TextureCubeFace, TextureCube, TextureFormat } from "../../src/texture";
 import { WebGLEngine } from "../../../rhi-webgl/src/WebGLEngine";
 
-describe("TextureCubeMap", () => {
+describe("TextureCube", () => {
   const width = 1024;
   const height = 1024;
   const size = 1024;
@@ -20,12 +20,12 @@ describe("TextureCubeMap", () => {
     it("不支持浮点纹理", () => {
       expect(() => {
         rhi.canIUse.mockReturnValueOnce(false);
-        new TextureCubeMap(engine, size, TextureFormat.R32G32B32A32);
+        new TextureCube(engine, size, TextureFormat.R32G32B32A32);
       }).toThrow();
     });
     it("引擎不支持的格式", () => {
       expect(() => {
-        new TextureCubeMap(engine, size, 1234567);
+        new TextureCube(engine, size, 1234567);
       }).toThrow();
     });
   });
@@ -34,22 +34,22 @@ describe("TextureCubeMap", () => {
     it("webgl2 支持非2次幂开启 mipmap ", () => {
       rhi._isWebGL2 = true;
 
-      const texture1 = new TextureCubeMap(engine, 100);
-      const texture2 = new TextureCubeMap(engine, 100, undefined, true);
+      const texture1 = new TextureCube(engine, 100);
+      const texture2 = new TextureCube(engine, 100, undefined, true);
 
       expect(texture1.mipmapCount).not.toBe(1);
       expect(texture2.mipmapCount).not.toBe(1);
     });
     it("关闭 mipmap 成功", () => {
-      const texture = new TextureCubeMap(engine, size, undefined, false);
+      const texture = new TextureCube(engine, size, undefined, false);
 
       expect(texture.mipmapCount).toBe(1);
     });
     it("webgl1 开启 mipmap 失败自动降级 - 非2次幂图片", () => {
       rhi._isWebGL2 = false;
 
-      const texture1 = new TextureCubeMap(engine, 100);
-      const texture2 = new TextureCubeMap(engine, 100, undefined, true);
+      const texture1 = new TextureCube(engine, 100);
+      const texture2 = new TextureCube(engine, 100, undefined, true);
 
       expect(texture1.mipmapCount).toBe(1);
       expect(texture2.mipmapCount).toBe(1);
@@ -59,7 +59,7 @@ describe("TextureCubeMap", () => {
   // todo: dom test
 
   describe("设置颜色缓冲", () => {
-    const texture = new TextureCubeMap(engine, size);
+    const texture = new TextureCube(engine, size);
     const buffer = new Uint8Array(width * height * 4);
 
     it("默认匹配大小", () => {
@@ -90,7 +90,7 @@ describe("TextureCubeMap", () => {
 
     it("浮点纹理写入数据", () => {
       expect(() => {
-        const texture = new TextureCubeMap(engine, size, TextureFormat.R32G32B32A32);
+        const texture = new TextureCube(engine, size, TextureFormat.R32G32B32A32);
         const buffer = new Float32Array(4);
 
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer);
@@ -102,14 +102,14 @@ describe("TextureCubeMap", () => {
   describe("读取颜色缓冲", () => {
     it("异常-无法读取压缩纹理", () => {
       expect(() => {
-        const texture = new TextureCubeMap(engine, size, TextureFormat.ETC2_RGBA8);
+        const texture = new TextureCube(engine, size, TextureFormat.ETC2_RGBA8);
         const buffer = new Uint8Array(4);
 
         texture.getPixelBuffer(TextureCubeFace.PositiveX, 0, 0, 1, 1, buffer);
       }).toThrow();
     });
     it("读取成功", () => {
-      const texture = new TextureCubeMap(engine, size);
+      const texture = new TextureCube(engine, size);
       const buffer = new Uint8Array(4);
 
       texture.setPixelBuffer(TextureCubeFace.PositiveX, new Uint8Array([1, 1, 1, 1]), 0, 0, 0, 1, 1);

@@ -31,4 +31,9 @@ export interface IPhysicsMaterial {
    * @param value - The combine mode
    */
   setFrictionCombine(value: number): void;
+
+  /**
+   * Decrements the reference count of a material and releases it if the new reference count is zero.
+   */
+  destroy(): void;
 }

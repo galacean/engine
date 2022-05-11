@@ -31,7 +31,7 @@ export class textureCubeDecoder {
       textureCube.wrapModeV = wrapModeV;
 
       for (let i = 0; i < 6; i++) {
-        const pixelBuffer = new Uint8Array(imagesData[i].buffer);
+        const pixelBuffer = new Uint8Array(imagesData[i]);
         textureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, pixelBuffer);
       }
 
@@ -39,7 +39,7 @@ export class textureCubeDecoder {
         textureCube.generateMipmaps();
         for (let i = 1; i < mipCount; i++) {
           for (let j = 0; j < 6; j++) {
-            const pixelBuffer = new Uint8Array(imagesData[6 * i + j].buffer);
+            const pixelBuffer = new Uint8Array(imagesData[6 * i + j]);
             textureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, pixelBuffer);
           }
         }

@@ -2,6 +2,7 @@ import { RefObject } from "../asset/RefObject";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
+import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 
 /**
@@ -15,6 +16,7 @@ export abstract class Texture extends RefObject {
   /** @internal */
   _mipmap: boolean;
 
+  protected _format: TextureFormat;
   protected _width: number;
   protected _height: number;
   protected _mipmapCount: number;
@@ -23,6 +25,13 @@ export abstract class Texture extends RefObject {
   private _wrapModeV: TextureWrapMode;
   private _filterMode: TextureFilterMode;
   private _anisoLevel: number = 1;
+
+  /**
+   * Texture format.
+   */
+  get format(): TextureFormat {
+    return this._format;
+  }
 
   /**
    * The width of the texture.
