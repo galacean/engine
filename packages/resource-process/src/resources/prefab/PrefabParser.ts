@@ -1,13 +1,13 @@
 import { Engine, Entity } from "@oasis-engine/core";
-import { IEntity, IPrefabFile } from "./PrefabDesign";
+import type { IEntity, IPrefabFile } from "./PrefabDesign";
 import { ReflectionParser } from "./ReflectionParser";
 
 export class PrefabParser {
   constructor(private _engine: Engine) {}
 
   parse(data: IPrefabFile): Promise<Entity> {
-    const entitiesMap = {};
-    const entitiesConfigMap = {};
+    const entitiesMap: Record<string, Entity> = {};
+    const entitiesConfigMap: Record<string, IEntity> = {};
     const promises: Promise<Entity>[] = [];
     const entitiesConfig = data.entities;
     for (const entity of entitiesConfig) {
@@ -20,12 +20,16 @@ export class PrefabParser {
       entities.forEach((entity, index) => {
         entitiesMap[entitiesConfig[index].id] = entity;
       });
-      this.parseChildren(entitiesConfigMap, entitiesMap, rootId);
+      PrefabParser.parseChildren(entitiesConfigMap, entitiesMap, rootId);
       return entitiesMap[rootId];
     });
   }
 
-  parseChildren(entitiesConfig: { [key: string]: IEntity }, entities: { [key: string]: Entity }, parentId: string) {
+  static parseChildren(
+    entitiesConfig: { [key: string]: IEntity },
+    entities: { [key: string]: Entity },
+    parentId: string
+  ) {
     const children = entitiesConfig[parentId].children;
     if (children && children.length > 0) {
       const parent = entities[parentId];
