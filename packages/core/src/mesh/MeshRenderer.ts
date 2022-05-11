@@ -8,11 +8,11 @@ import { Entity } from "../Entity";
 import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
-import { UpdateFlag } from "../UpdateFlag";
 
 /**
  * MeshRenderer Component.
  */
+
 export class MeshRenderer extends Renderer implements ICustomClone {
   private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
   private static _uv1Macro = Shader.getMacroByName("O3_HAS_UV1");
