@@ -527,4 +527,8 @@ export class Vector3 implements IClone {
     Vector3.transformByQuat(this, quaternion, this);
     return this;
   }
+
+  toJSON() {
+    return { x: this.x, y: this.y, z: this.z };
+  }
 }

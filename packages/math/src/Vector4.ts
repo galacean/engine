@@ -431,4 +431,13 @@ export class Vector4 implements IClone {
     out.w = this.w;
     return out;
   }
+
+  toJSON() {
+    return {
+      x: this.x,
+      y: this.y,
+      z: this.z,
+      w: this.w
+    };
+  }
 }

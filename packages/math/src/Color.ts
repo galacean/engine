@@ -194,4 +194,20 @@ export class Color implements IClone {
     out.b = Color.linearToGammaSpace(this.b);
     return out;
   }
+
+  copyFrom(color: Color) {
+    this.r = color.r;
+    this.g = color.g;
+    this.b = color.b;
+    this.a = color.a;
+  }
+
+  toJSON() {
+    return {
+      r: this.r,
+      g: this.g,
+      b: this.b,
+      a: this.a
+    };
+  }
 }

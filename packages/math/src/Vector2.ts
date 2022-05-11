@@ -328,4 +328,11 @@ export class Vector2 implements IClone {
     out.y = this.y;
     return out;
   }
+
+  toJSON() {
+    return {
+      x: this.x,
+      y: this.y
+    };
+  }
 }
