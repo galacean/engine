@@ -97,4 +97,11 @@ export class BlendShape {
     this._useBlendShapeTangent = this._useBlendShapeTangent || frame.deltaTangents !== null;
     this._frames.push(frame);
   }
+
+  toJSON() {
+    return {
+      name: this.name,
+      frames: this._frames.map(frame => frame.toJSON()),
+    };
+  }
 }

@@ -904,7 +904,7 @@ export class ModelMesh extends Mesh {
     this._verticesUint8 = null;
     this._indices = null;
     this._verticesFloat32 = null;
-    this._positions.length = 0;
+    this._positions = null;
     this._tangents = null;
     this._normals = null;
     this._colors = null;
@@ -918,6 +918,28 @@ export class ModelMesh extends Mesh {
     this._uv7 = null;
     this._blendShapes = null;
     this._blendShapeUpdateFlags = null;
+  }
+
+  toJSON() {
+    return {
+      positions: this._positions.map((item) => item.toJSON()),
+      normals: this._normals?.map((item) => item.toJSON()),
+      uvs: this._uv?.map((item) => item.toJSON()),
+      uv1: this._uv1?.map((item) => item.toJSON()),
+      uv2: this._uv2?.map((item) => item.toJSON()),
+      uv3: this._uv3?.map((item) => item.toJSON()),
+      uv4: this._uv4?.map((item) => item.toJSON()),
+      uv5: this._uv5?.map((item) => item.toJSON()),
+      uv6: this._uv6?.map((item) => item.toJSON()),
+      uv7: this._uv7?.map((item) => item.toJSON()),
+      colors: this._colors?.map((item) => item.toJSON()),
+      tangents: this._tangents?.map((item) => item.toJSON()),
+      boneWeights: this._boneWeights?.map((item) => item.toJSON()),
+      boneIndices: this._boneIndices?.map((item) => item.toJSON()),
+      blendShapes: this._blendShapes?.map((item) => item.toJSON()),
+      indices: Array.from(this._indices),
+      subMeshes: this.subMeshes.map((item) => ({ start: item.start, topology: item.topology, count: item.count }))
+    };
   }
 }
 
