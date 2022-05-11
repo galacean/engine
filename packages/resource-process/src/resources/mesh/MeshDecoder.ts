@@ -47,7 +47,6 @@ export class MeshDecoder {
           encodedMeshData.uvs.start + offset,
           (encodedMeshData.uvs.end - encodedMeshData.uvs.start) / 4
         );
-        console.log(float32Array);
         modelMesh.setUVs(float32ArrayToVector2(float32Array, vertexCount));
       }
       if (encodedMeshData.uv1) {

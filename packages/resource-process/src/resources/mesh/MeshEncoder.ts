@@ -118,7 +118,6 @@ export class MeshEncoder {
     let arrayOffset = 0;
     vector3ArrayToFloat32Array(float32Array, data.positions, arrayOffset);
     arrayOffset += vertexCount * 3;
-    console.log("encoded", float32Array);
     if (data.normals) {
       vector3ArrayToFloat32Array(float32Array, data.normals, arrayOffset);
       arrayOffset += vertexCount * 3;
@@ -206,7 +205,6 @@ export class MeshEncoder {
       bufferWriter.writeArrayBuffer(new ArrayBuffer(completeOffset));
     }
     bufferWriter.writeArrayBuffer(float32Array.buffer);
-    console.log("indices.buffer", indices.buffer);
     if (jsonData.indices) {
       bufferWriter.writeArrayBuffer(indices.buffer);
     }
