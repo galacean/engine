@@ -292,6 +292,9 @@ export class Transform extends Component {
     this._setDirtyFlagFalse(TransformFlag.WorldMatrix);
   }
 
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
 

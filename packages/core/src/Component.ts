@@ -53,7 +53,7 @@ export abstract class Component extends EngineObject {
   }
 
   /**
-   * The scene which the component's entity belongs to.
+   * The scene which the component 's entity belongs to.
    */
   get scene(): Scene {
     return this._entity.scene;

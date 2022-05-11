@@ -1,10 +1,9 @@
-import { Component } from "../Component";
-import { ignoreClone } from "../clone/CloneManager";
 import { ICollider } from "@oasis-engine/design";
-import { ColliderShape } from "./shape/ColliderShape";
-import { UpdateFlag } from "../UpdateFlag";
-import { Entity } from "../Entity";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
+import { ignoreClone } from "../clone/CloneManager";
+import { Component } from "../Component";
+import { Entity } from "../Entity";
+import { ColliderShape } from "./shape/ColliderShape";
 
 /**
  * Abstract class for collider shapes.
