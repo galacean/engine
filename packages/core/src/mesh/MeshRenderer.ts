@@ -12,7 +12,6 @@ import { Shader } from "../shader/Shader";
 /**
  * MeshRenderer Component.
  */
-
 export class MeshRenderer extends Renderer implements ICustomClone {
   private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
   private static _uv1Macro = Shader.getMacroByName("O3_HAS_UV1");
