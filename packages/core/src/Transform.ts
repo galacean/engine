@@ -432,7 +432,7 @@ export class Transform extends Component {
   translate(translation: Vector3, relativeToLocal?: boolean): void;
 
   /**
-   * Translate along the passed X, Y, Z value.
+   * Translate x along the x axis, y along the y axis, and z along the z axis.
    * @param x - Translate direction and distance along x axis
    * @param y - Translate direction and distance along y axis
    * @param z - Translate direction and distance along z axis
@@ -717,16 +717,14 @@ export class Transform extends Component {
     }
   }
 
-  private _translate(translation: Vector3, relativeToLocal: boolean = true): void {
+  private _translate(translation: Vector3, relativeToLocal: boolean): void {
     if (relativeToLocal) {
       const distance = translation.length();
       if (distance <= MathUtil.zeroTolerance) {
-        // The distance moved is too short.
         return;
       }
       const axisLen = translation.transformToVec3(this.localMatrix).length();
       if (axisLen <= MathUtil.zeroTolerance) {
-        // Scale value is too extreme.
         return;
       }
       this._position.add(translation.scale(distance / axisLen));
