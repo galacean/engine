@@ -71,8 +71,5 @@
       "eslint --fix",
       "git add"
     ]
-  },
-  "dependencies": {
-    "@swc/core": "^1.2.161"
   }
 }

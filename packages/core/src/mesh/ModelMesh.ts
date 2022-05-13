@@ -847,7 +847,7 @@ export class ModelMesh extends Mesh {
       tangents: this._tangents?.map((item) => item.toJSON()),
       boneWeights: this._boneWeights?.map((item) => item.toJSON()),
       boneIndices: this._boneIndices?.map((item) => item.toJSON()),
-      blendShapes: this._blendShapes?.map((item) => item.toJSON()),
+      blendShapes: this._blendShapeManager._blendShapes?.map((item) => item.toJSON()),
       indices: Array.from(this._indices),
       subMeshes: this.subMeshes.map((item) => ({ start: item.start, topology: item.topology, count: item.count }))
     };
