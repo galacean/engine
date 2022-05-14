@@ -717,7 +717,7 @@ export class Transform extends Component {
     }
   }
 
-  private _translate(translation: Vector3, relativeToLocal: boolean = true): void {
+  private _translate(translation: Vector3, relativeToLocal: boolean): void {
     if (relativeToLocal) {
       const { _tempVec30 } = Transform;
       Vector3.transformByQuat(translation, this.worldRotationQuaternion, _tempVec30);
