@@ -432,7 +432,7 @@ export class Transform extends Component {
   translate(translation: Vector3, relativeToLocal?: boolean): void;
 
   /**
-   * Translate along the passed X, Y, Z value.
+   * Translate x along the x axis, y along the y axis, and z along the z axis.
    * @param x - Translate direction and distance along x axis
    * @param y - Translate direction and distance along y axis
    * @param z - Translate direction and distance along z axis
