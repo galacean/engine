@@ -424,19 +424,19 @@ export class Transform extends Component {
     return up.normalize();
   }
 
-  /**
-   * Translate along the passed Vector3.
+ /**
+   * Translate in the direction and distance of the translation.
    * @param translation - Direction and distance of translation
-   * @param relativeToLocal - Relative to local space
+   * @param relativeToLocal - Is relative to the local coordinate system
    */
   translate(translation: Vector3, relativeToLocal?: boolean): void;
 
   /**
-   * Translate x along the x axis, y along the y axis, and z along the z axis.
-   * @param x - Translate direction and distance along x axis
-   * @param y - Translate direction and distance along y axis
-   * @param z - Translate direction and distance along z axis
-   * @param relativeToLocal - Relative to local space
+   * Translate some distance by x along the x axis, y along the y axis, and z along the z axis.
+   * @param x - Distance along the x axis
+   * @param y - Distance along the y axis
+   * @param z - Distance along the z axis
+   * @param relativeToLocal - Is relative to the local coordinate system
    */
   translate(x: number, y: number, z: number, relativeToLocal?: boolean): void;
 
@@ -458,7 +458,7 @@ export class Transform extends Component {
   /**
    * Rotate around the passed Vector3.
    * @param rotation - Euler angle in degrees
-   * @param relativeToLocal - Relative to local space
+   * @param relativeToLocal - Is relative to the local coordinate system
    */
   rotate(rotation: Vector3, relativeToLocal?: boolean): void;
 
@@ -467,7 +467,7 @@ export class Transform extends Component {
    * @param x - Rotation along x axis, in degrees
    * @param y - Rotation along y axis, in degrees
    * @param z - Rotation along z axis, in degrees
-   * @param relativeToLocal - Relative to local space
+   * @param relativeToLocal - Is relative to the local coordinate system
    */
   rotate(x: number, y: number, z: number, relativeToLocal?: boolean): void;
 
@@ -709,7 +709,7 @@ export class Transform extends Component {
     this._updateFlagManager.distribute();
   }
 
-  private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean) {
+  private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
     if (relativeToLocal) {
       Quaternion.multiply(this.rotationQuaternion, rotateQuat, this._rotationQuaternion);
     } else {
@@ -727,7 +727,7 @@ export class Transform extends Component {
     }
   }
 
-  private _rotateXYZ(x: number, y: number, z: number, relativeToLocal: boolean = true): void {
+  private _rotateXYZ(x: number, y: number, z: number, relativeToLocal: boolean): void {
     const radFactor = MathUtil.degreeToRadFactor;
     const rotQuat = Transform._tempQuat0;
     Quaternion.rotationEuler(x * radFactor, y * radFactor, z * radFactor, rotQuat);
