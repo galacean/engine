@@ -202,14 +202,16 @@ export class BasicRenderPipeline {
    * @param element - Render element
    */
   pushPrimitive(element: RenderElement | SpriteElement) {
-    const renderQueueType = element.material.renderQueueType;
-
-    if (renderQueueType > (RenderQueueType.Transparent + RenderQueueType.AlphaTest) >> 1) {
-      this._transparentQueue.pushPrimitive(element);
-    } else if (renderQueueType > (RenderQueueType.AlphaTest + RenderQueueType.Opaque) >> 1) {
-      this._alphaTestQueue.pushPrimitive(element);
-    } else {
-      this._opaqueQueue.pushPrimitive(element);
+    switch (element.material.renderQueueType) {
+      case RenderQueueType.Transparent:
+        this._transparentQueue.pushPrimitive(element);
+        break;
+      case RenderQueueType.AlphaTest:
+        this._alphaTestQueue.pushPrimitive(element);
+        break;
+      default:
+        this._opaqueQueue.pushPrimitive(element);
+        break;
     }
   }
 
