@@ -19,9 +19,9 @@ export interface IPlatformTextureCube extends IPlatformTexture {
   setPixelBuffer(
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
-    mipLevel?: number,
-    x?: number,
-    y?: number,
+    mipLevel: number,
+    x: number,
+    y: number,
     width?: number,
     height?: number
   ): void;
@@ -38,12 +38,12 @@ export interface IPlatformTextureCube extends IPlatformTexture {
    */
   setImageSource(
     face: TextureCubeFace,
-    imageSource: TexImageSource,
-    mipLevel?: number,
-    flipY?: boolean,
-    premultiplyAlpha?: boolean,
-    x?: number,
-    y?: number
+    imageSource: TexImageSource | OffscreenCanvas,
+    mipLevel: number,
+    flipY: boolean,
+    premultiplyAlpha: boolean,
+    x: number,
+    y: number
   ): void;
 
   /**

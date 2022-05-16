@@ -47,8 +47,8 @@ export class TextureCube extends Texture {
     face: TextureCubeFace,
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
-    x?: number,
-    y?: number,
+    x: number = 0,
+    y: number = 0,
     width?: number,
     height?: number
   ): void {
@@ -67,12 +67,12 @@ export class TextureCube extends Texture {
    */
   setImageSource(
     face: TextureCubeFace,
-    imageSource: TexImageSource,
+    imageSource: TexImageSource | OffscreenCanvas,
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
-    x?: number,
-    y?: number
+    x: number = 0,
+    y: number = 0
   ): void {
     (this._platformTexture as IPlatformTextureCube).setImageSource(
       face,

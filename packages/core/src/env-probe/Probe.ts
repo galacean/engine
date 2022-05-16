@@ -1,7 +1,7 @@
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { Script } from "../Script";
-import { Texture, Texture2D, TextureCube, TextureFormat } from "../texture";
+import { RenderBufferDepthFormat, Texture, Texture2D, TextureCube, TextureFormat } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 
 /**
@@ -77,7 +77,7 @@ export abstract class Probe extends Script {
         this.width,
         this.height,
         this._isCube ? new TextureCube(this.engine, this.width) : new Texture2D(this.engine, this.width, this.height),
-        TextureFormat.Depth,
+        RenderBufferDepthFormat.Depth,
         this.antiAliasing
       );
 
@@ -86,7 +86,7 @@ export abstract class Probe extends Script {
         this.width,
         this.height,
         this._isCube ? new TextureCube(this.engine, this.width) : new Texture2D(this.engine, this.width, this.height),
-        TextureFormat.Depth,
+        RenderBufferDepthFormat.Depth,
         this.antiAliasing
       );
 

@@ -50,8 +50,8 @@ export class Texture2D extends Texture {
   setPixelBuffer(
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
-    x?: number,
-    y?: number,
+    x: number = 0,
+    y: number = 0,
     width?: number,
     height?: number
   ): void {
@@ -72,8 +72,8 @@ export class Texture2D extends Texture {
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
-    x?: number,
-    y?: number
+    x: number = 0,
+    y: number = 0
   ): void {
     (this._platformTexture as IPlatformTexture2D).setImageSource(imageSource, mipLevel, flipY, premultiplyAlpha, x, y);
   }

@@ -1,11 +1,11 @@
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh";
 import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Transform } from "../Transform";
-import { UpdateFlag } from "../UpdateFlag";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
@@ -36,7 +36,7 @@ export class Animator extends Component {
   @assignmentClone
   protected _speed: number = 1.0;
   @ignoreClone
-  protected _controllerUpdateFlag: UpdateFlag;
+  protected _controllerUpdateFlag: BoolUpdateFlag;
 
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
@@ -467,20 +467,11 @@ export class Animator extends Component {
     const { state, playState: lastPlayState, clipTime: lastClipTime } = playData;
     const { _curveBindings: curves } = state.clip;
 
-    playData.update();
+    playData.update(this.speed < 0);
 
     const { clipTime, playState } = playData;
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
-
-    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(state, layerIndex);
-    }
-    if (playState === AnimatorStatePlayState.Finished) {
-      this._callAnimatorScriptOnExit(state, layerIndex);
-    } else {
-      this._callAnimatorScriptOnUpdate(state, layerIndex);
-    }
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
@@ -495,6 +486,15 @@ export class Animator extends Component {
 
     if (playState === AnimatorStatePlayState.Finished) {
       layerData.layerState = LayerState.Standby;
+    }
+
+    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
+      this._callAnimatorScriptOnEnter(state, layerIndex);
+    }
+    if (playState === AnimatorStatePlayState.Finished) {
+      this._callAnimatorScriptOnExit(state, layerIndex);
+    } else {
+      this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
   }
 
@@ -517,11 +517,12 @@ export class Animator extends Component {
     const { clipTime: lastSrcClipTime } = srcPlayData;
     const { clipTime: lastDestClipTime } = destPlayData;
 
-    let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight =
+      Math.abs(destPlayData.frameTime) / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
-    srcPlayData.update();
-    destPlayData.update();
+    srcPlayData.update(this.speed < 0);
+    destPlayData.update(this.speed < 0);
 
     const { playState: srcPlayState } = srcPlayData;
     const { playState: destPlayState } = destPlayData;
@@ -584,10 +585,11 @@ export class Animator extends Component {
     const { _curveBindings: curves } = state.clip;
     const { clipTime: lastDestClipTime } = destPlayData;
 
-    let crossWeight = destPlayData.frameTime / (state._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight =
+      Math.abs(destPlayData.frameTime) / (state._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
-    destPlayData.update();
+    destPlayData.update(this.speed < 0);
 
     const { playState } = destPlayData;
 
@@ -642,7 +644,6 @@ export class Animator extends Component {
   ): void {
     let value: InterpolableValue;
     if (owner.type === Transform) {
-      const transform = owner.target.transform;
       switch (owner.property) {
         case AnimationProperty.Position:
           Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
@@ -838,13 +839,27 @@ export class Animator extends Component {
   ): void {
     const { state } = playState;
     const clipDuration = state.clip.length;
-    // TODO: If play backward, not work.
-    if (clipTime < lastClipTime) {
-      this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
-      playState.currentEventIndex = 0;
-      this._fireSubAnimationEvents(playState, eventHandlers, state.clipStartTime * clipDuration, clipTime);
+    if (this.speed >= 0) {
+      if (clipTime < lastClipTime) {
+        this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
+        playState.currentEventIndex = 0;
+        this._fireSubAnimationEvents(playState, eventHandlers, state.clipStartTime * clipDuration, clipTime);
+      } else {
+        this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      }
     } else {
-      this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      if (clipTime > lastClipTime) {
+        this._fireBackwardSubAnimationEvents(
+          playState,
+          eventHandlers,
+          lastClipTime,
+          state.clipStartTime * clipDuration
+        );
+        playState.currentEventIndex = eventHandlers.length - 1;
+        this._fireBackwardSubAnimationEvents(playState, eventHandlers, state.clipEndTime * clipDuration, clipTime);
+      } else {
+        this._fireBackwardSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      }
     }
   }
 
@@ -854,8 +869,9 @@ export class Animator extends Component {
     lastClipTime: number,
     curClipTime: number
   ): void {
-    for (let i = playState.currentEventIndex, n = eventHandlers.length; i < n; i++) {
-      const eventHandler = eventHandlers[i];
+    let eventIndex = playState.currentEventIndex;
+    for (let n = eventHandlers.length; eventIndex < n; eventIndex++) {
+      const eventHandler = eventHandlers[eventIndex];
       const { time, parameter } = eventHandler.event;
 
       if (time > curClipTime) {
@@ -867,7 +883,32 @@ export class Animator extends Component {
         for (let j = handlers.length - 1; j >= 0; j--) {
           handlers[j](parameter);
         }
-        playState.currentEventIndex = i + 1;
+        playState.currentEventIndex = Math.min(eventIndex + 1, n - 1);
+      }
+    }
+  }
+
+  private _fireBackwardSubAnimationEvents(
+    playState: AnimatorStatePlayData,
+    eventHandlers: AnimationEventHandler[],
+    lastClipTime: number,
+    curClipTime: number
+  ): void {
+    let eventIndex = playState.currentEventIndex;
+    for (; eventIndex >= 0; eventIndex--) {
+      const eventHandler = eventHandlers[eventIndex];
+      const { time, parameter } = eventHandler.event;
+
+      if (time < curClipTime) {
+        break;
+      }
+
+      const { handlers } = eventHandler;
+      if (time <= lastClipTime) {
+        for (let j = handlers.length - 1; j >= 0; j--) {
+          handlers[j](parameter);
+        }
+        playState.currentEventIndex = Math.max(eventIndex - 1, 0);
       }
     }
   }
