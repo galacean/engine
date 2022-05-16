@@ -90,7 +90,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         shaderData.setVector3(SkinnedMeshRenderer._blendShapeTextureInfoProperty, blendShapeManager._dataTextureInfo);
         shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
       } else {
-        const condensedBlendShapeWights = blendShapeManager._filterCondensedBlendShapeWights(this._blendShapeWeights);
+        const condensedBlendShapeWights = blendShapeManager._filterCondensedBlendShapeWights(
+          this._blendShapeWeights,
+          mesh
+        );
         shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
         shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, condensedBlendShapeWights);
       }

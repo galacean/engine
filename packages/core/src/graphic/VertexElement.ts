@@ -1,5 +1,5 @@
+import { BufferUtil, ElementInfo } from "./BufferUtil";
 import { VertexElementFormat } from "./enums/VertexElementFormat";
-import { ElementInfo, BufferUtil } from "./BufferUtil";
 
 /**
  * Vertex element.
@@ -7,8 +7,11 @@ import { ElementInfo, BufferUtil } from "./BufferUtil";
 export class VertexElement {
   _glElementInfo: ElementInfo;
 
+  /** Vertex data byte offset. */
+  offset: number;
+
   private _semantic: string;
-  private _offset: number;
+
   private _format: VertexElementFormat;
   private _bindingIndex: number;
   private _instanceStepRate: number;
@@ -18,13 +21,6 @@ export class VertexElement {
    */
   get semantic(): string {
     return this._semantic;
-  }
-
-  /**
-   * Vertex data byte offset.
-   */
-  get offset(): number {
-    return this._offset;
   }
 
   /**
@@ -64,7 +60,7 @@ export class VertexElement {
     instanceStepRate: number = 0
   ) {
     this._semantic = semantic;
-    this._offset = offset;
+    this.offset = offset;
     this._format = format;
     this._bindingIndex = bindingIndex;
     this._glElementInfo = BufferUtil._getElementInfo(this.format);
