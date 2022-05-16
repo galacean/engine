@@ -15,17 +15,9 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _blendShapeMacro = Shader.getMacroByName("OASIS_BLENDSHAPE");
-  private static _blendShapeTextureMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TEXTURE");
-  private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
-  private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
-
   private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
-  private static _blendShapeWeightsProperty = Shader.getPropertyByName("u_blendShapeWeights");
-  private static _blendShapeTextureProperty = Shader.getPropertyByName("u_blendShapeTexture");
-  private static _blendShapeTextureInfoProperty = Shader.getPropertyByName("u_blendShapeTextureInfo");
 
   private static _maxJoints: number = 0;
 
@@ -44,7 +36,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
-  private _blendShapeWeights: Float32Array;
+  _blendShapeWeights: Float32Array;
+  _condensedBlendShapeWeights: Float32Array;
 
   /**
    * The weights of the BlendShapes.
@@ -55,6 +48,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   set blendShapeWeights(value: Float32Array) {
+    // value[0]=0;
+    // value[1]=0;
+    // value[2]=0;
+    // value[3]=0;
+    // value[4]=1;
+    // value[5]=1;
+    // value[6]=1;
+    // value[7]=0.5;
     this._blendShapeWeights = value;
   }
 
@@ -80,38 +81,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
 
     const mesh = <ModelMesh>this.mesh;
-    const blendShapeManager = mesh._blendShapeManager;
-    if (blendShapeManager._blendShapeCount > 0) {
-      shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
-      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeManager._blendShapeCount.toString());
-      if (blendShapeManager._useTextureMode()) {
-        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
-        shaderData.setTexture(SkinnedMeshRenderer._blendShapeTextureProperty, blendShapeManager._dataTexture);
-        shaderData.setVector3(SkinnedMeshRenderer._blendShapeTextureInfoProperty, blendShapeManager._dataTextureInfo);
-        shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
-      } else {
-        const condensedBlendShapeWights = blendShapeManager._filterCondensedBlendShapeWights(
-          this._blendShapeWeights,
-          mesh
-        );
-        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTextureMacro);
-        shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, condensedBlendShapeWights);
-      }
-
-      if (blendShapeManager._useBlendNormal) {
-        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
-      } else {
-        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
-      }
-      if (blendShapeManager._useBlendTangent) {
-        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
-      } else {
-        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
-      }
-    } else {
-      shaderData.disableMacro(SkinnedMeshRenderer._blendShapeMacro);
-      shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
-    }
+    mesh._blendShapeManager._updateShaderData(shaderData, this);
   }
 
   /**

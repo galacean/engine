@@ -85,7 +85,7 @@ export class ModelMesh extends Mesh {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
-    this._blendShapeManager = new BlendShapeManager(engine);
+    this._blendShapeManager = new BlendShapeManager(engine, this);
   }
 
   /**
