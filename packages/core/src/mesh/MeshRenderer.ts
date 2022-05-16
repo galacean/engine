@@ -8,7 +8,6 @@ import { Entity } from "../Entity";
 import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
-import { UpdateFlag } from "../UpdateFlag";
 
 /**
  * MeshRenderer Component.

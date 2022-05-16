@@ -11,7 +11,7 @@ export { Entity } from "./Entity";
 export { Component } from "./Component";
 export { Script } from "./Script";
 export { Renderer } from "./Renderer";
-export { dependencies } from "./ComponentsDependencies";
+export { dependentComponents } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { UpdateFlag } from "./UpdateFlag";
