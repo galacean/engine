@@ -6,13 +6,13 @@ import {
   resourceLoader,
   ResourceManager,
   TextureCubeFace,
-  TextureCubeMap
+  TextureCube
 } from "@oasis-engine/core";
 import { parseCubeKTX } from "./compressed-texture";
 
 @resourceLoader(AssetType.KTXCube, [])
-class KTXCubeLoader extends Loader<TextureCubeMap> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCubeMap> {
+class KTXCubeLoader extends Loader<TextureCube> {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
         item.urls.map((url) =>
@@ -26,7 +26,7 @@ class KTXCubeLoader extends Loader<TextureCubeMap> {
           const parsedData = parseCubeKTX(data);
           const { width, mipmapsFaces, engineFormat } = parsedData;
           const mipmap = mipmapsFaces[0].length > 1;
-          const texture = new TextureCubeMap(resourceManager.engine, width, engineFormat, mipmap);
+          const texture = new TextureCube(resourceManager.engine, width, engineFormat, mipmap);
 
           for (let face = 0; face < 6; face++) {
             const length = mipmapsFaces[face].length;

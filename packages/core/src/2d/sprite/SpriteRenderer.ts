@@ -1,4 +1,5 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
@@ -16,7 +17,9 @@ import { Sprite } from "./Sprite";
  * Renders a Sprite for 2D graphics.
  */
 export class SpriteRenderer extends Renderer implements ICustomClone {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
+  /** @internal */
+  static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
+  
   private static _tempVec3: Vector3 = new Vector3();
 
   /** @internal temp solution. */
@@ -43,9 +46,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   private _dirtyFlag: number = 0;
   @ignoreClone
-  private _isWorldMatrixDirty: UpdateFlag;
+  private _isWorldMatrixDirty: BoolUpdateFlag;
   @ignoreClone
-  private _spriteDirty: UpdateFlag;
+  private _spriteDirty: BoolUpdateFlag;
   @assignmentClone
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   @assignmentClone

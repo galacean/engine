@@ -1,6 +1,7 @@
 export { RenderQueueType } from "./enums/RenderQueueType";
 export { RenderFace } from "./enums/RenderFace";
 export { BlendMode } from "./enums/BlendMode";
+export { TextureCoordinate } from "./enums/TextureCoordinate";
 export { Material } from "./Material";
 export { BaseMaterial } from "./BaseMaterial";
 export { BlinnPhongMaterial } from "./BlinnPhongMaterial";

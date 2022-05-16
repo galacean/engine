@@ -16,9 +16,9 @@ export interface IPlatformTexture2D extends IPlatformTexture {
    */
   setPixelBuffer(
     colorBuffer: ArrayBufferView,
-    mipLevel?: number,
-    x?: number,
-    y?: number,
+    mipLevel: number,
+    x: number,
+    y: number,
     width?: number,
     height?: number
   ): void;
@@ -33,12 +33,12 @@ export interface IPlatformTexture2D extends IPlatformTexture {
    * @param y - Y coordinate of area start
    */
   setImageSource(
-    imageSource: TexImageSource,
-    mipLevel?: number,
-    flipY?: boolean,
-    premultiplyAlpha?: boolean,
-    x?: number,
-    y?: number
+    imageSource: TexImageSource | OffscreenCanvas,
+    mipLevel: number,
+    flipY: boolean,
+    premultiplyAlpha: boolean,
+    x: number,
+    y: number
   ): void;
 
   /**

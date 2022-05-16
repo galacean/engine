@@ -1,8 +1,8 @@
 import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
+import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
-import { UpdateFlag } from "../../UpdateFlag";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 
 /**
@@ -182,7 +182,7 @@ export class Sprite extends RefObject {
    * Clone.
    * @returns Cloned sprite
    */
-   clone(): Sprite {
+  clone(): Sprite {
     const cloneSprite = new Sprite(
       this._engine,
       this._texture,
@@ -201,8 +201,8 @@ export class Sprite extends RefObject {
   /**
    * @internal
    */
-  _registerUpdateFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  _registerUpdateFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
   /**
@@ -363,7 +363,7 @@ export class Sprite extends RefObject {
 
   private _setDirtyFlagTrue(type: number): void {
     this._dirtyFlag |= type;
-    this._updateFlagManager.distribute();
+    this._updateFlagManager.dispatch();
   }
 
   private _setDirtyFlagFalse(type: number): void {
