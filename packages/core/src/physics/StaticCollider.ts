@@ -7,6 +7,9 @@ import { PhysicsManager } from "./PhysicsManager";
  * @remarks Mostly used for object which always stays at the same place and never moves around.
  */
 export class StaticCollider extends Collider {
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
