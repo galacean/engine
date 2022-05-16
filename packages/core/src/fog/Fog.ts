@@ -23,6 +23,9 @@ export class Fog extends Component {
 
   private _color: Color = new Color(1, 0, 0, 1);
 
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
     this.color = this._color;

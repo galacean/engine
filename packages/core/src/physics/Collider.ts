@@ -1,15 +1,18 @@
-import { Component } from "../Component";
-import { ignoreClone } from "../clone/CloneManager";
 import { ICollider } from "@oasis-engine/design";
-import { ColliderShape } from "./shape/ColliderShape";
-import { UpdateFlag } from "../UpdateFlag";
-import { Entity } from "../Entity";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
+import { ignoreClone } from "../clone/CloneManager";
+import { Component } from "../Component";
+import { dependentComponents } from "../ComponentsDependencies";
+import { Entity } from "../Entity";
+import { Transform } from "../Transform";
+import { ColliderShape } from "./shape/ColliderShape";
 
 /**
- * Abstract class for collider shapes.
+ * Base class for all colliders.
+ * @decorator `@dependentComponents(Transform)`
  */
-export abstract class Collider extends Component {
+@dependentComponents(Transform)
+export class Collider extends Component {
   /** @internal */
   @ignoreClone
   _index: number = -1;
@@ -27,7 +30,10 @@ export abstract class Collider extends Component {
     return this._shapes;
   }
 
-  protected constructor(entity: Entity) {
+  /**
+   * @internal
+   */
+  constructor(entity: Entity) {
     super(entity);
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
   }
