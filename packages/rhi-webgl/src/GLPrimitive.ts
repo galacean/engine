@@ -25,7 +25,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   constructor(rhi: WebGLRenderer, primitive: Mesh) {
     this._primitive = primitive;
     this.canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
-    this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
+    this._useVao = false;
     this.gl = rhi.gl;
   }
 

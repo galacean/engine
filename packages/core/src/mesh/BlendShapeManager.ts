@@ -25,6 +25,8 @@ export class BlendShapeManager {
   _layoutDirtyFlag: ListenerUpdateFlag = new ListenerUpdateFlag();
   /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
+  /** @internal */
+  _vertexStride: number;
 
   /** @internal */
   _dataTextureBuffer: Float32Array;
@@ -111,7 +113,6 @@ export class BlendShapeManager {
           if (this._useBlendNormal) {
             offset += 12;
             vertexElements[index++].offset = offset;
-            console.log(offset);
           }
           if (this._useBlendTangent) {
             offset += 12;
@@ -166,29 +167,27 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _addVertexElements(modelMesh: ModelMesh, offset: number): number {
+  _addVertexElements(modelMesh: ModelMesh, offset: number): void {
     const maxBlendCount = this._attributeModeSupportCount(); //CM：
+    this._vertexStride = 1;
+    this._useBlendNormal && this._vertexStride++;
+    this._useBlendTangent && this._vertexStride++;
 
     this._attributeVertexElementStartIndex = modelMesh._vertexElements.length;
-    let elementCount = 0;
     for (let i = 0; i < maxBlendCount; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
       offset += 12;
-      elementCount += 3;
       if (this._useBlendNormal) {
         modelMesh._addVertexElement(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         offset += 12;
-        elementCount += 3;
       }
       if (this._useBlendTangent) {
         modelMesh._addVertexElement(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
         offset += 12;
-        elementCount += 3;
       }
     }
 
     this._lastUpdateLayoutAndCountInfo.setValue(maxBlendCount, +this._useBlendNormal, +this._useBlendTangent);
-    return elementCount;
   }
 
   /**

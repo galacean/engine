@@ -443,7 +443,7 @@ export class ModelMesh extends Mesh {
 
     const blendManager = this._blendShapeManager;
     const blendTextureMode = blendManager._useTextureMode();
-    const blendLayoutOrCountChange = blendManager._layoutOrCountChange();//CM:优化
+    const blendLayoutOrCountChange = blendManager._layoutOrCountChange(); //CM:优化
     const blendDataUpdate = blendManager._needUpdateData();
     const blendVertexElementChanged = !blendTextureMode && blendLayoutOrCountChange;
     const vertexElementUpdate = this._vertexSlotChanged || blendVertexElementChanged;
@@ -598,7 +598,8 @@ export class ModelMesh extends Mesh {
     this._vertexSlotChanged = false;
 
     if (blendVertexElementChanged) {
-      elementCount += this._blendShapeManager._addVertexElements(this, offset);
+      this._blendShapeManager._addVertexElements(this, offset);
+      elementCount += this._blendShapeManager._blendShapeCount * this._blendShapeManager._vertexStride * 3;
     }
 
     this._elementCount = elementCount;
