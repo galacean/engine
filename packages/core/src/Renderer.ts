@@ -43,10 +43,6 @@ export abstract class Renderer extends Component {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
 
-  /** @internal temp solution. */
-  @ignoreClone
-  _renderSortId: number = 0;
-
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @shallowClone
@@ -66,6 +62,8 @@ export abstract class Renderer extends Component {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
+  @ignoreClone
+  private _sortingLayer: number = 0;
 
   /**
    * Material count.
@@ -92,6 +90,17 @@ export abstract class Renderer extends Component {
       changeFlag.flag = false;
     }
     return this._bounds;
+  }
+
+  /**
+   * The render order of the renderer.
+   */
+  get sortingLayer(): number {
+    return this._sortingLayer;
+  }
+
+  set sortingLayer(value: number) {
+    this._sortingLayer = value;
   }
 
   /**
