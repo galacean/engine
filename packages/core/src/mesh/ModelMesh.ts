@@ -442,10 +442,10 @@ export class ModelMesh extends Mesh {
     }
 
     const blendManager = this._blendShapeManager;
-    const blendTextureStore = blendManager._useTextureStore();
+    const blendTextureMode = blendManager._useTextureMode();
     const blendLayoutOrCountChange = blendManager._layoutOrCountChange();
     const blendDataUpdate = blendManager._needUpdateData();
-    const blendVertexElementChanged = !blendTextureStore && blendLayoutOrCountChange;
+    const blendVertexElementChanged = !blendTextureMode && blendLayoutOrCountChange;
     const vertexElementUpdate = this._vertexSlotChanged || blendVertexElementChanged;
 
     // Vertex element change
@@ -465,7 +465,7 @@ export class ModelMesh extends Mesh {
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
-      this._updateVertices(vertices, !blendTextureStore, true);
+      this._updateVertices(vertices, !blendTextureMode, true);
 
       const newVertexBuffer = new Buffer(
         this._engine,
@@ -477,7 +477,7 @@ export class ModelMesh extends Mesh {
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
       this._lastUploadVertexCount = vertexCount;
     } else {
-      const blendVerticesUpdate = !blendTextureStore && blendDataUpdate;
+      const blendVerticesUpdate = !blendTextureMode && blendDataUpdate;
       if (this._vertexChangeFlag & ValueChanged.All || blendVerticesUpdate) {
         const vertices = this._verticesFloat32;
         this._updateVertices(vertices, blendVerticesUpdate, vertexElementUpdate);
@@ -505,7 +505,7 @@ export class ModelMesh extends Mesh {
       this._setIndexBufferBinding(null);
     }
 
-    if (blendTextureStore) {
+    if (blendTextureMode) {
       blendManager._updateTexture(blendLayoutOrCountChange, vertexCountChange, blendDataUpdate, vertexCount);
     }
 

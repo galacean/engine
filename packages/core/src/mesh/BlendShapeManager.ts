@@ -33,6 +33,7 @@ export class BlendShapeManager {
   /** @internal */
   readonly _dataTextureInfo: Vector3 = new Vector3();
 
+  private _condensedBlendShapeWeights: Float32Array;
   private readonly _engine: Engine;
   private readonly _lastUpdateLayoutAndCountInfo: Vector3 = new Vector3(0, 0, 0);
   private readonly _canUseTextureStoreData: boolean = true;
@@ -76,16 +77,43 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _useTextureStore(): boolean {
+  _attributeModeMaxBlendCount(): number {
+    if (this._useBlendNormal || this._useBlendTangent) {
+      return 4;
+    } else {
+      return 8;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _filterCondensedBlendShapeWights(blendShapeWeights: Float32Array): Float32Array {
+    const maxBlendCount = this._attributeModeMaxBlendCount();
+    if (blendShapeWeights.length > maxBlendCount) {
+      let condensedBlendShapeWeights = this._condensedBlendShapeWeights;
+      if (!condensedBlendShapeWeights) {
+        condensedBlendShapeWeights = new Float32Array(maxBlendCount);
+        this._condensedBlendShapeWeights = condensedBlendShapeWeights;
+      }
+      for (let i = 0, j = 0, n = blendShapeWeights.length; i < n && j < maxBlendCount; i++) {
+        const weight = blendShapeWeights[i];
+        weight > 0 && (condensedBlendShapeWeights[j++] = weight);
+      }
+      return condensedBlendShapeWeights;
+    } else {
+      return blendShapeWeights;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _useTextureMode(): boolean {
     if (!this._canUseTextureStoreData) {
       return false;
     }
-
-    if (this._useBlendNormal || this._useBlendTangent) {
-      return this._blendShapeCount > 4;
-    } else {
-      return this._blendShapeCount > 8;
-    }
+    return this._blendShapeCount > this._attributeModeMaxBlendCount();
   }
 
   /**
@@ -228,6 +256,28 @@ export class BlendShapeManager {
     }
   }
 
+  /**
+   * @internal
+   */
+  _releaseMemoryCache(): void {
+    const { _blendShapes: blendShapes } = this;
+    const blendShapeNamesMap = new Array<string>(blendShapes.length);
+    for (let i = 0, n = blendShapes.length; i < n; i++) {
+      blendShapeNamesMap[i] = blendShapes[i].name;
+    }
+    this._blendShapeNames = blendShapeNamesMap;
+
+    this._layoutDirtyFlag.destroy();
+    const dataChangedFlags = this._subDataDirtyFlags;
+    for (let i = 0, n = dataChangedFlags.length; i < n; i++) {
+      dataChangedFlags[i].destroy();
+    }
+
+    this._layoutDirtyFlag = null;
+    this._subDataDirtyFlags = null;
+    this._blendShapes = null;
+  }
+
   private _createDataTexture(vertexCount: number): void {
     const maxTextureSize = this._engine._hardwareRenderer.capability.maxTextureSize;
 
@@ -310,28 +360,6 @@ export class BlendShapeManager {
       }
     }
     dataTexture.setPixelBuffer(0, buffer);
-  }
-
-  /**
-   * @internal
-   */
-  _releaseMemoryCache(): void {
-    const { _blendShapes: blendShapes } = this;
-    const blendShapeNamesMap = new Array<string>(blendShapes.length);
-    for (let i = 0, n = blendShapes.length; i < n; i++) {
-      blendShapeNamesMap[i] = blendShapes[i].name;
-    }
-    this._blendShapeNames = blendShapeNamesMap;
-
-    this._layoutDirtyFlag.destroy();
-    const dataChangedFlags = this._subDataDirtyFlags;
-    for (let i = 0, n = dataChangedFlags.length; i < n; i++) {
-      dataChangedFlags[i].destroy();
-    }
-
-    this._layoutDirtyFlag = null;
-    this._subDataDirtyFlags = null;
-    this._blendShapes = null;
   }
 
   private _updateUsePropertyFlag(blendShape: BlendShape): void {
