@@ -94,26 +94,28 @@ export class BlendShapeManager {
     const blendShapeCount = this._blendShapeCount;
     const maxBlendCount = this._attributeModeSupportCount();
     const vertexElements = modelMesh._vertexElements;
-    const elementStartIndex = this._attributeVertexElementStartIndex;
+    const blendShapeOffsets = this._attributeBlendShapeOffsets;
     if (blendShapeCount > maxBlendCount) {
       let condensedBlendShapeWeights = this._condensedBlendShapeWeights;
       if (!condensedBlendShapeWeights) {
         condensedBlendShapeWeights = new Float32Array(maxBlendCount);
         this._condensedBlendShapeWeights = condensedBlendShapeWeights;
       }
+
+      let index = this._attributeVertexElementStartIndex;
       for (let i = 0, j = 0; i < blendShapeCount && j < maxBlendCount; i++) {
         const weight = blendShapeWeights[i];
         if (weight > 0) {
-          let offset = this._attributeBlendShapeOffsets[j];
-          let index = elementStartIndex + j;
-          vertexElements[index].offset = offset;
+          let offset = blendShapeOffsets[i];
+          vertexElements[index++].offset = offset;
           if (this._useBlendNormal) {
             offset += 12;
-            vertexElements[++index].offset = offset;
+            vertexElements[index++].offset = offset;
+            console.log(offset);
           }
           if (this._useBlendTangent) {
             offset += 12;
-            vertexElements[++index].offset = offset;
+            vertexElements[index++].offset = offset;
           }
           condensedBlendShapeWeights[j++] = weight;
         }
@@ -213,7 +215,7 @@ export class BlendShapeManager {
           throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
         }
 
-        attributeBlendShapeOffsets[i] = offset;
+        attributeBlendShapeOffsets[i] = offset * 4;
 
         const { deltaPositions } = endFrame;
         for (let j = 0; j < vertexCount; j++) {
