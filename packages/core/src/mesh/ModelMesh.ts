@@ -448,7 +448,7 @@ export class ModelMesh extends Mesh {
     const vertexElementUpdate = this._vertexSlotChanged || blendVertexElementChanged;
 
     if (vertexElementUpdate) {
-      this._updateVertexElements(blendVertexElementChanged);
+      this._updateVertexElements(this._vertexSlotChanged, blendVertexElementChanged);
     }
 
     const { _vertexCount: vertexCount } = this;
@@ -522,80 +522,82 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
-  private _updateVertexElements(blendVertexElementChanged: boolean): void {
-    this._clearVertexElements();
-    this._addVertexElement(POSITION_VERTEX_ELEMENT);
-
+  private _updateVertexElements(vertexSlotChanged: boolean, blendVertexElementChanged: boolean): void {
     let offset = 12;
     let elementCount = 3;
-    if (this._normals) {
-      this._addVertexElement(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
-      offset += 12;
-      elementCount += 3;
-    }
-    if (this._colors) {
-      this._addVertexElement(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
-      offset += 16;
-      elementCount += 4;
-    }
-    if (this._boneWeights) {
-      this._addVertexElement(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
-      offset += 16;
-      elementCount += 4;
-    }
-    if (this._boneIndices) {
-      this._addVertexElement(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
-      offset += 4;
-      elementCount += 1;
-    }
-    if (this._tangents) {
-      this._addVertexElement(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
-      offset += 16;
-      elementCount += 4;
-    }
-    if (this._uv) {
-      this._addVertexElement(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv1) {
-      this._addVertexElement(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv2) {
-      this._addVertexElement(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv3) {
-      this._addVertexElement(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv4) {
-      this._addVertexElement(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv5) {
-      this._addVertexElement(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv6) {
-      this._addVertexElement(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv7) {
-      this._addVertexElement(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    this._vertexSlotChanged = false;
+    if (vertexSlotChanged) {
+      this._clearVertexElements();
+      this._addVertexElement(POSITION_VERTEX_ELEMENT);
 
-    if (blendVertexElementChanged) {
+      if (this._normals) {
+        this._addVertexElement(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
+        offset += 12;
+        elementCount += 3;
+      }
+      if (this._colors) {
+        this._addVertexElement(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
+        offset += 16;
+        elementCount += 4;
+      }
+      if (this._boneWeights) {
+        this._addVertexElement(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
+        offset += 16;
+        elementCount += 4;
+      }
+      if (this._boneIndices) {
+        this._addVertexElement(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
+        offset += 4;
+        elementCount += 1;
+      }
+      if (this._tangents) {
+        this._addVertexElement(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
+        offset += 16;
+        elementCount += 4;
+      }
+      if (this._uv) {
+        this._addVertexElement(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv1) {
+        this._addVertexElement(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv2) {
+        this._addVertexElement(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv3) {
+        this._addVertexElement(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv4) {
+        this._addVertexElement(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv5) {
+        this._addVertexElement(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv6) {
+        this._addVertexElement(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv7) {
+        this._addVertexElement(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      this._vertexSlotChanged = false;
+    }
+
+    if (vertexSlotChanged || blendVertexElementChanged) {
       const blendShapeManager = this._blendShapeManager;
       blendShapeManager._addVertexElements(this, offset);
       elementCount += blendShapeManager._getVertexFloatCount();

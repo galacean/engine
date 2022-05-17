@@ -57,7 +57,7 @@ export class BlendShapeManager {
     this._engine = engine;
     this._modelMesh = modelMesh;
     this._canUseTextureStoreData = this._engine._hardwareRenderer.capability.canUseFloatTextureBlendShape;
-    this._layoutDirtyFlag.listener = this._updateUsePropertyFlag.bind(this);
+    this._layoutDirtyFlag.listener = this._updateLayoutChange.bind(this);
   }
 
   /**
@@ -68,7 +68,7 @@ export class BlendShapeManager {
     this._blendShapeCount++;
 
     blendShape._addLayoutChangeFlag(this._layoutDirtyFlag);
-    this._updateUsePropertyFlag(blendShape);
+    this._updateLayoutChange(blendShape);
 
     this._subDataDirtyFlags.push(blendShape._createSubDataDirtyFlag());
   }
@@ -445,7 +445,7 @@ export class BlendShapeManager {
     dataTexture.setPixelBuffer(0, buffer);
   }
 
-  private _updateUsePropertyFlag(blendShape: BlendShape): void {
+  private _updateLayoutChange(blendShape: BlendShape): void {
     const useBlendNormal = blendShape._useBlendShapeNormal && this._useBlendNormal;
     const useBlendTangent = blendShape._useBlendShapeTangent && this._useBlendTangent;
 
