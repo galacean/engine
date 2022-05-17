@@ -443,12 +443,10 @@ export class ModelMesh extends Mesh {
 
     const blendManager = this._blendShapeManager;
     const blendTextureMode = blendManager._useTextureMode();
-    const blendLayoutOrCountChange = blendManager._layoutOrCountChange(); //CM:优化
     const blendDataUpdate = blendManager._needUpdateData();
-    const blendVertexElementChanged = !blendTextureMode && blendLayoutOrCountChange;
+    const blendVertexElementChanged = !blendTextureMode && blendManager._vertexElementsNeedUpdate();
     const vertexElementUpdate = this._vertexSlotChanged || blendVertexElementChanged;
 
-    // Vertex element change
     if (vertexElementUpdate) {
       this._updateVertexElements(blendVertexElementChanged);
     }
@@ -506,7 +504,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (blendTextureMode) {
-      blendManager._updateTexture(blendLayoutOrCountChange, vertexCountChange, blendDataUpdate, vertexCount);
+      blendManager._updateTexture(blendManager._layoutOrCountChange(), vertexCountChange, blendDataUpdate, vertexCount);
     }
 
     if (noLongerAccessible) {

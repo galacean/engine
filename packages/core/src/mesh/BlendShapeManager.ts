@@ -24,6 +24,8 @@ export class BlendShapeManager {
   private static _blendShapeTextureInfoProperty = Shader.getPropertyByName("u_blendShapeTextureInfo");
 
   /** @internal */
+  _blendShapeCount: number = 0;
+  /** @internal */
   _useBlendNormal: boolean = true;
   /** @internal */
   _useBlendTangent: boolean = true;
@@ -31,12 +33,10 @@ export class BlendShapeManager {
   _blendShapes: BlendShape[] = [];
   /** @internal */
   _blendShapeNames: string[];
-
   /** @internal */
   _layoutDirtyFlag: ListenerUpdateFlag = new ListenerUpdateFlag();
   /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
-
   /** @internal */
   _dataTextureBuffer: Float32Array;
   /** @internal */
@@ -45,7 +45,7 @@ export class BlendShapeManager {
   readonly _dataTextureInfo: Vector3 = new Vector3();
 
   private _vertexElementCount: number;
-  private _blendShapeCount: number = 0;
+
   private _attributeVertexElementStartIndex: number;
   private _attributeBlendShapeOffsets: number[];
   private readonly _engine: Engine;
@@ -93,11 +93,48 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _attributeModeSupportCount(): number {
-    if (this._useBlendNormal || this._useBlendTangent) {
-      return 4;
+  _updateShaderData(shaderData: ShaderData, skinnedMeshRenderer: SkinnedMeshRenderer): void {
+    const blendShapeCount = this._blendShapeCount;
+    if (blendShapeCount > 0) {
+      shaderData.enableMacro(BlendShapeManager._blendShapeMacro);
+      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
+      if (this._useTextureMode()) {
+        shaderData.enableMacro(BlendShapeManager._blendShapeTextureMacro);
+        shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._dataTexture);
+        shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
+        shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer._blendShapeWeights);
+      } else {
+        const maxBlendCount = this._getAttributeModeSupportCount();
+        if (blendShapeCount > maxBlendCount) {
+          let condensedBlendShapeWeights = skinnedMeshRenderer._condensedBlendShapeWeights;
+          if (!condensedBlendShapeWeights) {
+            condensedBlendShapeWeights = new Float32Array(maxBlendCount);
+            skinnedMeshRenderer._condensedBlendShapeWeights = condensedBlendShapeWeights;
+          }
+          this._filterCondensedBlendShapeWights(skinnedMeshRenderer._blendShapeWeights, condensedBlendShapeWeights);
+          shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
+        } else {
+          shaderData.setFloatArray(
+            BlendShapeManager._blendShapeWeightsProperty,
+            skinnedMeshRenderer._blendShapeWeights
+          );
+        }
+        shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
+      }
+
+      if (this._useBlendNormal) {
+        shaderData.enableMacro(BlendShapeManager._blendShapeNormalMacro);
+      } else {
+        shaderData.disableMacro(BlendShapeManager._blendShapeNormalMacro);
+      }
+      if (this._useBlendTangent) {
+        shaderData.enableMacro(BlendShapeManager._blendShapeTangentMacro);
+      } else {
+        shaderData.disableMacro(BlendShapeManager._blendShapeTangentMacro);
+      }
     } else {
-      return 8;
+      shaderData.disableMacro(BlendShapeManager._blendShapeMacro);
+      shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
     }
   }
 
@@ -143,18 +180,28 @@ export class BlendShapeManager {
     if (!this._canUseTextureStoreData) {
       return false;
     }
-    return this._blendShapeCount > this._attributeModeSupportCount();
+    return this._blendShapeCount > this._getAttributeModeSupportCount();
   }
 
   /**
    * @internal
    */
   _layoutOrCountChange(): boolean {
-    const lastInfo = this._lastUpdateLayoutAndCountInfo;
+    const last = this._lastUpdateLayoutAndCountInfo;
+    if (last.x !== this._blendShapeCount || !!last.y !== this._useBlendNormal || !!last.z !== this._useBlendTangent) {
+      return true;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _vertexElementsNeedUpdate(): boolean {
+    const last = this._lastUpdateLayoutAndCountInfo;
     if (
-      lastInfo.x !== this._blendShapeCount ||
-      !!lastInfo.y !== this._useBlendNormal ||
-      !!lastInfo.z !== this._useBlendTangent
+      last.x !== Math.min(this._blendShapeCount, this._getAttributeModeSupportCount()) ||
+      !!last.y !== this._useBlendNormal ||
+      !!last.z !== this._useBlendTangent
     ) {
       return true;
     }
@@ -177,9 +224,9 @@ export class BlendShapeManager {
    * @internal
    */
   _addVertexElements(modelMesh: ModelMesh, offset: number): void {
-    const maxBlendCount = this._attributeModeSupportCount(); //CM：
+    const maxSupportBlendCount = this._getAttributeModeSupportCount();
     this._attributeVertexElementStartIndex = modelMesh._vertexElements.length;
-    for (let i = 0; i < maxBlendCount; i++) {
+    for (let i = 0; i < maxSupportBlendCount; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       if (this._useBlendNormal) {
@@ -191,8 +238,6 @@ export class BlendShapeManager {
         offset += 12;
       }
     }
-
-    this._lastUpdateLayoutAndCountInfo.setValue(maxBlendCount, +this._useBlendNormal, +this._useBlendTangent);
   }
 
   /**
@@ -275,6 +320,7 @@ export class BlendShapeManager {
       }
     }
     this._attributeBlendShapeOffsets = attributeBlendShapeOffsets;
+    this._lastUpdateLayoutAndCountInfo.setValue(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
   }
 
   /**
@@ -316,54 +362,6 @@ export class BlendShapeManager {
     this._layoutDirtyFlag = null;
     this._subDataDirtyFlags = null;
     this._blendShapes = null;
-  }
-
-  /**
-   * @internal
-   */
-  _updateShaderData(shaderData: ShaderData, skinnedMeshRenderer: SkinnedMeshRenderer): void {
-    const blendShapeCount = this._blendShapeCount;
-    if (blendShapeCount > 0) {
-      shaderData.enableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
-      if (this._useTextureMode()) {
-        shaderData.enableMacro(BlendShapeManager._blendShapeTextureMacro);
-        shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._dataTexture);
-        shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
-        shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer._blendShapeWeights);
-      } else {
-        const maxBlendCount = this._attributeModeSupportCount();
-        if (blendShapeCount > maxBlendCount) {
-          let condensedBlendShapeWeights = skinnedMeshRenderer._condensedBlendShapeWeights;
-          if (!condensedBlendShapeWeights) {
-            condensedBlendShapeWeights = new Float32Array(maxBlendCount);
-            skinnedMeshRenderer._condensedBlendShapeWeights = condensedBlendShapeWeights;
-          }
-          this._filterCondensedBlendShapeWights(skinnedMeshRenderer._blendShapeWeights, condensedBlendShapeWeights);
-          shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
-        } else {
-          shaderData.setFloatArray(
-            BlendShapeManager._blendShapeWeightsProperty,
-            skinnedMeshRenderer._blendShapeWeights
-          );
-        }
-        shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
-      }
-
-      if (this._useBlendNormal) {
-        shaderData.enableMacro(BlendShapeManager._blendShapeNormalMacro);
-      } else {
-        shaderData.disableMacro(BlendShapeManager._blendShapeNormalMacro);
-      }
-      if (this._useBlendTangent) {
-        shaderData.enableMacro(BlendShapeManager._blendShapeTangentMacro);
-      } else {
-        shaderData.disableMacro(BlendShapeManager._blendShapeTangentMacro);
-      }
-    } else {
-      shaderData.disableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
-    }
   }
 
   private _createDataTexture(vertexCount: number): void {
@@ -477,6 +475,14 @@ export class BlendShapeManager {
     if (this._useBlendTangent) {
       offset += 12;
       vertexElements[elementOffset++].offset = offset;
+    }
+  }
+
+  private _getAttributeModeSupportCount(): number {
+    if (this._useBlendNormal || this._useBlendTangent) {
+      return 4;
+    } else {
+      return 8;
     }
   }
 }
