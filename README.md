@@ -12,6 +12,7 @@ This is a **web-first** and **mobile-first** high-performance real-time developm
 - 🖥  &nbsp;**Platform** - Suppport HTML5 and Alipay miniprogram
 - 🔮  &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
 - 🏃  &nbsp;**Animation** - Powerful animation system
+- 🧱  &nbsp;**Physics** - Powerful and easy-to-use physical features
 - 📑  &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
 ## Usage
