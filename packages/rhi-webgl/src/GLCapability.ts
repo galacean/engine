@@ -22,7 +22,7 @@ export class GLCapability {
   get canUseFloatTextureBlendShape(): boolean {
     return (
       this.canIUse(GLCapabilityType.shaderVertexID) &&
-      this.canIUse(GLCapabilityType.textureFloat) &&//CM：BUG？
+      this.canIUse(GLCapabilityType.textureFloat) &&
       this.rhi.renderStates.getParameter(this.rhi.gl.MAX_VERTEX_TEXTURE_IMAGE_UNITS) > 0
     );
   }
