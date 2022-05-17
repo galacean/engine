@@ -107,30 +107,34 @@ export class BlendShapeManager {
    * @internal
    */
   _filterCondensedBlendShapeWights(blendShapeWeights: Float32Array, condensedBlendShapeWeights: Float32Array): void {
-    const blendShapeCount = this._blendShapeCount;
-    const maxBlendCount = this._attributeModeSupportCount();
+    const weightsCount = blendShapeWeights.length;
+    const condensedWeightsCount = condensedBlendShapeWeights.length;
     const vertexElements = this._modelMesh._vertexElements;
     const blendShapeOffsets = this._attributeBlendShapeOffsets;
-    if (blendShapeCount > maxBlendCount) {
-      let index = this._attributeVertexElementStartIndex;
-      let condensedIndex = 0;
-      for (let i = 0; i < blendShapeCount && condensedIndex < maxBlendCount; i++) {
-        const weight = blendShapeWeights[i];
-        if (weight > 0) {
-          let offset = blendShapeOffsets[i];
-          vertexElements[index++].offset = offset;
-          if (this._useBlendNormal) {
-            offset += 12;
-            vertexElements[index++].offset = offset;
+    let thresholdWeight = Number.POSITIVE_INFINITY;
+    let thresholdIndex: number;
+    for (let i = 0; i < weightsCount; i++) {
+      const weight = blendShapeWeights[i];
+      if (i < condensedWeightsCount) {
+        this._attributeModeUpdateVertexElement(vertexElements, blendShapeOffsets, i, i);
+        condensedBlendShapeWeights[i] = weight;
+        if (weight < thresholdWeight) {
+          thresholdWeight = weight;
+          thresholdIndex = i;
+        }
+      } else if (weight > thresholdWeight) {
+        this._attributeModeUpdateVertexElement(vertexElements, blendShapeOffsets, i, thresholdIndex);
+        condensedBlendShapeWeights[thresholdIndex] = weight;
+
+        thresholdWeight = Number.POSITIVE_INFINITY;
+        for (let j = 0; j < condensedWeightsCount; j++) {
+          const condensedWeight = condensedBlendShapeWeights[j];
+          if (condensedWeight < thresholdWeight) {
+            thresholdWeight = condensedWeight;
+            thresholdIndex = j;
           }
-          if (this._useBlendTangent) {
-            offset += 12;
-            vertexElements[index++].offset = offset;
-          }
-          condensedBlendShapeWeights[condensedIndex++] = weight;
         }
       }
-      condensedIndex < maxBlendCount && condensedBlendShapeWeights.fill(0, condensedIndex - 1);
     }
   }
 
@@ -448,5 +452,25 @@ export class BlendShapeManager {
   private _updateUsePropertyFlag(blendShape: BlendShape): void {
     this._useBlendNormal = blendShape._useBlendShapeNormal && this._useBlendNormal;
     this._useBlendTangent = blendShape._useBlendShapeTangent && this._useBlendTangent;
+  }
+
+  private _attributeModeUpdateVertexElement(
+    vertexElements: VertexElement[],
+    blendShapeOffsets: number[],
+    index: number,
+    condensedIndex: number
+  ): void {
+    let elementOffset = this._attributeVertexElementStartIndex + this._vertexStride * condensedIndex;
+
+    let offset = blendShapeOffsets[index];
+    vertexElements[elementOffset++].offset = offset;
+    if (this._useBlendNormal) {
+      offset += 12;
+      vertexElements[elementOffset++].offset = offset;
+    }
+    if (this._useBlendTangent) {
+      offset += 12;
+      vertexElements[elementOffset++].offset = offset;
+    }
   }
 }
