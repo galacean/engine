@@ -25,7 +25,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   constructor(rhi: WebGLRenderer, primitive: Mesh) {
     this._primitive = primitive;
     this.canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
-    this._useVao = false;
+    this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
     this.gl = rhi.gl;
   }
 
@@ -35,8 +35,9 @@ export class GLPrimitive implements IPlatformPrimitive {
   draw(shaderProgram: any, subMesh: SubMesh): void {
     const gl = this.gl;
     const primitive = this._primitive;
+    const useVao = this._useVao && !primitive._disableVAO;
 
-    if (this._useVao) {
+    if (useVao) {
       if (!this.vao.has(shaderProgram.id)) {
         this.registerVAO(shaderProgram);
       }
@@ -52,7 +53,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
     if (!_instanceCount) {
       if (_indexBufferBinding) {
-        if (this._useVao) {
+        if (useVao) {
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
         } else {
           const { _nativeBuffer } = _indexBufferBinding.buffer;

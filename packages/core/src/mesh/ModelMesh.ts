@@ -446,6 +446,7 @@ export class ModelMesh extends Mesh {
     const blendDataUpdate = blendManager._needUpdateData();
     const blendVertexElementChanged = !blendTextureMode && blendManager._vertexElementsNeedUpdate();
     const vertexElementUpdate = this._vertexSlotChanged || blendVertexElementChanged;
+    blendTextureMode || (this._disableVAO = true);
 
     if (vertexElementUpdate) {
       this._updateVertexElements(this._vertexSlotChanged, blendVertexElementChanged);
