@@ -598,8 +598,9 @@ export class ModelMesh extends Mesh {
     this._vertexSlotChanged = false;
 
     if (blendVertexElementChanged) {
-      this._blendShapeManager._addVertexElements(this, offset);
-      elementCount += this._blendShapeManager._blendShapeCount * this._blendShapeManager._vertexStride * 3;
+      const blendShapeManager = this._blendShapeManager;
+      blendShapeManager._addVertexElements(this, offset);
+      elementCount += blendShapeManager._getVertexFloatCount();
     }
 
     this._elementCount = elementCount;

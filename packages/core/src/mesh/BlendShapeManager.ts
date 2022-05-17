@@ -31,14 +31,11 @@ export class BlendShapeManager {
   _blendShapes: BlendShape[] = [];
   /** @internal */
   _blendShapeNames: string[];
-  /** @internal */
-  _blendShapeCount: number = 0;
+
   /** @internal */
   _layoutDirtyFlag: ListenerUpdateFlag = new ListenerUpdateFlag();
   /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
-  /** @internal */
-  _vertexStride: number;
 
   /** @internal */
   _dataTextureBuffer: Float32Array;
@@ -47,9 +44,10 @@ export class BlendShapeManager {
   /** @internal */
   readonly _dataTextureInfo: Vector3 = new Vector3();
 
+  private _vertexElementCount: number;
+  private _blendShapeCount: number = 0;
   private _attributeVertexElementStartIndex: number;
   private _attributeBlendShapeOffsets: number[];
-
   private readonly _engine: Engine;
   private readonly _modelMesh: ModelMesh;
   private readonly _lastUpdateLayoutAndCountInfo: Vector3 = new Vector3(0, 0, 0);
@@ -180,10 +178,6 @@ export class BlendShapeManager {
    */
   _addVertexElements(modelMesh: ModelMesh, offset: number): void {
     const maxBlendCount = this._attributeModeSupportCount(); //CM：
-    this._vertexStride = 1;
-    this._useBlendNormal && this._vertexStride++;
-    this._useBlendTangent && this._vertexStride++;
-
     this._attributeVertexElementStartIndex = modelMesh._vertexElements.length;
     for (let i = 0; i < maxBlendCount; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
@@ -199,6 +193,13 @@ export class BlendShapeManager {
     }
 
     this._lastUpdateLayoutAndCountInfo.setValue(maxBlendCount, +this._useBlendNormal, +this._useBlendTangent);
+  }
+
+  /**
+   * @internal
+   */
+  _getVertexFloatCount(): number {
+    return this._blendShapeCount * this._vertexElementCount * 3;
   }
 
   /**
@@ -367,10 +368,7 @@ export class BlendShapeManager {
 
   private _createDataTexture(vertexCount: number): void {
     const maxTextureSize = this._engine._hardwareRenderer.capability.maxTextureSize;
-
-    let vertexPixelStride = 1;
-    this._useBlendNormal && vertexPixelStride++;
-    this._useBlendTangent && vertexPixelStride++;
+    const vertexPixelStride = this._vertexElementCount;
 
     let textureWidth = vertexPixelStride * vertexCount;
     let textureHeight = 1;
@@ -450,8 +448,16 @@ export class BlendShapeManager {
   }
 
   private _updateUsePropertyFlag(blendShape: BlendShape): void {
-    this._useBlendNormal = blendShape._useBlendShapeNormal && this._useBlendNormal;
-    this._useBlendTangent = blendShape._useBlendShapeTangent && this._useBlendTangent;
+    const useBlendNormal = blendShape._useBlendShapeNormal && this._useBlendNormal;
+    const useBlendTangent = blendShape._useBlendShapeTangent && this._useBlendTangent;
+
+    let vertexElementCount = 1;
+    useBlendNormal && vertexElementCount++;
+    useBlendTangent && vertexElementCount++;
+
+    this._useBlendNormal = useBlendNormal;
+    this._useBlendTangent = useBlendTangent;
+    this._vertexElementCount = vertexElementCount;
   }
 
   private _attributeModeUpdateVertexElement(
@@ -460,7 +466,7 @@ export class BlendShapeManager {
     index: number,
     condensedIndex: number
   ): void {
-    let elementOffset = this._attributeVertexElementStartIndex + this._vertexStride * condensedIndex;
+    let elementOffset = this._attributeVertexElementStartIndex + this._vertexElementCount * condensedIndex;
 
     let offset = blendShapeOffsets[index];
     vertexElements[elementOffset++].offset = offset;
