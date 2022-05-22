@@ -28,7 +28,7 @@ export class ModelMesh extends Mesh {
   private _vertexSlotChanged: boolean = true;
   private _vertexChangeFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
-  private _elementCount: number = 0;
+  private _VertexStrideFloat: number = 0;
   private _lastUploadVertexCount: number = -1;
 
   private _positions: Vector3[] = [];
@@ -454,7 +454,7 @@ export class ModelMesh extends Mesh {
     const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
     if (vertexCountChange) {
       vertexBuffer?.destroy();
-      const elementCount = this._elementCount;
+      const elementCount = this._VertexStrideFloat;
       const vertexFloatCount = elementCount * vertexCount;
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
@@ -597,7 +597,7 @@ export class ModelMesh extends Mesh {
         elementCount += blendShapeManager._addVertexElements(this, offset);
       }
       this._vertexSlotChanged = false;
-      this._elementCount = elementCount;
+      this._VertexStrideFloat = elementCount;
       return true;
     }
     return false;
@@ -605,7 +605,7 @@ export class ModelMesh extends Mesh {
 
   private _updateVertices(vertices: Float32Array, blendVerticesUpdate: boolean, force: boolean): void {
     // prettier-ignore
-    const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const { _VertexStrideFloat: _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     force && (this._vertexChangeFlag = ValueChanged.All);
 

@@ -224,9 +224,8 @@ export class BlendShapeManager {
    * @internal
    */
   _addVertexElements(modelMesh: ModelMesh, offset: number): number {
-    const concurrentCount = Math.min(this._blendShapeCount, this._getAttributeModeSupportCount());
     this._attributeVertexElementStartIndex = modelMesh._vertexElements.length;
-    for (let i = 0; i < concurrentCount; i++) {
+    for (let i = 0, n = Math.min(this._blendShapeCount, this._getAttributeModeSupportCount()); i < n; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       if (this._useBlendNormal) {
@@ -238,7 +237,7 @@ export class BlendShapeManager {
         offset += 12;
       }
     }
-    return concurrentCount * this._vertexElementCount * 3;
+    return this._blendShapeCount * this._vertexElementCount * 3;
   }
 
   /**
