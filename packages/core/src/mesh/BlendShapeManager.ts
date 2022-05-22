@@ -44,8 +44,7 @@ export class BlendShapeManager {
   /** @internal */
   readonly _dataTextureInfo: Vector3 = new Vector3();
 
-  private _vertexElementCount: number;
-
+  private _vertexElementCount: number = 0;
   private _attributeVertexElementStartIndex: number;
   private _attributeBlendShapeOffsets: number[];
   private readonly _engine: Engine;
@@ -79,6 +78,7 @@ export class BlendShapeManager {
   _clearBlendShapes(): void {
     this._useBlendNormal = true;
     this._useBlendTangent = true;
+    this._vertexElementCount = 0;
     this._blendShapes.length = 0;
     this._blendShapeCount = 0;
 
@@ -223,10 +223,10 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _addVertexElements(modelMesh: ModelMesh, offset: number): void {
-    const maxSupportBlendCount = this._getAttributeModeSupportCount();
+  _addVertexElements(modelMesh: ModelMesh, offset: number): number {
+    const concurrentCount = Math.min(this._blendShapeCount, this._getAttributeModeSupportCount());
     this._attributeVertexElementStartIndex = modelMesh._vertexElements.length;
-    for (let i = 0; i < maxSupportBlendCount; i++) {
+    for (let i = 0; i < concurrentCount; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
       offset += 12;
       if (this._useBlendNormal) {
@@ -238,13 +238,7 @@ export class BlendShapeManager {
         offset += 12;
       }
     }
-  }
-
-  /**
-   * @internal
-   */
-  _getVertexFloatCount(): number {
-    return this._blendShapeCount * this._vertexElementCount * 3;
+    return concurrentCount * this._vertexElementCount * 3;
   }
 
   /**
