@@ -444,13 +444,8 @@ export class ModelMesh extends Mesh {
     const blendManager = this._blendShapeManager;
     const blendTextureMode = blendManager._useTextureMode();
     const blendDataUpdate = blendManager._needUpdateData();
-    const blendVertexElementChanged = !blendTextureMode && blendManager._vertexElementsNeedUpdate();
-    const vertexElementUpdate = this._vertexSlotChanged || blendVertexElementChanged;
     blendTextureMode || (this._disableVAO = true);
-
-    if (vertexElementUpdate) {
-      this._updateVertexElements(this._vertexSlotChanged, blendVertexElementChanged);
-    }
+    const vertexElementChanged = this._updateVertexElements();
 
     const { _vertexCount: vertexCount } = this;
     const vertexCountChange = this._lastUploadVertexCount !== vertexCount;
@@ -479,7 +474,7 @@ export class ModelMesh extends Mesh {
       const blendVerticesUpdate = !blendTextureMode && blendDataUpdate;
       if (this._vertexChangeFlag & ValueChanged.All || blendVerticesUpdate) {
         const vertices = this._verticesFloat32;
-        this._updateVertices(vertices, blendVerticesUpdate, vertexElementUpdate);
+        this._updateVertices(vertices, blendVerticesUpdate, vertexElementChanged);
         vertexBuffer.setData(vertices);
       }
     }
@@ -523,10 +518,13 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
-  private _updateVertexElements(vertexSlotChanged: boolean, blendVertexElementChanged: boolean): void {
-    let offset = 12;
-    let elementCount = 3;
-    if (vertexSlotChanged) {
+  private _updateVertexElements(): boolean {
+    const blendShapeManager = this._blendShapeManager;
+    const attributeMode = !blendShapeManager._useTextureMode();
+
+    if (this._vertexSlotChanged || (attributeMode && blendShapeManager._vertexElementsNeedUpdate())) {
+      let offset = 12;
+      let elementCount = 3;
       this._clearVertexElements();
       this._addVertexElement(POSITION_VERTEX_ELEMENT);
 
@@ -595,13 +593,14 @@ export class ModelMesh extends Mesh {
         offset += 8;
         elementCount += 2;
       }
+      if (attributeMode) {
+        elementCount += blendShapeManager._addVertexElements(this, offset);
+      }
       this._vertexSlotChanged = false;
+      this._elementCount = elementCount;
+      return true;
     }
-
-    if (vertexSlotChanged || blendVertexElementChanged) {
-      elementCount += this._blendShapeManager._addVertexElements(this, offset);
-    }
-    this._elementCount = elementCount;
+    return false;
   }
 
   private _updateVertices(vertices: Float32Array, blendVerticesUpdate: boolean, force: boolean): void {
