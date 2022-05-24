@@ -93,7 +93,7 @@ export abstract class Renderer extends Component {
   }
 
   /**
-   * The render priority of the renderer, Lower values are rendered first and higher values are rendered last.
+   * The render priority of the renderer, lower values are rendered first and higher values are rendered last.
    */
   get priority(): number {
     return this._priority;
