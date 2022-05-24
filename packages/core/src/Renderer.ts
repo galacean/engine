@@ -63,7 +63,7 @@ export abstract class Renderer extends Component {
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
   @ignoreClone
-  private _sortingLayer: number = 0;
+  private _priority: number = 0;
 
   /**
    * Material count.
@@ -93,14 +93,14 @@ export abstract class Renderer extends Component {
   }
 
   /**
-   * The render order of the renderer.
+   * The render priority of the renderer, Lower values are rendered first and higher values are rendered last.
    */
-  get sortingLayer(): number {
-    return this._sortingLayer;
+  get priority(): number {
+    return this._priority;
   }
 
-  set sortingLayer(value: number) {
-    this._sortingLayer = value;
+  set priority(value: number) {
+    this._priority = value;
   }
 
   /**
