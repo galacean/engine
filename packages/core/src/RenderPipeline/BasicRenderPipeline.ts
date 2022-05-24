@@ -209,7 +209,7 @@ export class BasicRenderPipeline {
       case RenderQueueType.AlphaTest:
         this._alphaTestQueue.pushPrimitive(element);
         break;
-      default:
+      case RenderQueueType.Opaque:
         this._opaqueQueue.pushPrimitive(element);
         break;
     }
