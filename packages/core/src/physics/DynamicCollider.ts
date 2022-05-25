@@ -1,8 +1,8 @@
 import { IDynamicCollider } from "@oasis-engine/design";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { PhysicsManager } from "./PhysicsManager";
-import { Vector3, Quaternion } from "@oasis-engine/math";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
@@ -199,6 +199,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
   }
 
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
