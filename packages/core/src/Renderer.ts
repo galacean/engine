@@ -14,7 +14,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { Transform } from "./Transform";
 
 /**
- * Renderable component.
+ * Basis for all renderers.
  * @decorator `@dependentComponents(Transform)`
  */
 @dependentComponents(Transform)
@@ -168,26 +168,10 @@ export class Renderer extends Component {
   setMaterial(index: number, material: Material): void;
 
   setMaterial(indexOrMaterial: number | Material, material: Material = null): void {
-    let index;
     if (typeof indexOrMaterial === "number") {
-      index = indexOrMaterial;
+      this._setMaterial(indexOrMaterial, material);
     } else {
-      index = 0;
-      material = indexOrMaterial;
-    }
-
-    const materials = this._materials;
-    if (index >= materials.length) {
-      materials.length = index + 1;
-    }
-
-    const materialsInstance = this._materialsInstanced;
-    const internalMaterial = materials[index];
-    if (internalMaterial !== material) {
-      materials[index] = material;
-      index < materialsInstance.length && (materialsInstance[index] = false);
-      internalMaterial && internalMaterial._addRefCount(-1);
-      material && material._addRefCount(1);
+      this._setMaterial(0, indexOrMaterial);
     }
   }
 
@@ -305,8 +289,9 @@ export class Renderer extends Component {
 
     this.shaderData._addRefCount(-1);
 
-    for (let i = 0, n = this._materials.length; i < n; i++) {
-      this._materials[i]._addRefCount(-1);
+    const materials = this._materials;
+    for (let i = 0, n = materials.length; i < n; i++) {
+      materials[i]?._addRefCount(-1);
     }
   }
 
@@ -320,5 +305,22 @@ export class Renderer extends Component {
     this._materialsInstanced[index] = true;
     this._materials[index] = insMaterial;
     return insMaterial;
+  }
+
+  private _setMaterial(index: number, material: Material): void {
+    const materials = this._materials;
+    if (index >= materials.length) {
+      materials.length = index + 1;
+    }
+
+    const internalMaterial = materials[index];
+    if (internalMaterial !== material) {
+      const materialsInstance = this._materialsInstanced;
+      index < materialsInstance.length && (materialsInstance[index] = false);
+
+      internalMaterial && internalMaterial._addRefCount(-1);
+      material && material._addRefCount(1);
+      materials[index] = material;
+    }
   }
 }
