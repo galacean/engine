@@ -503,13 +503,12 @@ export class BlendShapeManager {
     blendShapeWeights: Float32Array,
     condensedBlendShapeWeights: Float32Array
   ): void {
-    const weightsCount = blendShapeWeights.length;
     const condensedWeightsCount = condensedBlendShapeWeights.length;
     const vertexElements = this._modelMesh._vertexElements;
     const vertexBufferStoreInfo = this._storeVertexBufferInfo;
     let thresholdWeight = Number.POSITIVE_INFINITY;
     let thresholdIndex: number;
-    for (let i = 0; i < weightsCount; i++) {
+    for (let i = 0, n = Math.min(blendShapeWeights.length, this._blendShapeCount); i < n; i++) {
       const weight = blendShapeWeights[i];
       if (i < condensedWeightsCount) {
         this._attributeModeUpdateVertexElement(vertexElements, vertexBufferStoreInfo, i, i);
