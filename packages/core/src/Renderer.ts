@@ -3,6 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Camera } from "./Camera";
 import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
+import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -10,11 +11,14 @@ import { Shader } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { Transform } from "./Transform";
 
 /**
  * Basis for all renderers.
+ * @decorator `@dependentComponents(Transform)`
  */
-export abstract class Renderer extends Component {
+@dependentComponents(Transform)
+export class Renderer extends Component {
   private static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
   private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
   private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
@@ -269,7 +273,9 @@ export abstract class Renderer extends Component {
   /**
    * @internal
    */
-  abstract _render(camera: Camera): void;
+  _render(camera: Camera): void {
+    throw "not implement";
+  }
 
   /**
    * @internal
