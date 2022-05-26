@@ -48,14 +48,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   set blendShapeWeights(value: Float32Array) {
-    // value[0]=0;
-    // value[1]=0;
-    // value[2]=0;
-    // value[3]=0;
-    // value[4]=1;
-    // value[5]=1;
-    // value[6]=1;
-    // value[7]=0.5;
     this._blendShapeWeights = value;
   }
 

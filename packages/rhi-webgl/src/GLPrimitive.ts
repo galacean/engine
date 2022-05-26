@@ -35,6 +35,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   draw(shaderProgram: any, subMesh: SubMesh): void {
     const gl = this.gl;
     const primitive = this._primitive;
+    // @ts-ignore
     const useVao = this._useVao && !primitive._disableVAO;
 
     if (useVao) {
@@ -132,8 +133,8 @@ export class GLPrimitive implements IPlatformPrimitive {
         }
 
         gl.enableVertexAttribArray(loc);
-        const { size, type, normalized } = element._glElementInfo;
-        gl.vertexAttribPointer(loc, size, type, normalized, stride, element.offset);
+        const elementInfo = element._glElementInfo;
+        gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
         if (this.canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, element.instanceStepRate);
         }

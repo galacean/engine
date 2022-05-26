@@ -1,5 +1,5 @@
+import { BufferUtil, ElementInfo } from "./BufferUtil";
 import { VertexElementFormat } from "./enums/VertexElementFormat";
-import { ElementInfo, BufferUtil } from "./BufferUtil";
 
 /**
  * Vertex element.
@@ -43,6 +43,10 @@ export class VertexElement {
    */
   get bindingIndex(): number {
     return this._bindingIndex;
+  }
+
+  set bindingIndex(value: number) {
+    this._bindingIndex = value;
   }
 
   /**
