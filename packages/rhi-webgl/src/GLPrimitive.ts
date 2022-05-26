@@ -14,7 +14,7 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * GL platform primitive.
  */
 export class GLPrimitive implements IPlatformPrimitive {
-  protected attribLocArray: number[];
+  protected attribLocArray: number[] = [];
   protected readonly _primitive: Mesh;
   protected readonly canUseInstancedArrays: boolean;
 
@@ -111,7 +111,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     // @ts-ignore
     const vertexBufferBindings = primitive._vertexBufferBindings;
 
-    this.attribLocArray = [];
+    this.attribLocArray.length = 0;
     const attributeLocation = shaderProgram.attributeLocation;
     const attributes = primitive._vertexElementMap;
 

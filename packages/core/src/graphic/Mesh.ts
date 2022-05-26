@@ -35,7 +35,7 @@ export abstract class Mesh extends RefObject {
   /** @internal */
   _vertexElements: VertexElement[] = [];
   /** @internal */
-  protected _disableVAO: boolean = false;
+  _disableVAO: boolean = false;
 
   private _subMeshes: SubMesh[] = [];
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();

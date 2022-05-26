@@ -441,12 +441,9 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    const blendManager = this._blendShapeManager;
-    const blendTextureMode = blendManager._useTextureMode();
-    blendTextureMode || (this._disableVAO = true);
-    const vertexElementChanged = this._updateVertexElements();
-
     const { _vertexCount: vertexCount } = this;
+
+    const vertexElementChanged = this._updateVertexElements();
     const vertexCountChange = this._lastUploadVertexCount !== vertexCount;
 
     // Vertex count change
@@ -497,7 +494,7 @@ export class ModelMesh extends Mesh {
       this._setIndexBufferBinding(null);
     }
 
-    blendManager._update(this, vertexCountChange, noLongerAccessible);
+    this._blendShapeManager._update(this, vertexCountChange, noLongerAccessible);
 
     if (noLongerAccessible) {
       this._accessible = false;

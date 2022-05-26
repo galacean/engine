@@ -120,11 +120,13 @@ export class BlendShapeManager {
           }
           this._filterCondensedBlendShapeWeights(skinnedMeshRenderer._blendShapeWeights, condensedBlendShapeWeights);
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
+          this._modelMesh._disableVAO = true;
         } else {
           shaderData.setFloatArray(
             BlendShapeManager._blendShapeWeightsProperty,
             skinnedMeshRenderer._blendShapeWeights
           );
+          this._modelMesh._disableVAO = false;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
       }
@@ -219,6 +221,7 @@ export class BlendShapeManager {
     const { vertexCount } = modelMesh;
     const useTexture = this._useTextureMode();
     const createHost = this._layoutOrCountChange() || vertexCountChange;
+
     if (createHost) {
       if (useTexture) {
         this._createTextureArray(vertexCount);
