@@ -36,7 +36,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     const gl = this.gl;
     const primitive = this._primitive;
     // @ts-ignore
-    const useVao = this._useVao && !primitive._disableVAO;
+    const useVao = this._useVao && primitive._enableVAO;
 
     if (useVao) {
       if (!this.vao.has(shaderProgram.id)) {
