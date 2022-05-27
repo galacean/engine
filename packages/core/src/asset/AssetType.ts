@@ -27,6 +27,7 @@ export enum AssetType {
   Mesh = "mesh",
   /** Animation Clip. */
   AnimationClip = "animation-clip",
+  AnimatorController = "animatorController",
   /** Prefab.*/
   Prefab = "prefab",
   /** Compress Texture. */

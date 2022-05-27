@@ -15,7 +15,6 @@ export class AnimatorControllerDecoder {
   public static decode(engine: Engine, bufferReader: BufferReader): Promise<AnimatorController> {
     return new Promise(async (resolve) => {
       const animatorController = new AnimatorController();
-      const objectId = bufferReader.nextStr();
       const layersLen = bufferReader.nextUint16();
       const clipLoadPromises = [];
 

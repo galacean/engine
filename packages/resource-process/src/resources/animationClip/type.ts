@@ -6,10 +6,9 @@ export enum ComponentClass {
   Other
 }
 
-export const PropertyNameMap = ['position', 'rotation', 'scale', 'blendShapeWeights'];
+export const PropertyNameMap = ["position", "rotation", "scale", "blendShapeWeights"];
 
 export interface IAnimationClipAsset {
-  objectId: string;
   name: string;
   events: Array<{
     time: number;
@@ -27,7 +26,7 @@ export interface IAnimationClipAsset {
         inTangent: any; // 详细查看 KeyframeValueType的映射
         outTangent: any; // 详细查看 KeyframeValueType的映射
       }>;
-      valueType: InterpolableValueType;
+      _valueType: InterpolableValueType;
     };
   }>;
 }

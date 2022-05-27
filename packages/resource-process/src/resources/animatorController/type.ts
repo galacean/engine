@@ -1,7 +1,6 @@
-import { AnimatorState, AnimatorLayerBlendingMode, WrapMode } from "@oasis-engine/core";
+import { AnimatorLayerBlendingMode, WrapMode } from "@oasis-engine/core";
 
 export interface IAnimatorControllerAsset {
-  objectId: string;
   layers: Array<{
     name: string;
     blending: AnimatorLayerBlendingMode;

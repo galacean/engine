@@ -6,20 +6,19 @@ import { ComponentClass, IAnimationClipAsset } from "./type";
 @encoder("AnimationClip")
 export class AnimationClipEncoder {
   static encode(bufferWriter: BufferWriter, data: IAnimationClipAsset) {
-    const { objectId, name, events, curveBindings } = data;
+    const { name, events, curveBindings } = data;
 
-    bufferWriter.writeStr(objectId);
     bufferWriter.writeStr(name);
     bufferWriter.writeUint16(events.length);
     events.forEach((event) => {
       bufferWriter.writeFloat32(event.time);
       bufferWriter.writeStr(event.functionName);
-      bufferWriter.writeStr(JSON.stringify({ val: event.parameter }));
+      bufferWriter.writeStr(JSON.stringify({ val: event.parameter || "" }));
     });
 
     bufferWriter.writeUint16(curveBindings.length);
     curveBindings.forEach((curveBinding) => {
-      const { curve, property } = curveBinding
+      const { curve, property } = curveBinding;
       bufferWriter.writeStr(curveBinding.relativePath);
       let componentClass;
       switch (property) {
@@ -38,7 +37,7 @@ export class AnimationClipEncoder {
       bufferWriter.writeUint8(componentClass);
       bufferWriter.writeUint8(property);
       bufferWriter.writeUint8(curve.interpolation);
-      const { valueType, keys } = curve;
+      const { _valueType: valueType, keys } = curve;
       bufferWriter.writeUint16(keys.length);
       keys.forEach((key) => {
         const { time, value, inTangent, outTangent } = key;

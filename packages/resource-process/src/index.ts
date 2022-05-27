@@ -12,8 +12,14 @@ export { encoder, decoder } from "./utils/Decorator";
 export { UniformType } from "./resources/material/type";
 export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
 export { Texture2DEncoder } from "./resources/texture2D/TextureEncoder";
+export { AnimatorControllerDecoder } from "./resources/animatorController/AnimatorControllerDecoder";
+export { AnimatorControllerEncoder } from "./resources/animatorController/AnimatorControllerEncoder";
+export { AnimationClipDecoder } from "./resources/animationClip/AnimationClipDecoder";
+export { AnimationClipEncoder } from "./resources/animationClip/AnimationClipEncoder";
 export { ReflectionParser } from "./resources/prefab/ReflectionParser";
 export { PrefabParser } from "./resources/prefab/PrefabParser";
+export type { IAnimatorControllerAsset } from "./resources/animatorController/type";
+export type { IAnimationClipAsset } from "./resources/animationClip/type";
 
 /**
  * Decode engine binary resource.
