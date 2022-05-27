@@ -220,19 +220,19 @@ export class Sprite extends RefObject {
     if (texture) {
       const { _atlasRegion: atlasRegion, _pivot: pivot } = this;
       const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = this._atlasRegionOffset;
-      const { x: regionLeft, y: regionTop, width: regionWidth, height: regionHeight } = this._region;
-      const regionRight = 1 - regionLeft - regionWidth;
-      const regionBottom = 1 - regionTop - regionHeight;
+      const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
+      const regionRight = 1 - regionX - regionW;
+      const regionBottom = 1 - regionY - regionH;
       // Real rendering size.
-      const realRenderWidth =
-        (texture.width * atlasRegion.width * regionWidth) / ((1 - blankLeft - blankRight) * this._pixelsPerUnit);
-      const realRenderHeight =
-        (texture.height * atlasRegion.height * regionHeight) / ((1 - blankTop - blankBottom) * this._pixelsPerUnit);
+      const realRenderW =
+        (texture.width * atlasRegion.width * regionW) / ((1 - blankLeft - blankRight) * this._pixelsPerUnit);
+      const realRenderH =
+        (texture.height * atlasRegion.height * regionH) / ((1 - blankTop - blankBottom) * this._pixelsPerUnit);
       // Coordinates of the four boundaries.
-      const left = (Math.max(blankLeft - regionLeft, 0) / regionWidth - pivot.x) * realRenderWidth;
-      const right = (1 - Math.max(blankRight - regionRight, 0) / regionWidth - pivot.x) * realRenderWidth;
-      const top = (1 - Math.max(blankTop - regionTop, 0) / regionHeight - pivot.y) * realRenderHeight;
-      const bottom = (Math.max(blankBottom - regionBottom, 0) / regionHeight - pivot.y) * realRenderHeight;
+      const left = (Math.max(blankLeft - regionX, 0) / regionW - pivot.x) * realRenderW;
+      const right = (1 - Math.max(blankRight - regionRight, 0) / regionW - pivot.x) * realRenderW;
+      const top = (1 - Math.max(blankTop - regionY, 0) / regionH - pivot.y) * realRenderH;
+      const bottom = (Math.max(blankBottom - regionBottom, 0) / regionH - pivot.y) * realRenderH;
       // Assign values ​​to _positions
       const positions = this._positions;
       // Top-left.
@@ -264,18 +264,18 @@ export class Sprite extends RefObject {
 
     if (this._isContainDirtyFlag(DirtyFlag.uv)) {
       const { _uv: uv, _atlasRegionOffset: atlasRegionOffset } = this;
-      const { x: regionLeft, y: regionTop, width: regionWidth, height: regionHeight } = this._region;
-      const regionRight = 1 - regionLeft - regionWidth;
-      const regionBottom = 1 - regionTop - regionHeight;
+      const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
+      const regionRight = 1 - regionX - regionW;
+      const regionBottom = 1 - regionY - regionH;
       const { x: atlasRegionX, y: atlasRegionY, width: atlasRegionW, height: atlasRegionH } = this._atlasRegion;
       const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
       const realWidth = atlasRegionW / (1 - offsetLeft - offsetRight);
       const realHeight = atlasRegionH / (1 - offsetTop - offsetBottom);
       // Coordinates of the four boundaries.
-      const left = Math.max(regionLeft - offsetLeft, 0) * realWidth + atlasRegionX;
+      const left = Math.max(regionX - offsetLeft, 0) * realWidth + atlasRegionX;
       const top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
       const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
-      const bottom = atlasRegionH + atlasRegionY - Math.max(regionTop - offsetBottom, 0) * realHeight;
+      const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
       // Top-left.
       uv[0].setValue(left, top);
       // Top-right.
