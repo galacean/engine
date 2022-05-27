@@ -231,8 +231,8 @@ export class Sprite extends RefObject {
       // Coordinates of the four boundaries.
       const left = (Math.max(blankLeft - regionX, 0) / regionW - pivot.x) * realRenderW;
       const right = (1 - Math.max(blankRight - regionRight, 0) / regionW - pivot.x) * realRenderW;
-      const top = (1 - Math.max(blankTop - regionY, 0) / regionH - pivot.y) * realRenderH;
-      const bottom = (Math.max(blankBottom - regionBottom, 0) / regionH - pivot.y) * realRenderH;
+      const top = (1 - Math.max(blankTop - regionBottom, 0) / regionH - pivot.y) * realRenderH;
+      const bottom = (Math.max(blankBottom - regionY, 0) / regionH - pivot.y) * realRenderH;
       // Assign values ​​to _positions
       const positions = this._positions;
       // Top-left.
