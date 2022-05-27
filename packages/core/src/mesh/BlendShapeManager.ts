@@ -246,8 +246,10 @@ export class BlendShapeManager {
    */
   _releaseMemoryCache(): void {
     const { _blendShapes: blendShapes } = this;
-    const blendShapeNamesMap = new Array<string>(blendShapes.length);
-    for (let i = 0, n = blendShapes.length; i < n; i++) {
+    const { length: blendShapeCount } = blendShapes;
+
+    const blendShapeNamesMap = new Array<string>(blendShapeCount);
+    for (let i = 0; i < blendShapeCount; i++) {
       blendShapeNamesMap[i] = blendShapes[i].name;
     }
     this._blendShapeNames = blendShapeNamesMap;
@@ -261,6 +263,7 @@ export class BlendShapeManager {
     this._layoutDirtyFlag = null;
     this._subDataDirtyFlags = null;
     this._blendShapes = null;
+    this._vertices = null;
   }
 
   private _createVertexBuffers(vertexCount: number, noLongerAccessible: boolean): void {
@@ -414,15 +417,15 @@ export class BlendShapeManager {
   private _updateTextureArray(vertexCount: number, force: boolean): void {
     const {
       _blendShapes: blendShapes,
-      _vertexTexture: dataTexture,
-      _vertices: buffer,
+      _vertexTexture: vertexTexture,
+      _vertices: vertices,
       _subDataDirtyFlags: subDataDirtyFlags
     } = this;
 
     let offset = 0;
     for (let i = 0, n = blendShapes.length; i < n; i++) {
       const subDirtyFlag = subDataDirtyFlags[i];
-      const subBlendShapeDataStride = dataTexture.width * dataTexture.height * 4;
+      const subBlendShapeDataStride = vertexTexture.width * vertexTexture.height * 4;
       if (force || subDirtyFlag.flag) {
         const { frames } = blendShapes[i];
         const frameCount = frames.length;
@@ -434,31 +437,31 @@ export class BlendShapeManager {
         offset = i * subBlendShapeDataStride;
         for (let j = 0; j < vertexCount; j++) {
           const position = deltaPositions[j];
-          buffer[offset] = position.x;
-          buffer[offset + 1] = position.y;
-          buffer[offset + 2] = position.z;
+          vertices[offset] = position.x;
+          vertices[offset + 1] = position.y;
+          vertices[offset + 2] = position.z;
           offset += 4;
 
           if (deltaNormals) {
             const normal = deltaNormals[j];
-            buffer[offset] = normal.x;
-            buffer[offset + 1] = normal.y;
-            buffer[offset + 2] = normal.z;
+            vertices[offset] = normal.x;
+            vertices[offset + 1] = normal.y;
+            vertices[offset + 2] = normal.z;
             offset += 4;
           }
 
           if (deltaTangents) {
             const tangent = deltaTangents[j];
-            buffer[offset] = tangent.x;
-            buffer[offset + 1] = tangent.y;
-            buffer[offset + 2] = tangent.z;
+            vertices[offset] = tangent.x;
+            vertices[offset + 1] = tangent.y;
+            vertices[offset + 2] = tangent.z;
             offset += 4;
           }
         }
         subDirtyFlag.flag = false;
       }
     }
-    dataTexture.setPixelBuffer(0, buffer);
+    vertexTexture.setPixelBuffer(0, vertices);
   }
 
   private _updateLayoutChange(blendShape: BlendShape): void {
