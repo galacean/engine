@@ -340,6 +340,7 @@ export class BlendShapeManager {
     const blendShapeFloatStride = this._vertexElementCount * 3;
     const blendShapeByteStride = blendShapeFloatStride * 4;
 
+    // @todo: should fix bug when dataChangedFlag is true 
     for (let i = 0, n = blendShapes.length; i < n; i++) {
       const dataChangedFlag = subDataDirtyFlags[i];
       if (force || dataChangedFlag.flag) {
@@ -406,6 +407,7 @@ export class BlendShapeManager {
         }
 
         if (indexInBuffer === maxCountSingleBuffer - 1 || i === n - 1) {
+          // @todo: can optimize in setData
           buffer.setData(vertices, 0, 0, buffer.byteLength / 4);
         }
 
@@ -422,7 +424,6 @@ export class BlendShapeManager {
       _subDataDirtyFlags: subDataDirtyFlags
     } = this;
 
-    let offset = 0;
     for (let i = 0, n = blendShapes.length; i < n; i++) {
       const subDirtyFlag = subDataDirtyFlags[i];
       const subBlendShapeDataStride = vertexTexture.width * vertexTexture.height * 4;
@@ -433,8 +434,9 @@ export class BlendShapeManager {
         if (frameCount > 0 && endFrame.deltaPositions.length !== vertexCount) {
           throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
         }
+
         const { deltaPositions, deltaNormals, deltaTangents } = endFrame;
-        offset = i * subBlendShapeDataStride;
+        let offset = i * subBlendShapeDataStride;
         for (let j = 0; j < vertexCount; j++) {
           const position = deltaPositions[j];
           vertices[offset] = position.x;
