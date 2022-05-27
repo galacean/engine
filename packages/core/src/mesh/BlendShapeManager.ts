@@ -460,11 +460,15 @@ export class BlendShapeManager {
   }
 
   private _updateLayoutChange(blendShape: BlendShape): void {
-    const isFirst = this._blendShapeCount === 1;
-    const useBlendNormal = isFirst ? this._useBlendNormal : blendShape._useBlendShapeNormal && this._useBlendNormal;
-    const useBlendTangent = isFirst ? this._useBlendTangent : blendShape._useBlendShapeTangent && this._useBlendTangent;
-
+    const notFirst = this._blendShapeCount > 1;
     let vertexElementCount = 1;
+    let useBlendNormal = blendShape._useBlendShapeNormal;
+    let useBlendTangent = blendShape._useBlendShapeTangent;
+    if (notFirst) {
+      useBlendNormal &&= this._useBlendNormal;
+      useBlendTangent &&= this._useBlendTangent;
+    }
+
     useBlendNormal && vertexElementCount++;
     useBlendTangent && vertexElementCount++;
 
