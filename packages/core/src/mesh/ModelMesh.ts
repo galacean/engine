@@ -433,7 +433,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Upload Mesh Data to the graphics API.
+   * Upload Mesh Data to GPU.
    * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
   uploadData(noLongerAccessible: boolean): void {
@@ -442,13 +442,12 @@ export class ModelMesh extends Mesh {
     }
 
     const { _vertexCount: vertexCount } = this;
-
     const vertexElementChanged = this._updateVertexElements();
     const vertexCountChange = this._lastUploadVertexCount !== vertexCount;
 
     // Vertex count change
     const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
-    if (this._lastUploadVertexCount !== vertexCount) {
+    if (vertexCountChange) {
       vertexBuffer?.destroy();
       const elementCount = this._vertexStrideFloat;
       const vertexFloatCount = elementCount * vertexCount;
@@ -474,16 +473,16 @@ export class ModelMesh extends Mesh {
       }
     }
 
-    const { _indices } = this;
+    const { _indices: indices } = this;
     const indexBuffer = this._indexBufferBinding?._buffer;
-    if (_indices) {
-      if (!indexBuffer || _indices.byteLength != indexBuffer.byteLength) {
+    if (indices) {
+      if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
         indexBuffer?.destroy();
-        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
+        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
         this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
         this._indicesChangeFlag = false;
       } else if (this._indicesChangeFlag) {
-        indexBuffer.setData(_indices);
+        indexBuffer.setData(indices);
         if (this._indexBufferBinding._format !== this._indicesFormat) {
           this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
         }
@@ -494,7 +493,7 @@ export class ModelMesh extends Mesh {
       this._setIndexBufferBinding(null);
     }
 
-    this._blendShapeManager._update(this, vertexCountChange, noLongerAccessible);
+    this._blendShapeManager._update(vertexCountChange, noLongerAccessible);
 
     if (noLongerAccessible) {
       this._accessible = false;

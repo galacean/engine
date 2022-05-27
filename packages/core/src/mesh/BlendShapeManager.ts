@@ -51,7 +51,7 @@ export class BlendShapeManager {
 
   private _vertexElementCount: number = 0;
   private _vertexElementStartIndex: number;
-  private _storeVertexBufferInfo: Vector2[] = [];
+  private _storeInVertexBufferInfo: Vector2[] = [];
   private _maxCountSingleVertexBuffer: number = 0;
   private readonly _engine: Engine;
   private readonly _modelMesh: ModelMesh;
@@ -111,7 +111,7 @@ export class BlendShapeManager {
         shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
         shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer._blendShapeWeights);
       } else {
-        const maxBlendCount = this._getAttributeModeSupportCount();
+        const maxBlendCount = this._getVertexBufferModeSupportCount();
         if (blendShapeCount > maxBlendCount) {
           let condensedBlendShapeWeights = skinnedMeshRenderer._condensedBlendShapeWeights;
           if (!condensedBlendShapeWeights) {
@@ -154,7 +154,7 @@ export class BlendShapeManager {
     if (!this._canUseTextureStoreData) {
       return false;
     }
-    return this._blendShapeCount > this._getAttributeModeSupportCount();
+    return this._blendShapeCount > this._getVertexBufferModeSupportCount();
   }
 
   /**
@@ -165,20 +165,22 @@ export class BlendShapeManager {
     if (last.x !== this._blendShapeCount || !!last.y !== this._useBlendNormal || !!last.z !== this._useBlendTangent) {
       return true;
     }
+    return false;
   }
 
   /**
    * @internal
    */
   _vertexElementsNeedUpdate(): boolean {
-    const last = this._lastCreateHostInfo;
+    const info = this._lastCreateHostInfo;
     if (
-      last.x !== Math.min(this._blendShapeCount, this._getAttributeModeSupportCount()) ||
-      !!last.y !== this._useBlendNormal ||
-      !!last.z !== this._useBlendTangent
+      info.x !== Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()) ||
+      !!info.y !== this._useBlendNormal ||
+      !!info.z !== this._useBlendTangent
     ) {
       return true;
     }
+    return false;
   }
 
   /**
@@ -200,7 +202,7 @@ export class BlendShapeManager {
   _addVertexElements(modelMesh: ModelMesh): void {
     let offset = 0;
     this._vertexElementStartIndex = modelMesh._vertexElements.length;
-    for (let i = 0, n = Math.min(this._blendShapeCount, this._getAttributeModeSupportCount()); i < n; i++) {
+    for (let i = 0, n = Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()); i < n; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 1));
       offset += 12;
       if (this._useBlendNormal) {
@@ -217,8 +219,8 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _update(modelMesh: ModelMesh, vertexCountChange: boolean, noLongerAccessible: boolean): void {
-    const { vertexCount } = modelMesh;
+  _update(vertexCountChange: boolean, noLongerAccessible: boolean): void {
+    const { vertexCount } = this._modelMesh;
     const useTexture = this._useTextureMode();
     const createHost = this._layoutOrCountChange() || vertexCountChange;
 
@@ -226,7 +228,7 @@ export class BlendShapeManager {
       if (useTexture) {
         this._createTextureArray(vertexCount);
       } else {
-        this._createVertexBuffers(modelMesh, vertexCount, noLongerAccessible);
+        this._createVertexBuffers(vertexCount, noLongerAccessible);
       }
       this._lastCreateHostInfo.setValue(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
     }
@@ -261,8 +263,13 @@ export class BlendShapeManager {
     this._blendShapes = null;
   }
 
-  private _createVertexBuffers(modelMesh: ModelMesh, vertexCount: number, noLongerAccessible: boolean): void {
-    const { _engine: engine, _blendShapeCount: blendShapeCount, _vertexBuffers: vertexBuffers } = this;
+  private _createVertexBuffers(vertexCount: number, noLongerAccessible: boolean): void {
+    const {
+      _engine: engine,
+      _modelMesh: modelMesh,
+      _blendShapeCount: blendShapeCount,
+      _vertexBuffers: vertexBuffers
+    } = this;
     const vertexFloatCount = this._vertexElementCount * 3;
     const vertexByteCount = vertexFloatCount * 4;
     const maxCountSingleBuffer = Math.floor(255 / vertexByteCount); // 255: Attribute MaxStride
@@ -272,7 +279,7 @@ export class BlendShapeManager {
     vertexBuffers.length = bufferCount;
     this._vertices = new Float32Array(floatCount);
     this._maxCountSingleVertexBuffer = maxCountSingleBuffer;
-    this._storeVertexBufferInfo.length = blendShapeCount;
+    this._storeInVertexBufferInfo.length = blendShapeCount;
 
     for (let i = 0; i < bufferCount; i++) {
       const lastIndex = bufferCount - 1;
@@ -323,14 +330,14 @@ export class BlendShapeManager {
    * @internal
    */
   _updateVertexBuffers(vertexCount: number, force: boolean): void {
-    const { _maxCountSingleVertexBuffer: maxCountSingleBuffer } = this;
-    const { _vertices: vertices, _vertexBuffers: vertexBuffers, _storeVertexBufferInfo: vertexBufferStoreInfo } = this;
-    const { _blendShapeCount: blendShapeCount, _blendShapes: blendShapes } = this;
+    const { _blendShapes: blendShapes, _maxCountSingleVertexBuffer: maxCountSingleBuffer } = this;
+    const { _vertices: vertices, _vertexBuffers: vertexBuffers, _storeInVertexBufferInfo: storeInfos } = this;
 
     const subDataDirtyFlags = this._subDataDirtyFlags;
     const blendShapeFloatStride = this._vertexElementCount * 3;
+    const blendShapeByteStride = blendShapeFloatStride * 4;
 
-    for (let i = 0; i < blendShapeCount; i++) {
+    for (let i = 0, n = blendShapes.length; i < n; i++) {
       const dataChangedFlag = subDataDirtyFlags[i];
       if (force || dataChangedFlag.flag) {
         const { frames } = blendShapes[i];
@@ -341,20 +348,19 @@ export class BlendShapeManager {
         }
 
         const bufferIndex = Math.floor(i / maxCountSingleBuffer);
-        const buffer = vertexBuffers[bufferIndex];
-        const bufferStrideFloat = buffer.byteLength / (vertexCount * 4);
-
         const indexInBuffer = i % maxCountSingleBuffer;
+        const buffer = vertexBuffers[bufferIndex];
+        const bufferFloatStride = buffer.byteLength / (vertexCount * 4);
 
         let offset = indexInBuffer * blendShapeFloatStride;
 
-        let storeInfo = vertexBufferStoreInfo[i];
-        storeInfo || (vertexBufferStoreInfo[i] = storeInfo = new Vector2());
-        storeInfo.setValue(bufferIndex + 1, indexInBuffer * blendShapeFloatStride * 4); // BlendShape buffer is from 1
+        let storeInfo = storeInfos[i];
+        storeInfo || (storeInfos[i] = storeInfo = new Vector2());
+        storeInfo.setValue(bufferIndex + 1, indexInBuffer * blendShapeByteStride); // BlendShape buffer is start from 1
 
         const { deltaPositions } = endFrame;
         for (let j = 0; j < vertexCount; j++) {
-          const start = offset + bufferStrideFloat * j;
+          const start = offset + bufferFloatStride * j;
           const deltaPosition = deltaPositions[j];
           if (deltaPosition) {
             vertices[start] = deltaPosition.x;
@@ -368,7 +374,7 @@ export class BlendShapeManager {
           const { deltaNormals } = endFrame;
           if (deltaNormals) {
             for (let j = 0; j < vertexCount; j++) {
-              const start = offset + bufferStrideFloat * j;
+              const start = offset + bufferFloatStride * j;
               const deltaNormal = deltaNormals[j];
               if (deltaNormal) {
                 vertices[start] = deltaNormal.x;
@@ -384,7 +390,7 @@ export class BlendShapeManager {
           const { deltaTangents } = endFrame;
           if (deltaTangents) {
             for (let j = 0; j < vertexCount; j++) {
-              const start = offset + bufferStrideFloat * j;
+              const start = offset + bufferFloatStride * j;
               const deltaTangent = deltaTangents[j];
               if (deltaTangent) {
                 vertices[start] = deltaTangent.x;
@@ -396,7 +402,7 @@ export class BlendShapeManager {
           offset += 3;
         }
 
-        if (indexInBuffer === maxCountSingleBuffer - 1 || i === blendShapeCount - 1) {
+        if (indexInBuffer === maxCountSingleBuffer - 1 || i === n - 1) {
           buffer.setData(vertices, 0, 0, buffer.byteLength / 4);
         }
 
@@ -494,7 +500,7 @@ export class BlendShapeManager {
     }
   }
 
-  private _getAttributeModeSupportCount(): number {
+  private _getVertexBufferModeSupportCount(): number {
     if (this._useBlendNormal || this._useBlendTangent) {
       return 4;
     } else {
@@ -508,7 +514,7 @@ export class BlendShapeManager {
   ): void {
     const condensedWeightsCount = condensedBlendShapeWeights.length;
     const vertexElements = this._modelMesh._vertexElements;
-    const vertexBufferStoreInfo = this._storeVertexBufferInfo;
+    const vertexBufferStoreInfo = this._storeInVertexBufferInfo;
     let thresholdWeight = Number.POSITIVE_INFINITY;
     let thresholdIndex: number;
     for (let i = 0, n = Math.min(blendShapeWeights.length, this._blendShapeCount); i < n; i++) {
