@@ -31,10 +31,6 @@ export class BlendShapeManager {
   /** @internal */
   _blendShapeCount: number = 0;
   /** @internal */
-  _useBlendNormal: boolean = true;
-  /** @internal */
-  _useBlendTangent: boolean = true;
-  /** @internal */
   _blendShapes: BlendShape[] = [];
   /** @internal */
   _blendShapeNames: string[];
@@ -49,8 +45,10 @@ export class BlendShapeManager {
   /** @internal */
   _vertices: Float32Array;
 
+  private _useBlendNormal: boolean = false;
+  private _useBlendTangent: boolean = false;
   private _vertexElementCount: number = 0;
-  private _vertexElementStartIndex: number;
+  private _vertexElementOffset: number;
   private _storeInVertexBufferInfo: Vector2[] = [];
   private _maxCountSingleVertexBuffer: number = 0;
   private readonly _engine: Engine;
@@ -83,8 +81,8 @@ export class BlendShapeManager {
    * @internal
    */
   _clearBlendShapes(): void {
-    this._useBlendNormal = true;
-    this._useBlendTangent = true;
+    this._useBlendNormal = false;
+    this._useBlendTangent = false;
     this._vertexElementCount = 0;
     this._blendShapes.length = 0;
     this._blendShapeCount = 0;
@@ -162,25 +160,20 @@ export class BlendShapeManager {
    */
   _layoutOrCountChange(): boolean {
     const last = this._lastCreateHostInfo;
-    if (last.x !== this._blendShapeCount || !!last.y !== this._useBlendNormal || !!last.z !== this._useBlendTangent) {
-      return true;
-    }
-    return false;
+    return last.x !== this._blendShapeCount || !!last.y !== this._useBlendNormal || !!last.z !== this._useBlendTangent;
   }
 
   /**
    * @internal
    */
   _vertexElementsNeedUpdate(): boolean {
+    const maxSupportCount = this._getVertexBufferModeSupportCount();
     const info = this._lastCreateHostInfo;
-    if (
-      info.x !== Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()) ||
+    return (
+      Math.min(info.x, maxSupportCount) !== Math.min(this._blendShapeCount, maxSupportCount) ||
       !!info.y !== this._useBlendNormal ||
       !!info.z !== this._useBlendTangent
-    ) {
-      return true;
-    }
-    return false;
+    );
   }
 
   /**
@@ -201,7 +194,7 @@ export class BlendShapeManager {
    */
   _addVertexElements(modelMesh: ModelMesh): void {
     let offset = 0;
-    this._vertexElementStartIndex = modelMesh._vertexElements.length;
+    this._vertexElementOffset = modelMesh._vertexElements.length;
     for (let i = 0, n = Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()); i < n; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 1));
       offset += 12;
@@ -340,7 +333,7 @@ export class BlendShapeManager {
     const blendShapeFloatStride = this._vertexElementCount * 3;
     const blendShapeByteStride = blendShapeFloatStride * 4;
 
-    // @todo: should fix bug when dataChangedFlag is true 
+    // @todo: should fix bug when dataChangedFlag is true
     for (let i = 0, n = blendShapes.length; i < n; i++) {
       const dataChangedFlag = subDataDirtyFlags[i];
       if (force || dataChangedFlag.flag) {
@@ -467,8 +460,9 @@ export class BlendShapeManager {
   }
 
   private _updateLayoutChange(blendShape: BlendShape): void {
-    const useBlendNormal = blendShape._useBlendShapeNormal && this._useBlendNormal;
-    const useBlendTangent = blendShape._useBlendShapeTangent && this._useBlendTangent;
+    const isFirst = this._blendShapeCount === 1;
+    const useBlendNormal = isFirst ? this._useBlendNormal : blendShape._useBlendShapeNormal && this._useBlendNormal;
+    const useBlendTangent = isFirst ? this._useBlendTangent : blendShape._useBlendShapeTangent && this._useBlendTangent;
 
     let vertexElementCount = 1;
     useBlendNormal && vertexElementCount++;
@@ -485,7 +479,7 @@ export class BlendShapeManager {
     index: number,
     condensedIndex: number
   ): void {
-    let elementOffset = this._vertexElementStartIndex + this._vertexElementCount * condensedIndex;
+    let elementOffset = this._vertexElementOffset + this._vertexElementCount * condensedIndex;
 
     let { x: bufferIndex, y: offset } = vertexBufferStoreInfo[index];
     const vertexElement = vertexElements[elementOffset];

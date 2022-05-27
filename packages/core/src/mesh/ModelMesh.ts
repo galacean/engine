@@ -493,7 +493,8 @@ export class ModelMesh extends Mesh {
       this._setIndexBufferBinding(null);
     }
 
-    this._blendShapeManager._update(vertexCountChange, noLongerAccessible);
+    const { _blendShapeManager: blendShapeManager } = this;
+    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(vertexCountChange, noLongerAccessible);
 
     if (noLongerAccessible) {
       this._accessible = false;
@@ -586,7 +587,7 @@ export class ModelMesh extends Mesh {
         elementCount += 2;
       }
       if (attributeMode) {
-        blendShapeManager._addVertexElements(this);
+        blendShapeManager._blendShapeCount > 0 && blendShapeManager._addVertexElements(this);
       }
       this._vertexSlotChanged = false;
       this._vertexStrideFloat = elementCount;
