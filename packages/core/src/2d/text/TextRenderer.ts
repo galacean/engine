@@ -17,6 +17,7 @@ import { TextUtils } from "./TextUtils";
  */
 export class TextRenderer extends Renderer {
   private static _tempVec3: Vector3 = new Vector3();
+  private static _tempBox: BoundingBox = new BoundingBox();
 
   /** @internal temp solution. */
   @ignoreClone
@@ -329,19 +330,14 @@ export class TextRenderer extends Renderer {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const sprite = this._sprite;
-    if (sprite && sprite.texture) {
-      if (this._customLocalBounds && this._customRootEntity) {
-        const worldMatrix = this._customRootEntity.transform.worldMatrix;
-        BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
-      } else {
-        const localBounds = sprite.bounds;
-        const worldMatrix = this._entity.transform.worldMatrix;
-        BoundingBox.transform(localBounds, worldMatrix, worldBounds);
-      }
+    if (this._customLocalBounds && this._customRootEntity) {
+      const worldMatrix = this._customRootEntity.transform.worldMatrix;
+      BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
     } else {
-      worldBounds.min.setValue(0, 0, 0);
-      worldBounds.max.setValue(0, 0, 0);
+      const sprite = this._sprite;
+      const localBounds = sprite && sprite.texture ? sprite.bounds : TextRenderer._tempBox;
+      const worldMatrix = this._entity.transform.worldMatrix;
+      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
     }
   }
 
