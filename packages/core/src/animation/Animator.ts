@@ -32,7 +32,7 @@ import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
 export class Animator extends Component {
   private static _baseTempValue = new AnimatorTempValue();
   private static _crossTempValue = new AnimatorTempValue();
-  private static _additiveTempValue = new AnimatorTempValue();
+  private static _tempQuat = new Quaternion();
   private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
 
   protected _animatorController: AnimatorController;
@@ -461,7 +461,7 @@ export class Animator extends Component {
         const value = tempValue.quaternion;
         curve._evaluate(time, value);
         if (additive) {
-          const tempQuat = Animator._additiveTempValue.quaternion;
+          const tempQuat = Animator._tempQuat;
           Quaternion.conjugate(<Quaternion>baseValue, tempQuat);
           Quaternion.multiply(tempQuat, value, value);
         }
