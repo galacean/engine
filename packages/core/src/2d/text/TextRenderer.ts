@@ -378,16 +378,27 @@ export class TextRenderer extends Renderer {
 
     // Handle the case that width or height of text is larger than real width or height.
     const { pixelsPerUnit, pivot } = sprite;
-    const originWidthInPixel = this.width * pixelsPerUnit;
-    const originHeightInPixel = this.height * pixelsPerUnit;
-    pivot.setValue(0.5, 0.5);
-    if (originWidthInPixel > width && horizontalAlignment !== TextHorizontalAlignment.Center) {
-      const diffPivotX = ((originWidthInPixel - width) * 0.5) / width;
-      pivot.x = 0.5 + diffPivotX * (horizontalAlignment === TextHorizontalAlignment.Left ? 1 : -1);
+    switch (horizontalAlignment) {
+      case TextHorizontalAlignment.Left:
+        pivot.x = (this.width * pixelsPerUnit) / width * 0.5;
+        break;
+      case TextHorizontalAlignment.Right:
+        pivot.x = 1 - (this.width * pixelsPerUnit) / width * 0.5;
+        break;
+      case TextHorizontalAlignment.Center:
+        pivot.x = 0.5;
+        break;
     }
-    if (originHeightInPixel > height && verticalAlignment !== TextVerticalAlignment.Center) {
-      const diffPivotY = ((originHeightInPixel - height) * 0.5) / height;
-      pivot.y = 0.5 + diffPivotY * (verticalAlignment === TextVerticalAlignment.Top ? -1 : 1);
+    switch (verticalAlignment) {
+      case TextVerticalAlignment.Top:
+        pivot.y = 1 - (this.height * pixelsPerUnit) / height * 0.5;
+        break;
+      case TextVerticalAlignment.Bottom:
+        pivot.y = (this.height * pixelsPerUnit) / height * 0.5;
+        break;
+      case TextVerticalAlignment.Center:
+        pivot.y = 0.5;
+        break;
     }
     sprite.pivot = pivot;
 
