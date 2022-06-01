@@ -762,7 +762,7 @@ export class Animator extends Component {
           case AnimationProperty.BlendShapeWeights:
             const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
             for (let j = 0, length = blendShapeWeights.length; j < length; ++j) {
-              (<SkinnedMeshRenderer>owner.component).blendShapeWeights[j] = owner.defaultValue[j];
+              (<SkinnedMeshRenderer>owner.component).blendShapeWeights[j] = 0;
             }
             break;
         }
