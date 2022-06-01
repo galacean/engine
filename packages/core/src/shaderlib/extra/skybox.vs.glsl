@@ -6,7 +6,7 @@ varying vec3 v_cubeUV;
 
 void main() {
 
-    v_cubeUV = POSITION.xyz;
+    v_cubeUV = vec3( -POSITION.x, POSITION.yz );
     gl_Position = u_mvpNoscale * vec4( POSITION, 1.0 );
     gl_Position.z = gl_Position.w;
 
