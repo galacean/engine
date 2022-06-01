@@ -18,11 +18,9 @@ export class AnimationCurveOwner {
   readonly component: Component;
   readonly defaultValue: InterpolableValue;
   readonly fixedPoseValue: InterpolableValue;
-  
+
   /** @internal */
   _hasSavedDefaultValue: boolean = false;
-  _tempValue: InterpolableValue;
-  _tempCrossValue: InterpolableValue;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     this.target = target;

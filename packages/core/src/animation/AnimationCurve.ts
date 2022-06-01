@@ -1,3 +1,4 @@
+import { IClone } from "@oasis-engine/design";
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { InterpolationType } from "./enums/InterpolationType";
@@ -8,7 +9,8 @@ import {
   QuaternionKeyframe,
   UnionInterpolableKeyframe,
   Vector2Keyframe,
-  Vector3Keyframe
+  Vector3Keyframe,
+  Vector4Keyframe
 } from "./KeyFrame";
 
 /**
@@ -25,7 +27,7 @@ export class AnimationCurve {
   /** @internal */
   _valueType: InterpolableValueType;
 
-  private _currentValue: InterpolableValue;
+  private _tempValue: InterpolableValue;
   private _length: number = 0;
   private _currentIndex: number = 0;
 
@@ -48,38 +50,37 @@ export class AnimationCurve {
     }
 
     if (!this._valueSize) {
-      //CM: It's not reasonable to write here.
       if (typeof key.value == "number") {
         this._valueSize = 1;
         this._valueType = InterpolableValueType.Float;
-        this._currentValue = 0;
+        this._tempValue = 0;
       }
       if (key.value instanceof Vector2) {
         this._valueSize = 2;
         this._valueType = InterpolableValueType.Vector2;
-        this._currentValue = new Vector2();
+        this._tempValue = new Vector2();
       }
       if (key.value instanceof Vector3) {
         this._valueSize = 3;
         this._valueType = InterpolableValueType.Vector3;
-        this._currentValue = new Vector3();
+        this._tempValue = new Vector3();
       }
       if (key.value instanceof Vector4) {
         this._valueSize = 4;
         this._valueType = InterpolableValueType.Vector4;
-        this._currentValue = new Vector4();
+        this._tempValue = new Vector4();
       }
       if (key.value instanceof Quaternion) {
         this._valueSize = 4;
         this._valueType = InterpolableValueType.Quaternion;
-        this._currentValue = new Quaternion();
+        this._tempValue = new Quaternion();
       }
 
       if (key.value instanceof Float32Array) {
         const size = key.value.length;
         this._valueSize = size;
         this._valueType = InterpolableValueType.FloatArray;
-        this._currentValue = new Float32Array(size);
+        this._tempValue = new Float32Array(size);
       }
     }
     this.keys.sort((a, b) => a.time - b.time);
@@ -90,7 +91,7 @@ export class AnimationCurve {
    * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): InterpolableValue {
-    return this._evaluate(time, this._currentValue);
+    return this._evaluate(time, this._tempValue);
   }
 
   /**
@@ -125,8 +126,8 @@ export class AnimationCurve {
    * @param time - The time to sample an animation
    * @param out - The value calculated
    */
-  _evaluate(time: number, out: InterpolableValue) {
-    const { keys, interpolation } = this;
+  _evaluate(time: number, out: Exclude<InterpolableValue, number>) {
+    const { keys, interpolation, _valueType } = this;
     const { length } = this.keys;
 
     // Compute curIndex and nextIndex.
@@ -149,9 +150,9 @@ export class AnimationCurve {
     // Evaluate value.
     let value: InterpolableValue;
     if (curIndex === -1) {
-      value = (<UnionInterpolableKeyframe>keys[0]).value;
+      value = this._evaluateStep(0, out);
     } else if (nextIndex === length) {
-      value = (<UnionInterpolableKeyframe>keys[curIndex]).value;
+      value = this._evaluateStep(curIndex, out);
     } else {
       // Time between first frame and end frame.
       const curFrameTime = keys[curIndex].time;
@@ -164,7 +165,7 @@ export class AnimationCurve {
           value = this._evaluateLinear(curIndex, nextIndex, t, out);
           break;
         case InterpolationType.Step:
-          value = this._evaluateStep(nextIndex);
+          value = this._evaluateStep(curIndex, out);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
@@ -174,7 +175,12 @@ export class AnimationCurve {
     return value;
   }
 
-  private _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: InterpolableValue): InterpolableValue {
+  private _evaluateLinear(
+    frameIndex: number,
+    nextFrameIndex: number,
+    t: number,
+    out: Exclude<InterpolableValue, number>
+  ): InterpolableValue {
     const { _valueType, keys } = this;
     switch (_valueType) {
       case InterpolableValueType.Float:
@@ -202,6 +208,14 @@ export class AnimationCurve {
           <Vector3>out
         );
         return out;
+      case InterpolableValueType.Vector4:
+        Vector4.lerp(
+          (<Vector4Keyframe>keys[frameIndex]).value,
+          (<Vector4Keyframe>keys[nextFrameIndex]).value,
+          t,
+          <Vector4>out
+        );
+        return out;
       case InterpolableValueType.Quaternion:
         Quaternion.slerp(
           (<QuaternionKeyframe>keys[frameIndex]).value,
@@ -213,16 +227,33 @@ export class AnimationCurve {
     }
   }
 
-  private _evaluateStep(nextFrameIndex: number): InterpolableValue {
-    const { _valueSize, keys } = this;
-    if (_valueSize === 1) {
-      return (<UnionInterpolableKeyframe>keys[nextFrameIndex]).value;
-    } else {
-      return (<UnionInterpolableKeyframe>keys[nextFrameIndex]).value;
+  private _evaluateStep(frameIndex: number, out: Exclude<InterpolableValue, number>): InterpolableValue {
+    const { _valueType, keys } = this;
+    switch (_valueType) {
+      case InterpolableValueType.Float:
+        return (<FloatArrayKeyframe>keys[frameIndex]).value;
+      case InterpolableValueType.FloatArray:
+        const value = (<FloatArrayKeyframe>keys[frameIndex]).value;
+        for (let i = 0, n = value.length; i < n; i++) {
+          out[i] = value[i];
+        }
+        return out;
+      case InterpolableValueType.Vector2:
+      case InterpolableValueType.Vector3:
+      case InterpolableValueType.Vector4:
+      case InterpolableValueType.Quaternion:
+        (keys[frameIndex].value as IClone).cloneTo(out);
+        return out;
     }
   }
 
-  private _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number, out: InterpolableValue): InterpolableValue {
+  private _evaluateHermite(
+    frameIndex: number,
+    nextFrameIndex: number,
+    t: number,
+    dur: number,
+    out: Exclude<InterpolableValue, number>
+  ): InterpolableValue {
     const { _valueSize, keys } = this;
     const curKey = keys[frameIndex];
     const nextKey = keys[nextFrameIndex];
