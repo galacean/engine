@@ -17,7 +17,6 @@ import { TextUtils } from "./TextUtils";
  */
 export class TextRenderer extends Renderer {
   private static _tempVec3: Vector3 = new Vector3();
-  private static _tempBox: BoundingBox = new BoundingBox();
 
   /** @internal temp solution. */
   @ignoreClone
@@ -334,10 +333,8 @@ export class TextRenderer extends Renderer {
       const worldMatrix = this._customRootEntity.transform.worldMatrix;
       BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
     } else {
-      const sprite = this._sprite;
-      const localBounds = sprite && sprite.texture ? sprite.bounds : TextRenderer._tempBox;
       const worldMatrix = this._entity.transform.worldMatrix;
-      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+      BoundingBox.transform(this._sprite.bounds, worldMatrix, worldBounds);
     }
   }
 
