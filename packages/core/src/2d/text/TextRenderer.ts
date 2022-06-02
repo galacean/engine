@@ -329,19 +329,12 @@ export class TextRenderer extends Renderer {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const sprite = this._sprite;
-    if (sprite && sprite.texture) {
-      if (this._customLocalBounds && this._customRootEntity) {
-        const worldMatrix = this._customRootEntity.transform.worldMatrix;
-        BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
-      } else {
-        const localBounds = sprite.bounds;
-        const worldMatrix = this._entity.transform.worldMatrix;
-        BoundingBox.transform(localBounds, worldMatrix, worldBounds);
-      }
+    if (this._customLocalBounds && this._customRootEntity) {
+      const worldMatrix = this._customRootEntity.transform.worldMatrix;
+      BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
     } else {
-      worldBounds.min.setValue(0, 0, 0);
-      worldBounds.max.setValue(0, 0, 0);
+      const worldMatrix = this._entity.transform.worldMatrix;
+      BoundingBox.transform(this._sprite.bounds, worldMatrix, worldBounds);
     }
   }
 
@@ -378,7 +371,34 @@ export class TextRenderer extends Renderer {
     const { width, height } = trimData;
     const canvas = TextUtils.updateCanvas(width, height, trimData.data);
     this._clearTexture();
-    const { _sprite: sprite } = this;
+    const { _sprite: sprite, horizontalAlignment, verticalAlignment } = this;
+
+    // Handle the case that width or height of text is larger than real width or height.
+    const { pixelsPerUnit, pivot } = sprite;
+    switch (horizontalAlignment) {
+      case TextHorizontalAlignment.Left:
+        pivot.x = (this.width * pixelsPerUnit) / width * 0.5;
+        break;
+      case TextHorizontalAlignment.Right:
+        pivot.x = 1 - (this.width * pixelsPerUnit) / width * 0.5;
+        break;
+      case TextHorizontalAlignment.Center:
+        pivot.x = 0.5;
+        break;
+    }
+    switch (verticalAlignment) {
+      case TextVerticalAlignment.Top:
+        pivot.y = 1 - (this.height * pixelsPerUnit) / height * 0.5;
+        break;
+      case TextVerticalAlignment.Bottom:
+        pivot.y = (this.height * pixelsPerUnit) / height * 0.5;
+        break;
+      case TextVerticalAlignment.Center:
+        pivot.y = 0.5;
+        break;
+    }
+    sprite.pivot = pivot;
+
     // If add fail, set texture for sprite.
     if (!this.engine._dynamicTextAtlasManager.addSprite(sprite, canvas)) {
       const texture = new Texture2D(this.engine, width, height);
