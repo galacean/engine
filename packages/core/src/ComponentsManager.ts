@@ -2,7 +2,7 @@ import { Vector3 } from "@oasis-engine/math";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { DisorderedArray } from "./DisorderedArray";
-import { Collider } from "./physics";
+import { Collider, CharacterController } from "./physics";
 import { Renderer } from "./Renderer";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Script } from "./Script";
@@ -35,6 +35,7 @@ export class ComponentsManager {
 
   // Physics
   private _colliders: DisorderedArray<Collider> = new DisorderedArray();
+  private _characterControllers: DisorderedArray<CharacterController> = new DisorderedArray();
 
   addRenderer(renderer: Renderer) {
     renderer._rendererIndex = this._renderers.length;
@@ -67,6 +68,17 @@ export class ComponentsManager {
     const replaced = this._colliders.deleteByIndex(collider._index);
     replaced && (replaced._index = collider._index);
     collider._index = -1;
+  }
+
+  addCharacterController(controller: CharacterController) {
+    controller._index = this._characterControllers.length;
+    this._characterControllers.add(controller);
+  }
+
+  removeCharacterController(controller: CharacterController) {
+    let replaced = this._characterControllers.deleteByIndex(controller._index);
+    replaced && (replaced!._index = controller._index);
+    controller._index = -1;
   }
 
   addOnUpdateScript(script: Script) {
@@ -289,6 +301,13 @@ export class ComponentsManager {
     const elements = this._colliders._elements;
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onLateUpdate();
+    }
+  }
+
+  callCharacterControllerOnLateUpdate() {
+    let elements = this._characterControllers._elements;
+    for (let i = this._characterControllers.length - 1; i >= 0; --i) {
+      elements[i]!._onLateUpdate();
     }
   }
 

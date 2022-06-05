@@ -1,4 +1,4 @@
-import { IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterControllerManager, ICharacterController, IPhysicsManager } from "@oasis-engine/design";
 import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -153,7 +153,28 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Calculate the boundingbox in world space from boxCollider.
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
+  addCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
+  removeCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCollider }
+   */
+  createControllerManager(): ICharacterControllerManager {
+    throw "Physics-lite don't support createControllerManager. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * Calculate the bounding box in world space from boxCollider.
    * @param boxCollider - The boxCollider to calculate
    * @param out - The calculated boundingBox
    */

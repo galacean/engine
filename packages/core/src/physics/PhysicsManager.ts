@@ -1,15 +1,29 @@
-import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterControllerManager, IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
-import { ColliderShape } from "./shape/ColliderShape";
+import { ColliderShape } from "./shape";
+import { CharacterController } from "./characterkinematic";
+import { Entity } from "../Entity";
+
+export type TriggerObject = ColliderShape | CharacterController;
+
+function getEntity(object: TriggerObject): Entity {
+  if (object instanceof ColliderShape) {
+    return object.collider.entity;
+  } else {
+    return object.entity;
+  }
+}
 
 /**
  * A physics manager is a collection of bodies and constraints which can interact.
  */
 export class PhysicsManager {
+  /** @internal */
+  static _idGenerator: number = 0;
   /** @internal */
   static _nativePhysics: IPhysics;
   /** @internal */
@@ -19,19 +33,20 @@ export class PhysicsManager {
   private _restTime: number = 0;
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
+  private _nativeCharacterControllerManager: ICharacterControllerManager;
   private _nativePhysicsManager: IPhysicsManager;
-  private _physicalObjectsMap: Record<number, ColliderShape> = {};
+  private _physicalObjectsMap: Record<number, TriggerObject> = {};
   private _onContactEnter = (obj1: number, obj2: number) => {
     const shape1 = this._physicalObjectsMap[obj1];
     const shape2 = this._physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
+    let scripts = getEntity(shape1)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onCollisionEnter(shape2);
     }
 
-    scripts = shape2.collider.entity._scripts;
+    scripts = getEntity(shape2)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onCollisionEnter(shape1);
@@ -41,13 +56,13 @@ export class PhysicsManager {
     const shape1 = this._physicalObjectsMap[obj1];
     const shape2 = this._physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
+    let scripts = getEntity(shape1)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onCollisionExit(shape2);
     }
 
-    scripts = shape2.collider.entity._scripts;
+    scripts = getEntity(shape2)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onCollisionExit(shape1);
@@ -57,13 +72,13 @@ export class PhysicsManager {
     const shape1 = this._physicalObjectsMap[obj1];
     const shape2 = this._physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
+    let scripts = getEntity(shape1)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onCollisionStay(shape2);
     }
 
-    scripts = shape2.collider.entity._scripts;
+    scripts = getEntity(shape2)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onCollisionStay(shape1);
@@ -73,13 +88,13 @@ export class PhysicsManager {
     const shape1 = this._physicalObjectsMap[obj1];
     const shape2 = this._physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
+    let scripts = getEntity(shape1)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onTriggerEnter(shape2);
     }
 
-    scripts = shape2.collider.entity._scripts;
+    scripts = getEntity(shape2)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onTriggerEnter(shape1);
@@ -90,13 +105,13 @@ export class PhysicsManager {
     const shape1 = this._physicalObjectsMap[obj1];
     const shape2 = this._physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
+    let scripts = getEntity(shape1)._scripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onTriggerExit(shape2);
     }
 
-    scripts = shape2.collider.entity._scripts;
+    scripts = getEntity(shape2)._scripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onTriggerExit(shape1);
@@ -107,13 +122,13 @@ export class PhysicsManager {
     const shape1 = this._physicalObjectsMap[obj1];
     const shape2 = this._physicalObjectsMap[obj2];
 
-    let scripts = shape1.collider.entity._scripts;
+    let scripts = getEntity(shape1)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onTriggerStay(shape2);
     }
 
-    scripts = shape2.collider.entity._scripts;
+    scripts = getEntity(shape2)._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
       script._waitHandlingInValid || script.onTriggerStay(shape1);
@@ -136,6 +151,13 @@ export class PhysicsManager {
       value.cloneTo(gravity);
     }
     this._nativePhysicsManager.setGravity(gravity);
+  }
+
+  /**
+   * The character controller manager.
+   */
+  get characterControllerManager(): ICharacterControllerManager {
+    return this._nativeCharacterControllerManager;
   }
 
   constructor(engine: Engine) {
@@ -241,7 +263,7 @@ export class PhysicsManager {
 
     if (hitResult != undefined) {
       const result = this._nativePhysicsManager.raycast(ray, distance, (idx, distance, position, normal) => {
-        hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
+        hitResult.entity = getEntity(this._physicalObjectsMap[idx]);
         hitResult.distance = distance;
         normal.cloneTo(hitResult.normal);
         position.cloneTo(hitResult.point);
@@ -279,6 +301,7 @@ export class PhysicsManager {
       componentsManager.callScriptOnPhysicsUpdate();
       componentsManager.callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
+      componentsManager.callCharacterControllerOnLateUpdate();
       componentsManager.callColliderOnLateUpdate();
     }
   }
@@ -319,5 +342,33 @@ export class PhysicsManager {
    */
   _removeCollider(collider: Collider): void {
     this._nativePhysicsManager.removeCollider(collider._nativeCollider);
+  }
+
+  /**
+   * Add CharacterController into the manager.
+   * @param characterController The Character Controller.
+   * @internal
+   */
+  _addCharacterController(characterController: CharacterController) {
+    this._physicalObjectsMap[characterController.id] = characterController;
+    this._nativePhysicsManager.addCharacterController(characterController._nativeCharacterController);
+  }
+
+  /**
+   * Remove CharacterController.
+   * @param characterController The Character Controller.
+   * @internal
+   */
+  _removeCharacterController(characterController: CharacterController) {
+    delete this._physicalObjectsMap[characterController.id];
+    this._nativePhysicsManager.removeCharacterController(characterController._nativeCharacterController);
+  }
+
+  /**
+   * Create character controller manager.
+   * @internal
+   */
+  _createCharacterControllerManager() {
+    this._nativeCharacterControllerManager = this._nativePhysicsManager.createControllerManager();
   }
 }
