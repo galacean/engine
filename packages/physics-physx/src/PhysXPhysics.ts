@@ -1,6 +1,5 @@
 import {
   IBoxColliderShape,
-  ICapsuleCharacterControllerDesc,
   ICapsuleColliderShape,
   IDynamicCollider,
   IPhysics,
@@ -19,8 +18,6 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
-import { PhysXCollider } from "./PhysXCollider";
-import { PhysXCapsuleCharacterControllerDesc } from "./characterkinematic/PhysXCapsuleCharacterControllerDesc";
 
 /**
  * PhysX object creation.
@@ -176,10 +173,6 @@ export class PhysXPhysics {
     material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
     return new PhysXCapsuleColliderShape(uniqueID, radius, height, material);
-  }
-
-  static createCapsuleCharacterControllerDesc(): ICapsuleCharacterControllerDesc {
-    return new PhysXCapsuleCharacterControllerDesc();
   }
 
   private static _init(PHYSX: any): void {

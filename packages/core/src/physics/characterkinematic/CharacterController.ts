@@ -4,6 +4,7 @@ import { Vector3 } from "@oasis-engine/math";
 import { PhysicsMaterial } from "../PhysicsMaterial";
 import { PhysicsManager } from "../PhysicsManager";
 import { Entity } from "../../Entity";
+import { ColliderShape } from "../shape";
 
 export enum ControllerNonWalkableMode {
   /// Stops character from climbing up non-walkable slopes, but doesn't move it otherwise
@@ -168,7 +169,24 @@ export class CharacterController extends Component {
     this._nativeCharacterController.resize(height);
   }
 
-  /** @internal */
+  setShape(shape: ColliderShape): void {
+    this._nativeCharacterController = this.engine.physicsManager.characterControllerManager.createController(
+      shape._nativeShape
+    );
+    this._nativeCharacterController.setUniqueID(this._id);
+    this.engine.physicsManager._addCharacterController(this);
+  }
+
+  /**
+   * @internal
+   */
+  _onUpdate() {
+    this._nativeCharacterController.updateShape();
+  }
+
+  /**
+   * @internal
+   */
   _onLateUpdate() {
     let position = this.entity.transform!.worldPosition;
     this._nativeCharacterController.getPosition(position);

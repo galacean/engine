@@ -7,8 +7,7 @@ import {
   ICapsuleColliderShape,
   IDynamicCollider,
   IStaticCollider,
-  IPlaneColliderShape,
-  ICapsuleCharacterControllerDesc
+  IPlaneColliderShape
 } from "@oasis-engine/design";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "oasis-engine";
@@ -18,7 +17,6 @@ import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LitePhysicsManager } from "./LitePhysicsManager";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
-import { LiteCollider } from "./LiteCollider";
 
 @StaticInterfaceImplement<IPhysics>()
 export class LitePhysics {
@@ -105,9 +103,5 @@ export class LitePhysics {
     material: LitePhysicsMaterial
   ): ICapsuleColliderShape {
     throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
-  }
-
-  static createCapsuleCharacterControllerDesc(): ICapsuleCharacterControllerDesc {
-    throw "Physics-lite don't support createCapsuleCharacterControllerDesc. Use Physics-PhysX instead!";
   }
 }

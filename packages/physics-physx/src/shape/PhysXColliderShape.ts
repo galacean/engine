@@ -32,6 +32,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
   private _pxMaterials: any[] = new Array(1);
 
   /** @internal */
+  _isDirty: boolean = false;
+  /** @internal */
   _pxShape: any;
   /** @internal */
   _pxGeometry: any;

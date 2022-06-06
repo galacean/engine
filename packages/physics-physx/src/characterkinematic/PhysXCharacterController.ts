@@ -1,6 +1,7 @@
 import { ICharacterController } from "@oasis-engine/design";
-import { Vector3 } from "oasis-engine";
+import { BoxColliderShape, CapsuleColliderShape, Vector3 } from "oasis-engine";
 import { PhysXPhysics } from "../PhysXPhysics";
+import { PhysXColliderShape } from "../shape";
 
 /**
  * Base class for character controllers.
@@ -10,6 +11,7 @@ export class PhysXCharacterController implements ICharacterController {
   _id: number;
   /** @internal */
   _pxController: any;
+  private _shape: PhysXColliderShape;
 
   /**
    * {@inheritDoc ICharacterController.move }
@@ -105,5 +107,28 @@ export class PhysXCharacterController implements ICharacterController {
   setUniqueID(id: number) {
     this._id = id;
     this._pxController.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(id, 0, 0, 0));
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.updateShape }
+   */
+  updateShape(): void {
+    const controller = this._pxController;
+    const shape = this._shape;
+    if (shape._isDirty) {
+      if (shape instanceof BoxColliderShape) {
+        controller.setHalfHeight(shape.size.x);
+        controller.setHalfSideExtent(shape.size.y);
+        controller.setHalfForwardExtent(shape.size.z);
+      } else if (shape instanceof CapsuleColliderShape) {
+        controller.setRadius(shape.radius);
+        controller.setHeight(shape.height);
+      }
+      shape._isDirty = false;
+    }
+  }
+
+  setShape(value: PhysXColliderShape): void {
+    this._shape = value;
   }
 }

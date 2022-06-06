@@ -4,8 +4,6 @@ import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape, IPlaneC
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
-import { ICollider } from "./ICollider";
-import { ICapsuleCharacterControllerDesc } from "./characterkinematic";
 
 /**
  * The interface of physics creation.
@@ -95,7 +93,4 @@ export interface IPhysics {
     height: number,
     material: IPhysicsMaterial
   ): ICapsuleColliderShape;
-
-  //MARK: - Character Controller
-  createCapsuleCharacterControllerDesc(): ICapsuleCharacterControllerDesc;
 }

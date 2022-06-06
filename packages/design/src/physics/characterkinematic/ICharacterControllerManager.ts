@@ -1,6 +1,6 @@
 import { Vector3 } from "@oasis-engine/math";
-import { ICharacterControllerDesc } from "./ICharacterControllerDesc";
 import { ICharacterController } from "./ICharacterController";
+import { IColliderShape } from "../shape";
 
 /**
  * Manages an array of character controllers.
@@ -13,9 +13,9 @@ export interface ICharacterControllerManager {
 
   /**
    * Creates a new character controller.
-   * @param desc The controllers descriptor
+   * @param shape The controllers shape
    */
-  createController(desc: ICharacterControllerDesc): ICharacterController;
+  createController(shape: IColliderShape): ICharacterController;
 
   /**
    * Computes character-character interactions.

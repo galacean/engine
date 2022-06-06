@@ -35,6 +35,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc ICapsuleColliderShape.setRadius }
    */
   setRadius(value: number): void {
+    this._isDirty = true;
     this._radius = value;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
@@ -54,6 +55,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc ICapsuleColliderShape.setHeight }
    */
   setHeight(value: number): void {
+    this._isDirty = true;
     this._halfHeight = value * 0.5;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
@@ -73,6 +75,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc ICapsuleColliderShape.setUpAxis }
    */
   setUpAxis(upAxis: ColliderShapeUpAxis): void {
+    this._isDirty = true;
     this._upAxis = upAxis;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:

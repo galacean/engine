@@ -3,7 +3,7 @@ import { Ray, Vector3 } from "oasis-engine";
 import { ICharacterControllerManager, IPhysicsManager } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
 import { DisorderedArray } from "./DisorderedArray";
-import { PhysXColliderShape } from "./shape/PhysXColliderShape";
+import { PhysXColliderShape } from "./shape";
 import { PhysXCharacterControllerManager } from "./characterkinematic/PhysXCharacterControllerManager";
 import { PhysXCharacterController } from "./characterkinematic/PhysXCharacterController";
 

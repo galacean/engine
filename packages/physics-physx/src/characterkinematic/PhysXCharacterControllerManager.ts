@@ -1,7 +1,8 @@
 import { ICharacterControllerManager } from "@oasis-engine/design";
-import { Vector3 } from "oasis-engine";
-import { PhysXCapsuleCharacterController } from "./PhysXCapsuleCharacterController";
-import { PhysXCapsuleCharacterControllerDesc } from "./PhysXCapsuleCharacterControllerDesc";
+import { BoxColliderShape, CapsuleColliderShape, Vector3 } from "oasis-engine";
+import { PhysXCharacterController } from "./PhysXCharacterController";
+import { PhysXPhysics } from "../PhysXPhysics";
+import { PhysXColliderShape } from "../shape";
 
 /**
  * Manages an array of character controllers.
@@ -20,10 +21,24 @@ export class PhysXCharacterControllerManager implements ICharacterControllerMana
   /**
    * {@inheritDoc ICharacterControllerManager.createController }
    */
-  createController(desc: PhysXCapsuleCharacterControllerDesc): PhysXCapsuleCharacterController {
-    let pxController = this._pxControllerManager.createController(desc._pxControllerDesc);
-    let controller = new PhysXCapsuleCharacterController();
+  createController(shape: PhysXColliderShape): PhysXCharacterController {
+    let desc: any;
+    if (shape instanceof BoxColliderShape) {
+      desc = PhysXPhysics._physX.PxBoxControllerDesc();
+      desc.halfHeight = shape.size.x;
+      desc.halfSideExtent = shape.size.y;
+      desc.halfForwardExtent = shape.size.z;
+    } else if (shape instanceof CapsuleColliderShape) {
+      desc = PhysXPhysics._physX.PxCapsuleControllerDesc();
+      desc.radius = shape.radius;
+      desc.height = shape.height;
+      desc.climbingMode = 1; // constraint mode
+    }
+
+    let pxController = this._pxControllerManager.createController(desc);
+    let controller = new PhysXCharacterController();
     controller._pxController = pxController;
+    controller.setShape(shape);
     return controller;
   }
 

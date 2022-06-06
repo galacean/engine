@@ -83,4 +83,9 @@ export interface ICharacterController {
    * @param id unique id
    */
   setUniqueID(id: number): void;
+
+  /**
+   * Update collider shape
+   */
+  updateShape(): void;
 }
