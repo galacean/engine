@@ -405,11 +405,11 @@ export class AnimationCurve {
       }
       case InterpolableValueType.FloatArray: {
         const t0 = (<FloatArrayKeyframe>curKey).outTangent,
-        t1 = (<FloatArrayKeyframe>nextKey).inTangent,
-        p0 = (<FloatArrayKeyframe>curKey).value,
-        p1 = (<FloatArrayKeyframe>nextKey).value,
-        length = p0.length;
-      
+          t1 = (<FloatArrayKeyframe>nextKey).inTangent,
+          p0 = (<FloatArrayKeyframe>curKey).value,
+          p1 = (<FloatArrayKeyframe>nextKey).value,
+          length = p0.length;
+
         for (let i = 0; i < length; ++i) {
           if (Number.isFinite(t0[i]) && Number.isFinite(t1[i])) {
             const t2 = t * t;
@@ -418,7 +418,7 @@ export class AnimationCurve {
             const b = t3 - 2.0 * t2 + t;
             const c = t3 - t2;
             const d = -2.0 * t3 + 3.0 * t2;
-            this._currentValue[i] =  a * p0[i] + b * t0[i] * dur + c * t1[i] * dur + d * p1[i];
+            this._currentValue[i] = a * p0[i] + b * t0[i] * dur + c * t1[i] * dur + d * p1[i];
           } else {
             this._currentValue[i] = (<FloatKeyframe>curKey).value[i];
           }

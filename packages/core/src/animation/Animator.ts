@@ -604,14 +604,7 @@ export class Animator extends Component {
           ? this._evaluateCurve(property, destCurves[destCurveIndex].curve, destClipTime, additive)
           : defaultValue;
 
-      this._applyCrossClipValue(
-        curveOwner,
-        srcValue,
-        destValue,
-        crossWeight,
-        weight,
-        additive
-      );
+      this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
     }
   }
 
@@ -659,14 +652,7 @@ export class Animator extends Component {
           ? this._evaluateCurve(curveOwner.curveBinding.property, curves[destCurveIndex].curve, destClipTime, additive)
           : curveOwner.defaultValue;
 
-      this._applyCrossClipValue(
-        curveOwner,
-        curveOwner.fixedPoseValue,
-        destValue,
-        crossWeight,
-        weight,
-        additive
-      );
+      this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
     }
   }
 
@@ -774,7 +760,7 @@ export class Animator extends Component {
       } else {
         switch (curveBinding.curve._valueType) {
           case InterpolableValueType.Float:
-            propertyReference.mounted[propertyReference.propertyName] = <number>value * weight
+            propertyReference.mounted[propertyReference.propertyName] = <number>value * weight;
             break;
           case InterpolableValueType.FloatArray:
             const arr = new Float32Array();
