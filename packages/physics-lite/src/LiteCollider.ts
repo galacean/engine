@@ -60,6 +60,11 @@ export abstract class LiteCollider implements ICollider {
   }
 
   /**
+   * {@inheritDoc ICollider.destroy }
+   */
+  destroy(): void {}
+
+  /**
    * @internal
    */
   _raycast(ray: Ray, hit: LiteHitResult): boolean {

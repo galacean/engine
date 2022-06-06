@@ -1,7 +1,9 @@
 import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Camera } from "./Camera";
 import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
+import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -9,12 +11,14 @@ import { Shader } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { UpdateFlag } from "./UpdateFlag";
+import { Transform } from "./Transform";
 
 /**
  * Renderable component.
+ * @decorator `@dependentComponents(Transform)`
  */
-export abstract class Renderer extends Component {
+@dependentComponents(Transform)
+export class Renderer extends Component {
   private static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
   private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
   private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
@@ -42,17 +46,13 @@ export abstract class Renderer extends Component {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
 
-  /** @internal temp solution. */
-  @ignoreClone
-  _renderSortId: number = 0;
-
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @shallowClone
   protected _materials: Material[] = [];
 
   @ignoreClone
-  private _transformChangeFlag: UpdateFlag;
+  private _transformChangeFlag: BoolUpdateFlag;
   @deepClone
   private _bounds: BoundingBox = new BoundingBox(new Vector3(), new Vector3());
   @ignoreClone
@@ -65,6 +65,8 @@ export abstract class Renderer extends Component {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
+  @ignoreClone
+  private _priority: number = 0;
 
   /**
    * Material count.
@@ -91,6 +93,17 @@ export abstract class Renderer extends Component {
       changeFlag.flag = false;
     }
     return this._bounds;
+  }
+
+  /**
+   * The render priority of the renderer, lower values are rendered first and higher values are rendered last.
+   */
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    this._priority = value;
   }
 
   /**
@@ -285,7 +298,9 @@ export abstract class Renderer extends Component {
   /**
    * @internal
    */
-  abstract _render(camera: Camera): void;
+  _render(camera: Camera): void {
+    throw "not implement";
+  }
 
   /**
    * @internal

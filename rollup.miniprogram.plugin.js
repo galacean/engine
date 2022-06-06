@@ -10,6 +10,9 @@ function register(name) {
 }
 
 const adapterArray = [
+  "btoa",
+  "URL",
+  "Blob",
   "window",
   "atob",
   "devicePixelRatio",
@@ -26,10 +29,13 @@ const adapterArray = [
   "Node",
   "requestAnimationFrame",
   "cancelAnimationFrame",
-  "WebGLRenderingContext",
   "screen",
   "XMLHttpRequest",
-  "performance"
+  "performance",
+  "WebGLRenderingContext",
+  "WebGL2RenderingContext",
+  "ImageData",
+  "location"
 ];
 const adapterVars = {};
 

@@ -111,8 +111,8 @@ export class Vector2 implements IClone {
    */
   static lerp(left: Vector2, right: Vector2, t: number, out: Vector2): void {
     const { _x, _y } = left;
-    out._x = _x + (right.x - _x) * t;
-    out._y = _y + (right.y - _y) * t;
+    out._x = _x + (right._x - _x) * t;
+    out._y = _y + (right._y - _y) * t;
     out._onValueChanged && out._onValueChanged();
   }
 
@@ -189,7 +189,7 @@ export class Vector2 implements IClone {
   /**
    * The x component of the vector.
    */
-  public get x() {
+  public get x(): number {
     return this._x;
   }
 
@@ -201,7 +201,7 @@ export class Vector2 implements IClone {
   /**
    * The y component of the vector.
    */
-  public get y() {
+  public get y(): number {
     return this._y;
   }
 
@@ -252,8 +252,8 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   add(right: Vector2): Vector2 {
-    this._x += right.x;
-    this._y += right.y;
+    this._x += right._x;
+    this._y += right._y;
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -264,8 +264,8 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   subtract(right: Vector2): Vector2 {
-    this._x -= right.x;
-    this._y -= right.y;
+    this._x -= right._x;
+    this._y -= right._y;
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -276,8 +276,8 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   multiply(right: Vector2): Vector2 {
-    this._x *= right.x;
-    this._y *= right.y;
+    this._x *= right._x;
+    this._y *= right._y;
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -288,8 +288,8 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   divide(right: Vector2): Vector2 {
-    this._x /= right.x;
-    this._y /= right.y;
+    this._x /= right._x;
+    this._y /= right._y;
     this._onValueChanged && this._onValueChanged();
     return this;
   }

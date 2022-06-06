@@ -1,5 +1,5 @@
-import { AnimatorControllerParameter, AnimatorControllerParameterValue } from './AnimatorControllerParameter';
-import { UpdateFlag } from "../UpdateFlag";
+import { AnimatorControllerParameter, AnimatorControllerParameterValue } from "./AnimatorControllerParameter";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 
@@ -10,8 +10,8 @@ export class AnimatorController {
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   private _layers: AnimatorControllerLayer[] = [];
   private _layersMap: Record<string, AnimatorControllerLayer> = {};
-  private _parameters	: AnimatorControllerParameter[] = [];
-  private _parametersMap	: Record<string, AnimatorControllerParameter> = {};
+  private _parameters: AnimatorControllerParameter[] = [];
+  private _parametersMap: Record<string, AnimatorControllerParameter> = {};
 
   /**
    * The layers in the controller.
@@ -33,7 +33,7 @@ export class AnimatorController {
    * @param defaultValue - The defaultValue of the parameter
    */
   addParameter(name: string, defaultValue?: AnimatorControllerParameterValue): AnimatorControllerParameter;
-  
+
   /**
    * Add a parameter to the controller.
    * @param parameter - The parameter
@@ -41,7 +41,7 @@ export class AnimatorController {
   addParameter(parameter: AnimatorControllerParameter): AnimatorControllerParameter;
 
   addParameter(param: AnimatorControllerParameter | string, defaultValue?: AnimatorControllerParameterValue) {
-    if (typeof param === 'string') {
+    if (typeof param === "string") {
       const parameter = new AnimatorControllerParameter();
       parameter.name = param;
       parameter.value = defaultValue;
@@ -63,7 +63,7 @@ export class AnimatorController {
     const index = this._parameters.indexOf(parameter);
     if (index !== -1) {
       this._parameters.splice(index, 1);
-      delete this._parametersMap[parameter.name]
+      delete this._parametersMap[parameter.name];
     }
   }
 
@@ -129,11 +129,11 @@ export class AnimatorController {
   /**
    * @internal
    */
-  _registerChangeFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  _registerChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
   private _distributeUpdateFlag(): void {
-    this._updateFlagManager.distribute();
+    this._updateFlagManager.dispatch();
   }
 }

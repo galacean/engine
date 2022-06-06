@@ -206,7 +206,7 @@ export class Quaternion implements IClone {
    * @param out - The inverse of the specified quaternion
    */
   static invert(a: Quaternion, out: Quaternion): void {
-    const { x, y, z, w } = a;
+    const { _x: x, _y: y, _z: z, _w: w } = a;
     const dot = x * x + y * y + z * z + w * w;
     if (dot > MathUtil.zeroTolerance) {
       const invDot = 1.0 / dot;
@@ -445,7 +445,7 @@ export class Quaternion implements IClone {
   /**
    * The x component of the quaternion.
    */
-  public get x() {
+  public get x(): number {
     return this._x;
   }
 
@@ -457,7 +457,7 @@ export class Quaternion implements IClone {
   /**
    * The y component of the quaternion.
    */
-  public get y() {
+  public get y(): number {
     return this._y;
   }
 
@@ -469,13 +469,23 @@ export class Quaternion implements IClone {
   /**
    * The z component of the quaternion.
    */
-  public get z() {
+  public get z(): number {
     return this._z;
   }
 
   public set z(value: number) {
     this._z = value;
     this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * Indicting whether this instance is normalized.
+   */
+  public get normalized(): boolean {
+    return (
+      Math.abs(this._x * this._x + this._y * this._y + this._z * this._z + this._w * this._w - 1) <
+      MathUtil.zeroTolerance
+    );
   }
 
   /**

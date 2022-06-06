@@ -1,21 +1,25 @@
-import { Component } from "../Component";
-import { ignoreClone } from "../clone/CloneManager";
 import { ICollider } from "@oasis-engine/design";
-import { ColliderShape } from "./shape/ColliderShape";
-import { UpdateFlag } from "../UpdateFlag";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
+import { ignoreClone } from "../clone/CloneManager";
+import { Component } from "../Component";
+import { dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
+import { Transform } from "../Transform";
+import { ColliderShape } from "./shape/ColliderShape";
 
 /**
- * Abstract class for collider shapes.
+ * Base class for all colliders.
+ * @decorator `@dependentComponents(Transform)`
  */
-export abstract class Collider extends Component {
+@dependentComponents(Transform)
+export class Collider extends Component {
   /** @internal */
   @ignoreClone
   _index: number = -1;
   /** @internal */
   _nativeCollider: ICollider;
 
-  protected _updateFlag: UpdateFlag;
+  protected _updateFlag: BoolUpdateFlag;
 
   private _shapes: ColliderShape[] = [];
 
@@ -26,7 +30,10 @@ export abstract class Collider extends Component {
     return this._shapes;
   }
 
-  protected constructor(entity: Entity) {
+  /**
+   * @internal
+   */
+  constructor(entity: Entity) {
     super(entity);
     this._updateFlag = this.entity.transform.registerWorldChangeFlag();
   }
@@ -68,8 +75,10 @@ export abstract class Collider extends Component {
   clearShapes(): void {
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      this._nativeCollider.removeShape(shapes[i]._nativeShape);
-      this.engine.physicsManager._removeColliderShape(shapes[i]);
+      const shape = shapes[i];
+      this._nativeCollider.removeShape(shape._nativeShape);
+      this.engine.physicsManager._removeColliderShape(shape);
+      shape._destroy();
     }
     shapes.length = 0;
   }
@@ -119,5 +128,6 @@ export abstract class Collider extends Component {
    */
   _onDestroy() {
     this.clearShapes();
+    this._nativeCollider.destroy();
   }
 }

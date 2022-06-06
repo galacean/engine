@@ -1,35 +1,33 @@
 import {
-  Camera, CameraClearFlags, Canvas,
+  Camera,
+  CameraClearFlags,
+  Canvas,
   ColorWriteMask,
   Engine,
   GLCapabilityType,
   IHardwareRenderer,
-  IPlatformRenderColorTexture,
-  IPlatformRenderDepthTexture,
   IPlatformRenderTarget,
   IPlatformTexture2D,
-  IPlatformTextureCubeMap,
+  IPlatformTextureCube,
   Logger,
   Mesh,
-  RenderColorTexture,
-  RenderDepthTexture,
   RenderTarget,
   SubMesh,
   Texture2D,
-  TextureCubeMap
+  Texture2DArray,
+  TextureCube
 } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { Color, Vector4 } from "@oasis-engine/math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
-import { GLRenderColorTexture } from "./GLRenderColorTexture";
-import { GLRenderDepthTexture } from "./GLRenderDepthTexture";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLTexture } from "./GLTexture";
 import { GLTexture2D } from "./GLTexture2D";
-import { GLTextureCubeMap } from "./GLTextureCubeMap";
+import { GLTexture2DArray } from "./GLTexture2DArray";
+import { GLTextureCube } from "./GLTextureCube";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
 
@@ -57,6 +55,9 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
  * WebGL renderer, including WebGL1.0 and WebGL2.0.
  */
 export class WebGLRenderer implements IHardwareRenderer {
+  /** @internal */
+  _readFrameBuffer: WebGLFramebuffer;
+
   _currentBind: any;
 
   private _options: WebGLRendererOptions;
@@ -156,16 +157,12 @@ export class WebGLRenderer implements IHardwareRenderer {
     return new GLTexture2D(this, texture2D);
   }
 
-  createPlatformTextureCubeMap(textureCube: TextureCubeMap): IPlatformTextureCubeMap {
-    return new GLTextureCubeMap(this, textureCube);
+  createPlatformTexture2DArray(texture2D: Texture2DArray): GLTexture2DArray {
+    return new GLTexture2DArray(this, texture2D);
   }
 
-  createPlatformRenderColorTexture(texture: RenderColorTexture): IPlatformRenderColorTexture {
-    return new GLRenderColorTexture(this, texture);
-  }
-
-  createPlatformRenderDepthTexture(texture: RenderDepthTexture): IPlatformRenderDepthTexture {
-    return new GLRenderDepthTexture(this, texture);
+  createPlatformTextureCube(textureCube: TextureCube): IPlatformTextureCube {
+    return new GLTextureCube(this, textureCube);
   }
 
   createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget {
