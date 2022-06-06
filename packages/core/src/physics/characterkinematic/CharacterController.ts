@@ -180,7 +180,7 @@ export class CharacterController extends Component {
    * @override
    * */
   _onEnable() {
-    this.engine._componentsManager.addCharacterController(this);
+    this.engine.physicsManager._addCharacterController(this);
   }
 
   /**
@@ -188,7 +188,6 @@ export class CharacterController extends Component {
    *  @override
    * */
   _onDisable() {
-    this.engine.physicsManager!._removeCharacterController(this);
-    this.engine._componentsManager.removeCharacterController(this);
+    this.engine.physicsManager._removeCharacterController(this);
   }
 }

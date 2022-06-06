@@ -7,6 +7,7 @@ import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
 import { CharacterController } from "./characterkinematic";
 import { Entity } from "../Entity";
+import { DisorderedArray } from "../DisorderedArray";
 
 export type TriggerObject = ColliderShape | CharacterController;
 
@@ -31,6 +32,9 @@ export class PhysicsManager {
 
   private _engine: Engine;
   private _restTime: number = 0;
+
+  private _colliders: DisorderedArray<Collider> = new DisorderedArray();
+  private _characterControllers: DisorderedArray<CharacterController> = new DisorderedArray();
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativeCharacterControllerManager: ICharacterControllerManager;
@@ -299,10 +303,10 @@ export class PhysicsManager {
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
-      componentsManager.callColliderOnUpdate();
+      this.callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
-      componentsManager.callCharacterControllerOnLateUpdate();
-      componentsManager.callColliderOnLateUpdate();
+      this.callCharacterControllerOnLateUpdate();
+      this.callColliderOnLateUpdate();
     }
   }
 
@@ -332,6 +336,9 @@ export class PhysicsManager {
    * @internal
    */
   _addCollider(collider: Collider): void {
+    collider._index = this._colliders.length;
+    this._colliders.add(collider);
+
     this._nativePhysicsManager.addCollider(collider._nativeCollider);
   }
 
@@ -341,6 +348,10 @@ export class PhysicsManager {
    * @internal
    */
   _removeCollider(collider: Collider): void {
+    const replaced = this._colliders.deleteByIndex(collider._index);
+    replaced && (replaced._index = collider._index);
+    collider._index = -1;
+
     this._nativePhysicsManager.removeCollider(collider._nativeCollider);
   }
 
@@ -350,8 +361,15 @@ export class PhysicsManager {
    * @internal
    */
   _addCharacterController(characterController: CharacterController) {
-    this._physicalObjectsMap[characterController.id] = characterController;
-    this._nativePhysicsManager.addCharacterController(characterController._nativeCharacterController);
+    if (characterController._index === -1) {
+      characterController._index = this._characterControllers.length;
+      this._characterControllers.add(characterController);
+    }
+
+    if (characterController._nativeCharacterController) {
+      this._physicalObjectsMap[characterController.id] = characterController;
+      this._nativePhysicsManager.addCharacterController(characterController._nativeCharacterController);
+    }
   }
 
   /**
@@ -360,6 +378,10 @@ export class PhysicsManager {
    * @internal
    */
   _removeCharacterController(characterController: CharacterController) {
+    let replaced = this._characterControllers.deleteByIndex(characterController._index);
+    replaced && (replaced!._index = characterController._index);
+    characterController._index = -1;
+
     delete this._physicalObjectsMap[characterController.id];
     this._nativePhysicsManager.removeCharacterController(characterController._nativeCharacterController);
   }
@@ -370,5 +392,26 @@ export class PhysicsManager {
    */
   _createCharacterControllerManager() {
     this._nativeCharacterControllerManager = this._nativePhysicsManager.createControllerManager();
+  }
+
+  callColliderOnUpdate(): void {
+    const elements = this._colliders._elements;
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
+      elements[i]._onUpdate();
+    }
+  }
+
+  callColliderOnLateUpdate(): void {
+    const elements = this._colliders._elements;
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
+      elements[i]._onLateUpdate();
+    }
+  }
+
+  callCharacterControllerOnLateUpdate() {
+    let elements = this._characterControllers._elements;
+    for (let i = this._characterControllers.length - 1; i >= 0; --i) {
+      elements[i]!._onLateUpdate();
+    }
   }
 }

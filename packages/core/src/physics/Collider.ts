@@ -110,7 +110,6 @@ export class Collider extends Component {
    */
   _onEnable() {
     this.engine.physicsManager._addCollider(this);
-    this.engine._componentsManager.addCollider(this);
   }
 
   /**
@@ -119,7 +118,6 @@ export class Collider extends Component {
    */
   _onDisable() {
     this.engine.physicsManager._removeCollider(this);
-    this.engine._componentsManager.removeCollider(this);
   }
 
   /**
