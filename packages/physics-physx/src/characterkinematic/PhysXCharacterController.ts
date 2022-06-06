@@ -127,7 +127,10 @@ export class PhysXCharacterController implements ICharacterController {
     this._pxController.release();
   }
 
-  setShape(value: PhysXColliderShape): void {
+  /**
+   * @internal
+   */
+  _setShape(value: PhysXColliderShape): void {
     this._shape = value;
   }
 }

@@ -168,14 +168,15 @@ export class CharacterController extends Collider {
       if (oldCollider) {
         oldCollider.removeShape(shape);
       }
-      this._shapes.push(shape);
-      this.engine.physicsManager._addColliderShape(shape);
-      shape._collider = this;
-
+      // create controller first which will examine shape is proper.
       this._nativeCharacterController = this.engine.physicsManager.characterControllerManager.createController(
         shape._nativeShape
       );
       this.engine.physicsManager._addCollider(this);
+
+      this._shapes.push(shape);
+      this.engine.physicsManager._addColliderShape(shape);
+      shape._collider = this;
     }
   }
 
@@ -203,13 +204,11 @@ export class CharacterController extends Collider {
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      this._nativeCharacterController.setPosition(transform.worldPosition);
-      this._updateFlag.flag = false;
+      this.setPosition(transform.worldPosition);
 
       const worldScale = transform.lossyWorldScale;
-      for (let i = 0, n = this.shapes.length; i < n; i++) {
-        this.shapes[i]._nativeShape.setWorldScale(worldScale);
-      }
+      this.resize(Math.max(worldScale.x, worldScale.y, worldScale.z));
+      this._updateFlag.flag = false;
     }
     this._nativeCharacterController.updateShape();
   }

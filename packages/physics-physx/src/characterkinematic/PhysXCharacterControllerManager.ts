@@ -40,7 +40,7 @@ export class PhysXCharacterControllerManager implements ICharacterControllerMana
     let pxController = this._pxControllerManager.createController(desc);
     let controller = new PhysXCharacterController();
     controller._pxController = pxController;
-    controller.setShape(shape);
+    controller._setShape(shape);
     return controller;
   }
 
