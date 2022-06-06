@@ -33,6 +33,8 @@ export class PhysXCharacterControllerManager implements ICharacterControllerMana
       desc.radius = shape.radius;
       desc.height = shape.height;
       desc.climbingMode = 1; // constraint mode
+    } else {
+      throw "unsupported shape type";
     }
 
     let pxController = this._pxControllerManager.createController(desc);

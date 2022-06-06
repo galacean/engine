@@ -5,7 +5,6 @@ import { Layer } from "../Layer";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
-import { Entity } from "../Entity";
 import { DisorderedArray } from "../DisorderedArray";
 import { CharacterController } from "./CharacterController";
 
@@ -322,10 +321,19 @@ export class PhysicsManager {
    * @internal
    */
   _addCollider(collider: Collider): void {
-    collider._index = this._colliders.length;
-    this._colliders.add(collider);
+    if (collider._index === -1) {
+      collider._index = this._colliders.length;
+      this._colliders.add(collider);
+    }
 
-    this._nativePhysicsManager.addCollider(collider._nativeCollider);
+    if (collider instanceof CharacterController) {
+      const controller = <CharacterController>collider;
+      if (controller._nativeCharacterController) {
+        this._nativePhysicsManager.addCharacterController(controller._nativeCharacterController);
+      }
+    } else {
+      this._nativePhysicsManager.addCollider(collider._nativeCollider);
+    }
   }
 
   /**
@@ -338,36 +346,11 @@ export class PhysicsManager {
     replaced && (replaced._index = collider._index);
     collider._index = -1;
 
-    this._nativePhysicsManager.removeCollider(collider._nativeCollider);
-  }
-
-  /**
-   * Add CharacterController into the manager.
-   * @param characterController The Character Controller.
-   * @internal
-   */
-  _addCharacterController(characterController: CharacterController) {
-    if (characterController._index === -1) {
-      characterController._index = this._colliders.length;
-      this._colliders.add(characterController);
+    if (collider instanceof CharacterController) {
+      this._nativePhysicsManager.removeCharacterController(collider._nativeCharacterController);
+    } else {
+      this._nativePhysicsManager.removeCollider(collider._nativeCollider);
     }
-
-    if (characterController._nativeCharacterController) {
-      this._nativePhysicsManager.addCharacterController(characterController._nativeCharacterController);
-    }
-  }
-
-  /**
-   * Remove CharacterController.
-   * @param characterController The Character Controller.
-   * @internal
-   */
-  _removeCharacterController(characterController: CharacterController) {
-    let replaced = this._colliders.deleteByIndex(characterController._index);
-    replaced && (replaced!._index = characterController._index);
-    characterController._index = -1;
-
-    this._nativePhysicsManager.removeCharacterController(characterController._nativeCharacterController);
   }
 
   /**

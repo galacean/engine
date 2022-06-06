@@ -1,7 +1,5 @@
 import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "@oasis-engine/math";
-import { PhysicsMaterial } from "./PhysicsMaterial";
-import { PhysicsManager } from "./PhysicsManager";
 import { Entity } from "../Entity";
 import { ColliderShape } from "./shape";
 import { Collider } from "./Collider";
@@ -35,8 +33,6 @@ export class CharacterController extends Collider {
   private _contactOffset: number = 0;
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit: number = 0;
-
-  protected _material: PhysicsMaterial;
 
   /**
    * The step offset for the controller.
@@ -102,10 +98,8 @@ export class CharacterController extends Collider {
 
   constructor(entity: Entity) {
     super(entity);
-    this._material = new PhysicsMaterial();
-
-    if (this.engine.physicsManager!.characterControllerManager == null) {
-      this.engine.physicsManager!._createCharacterControllerManager();
+    if (this.engine.physicsManager.characterControllerManager == null) {
+      this.engine.physicsManager._createCharacterControllerManager();
     }
   }
 
@@ -160,11 +154,15 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * Add collider shape on this collider.
+   * Add collider shape on this controller.
    * @param shape - Collider shape
    * @override
    */
   addShape(shape: ColliderShape): void {
+    if (this._shapes.length > 1) {
+      throw "only allow single shape on controller!";
+    }
+
     const oldCollider = shape._collider;
     if (oldCollider !== this) {
       if (oldCollider) {
@@ -177,7 +175,7 @@ export class CharacterController extends Collider {
       this._nativeCharacterController = this.engine.physicsManager.characterControllerManager.createController(
         shape._nativeShape
       );
-      this.engine.physicsManager._addCharacterController(this);
+      this.engine.physicsManager._addCollider(this);
     }
   }
 
@@ -194,7 +192,7 @@ export class CharacterController extends Collider {
       shape._collider = null;
 
       this._nativeCharacterController.destroy();
-      this.engine.physicsManager._removeCharacterController(this);
+      this.engine.physicsManager._removeCollider(this);
     }
   }
 
@@ -224,21 +222,5 @@ export class CharacterController extends Collider {
     let position = this.entity.transform.worldPosition;
     this._nativeCharacterController.getPosition(position);
     this.entity.transform.worldPosition = position;
-  }
-
-  /**
-   * @internal
-   * @override
-   * */
-  _onEnable() {
-    this.engine.physicsManager._addCharacterController(this);
-  }
-
-  /**
-   *  @internal
-   *  @override
-   * */
-  _onDisable() {
-    this.engine.physicsManager._removeCharacterController(this);
   }
 }
