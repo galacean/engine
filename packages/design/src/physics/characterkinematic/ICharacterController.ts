@@ -79,13 +79,12 @@ export interface ICharacterController {
   resize(height: number): void;
 
   /**
-   * Set unique id of the collider shape.
-   * @param id unique id
-   */
-  setUniqueID(id: number): void;
-
-  /**
    * Update collider shape
    */
   updateShape(): void;
+
+  /**
+   * Deletes the collider.
+   */
+  destroy(): void;
 }

@@ -1,10 +1,10 @@
-import { Component } from "../../Component";
 import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "@oasis-engine/math";
-import { PhysicsMaterial } from "../PhysicsMaterial";
-import { PhysicsManager } from "../PhysicsManager";
-import { Entity } from "../../Entity";
-import { ColliderShape } from "../shape";
+import { PhysicsMaterial } from "./PhysicsMaterial";
+import { PhysicsManager } from "./PhysicsManager";
+import { Entity } from "../Entity";
+import { ColliderShape } from "./shape";
+import { Collider } from "./Collider";
 
 export enum ControllerNonWalkableMode {
   /// Stops character from climbing up non-walkable slopes, but doesn't move it otherwise
@@ -25,7 +25,7 @@ export enum ControllerCollisionFlag {
 /**
  * Base class for character controllers.
  */
-export class CharacterController extends Component {
+export class CharacterController extends Collider {
   /** @internal */
   _index: number = -1;
   _nativeCharacterController: ICharacterController;
@@ -36,15 +36,7 @@ export class CharacterController extends Component {
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit: number = 0;
 
-  protected _id: number;
   protected _material: PhysicsMaterial;
-
-  /**
-   * Unique id for this controller.
-   */
-  get id(): number {
-    return this._id;
-  }
 
   /**
    * The step offset for the controller.
@@ -110,8 +102,6 @@ export class CharacterController extends Component {
 
   constructor(entity: Entity) {
     super(entity);
-    this._id = PhysicsManager._idGenerator;
-    PhysicsManager._idGenerator += 1;
     this._material = new PhysicsMaterial();
 
     if (this.engine.physicsManager!.characterControllerManager == null) {
@@ -169,28 +159,71 @@ export class CharacterController extends Component {
     this._nativeCharacterController.resize(height);
   }
 
-  setShape(shape: ColliderShape): void {
-    this._nativeCharacterController = this.engine.physicsManager.characterControllerManager.createController(
-      shape._nativeShape
-    );
-    this._nativeCharacterController.setUniqueID(this._id);
-    this.engine.physicsManager._addCharacterController(this);
+  /**
+   * Add collider shape on this collider.
+   * @param shape - Collider shape
+   * @override
+   */
+  addShape(shape: ColliderShape): void {
+    const oldCollider = shape._collider;
+    if (oldCollider !== this) {
+      if (oldCollider) {
+        oldCollider.removeShape(shape);
+      }
+      this._shapes.push(shape);
+      this.engine.physicsManager._addColliderShape(shape);
+      shape._collider = this;
+
+      this._nativeCharacterController = this.engine.physicsManager.characterControllerManager.createController(
+        shape._nativeShape
+      );
+      this.engine.physicsManager._addCharacterController(this);
+    }
+  }
+
+  /**
+   * Remove a collider shape.
+   * @param shape - The collider shape.
+   * @override
+   */
+  removeShape(shape: ColliderShape): void {
+    const index = this._shapes.indexOf(shape);
+    if (index !== -1) {
+      this._shapes.splice(index, 1);
+      this.engine.physicsManager._removeColliderShape(shape);
+      shape._collider = null;
+
+      this._nativeCharacterController.destroy();
+      this.engine.physicsManager._removeCharacterController(this);
+    }
   }
 
   /**
    * @internal
+   * @override
    */
   _onUpdate() {
+    if (this._updateFlag.flag) {
+      const { transform } = this.entity;
+      this._nativeCharacterController.setPosition(transform.worldPosition);
+      this._updateFlag.flag = false;
+
+      const worldScale = transform.lossyWorldScale;
+      for (let i = 0, n = this.shapes.length; i < n; i++) {
+        this.shapes[i]._nativeShape.setWorldScale(worldScale);
+      }
+    }
     this._nativeCharacterController.updateShape();
   }
 
   /**
    * @internal
+   * @override
    */
   _onLateUpdate() {
-    let position = this.entity.transform!.worldPosition;
+    let position = this.entity.transform.worldPosition;
     this._nativeCharacterController.getPosition(position);
-    this.entity.transform!.worldPosition = position;
+    this.entity.transform.worldPosition = position;
   }
 
   /**

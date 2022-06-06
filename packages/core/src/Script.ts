@@ -1,7 +1,7 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { TriggerObject } from "./physics/PhysicsManager";
+import { ColliderShape } from "./physics";
 
 /**
  * Script class, used for logic writing.
@@ -81,39 +81,39 @@ export class Script extends Component {
    * Called when the collision enter.
    * @param other - ColliderShape
    */
-  onTriggerEnter(other: TriggerObject): void {}
+  onTriggerEnter(other: ColliderShape): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
    * @param other - ColliderShape
    */
-  onTriggerExit(other: TriggerObject): void {}
+  onTriggerExit(other: ColliderShape): void {}
 
   /**
    * Called when the collision exit.
    * @param other - ColliderShape
    */
-  onTriggerStay(other: TriggerObject): void {}
+  onTriggerStay(other: ColliderShape): void {}
 
   /**
    * Called when the collision enter.
    * @param other - ColliderShape
    */
-  onCollisionEnter(other: TriggerObject): void {}
+  onCollisionEnter(other: ColliderShape): void {}
 
   /**
    * Called when the collision stay.
    * @remarks onTriggerStay is called every frame while the collision stay.
    * @param other - ColliderShape
    */
-  onCollisionExit(other: TriggerObject): void {}
+  onCollisionExit(other: ColliderShape): void {}
 
   /**
    * Called when the collision exit.
    * @param other - ColliderShape
    */
-  onCollisionStay(other: TriggerObject): void {}
+  onCollisionStay(other: ColliderShape): void {}
 
   /**
    * Called when the pointer is down while over the ColliderShape.

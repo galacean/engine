@@ -102,14 +102,6 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
-   * {@inheritDoc ICharacterController.setUniqueID }
-   */
-  setUniqueID(id: number) {
-    this._id = id;
-    this._pxController.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(id, 0, 0, 0));
-  }
-
-  /**
    * {@inheritDoc ICharacterController.updateShape }
    */
   updateShape(): void {
@@ -126,6 +118,13 @@ export class PhysXCharacterController implements ICharacterController {
       }
       shape._isDirty = false;
     }
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.destroy }
+   */
+  destroy(): void {
+    this._pxController.release();
   }
 
   setShape(value: PhysXColliderShape): void {

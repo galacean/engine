@@ -20,8 +20,7 @@ export class Collider extends Component {
   _nativeCollider: ICollider;
 
   protected _updateFlag: BoolUpdateFlag;
-
-  private _shapes: ColliderShape[] = [];
+  protected _shapes: ColliderShape[] = [];
 
   /**
    * The shapes of this collider.
