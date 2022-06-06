@@ -5,3 +5,4 @@ export type { IStaticCollider } from "./IStaticCollider";
 export type { IDynamicCollider } from "./IDynamicCollider";
 export type { IPhysicsMaterial } from "./IPhysicsMaterial";
 export * from "./shape/index";
+export * from "./characterkinematic/index";
