@@ -1,7 +1,6 @@
 import { ICharacterController } from "@oasis-engine/design";
-import { BoxColliderShape, CapsuleColliderShape, Vector3 } from "oasis-engine";
-import { PhysXPhysics } from "../PhysXPhysics";
-import { PhysXColliderShape } from "../shape";
+import { Vector3 } from "oasis-engine";
+import { PhysXBoxColliderShape, PhysXCapsuleColliderShape, PhysXColliderShape } from "../shape";
 
 /**
  * Base class for character controllers.
@@ -108,13 +107,13 @@ export class PhysXCharacterController implements ICharacterController {
     const controller = this._pxController;
     const shape = this._shape;
     if (shape._isDirty) {
-      if (shape instanceof BoxColliderShape) {
-        controller.setHalfHeight(shape.size.x);
-        controller.setHalfSideExtent(shape.size.y);
-        controller.setHalfForwardExtent(shape.size.z);
-      } else if (shape instanceof CapsuleColliderShape) {
-        controller.setRadius(shape.radius);
-        controller.setHeight(shape.height);
+      if (shape instanceof PhysXBoxColliderShape) {
+        controller.setHalfHeight(shape._halfSize.x);
+        controller.setHalfSideExtent(shape._halfSize.y);
+        controller.setHalfForwardExtent(shape._halfSize.z);
+      } else if (shape instanceof PhysXCapsuleColliderShape) {
+        controller.setRadius(shape._radius);
+        controller.setHeight(shape._halfHeight * 2.0);
       }
       shape._isDirty = false;
     }

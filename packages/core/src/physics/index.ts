@@ -4,7 +4,7 @@ export { ColliderShapeUpAxis } from "./enums/ColliderShapeUpAxis";
 
 export { PhysicsManager } from "./PhysicsManager";
 export { PhysicsMaterial } from "./PhysicsMaterial";
-export { CharacterController } from "./CharacterController";
+export { CharacterController, ControllerNonWalkableMode, ControllerCollisionFlag } from "./CharacterController";
 export * from "./shape";
 
 export { Collider } from "./Collider";

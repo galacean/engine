@@ -9,7 +9,8 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
   private static _tempHalfExtents = new Vector3();
-  private _halfSize: Vector3 = new Vector3();
+  /** @internal */
+  _halfSize: Vector3 = new Vector3();
 
   /**
    * Init Box Shape and alloc PhysX objects.

@@ -8,8 +8,10 @@ import { Vector3 } from "oasis-engine";
  * Capsule collider shape in PhysX.
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
-  private _radius: number;
-  private _halfHeight: number;
+  /** @internal */
+  _radius: number;
+  /** @internal */
+  _halfHeight: number;
   private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   /**

@@ -1,8 +1,8 @@
 import { ICharacterControllerManager } from "@oasis-engine/design";
-import { BoxColliderShape, CapsuleColliderShape, Vector3 } from "oasis-engine";
+import { Vector3 } from "oasis-engine";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
-import { PhysXColliderShape } from "../shape";
+import { PhysXBoxColliderShape, PhysXCapsuleColliderShape, PhysXColliderShape } from "../shape";
 
 /**
  * Manages an array of character controllers.
@@ -23,20 +23,21 @@ export class PhysXCharacterControllerManager implements ICharacterControllerMana
    */
   createController(shape: PhysXColliderShape): PhysXCharacterController {
     let desc: any;
-    if (shape instanceof BoxColliderShape) {
-      desc = PhysXPhysics._physX.PxBoxControllerDesc();
-      desc.halfHeight = shape.size.x;
-      desc.halfSideExtent = shape.size.y;
-      desc.halfForwardExtent = shape.size.z;
-    } else if (shape instanceof CapsuleColliderShape) {
-      desc = PhysXPhysics._physX.PxCapsuleControllerDesc();
-      desc.radius = shape.radius;
-      desc.height = shape.height;
+    if (shape instanceof PhysXBoxColliderShape) {
+      desc = new PhysXPhysics._physX.PxBoxControllerDesc();
+      desc.halfHeight = shape._halfSize.x;
+      desc.halfSideExtent = shape._halfSize.y;
+      desc.halfForwardExtent = shape._halfSize.z;
+    } else if (shape instanceof PhysXCapsuleColliderShape) {
+      desc = new PhysXPhysics._physX.PxCapsuleControllerDesc();
+      desc.radius = shape._radius;
+      desc.height = shape._halfHeight * 2;
       desc.climbingMode = 1; // constraint mode
     } else {
       throw "unsupported shape type";
     }
 
+    desc.setMaterial(shape._pxMaterials[0]);
     let pxController = this._pxControllerManager.createController(desc);
     let controller = new PhysXCharacterController();
     controller._pxController = pxController;

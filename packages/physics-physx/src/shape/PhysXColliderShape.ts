@@ -29,8 +29,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
   protected _scale: Vector3 = new Vector3(1, 1, 1);
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
-  private _pxMaterials: any[] = new Array(1);
 
+  /** @internal */
+  _pxMaterials: any[] = new Array(1);
   /** @internal */
   _isDirty: boolean = false;
   /** @internal */
@@ -111,6 +112,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   protected _allocShape(material: PhysXPhysicsMaterial): void {
+    this._pxMaterials[0] = material._pxMaterial;
     this._pxShape = PhysXPhysics._pxPhysics.createShape(
       this._pxGeometry,
       material._pxMaterial,
