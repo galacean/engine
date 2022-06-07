@@ -1,5 +1,4 @@
-import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
-import { BoolUpdateFlag } from "../../BoolUpdateFlag";
+import { BoundingBox, Color, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
@@ -8,10 +7,14 @@ import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { UpdateFlag } from "../../UpdateFlag";
+import { RenderData2D } from "../data/RenderData2D";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
+import { SpriteSimple } from "../assembler/SpriteSimple";
 import { Sprite } from "./Sprite";
+import { CallBackUpdateFlag } from "./SpriteUpdateFlag";
+import { IAssembler } from "../assembler/IAssembler";
+import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -19,40 +22,47 @@ import { Sprite } from "./Sprite";
 export class SpriteRenderer extends Renderer implements ICustomClone {
   /** @internal */
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
-  
-  private static _tempVec3: Vector3 = new Vector3();
+  /** @internal */
+  static _normalBoundingBox: BoundingBox = new BoundingBox(new Vector3(), new Vector3(1, 1, 0));
 
-  /** @internal temp solution. */
-  @ignoreClone
-  _customLocalBounds: BoundingBox = null;
-  /** @internal temp solution. */
-  @ignoreClone
-  _customRootEntity: Entity = null;
+  /** @internal */
+  /** Render data. */
+  _renderData: RenderData2D;
+  _assembler: IAssembler;
 
-  @deepClone
-  private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-  @ignoreClone
-  private _sprite: Sprite = null;
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
+
+  /** About sprite */
+  @ignoreClone
+  private _sprite: Sprite = null;
+  @ignoreClone
+  private _spriteChangeFlag: CallBackUpdateFlag = null;
+
+  /** About transform. */
+  /** ModelMatrix = WorldMatrix * Size * Flip * Pivot. */
+  @deepClone
+  private _modelMatrix: Matrix = new Matrix();
+  @deepClone
+  private _pivot: Vector2 = new Vector2(0.5, 0.5);
+  @assignmentClone
+  private _width: number = 1;
+  @assignmentClone
+  private _height: number = 1;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
   private _flipY: boolean = false;
-  @assignmentClone
-  private _cacheFlipX: boolean = false;
-  @assignmentClone
-  private _cacheFlipY: boolean = false;
-  @ignoreClone
-  private _dirtyFlag: number = 0;
-  @ignoreClone
-  private _isWorldMatrixDirty: BoolUpdateFlag;
-  @ignoreClone
-  private _spriteDirty: BoolUpdateFlag;
-  @assignmentClone
-  private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
+
+  /** About mask. */
   @assignmentClone
   private _maskLayer: number = SpriteMaskLayer.Layer0;
+  @assignmentClone
+  private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
+
+  /** Dirty flag. */
+  @ignoreClone
+  private _dirtyFlag: number = 0;
 
   /**
    * The Sprite to render.
@@ -63,11 +73,32 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   set sprite(value: Sprite | null) {
     if (this._sprite !== value) {
-      this._spriteDirty && this._spriteDirty.destroy();
+      this._spriteChangeFlag && this._spriteChangeFlag.destroy();
       this._sprite = value;
       if (value) {
-        this._spriteDirty = value._registerUpdateFlag();
+        this._spriteChangeFlag = value._registerUpdateFlag();
+        this._spriteChangeFlag.callBack = this._onSpriteChange;
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
+        this._dirtyFlag = DirtyFlag.All;
+      } else {
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
+    }
+  }
+
+  /**
+   * Location of the sprite's center point in the rectangle region, specified in normalized.
+   * The origin is at the bottom left and the default value is (0.5, 0.5).
+   */
+  get pivot(): Vector2 {
+    return this._pivot;
+  }
+
+  set pivot(value: Vector2) {
+    const pivot = this._pivot;
+    const { x, y } = pivot;
+    if (pivot === value || pivot.x !== x || pivot.y !== y) {
+      pivot.setValue(x, y);
     }
   }
 
@@ -85,6 +116,34 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
+   * Render width.
+   */
+  get width(): number {
+    return this._width;
+  }
+
+  set width(val: number) {
+    if (this._width !== val) {
+      this._width = val;
+      this._setDirtyFlagTrue(DirtyFlag.Model | DirtyFlag.Bounds);
+    }
+  }
+
+  /**
+   * Render height.
+   */
+  get height(): number {
+    return this._height;
+  }
+
+  set height(val: number) {
+    if (this._height !== val) {
+      this._height = val;
+      this._setDirtyFlagTrue(DirtyFlag.Model | DirtyFlag.Bounds);
+    }
+  }
+
+  /**
    * Flips the sprite on the X axis.
    */
   get flipX(): boolean {
@@ -94,7 +153,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._setDirtyFlagTrue(DirtyFlag.Flip);
+      this._setDirtyFlagTrue(DirtyFlag.Model | DirtyFlag.Bounds);
     }
   }
 
@@ -108,22 +167,19 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._setDirtyFlagTrue(DirtyFlag.Flip);
+      this._setDirtyFlagTrue(DirtyFlag.Model | DirtyFlag.Bounds);
     }
   }
 
   /**
-   * Interacts with the masks.
+   * The bounding volume of the spriteRenderer.
    */
-  get maskInteraction(): SpriteMaskInteraction {
-    return this._maskInteraction;
-  }
-
-  set maskInteraction(value: SpriteMaskInteraction) {
-    if (this._maskInteraction !== value) {
-      this._maskInteraction = value;
-      this._setDirtyFlagTrue(DirtyFlag.MaskInteraction);
+  get bounds(): BoundingBox {
+    if (this._isContainDirtyFlag(DirtyFlag.Bounds)) {
+      BoundingBox.transform(SpriteRenderer._normalBoundingBox, this._getModelMatrix(), this._bounds);
+      this._setDirtyFlagFalse(DirtyFlag.Bounds);
     }
+    return this._bounds;
   }
 
   /**
@@ -138,12 +194,27 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
+   * Interacts with the masks.
+   */
+  get maskInteraction(): SpriteMaskInteraction {
+    return this._maskInteraction;
+  }
+
+  set maskInteraction(value: SpriteMaskInteraction) {
+    if (this._maskInteraction !== value) {
+      this._maskInteraction = value;
+      this._updateStencilState();
+    }
+  }
+
+  /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
-    this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this.setMaterial(this._engine._spriteDefaultMaterial);
+    this._transformChangeFlag.dispatch = this._onWorldMatrixChange.bind(this);
+    this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
   /**
@@ -151,95 +222,21 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    */
   _render(camera: Camera): void {
     const { sprite } = this;
-    if (!sprite) {
-      return;
-    }
-    const { texture } = sprite;
-    if (!texture) {
+    if (!sprite || !sprite.texture) {
       return;
     }
 
-    const { _positions } = this;
-    const { transform } = this.entity;
-
-    // Update sprite data.
-    sprite._updateMesh();
-
-    if (this._isWorldMatrixDirty.flag || this._spriteDirty.flag) {
-      const localPositions = sprite._positions;
-      const localVertexPos = SpriteRenderer._tempVec3;
-      const worldMatrix = transform.worldMatrix;
-      const { flipX, flipY } = this;
-
-      for (let i = 0, n = _positions.length; i < n; i++) {
-        const curVertexPos = localPositions[i];
-        localVertexPos.setValue(flipX ? -curVertexPos.x : curVertexPos.x, flipY ? -curVertexPos.y : curVertexPos.y, 0);
-        Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
-      }
-
-      this._setDirtyFlagFalse(DirtyFlag.Flip);
-      this._isWorldMatrixDirty.flag = false;
-      this._spriteDirty.flag = false;
-      this._cacheFlipX = flipX;
-      this._cacheFlipY = flipY;
-    } else if (this._isContainDirtyFlag(DirtyFlag.Flip)) {
-      const { flipX, flipY } = this;
-      const flipXChange = this._cacheFlipX !== flipX;
-      const flipYChange = this._cacheFlipY !== flipY;
-
-      if (flipXChange || flipYChange) {
-        const { x, y } = transform.worldPosition;
-
-        for (let i = 0, n = _positions.length; i < n; i++) {
-          const curPos = _positions[i];
-
-          if (flipXChange) {
-            curPos.x = x * 2 - curPos.x;
-          }
-          if (flipYChange) {
-            curPos.y = y * 2 - curPos.y;
-          }
-        }
-      }
-
-      this._setDirtyFlagFalse(DirtyFlag.Flip);
-      this._cacheFlipX = flipX;
-      this._cacheFlipY = flipY;
+    if (!this._renderData) {
+      this._assembler.resetData(this);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
-      this._updateStencilState();
-      this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
-    }
+    // Update render data.
+    this._assembler.updateData(this);
 
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
-    const material = this.getMaterial();
-
-    const spriteElementPool = this._engine._spriteElementPool;
-    const spriteElement = spriteElementPool.getFromPool();
-    spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
+    // Push primitive.
+    const spriteElement = this._engine._spriteElementPool.getFromPool();
+    spriteElement.setValue(this, this._renderData, this.getMaterial());
     camera._renderPipeline.pushPrimitive(spriteElement);
-  }
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {
-    this._isWorldMatrixDirty.destroy();
-    this._spriteDirty && this._spriteDirty.destroy();
-    super._onDestroy();
-  }
-
-  private _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  private _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
-  }
-
-  private _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
   }
 
   /**
@@ -250,23 +247,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
-    const sprite = this._sprite;
-    if (sprite) {
-      if (this._customLocalBounds && this._customRootEntity) {
-        const worldMatrix = this._customRootEntity.transform.worldMatrix;
-        BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
-      } else {
-        const localBounds = sprite.bounds;
-        const worldMatrix = this._entity.transform.worldMatrix;
-        BoundingBox.transform(localBounds, worldMatrix, worldBounds);
-      }
-    } else {
-      worldBounds.min.setValue(0, 0, 0);
-      worldBounds.max.setValue(0, 0, 0);
-    }
+  _onDestroy(): void {
+    this._spriteChangeFlag && this._spriteChangeFlag.destroy();
+    super._onDestroy();
   }
 
   private _updateStencilState(): void {
@@ -274,7 +259,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     const material = this.getInstanceMaterial();
     const stencilState = material.renderState.stencilState;
     const maskInteraction = this._maskInteraction;
-
     if (maskInteraction === SpriteMaskInteraction.None) {
       stencilState.enabled = false;
       stencilState.writeMask = 0xff;
@@ -292,9 +276,64 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       stencilState.compareFunctionBack = compare;
     }
   }
+
+  private _getModelMatrix(): Matrix {
+    if (this._isContainDirtyFlag(DirtyFlag.Model)) {
+      // Update modelMatrix.
+      const { _modelMatrix, _pivot } = this;
+      const { elements: e } = _modelMatrix;
+      this._entity.transform.worldMatrix.cloneTo(_modelMatrix);
+      const sx = this._flipX ? -this._width : this._width;
+      const sy = this._flipY ? -this._height : this._height;
+      (e[0] *= sx), (e[1] *= sx), (e[2] *= sx);
+      (e[4] *= sy), (e[5] *= sy), (e[6] *= sy);
+      e[12] -= _pivot.x * e[0] + _pivot.y * e[4];
+      e[13] -= _pivot.x * e[1] + _pivot.y * e[5];
+      this._setDirtyFlagFalse(DirtyFlag.Model);
+    }
+    return this._modelMatrix;
+  }
+
+  private _onSpriteChange(dirtyFlag: SpriteDirtyFlag) {
+    switch (dirtyFlag) {
+      case SpriteDirtyFlag.texture:
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
+        break;
+      case SpriteDirtyFlag.positions:
+        this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.Bounds);
+        break;
+      case SpriteDirtyFlag.uvs:
+        this._setDirtyFlagTrue(DirtyFlag.UV);
+        break;
+      case SpriteDirtyFlag.uvsSliced:
+        this._setDirtyFlagTrue(DirtyFlag.UV);
+        break;
+      default:
+        break;
+    }
+  }
+
+  private _onWorldMatrixChange() {
+    this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.Bounds);
+  }
+
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyFlag &= ~type;
+  }
+
+  private _setDirtyFlagTrue(type: number): void {
+    this._dirtyFlag |= type;
+  }
 }
 
 enum DirtyFlag {
-  Flip = 0x1,
-  MaskInteraction = 0x2
+  Model = 0x1,
+  UV = 0x2,
+  Position = 0x4,
+  Bounds = 0x8,
+  All = 0x15
 }

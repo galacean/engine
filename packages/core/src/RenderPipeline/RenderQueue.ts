@@ -71,7 +71,7 @@ export class RenderQueue {
       }
 
       if (!!(item as RenderElement).mesh) {
-        this._spriteBatcher.flush(engine);
+        this._spriteBatcher.flush(engine, camera);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
@@ -137,16 +137,16 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        material.renderState._apply(camera.engine, renderer.entity.transform._isFrontFaceInvert());
+        material.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spriteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spriteElement);
+        this._spriteBatcher.drawElement(spriteElement, camera);
       }
     }
 
-    this._spriteBatcher.flush(engine);
+    this._spriteBatcher.flush(engine, camera);
   }
 
   /**

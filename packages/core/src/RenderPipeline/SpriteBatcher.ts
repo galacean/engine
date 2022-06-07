@@ -1,5 +1,6 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { SpriteRenderer } from "../2d/sprite/SpriteRenderer";
+import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
@@ -54,7 +55,7 @@ export class SpriteBatcher extends Basic2DBatcher {
   }
 
   updateVertices(element: SpriteElement, vertices: Float32Array, vertexIndex: number): number {
-    const { positions, uv, color } = element;
+    const { positions, uv, color } = element.renderData;
     const verticesNum = positions.length;
     for (let i = 0; i < verticesNum; i++) {
       const curPos = positions[i];
@@ -74,11 +75,13 @@ export class SpriteBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  drawBatches(engine: Engine): void {
+  drawBatches(engine: Engine, camera: Camera): void {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const batchedQueue = this._batchedQueue;
     const maskManager = engine._spriteMaskManager;
+    const sceneData = camera.scene.shaderData;
+    const cameraData = camera.shaderData;
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];
@@ -89,7 +92,6 @@ export class SpriteBatcher extends Basic2DBatcher {
       }
 
       const renderer = <SpriteRenderer>spriteElement.component;
-      const camera = spriteElement.camera;
       const material = spriteElement.material;
       maskManager.preRender(camera, renderer);
 
@@ -108,12 +110,12 @@ export class SpriteBatcher extends Basic2DBatcher {
 
       program.bind();
       program.groupingOtherUniformBlock();
-      program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
-      program.uploadAll(program.cameraUniformBlock, camera.shaderData);
+      program.uploadAll(program.sceneUniformBlock, sceneData);
+      program.uploadAll(program.cameraUniformBlock, cameraData);
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      material.renderState._apply(engine,false);
+      material.renderState._apply(engine, false);
 
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
 

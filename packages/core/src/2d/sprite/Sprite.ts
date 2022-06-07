@@ -1,38 +1,40 @@
-import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
+import { MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
-import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
+import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
+import { CallBackUpdateFlag } from "./SpriteUpdateFlag";
 
 /**
  * 2D sprite.
  */
 export class Sprite extends RefObject {
-  private static _rectangleTriangles: number[] = [0, 2, 1, 2, 0, 3];
+  static _rectangleTriangles: number[] = [0, 2, 1, 2, 0, 3];
 
   /** The name of sprite. */
   name: string;
 
-  /** @internal */
-  _uv: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  /** @internal */
-  _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  /** @internal */
-  _bounds: BoundingBox = new BoundingBox();
-  /** @internal */
-  _triangles: number[];
   /** @internal temp solution. */
   _assetID: number;
 
-  private _pixelsPerUnit: number;
+  /** Intermediate product data. */
+  /** Normalized top, left, right and bottom. */
+  private _edges: number[] = [1, 0, 1, 0];
+  private _uvs: Vector2[];
+  private _uvsSliced: Vector2[];
+
+  /** How to get form texture. */
   private _texture: Texture2D = null;
   private _atlasRotated: boolean = false;
-  private _region: Rect = new Rect(0, 0, 1, 1);
-  private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
   private _atlasRegionOffset: Vector4 = new Vector4(0, 0, 0, 0);
-  private _dirtyFlag: DirtyFlag = DirtyFlag.all;
+
+  /** How to show sprite. */
+  private _region: Rect = new Rect(0, 0, 1, 1);
+  private _border: Vector4 = new Vector4();
+
+  private _dirtyFlag: SpriteDirtyFlag = SpriteDirtyFlag.all;
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
@@ -45,20 +47,8 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._setDirtyFlagTrue(DirtyFlag.positions);
+      this._setDirtyFlagTrue(SpriteDirtyFlag.texture);
     }
-  }
-
-  /**
-   *  Bounding volume of the sprite.
-   *  @remarks The returned bounds should be considered deep-read-only.
-   */
-  get bounds(): Readonly<BoundingBox> {
-    if (this._isContainDirtyFlag(DirtyFlag.positions) && this._texture) {
-      this._updatePositionsAndBounds();
-      this._setDirtyFlagFalse(DirtyFlag.positions);
-    }
-    return this._bounds;
   }
 
   /**
@@ -71,7 +61,7 @@ export class Sprite extends RefObject {
   set atlasRotated(value: boolean) {
     if (this._atlasRotated != value) {
       this._atlasRotated = value;
-      this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+      this._setDirtyFlagTrue(SpriteDirtyFlag.all);
     }
   }
 
@@ -86,7 +76,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+    this._setDirtyFlagTrue(SpriteDirtyFlag.all);
   }
 
   /**
@@ -100,24 +90,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
-  }
-
-  /**
-   * Location of the sprite's center point in the rectangle region, specified in normalized.
-   */
-  get pivot(): Vector2 {
-    return this._pivot;
-  }
-
-  set pivot(value: Vector2) {
-    const pivot = this._pivot;
-    const x = MathUtil.clamp(value.x, 0, 1);
-    const y = MathUtil.clamp(value.y, 0, 1);
-    if (pivot === value || pivot.x !== x || pivot.y !== y) {
-      pivot.setValue(x, y);
-      this._setDirtyFlagTrue(DirtyFlag.positions);
-    }
+    this._setDirtyFlagTrue(SpriteDirtyFlag.all);
   }
 
   /**
@@ -132,21 +105,22 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     region.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
+    this._setDirtyFlagTrue(SpriteDirtyFlag.all);
   }
 
   /**
-   * The number of pixels in the sprite that correspond to one unit in world space.
+   * Top, left, right, down.
    */
-  get pixelsPerUnit(): number {
-    return this._pixelsPerUnit;
+  get border(): Vector4 {
+    return this._border;
   }
 
-  set pixelsPerUnit(value: number) {
-    if (this._pixelsPerUnit !== value) {
-      this._pixelsPerUnit = value;
-      this._setDirtyFlagTrue(DirtyFlag.positions);
-    }
+  set border(value: Vector4) {
+    const border = this._border;
+    const x = MathUtil.clamp(value.x, 0, 1);
+    const y = MathUtil.clamp(value.y, 0, 1);
+    border.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
+    this._setDirtyFlagTrue(SpriteDirtyFlag.uvsSliced);
   }
 
   /**
@@ -154,28 +128,20 @@ export class Sprite extends RefObject {
    * @param engine - Engine to which the sprite belongs
    * @param texture - Texture from which to obtain the Sprite
    * @param region - Rectangle region of the texture to use for the Sprite, specified in normalized
-   * @param pivot - Sprite's pivot point relative to its graphic rectangle, specified in normalized
-   * @param pixelsPerUnit - The number of pixels in the Sprite that correspond to one unit in world space
    * @param name - The name of Sprite
    */
   constructor(
     engine: Engine,
     texture: Texture2D = null,
     region: Rect = null,
-    pivot: Vector2 = null,
-    pixelsPerUnit: number = 128,
+    border: Vector4 = null,
     name: string = null
   ) {
     super(engine);
-
     this.name = name;
     this._texture = texture;
-    this._pixelsPerUnit = pixelsPerUnit;
-
     region && region.cloneTo(this._region);
-    pivot && pivot.cloneTo(this._pivot);
-
-    this._triangles = Sprite._rectangleTriangles;
+    border && border.cloneTo(this._border);
   }
 
   /**
@@ -183,14 +149,7 @@ export class Sprite extends RefObject {
    * @returns Cloned sprite
    */
   clone(): Sprite {
-    const cloneSprite = new Sprite(
-      this._engine,
-      this._texture,
-      this._region,
-      this._pivot,
-      this._pixelsPerUnit,
-      this.name
-    );
+    const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._border, this.name);
     cloneSprite._assetID = this._assetID;
     cloneSprite._atlasRotated = this._atlasRotated;
     this._atlasRegion.cloneTo(cloneSprite._atlasRegion);
@@ -201,8 +160,24 @@ export class Sprite extends RefObject {
   /**
    * @internal
    */
-  _registerUpdateFlag(): BoolUpdateFlag {
-    return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  getUVs(): Vector2[] {
+    this._isContainDirtyFlag(SpriteDirtyFlag.uvs) && this._updateUVs();
+    return this._uvs;
+  }
+
+  /**
+   * @internal
+   */
+  getSlicedUVs(): Vector2[] {
+    this._isContainDirtyFlag(SpriteDirtyFlag.uvsSliced) && this._updateSlicedUVs();
+    return this._uvsSliced;
+  }
+
+  /**
+   * @internal
+   */
+  _registerUpdateFlag(): CallBackUpdateFlag {
+    return this._updateFlagManager.createFlag(CallBackUpdateFlag);
   }
 
   /**
@@ -214,147 +189,85 @@ export class Sprite extends RefObject {
     }
   }
 
-  /**
-   * Update positions and bounds.
-   */
-  private _updatePositionsAndBounds(): void {
-    const { _texture: texture, _bounds: bounds } = this;
-    if (texture) {
-      const { _atlasRegion: atlasRegion, _pivot: pivot, _atlasRegionOffset: atlasRegionOffset } = this;
-      const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
-      const pPUReciprocal = 1.0 / this._pixelsPerUnit;
-      // Coordinates of the four boundaries.
-      let lx: number, ty: number, rx: number, by: number;
-      // TextureSize
-      let textureW: number, textureH: number;
-      if (this._atlasRotated) {
-        textureW = texture.height * atlasRegion.height * pPUReciprocal;
-        textureH = texture.width * atlasRegion.width * pPUReciprocal;
-      } else {
-        textureW = texture.width * atlasRegion.width * pPUReciprocal;
-        textureH = texture.height * atlasRegion.height * pPUReciprocal;
-      }
-      // Determine whether it has been trimmed.
-      if (
-        atlasRegionOffset.x == 0 &&
-        atlasRegionOffset.y == 0 &&
-        atlasRegionOffset.z == 0 &&
-        atlasRegionOffset.w == 0
-      ) {
-        // Real rendering size.
-        const realRenderW = textureW * regionW;
-        const realRenderH = textureH * regionH;
-        lx = -pivot.x * realRenderW;
-        by = -pivot.y * realRenderH;
-        rx = realRenderW + lx;
-        ty = realRenderH + by;
-      } else {
-        const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = atlasRegionOffset;
-        const oriWidth = textureW / (1 - blankRight - blankLeft);
-        const oriHeight = textureH / (1 - blankBottom - blankTop);
-        // The size of the real rendering.
-        lx = (-pivot.x * regionW + Math.max(blankLeft, regionX) - regionX) * oriWidth;
-        ty = (pivot.y * regionH - Math.max(blankTop, regionY) + regionY) * oriHeight;
-        rx = (-pivot.x * regionW + Math.min(1 - blankRight, regionX + regionW) - regionX) * oriWidth;
-        by = (pivot.y * regionH - Math.min(1 - blankBottom, regionY + regionH) + regionY) * oriHeight;
-      }
-
-      // Assign values ​​to _positions
-      const positions = this._positions;
-      // Top-left.
-      positions[0].setValue(lx, ty);
-      // Top-right.
-      positions[1].setValue(rx, ty);
-      // Bottom-right.
-      positions[2].setValue(rx, by);
-      // Bottom-left.
-      positions[3].setValue(lx, by);
-
-      // Update bounds.
-      bounds.min.setValue(lx, by, 0);
-      bounds.max.setValue(rx, ty, 0);
-    } else {
-      // Update bounds.
-      bounds.min.setValue(0, 0, 0);
-      bounds.max.setValue(0, 0, 0);
-    }
+  private _updateEdges() {
+    const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = this._atlasRegionOffset;
+    const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
+    const regionRight = 1 - regionX - regionW;
+    const regionBottom = 1 - regionY - regionH;
+    const edges = this._edges;
+    // Coordinates of the four boundaries.
+    // Top.
+    edges[0] = 1 - Math.max(blankTop - regionBottom, 0) / regionH;
+    // Left.
+    edges[1] = Math.max(blankLeft - regionX, 0) / regionW;
+    // Right.
+    edges[2] = 1 - Math.max(blankRight - regionRight, 0) / regionW;
+    // Bottom.
+    edges[3] = Math.max(blankBottom - regionY, 0) / regionH;
+    this._setDirtyFlagFalse(SpriteDirtyFlag.positions);
   }
 
-  /**
-   * @internal
-   */
-  _updateMesh(): void {
-    if (this._isContainDirtyFlag(DirtyFlag.positions)) {
-      this._updatePositionsAndBounds();
-    }
-
-    if (this._isContainDirtyFlag(DirtyFlag.uv)) {
-      const { _atlasRegion, _uv: uv, _region: region, _atlasRotated, _atlasRegionOffset: atlasRegionOffset } = this;
-      let left: number, top: number, right: number, bottom: number;
-      // Determine whether it has been trimmed.
-      if (
-        atlasRegionOffset.x == 0 &&
-        atlasRegionOffset.y == 0 &&
-        atlasRegionOffset.z == 0 &&
-        atlasRegionOffset.w == 0
-      ) {
-        const { width: atlasRegionW, height: atlasRegionH } = _atlasRegion;
-        if (_atlasRotated) {
-          left = atlasRegionW * (1 - region.y - region.height) + _atlasRegion.x;
-          top = atlasRegionH * region.x + _atlasRegion.y;
-          right = atlasRegionW * region.height + left;
-          bottom = atlasRegionH * region.width + top;
-        } else {
-          left = atlasRegionW * region.x + _atlasRegion.x;
-          top = atlasRegionH * region.y + _atlasRegion.y;
-          right = atlasRegionW * region.width + left;
-          bottom = atlasRegionH * region.height + top;
-        }
-      } else {
-        const { x: regionX, y: regionY } = region;
-        const { x: atlasRegionX, y: atlasRegionY } = _atlasRegion;
-        const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = atlasRegionOffset;
-        // Proportion of the original sprite size in the atlas.
-        if (_atlasRotated) {
-          const textureW = _atlasRegion.width / (1 - blankBottom - blankTop);
-          const textureH = _atlasRegion.height / (1 - blankRight - blankLeft);
-          left = (Math.max(blankBottom, 1 - regionY - region.height) - blankBottom) * textureW + atlasRegionX;
-          top = (Math.max(blankLeft, regionX) - blankLeft) * textureH + atlasRegionY;
-          right = (Math.min(1 - blankTop, 1 - regionY) - blankBottom) * textureW + atlasRegionX;
-          bottom = (Math.min(1 - blankRight, regionX + region.width) - blankLeft) * textureH + atlasRegionY;
-        } else {
-          const textureW = _atlasRegion.width / (1 - blankRight - blankLeft);
-          const textureH = _atlasRegion.height / (1 - blankBottom - blankTop);
-          left = (Math.max(blankLeft, regionX) - blankLeft) * textureW + atlasRegionX;
-          top = (Math.max(blankTop, regionY) - blankTop) * textureH + atlasRegionY;
-          right = (Math.min(1 - blankRight, regionX + region.width) - blankLeft) * textureW + atlasRegionX;
-          bottom = (Math.min(1 - blankBottom, regionY + region.height) - blankTop) * textureH + atlasRegionY;
-        }
-      }
-
-      if (_atlasRotated) {
-        // If it is rotated, we need to rotate the UV 90 degrees counterclockwise to correct it.
-        // Top-right.
-        uv[0].setValue(right, top);
-        // Bottom-right.
-        uv[1].setValue(right, bottom);
-        // Bottom-left.
-        uv[2].setValue(left, bottom);
+  private _updateUVs() {
+    const { _uvs: uv, _atlasRegionOffset: atlasRegionOffset } = this;
+    const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
+    const regionRight = 1 - regionX - regionW;
+    const regionBottom = 1 - regionY - regionH;
+    const { x: atlasRegionX, y: atlasRegionY, width: atlasRegionW, height: atlasRegionH } = this._atlasRegion;
+    const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+    const realWidth = atlasRegionW / (1 - offsetLeft - offsetRight);
+    const realHeight = atlasRegionH / (1 - offsetTop - offsetBottom);
+    // Coordinates of the four boundaries.
+    const left = Math.max(regionX - offsetLeft, 0) * realWidth + atlasRegionX;
+    const top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
+    const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
+    const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
+    if (!uv) {
+      this._uvs = [
         // Top-left.
-        uv[3].setValue(left, top);
-      } else {
-        // Top-left.
-        uv[0].setValue(left, top);
+        new Vector2(left, top),
         // Top-right.
-        uv[1].setValue(right, top);
+        new Vector2(right, top),
         // Bottom-right.
-        uv[2].setValue(right, bottom);
+        new Vector2(right, bottom),
         // Bottom-left.
-        uv[3].setValue(left, bottom);
-      }
+        new Vector2(left, bottom)
+      ];
+    } else {
+      // Top-left.
+      uv[0].setValue(left, top);
+      // Top-right.
+      uv[1].setValue(right, top);
+      // Bottom-right.
+      uv[2].setValue(right, bottom);
+      // Bottom-left.
+      uv[3].setValue(left, bottom);
     }
+    this._setDirtyFlagFalse(SpriteDirtyFlag.uvs);
+  }
 
-    this._setDirtyFlagFalse(DirtyFlag.all);
+  private _updateSlicedUVs() {
+    const { _uvs: uv, _atlasRegionOffset: atlasRegionOffset } = this;
+    const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
+    const regionRight = 1 - regionX - regionW;
+    const regionBottom = 1 - regionY - regionH;
+    const { x: atlasRegionX, y: atlasRegionY, width: atlasRegionW, height: atlasRegionH } = this._atlasRegion;
+    const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+    const realWidth = atlasRegionW / (1 - offsetLeft - offsetRight);
+    const realHeight = atlasRegionH / (1 - offsetTop - offsetBottom);
+    // Coordinates of the four boundaries.
+    const left = Math.max(regionX - offsetLeft, 0) * realWidth + atlasRegionX;
+    const top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
+    const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
+    const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
+    // Top-left.
+    uv[0].setValue(left, top);
+    // Top-right.
+    uv[1].setValue(right, top);
+    // Bottom-right.
+    uv[2].setValue(right, bottom);
+    // Bottom-left.
+    uv[3].setValue(left, bottom);
+    this._setDirtyFlagFalse(SpriteDirtyFlag.uvsSliced);
   }
 
   private _isContainDirtyFlag(type: number): boolean {
@@ -363,16 +276,10 @@ export class Sprite extends RefObject {
 
   private _setDirtyFlagTrue(type: number): void {
     this._dirtyFlag |= type;
-    this._updateFlagManager.dispatch();
+    this._updateFlagManager.dispatch(type);
   }
 
   private _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
   }
-}
-
-enum DirtyFlag {
-  positions = 0x1,
-  uv = 0x2,
-  all = 0x3
 }

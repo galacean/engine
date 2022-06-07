@@ -42,6 +42,12 @@ export abstract class Renderer extends Component {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  @ignoreClone
+  _transformChangeFlag: BoolUpdateFlag;
+  /** @internal */
+  @deepClone
+  _bounds: BoundingBox = new BoundingBox();
 
   /** @internal temp solution. */
   @ignoreClone
@@ -52,10 +58,6 @@ export abstract class Renderer extends Component {
   @shallowClone
   protected _materials: Material[] = [];
 
-  @ignoreClone
-  private _transformChangeFlag: BoolUpdateFlag;
-  @deepClone
-  private _bounds: BoundingBox = new BoundingBox(new Vector3(), new Vector3());
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone

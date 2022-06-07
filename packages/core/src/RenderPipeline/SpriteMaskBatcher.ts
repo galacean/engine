@@ -1,4 +1,5 @@
 import { SpriteMask } from "../2d/sprite/SpriteMask";
+import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
@@ -49,7 +50,7 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  drawBatches(engine: Engine): void {
+  drawBatches(engine: Engine, camera: Camera): void {
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
     const batchedQueue = this._batchedQueue;
@@ -83,8 +84,6 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       if (!program.isValid) {
         return;
       }
-
-      const camera = spriteMaskElement.camera;
 
       program.bind();
       program.groupingOtherUniformBlock();

@@ -1,3 +1,4 @@
+import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../graphic";
 import { BufferMesh } from "../mesh";
@@ -13,6 +14,8 @@ export abstract class Basic2DBatcher {
   static MAX_VERTEX_COUNT: number = 4096;
   static _canUploadSameBuffer: boolean = true;
 
+  /** @internal */
+  _engine: Engine;
   /** @internal */
   _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
   /** @internal */
@@ -37,6 +40,8 @@ export abstract class Basic2DBatcher {
   _elementCount: number = 0;
 
   constructor(engine: Engine) {
+    this._engine = engine;
+
     const { MAX_VERTEX_COUNT } = Basic2DBatcher;
     this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
     this._indices = new Uint16Array(MAX_VERTEX_COUNT * 3);
@@ -47,17 +52,17 @@ export abstract class Basic2DBatcher {
     }
   }
 
-  drawElement(element: Element): void {
+  drawElement(element: Element, camera: Camera): void {
     const len = element.positions.length;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
-      this.flush(element.camera.engine);
+      this.flush(this._engine, camera);
     }
 
     this._vertexCount += len;
     this._batchedQueue[this._elementCount++] = element;
   }
 
-  flush(engine: Engine): void {
+  flush(engine: Engine, camera: Camera): void {
     const batchedQueue = this._batchedQueue;
 
     if (batchedQueue.length === 0) {
@@ -65,7 +70,7 @@ export abstract class Basic2DBatcher {
     }
 
     this._updateData(engine);
-    this.drawBatches(engine);
+    this.drawBatches(engine, camera);
 
     if (!Basic2DBatcher._canUploadSameBuffer) {
       this._flushId++;
@@ -216,5 +221,5 @@ export abstract class Basic2DBatcher {
   /**
    * @internal
    */
-  abstract drawBatches(engine: Engine): void;
+  abstract drawBatches(engine: Engine, camera: Camera): void;
 }
