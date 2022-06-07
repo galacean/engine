@@ -14,7 +14,7 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * GL platform primitive.
  */
 export class GLPrimitive implements IPlatformPrimitive {
-  protected attribLocArray: number[];
+  protected attribLocArray: number[] = [];
   protected readonly _primitive: Mesh;
   protected readonly canUseInstancedArrays: boolean;
 
@@ -35,8 +35,10 @@ export class GLPrimitive implements IPlatformPrimitive {
   draw(shaderProgram: any, subMesh: SubMesh): void {
     const gl = this.gl;
     const primitive = this._primitive;
+    // @ts-ignore
+    const useVao = this._useVao && primitive._enableVAO;
 
-    if (this._useVao) {
+    if (useVao) {
       if (!this.vao.has(shaderProgram.id)) {
         this.registerVAO(shaderProgram);
       }
@@ -52,7 +54,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
     if (!_instanceCount) {
       if (_indexBufferBinding) {
-        if (this._useVao) {
+        if (useVao) {
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
         } else {
           const { _nativeBuffer } = _indexBufferBinding.buffer;
@@ -109,7 +111,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     // @ts-ignore
     const vertexBufferBindings = primitive._vertexBufferBindings;
 
-    this.attribLocArray = [];
+    this.attribLocArray.length = 0;
     const attributeLocation = shaderProgram.attributeLocation;
     const attributes = primitive._vertexElementMap;
 
@@ -131,8 +133,8 @@ export class GLPrimitive implements IPlatformPrimitive {
         }
 
         gl.enableVertexAttribArray(loc);
-        const { size, type, normalized } = element._glElementInfo;
-        gl.vertexAttribPointer(loc, size, type, normalized, stride, element.offset);
+        const elementInfo = element._glElementInfo;
+        gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
         if (this.canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, element.instanceStepRate);
         }

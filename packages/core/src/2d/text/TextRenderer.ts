@@ -371,19 +371,12 @@ export class TextRenderer extends Renderer {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const sprite = this._sprite;
-    if (sprite && sprite.texture) {
-      if (this._customLocalBounds && this._customRootEntity) {
-        const worldMatrix = this._customRootEntity.transform.worldMatrix;
-        BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
-      } else {
-        const localBounds = sprite.bounds;
-        const worldMatrix = this._entity.transform.worldMatrix;
-        BoundingBox.transform(localBounds, worldMatrix, worldBounds);
-      }
+    if (this._customLocalBounds && this._customRootEntity) {
+      const worldMatrix = this._customRootEntity.transform.worldMatrix;
+      BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
     } else {
-      worldBounds.min.setValue(0, 0, 0);
-      worldBounds.max.setValue(0, 0, 0);
+      const worldMatrix = this._entity.transform.worldMatrix;
+      BoundingBox.transform(this._sprite.bounds, worldMatrix, worldBounds);
     }
   }
 

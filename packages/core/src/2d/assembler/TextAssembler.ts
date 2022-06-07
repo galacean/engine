@@ -1,5 +1,6 @@
 import { Vector3 } from "@oasis-engine/math";
 import { Texture2D } from "../../texture";
+import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
 import { TextUtils } from "../text/TextUtils";
 import { IAssembler } from "./IAssembler";
@@ -68,7 +69,35 @@ export class TextAssembler {
     const { width, height } = trimData;
     const canvas = TextUtils.updateCanvas(width, height, trimData.data);
     renderer._clearTexture();
-    const sprite = renderer._sprite;
+
+    const { _sprite: sprite, horizontalAlignment, verticalAlignment } = renderer;
+
+    // Handle the case that width or height of text is larger than real width or height.
+    const { pixelsPerUnit, pivot } = sprite;
+    switch (horizontalAlignment) {
+      case TextHorizontalAlignment.Left:
+        pivot.x = (renderer.width * pixelsPerUnit) / width * 0.5;
+        break;
+      case TextHorizontalAlignment.Right:
+        pivot.x = 1 - (renderer.width * pixelsPerUnit) / width * 0.5;
+        break;
+      case TextHorizontalAlignment.Center:
+        pivot.x = 0.5;
+        break;
+    }
+    switch (verticalAlignment) {
+      case TextVerticalAlignment.Top:
+        pivot.y = 1 - (renderer.height * pixelsPerUnit) / height * 0.5;
+        break;
+      case TextVerticalAlignment.Bottom:
+        pivot.y = (renderer.height * pixelsPerUnit) / height * 0.5;
+        break;
+      case TextVerticalAlignment.Center:
+        pivot.y = 0.5;
+        break;
+    }
+    sprite.pivot = pivot;
+
     // If add fail, set texture for sprite.
     if (!renderer.engine._dynamicTextAtlasManager.addSprite(sprite, canvas)) {
       const texture = new Texture2D(renderer.engine, width, height);
@@ -79,6 +108,5 @@ export class TextAssembler {
     // Update sprite data.
     sprite._updateMesh();
     renderer._renderData._uv = sprite._uv;
-    debugger;
   }
 }
