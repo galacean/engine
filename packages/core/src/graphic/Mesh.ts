@@ -34,6 +34,8 @@ export abstract class Mesh extends RefObject {
   _indexBufferBinding: IndexBufferBinding = null;
   /** @internal */
   _vertexElements: VertexElement[] = [];
+  /** @internal */
+  _enableVAO: boolean = true;
 
   private _subMeshes: SubMesh[] = [];
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
@@ -142,6 +144,18 @@ export abstract class Mesh extends RefObject {
   /**
    * @internal
    */
+  _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    if (this._getRefCount() > 0) {
+      const lastBinding = this._vertexBufferBindings[index];
+      lastBinding && lastBinding._buffer._addRefCount(-1);
+      binding._buffer._addRefCount(1);
+    }
+    this._vertexBufferBindings[index] = binding;
+  }
+
+  /**
+   * @internal
+   */
   _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
     this._platformPrimitive.draw(shaderProgram, subMesh);
   }
@@ -174,15 +188,6 @@ export abstract class Mesh extends RefObject {
     for (let i = 0, n = elements.length; i < n; i++) {
       this._addVertexElement(elements[i]);
     }
-  }
-
-  protected _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    if (this._getRefCount() > 0) {
-      const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addRefCount(-1);
-      binding._buffer._addRefCount(1);
-    }
-    this._vertexBufferBindings[index] = binding;
   }
 
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
