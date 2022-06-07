@@ -1,23 +1,21 @@
-import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color } from "@oasis-engine/math";
 import { Sprite, SpriteMaskInteraction, SpriteMaskLayer, SpriteRenderer } from "..";
-import { CompareFunction, Renderer, UpdateFlag } from "../..";
+import { CompareFunction, Renderer } from "../..";
 import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
-import { Texture2D } from "../../texture";
+import { TextAssembler } from "../assembler/textAssembler";
+import { RenderData2D } from "../data/RenderData2D";
 import { FontStyle } from "../enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
-import { TextUtils } from "./TextUtils";
 
 /**
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
-  private static _tempVec3: Vector3 = new Vector3();
-
   /** @internal temp solution. */
   @ignoreClone
   _customLocalBounds: BoundingBox = null;
@@ -25,10 +23,19 @@ export class TextRenderer extends Renderer {
   @ignoreClone
   _customRootEntity: Entity = null;
 
+  /** @internal */
   @ignoreClone
-  private _sprite: Sprite = null;
-  @deepClone
-  private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
+  _sprite: Sprite = null;
+  /** @internal */
+  @ignoreClone
+  _renderData: RenderData2D = new RenderData2D();
+  /** @internal */
+  @ignoreClone
+  _dirtyFlag: number = DirtyFlag.Property;
+  /** @internal */
+  @ignoreClone
+  _isWorldMatrixDirty: BoolUpdateFlag;
+
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
   @assignmentClone
@@ -46,6 +53,8 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
+  private _useCharCache: boolean = false;
+  @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
@@ -53,10 +62,6 @@ export class TextRenderer extends Renderer {
   private _enableWrapping: boolean = false;
   @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
-  @ignoreClone
-  private _dirtyFlag: number = DirtyFlag.Property;
-  @ignoreClone
-  private _isWorldMatrixDirty: BoolUpdateFlag;
   @assignmentClone
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   @assignmentClone
@@ -175,6 +180,19 @@ export class TextRenderer extends Renderer {
   }
 
   /**
+   * Whether cache each character individually.
+   */
+  get useCharCache(): boolean {
+    return this._useCharCache;
+  }
+
+  set useCharCache(value: boolean) {
+    if (this._useCharCache !== value) {
+      this._useCharCache = value;
+    }
+  }
+
+  /**
    * The horizontal alignment.
    */
   get horizontalAlignment(): TextHorizontalAlignment {
@@ -260,6 +278,7 @@ export class TextRenderer extends Renderer {
     const { engine } = this;
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this._sprite = new Sprite(engine);
+    TextAssembler.resetData(this);
     this.font = Font.createFromOS(engine);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
@@ -277,31 +296,22 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    const { _sprite: sprite } = this;
-    const isTextureDirty = this._isContainDirtyFlag(DirtyFlag.Property);
-    if (isTextureDirty) {
-      this._updateText();
-      this._setDirtyFlagFalse(DirtyFlag.Property);
-    }
-
-    if (this._isWorldMatrixDirty.flag || isTextureDirty) {
-      this._updatePosition();
-      this._isWorldMatrixDirty.flag = false;
-    }
+    TextAssembler.updateData(this);
 
     if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
       this._updateStencilState();
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, sprite.texture);
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, this._sprite.texture);
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
+    const { _positions, _triangles, _uv } = this._renderData;
     spriteElement.setValue(
       this,
-      this._positions,
-      sprite._uv,
-      sprite._triangles,
+      _positions,
+      _uv,
+      _triangles,
       this.color,
       this.getMaterial(),
       camera
@@ -326,6 +336,38 @@ export class TextRenderer extends Renderer {
   }
 
   /**
+   * @internal
+   */
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagTrue(type: number): void {
+    this._dirtyFlag |= type;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyFlag &= ~type;
+  }
+
+  /**
+   * @internal
+   */
+  _clearTexture(): void {
+    const { _sprite } = this;
+    // Remove sprite from dynamic atlas.
+    this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
+    _sprite.atlasRegion = _sprite.region;
+  }
+
+  /**
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
@@ -343,51 +385,6 @@ export class TextRenderer extends Renderer {
       worldBounds.min.setValue(0, 0, 0);
       worldBounds.max.setValue(0, 0, 0);
     }
-  }
-
-  private _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  private _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
-  }
-
-  private _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
-  }
-
-  private _updateText(): void {
-    const { width: originWidth, height: originHeight, enableWrapping, overflowMode } = this;
-    const fontStr = TextUtils.getNativeFontString(this._font.name, this._fontSize, this._fontStyle);
-    const textMetrics = TextUtils.measureText(
-      this.text,
-      originWidth,
-      originHeight,
-      this.lineSpacing,
-      enableWrapping,
-      overflowMode,
-      fontStr
-    );
-    TextUtils.updateText(textMetrics, fontStr, this.horizontalAlignment, this.verticalAlignment);
-    this._updateTexture();
-  }
-
-  private _updateTexture(): void {
-    const trimData = TextUtils.trimCanvas();
-    const { width, height } = trimData;
-    const canvas = TextUtils.updateCanvas(width, height, trimData.data);
-    this._clearTexture();
-    const { _sprite: sprite } = this;
-    // If add fail, set texture for sprite.
-    if (!this.engine._dynamicTextAtlasManager.addSprite(sprite, canvas)) {
-      const texture = new Texture2D(this.engine, width, height);
-      texture.setImageSource(canvas);
-      texture.generateMipmaps();
-      sprite.texture = texture;
-    }
-    // Update sprite data.
-    sprite._updateMesh();
   }
 
   private _updateStencilState(): void {
@@ -413,31 +410,11 @@ export class TextRenderer extends Renderer {
       stencilState.compareFunctionBack = compare;
     }
   }
-
-  private _updatePosition(): void {
-    const localPositions = this._sprite._positions;
-    const localVertexPos = TextRenderer._tempVec3;
-    const worldMatrix = this.entity.transform.worldMatrix;
-
-    const { _positions } = this;
-    for (let i = 0, n = _positions.length; i < n; i++) {
-      const curVertexPos = localPositions[i];
-      localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
-      Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
-    }
-  }
-
-  private _clearTexture(): void {
-    const { _sprite } = this;
-    // Remove sprite from dynamic atlas.
-    this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
-    _sprite.atlasRegion = _sprite.region;
-  }
 }
 
-enum DirtyFlag {
+export enum DirtyFlag {
   Property = 0x1,
   MaskInteraction = 0x2,
-  All = 0x3
+  CharCache = 0x4,
+  All = 0x7
 }
