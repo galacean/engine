@@ -10,14 +10,13 @@ export interface ICharacterController {
    * @param minDist The minimum travelled distance to consider.
    * @param elapsedTime Time elapsed since last call
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number): number;
+  move(disp: Vector3, minDist: number, elapsedTime: number);
 
   /**
    * Test whether flags contain certain flag
-   * @param flags flags number
    * @param flag certain flag
    */
-  isSetControllerCollisionFlag(flags: number, flag: number): boolean;
+  isSetControllerCollisionFlag(flag: number): boolean;
 
   /**
    * Sets controller's position.

@@ -10,20 +10,21 @@ export class PhysXCharacterController implements ICharacterController {
   _id: number;
   /** @internal */
   _pxController: any;
+  private _controllerFlags: any;
   private _shape: PhysXColliderShape;
 
   /**
    * {@inheritDoc ICharacterController.move }
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return this._pxController.move(disp, minDist, elapsedTime);
+  move(disp: Vector3, minDist: number, elapsedTime: number) {
+    this._controllerFlags = this._pxController.move(disp, minDist, elapsedTime);
   }
 
   /**
    * {@inheritDoc ICharacterController.isSetControllerCollisionFlag }
    */
-  isSetControllerCollisionFlag(flags: number, flag: number): boolean {
-    return this._pxController.isSetControllerCollisionFlag(flags, flag);
+  isSetControllerCollisionFlag(flag: number): boolean {
+    return this._pxController.isSetControllerCollisionFlag(this._controllerFlags, flag);
   }
 
   /**

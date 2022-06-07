@@ -109,17 +109,16 @@ export class CharacterController extends Collider {
    * @param minDist The minimum travelled distance to consider.
    * @param elapsedTime Time elapsed since last call
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return this._nativeCharacterController.move(disp, minDist, elapsedTime);
+  move(disp: Vector3, minDist: number, elapsedTime: number) {
+    this._nativeCharacterController.move(disp, minDist, elapsedTime);
   }
 
   /**
    * Test whether flags contain certain flag
-   * @param flags flags number
    * @param flag certain flag
    */
-  isSetControllerCollisionFlag(flags: number, flag: ControllerCollisionFlag): boolean {
-    return this._nativeCharacterController.isSetControllerCollisionFlag(flags, flag);
+  isSetControllerCollisionFlag(flag: ControllerCollisionFlag): boolean {
+    return this._nativeCharacterController.isSetControllerCollisionFlag(flag);
   }
 
   /**
@@ -221,5 +220,6 @@ export class CharacterController extends Collider {
     let position = this.entity.transform.worldPosition;
     this._nativeCharacterController.getPosition(position);
     this.entity.transform.worldPosition = position;
+    this._updateFlag.flag = false;
   }
 }
