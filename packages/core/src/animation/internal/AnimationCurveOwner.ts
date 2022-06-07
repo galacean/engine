@@ -18,7 +18,7 @@ export class AnimationCurveOwner {
   readonly component: Component;
   readonly defaultValue: InterpolableValue;
   readonly fixedPoseValue: InterpolableValue;
-  
+
   /** @internal */
   _hasSavedDefaultValue: boolean = false;
 
@@ -43,9 +43,10 @@ export class AnimationCurveOwner {
         this.component = target.transform;
         break;
       case AnimationProperty.BlendShapeWeights:
-        this.defaultValue = new Float32Array(4);
-        this.fixedPoseValue = new Float32Array(4);
         this.component = target.getComponent(SkinnedMeshRenderer);
+        const weightLength = (<SkinnedMeshRenderer>this.component).blendShapeWeights.length;
+        this.defaultValue = new Float32Array(weightLength);
+        this.fixedPoseValue = new Float32Array(weightLength);
         break;
     }
   }
@@ -64,7 +65,7 @@ export class AnimationCurveOwner {
       case AnimationProperty.BlendShapeWeights:
         const { blendShapeWeights } = <SkinnedMeshRenderer>this.component;
         for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
-          this.defaultValue[i] = (<SkinnedMeshRenderer>this.component).blendShapeWeights[i];
+          this.defaultValue[i] = blendShapeWeights[i];
         }
         break;
     }
