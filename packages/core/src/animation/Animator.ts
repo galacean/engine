@@ -1,4 +1,5 @@
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
@@ -22,14 +23,16 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
+import { AnimatorTempValue } from "./internal/AnimatorTempValue";
 import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
 
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  private static _tempVector3: Vector3 = new Vector3();
-  private static _tempQuaternion: Quaternion = new Quaternion();
+  private static _baseTempValue = new AnimatorTempValue();
+  private static _crossTempValue = new AnimatorTempValue();
+  private static _tempQuat = new Quaternion();
   private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
 
   protected _animatorController: AnimatorController;
@@ -396,29 +399,75 @@ export class Animator extends Component {
     property: AnimationProperty,
     curve: AnimationCurve,
     time: number,
-    additive: boolean
+    additive: boolean,
+    tempValue: AnimatorTempValue
   ): InterpolableValue {
-    const value = curve.evaluate(time);
-
+    let baseValue: InterpolableValue;
     if (additive) {
-      const baseValue = (<UnionInterpolableKeyframe>curve.keys[0]).value;
-      switch (property) {
-        case AnimationProperty.Position:
-          const pos = Animator._tempVector3;
-          Vector3.subtract(<Vector3>value, <Vector3>baseValue, pos);
-          return pos;
-        case AnimationProperty.Rotation:
-          const rot = Animator._tempQuaternion;
-          Quaternion.conjugate(<Quaternion>baseValue, rot);
-          Quaternion.multiply(rot, <Quaternion>value, <Quaternion>rot);
-          return rot;
-        case AnimationProperty.Scale:
-          const scale = Animator._tempVector3;
-          Vector3.divide(<Vector3>value, <Vector3>baseValue, <Vector3>scale);
-          return scale;
+      baseValue = (<UnionInterpolableKeyframe>curve.keys[0]).value;
+    }
+
+    switch (curve._valueType) {
+      case InterpolableValueType.Float: {
+        const value = curve.evaluate(time);
+        if (additive) {
+          return <number>value - <number>baseValue;
+        }
+        return value;
+      }
+      case InterpolableValueType.FloatArray: {
+        const value = tempValue.getFloatArray(curve._valueSize);
+        curve._evaluate(time, value);
+        if (additive) {
+          for (let i = 0, n = value.length; i < n; i++) {
+            value[i] = value[i] - baseValue[i];
+          }
+        }
+        return value;
+      }
+      case InterpolableValueType.Vector2: {
+        const value = tempValue.vector2;
+        curve._evaluate(time, value);
+        if (additive) {
+          if (property === AnimationProperty.Scale) {
+            Vector2.divide(value, <Vector2>baseValue, value);
+          } else {
+            Vector2.subtract(value, <Vector2>baseValue, value);
+          }
+        }
+        return value;
+      }
+      case InterpolableValueType.Vector3: {
+        const value = tempValue.vector3;
+        curve._evaluate(time, value);
+        if (additive) {
+          if (property === AnimationProperty.Scale) {
+            Vector3.divide(value, <Vector3>baseValue, value);
+          } else {
+            Vector3.subtract(value, <Vector3>baseValue, value);
+          }
+        }
+        return value;
+      }
+      case InterpolableValueType.Vector4: {
+        const value = tempValue.vector4;
+        curve._evaluate(time, value);
+        if (additive) {
+          Vector4.subtract(value, <Vector4>baseValue, value);
+        }
+        return value;
+      }
+      case InterpolableValueType.Quaternion: {
+        const value = tempValue.quaternion;
+        curve._evaluate(time, value);
+        if (additive) {
+          const tempQuat = Animator._tempQuat;
+          Quaternion.conjugate(<Quaternion>baseValue, tempQuat);
+          Quaternion.multiply(tempQuat, value, value);
+        }
+        return value;
       }
     }
-    return value;
   }
 
   private _getAnimatorLayerData(layerIndex: number): AnimatorLayerData {
@@ -475,7 +524,7 @@ export class Animator extends Component {
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive);
+      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive, Animator._baseTempValue);
       if (additive) {
         this._applyClipValueAdditive(owner, value, weight);
       } else {
@@ -560,11 +609,23 @@ export class Animator extends Component {
 
       const srcValue =
         srcCurveIndex >= 0
-          ? this._evaluateCurve(property, srcCurves[srcCurveIndex].curve, srcClipTime, additive)
+          ? this._evaluateCurve(
+              property,
+              srcCurves[srcCurveIndex].curve,
+              srcClipTime,
+              additive,
+              Animator._baseTempValue
+            )
           : defaultValue;
       const destValue =
         destCurveIndex >= 0
-          ? this._evaluateCurve(property, destCurves[destCurveIndex].curve, destClipTime, additive)
+          ? this._evaluateCurve(
+              property,
+              destCurves[destCurveIndex].curve,
+              destClipTime,
+              additive,
+              Animator._crossTempValue
+            )
           : defaultValue;
 
       this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
@@ -612,7 +673,13 @@ export class Animator extends Component {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
       const destValue =
         destCurveIndex >= 0
-          ? this._evaluateCurve(curveOwner.property, curves[destCurveIndex].curve, destClipTime, additive)
+          ? this._evaluateCurve(
+              curveOwner.property,
+              curves[destCurveIndex].curve,
+              destClipTime,
+              additive,
+              Animator._crossTempValue
+            )
           : curveOwner.defaultValue;
 
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
@@ -646,16 +713,16 @@ export class Animator extends Component {
     if (owner.type === Transform) {
       switch (owner.property) {
         case AnimationProperty.Position:
-          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
-          value = Animator._tempVector3;
+          value = Animator._baseTempValue.vector3;
+          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, value as Vector3);
           break;
         case AnimationProperty.Rotation:
-          Quaternion.slerp(srcValue as Quaternion, destValue as Quaternion, crossWeight, Animator._tempQuaternion);
-          value = Animator._tempQuaternion;
+          value = Animator._baseTempValue.quaternion;
+          Quaternion.slerp(srcValue as Quaternion, destValue as Quaternion, crossWeight, value as Quaternion);
           break;
         case AnimationProperty.Scale: {
-          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
-          value = Animator._tempVector3;
+          value = Animator._baseTempValue.vector3;
+          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, value as Vector3);
           break;
         }
       }
