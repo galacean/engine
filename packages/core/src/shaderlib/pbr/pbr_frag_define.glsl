@@ -28,8 +28,8 @@ uniform float u_occlusionTextureCoord;
     uniform sampler2D u_emissiveTexture;
 #endif
 
-#ifdef HAS_METALROUGHNESSMAP
-    uniform sampler2D u_metallicRoughnessSampler;
+#ifdef ROUGHNESSMETALLICTEXTURE
+    uniform sampler2D u_roughnessMetallicTexture;
 #endif
 
 

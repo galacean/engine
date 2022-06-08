@@ -72,8 +72,8 @@ void initMaterial(out Material material, const in Geometry geometry){
             }
         #endif
 
-        #ifdef HAS_METALROUGHNESSMAP
-            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv );
+        #ifdef ROUGHNESSMETALLICTEXTURE
+            vec4 metalRoughMapColor = texture2D( u_roughnessMetallicTexture, v_uv );
             roughness *= metalRoughMapColor.g;
             metal *= metalRoughMapColor.b;
         #endif

@@ -9,7 +9,7 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
 export class PBRMaterial extends PBRBaseMaterial {
   private static _metallicProp = Shader.getPropertyByName("u_metal");
   private static _roughnessProp = Shader.getPropertyByName("u_roughness");
-  private static _metallicRoughnessTextureProp = Shader.getPropertyByName("u_metallicRoughnessSampler");
+  private static _roughnessMetallicTextureProp = Shader.getPropertyByName("u_roughnessMetallicTexture");
 
   /**
    * Metallic, default 1.0.
@@ -38,15 +38,15 @@ export class PBRMaterial extends PBRBaseMaterial {
    * @remarks G channel is roughness, B channel is metallic
    */
   get roughnessMetallicTexture(): Texture2D {
-    return <Texture2D>this.shaderData.getTexture(PBRMaterial._metallicRoughnessTextureProp);
+    return <Texture2D>this.shaderData.getTexture(PBRMaterial._roughnessMetallicTextureProp);
   }
 
   set roughnessMetallicTexture(value: Texture2D) {
-    this.shaderData.setTexture(PBRMaterial._metallicRoughnessTextureProp, value);
+    this.shaderData.setTexture(PBRMaterial._roughnessMetallicTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("HAS_METALROUGHNESSMAP");
+      this.shaderData.enableMacro("ROUGHNESSMETALLICTEXTURE");
     } else {
-      this.shaderData.disableMacro("HAS_METALROUGHNESSMAP");
+      this.shaderData.disableMacro("ROUGHNESSMETALLICTEXTURE");
     }
   }
 
