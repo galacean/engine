@@ -16,11 +16,11 @@ uniform float u_occlusionStrength;
 uniform float u_occlusionTextureCoord;
 
 // Texture
-#ifdef HAS_BASECOLORMAP
-    uniform sampler2D u_baseColorSampler;
+#ifdef BASETEXTURE
+    uniform sampler2D u_baseTexture;
 #endif
 
-#ifdef O3_NORMAL_TEXTURE
+#ifdef NORMALTEXTURE
     uniform sampler2D u_normalTexture;
 #endif
 
@@ -33,7 +33,7 @@ uniform float u_occlusionTextureCoord;
 #endif
 
 
-#ifdef HAS_SPECULARGLOSSINESSMAP
+#ifdef SPECULARGLOSSINESSTEXTURE
     uniform sampler2D u_specularGlossinessSampler;
 #endif
 

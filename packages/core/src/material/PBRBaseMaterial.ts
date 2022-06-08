@@ -10,12 +10,7 @@ import { TextureCoordinate } from "./enums/TextureCoordinate";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
-  private static _baseColorProp = Shader.getPropertyByName("u_baseColor");
   private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
-  private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
-  private static _baseTextureProp = Shader.getPropertyByName("u_baseColorSampler");
-  private static _normalTextureProp = Shader.getPropertyByName("u_normalTexture");
-  private static _normalTextureIntensityProp = Shader.getPropertyByName("u_normalIntensity");
   private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionStrength");
   private static _occlusionTextureCoordProp = Shader.getPropertyByName("u_occlusionTextureCoord");
   private static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveSampler");
@@ -51,9 +46,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set baseTexture(value: Texture2D) {
     this.shaderData.setTexture(PBRBaseMaterial._baseTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("HAS_BASECOLORMAP");
+      this.shaderData.enableMacro(PBRBaseMaterial._baseTextureMacro);
     } else {
-      this.shaderData.disableMacro("HAS_BASECOLORMAP");
+      this.shaderData.disableMacro(PBRBaseMaterial._baseTextureMacro);
     }
   }
 
@@ -67,9 +62,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set normalTexture(value: Texture2D) {
     this.shaderData.setTexture(PBRBaseMaterial._normalTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
+      this.shaderData.enableMacro(PBRBaseMaterial._normalTextureMacro);
     } else {
-      this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
+      this.shaderData.disableMacro(PBRBaseMaterial._normalTextureMacro);
     }
   }
 
@@ -77,11 +72,11 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
    * Normal texture intensity.
    */
   get normalTextureIntensity(): number {
-    return this.shaderData.getFloat(PBRBaseMaterial._normalTextureIntensityProp);
+    return this.shaderData.getFloat(PBRBaseMaterial._normalIntensityProp);
   }
 
   set normalTextureIntensity(value: number) {
-    this.shaderData.setFloat(PBRBaseMaterial._normalTextureIntensityProp, value);
+    this.shaderData.setFloat(PBRBaseMaterial._normalIntensityProp, value);
   }
 
   /**
@@ -267,7 +262,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     shaderData.setColor(PBRBaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
     shaderData.setVector4(PBRBaseMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
 
-    shaderData.setFloat(PBRBaseMaterial._normalTextureIntensityProp, 1);
+    shaderData.setFloat(PBRBaseMaterial._normalIntensityProp, 1);
     shaderData.setFloat(PBRBaseMaterial._occlusionTextureIntensityProp, 1);
     shaderData.setFloat(PBRBaseMaterial._occlusionTextureCoordProp, TextureCoordinate.UV0);
 

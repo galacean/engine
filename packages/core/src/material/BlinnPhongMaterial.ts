@@ -8,27 +8,22 @@ import { BaseMaterial } from "./BaseMaterial";
  * Blinn-phong Material.
  */
 export class BlinnPhongMaterial extends BaseMaterial {
-  private static _diffuseColorProp = Shader.getPropertyByName("u_diffuseColor");
   private static _specularColorProp = Shader.getPropertyByName("u_specularColor");
   private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
-  private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
   private static _shininessProp = Shader.getPropertyByName("u_shininess");
-  private static _normalIntensityProp = Shader.getPropertyByName("u_normalIntensity");
 
-  private static _baseTextureProp = Shader.getPropertyByName("u_diffuseTexture");
   private static _specularTextureProp = Shader.getPropertyByName("u_specularTexture");
   private static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveTexture");
-  private static _normalTextureProp = Shader.getPropertyByName("u_normalTexture");
 
   /**
    * Base color.
    */
   get baseColor(): Color {
-    return this.shaderData.getColor(BlinnPhongMaterial._diffuseColorProp);
+    return this.shaderData.getColor(BlinnPhongMaterial._baseColorProp);
   }
 
   set baseColor(value: Color) {
-    const baseColor = this.shaderData.getColor(BlinnPhongMaterial._diffuseColorProp);
+    const baseColor = this.shaderData.getColor(BlinnPhongMaterial._baseColorProp);
     if (value !== baseColor) {
       value.cloneTo(baseColor);
     }
@@ -44,9 +39,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set baseTexture(value: Texture2D) {
     this.shaderData.setTexture(BlinnPhongMaterial._baseTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("O3_DIFFUSE_TEXTURE");
+      this.shaderData.enableMacro(BlinnPhongMaterial._baseTextureMacro);
     } else {
-      this.shaderData.disableMacro("O3_DIFFUSE_TEXTURE");
+      this.shaderData.disableMacro(BlinnPhongMaterial._baseTextureMacro);
     }
   }
 
@@ -120,9 +115,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set normalTexture(value: Texture2D) {
     this.shaderData.setTexture(BlinnPhongMaterial._normalTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("O3_NORMAL_TEXTURE");
+      this.shaderData.enableMacro(BlinnPhongMaterial._normalTextureMacro);
     } else {
-      this.shaderData.disableMacro("O3_NORMAL_TEXTURE");
+      this.shaderData.disableMacro(BlinnPhongMaterial._normalTextureMacro);
     }
   }
 
@@ -170,7 +165,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
     shaderData.enableMacro("O3_NEED_WORLDPOS");
     shaderData.enableMacro("O3_NEED_TILINGOFFSET");
 
-    shaderData.setColor(BlinnPhongMaterial._diffuseColorProp, new Color(1, 1, 1, 1));
+    shaderData.setColor(BlinnPhongMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(BlinnPhongMaterial._specularColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(BlinnPhongMaterial._emissiveColorProp, new Color(0, 0, 0, 1));
     shaderData.setVector4(BlinnPhongMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
