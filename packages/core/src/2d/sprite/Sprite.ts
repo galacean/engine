@@ -10,8 +10,6 @@ import { CallBackUpdateFlag } from "./SpriteUpdateFlag";
  * 2D sprite.
  */
 export class Sprite extends RefObject {
-  static _rectangleTriangles: number[] = [0, 2, 1, 2, 0, 3];
-
   /** The name of sprite. */
   name: string;
 
@@ -19,6 +17,9 @@ export class Sprite extends RefObject {
   _assetID: number;
 
   /** Intermediate product data. */
+  /** The size of the sprite. ( pixel ) */
+  private _width: number;
+  private _height: number;
   /** Normalized top, left, right and bottom. */
   private _edges: number[] = [1, 0, 1, 0];
   private _uvs: Vector2[];
@@ -34,7 +35,7 @@ export class Sprite extends RefObject {
   private _region: Rect = new Rect(0, 0, 1, 1);
   private _border: Vector4 = new Vector4();
 
-  private _dirtyFlag: SpriteDirtyFlag = SpriteDirtyFlag.all;
+  private _dirtyFlag: DirtyFlag = DirtyFlag.all;
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
@@ -47,7 +48,7 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._setDirtyFlagTrue(SpriteDirtyFlag.texture);
+      this._dispatchSpriteChange(SpriteDirtyFlag.texture);
     }
   }
 
@@ -61,7 +62,7 @@ export class Sprite extends RefObject {
   set atlasRotated(value: boolean) {
     if (this._atlasRotated != value) {
       this._atlasRotated = value;
-      this._setDirtyFlagTrue(SpriteDirtyFlag.all);
+      this._dispatchSpriteChange(SpriteDirtyFlag.atlas);
     }
   }
 
@@ -76,7 +77,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._setDirtyFlagTrue(SpriteDirtyFlag.all);
+    this._dispatchSpriteChange(SpriteDirtyFlag.atlas);
   }
 
   /**
@@ -90,7 +91,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._setDirtyFlagTrue(SpriteDirtyFlag.all);
+    this._dispatchSpriteChange(SpriteDirtyFlag.atlas);
   }
 
   /**
@@ -105,7 +106,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     region.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._setDirtyFlagTrue(SpriteDirtyFlag.all);
+    this._dispatchSpriteChange(SpriteDirtyFlag.atlas);
   }
 
   /**
@@ -120,28 +121,76 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     border.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._setDirtyFlagTrue(SpriteDirtyFlag.uvsSliced);
+    this._dispatchSpriteChange(SpriteDirtyFlag.border);
+  }
+
+  /**
+   * Get the width of the sprite.（ pixel ）
+   */
+  get width(): Readonly<number> {
+    this._isContainDirtyFlag(DirtyFlag.size) && this._updateSize();
+    return this._width;
+  }
+
+  /**
+   * Get the height of the sprite.（ pixel ）
+   */
+  get height(): Readonly<number> {
+    this._isContainDirtyFlag(DirtyFlag.size) && this._updateSize();
+    return this._height;
+  }
+
+  /**
+   * Get the edges of the sprite. ( normalized )
+   */
+  get edges(): Readonly<number[]> {
+    this._isContainDirtyFlag(DirtyFlag.edges) && this._updateEdges();
+    return this._edges;
+  }
+
+  /**
+   * Get the uvs of the sprite.
+   */
+  get uvs(): Readonly<Vector2[]> {
+    this._isContainDirtyFlag(DirtyFlag.uvs) && this._updateUVs();
+    return this._uvs;
+  }
+
+  /**
+   * Get the sliced uvs of the sprite.
+   */
+  get uvsSliced(): Readonly<Vector2[]> {
+    this._isContainDirtyFlag(DirtyFlag.uvsSliced) && this._updateSlicedUVs();
+    return this._uvsSliced;
   }
 
   /**
    * Constructor a Sprite.
-   * @param engine - Engine to which the sprite belongs
-   * @param texture - Texture from which to obtain the Sprite
-   * @param region - Rectangle region of the texture to use for the Sprite, specified in normalized
-   * @param name - The name of Sprite
+   * @param engine
+   * @param name
+   * @param texture
+   * @param region
+   * @param border
+   * @param atlasRegion
+   * @param atlasOffset
+   * @param atlasRotated
    */
   constructor(
     engine: Engine,
     texture: Texture2D = null,
     region: Rect = null,
     border: Vector4 = null,
-    name: string = null
+    atlasRegion: Rect = null,
+    atlasOffset: Vector4 = null,
+    atlasRotated: boolean = false
   ) {
     super(engine);
-    this.name = name;
     this._texture = texture;
     region && region.cloneTo(this._region);
     border && border.cloneTo(this._border);
+    atlasRegion && atlasRegion.cloneTo(this._atlasRegion);
+    atlasOffset && atlasOffset.cloneTo(this._atlasRegionOffset);
+    this._atlasRotated = atlasRotated;
   }
 
   /**
@@ -149,28 +198,17 @@ export class Sprite extends RefObject {
    * @returns Cloned sprite
    */
   clone(): Sprite {
-    const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._border, this.name);
+    const cloneSprite = new Sprite(
+      this._engine,
+      this._texture,
+      this._region,
+      this._border,
+      this._atlasRegion,
+      this._atlasRegionOffset,
+      this._atlasRotated
+    );
     cloneSprite._assetID = this._assetID;
-    cloneSprite._atlasRotated = this._atlasRotated;
-    this._atlasRegion.cloneTo(cloneSprite._atlasRegion);
-    this._atlasRegionOffset.cloneTo(cloneSprite._atlasRegionOffset);
     return cloneSprite;
-  }
-
-  /**
-   * @internal
-   */
-  getUVs(): Vector2[] {
-    this._isContainDirtyFlag(SpriteDirtyFlag.uvs) && this._updateUVs();
-    return this._uvs;
-  }
-
-  /**
-   * @internal
-   */
-  getSlicedUVs(): Vector2[] {
-    this._isContainDirtyFlag(SpriteDirtyFlag.uvsSliced) && this._updateSlicedUVs();
-    return this._uvsSliced;
   }
 
   /**
@@ -189,6 +227,17 @@ export class Sprite extends RefObject {
     }
   }
 
+  private _updateSize(): void {
+    if (this._texture) {
+      const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
+      this._width =
+        ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width;
+      this._height =
+        ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) * _region.height;
+    }
+    this._setDirtyFlagFalse(DirtyFlag.size);
+  }
+
   private _updateEdges() {
     const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = this._atlasRegionOffset;
     const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
@@ -204,7 +253,7 @@ export class Sprite extends RefObject {
     edges[2] = 1 - Math.max(blankRight - regionRight, 0) / regionW;
     // Bottom.
     edges[3] = Math.max(blankBottom - regionY, 0) / regionH;
-    this._setDirtyFlagFalse(SpriteDirtyFlag.positions);
+    this._setDirtyFlagFalse(DirtyFlag.edges);
   }
 
   private _updateUVs() {
@@ -242,7 +291,7 @@ export class Sprite extends RefObject {
       // Bottom-left.
       uv[3].setValue(left, bottom);
     }
-    this._setDirtyFlagFalse(SpriteDirtyFlag.uvs);
+    this._setDirtyFlagFalse(DirtyFlag.uvs);
   }
 
   private _updateSlicedUVs() {
@@ -267,19 +316,39 @@ export class Sprite extends RefObject {
     uv[2].setValue(right, bottom);
     // Bottom-left.
     uv[3].setValue(left, bottom);
-    this._setDirtyFlagFalse(SpriteDirtyFlag.uvsSliced);
+    this._setDirtyFlagFalse(DirtyFlag.uvsSliced);
   }
 
-  private _isContainDirtyFlag(type: number): boolean {
+  private _isContainDirtyFlag(type: DirtyFlag): boolean {
     return (this._dirtyFlag & type) != 0;
   }
 
-  private _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
-    this._updateFlagManager.dispatch(type);
-  }
-
-  private _setDirtyFlagFalse(type: number): void {
+  private _setDirtyFlagFalse(type: DirtyFlag): void {
     this._dirtyFlag &= ~type;
   }
+
+  private _dispatchSpriteChange(type: SpriteDirtyFlag): void {
+    switch (type) {
+      case SpriteDirtyFlag.atlas:
+        this._dirtyFlag |= DirtyFlag.all;
+        break;
+      case SpriteDirtyFlag.region:
+        this._dirtyFlag |= DirtyFlag.all;
+        break;
+      case SpriteDirtyFlag.border:
+        this._dirtyFlag |= DirtyFlag.uvsSliced;
+        break;
+      default:
+        break;
+    }
+    this._updateFlagManager.dispatch(type);
+  }
+}
+
+enum DirtyFlag {
+  size = 0x1,
+  edges = 0x2,
+  uvs = 0x4,
+  uvsSliced = 0x8,
+  all = 0x15
 }

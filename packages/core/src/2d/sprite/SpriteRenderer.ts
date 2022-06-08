@@ -10,11 +10,12 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { RenderData2D } from "../data/RenderData2D";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
-import { SpriteSimple } from "../assembler/SpriteSimple";
 import { Sprite } from "./Sprite";
 import { CallBackUpdateFlag } from "./SpriteUpdateFlag";
 import { IAssembler } from "../assembler/IAssembler";
 import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
+import { SpriteDrawMode } from "../enums/SpriteDrawMode";
+import { SpriteSimple } from "../assembler/SpriteSimple";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -23,26 +24,27 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   /** @internal */
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   /** @internal */
-  static _normalBoundingBox: BoundingBox = new BoundingBox(new Vector3(), new Vector3(1, 1, 0));
+  /** Conversion of space units to pixel units. */
+  static _pixelPerUnit: number = 100;
 
   /** @internal */
   /** Render data. */
   _renderData: RenderData2D;
-  _assembler: IAssembler;
+
+  /** Draw mode. */
+  private _drawMode: SpriteDrawMode = SpriteDrawMode.Simple;
+  private _assembler: IAssembler = SpriteSimple;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
 
-  /** About sprite */
+  /** About sprite. */
   @ignoreClone
   private _sprite: Sprite = null;
   @ignoreClone
   private _spriteChangeFlag: CallBackUpdateFlag = null;
 
   /** About transform. */
-  /** ModelMatrix = WorldMatrix * Size * Flip * Pivot. */
-  @deepClone
-  private _modelMatrix: Matrix = new Matrix();
   @deepClone
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   @assignmentClone
@@ -65,6 +67,29 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   private _dirtyFlag: number = 0;
 
   /**
+   * The draw mode of the sprite.
+   */
+  get drawMode(): SpriteDrawMode {
+    return this._drawMode;
+  }
+
+  set drawMode(drawMode: SpriteDrawMode) {
+    if (this._drawMode !== drawMode) {
+      this._drawMode = drawMode;
+      switch (drawMode) {
+        case SpriteDrawMode.Simple:
+          this._assembler = SpriteSimple;
+          break;
+        case SpriteDrawMode.Sliced:
+          break;
+        default:
+          break;
+      }
+      this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
+    }
+  }
+
+  /**
    * The Sprite to render.
    */
   get sprite(): Sprite {
@@ -78,8 +103,14 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.callBack = this._onSpriteChange;
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
-        this._dirtyFlag = DirtyFlag.All;
+        if (value.texture) {
+          this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
+          // Set default size.
+          this.width = value.width / SpriteRenderer._pixelPerUnit;
+          this.height = value.height / SpriteRenderer._pixelPerUnit;
+          console.log(this.width, this.height);
+        }
+        this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
       } else {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
@@ -96,10 +127,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   set pivot(value: Vector2) {
     const pivot = this._pivot;
-    const { x, y } = pivot;
+    const { x, y } = value;
     if (pivot === value || pivot.x !== x || pivot.y !== y) {
       pivot.setValue(x, y);
     }
+    this._setDirtyFlagTrue(DirtyFlag.Position);
   }
 
   /**
@@ -112,6 +144,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set color(value: Color) {
     if (this._color !== value) {
       value.cloneTo(this._color);
+      this._setDirtyFlagTrue(DirtyFlag.Color);
     }
   }
 
@@ -125,7 +158,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set width(val: number) {
     if (this._width !== val) {
       this._width = val;
-      this._setDirtyFlagTrue(DirtyFlag.Model | DirtyFlag.Bounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -139,7 +172,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set height(val: number) {
     if (this._height !== val) {
       this._height = val;
-      this._setDirtyFlagTrue(DirtyFlag.Model | DirtyFlag.Bounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -153,7 +186,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._setDirtyFlagTrue(DirtyFlag.Model | DirtyFlag.Bounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -167,7 +200,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._setDirtyFlagTrue(DirtyFlag.Model | DirtyFlag.Bounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -175,9 +208,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * The bounding volume of the spriteRenderer.
    */
   get bounds(): BoundingBox {
-    if (this._isContainDirtyFlag(DirtyFlag.Bounds)) {
-      BoundingBox.transform(SpriteRenderer._normalBoundingBox, this._getModelMatrix(), this._bounds);
-      this._setDirtyFlagFalse(DirtyFlag.Bounds);
+    if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
+      if (!this._renderData) {
+        this._assembler.resetData(this);
+      }
+      this._assembler.updatePositions(this);
+      this._setDirtyFlagFalse(DirtyFlag.Position);
+      this._transformChangeFlag.flag = false;
     }
     return this._bounds;
   }
@@ -213,7 +250,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   constructor(entity: Entity) {
     super(entity);
     this.setMaterial(this._engine._spriteDefaultMaterial);
-    this._transformChangeFlag.dispatch = this._onWorldMatrixChange.bind(this);
     this._onSpriteChange = this._onSpriteChange.bind(this);
   }
 
@@ -229,9 +265,24 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     if (!this._renderData) {
       this._assembler.resetData(this);
     }
+    // Update position.
+    if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
+      this._assembler.updatePositions(this);
+      this._setDirtyFlagFalse(DirtyFlag.Position);
+      this._transformChangeFlag.flag = false;
+    }
 
-    // Update render data.
-    this._assembler.updateData(this);
+    // Update uv.
+    if (this._isContainDirtyFlag(DirtyFlag.UV)) {
+      this._assembler.updateUVs(this);
+      this._setDirtyFlagFalse(DirtyFlag.UV);
+    }
+
+    // Update color.
+    if (this._isContainDirtyFlag(DirtyFlag.Color)) {
+      this._assembler.updateColor(this);
+      this._setDirtyFlagFalse(DirtyFlag.Color);
+    }
 
     // Push primitive.
     const spriteElement = this._engine._spriteElementPool.getFromPool();
@@ -250,6 +301,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _onDestroy(): void {
+    this._pivot = null;
+    this._color = null;
+    this._sprite = null;
+    this._assembler = null;
+    this._renderData = null;
     this._spriteChangeFlag && this._spriteChangeFlag.destroy();
     super._onDestroy();
   }
@@ -277,51 +333,29 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _getModelMatrix(): Matrix {
-    if (this._isContainDirtyFlag(DirtyFlag.Model)) {
-      // Update modelMatrix.
-      const { _modelMatrix, _pivot } = this;
-      const { elements: e } = _modelMatrix;
-      this._entity.transform.worldMatrix.cloneTo(_modelMatrix);
-      const sx = this._flipX ? -this._width : this._width;
-      const sy = this._flipY ? -this._height : this._height;
-      (e[0] *= sx), (e[1] *= sx), (e[2] *= sx);
-      (e[4] *= sy), (e[5] *= sy), (e[6] *= sy);
-      e[12] -= _pivot.x * e[0] + _pivot.y * e[4];
-      e[13] -= _pivot.x * e[1] + _pivot.y * e[5];
-      this._setDirtyFlagFalse(DirtyFlag.Model);
-    }
-    return this._modelMatrix;
-  }
-
   private _onSpriteChange(dirtyFlag: SpriteDirtyFlag) {
     switch (dirtyFlag) {
       case SpriteDirtyFlag.texture:
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
+        // Update shader data.
+        this.sprite.texture && this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
-      case SpriteDirtyFlag.positions:
-        this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.Bounds);
+      case SpriteDirtyFlag.border:
+        this._drawMode === SpriteDrawMode.Sliced && this._setDirtyFlagTrue(DirtyFlag.UV);
         break;
-      case SpriteDirtyFlag.uvs:
-        this._setDirtyFlagTrue(DirtyFlag.UV);
-        break;
-      case SpriteDirtyFlag.uvsSliced:
-        this._setDirtyFlagTrue(DirtyFlag.UV);
+      case SpriteDirtyFlag.region:
+      case SpriteDirtyFlag.atlas:
+        this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
         break;
       default:
         break;
     }
   }
 
-  private _onWorldMatrixChange() {
-    this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.Bounds);
-  }
-
-  _isContainDirtyFlag(type: number): boolean {
+  private _isContainDirtyFlag(type: number): boolean {
     return (this._dirtyFlag & type) != 0;
   }
 
-  _setDirtyFlagFalse(type: number): void {
+  private _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
   }
 
@@ -331,9 +365,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 }
 
 enum DirtyFlag {
-  Model = 0x1,
+  Position = 0x1,
   UV = 0x2,
-  Position = 0x4,
-  Bounds = 0x8,
-  All = 0x15
+  Color = 0x4,
+  All = 0x7
 }

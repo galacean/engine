@@ -53,7 +53,7 @@ export abstract class Basic2DBatcher {
   }
 
   drawElement(element: Element, camera: Camera): void {
-    const len = element.positions.length;
+    const len = element.renderData.positions.length;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
       this.flush(this._engine, camera);
     }
@@ -164,13 +164,13 @@ export abstract class Basic2DBatcher {
       vertexIndex = this.updateVertices(curElement, vertices, vertexIndex);
 
       // Batch indice
-      const { triangles } = curElement;
+      const { triangles } = curElement.renderData;
       const triangleNum = triangles.length;
       for (let j = 0; j < triangleNum; j++) {
         indices[indiceIndex++] = triangles[j] + curIndiceStartIndex;
       }
 
-      curIndiceStartIndex += curElement.positions.length;
+      curIndiceStartIndex += curElement.renderData.positions.length;
 
       if (preElement === null) {
         vertexCount += triangleNum;

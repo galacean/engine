@@ -1,22 +1,18 @@
 import { Vector2, Vector3 } from "@oasis-engine/math";
+import { RenderData2D } from "../2d/data/RenderData2D";
 import { Camera } from "../Camera";
 import { Component } from "../Component";
 import { Material } from "../material/Material";
 
 export class SpriteMaskElement {
   component: Component;
-  positions: Vector3[];
-  uv: Vector2[];
-  triangles: number[];
+  renderData: RenderData2D;
   material: Material;
   isAdd: boolean = true;
-  camera: Camera;
 
-  setValue(component: Component, positions: Vector3[], uv: Vector2[], triangles: number[], material: Material): void {
+  setValue(component: Component, renderData: RenderData2D, material: Material): void {
     this.component = component;
-    this.positions = positions;
-    this.uv = uv;
-    this.triangles = triangles;
+    this.renderData = renderData;
     this.material = material;
   }
 }

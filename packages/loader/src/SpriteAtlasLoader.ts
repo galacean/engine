@@ -10,13 +10,13 @@ import {
   SpriteAtlas
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
-import { Rect, Vector2 } from "@oasis-engine/math";
+import { Rect, Vector2, Vector4 } from "@oasis-engine/math";
 import { GLTFUtil } from "./gltf/GLTFUtil";
 
 @resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
 class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempRect: Rect = new Rect();
-  private _tempVec2: Vector2 = new Vector2();
+  private _tempVec4: Vector4 = new Vector4();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
     return new AssetPromise((resolve, reject) => {
       this.request<AtlasConfig>(item.url, {
@@ -36,7 +36,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           ).then((imgs) => {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object.
-            const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;
+            const { _tempRect: tempRect, _tempVec4: tempVec4 } = this;
             const spriteAtlas = new SpriteAtlas(engine);
             for (let i = 0; i < atlasItemsLen; i++) {
               // Generate Texture2D according to configuration.
@@ -52,13 +52,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const sourceHeightReciprocal = 1.0 / height;
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
-                const { region, pivot, atlasRegionOffset, atlasRegion, id } = atlasSprite;
+                const { region, atlasRegionOffset, atlasRegion, id } = atlasSprite;
                 const sprite = new Sprite(
                   engine,
                   texture,
                   region ? tempRect.setValue(region.x, region.y, region.w, region.h) : undefined,
-                  pivot ? tempVec2.setValue(pivot.x, pivot.y) : undefined,
-                  atlasSprite.pixelsPerUnit || undefined,
+                  undefined,
                   atlasSprite.name
                 );
                 sprite.atlasRegion.setValue(
