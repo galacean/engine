@@ -2,7 +2,7 @@ uniform float u_alphaCutoff;
 uniform vec4 u_baseColor;
 uniform float u_metal;
 uniform float u_roughness;
-uniform vec3 u_specularColor;
+uniform vec3 u_PBRSpecularColor;
 uniform float u_glossiness;
 uniform vec3 u_emissiveColor;
 
@@ -34,7 +34,7 @@ uniform float u_occlusionTextureCoord;
 
 
 #ifdef SPECULARGLOSSINESSTEXTURE
-    uniform sampler2D u_specularGlossinessSampler;
+    uniform sampler2D u_specularGlossinessTexture;
 #endif
 
 #ifdef OCCLUSIONTEXTURE

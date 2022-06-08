@@ -49,7 +49,7 @@ void initMaterial(out Material material, const in Geometry geometry){
         vec4 baseColor = u_baseColor;
         float metal = u_metal;
         float roughness = u_roughness;
-        vec3 specularColor = u_specularColor;
+        vec3 specularColor = u_PBRSpecularColor;
         float glossiness = u_glossiness;
         float alphaCutoff = u_alphaCutoff;
 
@@ -79,7 +79,7 @@ void initMaterial(out Material material, const in Geometry geometry){
         #endif
 
         #ifdef SPECULARGLOSSINESSTEXTURE
-            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv );
+            vec4 specularGlossinessColor = texture2D(u_specularGlossinessTexture, v_uv );
             #ifndef OASIS_COLORSPACE_GAMMA
                 specularGlossinessColor = gammaToLinear(specularGlossinessColor);
             #endif
