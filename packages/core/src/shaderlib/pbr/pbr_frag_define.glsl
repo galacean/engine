@@ -12,7 +12,7 @@ uniform vec3 u_emissiveColor;
 #endif
 
 uniform float u_normalIntensity;
-uniform float u_occlusionStrength;
+uniform float u_occlusionIntensity;
 uniform float u_occlusionTextureCoord;
 
 // Texture
@@ -37,8 +37,8 @@ uniform float u_occlusionTextureCoord;
     uniform sampler2D u_specularGlossinessSampler;
 #endif
 
-#ifdef HAS_OCCLUSIONMAP
-    uniform sampler2D u_occlusionSampler;
+#ifdef OCCLUSIONTEXTURE
+    uniform sampler2D u_occlusionTexture;
 #endif
 
 #ifdef HAS_CLEARCOATTEXTURE

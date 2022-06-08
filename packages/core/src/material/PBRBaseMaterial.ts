@@ -10,9 +10,9 @@ import { TextureCoordinate } from "./enums/TextureCoordinate";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
-  private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionStrength");
+  private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionIntensity");
   private static _occlusionTextureCoordProp = Shader.getPropertyByName("u_occlusionTextureCoord");
-  private static _occlusionTextureProp = Shader.getPropertyByName("u_occlusionSampler");
+  private static _occlusionTextureProp = Shader.getPropertyByName("u_occlusionTexture");
 
   private static _clearCoatProp = Shader.getPropertyByName("u_clearCoat");
   private static _clearCoatTextureProp = Shader.getPropertyByName("u_clearCoatTexture");
@@ -117,9 +117,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set occlusionTexture(value: Texture2D) {
     this.shaderData.setTexture(PBRBaseMaterial._occlusionTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("HAS_OCCLUSIONMAP");
+      this.shaderData.enableMacro("OCCLUSIONTEXTURE");
     } else {
-      this.shaderData.disableMacro("HAS_OCCLUSIONMAP");
+      this.shaderData.disableMacro("OCCLUSIONTEXTURE");
     }
   }
 

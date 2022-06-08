@@ -37,14 +37,14 @@ reflectedLight.indirectSpecular += radianceAttenuation * radiance * envBRDFAppro
 
 
 // Occlusion
-#ifdef HAS_OCCLUSIONMAP
+#ifdef OCCLUSIONTEXTURE
     vec2 aoUV = v_uv;
     #ifdef O3_HAS_UV1
         if(u_occlusionTextureCoord == 1.0){
             aoUV = v_uv1;
         }
     #endif
-    float ambientOcclusion = (texture2D(u_occlusionSampler, aoUV).r - 1.0) * u_occlusionStrength + 1.0;
+    float ambientOcclusion = (texture2D(u_occlusionTexture, aoUV).r - 1.0) * u_occlusionIntensity + 1.0;
     reflectedLight.indirectDiffuse *= ambientOcclusion;
     #ifdef O3_USE_SPECULAR_ENV
         reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, geometry.dotNV);
