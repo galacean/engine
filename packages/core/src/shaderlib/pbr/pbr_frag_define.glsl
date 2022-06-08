@@ -24,8 +24,8 @@ uniform float u_occlusionTextureCoord;
     uniform sampler2D u_normalTexture;
 #endif
 
-#ifdef HAS_EMISSIVEMAP
-    uniform sampler2D u_emissiveSampler;
+#ifdef EMISSIVETEXTURE
+    uniform sampler2D u_emissiveTexture;
 #endif
 
 #ifdef HAS_METALROUGHNESSMAP

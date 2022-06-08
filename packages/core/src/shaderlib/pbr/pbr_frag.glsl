@@ -54,8 +54,8 @@ reflectedLight.indirectSpecular += radianceAttenuation * radiance * envBRDFAppro
 
 // Emissive
 vec3 emissiveRadiance = u_emissiveColor;
-#ifdef HAS_EMISSIVEMAP
-    vec4 emissiveColor = texture2D(u_emissiveSampler, v_uv);
+#ifdef EMISSIVETEXTURE
+    vec4 emissiveColor = texture2D(u_emissiveTexture, v_uv);
     #ifndef OASIS_COLORSPACE_GAMMA
         emissiveColor = gammaToLinear(emissiveColor);
     #endif

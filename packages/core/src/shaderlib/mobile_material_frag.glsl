@@ -5,7 +5,7 @@ uniform float u_shininess;
 uniform float u_normalIntensity;
 uniform float u_alphaCutoff;
 
-#ifdef O3_EMISSIVE_TEXTURE
+#ifdef EMISSIVETEXTURE
     uniform sampler2D u_emissiveTexture;
 #endif
 

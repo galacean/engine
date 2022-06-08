@@ -9,11 +9,8 @@ import { BaseMaterial } from "./BaseMaterial";
  */
 export class BlinnPhongMaterial extends BaseMaterial {
   private static _specularColorProp = Shader.getPropertyByName("u_specularColor");
-  private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
   private static _shininessProp = Shader.getPropertyByName("u_shininess");
-
   private static _specularTextureProp = Shader.getPropertyByName("u_specularTexture");
-  private static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveTexture");
 
   /**
    * Base color.
@@ -99,9 +96,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set emissiveTexture(value: Texture2D) {
     this.shaderData.setTexture(BlinnPhongMaterial._emissiveTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("O3_EMISSIVE_TEXTURE");
+      this.shaderData.enableMacro(BlinnPhongMaterial._emissiveTextureMacro);
     } else {
-      this.shaderData.disableMacro("O3_EMISSIVE_TEXTURE");
+      this.shaderData.disableMacro(BlinnPhongMaterial._emissiveTextureMacro);
     }
   }
 

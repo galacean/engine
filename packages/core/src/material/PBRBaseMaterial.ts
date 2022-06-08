@@ -10,10 +10,8 @@ import { TextureCoordinate } from "./enums/TextureCoordinate";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
-  private static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
   private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionStrength");
   private static _occlusionTextureCoordProp = Shader.getPropertyByName("u_occlusionTextureCoord");
-  private static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveSampler");
   private static _occlusionTextureProp = Shader.getPropertyByName("u_occlusionSampler");
 
   private static _clearCoatProp = Shader.getPropertyByName("u_clearCoat");
@@ -103,9 +101,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set emissiveTexture(value: Texture2D) {
     this.shaderData.setTexture(PBRBaseMaterial._emissiveTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("HAS_EMISSIVEMAP");
+      this.shaderData.enableMacro(PBRBaseMaterial._emissiveTextureMacro);
     } else {
-      this.shaderData.disableMacro("HAS_EMISSIVEMAP");
+      this.shaderData.disableMacro(PBRBaseMaterial._emissiveTextureMacro);
     }
   }
 

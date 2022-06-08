@@ -5,7 +5,7 @@
 
     
 
-    #ifdef O3_EMISSIVE_TEXTURE
+    #ifdef EMISSIVETEXTURE
         vec4 emissiveTextureColor = texture2D(u_emissiveTexture, v_uv);
         #ifndef OASIS_COLORSPACE_GAMMA
             emissiveTextureColor = gammaToLinear(emissiveTextureColor);

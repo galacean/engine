@@ -14,6 +14,9 @@ export class BaseMaterial extends Material {
   protected static _normalTextureProp = Shader.getPropertyByName("u_normalTexture");
   protected static _normalIntensityProp = Shader.getPropertyByName("u_normalIntensity");
   protected static _normalTextureMacro: ShaderMacro = Shader.getMacroByName("NORMALTEXTURE");
+  protected static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
+  protected static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveTexture");
+  protected static _emissiveTextureMacro: ShaderMacro = Shader.getMacroByName("EMISSIVETEXTURE");
 
   private static _alphaCutoffProp = Shader.getPropertyByName("u_alphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = Shader.getMacroByName("ALPHA_CUTOFF");
