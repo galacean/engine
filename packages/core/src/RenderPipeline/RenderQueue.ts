@@ -71,7 +71,7 @@ export class RenderQueue {
       }
 
       if (!!(item as RenderElement).mesh) {
-        this._spriteBatcher.flush(engine, camera);
+        this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
@@ -146,7 +146,7 @@ export class RenderQueue {
       }
     }
 
-    this._spriteBatcher.flush(engine, camera);
+    this._spriteBatcher.flush(camera);
   }
 
   /**

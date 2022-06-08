@@ -4,6 +4,7 @@ import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
+import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { Shader } from "../../shader/Shader";
@@ -17,7 +18,6 @@ import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
 import { SpriteRenderer } from "./SpriteRenderer";
-import { CallBackUpdateFlag } from "./SpriteUpdateFlag";
 
 /**
  * A component for masking Sprites.
@@ -41,7 +41,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
   @ignoreClone
-  private _spriteChangeFlag: CallBackUpdateFlag = null;
+  private _spriteChangeFlag: ListenerUpdateFlag = null;
 
   /** About transform. */
   @deepClone
@@ -171,7 +171,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
       this._sprite = value;
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
-        this._spriteChangeFlag.callBack = this._onSpriteChange;
+        this._spriteChangeFlag.listener = this._onSpriteChange;
         if (value.texture) {
           this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
           // Set default size.

@@ -50,10 +50,12 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  drawBatches(engine: Engine, camera: Camera): void {
+  drawBatches(camera: Camera): void {
+    const { _engine: engine, _batchedQueue: batchedQueue } = this;
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
-    const batchedQueue = this._batchedQueue;
+    const sceneData = camera.scene.shaderData;
+    const cameraData = camera.shaderData;
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];
@@ -87,8 +89,8 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
 
       program.bind();
       program.groupingOtherUniformBlock();
-      program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
-      program.uploadAll(program.cameraUniformBlock, camera.shaderData);
+      program.uploadAll(program.sceneUniformBlock, sceneData);
+      program.uploadAll(program.cameraUniformBlock, cameraData);
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 

@@ -1,10 +1,10 @@
-import { MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
+import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
+import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
-import { CallBackUpdateFlag } from "./SpriteUpdateFlag";
 
 /**
  * 2D sprite.
@@ -34,6 +34,8 @@ export class Sprite extends RefObject {
   /** How to show sprite. */
   private _region: Rect = new Rect(0, 0, 1, 1);
   private _border: Vector4 = new Vector4();
+
+  public bounds = new BoundingBox();
 
   private _dirtyFlag: DirtyFlag = DirtyFlag.all;
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
@@ -180,17 +182,13 @@ export class Sprite extends RefObject {
     texture: Texture2D = null,
     region: Rect = null,
     border: Vector4 = null,
-    atlasRegion: Rect = null,
-    atlasOffset: Vector4 = null,
-    atlasRotated: boolean = false
+    name: string = null
   ) {
     super(engine);
     this._texture = texture;
     region && region.cloneTo(this._region);
     border && border.cloneTo(this._border);
-    atlasRegion && atlasRegion.cloneTo(this._atlasRegion);
-    atlasOffset && atlasOffset.cloneTo(this._atlasRegionOffset);
-    this._atlasRotated = atlasRotated;
+    this.name = name;
   }
 
   /**
@@ -198,15 +196,7 @@ export class Sprite extends RefObject {
    * @returns Cloned sprite
    */
   clone(): Sprite {
-    const cloneSprite = new Sprite(
-      this._engine,
-      this._texture,
-      this._region,
-      this._border,
-      this._atlasRegion,
-      this._atlasRegionOffset,
-      this._atlasRotated
-    );
+    const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._border, this.name);
     cloneSprite._assetID = this._assetID;
     return cloneSprite;
   }
@@ -214,8 +204,8 @@ export class Sprite extends RefObject {
   /**
    * @internal
    */
-  _registerUpdateFlag(): CallBackUpdateFlag {
-    return this._updateFlagManager.createFlag(CallBackUpdateFlag);
+  _registerUpdateFlag(): ListenerUpdateFlag {
+    return this._updateFlagManager.createFlag(ListenerUpdateFlag);
   }
 
   /**
@@ -350,5 +340,5 @@ enum DirtyFlag {
   edges = 0x2,
   uvs = 0x4,
   uvsSliced = 0x8,
-  all = 0x15
+  all = 0xf
 }

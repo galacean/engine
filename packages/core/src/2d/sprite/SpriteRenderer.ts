@@ -11,11 +11,11 @@ import { RenderData2D } from "../data/RenderData2D";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
-import { CallBackUpdateFlag } from "./SpriteUpdateFlag";
 import { IAssembler } from "../assembler/IAssembler";
 import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteSimple } from "../assembler/SpriteSimple";
+import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -25,7 +25,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   /** @internal */
   /** Conversion of space units to pixel units. */
-  static _pixelPerUnit: number = 100;
+  static _pixelPerUnit: number = 128;
 
   /** @internal */
   /** Render data. */
@@ -42,7 +42,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
   @ignoreClone
-  private _spriteChangeFlag: CallBackUpdateFlag = null;
+  private _spriteChangeFlag: ListenerUpdateFlag = null;
 
   /** About transform. */
   @deepClone
@@ -102,7 +102,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       this._sprite = value;
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
-        this._spriteChangeFlag.callBack = this._onSpriteChange;
+        this._spriteChangeFlag.listener = this._onSpriteChange;
         if (value.texture) {
           this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
           // Set default size.

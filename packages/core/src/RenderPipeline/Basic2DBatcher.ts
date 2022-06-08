@@ -55,22 +55,21 @@ export abstract class Basic2DBatcher {
   drawElement(element: Element, camera: Camera): void {
     const len = element.renderData.positions.length;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
-      this.flush(this._engine, camera);
+      this.flush(camera);
     }
 
     this._vertexCount += len;
     this._batchedQueue[this._elementCount++] = element;
   }
 
-  flush(engine: Engine, camera: Camera): void {
+  flush(camera: Camera): void {
     const batchedQueue = this._batchedQueue;
 
     if (batchedQueue.length === 0) {
       return;
     }
-
-    this._updateData(engine);
-    this.drawBatches(engine, camera);
+    this._updateData(this._engine);
+    this.drawBatches(camera);
 
     if (!Basic2DBatcher._canUploadSameBuffer) {
       this._flushId++;
@@ -221,5 +220,5 @@ export abstract class Basic2DBatcher {
   /**
    * @internal
    */
-  abstract drawBatches(engine: Engine, camera: Camera): void;
+  abstract drawBatches(camera: Camera): void;
 }
