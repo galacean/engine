@@ -36,13 +36,6 @@ export class ShaderData implements IRefObject, IClone {
   private _refCount: number = 0;
 
   /**
-   * Shader macro array that are currently enabled for ShaderData.
-   */
-  get macros(): ShaderMacro[] {
-    return Object.values(this._macroMap);
-  }
-
-  /**
    * @internal
    */
   constructor(group: ShaderDataGroup) {
@@ -516,13 +509,13 @@ export class ShaderData implements IRefObject, IClone {
   }
 
   /**
-   * Disable macro
+   * Disable macro.
    * @param macroName - Macro name
    */
   disableMacro(macroName: string): void;
 
   /**
-   * Disable macro
+   * Disable macro.
    * @param macro - Shader macro
    */
   disableMacro(macro: ShaderMacro): void;
@@ -542,6 +535,28 @@ export class ShaderData implements IRefObject, IClone {
     if (currentMacro) {
       this._macroCollection.disable(currentMacro);
       delete this._macroMap[nameID];
+    }
+  }
+
+  /**
+   * Get shader macro array that are currently enabled for ShaderData.
+   */
+  getMacros(): ShaderMacro[];
+  /**
+   * Get shader macro array that are currently enabled for ShaderData.
+   * @param out - Shader macro array
+   */
+  getMacros(out: ShaderMacro[]): void;
+
+  getMacros(out?: ShaderMacro[]): ShaderMacro[] | void {
+    if (out) {
+      const macroMap = this._macroMap;
+      out.length = 0;
+      for (var key in macroMap) {
+        out.push(macroMap[key]);
+      }
+    } else {
+      return Object.values(this._macroMap);
     }
   }
 
