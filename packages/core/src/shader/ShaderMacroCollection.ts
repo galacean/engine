@@ -57,10 +57,10 @@ export class ShaderMacroCollection {
       for (; maskStart < index; maskStart++) {
         mask[maskStart] = 0;
       }
-      mask[index] = macro._value;
+      mask[index] = macro._maskValue;
       this._length = size;
     } else {
-      mask[index] |= macro._value;
+      mask[index] |= macro._maskValue;
     }
   }
 
@@ -75,7 +75,7 @@ export class ShaderMacroCollection {
     if (index > endIndex) {
       return;
     }
-    const newValue = mask[index] & ~macro._value;
+    const newValue = mask[index] & ~macro._maskValue;
     if (index == endIndex && newValue === 0) {
       this._length--;
     } else {
@@ -155,7 +155,7 @@ export class ShaderMacroCollection {
     if (index >= this._length) {
       return false;
     }
-    return (this._mask[index] & macro._value) !== 0;
+    return (this._mask[index] & macro._maskValue) !== 0;
   }
 
   /**

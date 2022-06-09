@@ -49,20 +49,32 @@ export class Shader {
    * @param name - Name of the shader macro
    * @returns Shader macro
    */
-  static getMacroByName(name: string): ShaderMacro {
-    let macro = Shader._macroMap[name];
+  static getMacroByName(name: string): ShaderMacro;
+
+  /**
+   * Get shader macro by name.
+   * @param name - Name of the shader macro
+   * @param value - Value of the shader macro
+   * @returns Shader macro
+   */
+  static getMacroByName(name: string, value: string): ShaderMacro;
+
+  static getMacroByName(name: string, value?: string): ShaderMacro {
+    const key = value ? name + ` ` + value : name;
+    let macro = Shader._macroMap[key];
     if (!macro) {
       const maskMap = Shader._macroMaskMap;
       const counter = Shader._macroCounter;
       const index = Math.floor(counter / 32);
       const bit = counter % 32;
-      macro = new ShaderMacro(name, index, 1 << bit);
-      Shader._macroMap[name] = macro;
+
+      macro = new ShaderMacro(name, index, 1 << bit, value);
+      Shader._macroMap[key] = macro;
       if (index == maskMap.length) {
         maskMap.length++;
         maskMap[index] = new Array<string>(32);
       }
-      maskMap[index][bit] = name;
+      maskMap[index][bit] = key;
       Shader._macroCounter++;
     }
     return macro;
