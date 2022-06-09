@@ -42,11 +42,11 @@ export class FontAtlas extends RefObject {
     this._charDefDict = {};
   }
 
-  addCharDef(key: string, def: CharDef) {
+  addCharDef(key: string, def: CharDef): void {
     this._charDefDict[key] = def;
   }
 
-  getCharDef(key: string): CharDef | null {
+  getCharDef(key: string): CharDef {
     return this._charDefDict[key];
   }
 

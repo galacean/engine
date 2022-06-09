@@ -14,6 +14,16 @@ export interface TextContext {
 
 /**
  * @internal
+ * FontSizeInfo.
+ */
+export interface FontSizeInfo {
+  ascent: number;
+  descent: number;
+  size: number;
+}
+
+/**
+ * @internal
  * TextMetrics.
  */
 export interface TextMetrics {
@@ -26,9 +36,19 @@ export interface TextMetrics {
 
 /**
  * @internal
+ * CharMetrics.
+ */
+export interface CharMetrics {
+  width: number;
+  sizeInfo: FontSizeInfo;
+}
+
+/**
+ * @internal
  * TextUtils includes some helper function for text.
  */
 export class TextUtils {
+  /** @internal */
   static _genericFontFamilies: Array<string> = [
     "serif",
     "sans-serif",
@@ -41,14 +61,15 @@ export class TextUtils {
     "fangsong"
   ];
   /** These characters are all tall to help calculate the height required for text. */
+  /** @internal */
+  static _pixelsPerUnit: number = 128;
   private static _measureString: string = "|ÉqÅ";
   private static _measureBaseline: string = "M";
   private static _heightMultiplier: number = 2;
   private static _baselineMultiplier: number = 1.4;
   private static _maxWidth: number = 2048;
   private static _maxHeight: number = 2048;
-  private static _pixelsPerUnit: number = 128;
-  private static _fontSizeCache: Record<string, number> = {};
+  private static _fontSizeInfoCache: Record<string, FontSizeInfo> = {};
   private static _textContext: TextContext = null;
   private static _tempVec2: Vector2 = new Vector2();
 
@@ -74,18 +95,18 @@ export class TextUtils {
 
   /**
    * Measure the font.
-   * @param font - the string of the font
-   * @returns the font size
+   * @param fontString - the string of the font
+   * @returns the font size info
    */
-  public static measureFont(font: string): number {
-    const { _fontSizeCache: fontSizeCache } = TextUtils;
-    let fontSize = fontSizeCache[font];
-    if (fontSize) {
-      return fontSize;
+  public static measureFont(fontString: string): FontSizeInfo {
+    const { _fontSizeInfoCache: fontSizeInfoCache } = TextUtils;
+    let info = fontSizeInfoCache[fontString];
+    if (info) {
+      return info;
     }
 
     const { canvas, context } = TextUtils.textContext();
-    context.font = font;
+    context.font = fontString;
     const measureString = TextUtils._measureString;
     const width = Math.ceil(context.measureText(measureString).width);
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
@@ -95,10 +116,10 @@ export class TextUtils {
     canvas.width = width;
     canvas.height = height;
 
-    context.font = font;
+    context.font = fontString;
     context.fillStyle = "#000";
     context.clearRect(0, 0, width, height);
-    context.textBaseline = "alphabetic";
+    context.textBaseline = "middle";
     context.fillStyle = "#f00";
     context.fillText(measureString, 0, baseline);
 
@@ -138,9 +159,12 @@ export class TextUtils {
     }
 
     const descent = i - baseline + 1;
-    fontSize = ascent + descent;
-    fontSizeCache[font] = fontSize;
-    return fontSize;
+    fontSizeInfoCache[fontString] = info = {
+      ascent,
+      descent,
+      size: ascent + descent
+    };
+    return info;
   }
 
   /**
@@ -164,7 +188,7 @@ export class TextUtils {
     fontString: string
   ): TextMetrics {
     const { _pixelsPerUnit } = TextUtils;
-    const fontSize = TextUtils.measureFont(fontString);
+    const fontSize = TextUtils.measureFont(fontString).size;
     const context = TextUtils.textContext().context;
     const lines = TextUtils._wordWrap(text, originWidth, enableWrapping, fontString);
     const lineCount = lines.length;
@@ -193,6 +217,78 @@ export class TextUtils {
       lines,
       lineWidths,
       lineHeight
+    };
+  }
+
+  public static measureChar(char: string, fontString: string): CharMetrics {
+    const { canvas, context } = TextUtils.textContext();
+    const width = Math.ceil(context.measureText(char).width);
+    let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
+    const height = baseline * TextUtils._heightMultiplier;
+    baseline = (TextUtils._baselineMultiplier * baseline) | 0;
+
+    canvas.width = width;
+    canvas.height = height;
+
+    context.font = fontString;
+    context.fillStyle = "#000";
+    context.clearRect(0, 0, width, height);
+    context.textBaseline = "middle";
+    context.fillStyle = "#fff";
+    context.fillText(char, 0, baseline);
+
+    const imgData = context.getImageData(0, 0, width, height).data;
+    const lineDataCount = width * 4;
+    let stop = false;
+    let i = 0;
+    let offset = 0;
+    let top = 0;
+
+    for (i = 0; i < baseline; ++i) {
+      offset = i * lineDataCount;
+      for (let j = 0; j < lineDataCount; j += 4) {
+        if (imgData[offset + j] !== 0) {
+          stop = true;
+          break;
+        }
+      }
+      if (stop) {
+        break;
+      }
+    }
+
+    const ascent = baseline - i;
+    top = i;
+    stop = false;
+
+    for (i = height - 1; i >= baseline; --i) {
+      offset = i * lineDataCount;
+      for (let j = 0; j < lineDataCount; j += 4) {
+        if (imgData[offset + j] !== 0) {
+          stop = true;
+          break;
+        }
+      }
+      if (stop) {
+        break;
+      }
+    }
+
+    const descent = i - baseline + 1;
+    const size = ascent + descent;
+    const sizeInfo = {
+      ascent,
+      descent,
+      size
+    };
+    if (size > 0) {
+      const data = context.getImageData(0, top, width, size);
+      TextUtils.updateCanvas(width, size, data);
+    }
+
+    return {
+      width,
+      sizeInfo
     };
   }
 
@@ -277,15 +373,33 @@ export class TextUtils {
   }
 
   /**
+   * Get native font hash.
+   * @param fontName - The font name
+   * @param fontSize - The font size
+   * @param style - The font style
+   * @returns The native font hash
+   */
+  public static getNativeFontHash(fontName: string, fontSize: number, style: FontStyle): string {
+    let str = style & FontStyle.Bold ? "bold" : "";
+    style & FontStyle.Italic && (str += "italic");
+    // Check if font already contains strings
+    if (!/([\"\'])[^\'\"]+\1/.test(fontName) && TextUtils._genericFontFamilies.indexOf(fontName) == -1) {
+      fontName = `${fontName}`;
+    }
+    str += `${fontSize}px${fontName}`;
+    return str;
+  }
+
+  /**
    * Update text.
    * @param textMetrics - the text metrics object
-   * @param fontStr - the font string
+   * @param fontString - the font string
    * @param horizontalAlignment - the horizontal alignment
    * @param verticalAlignment - the vertical alignment
    */
   public static updateText(
     textMetrics: TextMetrics,
-    fontStr: string,
+    fontString: string,
     horizontalAlignment: TextHorizontalAlignment,
     verticalAlignment: TextVerticalAlignment
   ): void {
@@ -295,7 +409,7 @@ export class TextUtils {
     canvas.width = width;
     canvas.height = height;
     // clear canvas.
-    context.font = fontStr;
+    context.font = fontString;
     context.clearRect(0, 0, width, height);
     // set canvas font info.
     context.textBaseline = "middle";

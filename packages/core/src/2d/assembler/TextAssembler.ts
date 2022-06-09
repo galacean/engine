@@ -1,4 +1,4 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 import { Texture2D } from "../../texture";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
@@ -11,15 +11,19 @@ export class TextAssembler {
   private static _tempVec3: Vector3 = new Vector3();
 
   public static resetData(renderer: TextRenderer) {
-    const { _positions, _triangles } = renderer._renderData;
+    const positions: Array<Vector3> = [];
+    const uvs: Array<Vector2> = [];
+    const triangles: Array<number> = [];
+    const color: Color = null;
 
-    _positions[0] = new Vector3();
-    _positions[1] = new Vector3();
-    _positions[2] = new Vector3();
-    _positions[3] = new Vector3();
+    positions[0] = new Vector3();
+    positions[1] = new Vector3();
+    positions[2] = new Vector3();
+    positions[3] = new Vector3();
+    triangles[0] = 0, triangles[1] = 2, triangles[2] = 1;
+    triangles[3] = 2, triangles[4] = 0, triangles[5] = 3;
 
-    _triangles[0] = 0, _triangles[1] = 2, _triangles[2] = 1;
-    _triangles[3] = 2, _triangles[4] = 0, _triangles[5] = 3;
+    renderer._renderData = { positions, uvs, triangles, color};
   }
 
   static updateData(renderer: TextRenderer): void {
@@ -33,6 +37,8 @@ export class TextAssembler {
       TextAssembler._updatePosition(renderer);
       renderer._isWorldMatrixDirty.flag = false;
     }
+
+    renderer._renderData.color = renderer.color;
   }
 
   private static _updatePosition(renderer: TextRenderer): void {
@@ -40,7 +46,7 @@ export class TextAssembler {
     const localVertexPos = TextAssembler._tempVec3;
     const worldMatrix = renderer.entity.transform.worldMatrix;
 
-    const { _positions } = renderer._renderData;
+    const { positions: _positions } = renderer._renderData;
     for (let i = 0, n = _positions.length; i < n; i++) {
       const curVertexPos = localPositions[i];
       localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
@@ -50,7 +56,7 @@ export class TextAssembler {
 
   private static _updateText(renderer: TextRenderer): void {
     const { width: originWidth, height: originHeight, enableWrapping, overflowMode } = renderer;
-    const fontStr = TextUtils.getNativeFontString(renderer.font.name, renderer.fontSize, renderer.fontStyle);
+    const fontString = TextUtils.getNativeFontString(renderer.font.name, renderer.fontSize, renderer.fontStyle);
     const textMetrics = TextUtils.measureText(
       renderer.text,
       originWidth,
@@ -58,9 +64,9 @@ export class TextAssembler {
       renderer.lineSpacing,
       enableWrapping,
       overflowMode,
-      fontStr
+      fontString
     );
-    TextUtils.updateText(textMetrics, fontStr, renderer.horizontalAlignment, renderer.verticalAlignment);
+    TextUtils.updateText(textMetrics, fontString, renderer.horizontalAlignment, renderer.verticalAlignment);
     TextAssembler._updateTexture(renderer);
   }
 
@@ -107,6 +113,6 @@ export class TextAssembler {
     }
     // Update sprite data.
     sprite._updateMesh();
-    renderer._renderData._uv = sprite._uv;
+    renderer._renderData.uvs = sprite._uv;
   }
 }

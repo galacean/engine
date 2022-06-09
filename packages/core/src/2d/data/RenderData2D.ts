@@ -1,10 +1,12 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 
-export class RenderData2D {
+export interface RenderData2D {
   /** @internal */
-  _positions: Vector3[] = new Array<Vector3>();
+  positions: Vector3[];
   /** @internal */
-  _uv: Vector2[] = new Array<Vector2>();
+  uvs: Vector2[];
   /** @internal */
-  _triangles: number[] = new Array<number>();
+  triangles: number[];
+  /** @internal */
+  color: Color;
 }

@@ -5,8 +5,11 @@ import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
+import { Texture2D } from "../../texture";
+import { CharAssembler } from "../assembler/CharAssembler";
 import { TextAssembler } from "../assembler/textAssembler";
 import { RenderData2D } from "../data/RenderData2D";
+import { CharRenderData } from "../assembler/CharRenderData";
 import { FontStyle } from "../enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
@@ -16,20 +19,16 @@ import { Font } from "./Font";
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
-  /** @internal temp solution. */
-  @ignoreClone
-  _customLocalBounds: BoundingBox = null;
-  /** @internal temp solution. */
-  @ignoreClone
-  _customRootEntity: Entity = null;
-
   /** @internal */
   @ignoreClone
   _sprite: Sprite = null;
   /** @internal */
   @ignoreClone
-  _renderData: RenderData2D = new RenderData2D();
+  _renderData: RenderData2D;
   /** @internal */
+  @ignoreClone
+  _charRenderDatas: Array<CharRenderData> = [];
+
   @ignoreClone
   _dirtyFlag: number = DirtyFlag.Property;
   /** @internal */
@@ -189,6 +188,7 @@ export class TextRenderer extends Renderer {
   set useCharCache(value: boolean) {
     if (this._useCharCache !== value) {
       this._useCharCache = value;
+      this._setDirtyFlagTrue(DirtyFlag.Property);
     }
   }
 
@@ -279,6 +279,7 @@ export class TextRenderer extends Renderer {
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this._sprite = new Sprite(engine);
     TextAssembler.resetData(this);
+    CharAssembler.resetData(this);
     this.font = Font.createFromOS(engine);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
@@ -296,27 +297,23 @@ export class TextRenderer extends Renderer {
       return;
     }
 
-    TextAssembler.updateData(this);
-
     if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
       this._updateStencilState();
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, this._sprite.texture);
-    const spriteElementPool = this._engine._spriteElementPool;
-    const spriteElement = spriteElementPool.getFromPool();
-    const { _positions, _triangles, _uv } = this._renderData;
-    spriteElement.setValue(
-      this,
-      _positions,
-      _uv,
-      _triangles,
-      this.color,
-      this.getMaterial(),
-      camera
-    );
-    camera._renderPipeline.pushPrimitive(spriteElement);
+    if (this._useCharCache) {
+      CharAssembler.updateData(this);
+
+      const { _charRenderDatas } = this;
+      for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
+        const charRenderData = _charRenderDatas[i];
+        this._drawPrimitive(camera, charRenderData.renderData, charRenderData.texture);
+      }
+    } else {
+      TextAssembler.updateData(this);
+      this._drawPrimitive(camera, this._renderData, this._sprite.texture);
+    }
   }
 
   /**
@@ -371,13 +368,8 @@ export class TextRenderer extends Renderer {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    if (this._customLocalBounds && this._customRootEntity) {
-      const worldMatrix = this._customRootEntity.transform.worldMatrix;
-      BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
-    } else {
-      const worldMatrix = this._entity.transform.worldMatrix;
-      BoundingBox.transform(this._sprite.bounds, worldMatrix, worldBounds);
-    }
+    const worldMatrix = this._entity.transform.worldMatrix;
+    BoundingBox.transform(this._sprite.bounds, worldMatrix, worldBounds);
   }
 
   private _updateStencilState(): void {
@@ -403,11 +395,27 @@ export class TextRenderer extends Renderer {
       stencilState.compareFunctionBack = compare;
     }
   }
+
+  private _drawPrimitive(camera: Camera, renderData: RenderData2D, texture: Texture2D): void {
+    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
+    const spriteElementPool = this._engine._spriteElementPool;
+    const spriteElement = spriteElementPool.getFromPool();
+    const { positions, triangles, uvs, color } = renderData;
+    spriteElement.setValue(
+      this,
+      positions,
+      uvs,
+      triangles,
+      color,
+      this.getMaterial(),
+      camera
+    );
+    camera._renderPipeline.pushPrimitive(spriteElement);
+  }
 }
 
 export enum DirtyFlag {
   Property = 0x1,
   MaskInteraction = 0x2,
-  CharCache = 0x4,
-  All = 0x7
+  All = 0x3
 }
