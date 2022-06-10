@@ -10,7 +10,7 @@ import {
   SpriteAtlas
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
-import { Rect, Vector2, Vector4 } from "@oasis-engine/math";
+import { Rect, Vector2 } from "@oasis-engine/math";
 import { GLTFUtil } from "./gltf/GLTFUtil";
 
 @resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
