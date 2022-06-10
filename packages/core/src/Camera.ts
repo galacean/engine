@@ -3,7 +3,7 @@ import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependencies } from "./ComponentsDependencies";
+import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
@@ -16,7 +16,6 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
-import { UpdateFlag } from "./UpdateFlag";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -26,8 +25,9 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
+ * @decorator `@dependentComponents(Transform)`
  */
-@dependencies(Transform)
+@dependentComponents(Transform)
 export class Camera extends Component {
   private static _viewMatrixProperty = Shader.getPropertyByName("u_viewMat");
   private static _projectionMatrixProperty = Shader.getPropertyByName("u_projMat");
@@ -314,8 +314,7 @@ export class Camera extends Component {
   }
 
   /**
-   * Create the Camera component.
-   * @param entity - Entity
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
