@@ -60,14 +60,13 @@ export class CharAssembler {
     const { color, fontSize, fontStyle, horizontalAlignment, verticalAlignment, _charRenderDatas } = renderer;
     const { name } = renderer.font;
     const { _pixelsPerUnit } = TextUtils;
-    const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
-    const fontSizeInfo = TextUtils.measureFont(fontString);
     const fontHash = TextUtils.getNativeFontHash(name, fontSize, fontStyle);
     const widthInPixel = renderer.width * _pixelsPerUnit;
     const heightInPixel = renderer.height * _pixelsPerUnit;
 
     const textMetrics = renderer.enableWrapping ? CharAssembler._measureTextWithWrap(renderer) : CharAssembler._measureTextWithoutWrap(renderer);
-    const { width, height, lines, lineWidths, lineHeight } = textMetrics;
+    const { height, lines, lineWidths, lineHeight } = textMetrics;
+    const textureSize = CharAssembler._charUtils.getTextureSize();
 
     let startY = 0;
     switch (verticalAlignment) {
@@ -98,7 +97,6 @@ export class CharAssembler {
           startX = widthInPixel * 0.5 - lineWidth;
           break;
       }
-      startY -= (i + 0/.5) * lineHeight;
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const char = line[j];
@@ -109,20 +107,19 @@ export class CharAssembler {
         const { renderData, localPositions } = charRenderData;
         charRenderData.texture = charDefWithTexture.texture;
         renderData.color = color;
-        const textureSize = CharAssembler._charUtils.getTextureSize();
 
         const { uvs } = renderData;
         const { x, y, w, h} = charDef;
         const left = startX / _pixelsPerUnit;
         const right = (startX + charDef.w) / _pixelsPerUnit;
         const top = (startY + charDef.offsetY + h * 0.5) / _pixelsPerUnit;
-        const bottom = (top - h) / _pixelsPerUnit;
+        const bottom = top - h / _pixelsPerUnit;
         // Top-left.
         localPositions[0].setValue(left, top, 0);
         uvs[0].setValue(x / textureSize, y / textureSize);
         // Top-right.
         localPositions[1].setValue(right, top, 0);
-        uvs[1].setValue((x + w) / textureSize, h / textureSize);
+        uvs[1].setValue((x + w) / textureSize, y / textureSize);
         // Bottom-right.
         localPositions[2].setValue(right, bottom, 0);
         uvs[2].setValue((x + w) / textureSize, (y + h) / textureSize);
@@ -133,6 +130,8 @@ export class CharAssembler {
         _charRenderDatas.push(charRenderData);
         startX += charDef.xAdvance;
       }
+
+      startY -= lineHeight;
     }
   }
 

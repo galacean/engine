@@ -222,6 +222,7 @@ export class TextUtils {
 
   public static measureChar(char: string, fontString: string): CharMetrics {
     const { canvas, context } = TextUtils.textContext();
+    context.font = fontString;
     const width = Math.ceil(context.measureText(char).width);
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     const height = baseline * TextUtils._heightMultiplier;
