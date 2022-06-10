@@ -14,7 +14,8 @@ export { Renderer } from "./Renderer";
 export { dependentComponents } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
-export { UpdateFlag } from "./UpdateFlag";
+export { BoolUpdateFlag } from "./BoolUpdateFlag";
+export { ListenerUpdateFlag } from "./ListenerUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
 
 export { request } from "./asset/request";
@@ -43,7 +44,6 @@ export { BackgroundMode } from "./enums/BackgroundMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
-export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export * from "./input/index";
 export * from "./lighting/index";
 export * from "./material/index";
