@@ -14,6 +14,9 @@ export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
 export { Texture2DEncoder } from "./resources/texture2D/TextureEncoder";
 export { ReflectionParser } from "./resources/prefab/ReflectionParser";
 export { PrefabParser } from "./resources/prefab/PrefabParser";
+export type { IModelMesh } from "./resources/mesh/IModelMesh";
+export type { IAnimationClipAsset } from "./resources/animationClip/type";
+export type { IAnimatorControllerAsset } from "./resources/animatorController/type";
 
 /**
  * Decode engine binary resource.
