@@ -68,7 +68,7 @@ export class Shader {
       const index = Math.floor(counter / 32);
       const bit = counter % 32;
 
-      macro = new ShaderMacro(name, index, 1 << bit, value);
+      macro = new ShaderMacro(name, value, index, 1 << bit);
       Shader._macroMap[key] = macro;
       if (index == maskMap.length) {
         maskMap.length++;
