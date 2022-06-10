@@ -498,7 +498,7 @@ export class ShaderData implements IRefObject, IClone {
     if (typeof macro === "string") {
       macro = Shader.getMacroByName(macro, value);
     }
-    const nameID = macro._nameID;
+    const nameID = macro._nameId;
     const lastMacro = this._macroMap[nameID];
     if (lastMacro !== macro) {
       const macroCollection = this._macroCollection;
@@ -523,12 +523,12 @@ export class ShaderData implements IRefObject, IClone {
   disableMacro(macro: string | ShaderMacro): void {
     let nameID: number;
     if (typeof macro === "string") {
-      nameID = ShaderMacro._macroNameIDMap[macro];
+      nameID = ShaderMacro._macroNameIdMap[macro];
       if (nameID === undefined) {
         return;
       }
     } else {
-      nameID = macro._nameID;
+      nameID = macro._nameId;
     }
 
     const currentMacro = this._macroMap[nameID];

@@ -3,7 +3,7 @@
  */
 export class ShaderMacro {
   /** @internal */
-  static _macroNameIDMap: Record<string, number> = Object.create(null);
+  static _macroNameIdMap: Record<string, number> = Object.create(null);
 
   private static _macroNameCounter: number = 0;
 
@@ -13,7 +13,7 @@ export class ShaderMacro {
   readonly value: string;
 
   /** @internal */
-  _nameID: number;
+  _nameId: number;
   /** @internal */
   _maskIndex: number;
   /** @internal */
@@ -28,11 +28,11 @@ export class ShaderMacro {
     this._maskValue = maskValue;
     this.value = value;
 
-    const macroNameIDMap = ShaderMacro._macroNameIDMap;
+    const macroNameIDMap = ShaderMacro._macroNameIdMap;
     let nameID = macroNameIDMap[name];
     if (macroNameIDMap[name] === undefined) {
       macroNameIDMap[name] = nameID = ShaderMacro._macroNameCounter++;
     }
-    this._nameID = nameID;
+    this._nameId = nameID;
   }
 }
