@@ -31,9 +31,8 @@ export class ShaderData implements IRefObject, IClone {
   _properties: Record<number, ShaderPropertyValueType> = Object.create(null);
   /** @internal */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
-  
 
-  private _variableMacros: Record<string, string> = Object.create(null);
+  private _macroMap: Record<number, ShaderMacro> = Object.create(null);
   private _refCount: number = 0;
 
   /**
@@ -476,60 +475,88 @@ export class ShaderData implements IRefObject, IClone {
   }
 
   /**
-   * Enable macro.
+   * Enable macro with name.
    * @param macroName - Macro name
    */
   enableMacro(macroName: string): void;
 
   /**
-   * Enable macro.
-   * @param macro - Shader macro
-   */
-  enableMacro(macro: ShaderMacro): void;
-
-  /**
-   * Enable macro.
-   * @remarks Name and value will combine one macro, it's equal the macro of "name value".
+   * Enable macro with name and value.
+   * @remarks Name and value will combine, it's equal the macro of "name value".
    * @param name - Macro name
    * @param value - Macro value
    */
   enableMacro(name: string, value: string): void;
 
-  enableMacro(macro: string | ShaderMacro, value: string = null): void {
-    if (value) {
-      this._enableVariableMacro(<string>macro, value);
-    } else {
-      if (typeof macro === "string") {
-        macro = Shader.getMacroByName(macro);
-      }
-      this._macroCollection.enable(macro);
+  /**
+   * Enable macro with shaderMacro.
+   * @param macro - Shader macro
+   */
+  enableMacro(macro: ShaderMacro): void;
+
+  enableMacro(macro: string | ShaderMacro, value?: string): void {
+    if (typeof macro === "string") {
+      macro = Shader.getMacroByName(macro, value);
+    }
+    const nameID = macro._nameId;
+    const lastMacro = this._macroMap[nameID];
+    if (lastMacro !== macro) {
+      const macroCollection = this._macroCollection;
+      lastMacro && macroCollection.disable(lastMacro);
+      macroCollection.enable(macro);
+      this._macroMap[nameID] = macro;
     }
   }
 
   /**
-   * Disable macro
+   * Disable macro.
    * @param macroName - Macro name
    */
   disableMacro(macroName: string): void;
 
   /**
-   * Disable macro
+   * Disable macro.
    * @param macro - Shader macro
    */
   disableMacro(macro: ShaderMacro): void;
 
   disableMacro(macro: string | ShaderMacro): void {
+    let nameID: number;
     if (typeof macro === "string") {
-      // @todo: should optimization variable macros disable performance
-      const variableValue = this._variableMacros[macro];
-      if (variableValue) {
-        this._disableVariableMacro(macro, variableValue);
-      } else {
-        macro = Shader.getMacroByName(macro);
-        this._macroCollection.disable(macro);
+      nameID = ShaderMacro._macroNameIdMap[macro];
+      if (nameID === undefined) {
+        return;
       }
     } else {
-      this._macroCollection.disable(macro);
+      nameID = macro._nameId;
+    }
+
+    const currentMacro = this._macroMap[nameID];
+    if (currentMacro) {
+      this._macroCollection.disable(currentMacro);
+      delete this._macroMap[nameID];
+    }
+  }
+
+  /**
+   * Get shader macro array that are currently enabled for ShaderData.
+   */
+  getMacros(): ShaderMacro[];
+  /**
+   * Get shader macro array that are currently enabled for ShaderData.
+   * @param out - Shader macro array
+   */
+  getMacros(out: ShaderMacro[]): void;
+
+  getMacros(out?: ShaderMacro[]): ShaderMacro[] | void {
+    if (out) {
+      const macroMap = this._macroMap;
+      out.length = 0;
+      for (var key in macroMap) {
+        out.push(macroMap[key]);
+      }
+    } else {
+      return Object.values(this._macroMap);
     }
   }
 
@@ -541,7 +568,7 @@ export class ShaderData implements IRefObject, IClone {
 
   cloneTo(target: ShaderData): void {
     CloneManager.deepCloneObject(this._macroCollection, target._macroCollection);
-    Object.assign(target._variableMacros, this._variableMacros);
+    Object.assign(target._macroMap, this._macroMap);
 
     const properties = this._properties;
     const targetProperties = target._properties;
@@ -619,23 +646,5 @@ export class ShaderData implements IRefObject, IClone {
         property._addRefCount(value);
       }
     }
-  }
-
-  private _enableVariableMacro(name: string, value: string): void {
-    const variableMacro = this._variableMacros;
-    const variableValue = variableMacro[name];
-    if (variableValue !== value) {
-      variableValue && this._disableVariableMacro(name, variableValue);
-
-      const macro = Shader.getMacroByName(`${name} ${value}`);
-      this._macroCollection.enable(macro);
-      variableMacro[name] = value;
-    }
-  }
-
-  private _disableVariableMacro(name: string, value: string): void {
-    const oldMacro = Shader.getMacroByName(`${name} ${value}`);
-    this._macroCollection.disable(oldMacro);
-    delete this._variableMacros[name];
   }
 }
