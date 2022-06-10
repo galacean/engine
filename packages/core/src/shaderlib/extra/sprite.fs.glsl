@@ -7,17 +7,12 @@ uniform sampler2D u_spriteTexture;
 varying vec2 v_uv;
 varying vec4 v_color;
 
-void main()
-{
+void main() {
   // Only use the Alpha of the texture as a mask, so that the tint color can still be controlled to fade out.
   #ifdef USE_CUSTOM_TEXTURE
-  vec4 baseColor = texture2D(u_cusTomTexture, v_uv);
+   vec4 baseColor = texture2D(u_cusTomTexture, v_uv);
   #else
-  vec4 baseColor = texture2D(u_spriteTexture, v_uv);
+   vec4 baseColor = texture2D(u_spriteTexture, v_uv);
   #endif
-  if(baseColor.w < 0.1) {
-     gl_FragColor = vec4(1,0,0,1);
-  } else {
-     gl_FragColor = baseColor * v_color;
-  }
+  gl_FragColor = baseColor * v_color;
 }
