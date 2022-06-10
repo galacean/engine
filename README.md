@@ -5,13 +5,14 @@
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
 [![codecov](https://codecov.io/gh/oasis-engine/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/oasis-engine/engine)
 
-This is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
+This is a **web-first** and **mobile-first** high-performance real-time interactive engine. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ## Features
 
 - 🖥  &nbsp;**Platform** - Suppport HTML5 and Alipay miniprogram
 - 🔮  &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
 - 🏃  &nbsp;**Animation** - Powerful animation system
+- 🧱  &nbsp;**Physics** - Powerful and easy-to-use physical features
 - 📑  &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
 ## Usage
