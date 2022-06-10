@@ -22,9 +22,9 @@ export class ShaderMacro {
   /**
    * @internal
    */
-  constructor(name: string, value: string, index: number, maskValue: number) {
+  constructor(name: string, value: string, maskIndex: number, maskValue: number) {
     this.name = name;
-    this._maskIndex = index;
+    this._maskIndex = maskIndex;
     this._maskValue = maskValue;
     this.value = value;
 
