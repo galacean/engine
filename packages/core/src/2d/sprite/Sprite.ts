@@ -112,8 +112,7 @@ export class Sprite extends RefObject {
 
   set pivot(value: Vector2) {
     const pivot = this._pivot;
-    const x = MathUtil.clamp(value.x, 0, 1);
-    const y = MathUtil.clamp(value.y, 0, 1);
+    const { x, y } = value;
     if (pivot === value || pivot.x !== x || pivot.y !== y) {
       pivot.setValue(x, y);
       this._setDirtyFlagTrue(DirtyFlag.positions);

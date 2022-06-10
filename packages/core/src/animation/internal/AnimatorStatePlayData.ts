@@ -29,7 +29,7 @@ export class AnimatorStatePlayData {
     const duration = state._getDuration();
     this.playState = AnimatorStatePlayState.Playing;
     if (state.wrapMode === WrapMode.Loop) {
-      time = time % duration;
+      time = duration ? time % duration : 0;
     } else {
       if (Math.abs(time) > duration) {
         time = time < 0 ? -duration : duration;

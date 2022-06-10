@@ -48,7 +48,7 @@ export class ShaderMacroCollection {
    * @param macro - ShaderMacro
    */
   enable(macro: ShaderMacro): void {
-    const index = macro._index;
+    const index = macro._maskIndex;
     const size = index + 1;
     const mask = this._mask;
     let maskStart = this._length; // must from this._length because this._length maybe less than mask.length and have dirty data should clear.
@@ -57,10 +57,10 @@ export class ShaderMacroCollection {
       for (; maskStart < index; maskStart++) {
         mask[maskStart] = 0;
       }
-      mask[index] = macro._value;
+      mask[index] = macro._maskValue;
       this._length = size;
     } else {
-      mask[index] |= macro._value;
+      mask[index] |= macro._maskValue;
     }
   }
 
@@ -69,13 +69,13 @@ export class ShaderMacroCollection {
    * @param macro - ShaderMacro
    */
   disable(macro: ShaderMacro): void {
-    const index = macro._index;
+    const index = macro._maskIndex;
     const mask = this._mask;
     const endIndex = this._length - 1;
     if (index > endIndex) {
       return;
     }
-    const newValue = mask[index] & ~macro._value;
+    const newValue = mask[index] & ~macro._maskValue;
     if (index == endIndex && newValue === 0) {
       this._length--;
     } else {
@@ -151,11 +151,11 @@ export class ShaderMacroCollection {
    * @param macro - ShaderMacro
    */
   isEnable(macro: ShaderMacro): boolean {
-    const index = macro._index;
+    const index = macro._maskIndex;
     if (index >= this._length) {
       return false;
     }
-    return (this._mask[index] & macro._value) !== 0;
+    return (this._mask[index] & macro._maskValue) !== 0;
   }
 
   /**
