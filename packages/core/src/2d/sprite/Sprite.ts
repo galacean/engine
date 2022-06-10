@@ -23,7 +23,7 @@ export class Sprite extends RefObject {
   /** Normalized top, left, right and bottom. */
   private _edges: number[] = [1, 0, 1, 0];
   private _uvs: Vector2[];
-  private _uvsSliced: Vector2[];
+  private _uvsSliced: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   /** How to get form texture. */
   private _texture: Texture2D = null;
@@ -33,7 +33,8 @@ export class Sprite extends RefObject {
 
   /** How to show sprite. */
   private _region: Rect = new Rect(0, 0, 1, 1);
-  private _border: Vector4 = new Vector4();
+  private _pivot: Vector2 = new Vector2(0.5, 0.5);
+  private _border: Vector4 = new Vector4(0, 0, 0, 0);
 
   public bounds = new BoundingBox();
 
@@ -112,6 +113,27 @@ export class Sprite extends RefObject {
   }
 
   /**
+   * Location of the sprite's center point in the rectangle region, specified in normalized.
+   * The origin is at the bottom left and the default value is (0.5, 0.5).
+   */
+  get pivot(): Vector2 {
+    return this._pivot;
+  }
+
+  set pivot(value: Vector2) {
+    const pivot = this._pivot;
+    if (pivot === value) {
+      this._dispatchSpriteChange(SpriteDirtyFlag.pivot);
+    } else {
+      const { x, y } = value;
+      if (pivot.x !== x || pivot.y !== y) {
+        pivot.setValue(x, y);
+        this._dispatchSpriteChange(SpriteDirtyFlag.pivot);
+      }
+    }
+  }
+
+  /**
    * Top, left, right, down.
    */
   get border(): Vector4 {
@@ -181,12 +203,14 @@ export class Sprite extends RefObject {
     engine: Engine,
     texture: Texture2D = null,
     region: Rect = null,
+    pivot: Vector2 = null,
     border: Vector4 = null,
     name: string = null
   ) {
     super(engine);
     this._texture = texture;
     region && region.cloneTo(this._region);
+    pivot && pivot.cloneTo(this._pivot);
     border && border.cloneTo(this._border);
     this.name = name;
   }
@@ -196,7 +220,7 @@ export class Sprite extends RefObject {
    * @returns Cloned sprite
    */
   clone(): Sprite {
-    const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._border, this.name);
+    const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._pivot, this._border, this.name);
     cloneSprite._assetID = this._assetID;
     return cloneSprite;
   }
@@ -285,27 +309,31 @@ export class Sprite extends RefObject {
   }
 
   private _updateSlicedUVs() {
-    const { _uvs: uv, _atlasRegionOffset: atlasRegionOffset } = this;
+    const { _uvsSliced: uvsSliced, _atlasRegionOffset: atlasRegionOffset } = this;
     const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
     const regionRight = 1 - regionX - regionW;
-    const regionBottom = 1 - regionY - regionH;
+    const regionTop = 1 - regionY - regionH;
     const { x: atlasRegionX, y: atlasRegionY, width: atlasRegionW, height: atlasRegionH } = this._atlasRegion;
     const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
     const realWidth = atlasRegionW / (1 - offsetLeft - offsetRight);
     const realHeight = atlasRegionH / (1 - offsetTop - offsetBottom);
     // Coordinates of the four boundaries.
     const left = Math.max(regionX - offsetLeft, 0) * realWidth + atlasRegionX;
-    const top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
+    const top = Math.max(regionTop - offsetTop, 0) * realHeight + atlasRegionY;
     const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
     const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
-    // Top-left.
-    uv[0].setValue(left, top);
-    // Top-right.
-    uv[1].setValue(right, top);
-    // Bottom-right.
-    uv[2].setValue(right, bottom);
-    // Bottom-left.
-    uv[3].setValue(left, bottom);
+
+    const { x: borderTop, y: borderLeft, z: borderRight, w: borderBottom } = this._border;
+    uvsSliced[0].setValue(left, top);
+    uvsSliced[1].setValue(
+      (regionX - offsetLeft + borderLeft * regionW) * realWidth + atlasRegionX,
+      (regionTop - offsetTop + borderTop * regionH) * realHeight + atlasRegionY
+    );
+    uvsSliced[2].setValue(
+      atlasRegionW + atlasRegionX - (regionRight - offsetRight + borderRight * regionW) * realWidth,
+      atlasRegionH + atlasRegionY - (regionY - offsetBottom + borderBottom * regionH) * realHeight
+    );
+    uvsSliced[3].setValue(right, bottom);
     this._setDirtyFlagFalse(DirtyFlag.uvsSliced);
   }
 
@@ -320,8 +348,6 @@ export class Sprite extends RefObject {
   private _dispatchSpriteChange(type: SpriteDirtyFlag): void {
     switch (type) {
       case SpriteDirtyFlag.atlas:
-        this._dirtyFlag |= DirtyFlag.all;
-        break;
       case SpriteDirtyFlag.region:
         this._dirtyFlag |= DirtyFlag.all;
         break;

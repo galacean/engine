@@ -11,18 +11,31 @@ export class SpriteSimple {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    const renderData = (renderer._renderData = new RenderData2D());
-    renderData.positions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-    renderData.uvs = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-    renderData.triangles = SpriteSimple._rectangleTriangles;
-    renderData.color = new Color();
+    if (!renderer._renderData) {
+      renderer._renderData = {
+        vertexCount: 4,
+        positions: [new Vector3(), new Vector3(), new Vector3(), new Vector3()],
+        uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
+        triangles: new Array<number>(6),
+        color: new Color()
+      };
+    }
   }
 
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
+    const { _renderData: renderData } = renderer;
+    if (!renderData) {
+      SpriteSimple.resetData(renderer);
+    }
     // Update ModelMatrix.
-    const { width, height, pivot } = renderer;
+    const { width, height } = renderer;
+    if (width === 0 || height === 0) {
+      return;
+    }
+
+    const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const { _worldMatrix: worldMatrix } = SpriteSimple;
     // Parent transform.
     const { elements: parentE } = renderer.entity.transform.worldMatrix;
@@ -32,8 +45,8 @@ export class SpriteSimple {
     (modelE[0] = parentE[0] * sx), (modelE[1] = parentE[1] * sx), (modelE[2] = parentE[2] * sx);
     (modelE[4] = parentE[4] * sy), (modelE[5] = parentE[5] * sy), (modelE[6] = parentE[6] * sy);
     (modelE[8] = parentE[8]), (modelE[9] = parentE[9]), (modelE[10] = parentE[10]);
-    modelE[12] = parentE[12] - pivot.x * modelE[0] - pivot.y * modelE[4];
-    modelE[13] = parentE[13] - pivot.x * modelE[1] - pivot.y * modelE[5];
+    modelE[12] = parentE[12] - pivotX * modelE[0] - pivotY * modelE[4];
+    modelE[13] = parentE[13] - pivotX * modelE[1] - pivotY * modelE[5];
     modelE[14] = parentE[14];
 
     // Update positions.

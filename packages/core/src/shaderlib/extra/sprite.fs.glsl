@@ -15,5 +15,9 @@ void main()
   #else
   vec4 baseColor = texture2D(u_spriteTexture, v_uv);
   #endif
-  gl_FragColor = baseColor * v_color;
+  if(baseColor.w < 0.1) {
+     gl_FragColor = vec4(1,0,0,1);
+  } else {
+     gl_FragColor = baseColor * v_color;
+  }
 }

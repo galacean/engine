@@ -55,12 +55,10 @@ export class SpriteBatcher extends Basic2DBatcher {
   }
 
   updateVertices(element: SpriteElement, vertices: Float32Array, vertexIndex: number): number {
-    const { positions, uvs, color } = element.renderData;
-    const verticesNum = positions.length;
-    for (let i = 0; i < verticesNum; i++) {
+    const { positions, uvs, color, vertexCount } = element.renderData;
+    for (let i = 0; i < vertexCount; i++) {
       const curPos = positions[i];
       const curUV = uvs[i];
-
       vertices[vertexIndex++] = curPos.x;
       vertices[vertexIndex++] = curPos.y;
       vertices[vertexIndex++] = curPos.z;

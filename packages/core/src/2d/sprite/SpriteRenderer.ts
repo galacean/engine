@@ -16,6 +16,7 @@ import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteSimple } from "../assembler/SpriteSimple";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
+import { SpriteSliced } from "../assembler/SpriteSliced";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -25,15 +26,15 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
   /** @internal */
   /** Conversion of space units to pixel units. */
-  static _pixelPerUnit: number = 128;
+  static _pixelPerUnit: number = 100;
 
   /** @internal */
   /** Render data. */
   _renderData: RenderData2D;
 
   /** Draw mode. */
-  private _drawMode: SpriteDrawMode = SpriteDrawMode.Simple;
-  private _assembler: IAssembler = SpriteSimple;
+  private _drawMode: SpriteDrawMode = SpriteDrawMode.Sliced;
+  private _assembler: IAssembler = SpriteSliced;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -45,8 +46,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   private _spriteChangeFlag: ListenerUpdateFlag = null;
 
   /** About transform. */
-  @deepClone
-  private _pivot: Vector2 = new Vector2(0.5, 0.5);
   @assignmentClone
   private _width: number = 1;
   @assignmentClone
@@ -66,6 +65,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   private _dirtyFlag: number = 0;
 
+  _customLocalBounds: BoundingBox;
+
   /**
    * The draw mode of the sprite.
    */
@@ -81,6 +82,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           this._assembler = SpriteSimple;
           break;
         case SpriteDrawMode.Sliced:
+          this._assembler = SpriteSliced;
           break;
         default:
           break;
@@ -115,23 +117,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
     }
-  }
-
-  /**
-   * Location of the sprite's center point in the rectangle region, specified in normalized.
-   * The origin is at the bottom left and the default value is (0.5, 0.5).
-   */
-  get pivot(): Vector2 {
-    return this._pivot;
-  }
-
-  set pivot(value: Vector2) {
-    const pivot = this._pivot;
-    const { x, y } = value;
-    if (pivot === value || pivot.x !== x || pivot.y !== y) {
-      pivot.setValue(x, y);
-    }
-    this._setDirtyFlagTrue(DirtyFlag.Position);
   }
 
   /**
@@ -209,9 +194,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    */
   get bounds(): BoundingBox {
     if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
-      if (!this._renderData) {
-        this._assembler.resetData(this);
-      }
       this._assembler.updatePositions(this);
       this._setDirtyFlagFalse(DirtyFlag.Position);
       this._transformChangeFlag.flag = false;
@@ -301,7 +283,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _onDestroy(): void {
-    this._pivot = null;
     this._color = null;
     this._sprite = null;
     this._assembler = null;
@@ -340,11 +321,16 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.sprite.texture && this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteDirtyFlag.border:
-        this._drawMode === SpriteDrawMode.Sliced && this._setDirtyFlagTrue(DirtyFlag.UV);
+        if (this._drawMode === SpriteDrawMode.Sliced) {
+          this._setDirtyFlagTrue(DirtyFlag.UV | DirtyFlag.Position);
+        }
         break;
       case SpriteDirtyFlag.region:
       case SpriteDirtyFlag.atlas:
         this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
+        break;
+      case SpriteDirtyFlag.pivot:
+        this._setDirtyFlagTrue(DirtyFlag.Position);
         break;
       default:
         break;

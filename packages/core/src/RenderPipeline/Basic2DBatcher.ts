@@ -53,7 +53,7 @@ export abstract class Basic2DBatcher {
   }
 
   drawElement(element: Element, camera: Camera): void {
-    const len = element.renderData.positions.length;
+    const len = element.renderData.vertexCount;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
       this.flush(camera);
     }
@@ -169,7 +169,7 @@ export abstract class Basic2DBatcher {
         indices[indiceIndex++] = triangles[j] + curIndiceStartIndex;
       }
 
-      curIndiceStartIndex += curElement.renderData.positions.length;
+      curIndiceStartIndex += curElement.renderData.vertexCount;
 
       if (preElement === null) {
         vertexCount += triangleNum;
