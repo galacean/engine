@@ -4,7 +4,7 @@ import { Engine } from "../../Engine";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
+import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 
 /**
  * 2D sprite.
@@ -51,7 +51,7 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._dispatchSpriteChange(SpriteDirtyFlag.texture);
+      this._dispatchSpriteChange(SpritePropertyDirtyFlag.texture);
     }
   }
 
@@ -65,7 +65,7 @@ export class Sprite extends RefObject {
   set atlasRotated(value: boolean) {
     if (this._atlasRotated != value) {
       this._atlasRotated = value;
-      this._dispatchSpriteChange(SpriteDirtyFlag.atlas);
+      this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
     }
   }
 
@@ -80,7 +80,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpriteDirtyFlag.atlas);
+    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
   }
 
   /**
@@ -94,7 +94,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._dispatchSpriteChange(SpriteDirtyFlag.atlas);
+    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
   }
 
   /**
@@ -109,7 +109,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     region.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpriteDirtyFlag.atlas);
+    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
   }
 
   /**
@@ -123,12 +123,12 @@ export class Sprite extends RefObject {
   set pivot(value: Vector2) {
     const pivot = this._pivot;
     if (pivot === value) {
-      this._dispatchSpriteChange(SpriteDirtyFlag.pivot);
+      this._dispatchSpriteChange(SpritePropertyDirtyFlag.pivot);
     } else {
       const { x, y } = value;
       if (pivot.x !== x || pivot.y !== y) {
         pivot.setValue(x, y);
-        this._dispatchSpriteChange(SpriteDirtyFlag.pivot);
+        this._dispatchSpriteChange(SpritePropertyDirtyFlag.pivot);
       }
     }
   }
@@ -144,8 +144,8 @@ export class Sprite extends RefObject {
     const border = this._border;
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    border.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._dispatchSpriteChange(SpriteDirtyFlag.border);
+    border.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - y), MathUtil.clamp(value.w, 0, 1 - x));
+    this._dispatchSpriteChange(SpritePropertyDirtyFlag.border);
   }
 
   /**
@@ -345,13 +345,13 @@ export class Sprite extends RefObject {
     this._dirtyFlag &= ~type;
   }
 
-  private _dispatchSpriteChange(type: SpriteDirtyFlag): void {
+  private _dispatchSpriteChange(type: SpritePropertyDirtyFlag): void {
     switch (type) {
-      case SpriteDirtyFlag.atlas:
-      case SpriteDirtyFlag.region:
+      case SpritePropertyDirtyFlag.atlas:
+      case SpritePropertyDirtyFlag.region:
         this._dirtyFlag |= DirtyFlag.all;
         break;
-      case SpriteDirtyFlag.border:
+      case SpritePropertyDirtyFlag.border:
         this._dirtyFlag |= DirtyFlag.uvsSliced;
         break;
       default:

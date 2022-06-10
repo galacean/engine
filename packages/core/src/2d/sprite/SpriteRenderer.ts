@@ -12,7 +12,7 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
 import { IAssembler } from "../assembler/IAssembler";
-import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
+import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteSimple } from "../assembler/SpriteSimple";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
@@ -314,22 +314,22 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _onSpriteChange(dirtyFlag: SpriteDirtyFlag) {
+  private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag) {
     switch (dirtyFlag) {
-      case SpriteDirtyFlag.texture:
+      case SpritePropertyDirtyFlag.texture:
         // Update shader data.
         this.sprite.texture && this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
-      case SpriteDirtyFlag.border:
+      case SpritePropertyDirtyFlag.border:
         if (this._drawMode === SpriteDrawMode.Sliced) {
           this._setDirtyFlagTrue(DirtyFlag.UV | DirtyFlag.Position);
         }
         break;
-      case SpriteDirtyFlag.region:
-      case SpriteDirtyFlag.atlas:
+      case SpritePropertyDirtyFlag.region:
+      case SpritePropertyDirtyFlag.atlas:
         this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
         break;
-      case SpriteDirtyFlag.pivot:
+      case SpritePropertyDirtyFlag.pivot:
         this._setDirtyFlagTrue(DirtyFlag.Position);
         break;
       default:

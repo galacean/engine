@@ -1,5 +1,4 @@
 import { Color, Vector2, Vector3 } from "@oasis-engine/math";
-import { DisorderedArray } from "../../DisorderedArray";
 
 export interface RenderData2D {
   vertexCount: number;

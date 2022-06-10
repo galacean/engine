@@ -11,14 +11,22 @@ export class SpriteSimple {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
+    const vertexCount = 4;
     if (!renderer._renderData) {
       renderer._renderData = {
-        vertexCount: 4,
-        positions: [new Vector3(), new Vector3(), new Vector3(), new Vector3()],
-        uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
+        vertexCount: vertexCount,
+        positions: [],
+        uvs: [],
         triangles: new Array<number>(6),
         color: new Color()
       };
+    }
+    const { positions, uvs } = renderer._renderData;
+    if (positions.length < vertexCount) {
+      for (let i = positions.length; i < vertexCount; i++) {
+        positions.push(new Vector3());
+        uvs.push(new Vector2());
+      }
     }
   }
 
@@ -37,29 +45,46 @@ export class SpriteSimple {
 
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const { _worldMatrix: worldMatrix } = SpriteSimple;
-    // Parent transform.
-    const { elements: parentE } = renderer.entity.transform.worldMatrix;
-    const { elements: modelE } = worldMatrix;
+    // Parent's worldMatrix.
+    const { elements: pE } = renderer.entity.transform.worldMatrix;
+    // Renderer's worldMatrix;
+    const { elements: wE } = worldMatrix;
     const sx = renderer.flipX ? -width : width;
     const sy = renderer.flipY ? -height : height;
-    (modelE[0] = parentE[0] * sx), (modelE[1] = parentE[1] * sx), (modelE[2] = parentE[2] * sx);
-    (modelE[4] = parentE[4] * sy), (modelE[5] = parentE[5] * sy), (modelE[6] = parentE[6] * sy);
-    (modelE[8] = parentE[8]), (modelE[9] = parentE[9]), (modelE[10] = parentE[10]);
-    modelE[12] = parentE[12] - pivotX * modelE[0] - pivotY * modelE[4];
-    modelE[13] = parentE[13] - pivotX * modelE[1] - pivotY * modelE[5];
-    modelE[14] = parentE[14];
+    (wE[0] = pE[0] * sx), (wE[1] = pE[1] * sx), (wE[2] = pE[2] * sx);
+    (wE[4] = pE[4] * sy), (wE[5] = pE[5] * sy), (wE[6] = pE[6] * sy);
+    (wE[8] = pE[8]), (wE[9] = pE[9]), (wE[10] = pE[10]);
+    wE[12] = pE[12] - pivotX * wE[0] - pivotY * wE[4];
+    wE[13] = pE[13] - pivotX * wE[1] - pivotY * wE[5];
+    wE[14] = pE[14];
 
     // Update positions.
     const [top, left, right, bottom] = renderer.sprite.edges;
     const { positions: position } = renderer._renderData;
     // Left-top.
-    position[0].setValue(left, top, 0).transformToVec3(worldMatrix);
+    position[0].setValue(
+      wE[0] * left + wE[4] * top + wE[12],
+      wE[1] * left + wE[5] * top + wE[13],
+      wE[2] * left + wE[6] * top + wE[14]
+    );
     // Right-top.
-    position[1].setValue(right, top, 0).transformToVec3(worldMatrix);
+    position[1].setValue(
+      wE[0] * right + wE[4] * top + wE[12],
+      wE[1] * right + wE[5] * top + wE[13],
+      wE[2] * right + wE[6] * top + wE[14]
+    );
     // Right-bottom.
-    position[2].setValue(right, bottom, 0).transformToVec3(worldMatrix);
+    position[2].setValue(
+      wE[0] * right + wE[4] * bottom + wE[12],
+      wE[1] * right + wE[5] * bottom + wE[13],
+      wE[2] * right + wE[6] * bottom + wE[14]
+    );
     // Left-bottom.
-    position[3].setValue(left, bottom, 0).transformToVec3(worldMatrix);
+    position[3].setValue(
+      wE[0] * left + wE[4] * bottom + wE[12],
+      wE[1] * left + wE[5] * bottom + wE[13],
+      wE[2] * left + wE[6] * bottom + wE[14]
+    );
 
     // Update bounds.
     const { min, max } = renderer._bounds;

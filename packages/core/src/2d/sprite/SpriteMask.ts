@@ -13,7 +13,7 @@ import { UpdateFlag } from "../../UpdateFlag";
 import { IAssembler } from "../assembler/IAssembler";
 import { SpriteSimple } from "../assembler/SpriteSimple";
 import { RenderData2D } from "../data/RenderData2D";
-import { SpriteDirtyFlag } from "../enums/SpriteDirtyFlag";
+import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
@@ -277,18 +277,18 @@ export class SpriteMask extends Renderer implements ICustomClone {
     target.sprite = this._sprite;
   }
 
-  private _onSpriteChange(dirtyFlag: SpriteDirtyFlag) {
+  private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag) {
     switch (dirtyFlag) {
-      case SpriteDirtyFlag.texture:
+      case SpritePropertyDirtyFlag.texture:
         if (this.sprite.texture) {
           this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
         }
         break;
-      case SpriteDirtyFlag.border:
+      case SpritePropertyDirtyFlag.border:
         this._drawMode === SpriteDrawMode.Sliced && this._setDirtyFlagTrue(DirtyFlag.UV);
         break;
-      case SpriteDirtyFlag.region:
-      case SpriteDirtyFlag.atlas:
+      case SpritePropertyDirtyFlag.region:
+      case SpritePropertyDirtyFlag.atlas:
         this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
         break;
       default:
