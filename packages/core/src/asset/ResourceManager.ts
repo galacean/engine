@@ -1,7 +1,6 @@
 import { Engine, EngineObject } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
-import { AssetType } from "./AssetType";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
