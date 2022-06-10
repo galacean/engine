@@ -15,10 +15,6 @@ interface IColor {
  * Unlit Material.
  */
 export class UnlitMaterial extends BaseMaterial {
-  private static _baseColorProp = Shader.getPropertyByName("u_baseColor");
-  private static _baseTextureProp = Shader.getPropertyByName("u_baseTexture");
-  private static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
-
   /**
    * Base color.
    */
@@ -43,9 +39,9 @@ export class UnlitMaterial extends BaseMaterial {
   set baseTexture(value: Texture2D) {
     this.shaderData.setTexture(UnlitMaterial._baseTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("O3_BASE_TEXTURE");
+      this.shaderData.enableMacro(UnlitMaterial._baseTextureMacro);
     } else {
-      this.shaderData.disableMacro("O3_BASE_TEXTURE");
+      this.shaderData.disableMacro(UnlitMaterial._baseTextureMacro);
     }
   }
 
