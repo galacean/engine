@@ -66,7 +66,7 @@ class MaterialLoader extends Loader<string> {
             resourceManager.getResourceByRef<Texture2D>(value).then((texture) => {
               shaderData.setTexture(key, texture);
             });
-          } else if (/^u/.test(key)) {
+          } else if (/^u_/.test(key)) {
             if (typeof value === "number") {
               shaderData.setFloat(key, value);
             } else if (value.r !== undefined) {
