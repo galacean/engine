@@ -183,12 +183,12 @@ export class Sprite extends RefObject {
 
   /**
    * Constructor a Sprite.
-   * @param engine 
-   * @param texture 
-   * @param region 
-   * @param pivot 
-   * @param border 
-   * @param name 
+   * @param engine - Engine to which the sprite belongs
+   * @param texture - Texture from which to obtain the Sprite
+   * @param region - Rectangle region of the texture to use for the Sprite, specified in normalized
+   * @param pivot - Sprite's pivot point relative to its graphic rectangle, specified in normalized
+   * @param border - Boundaries when using Slice DrawMode, specified in normalized
+   * @param name - The name of Sprite
    */
   constructor(
     engine: Engine,
