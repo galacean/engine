@@ -19,6 +19,7 @@ export abstract class ColliderShape {
   protected _material: PhysicsMaterial;
   protected _isTrigger: boolean = false;
   protected _isSceneQuery: boolean = true;
+  private _contactOffset: number = 0;
 
   /**
    * Collider owner of this shape.
@@ -32,6 +33,18 @@ export abstract class ColliderShape {
    */
   get id(): number {
     return this._id;
+  }
+
+  /**
+   * Contact offset for this shape.
+   */
+  get contactOffset() {
+    return this._contactOffset;
+  }
+
+  set contactOffset(value: number) {
+    this._contactOffset = value;
+    this._nativeShape.setContactOffset(value);
   }
 
   /**

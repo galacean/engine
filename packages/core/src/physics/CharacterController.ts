@@ -44,18 +44,6 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The contact offset for the controller.
-   */
-  get contactOffset(): number {
-    return this._contactOffset;
-  }
-
-  set contactOffset(newValue: number) {
-    this._contactOffset = newValue;
-    this._nativeCharacterController.setContactOffset(newValue);
-  }
-
-  /**
    * The up direction for the controller.
    */
   get upDirection(): Vector3 {

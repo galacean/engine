@@ -18,6 +18,12 @@ export interface IColliderShape {
   setWorldScale(scale: Vector3): void;
 
   /**
+   * Sets the contact offset.
+   * @param offset - contact offset
+   */
+  setContactOffset(offset: number): void;
+
+  /**
    * Set physics material on shape.
    * @param material - The physics material
    */

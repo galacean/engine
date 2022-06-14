@@ -37,12 +37,6 @@ export interface ICharacterController {
   setNonWalkableMode(flag: number): void;
 
   /**
-   * Sets the contact offset.
-   * @param offset The contact offset for the controller.
-   */
-  setContactOffset(offset: number): void;
-
-  /**
    * Sets the 'up' direction.
    * @param up The up direction for the controller.
    */

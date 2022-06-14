@@ -27,7 +27,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   protected _position: Vector3 = new Vector3();
   protected _rotation: Quaternion = new Quaternion();
   protected _scale: Vector3 = new Vector3(1, 1, 1);
-
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   /** @internal */
@@ -40,6 +39,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
   /** @internal */
   _id: number;
+  /** @internal */
+  _contactOffset: number = 0;
 
   /**
    * {@inheritDoc IColliderShape.setPosition }
@@ -55,6 +56,15 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   abstract setWorldScale(scale: Vector3): void;
+
+  /**
+   * {@inheritDoc IColliderShape.setContactOffset }
+   */
+  setContactOffset(offset: number): void {
+    this._isDirty = true;
+    this._contactOffset = offset;
+    this._pxShape.setContactOffset(offset);
+  }
 
   /**
    * {@inheritDoc IColliderShape.setMaterial }

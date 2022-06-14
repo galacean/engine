@@ -55,13 +55,6 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
-   * {@inheritDoc ICharacterController.setContactOffset }
-   */
-  setContactOffset(offset: number) {
-    this._pxController.setContactOffset(offset);
-  }
-
-  /**
    * {@inheritDoc ICharacterController.setUpDirection }
    */
   setUpDirection(up: Vector3) {
@@ -103,6 +96,7 @@ export class PhysXCharacterController implements ICharacterController {
         controller.setRadius(capsule._radius);
         controller.setHeight(capsule._halfHeight * 2.0);
       }
+      controller.setContactOffset(shape._contactOffset);
       shape._isDirty = false;
     }
   }
