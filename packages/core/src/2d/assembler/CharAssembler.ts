@@ -2,7 +2,7 @@ import { Vector3 } from "@oasis-engine/math";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
-import { TextUtils, TextMetrics } from "../text/TextUtils";
+import { TextUtils, TextMetrics, FontSizeInfo } from "../text/TextUtils";
 import { CharRenderDataPool } from "./CharRenderDataPool";
 import { CharDefWithTexture, CharUtils } from "./CharUtils";
 import { IAssembler } from "./IAssembler";
@@ -60,78 +60,86 @@ export class CharAssembler {
     const { color, fontSize, fontStyle, horizontalAlignment, verticalAlignment, _charRenderDatas } = renderer;
     const { name } = renderer.font;
     const { _pixelsPerUnit } = TextUtils;
+    const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
     const fontHash = TextUtils.getNativeFontHash(name, fontSize, fontStyle);
-    const widthInPixel = renderer.width * _pixelsPerUnit;
-    const heightInPixel = renderer.height * _pixelsPerUnit;
+    const rendererWidth = renderer.width * _pixelsPerUnit;
+    const rendererHeight = renderer.height * _pixelsPerUnit;
 
-    const textMetrics = renderer.enableWrapping ? CharAssembler._measureTextWithWrap(renderer) : CharAssembler._measureTextWithoutWrap(renderer);
-    const { height, lines, lineWidths, lineHeight } = textMetrics;
-    const textureSize = CharAssembler._charUtils.getTextureSize();
-
-    let startY = 0;
-    switch (verticalAlignment) {
-      case TextVerticalAlignment.Top:
-        startY = heightInPixel * 0.5;
-        break;
-      case TextVerticalAlignment.Center:
-        startY = height * 0.5;
-        break;
-      case TextVerticalAlignment.Bottom:
-        startY = height - heightInPixel * 0.5;
-        break;
-    }
+    const textMetrics = renderer.enableWrapping
+      ? CharAssembler._measureTextWithWrap(renderer)
+      : CharAssembler._measureTextWithoutWrap(renderer);
+    const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
+    const { _charUtils, _charRenderDataPool } = CharAssembler;
+    const textureSizeReciprocal = 1.0 / _charUtils.getTextureSize();
 
     for (let i = 0, n = lines.length; i < n; ++i) {
       const line = lines[i];
       const lineWidth = lineWidths[i];
+      const sizeInfo = lineMaxSizes[i];
+      const { ascent: maxAscent } = sizeInfo;
+      const halfLineHeightDiff = (lineHeight - sizeInfo.size) * 0.5;
 
       let startX = 0;
       switch (horizontalAlignment) {
         case TextHorizontalAlignment.Left:
-          startX = -widthInPixel * 0.5;
+          startX = -rendererWidth * 0.5;
           break;
         case TextHorizontalAlignment.Center:
           startX = -lineWidth * 0.5;
           break;
         case TextHorizontalAlignment.Right:
-          startX = widthInPixel * 0.5 - lineWidth;
+          startX = rendererWidth * 0.5 - lineWidth;
+          break;
+      }
+      let startY = 0;
+      switch (verticalAlignment) {
+        case TextVerticalAlignment.Top:
+          startY = rendererHeight * 0.5 + halfLineHeightDiff - i * lineHeight;
+          break;
+        case TextVerticalAlignment.Center:
+          startY = height * 0.5 - i * lineHeight;
+          break;
+        case TextVerticalAlignment.Bottom:
+          startY = height - rendererHeight * 0.5 - halfLineHeightDiff - i * lineHeight;
           break;
       }
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const char = line[j];
         const key = `${fontHash}${char.charCodeAt(0)}`;
-        const charDefWithTexture = CharAssembler._charUtils.getCharDef(key);
+        const charDefWithTexture = _charUtils.getCharDef(key);
         const { charDef } = charDefWithTexture;
-        const charRenderData = CharAssembler._charRenderDataPool.getData();
+        const charRenderData = _charRenderDataPool.getData();
         const { renderData, localPositions } = charRenderData;
         charRenderData.texture = charDefWithTexture.texture;
         renderData.color = color;
 
         const { uvs } = renderData;
-        const { x, y, w, h} = charDef;
-        const left = startX / _pixelsPerUnit;
-        const right = (startX + charDef.w) / _pixelsPerUnit;
-        const top = (startY + charDef.offsetY + h * 0.5) / _pixelsPerUnit;
-        const bottom = top - h / _pixelsPerUnit;
+        const { x, y, w, h } = charDef;
+        const left = startX * pixelsPerUnitReciprocal;
+        const right = (startX + w) * pixelsPerUnitReciprocal;
+        const top = (startY - halfLineHeightDiff - maxAscent + h * 0.5 + charDef.offsetY) * pixelsPerUnitReciprocal;
+        const bottom = top - h * pixelsPerUnitReciprocal;
+        const u0 = x * textureSizeReciprocal;
+        const u1 = (x + w) * textureSizeReciprocal;
+        const v0 = y * textureSizeReciprocal;
+        const v1 = (y + h) * textureSizeReciprocal;
         // Top-left.
         localPositions[0].setValue(left, top, 0);
-        uvs[0].setValue(x / textureSize, y / textureSize);
+        uvs[0].setValue(u0, v0);
         // Top-right.
         localPositions[1].setValue(right, top, 0);
-        uvs[1].setValue((x + w) / textureSize, y / textureSize);
+        uvs[1].setValue(u1, v0);
         // Bottom-right.
         localPositions[2].setValue(right, bottom, 0);
-        uvs[2].setValue((x + w) / textureSize, (y + h) / textureSize);
+        uvs[2].setValue(u1, v1);
         // Bottom-left.
         localPositions[3].setValue(left, bottom, 0);
-        uvs[3].setValue(x / textureSize, (y + h) / textureSize);
+        uvs[3].setValue(u0, v1);
 
         _charRenderDatas.push(charRenderData);
         startX += charDef.xAdvance;
       }
-
-      startY -= lineHeight;
     }
   }
 
@@ -144,6 +152,7 @@ export class CharAssembler {
     const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lines = new Array<string>();
     const lineWidths = new Array<number>();
+    const lineMaxSizes = new Array<FontSizeInfo>();
     const { _pixelsPerUnit } = TextUtils;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
     const wrapWidth = renderer.width * _pixelsPerUnit;
@@ -153,30 +162,55 @@ export class CharAssembler {
       const subText = subTexts[i];
       let chars = "";
       let charsWidth = 0;
-      
+      let maxAscent = -1;
+      let maxDescent = -1;
+
       for (let j = 0, m = subText.length; j < m; ++j) {
         const char = subText[j];
         const charDefWithTexture = CharAssembler._getCharDefWithTexture(char, fontString, fontHash);
         const { charDef } = charDefWithTexture;
-        if (charsWidth + charDef.w > wrapWidth) {
+        const { w, offsetY } = charDef;
+        const halfH = charDef.h * 0.5;
+        const ascent = halfH + offsetY;
+        const descent = halfH - offsetY;
+        if (charsWidth + w > wrapWidth) {
           if (charsWidth === 0) {
             lines.push(char);
-            lineWidths.push(charDef.w);
+            lineWidths.push(w);
+            lineMaxSizes.push({
+              ascent,
+              descent,
+              size: ascent + descent
+            });
           } else {
             lines.push(chars);
             lineWidths.push(charsWidth);
+            lineMaxSizes.push({
+              ascent: maxAscent,
+              descent: maxDescent,
+              size: maxAscent + maxDescent
+            });
             chars = char;
             charsWidth = charDef.xAdvance;
+            maxAscent = ascent;
+            maxDescent = descent;
           }
         } else {
           chars += char;
           charsWidth += charDef.xAdvance;
+          maxAscent < ascent && (maxAscent = ascent);
+          maxDescent < descent && (maxDescent = descent);
         }
       }
 
       if (charsWidth > 0) {
         lines.push(chars);
         lineWidths.push(charsWidth);
+        lineMaxSizes.push({
+          ascent: maxAscent,
+          descent: maxDescent,
+          size: maxAscent + maxDescent
+        });
       }
     }
 
@@ -190,7 +224,8 @@ export class CharAssembler {
       height,
       lines,
       lineWidths,
-      lineHeight
+      lineHeight,
+      lineMaxSizes
     };
   }
 
@@ -203,6 +238,7 @@ export class CharAssembler {
     const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lineCount = lines.length;
     const lineWidths = new Array<number>();
+    const lineMaxSizes = new Array<FontSizeInfo>();
     const { _pixelsPerUnit } = TextUtils;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
     let width = 0;
@@ -214,12 +250,26 @@ export class CharAssembler {
     for (let i = 0; i < lineCount; ++i) {
       const line = lines[i];
       let curWidth = 0;
-      
+      let maxAscent = -1;
+      let maxDescent = -1;
+
       for (let j = 0, m = line.length; j < m; ++j) {
         const charDefWithTexture = CharAssembler._getCharDefWithTexture(line[j], fontString, fontHash);
-        curWidth += charDefWithTexture.charDef.xAdvance;
+        const { charDef } = charDefWithTexture;
+        curWidth += charDef.xAdvance;
+        const { offsetY } = charDef;
+        const halfH = charDef.h * 0.5;
+        const ascent = halfH + offsetY;
+        const descent = halfH - offsetY;
+        maxAscent < ascent && (maxAscent = ascent);
+        maxDescent < descent && (maxDescent = descent);
       }
       lineWidths[i] = curWidth;
+      lineMaxSizes[i] = {
+        ascent: maxAscent,
+        descent: maxDescent,
+        size: maxAscent + maxDescent
+      };
       if (curWidth > width) {
         width = curWidth;
       }
@@ -230,7 +280,8 @@ export class CharAssembler {
       height,
       lines,
       lineWidths,
-      lineHeight
+      lineHeight,
+      lineMaxSizes
     };
   }
 
@@ -243,7 +294,14 @@ export class CharAssembler {
       const { sizeInfo } = charMetrics;
       const { ascent, descent } = sizeInfo;
       const offsetY = (ascent - descent) * 0.5;
-      charDefWithTexture = _charUtils.addCharDef(key, TextUtils.textContext().canvas, charMetrics.width, sizeInfo.size, 0, offsetY);
+      charDefWithTexture = _charUtils.addCharDef(
+        key,
+        TextUtils.textContext().canvas,
+        charMetrics.width,
+        sizeInfo.size,
+        0,
+        offsetY
+      );
     }
 
     return charDefWithTexture;

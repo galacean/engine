@@ -57,7 +57,7 @@ export class CharRenderDataPool {
     triangles[0] = 0, triangles[1] = 2, triangles[2] = 1;
     triangles[3] = 2, triangles[4] = 0, triangles[5] = 3;
 
-    const renderData: RenderData2D = { positions, uvs, triangles, color };
+    const renderData: RenderData2D = { positions, uvs, triangles, color, vertexCount: 4 };
 
     return { texture, renderData, localPositions };
   }

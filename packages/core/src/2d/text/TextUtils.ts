@@ -32,6 +32,7 @@ export interface TextMetrics {
   lines: Array<string>;
   lineWidths: Array<number>;
   lineHeight: number;
+  lineMaxSizes?: Array<FontSizeInfo>;
 }
 
 /**

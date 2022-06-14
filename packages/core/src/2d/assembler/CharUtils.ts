@@ -1,6 +1,7 @@
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 import { CharDef, FontAtlas } from "../atlas/FontAtlas";
+// import { Sprite, SpriteRenderer } from "../sprite";
 
 export interface CharDefWithTexture {
   texture: Texture2D;
@@ -10,8 +11,8 @@ export interface CharDefWithTexture {
 export class CharUtils {
   private _fontAtlasList: Array<FontAtlas> = [];
   private _curFontAtlas: FontAtlas = null;
-  private _textureSize: number = 1024;
-  private _space: number = 1;
+  private _textureSize: number = 512;
+  private _space: number = 0;
   private _curX: number = 1;
   private _curY: number = 1;
   private _nextY: number = 1;
@@ -29,7 +30,7 @@ export class CharUtils {
     width: number,
     height: number,
     offsetX: number,
-    offsetY: number,
+    offsetY: number
   ): CharDefWithTexture {
     const { _space: space, _textureSize: textureSize } = this;
 
@@ -39,9 +40,15 @@ export class CharUtils {
       this._curY = this._nextY + space;
     }
     const endY = this._curY + height + space;
+    if (endY > this._nextY) {
+      this._nextY = endY;
+    }
 
     if (endY >= textureSize) {
       this._createFontAtlas();
+      this._curX = 1;
+      this._curY = 1;
+      this._nextY = 1;
       if (this._curX + width + space >= textureSize || this._curY + height + space >= textureSize) {
         throw Error("The char fontSize is too large.");
       }
@@ -106,8 +113,13 @@ export class CharUtils {
     tex._addRefCount(1);
     this._curFontAtlas = new FontAtlas(engine, tex);
     this._fontAtlasList.push(this._curFontAtlas);
-    this._curX = 1;
-    this._curY = 1;
-    this._nextY = 1;
+
+    // // 测试代码
+    // const scene = engine.sceneManager.activeScene;
+    // const rootEntity = scene.getRootEntity();
+    // const testEntity = rootEntity.createChild("test");
+    // testEntity.transform.setPosition(0, 0, -10);
+    // const sprite = new Sprite(engine, tex);
+    // testEntity.addComponent(SpriteRenderer).sprite = sprite;
   }
 }
