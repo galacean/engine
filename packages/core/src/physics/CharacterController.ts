@@ -21,11 +21,12 @@ export enum ControllerCollisionFlag {
 }
 
 /**
- * Base class for character controllers.
+ * The character controllers.
  */
 export class CharacterController extends Collider {
   /** @internal */
   _index: number = -1;
+  /** @internal */
   _nativeCharacterController: ICharacterController;
 
   private _stepOffset: number = 0;

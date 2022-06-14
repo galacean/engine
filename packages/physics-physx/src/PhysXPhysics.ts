@@ -11,13 +11,15 @@ import {
 } from "@oasis-engine/design";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
-import { PhysXBoxColliderShape, PhysXSphereColliderShape, PhysXCapsuleColliderShape } from "./shape";
 import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
 import { PhysXStaticCollider } from "./PhysXStaticCollider";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
+import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
+import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 
 /**
  * PhysX object creation.

@@ -1,6 +1,8 @@
 import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "oasis-engine";
-import { PhysXBoxColliderShape, PhysXCapsuleColliderShape, PhysXColliderShape } from "../shape";
+import { PhysXBoxColliderShape } from "../shape/PhysXBoxColliderShape";
+import { PhysXCapsuleColliderShape } from "../shape/PhysXCapsuleColliderShape";
+import { PhysXColliderShape } from "../shape/PhysXColliderShape";
 
 /**
  * Base class for character controllers.
@@ -12,6 +14,7 @@ export class PhysXCharacterController implements ICharacterController {
   _pxController: any;
   private _controllerFlags: any;
   private _shape: PhysXColliderShape;
+  private _isBoxShape: boolean | null = null;
 
   /**
    * {@inheritDoc ICharacterController.move }
@@ -105,16 +108,22 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.updateShape }
    */
   updateShape(): void {
-    const controller = this._pxController;
     const shape = this._shape;
     if (shape._isDirty) {
-      if (shape instanceof PhysXBoxColliderShape) {
-        controller.setHalfHeight(shape._halfSize.x);
-        controller.setHalfSideExtent(shape._halfSize.y);
-        controller.setHalfForwardExtent(shape._halfSize.z);
-      } else if (shape instanceof PhysXCapsuleColliderShape) {
-        controller.setRadius(shape._radius);
-        controller.setHeight(shape._halfHeight * 2.0);
+      const controller = this._pxController;
+      if (this._isBoxShape === null) {
+        this._isBoxShape = shape instanceof PhysXBoxColliderShape;
+      }
+      const isBoxShape = this._isBoxShape;
+      if (isBoxShape) {
+        const box = <PhysXBoxColliderShape>shape;
+        controller.setHalfHeight(box._halfSize.x);
+        controller.setHalfSideExtent(box._halfSize.y);
+        controller.setHalfForwardExtent(box._halfSize.z);
+      } else {
+        const capsule = <PhysXCapsuleColliderShape>shape;
+        controller.setRadius(capsule._radius);
+        controller.setHeight(capsule._halfHeight * 2.0);
       }
       shape._isDirty = false;
     }
@@ -124,6 +133,7 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.destroy }
    */
   destroy(): void {
+    this._isBoxShape = null;
     this._pxController.release();
   }
 
