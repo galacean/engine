@@ -321,15 +321,20 @@ export class PhysicsManager {
       collider._index = this._colliders.length;
       this._colliders.add(collider);
     }
+    this._nativePhysicsManager.addCollider(collider._nativeCollider);
+  }
 
-    if (collider instanceof CharacterController) {
-      const controller = <CharacterController>collider;
-      if (controller._nativeCharacterController) {
-        this._nativePhysicsManager.addCharacterController(controller._nativeCharacterController);
-      }
-    } else {
-      this._nativePhysicsManager.addCollider(collider._nativeCollider);
+  /**
+   * Add character controller into the manager.
+   * @param controller - Character Controller.
+   * @internal
+   */
+  _addCharacterController(controller: CharacterController): void {
+    if (controller._index === -1) {
+      controller._index = this._colliders.length;
+      this._colliders.add(controller);
     }
+    this._nativePhysicsManager.addCharacterController(controller._nativeCharacterController);
   }
 
   /**
@@ -341,12 +346,19 @@ export class PhysicsManager {
     const replaced = this._colliders.deleteByIndex(collider._index);
     replaced && (replaced._index = collider._index);
     collider._index = -1;
+    this._nativePhysicsManager.removeCollider(collider._nativeCollider);
+  }
 
-    if (collider instanceof CharacterController) {
-      this._nativePhysicsManager.removeCharacterController(collider._nativeCharacterController);
-    } else {
-      this._nativePhysicsManager.removeCollider(collider._nativeCollider);
-    }
+  /**
+   * Remove collider.
+   * @param controller - Character Controller.
+   * @internal
+   */
+  _removeCharacterController(controller: CharacterController): void {
+    const replaced = this._colliders.deleteByIndex(controller._index);
+    replaced && (replaced._index = controller._index);
+    controller._index = -1;
+    this._nativePhysicsManager.removeCharacterController(controller._nativeCharacterController);
   }
 
   /**

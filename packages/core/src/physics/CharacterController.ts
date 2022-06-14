@@ -109,8 +109,9 @@ export class CharacterController extends Collider {
       }
       // create controller first which will examine shape is proper.
       this._nativeCharacterController = this.engine.physicsManager._createController(shape);
-      this.engine.physicsManager._addCollider(this);
-
+      if (this.enabled && this.entity.isActiveInHierarchy) {
+        this.engine.physicsManager._addCharacterController(this);
+      }
       this._shapes.push(shape);
       this.engine.physicsManager._addColliderShape(shape);
       shape._collider = this;
@@ -130,8 +131,19 @@ export class CharacterController extends Collider {
       shape._collider = null;
 
       this._nativeCharacterController.destroy();
-      this.engine.physicsManager._removeCollider(this);
+      this._nativeCharacterController = null;
+      if (this.enabled && this.entity.isActiveInHierarchy) {
+        this.engine.physicsManager._removeCharacterController(this);
+      }
     }
+  }
+
+  /**
+   * Remove all shape attached.
+   * @override
+   */
+  clearShapes(): void {
+    this.removeShape(this._shapes[0]);
   }
 
   /**
@@ -159,5 +171,21 @@ export class CharacterController extends Collider {
     this._nativeCharacterController.getPosition(position);
     this.entity.transform.worldPosition = position;
     this._updateFlag.flag = false;
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onEnable() {
+    this._nativeCharacterController && this.engine.physicsManager._addCharacterController(this);
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onDisable() {
+    this._nativeCharacterController && this.engine.physicsManager._removeCharacterController(this);
   }
 }
