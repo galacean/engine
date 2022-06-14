@@ -12,22 +12,14 @@ export class PhysXCharacterController implements ICharacterController {
   _id: number;
   /** @internal */
   _pxController: any;
-  private _controllerFlags: any;
   private _shape: PhysXColliderShape;
   private _isBoxShape: boolean | null = null;
 
   /**
    * {@inheritDoc ICharacterController.move }
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number) {
-    this._controllerFlags = this._pxController.move(disp, minDist, elapsedTime);
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.isSetControllerCollisionFlag }
-   */
-  isSetControllerCollisionFlag(flag: number): boolean {
-    return this._pxController.isSetControllerCollisionFlag(this._controllerFlags, flag);
+  move(disp: Vector3, minDist: number, elapsedTime: number): number {
+    return this._pxController.move(disp, minDist, elapsedTime);
   }
 
   /**
@@ -46,13 +38,6 @@ export class PhysXCharacterController implements ICharacterController {
       this._pxController.getPosition().y,
       this._pxController.getPosition().z
     );
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.setFootPosition }
-   */
-  setFootPosition(position: Vector3) {
-    this._pxController.setFootPosition(position);
   }
 
   /**
@@ -88,13 +73,6 @@ export class PhysXCharacterController implements ICharacterController {
    */
   setSlopeLimit(slopeLimit: number) {
     this._pxController.setSlopeLimit(slopeLimit);
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.invalidateCache }
-   */
-  invalidateCache() {
-    this._pxController.invalidateCache();
   }
 
   /**

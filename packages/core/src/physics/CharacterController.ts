@@ -1,24 +1,8 @@
 import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "@oasis-engine/math";
-import { Entity } from "../Entity";
 import { ColliderShape } from "./shape";
 import { Collider } from "./Collider";
-
-export enum ControllerNonWalkableMode {
-  /// Stops character from climbing up non-walkable slopes, but doesn't move it otherwise
-  PREVENT_CLIMBING,
-  /// Stops character from climbing up non-walkable slopes, and forces it to slide down those slopes
-  PREVENT_CLIMBING_AND_FORCE_SLIDING
-}
-
-export enum ControllerCollisionFlag {
-  /// Character is colliding to the sides.
-  COLLISION_SIDES = 1,
-  /// Character has collision above.
-  COLLISION_UP = 2,
-  /// Character has collision below.
-  COLLISION_DOWN = 4
-}
+import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 
 /**
  * The character controllers.
@@ -30,7 +14,7 @@ export class CharacterController extends Collider {
   _nativeCharacterController: ICharacterController;
 
   private _stepOffset: number = 0;
-  private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PREVENT_CLIMBING;
+  private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.Prevent_Climbing;
   private _contactOffset: number = 0;
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit: number = 0;
@@ -99,51 +83,13 @@ export class CharacterController extends Collider {
 
   /**
    * Moves the character using a "collide-and-slide" algorithm.
-   * @param disp Displacement vector
-   * @param minDist The minimum travelled distance to consider.
-   * @param elapsedTime Time elapsed since last call
+   * @param disp - Displacement vector
+   * @param minDist - The minimum travelled distance to consider.
+   * @param elapsedTime - Time elapsed since last call
+   * @return flags - The ControllerCollisionFlag
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number) {
-    this._nativeCharacterController.move(disp, minDist, elapsedTime);
-  }
-
-  /**
-   * Test whether flags contain certain flag
-   * @param flag certain flag
-   */
-  isSetControllerCollisionFlag(flag: ControllerCollisionFlag): boolean {
-    return this._nativeCharacterController.isSetControllerCollisionFlag(flag);
-  }
-
-  /**
-   * Sets controller's position.
-   * @param position The new (center) position for the controller.
-   */
-  setPosition(position: Vector3): boolean {
-    return this._nativeCharacterController.setPosition(position);
-  }
-
-  /**
-   * Set controller's foot position.
-   * @param position The new (bottom) position for the controller.
-   */
-  setFootPosition(position: Vector3) {
-    this._nativeCharacterController.setFootPosition(position);
-  }
-
-  /**
-   * Flushes internal geometry cache.
-   */
-  invalidateCache() {
-    this._nativeCharacterController.invalidateCache();
-  }
-
-  /**
-   * Resizes the controller.
-   * @param height
-   */
-  resize(height: number) {
-    this._nativeCharacterController.resize(height);
+  move(disp: Vector3, minDist: number, elapsedTime: number): number {
+    return this._nativeCharacterController.move(disp, minDist, elapsedTime);
   }
 
   /**
@@ -195,10 +141,10 @@ export class CharacterController extends Collider {
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      this.setPosition(transform.worldPosition);
+      this._nativeCharacterController.setPosition(transform.worldPosition);
 
       const worldScale = transform.lossyWorldScale;
-      this.resize(Math.max(worldScale.x, worldScale.y, worldScale.z));
+      this._nativeCharacterController.resize(Math.max(worldScale.x, worldScale.y, worldScale.z));
       this._updateFlag.flag = false;
     }
     this._nativeCharacterController.updateShape();

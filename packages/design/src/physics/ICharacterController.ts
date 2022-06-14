@@ -10,13 +10,7 @@ export interface ICharacterController {
    * @param minDist The minimum travelled distance to consider.
    * @param elapsedTime Time elapsed since last call
    */
-  move(disp: Vector3, minDist: number, elapsedTime: number);
-
-  /**
-   * Test whether flags contain certain flag
-   * @param flag certain flag
-   */
-  isSetControllerCollisionFlag(flag: number): boolean;
+  move(disp: Vector3, minDist: number, elapsedTime: number): number;
 
   /**
    * Sets controller's position.
@@ -29,12 +23,6 @@ export interface ICharacterController {
    * @param position The controller's center position
    */
   getPosition(position: Vector3): void;
-
-  /**
-   * Set controller's foot position.
-   * @param position The new (bottom) position for the controller.
-   */
-  setFootPosition(position: Vector3): void;
 
   /**
    * The step height.
@@ -65,11 +53,6 @@ export interface ICharacterController {
    * @param slopeLimit The slope limit for the controller.
    */
   setSlopeLimit(slopeLimit: number): void;
-
-  /**
-   * Flushes internal geometry cache.
-   */
-  invalidateCache(): void;
 
   /**
    * Resizes the controller.
