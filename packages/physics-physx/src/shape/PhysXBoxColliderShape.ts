@@ -28,9 +28,8 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
       this._halfSize.y * this._scale.y,
       this._halfSize.z * this._scale.z
     );
-    this._allocShape(material);
+    this._initialize(material, uniqueID);
     this._setLocalPose();
-    this.setUniqueID(uniqueID);
   }
 
   /**

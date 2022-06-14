@@ -65,14 +65,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * {@inheritDoc IColliderShape.setUniqueID }
-   */
-  setUniqueID(index: number): void {
-    this._id = index;
-    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(index, 0, 0, 0));
-  }
-
-  /**
    * {@inheritDoc IColliderShape.setIsTrigger }
    */
   setIsTrigger(value: boolean): void {
@@ -111,7 +103,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._pxShape.setLocalPose(transform);
   }
 
-  protected _allocShape(material: PhysXPhysicsMaterial): void {
+  protected _initialize(material: PhysXPhysicsMaterial, index: number): void {
+    this._id = index;
     this._pxMaterials[0] = material._pxMaterial;
     this._pxShape = PhysXPhysics._pxPhysics.createShape(
       this._pxGeometry,
@@ -119,6 +112,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
       false,
       new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags)
     );
+    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(index, 0, 0, 0));
   }
 
   private _modifyFlag(flag: ShapeFlag, value: boolean): void {

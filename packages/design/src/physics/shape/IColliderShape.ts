@@ -6,12 +6,6 @@ import { IPhysicsMaterial } from "../IPhysicsMaterial";
  */
 export interface IColliderShape {
   /**
-   * Set unique id of the collider shape.
-   * @param id - The unique index
-   */
-  setUniqueID(id: number): void;
-
-  /**
    * Set local position.
    * @param position - The local position
    */

@@ -28,9 +28,8 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     this._halfHeight = height * 0.5;
 
     this._pxGeometry = new PhysXPhysics._physX.PxCapsuleGeometry(this._radius, this._halfHeight);
-    this._allocShape(material);
+    this._initialize(material, uniqueID);
     this._setLocalPose();
-    this.setUniqueID(uniqueID);
   }
 
   /**
