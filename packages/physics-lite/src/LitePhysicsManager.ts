@@ -170,8 +170,8 @@ export class LitePhysicsManager implements IPhysicsManager {
   /**
    * {@inheritDoc IPhysicsManager.createController }
    */
-  createController(shape: IColliderShape): ICharacterController {
-    throw "Physics-lite don't support createControllerManager. Use Physics-PhysX instead!";
+  createCharacterController(shape: IColliderShape): ICharacterController {
+    throw "Physics-lite don't support createCharacterController. Use Physics-PhysX instead!";
   }
 
   /**

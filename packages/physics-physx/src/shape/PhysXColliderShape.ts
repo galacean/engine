@@ -113,8 +113,8 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._pxShape.setLocalPose(transform);
   }
 
-  protected _initialize(material: PhysXPhysicsMaterial, index: number): void {
-    this._id = index;
+  protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
+    this._id = id;
     this._pxMaterials[0] = material._pxMaterial;
     this._pxShape = PhysXPhysics._pxPhysics.createShape(
       this._pxGeometry,
@@ -122,7 +122,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
       false,
       new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags)
     );
-    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(index, 0, 0, 0));
+    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(id, 0, 0, 0));
   }
 
   private _modifyFlag(flag: ShapeFlag, value: boolean): void {

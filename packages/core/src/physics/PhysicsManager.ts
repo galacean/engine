@@ -285,9 +285,9 @@ export class PhysicsManager {
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
-      this.callColliderOnUpdate();
+      this._callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
-      this.callColliderOnLateUpdate();
+      this._callColliderOnLateUpdate();
     }
   }
 
@@ -366,18 +366,24 @@ export class PhysicsManager {
    * @param shape The controllers shape
    * @internal
    */
-  _createController(shape: ColliderShape): ICharacterController {
-    return this._nativePhysicsManager.createController(shape._nativeShape);
+  _createCharacterController(shape: ColliderShape): ICharacterController {
+    return this._nativePhysicsManager.createCharacterController(shape._nativeShape);
   }
 
-  callColliderOnUpdate(): void {
+  /**
+   * @internal
+   */
+  _callColliderOnUpdate(): void {
     const elements = this._colliders._elements;
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onUpdate();
     }
   }
 
-  callColliderOnLateUpdate(): void {
+  /**
+   * @internal
+   */
+  _callColliderOnLateUpdate(): void {
     const elements = this._colliders._elements;
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onLateUpdate();

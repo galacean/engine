@@ -166,7 +166,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   /**
    * {@inheritDoc IPhysicsManager.createController }
    */
-  createController(shape: PhysXColliderShape): PhysXCharacterController {
+  createCharacterController(shape: PhysXColliderShape): PhysXCharacterController {
     if (this._pxControllerManager === null) {
       this._pxControllerManager = this._pxScene.createControllerManager();
     }

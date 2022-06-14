@@ -14,7 +14,7 @@ export class CharacterController extends Collider {
   _nativeCharacterController: ICharacterController;
 
   private _stepOffset: number = 0;
-  private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.Prevent_Climbing;
+  private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _contactOffset: number = 0;
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit: number = 0;
@@ -96,7 +96,7 @@ export class CharacterController extends Collider {
         oldCollider.removeShape(shape);
       }
       // create controller first which will examine shape is proper.
-      this._nativeCharacterController = this.engine.physicsManager._createController(shape);
+      this._nativeCharacterController = this.engine.physicsManager._createCharacterController(shape);
       if (this.enabled && this.entity.isActiveInHierarchy) {
         this.engine.physicsManager._addCharacterController(this);
       }

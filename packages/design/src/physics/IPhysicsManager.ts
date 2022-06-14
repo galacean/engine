@@ -53,7 +53,7 @@ export interface IPhysicsManager {
    * Creates a new character controller.
    * @param shape The controllers shape
    */
-  createController(shape: IColliderShape): ICharacterController;
+  createCharacterController(shape: IColliderShape): ICharacterController;
 
   /**
    * Call on every frame to update pose of objects.
