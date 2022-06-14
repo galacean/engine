@@ -1,6 +1,6 @@
-export enum SpriteDirect {
-  Top = 0,
-  Left = 1,
+export enum OrientationOrder {
+  Left = 0,
+  Bottom = 1,
   Right = 2,
-  Bottom = 3
+  Top = 3
 }

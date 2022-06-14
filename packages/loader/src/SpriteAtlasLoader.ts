@@ -57,9 +57,8 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                   engine,
                   texture,
                   region ? tempRect.setValue(region.x, region.y, region.w, region.h) : undefined,
-                  undefined,
                   pivot ? tempVec2.setValue(pivot.x, pivot.y) : undefined,
-                  // @ts-ignore
+                  undefined,
                   atlasSprite.name
                 );
                 sprite.atlasRegion.setValue(

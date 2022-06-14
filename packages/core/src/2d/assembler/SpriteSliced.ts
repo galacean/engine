@@ -15,8 +15,10 @@ export class SpriteSliced {
         positions: [],
         uvs: [],
         triangles: [],
-        color: new Color()
+        color: renderer instanceof SpriteRenderer ? renderer.color : null
       };
+    } else {
+      renderer._renderData.triangles = [];
     }
     const { positions, uvs } = renderer._renderData;
     if (positions.length < vertexCount) {
@@ -30,22 +32,30 @@ export class SpriteSliced {
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
-    const { _renderData: renderData } = renderer;
-    if (!renderData) {
-      SpriteSliced.resetData(renderer);
-    }
-    // Update ModelMatrix.
+    // Update WorldMatrix.
     const { width, height, sprite } = renderer;
     const { positions, uvs, triangles } = renderer._renderData;
-    const { border, uvsSliced } = sprite;
+    const { border, uvs: spriteUVs } = sprite;
     // Update local positions.
-    const [top, left, right, bottom] = sprite.edges;
+    const [left, bottom, right, top] = sprite.edges;
     const expectWidth = sprite.width / SpriteRenderer._pixelPerUnit;
     const expectHeight = sprite.height / SpriteRenderer._pixelPerUnit;
-    const fixedTop = expectWidth * border.x;
-    const fixedLeft = expectWidth * border.y;
+    const fixedLeft = expectWidth * border.x;
+    const fixedBottom = expectHeight * border.y;
     const fixedRight = expectHeight * border.z;
-    const fixedBottom = expectHeight * border.w;
+    const fixedTop = expectWidth * border.w;
+
+    // ------------------------
+    //     [3]
+    //      |
+    //     [2]
+    //      |
+    //     [1]
+    //      |
+    // row [0] - [1] - [2] - [3]
+    //    column
+    // ------------------------
+    // Calculate row and column.
     let row: number[], column: number[];
     if (fixedLeft + fixedRight > width) {
       const widthScale = width / (fixedLeft + fixedRight);
@@ -62,13 +72,13 @@ export class SpriteSliced {
     if (fixedTop + fixedBottom > height) {
       const heightScale = height / (fixedTop + fixedBottom);
       column = [
-        height - expectHeight * (1 - top) * heightScale,
+        expectHeight * bottom * heightScale,
         fixedBottom * heightScale,
         fixedBottom * heightScale,
-        expectHeight * bottom * heightScale
+        height - expectHeight * (1 - top) * heightScale
       ];
     } else {
-      column = [height - expectHeight * (1 - top), height - fixedTop, fixedBottom, expectHeight * bottom];
+      column = [expectHeight * bottom, fixedBottom, height - fixedTop, height - expectHeight * (1 - top)];
     }
 
     // Update renderer's worldMatrix.
@@ -89,12 +99,21 @@ export class SpriteSliced {
     wE[13] = pE[13] - localTransX * wE[1] - localTransY * wE[5];
     wE[14] = pE[14];
 
-    // Assemble position and uv
+    // ------------------------
+    //  3 - 7 - 11 - 15
+    //  |   |   |    |
+    //  2 - 6 - 10 - 14
+    //  |   |   |    |
+    //  1 - 5 - 9  - 13
+    //  |   |   |    |
+    //  0 - 4 - 8  - 12
+    // ------------------------
+    // Assemble position and uv.
     let vertexCount = 0;
     let realICount = 0;
     for (let i = 0; i < 4; i++) {
       const rowValue = row[i];
-      const rowU = uvsSliced[i].x;
+      const rowU = spriteUVs[i].x;
       for (let j = 0; j < 4; j++) {
         const columnValue = column[j];
         positions[vertexCount].setValue(
@@ -102,7 +121,7 @@ export class SpriteSliced {
           wE[1] * rowValue + wE[5] * columnValue + wE[13],
           wE[2] * rowValue + wE[6] * columnValue + wE[14]
         );
-        uvs[vertexCount].setValue(rowU, uvsSliced[j].y);
+        uvs[vertexCount].setValue(rowU, spriteUVs[j].y);
         ++vertexCount;
       }
       ++realICount;
@@ -126,14 +145,10 @@ export class SpriteSliced {
 
     // Update bounds.
     const { min, max } = renderer._bounds;
-    min.setValue(row[0], column[3], 0);
-    max.setValue(row[3], column[0], 0);
+    min.setValue(row[0], column[0], 0);
+    max.setValue(row[3], column[3], 0);
     renderer._bounds.transform(worldMatrix);
   }
 
   static updateUVs(renderer: SpriteRenderer | SpriteMask): void {}
-
-  static updateColor(renderer: SpriteRenderer): void {
-    renderer.color.cloneTo(renderer._renderData.color);
-  }
 }

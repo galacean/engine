@@ -5,5 +5,4 @@ export interface IAssembler {
   updateData(renderer: Renderer): void;
   updatePositions(renderer: Renderer): void;
   updateUVs(renderer: Renderer): void;
-  updateColor(renderer: Renderer): void;
 }

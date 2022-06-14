@@ -12,6 +12,7 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { UpdateFlag } from "../../UpdateFlag";
 import { IAssembler } from "../assembler/IAssembler";
 import { SpriteSimple } from "../assembler/SpriteSimple";
+import { SpriteSliced } from "../assembler/SpriteSliced";
 import { RenderData2D } from "../data/RenderData2D";
 import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
@@ -34,14 +35,16 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
 
+  /** @internal */
   _renderData: RenderData2D;
-  private _drawMode: SpriteDrawMode = SpriteDrawMode.Simple;
-  private _assembler: IAssembler = SpriteSimple;
+
+  @ignoreClone
+  private _drawMode: SpriteDrawMode;
+  @ignoreClone
+  private _assembler: IAssembler;
 
   @ignoreClone
   private _sprite: Sprite = null;
-  @ignoreClone
-  private _spriteChangeFlag: ListenerUpdateFlag = null;
 
   /** About transform. */
   @deepClone
@@ -61,6 +64,8 @@ export class SpriteMask extends Renderer implements ICustomClone {
   /** Dirty flag. */
   @ignoreClone
   private _dirtyFlag: number = 0;
+  @ignoreClone
+  private _spriteChangeFlag: ListenerUpdateFlag = null;
 
   /**
    * Location of the sprite's center point in the rectangle region, specified in normalized.
@@ -150,10 +155,12 @@ export class SpriteMask extends Renderer implements ICustomClone {
           this._assembler = SpriteSimple;
           break;
         case SpriteDrawMode.Sliced:
+          this._assembler = SpriteSliced;
           break;
         default:
           break;
       }
+      this._assembler.resetData(this);
       this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
     }
   }
@@ -204,6 +211,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
+    this.drawMode = SpriteDrawMode.Simple;
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._onSpriteChange = this._onSpriteChange.bind(this);
@@ -231,10 +239,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
     if (!sprite || !sprite.texture) {
       return;
     }
-
-    if (!this._renderData) {
-      this._assembler.resetData(this);
-    }
     // Update position.
     if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
       this._assembler.updatePositions(this);
@@ -260,9 +264,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
    */
   get bounds(): BoundingBox {
     if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
-      if (!this._renderData) {
-        this._assembler.resetData(this);
-      }
       this._assembler.updatePositions(this);
       this._setDirtyFlagFalse(DirtyFlag.Position);
       this._transformChangeFlag.flag = false;

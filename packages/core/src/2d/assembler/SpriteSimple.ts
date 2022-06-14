@@ -1,5 +1,4 @@
-import { Color, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { RenderData2D } from "../data/RenderData2D";
+import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
@@ -7,36 +6,27 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 @StaticInterfaceImplement<IAssembler>()
 export class SpriteSimple {
-  static _rectangleTriangles: number[] = [0, 2, 1, 2, 0, 3];
+  static _rectangleTriangles: number[] = [0, 1, 2, 2, 1, 3];
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    const vertexCount = 4;
     if (!renderer._renderData) {
       renderer._renderData = {
-        vertexCount: vertexCount,
-        positions: [],
-        uvs: [],
-        triangles: new Array<number>(6),
-        color: new Color()
+        vertexCount: 4,
+        positions: [new Vector3(), new Vector3(), new Vector3(), new Vector3()],
+        uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
+        triangles: SpriteSimple._rectangleTriangles,
+        color: renderer instanceof SpriteRenderer ? renderer.color : null
       };
-    }
-    const { positions, uvs } = renderer._renderData;
-    if (positions.length < vertexCount) {
-      for (let i = positions.length; i < vertexCount; i++) {
-        positions.push(new Vector3());
-        uvs.push(new Vector2());
-      }
+    } else {
+      renderer._renderData.vertexCount = 4;
+      renderer._renderData.triangles = SpriteSimple._rectangleTriangles;
     }
   }
 
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
-    const { _renderData: renderData } = renderer;
-    if (!renderData) {
-      SpriteSimple.resetData(renderer);
-    }
     // Update ModelMatrix.
     const { width, height } = renderer;
     if (width === 0 || height === 0) {
@@ -58,32 +48,40 @@ export class SpriteSimple {
     wE[13] = pE[13] - pivotX * wE[1] - pivotY * wE[5];
     wE[14] = pE[14];
 
+    // ---------------
+    //  2 - 3
+    //  |   |
+    //  0 - 1
+    // ---------------
     // Update positions.
-    const [top, left, right, bottom] = renderer.sprite.edges;
-    const { positions: position } = renderer._renderData;
-    // Left-top.
-    position[0].setValue(
-      wE[0] * left + wE[4] * top + wE[12],
-      wE[1] * left + wE[5] * top + wE[13],
-      wE[2] * left + wE[6] * top + wE[14]
+    const [left, bottom, right, top] = renderer.sprite.edges;
+    const { positions } = renderer._renderData;
+    // Left-Bottom.
+    positions[0].setValue(
+      wE[0] * left + wE[4] * bottom + wE[12],
+      wE[1] * left + wE[5] * bottom + wE[13],
+      wE[2] * left + wE[6] * bottom + wE[14]
     );
-    // Right-top.
-    position[1].setValue(
-      wE[0] * right + wE[4] * top + wE[12],
-      wE[1] * right + wE[5] * top + wE[13],
-      wE[2] * right + wE[6] * top + wE[14]
-    );
-    // Right-bottom.
-    position[2].setValue(
+
+    // Right-Bottom.
+    positions[1].setValue(
       wE[0] * right + wE[4] * bottom + wE[12],
       wE[1] * right + wE[5] * bottom + wE[13],
       wE[2] * right + wE[6] * bottom + wE[14]
     );
-    // Left-bottom.
-    position[3].setValue(
-      wE[0] * left + wE[4] * bottom + wE[12],
-      wE[1] * left + wE[5] * bottom + wE[13],
-      wE[2] * left + wE[6] * bottom + wE[14]
+
+    // Left-Top.
+    positions[2].setValue(
+      wE[0] * left + wE[4] * top + wE[12],
+      wE[1] * left + wE[5] * top + wE[13],
+      wE[2] * left + wE[6] * top + wE[14]
+    );
+
+    // Right-Top.
+    positions[3].setValue(
+      wE[0] * right + wE[4] * top + wE[12],
+      wE[1] * right + wE[5] * top + wE[13],
+      wE[2] * right + wE[6] * top + wE[14]
     );
 
     // Update bounds.
@@ -96,12 +94,11 @@ export class SpriteSimple {
   static updateUVs(renderer: SpriteRenderer | SpriteMask): void {
     const spriteUVs = renderer.sprite.uvs;
     const renderUVs = renderer._renderData.uvs;
-    for (let i = spriteUVs.length - 1; i >= 0; i--) {
-      spriteUVs[i].cloneTo(renderUVs[i]);
-    }
-  }
-
-  static updateColor(renderer: SpriteRenderer) {
-    renderer.color.cloneTo(renderer._renderData.color);
+    const { x: left, y: bottom } = spriteUVs[0];
+    const { x: right, y: top } = spriteUVs[3];
+    renderUVs[0].setValue(left, bottom);
+    renderUVs[1].setValue(right, bottom);
+    renderUVs[2].setValue(left, top);
+    renderUVs[3].setValue(right, top);
   }
 }

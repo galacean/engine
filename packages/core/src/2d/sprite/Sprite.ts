@@ -17,13 +17,12 @@ export class Sprite extends RefObject {
   _assetID: number;
 
   /** Intermediate product data. */
-  /** The size of the sprite. ( pixel ) */
+  /** The pixel size of the sprite. */
   private _width: number;
   private _height: number;
-  /** Normalized top, left, right and bottom. */
-  private _edges: number[] = [1, 0, 1, 0];
-  private _uvs: Vector2[];
-  private _uvsSliced: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  /** Normalized left, bottom, right and top. */
+  private _edges: number[] = [0, 0, 1, 1];
+  private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
 
   /** How to get form texture. */
   private _texture: Texture2D = null;
@@ -36,8 +35,7 @@ export class Sprite extends RefObject {
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _border: Vector4 = new Vector4(0, 0, 0, 0);
 
-  public bounds = new BoundingBox();
-
+  /** Dirty flag. */
   private _dirtyFlag: DirtyFlag = DirtyFlag.all;
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
@@ -134,7 +132,10 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Top, left, right, down.
+   * Get the border of the sprite.
+   *  x      y       z     w
+   *  |      |       |     |
+   * Left, bottom, right, top.
    */
   get border(): Vector4 {
     return this._border;
@@ -144,12 +145,12 @@ export class Sprite extends RefObject {
     const border = this._border;
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    border.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - y), MathUtil.clamp(value.w, 0, 1 - x));
+    border.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
     this._dispatchSpriteChange(SpritePropertyDirtyFlag.border);
   }
 
   /**
-   * Get the width of the sprite.（ pixel ）
+   * Get the pixel width of the sprite.
    */
   get width(): Readonly<number> {
     this._isContainDirtyFlag(DirtyFlag.size) && this._updateSize();
@@ -157,7 +158,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Get the height of the sprite.（ pixel ）
+   * Get the pixel height of the sprite.
    */
   get height(): Readonly<number> {
     this._isContainDirtyFlag(DirtyFlag.size) && this._updateSize();
@@ -165,7 +166,7 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Get the edges of the sprite. ( normalized )
+   * Get the normalized edges of the sprite.
    */
   get edges(): Readonly<number[]> {
     this._isContainDirtyFlag(DirtyFlag.edges) && this._updateEdges();
@@ -181,23 +182,13 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * Get the sliced uvs of the sprite.
-   */
-  get uvsSliced(): Readonly<Vector2[]> {
-    this._isContainDirtyFlag(DirtyFlag.uvsSliced) && this._updateSlicedUVs();
-    return this._uvsSliced;
-  }
-
-  /**
    * Constructor a Sprite.
-   * @param engine
-   * @param name
-   * @param texture
-   * @param region
-   * @param border
-   * @param atlasRegion
-   * @param atlasOffset
-   * @param atlasRotated
+   * @param engine 
+   * @param texture 
+   * @param region 
+   * @param pivot 
+   * @param border 
+   * @param name 
    */
   constructor(
     engine: Engine,
@@ -259,14 +250,14 @@ export class Sprite extends RefObject {
     const regionBottom = 1 - regionY - regionH;
     const edges = this._edges;
     // Coordinates of the four boundaries.
-    // Top.
-    edges[0] = 1 - Math.max(blankTop - regionBottom, 0) / regionH;
     // Left.
-    edges[1] = Math.max(blankLeft - regionX, 0) / regionW;
+    edges[0] = Math.max(blankLeft - regionX, 0) / regionW;
+    // Bottom.
+    edges[1] = Math.max(blankBottom - regionY, 0) / regionH;
     // Right.
     edges[2] = 1 - Math.max(blankRight - regionRight, 0) / regionW;
-    // Bottom.
-    edges[3] = Math.max(blankBottom - regionY, 0) / regionH;
+    // Top.
+    edges[3] = 1 - Math.max(blankTop - regionBottom, 0) / regionH;
     this._setDirtyFlagFalse(DirtyFlag.edges);
   }
 
@@ -284,57 +275,22 @@ export class Sprite extends RefObject {
     const top = Math.max(regionBottom - offsetTop, 0) * realHeight + atlasRegionY;
     const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
     const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
-    if (!uv) {
-      this._uvs = [
-        // Top-left.
-        new Vector2(left, top),
-        // Top-right.
-        new Vector2(right, top),
-        // Bottom-right.
-        new Vector2(right, bottom),
-        // Bottom-left.
-        new Vector2(left, bottom)
-      ];
-    } else {
-      // Top-left.
-      uv[0].setValue(left, top);
-      // Top-right.
-      uv[1].setValue(right, top);
-      // Bottom-right.
-      uv[2].setValue(right, bottom);
-      // Bottom-left.
-      uv[3].setValue(left, bottom);
-    }
-    this._setDirtyFlagFalse(DirtyFlag.uvs);
-  }
-
-  private _updateSlicedUVs() {
-    const { _uvsSliced: uvsSliced, _atlasRegionOffset: atlasRegionOffset } = this;
-    const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
-    const regionRight = 1 - regionX - regionW;
-    const regionTop = 1 - regionY - regionH;
-    const { x: atlasRegionX, y: atlasRegionY, width: atlasRegionW, height: atlasRegionH } = this._atlasRegion;
-    const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
-    const realWidth = atlasRegionW / (1 - offsetLeft - offsetRight);
-    const realHeight = atlasRegionH / (1 - offsetTop - offsetBottom);
-    // Coordinates of the four boundaries.
-    const left = Math.max(regionX - offsetLeft, 0) * realWidth + atlasRegionX;
-    const top = Math.max(regionTop - offsetTop, 0) * realHeight + atlasRegionY;
-    const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
-    const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
-
-    const { x: borderTop, y: borderLeft, z: borderRight, w: borderBottom } = this._border;
-    uvsSliced[0].setValue(left, top);
-    uvsSliced[1].setValue(
+    const { x: borderLeft, y: borderBottom, z: borderRight, w: borderTop } = this._border;
+    // Left-Bottom
+    uv[0].setValue(left, bottom);
+    // Border ( Left-Bottom )
+    uv[1].setValue(
       (regionX - offsetLeft + borderLeft * regionW) * realWidth + atlasRegionX,
-      (regionTop - offsetTop + borderTop * regionH) * realHeight + atlasRegionY
-    );
-    uvsSliced[2].setValue(
-      atlasRegionW + atlasRegionX - (regionRight - offsetRight + borderRight * regionW) * realWidth,
       atlasRegionH + atlasRegionY - (regionY - offsetBottom + borderBottom * regionH) * realHeight
     );
-    uvsSliced[3].setValue(right, bottom);
-    this._setDirtyFlagFalse(DirtyFlag.uvsSliced);
+    // Border ( Right-Top )
+    uv[2].setValue(
+      atlasRegionW + atlasRegionX - (regionRight - offsetRight + borderRight * regionW) * realWidth,
+      (regionBottom - offsetTop + borderTop * regionH) * realHeight + atlasRegionY
+    );
+    // Right-Top
+    uv[3].setValue(right, top);
+    this._setDirtyFlagFalse(DirtyFlag.uvs);
   }
 
   private _isContainDirtyFlag(type: DirtyFlag): boolean {
@@ -352,7 +308,8 @@ export class Sprite extends RefObject {
         this._dirtyFlag |= DirtyFlag.all;
         break;
       case SpritePropertyDirtyFlag.border:
-        this._dirtyFlag |= DirtyFlag.uvsSliced;
+        // Update sliced uvs.
+        this._dirtyFlag |= DirtyFlag.uvs;
         break;
       default:
         break;
@@ -365,6 +322,5 @@ enum DirtyFlag {
   size = 0x1,
   edges = 0x2,
   uvs = 0x4,
-  uvsSliced = 0x8,
-  all = 0xf
+  all = 0x7
 }
