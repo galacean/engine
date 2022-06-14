@@ -23,7 +23,7 @@ export class TextAssembler {
     triangles[0] = 0, triangles[1] = 2, triangles[2] = 1;
     triangles[3] = 2, triangles[4] = 0, triangles[5] = 3;
 
-    renderer._renderData = { positions, uvs, triangles, color};
+    renderer._renderData = { positions, uvs, triangles, color, vertexCount: 4 };
   }
 
   static updateData(renderer: TextRenderer): void {
