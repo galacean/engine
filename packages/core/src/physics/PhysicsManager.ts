@@ -1,4 +1,4 @@
-import { ICharacterControllerManager, IPhysics, IPhysicsManager } from "@oasis-engine/design";
+import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Ray, Vector3 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
@@ -7,6 +7,7 @@ import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
 import { DisorderedArray } from "../DisorderedArray";
 import { CharacterController } from "./CharacterController";
+import { ICharacterController } from "@oasis-engine/design/src";
 
 /**
  * A physics manager is a collection of bodies and constraints which can interact.
@@ -23,7 +24,6 @@ export class PhysicsManager {
   private _colliders: DisorderedArray<Collider> = new DisorderedArray();
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
-  private _nativeCharacterControllerManager: ICharacterControllerManager;
   private _nativePhysicsManager: IPhysicsManager;
   private _physicalObjectsMap: Record<number, ColliderShape> = {};
   private _onContactEnter = (obj1: number, obj2: number) => {
@@ -131,6 +131,9 @@ export class PhysicsManager {
   /** The max sum of time step in seconds one frame. */
   maxSumTimeStep: number = 1 / 3;
 
+  /**
+   * The gravity of physics scene.
+   */
   get gravity(): Vector3 {
     return this._gravity;
   }
@@ -141,13 +144,6 @@ export class PhysicsManager {
       value.cloneTo(gravity);
     }
     this._nativePhysicsManager.setGravity(gravity);
-  }
-
-  /**
-   * The character controller manager.
-   */
-  get characterControllerManager(): ICharacterControllerManager {
-    return this._nativeCharacterControllerManager;
   }
 
   constructor(engine: Engine) {
@@ -354,11 +350,12 @@ export class PhysicsManager {
   }
 
   /**
-   * Create character controller manager.
+   * Creates a new character controller.
+   * @param shape The controllers shape
    * @internal
    */
-  _createCharacterControllerManager() {
-    this._nativeCharacterControllerManager = this._nativePhysicsManager.createControllerManager();
+  _createController(shape: ColliderShape): ICharacterController {
+    return this._nativePhysicsManager.createController(shape._nativeShape);
   }
 
   callColliderOnUpdate(): void {

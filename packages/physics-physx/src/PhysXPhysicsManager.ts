@@ -1,16 +1,20 @@
 import { PhysXPhysics } from "./PhysXPhysics";
 import { Ray, Vector3 } from "oasis-engine";
-import { ICharacterControllerManager, IPhysicsManager } from "@oasis-engine/design";
+import { IPhysicsManager } from "@oasis-engine/design";
 import { PhysXCollider } from "./PhysXCollider";
 import { DisorderedArray } from "./DisorderedArray";
-import { PhysXCharacterControllerManager } from "./characterkinematic/PhysXCharacterControllerManager";
-import { PhysXCharacterController } from "./characterkinematic/PhysXCharacterController";
+import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
+import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
+import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 
 /**
  * A manager is a collection of bodies and constraints which can interact.
  */
 export class PhysXPhysicsManager implements IPhysicsManager {
+  /** @internal */
+  _pxControllerManager: any = null;
+
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _pxRaycastHit: any;
@@ -160,12 +164,34 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCollider }
+   * {@inheritDoc IPhysicsManager.createController }
    */
-  createControllerManager(): ICharacterControllerManager {
-    let manager = new PhysXCharacterControllerManager();
-    manager._pxControllerManager = this._pxScene.createControllerManager();
-    return manager;
+  createController(shape: PhysXColliderShape): PhysXCharacterController {
+    if (this._pxControllerManager === null) {
+      this._pxControllerManager = this._pxScene.createControllerManager();
+    }
+
+    let desc: any;
+    if (shape instanceof PhysXBoxColliderShape) {
+      desc = new PhysXPhysics._physX.PxBoxControllerDesc();
+      desc.halfHeight = shape._halfSize.x;
+      desc.halfSideExtent = shape._halfSize.y;
+      desc.halfForwardExtent = shape._halfSize.z;
+    } else if (shape instanceof PhysXCapsuleColliderShape) {
+      desc = new PhysXPhysics._physX.PxCapsuleControllerDesc();
+      desc.radius = shape._radius;
+      desc.height = shape._halfHeight * 2;
+      desc.climbingMode = 1; // constraint mode
+    } else {
+      throw "unsupported shape type";
+    }
+
+    desc.setMaterial(shape._pxMaterials[0]);
+    let pxController = this._pxControllerManager.createController(desc);
+    let controller = new PhysXCharacterController();
+    controller._pxController = pxController;
+    controller._setShape(shape);
+    return controller;
   }
 
   /**

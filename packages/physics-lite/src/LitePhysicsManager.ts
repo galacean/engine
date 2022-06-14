@@ -1,4 +1,4 @@
-import { ICharacterControllerManager, ICharacterController, IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterController, IPhysicsManager } from "@oasis-engine/design";
 import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -6,6 +6,7 @@ import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { DisorderedArray } from "./DisorderedArray";
+import { IColliderShape } from "@oasis-engine/design/src";
 
 /**
  * A manager is a collection of bodies and constraints which can interact.
@@ -167,9 +168,9 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.removeCollider }
+   * {@inheritDoc IPhysicsManager.createController }
    */
-  createControllerManager(): ICharacterControllerManager {
+  createController(shape: IColliderShape): ICharacterController {
     throw "Physics-lite don't support createControllerManager. Use Physics-PhysX instead!";
   }
 

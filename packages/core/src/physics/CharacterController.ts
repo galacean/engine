@@ -97,13 +97,6 @@ export class CharacterController extends Collider {
     this._nativeCharacterController.setSlopeLimit(newValue);
   }
 
-  constructor(entity: Entity) {
-    super(entity);
-    if (this.engine.physicsManager.characterControllerManager == null) {
-      this.engine.physicsManager._createCharacterControllerManager();
-    }
-  }
-
   /**
    * Moves the character using a "collide-and-slide" algorithm.
    * @param disp Displacement vector
@@ -169,9 +162,7 @@ export class CharacterController extends Collider {
         oldCollider.removeShape(shape);
       }
       // create controller first which will examine shape is proper.
-      this._nativeCharacterController = this.engine.physicsManager.characterControllerManager.createController(
-        shape._nativeShape
-      );
+      this._nativeCharacterController = this.engine.physicsManager._createController(shape);
       this.engine.physicsManager._addCollider(this);
 
       this._shapes.push(shape);

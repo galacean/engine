@@ -1,8 +1,8 @@
 import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "oasis-engine";
-import { PhysXBoxColliderShape } from "../shape/PhysXBoxColliderShape";
-import { PhysXCapsuleColliderShape } from "../shape/PhysXCapsuleColliderShape";
-import { PhysXColliderShape } from "../shape/PhysXColliderShape";
+import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
+import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
  * Base class for character controllers.
