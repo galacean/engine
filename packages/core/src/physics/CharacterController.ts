@@ -15,7 +15,6 @@ export class CharacterController extends Collider {
 
   private _stepOffset: number = 0;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
-  private _contactOffset: number = 0;
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit: number = 0;
 

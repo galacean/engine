@@ -187,8 +187,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     }
 
     desc.setMaterial(shape._pxMaterials[0]);
-    let pxController = this._pxControllerManager.createController(desc);
-    let controller = new PhysXCharacterController();
+    const pxController = this._pxControllerManager.createController(desc);
+    const controller = new PhysXCharacterController();
     controller._pxController = pxController;
     controller._setShape(shape);
     return controller;
