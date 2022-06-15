@@ -13,16 +13,16 @@ export interface ICharacterController {
   move(disp: Vector3, minDist: number, elapsedTime: number): number;
 
   /**
-   * Sets controller's position.
+   * Sets controller's world position.
    * @param position The new (center) position for the controller.
    */
-  setPosition(position: Vector3): boolean;
+  setWorldPosition(position: Vector3): boolean;
 
   /**
-   * Retrieve the raw position of the controller.
+   * Retrieve the world position of the controller.
    * @param position The controller's center position
    */
-  getPosition(position: Vector3): void;
+  getWorldPosition(position: Vector3): void;
 
   /**
    * The step height.
@@ -49,7 +49,7 @@ export interface ICharacterController {
   setSlopeLimit(slopeLimit: number): void;
 
   /**
-   * Resizes the controller.
+   * Resize controller.
    * @param height
    */
   resize(height: number): void;

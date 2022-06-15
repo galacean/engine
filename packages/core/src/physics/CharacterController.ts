@@ -69,6 +69,14 @@ export class CharacterController extends Collider {
   }
 
   /**
+   * Resize controller.
+   * @param height
+   */
+  resize(height: number): void {
+    this._nativeCharacterController.resize(height);
+  }
+
+  /**
    * Moves the character using a "collide-and-slide" algorithm.
    * @param disp - Displacement vector
    * @param minDist - The minimum travelled distance to consider.
@@ -140,10 +148,13 @@ export class CharacterController extends Collider {
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      this._nativeCharacterController.setPosition(transform.worldPosition);
+      this._nativeCharacterController.setWorldPosition(transform.worldPosition);
 
       const worldScale = transform.lossyWorldScale;
-      this._nativeCharacterController.resize(Math.max(worldScale.x, worldScale.y, worldScale.z));
+      for (let i = 0, n = this.shapes.length; i < n; i++) {
+        this.shapes[i]._nativeShape.setWorldScale(worldScale);
+      }
+      this._nativeCharacterController.updateShape();
       this._updateFlag.flag = false;
     }
     this._nativeCharacterController.updateShape();
@@ -155,7 +166,7 @@ export class CharacterController extends Collider {
    */
   _onLateUpdate() {
     let position = this.entity.transform.worldPosition;
-    this._nativeCharacterController.getPosition(position);
+    this._nativeCharacterController.getWorldPosition(position);
     this.entity.transform.worldPosition = position;
     this._updateFlag.flag = false;
   }
