@@ -41,6 +41,14 @@ export class TextAssembler {
     renderer._renderData.color = renderer.color;
   }
 
+  static clearData(renderer: TextRenderer): void {
+    const { positions, uvs, triangles } = renderer._renderData;
+    positions.length = 0;
+    uvs.length = 0;
+    triangles.length = 0;
+    renderer._renderData = null;
+  }
+
   private static _updatePosition(renderer: TextRenderer): void {
     const localPositions = renderer._sprite._positions;
     const localVertexPos = TextAssembler._tempVec3;

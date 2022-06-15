@@ -19,6 +19,8 @@ import { Font } from "./Font";
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer {
+  private static _tempBounds: BoundingBox = new BoundingBox();
+
   /** @internal */
   @ignoreClone
   _sprite: Sprite = null;
@@ -189,6 +191,18 @@ export class TextRenderer extends Renderer {
     if (this._useCharCache !== value) {
       this._useCharCache = value;
       this._setDirtyFlagTrue(DirtyFlag.Property);
+
+      if (value) {
+        this._clearTexture();
+        this._sprite.destroy();
+        this._sprite = null;
+        TextAssembler.clearData(this);
+        CharAssembler.resetData(this);
+      } else {
+        CharAssembler.clearData(this);
+        this._sprite = new Sprite(this.engine);
+        TextAssembler.resetData(this);
+      }
     }
   }
 
@@ -279,7 +293,6 @@ export class TextRenderer extends Renderer {
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
     this._sprite = new Sprite(engine);
     TextAssembler.resetData(this);
-    CharAssembler.resetData(this);
     this.font = Font.createFromOS(engine);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
@@ -369,7 +382,39 @@ export class TextRenderer extends Renderer {
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
     const worldMatrix = this._entity.transform.worldMatrix;
-    BoundingBox.transform(this._sprite.bounds, worldMatrix, worldBounds);
+    if (this._useCharCache) {
+      const bounds = TextRenderer._tempBounds;
+      const { min, max } = bounds;
+      min.setValue(0, 0, 0);
+      max.setValue(0, 0, 0);
+      const { _charRenderDatas } = this;
+      const dataLen = _charRenderDatas.length;
+      if (dataLen > 0) {
+        const charRenderData = _charRenderDatas[0];
+        const { localPositions } = charRenderData;
+        let minPos = localPositions[3];
+        let maxPos = localPositions[1];
+        let minX = minPos.x;
+        let minY = minPos.y;
+        let maxX = maxPos.x;
+        let maxY = maxPos.y;
+
+        for (let i = 1; i < dataLen; ++i) {
+          const { localPositions } = _charRenderDatas[i];
+          let minPos = localPositions[3];
+          let maxPos = localPositions[1];
+          minX > minPos.x && (minX = minPos.x);
+          minY > minPos.y && (minY = minPos.y);
+          maxX < maxPos.x && (maxX = maxPos.x);
+          maxY < maxPos.y && (maxY = maxPos.y);
+        }
+        min.setValue(minX, minY, 0);
+        max.setValue(maxX, maxY, 0);
+      }
+      BoundingBox.transform(bounds, worldMatrix, worldBounds);
+    } else {
+      BoundingBox.transform(this._sprite.bounds, worldMatrix, worldBounds);
+    }
   }
 
   private _updateStencilState(): void {

@@ -18,16 +18,12 @@ export class CharAssembler {
       CharAssembler._charUtils = new CharUtils(renderer.engine);
       CharAssembler._charRenderDataPool = new CharRenderDataPool();
     }
-    const { _charRenderDatas } = renderer;
-    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
-      CharAssembler._charRenderDataPool.putData(_charRenderDatas[i]);
-    }
-    _charRenderDatas.length = 0;
   }
 
   static updateData(renderer: TextRenderer): void {
     const isTextureDirty = renderer._isContainDirtyFlag(DirtyFlag.Property);
     if (isTextureDirty) {
+      CharAssembler.clearData(renderer);
       CharAssembler._updateText(renderer);
       renderer._setDirtyFlagFalse(DirtyFlag.Property);
     }
@@ -43,6 +39,14 @@ export class CharAssembler {
       CharAssembler._charUtils.clear();
       CharAssembler._charUtils = null;
     }
+  }
+
+  static clearData(renderer: TextRenderer): void {
+    const { _charRenderDatas } = renderer;
+    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
+      CharAssembler._charRenderDataPool.putData(_charRenderDatas[i]);
+    }
+    _charRenderDatas.length = 0;
   }
 
   private static _updatePosition(renderer: TextRenderer): void {
@@ -109,35 +113,38 @@ export class CharAssembler {
         const key = `${fontHash}${char.charCodeAt(0)}`;
         const charDefWithTexture = _charUtils.getCharDef(key);
         const { charDef } = charDefWithTexture;
-        const charRenderData = _charRenderDataPool.getData();
-        const { renderData, localPositions } = charRenderData;
-        charRenderData.texture = charDefWithTexture.texture;
-        renderData.color = color;
 
-        const { uvs } = renderData;
-        const { x, y, w, h } = charDef;
-        const left = startX * pixelsPerUnitReciprocal;
-        const right = (startX + w) * pixelsPerUnitReciprocal;
-        const top = (startY - halfLineHeightDiff - maxAscent + h * 0.5 + charDef.offsetY) * pixelsPerUnitReciprocal;
-        const bottom = top - h * pixelsPerUnitReciprocal;
-        const u0 = x * textureSizeReciprocal;
-        const u1 = (x + w) * textureSizeReciprocal;
-        const v0 = y * textureSizeReciprocal;
-        const v1 = (y + h) * textureSizeReciprocal;
-        // Top-left.
-        localPositions[0].setValue(left, top, 0);
-        uvs[0].setValue(u0, v0);
-        // Top-right.
-        localPositions[1].setValue(right, top, 0);
-        uvs[1].setValue(u1, v0);
-        // Bottom-right.
-        localPositions[2].setValue(right, bottom, 0);
-        uvs[2].setValue(u1, v1);
-        // Bottom-left.
-        localPositions[3].setValue(left, bottom, 0);
-        uvs[3].setValue(u0, v1);
+        if (charDef.h > 0) {
+          const charRenderData = _charRenderDataPool.getData();
+          const { renderData, localPositions } = charRenderData;
+          charRenderData.texture = charDefWithTexture.texture;
+          renderData.color = color;
 
-        _charRenderDatas.push(charRenderData);
+          const { uvs } = renderData;
+          const { x, y, w, h } = charDef;
+          const left = startX * pixelsPerUnitReciprocal;
+          const right = (startX + w) * pixelsPerUnitReciprocal;
+          const top = (startY - halfLineHeightDiff - maxAscent + h * 0.5 + charDef.offsetY) * pixelsPerUnitReciprocal;
+          const bottom = top - h * pixelsPerUnitReciprocal;
+          const u0 = x * textureSizeReciprocal;
+          const u1 = (x + w) * textureSizeReciprocal;
+          const v0 = y * textureSizeReciprocal;
+          const v1 = (y + h) * textureSizeReciprocal;
+          // Top-left.
+          localPositions[0].setValue(left, top, 0);
+          uvs[0].setValue(u0, v0);
+          // Top-right.
+          localPositions[1].setValue(right, top, 0);
+          uvs[1].setValue(u1, v0);
+          // Bottom-right.
+          localPositions[2].setValue(right, bottom, 0);
+          uvs[2].setValue(u1, v1);
+          // Bottom-left.
+          localPositions[3].setValue(left, bottom, 0);
+          uvs[3].setValue(u0, v1);
+
+          _charRenderDatas.push(charRenderData);
+        }
         startX += charDef.xAdvance;
       }
     }
