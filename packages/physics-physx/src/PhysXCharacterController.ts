@@ -1,5 +1,7 @@
 import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "oasis-engine";
+import { PhysXPhysics } from "./PhysXPhysics";
+import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
@@ -12,9 +14,12 @@ export class PhysXCharacterController implements ICharacterController {
   _id: number;
   /** @internal */
   _pxController: any;
-  private _shape: PhysXColliderShape;
-  private _isBoxShape: boolean | null = null;
+  /** @internal */
+  _pxManager: PhysXPhysicsManager;
+  /** @internal */
+  _shape: PhysXColliderShape;
 
+  private _isBoxShape: boolean | null = null;
   /**
    * {@inheritDoc ICharacterController.move }
    */
@@ -69,15 +74,28 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
+   * {@inheritDoc ICharacterController.addShape }
+   */
+  addShape(shape: PhysXColliderShape): void {
+    this._pxManager && this._createPXController(this._pxManager, shape);
+    this._shape = shape;
+  }
+
+  /**
+   * {@inheritDoc ICharacterController.removeShape }
+   */
+  removeShape(shape: PhysXColliderShape): void {
+    this._destroyPXController();
+    this._shape = null;
+  }
+
+  /**
    * {@inheritDoc ICharacterController.updateShape }
    */
   updateShape(): void {
     const shape = this._shape;
     if (shape._isDirty) {
       const controller = this._pxController;
-      if (this._isBoxShape === null) {
-        this._isBoxShape = shape instanceof PhysXBoxColliderShape;
-      }
       const isBoxShape = this._isBoxShape;
       if (isBoxShape) {
         const box = <PhysXBoxColliderShape>shape;
@@ -98,14 +116,40 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.destroy }
    */
   destroy(): void {
-    this._isBoxShape = null;
-    this._pxController.release();
+    this._destroyPXController();
   }
 
   /**
    * @internal
    */
-  _setShape(value: PhysXColliderShape): void {
-    this._shape = value;
+  _createPXController(pxManager: PhysXPhysicsManager, shape: PhysXColliderShape): void {
+    let desc: any;
+    if (shape instanceof PhysXBoxColliderShape) {
+      desc = new PhysXPhysics._physX.PxBoxControllerDesc();
+      desc.halfHeight = shape._halfSize.x;
+      desc.halfSideExtent = shape._halfSize.y;
+      desc.halfForwardExtent = shape._halfSize.z;
+      this._isBoxShape = true;
+    } else if (shape instanceof PhysXCapsuleColliderShape) {
+      desc = new PhysXPhysics._physX.PxCapsuleControllerDesc();
+      desc.radius = shape._radius;
+      desc.height = shape._halfHeight * 2;
+      desc.climbingMode = 1; // constraint mode
+      this._isBoxShape = false;
+    } else {
+      throw "unsupported shape type";
+    }
+
+    desc.setMaterial(shape._pxMaterials[0]);
+
+    this._pxController = pxManager._getControllerManager().createController(desc);
+  }
+
+  /**
+   * @internal
+   */
+  _destroyPXController(): void {
+    this._pxController.release();
+    this._pxController = null;
   }
 }

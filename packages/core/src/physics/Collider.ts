@@ -47,10 +47,11 @@ export class Collider extends Component {
       if (oldCollider) {
         oldCollider.removeShape(shape);
       }
+
       this._shapes.push(shape);
       this.engine.physicsManager._addColliderShape(shape);
-      this._nativeCollider.addShape(shape._nativeShape);
       shape._collider = this;
+      this._nativeCollider.addShape(shape._nativeShape);
     }
   }
 
@@ -62,9 +63,9 @@ export class Collider extends Component {
     const index = this._shapes.indexOf(shape);
     if (index !== -1) {
       this._shapes.splice(index, 1);
-      this._nativeCollider.removeShape(shape._nativeShape);
       this.engine.physicsManager._removeColliderShape(shape);
       shape._collider = null;
+      this._nativeCollider.removeShape(shape._nativeShape);
     }
   }
 
@@ -75,9 +76,9 @@ export class Collider extends Component {
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
       const shape = shapes[i];
-      this._nativeCollider.removeShape(shape._nativeShape);
       this.engine.physicsManager._removeColliderShape(shape);
       shape._destroy();
+      this._nativeCollider.removeShape(shape._nativeShape);
     }
     shapes.length = 0;
   }

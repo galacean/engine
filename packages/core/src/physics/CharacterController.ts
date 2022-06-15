@@ -1,8 +1,10 @@
 import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "@oasis-engine/math";
-import { ColliderShape } from "./shape";
+import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
+import { PhysicsManager } from "./PhysicsManager";
+import { ColliderShape } from "./shape";
 
 /**
  * The character controllers.
@@ -69,6 +71,14 @@ export class CharacterController extends Collider {
   }
 
   /**
+   * @internal
+   */
+  constructor(entity: Entity) {
+    super(entity);
+    this._nativeCharacterController = PhysicsManager._nativePhysics.createCharacterController();
+  }
+
+  /**
    * Moves the character using a "collide-and-slide" algorithm.
    * @param disp - Displacement vector
    * @param minDist - The minimum travelled distance to consider.
@@ -88,41 +98,7 @@ export class CharacterController extends Collider {
     if (this._shapes.length > 1) {
       throw "only allow single shape on controller!";
     }
-
-    const oldCollider = shape._collider;
-    if (oldCollider !== this) {
-      if (oldCollider) {
-        oldCollider.removeShape(shape);
-      }
-      // create controller first which will examine shape is proper.
-      this._nativeCharacterController = this.engine.physicsManager._createCharacterController(shape);
-      if (this.enabled && this.entity.isActiveInHierarchy) {
-        this.engine.physicsManager._addCharacterController(this);
-      }
-      this._shapes.push(shape);
-      this.engine.physicsManager._addColliderShape(shape);
-      shape._collider = this;
-    }
-  }
-
-  /**
-   * Remove a collider shape.
-   * @param shape - The collider shape.
-   * @override
-   */
-  removeShape(shape: ColliderShape): void {
-    const index = this._shapes.indexOf(shape);
-    if (index !== -1) {
-      this._shapes.splice(index, 1);
-      this.engine.physicsManager._removeColliderShape(shape);
-      shape._collider = null;
-
-      this._nativeCharacterController.destroy();
-      this._nativeCharacterController = null;
-      if (this.enabled && this.entity.isActiveInHierarchy) {
-        this.engine.physicsManager._removeCharacterController(this);
-      }
-    }
+    super.addShape(shape);
   }
 
   /**
@@ -168,7 +144,7 @@ export class CharacterController extends Collider {
    * @internal
    */
   _onEnable() {
-    this._nativeCharacterController && this.engine.physicsManager._addCharacterController(this);
+    this.engine.physicsManager._addCharacterController(this);
   }
 
   /**
@@ -176,6 +152,6 @@ export class CharacterController extends Collider {
    * @internal
    */
   _onDisable() {
-    this._nativeCharacterController && this.engine.physicsManager._removeCharacterController(this);
+    this.engine.physicsManager._removeCharacterController(this);
   }
 }

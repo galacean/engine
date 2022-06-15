@@ -168,13 +168,6 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * {@inheritDoc IPhysicsManager.createController }
-   */
-  createCharacterController(shape: IColliderShape): ICharacterController {
-    throw "Physics-lite don't support createCharacterController. Use Physics-PhysX instead!";
-  }
-
-  /**
    * Calculate the bounding box in world space from boxCollider.
    * @param boxCollider - The boxCollider to calculate
    * @param out - The calculated boundingBox

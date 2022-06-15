@@ -1,22 +1,23 @@
 import {
-  IPhysics,
-  IPhysicsMaterial,
-  IPhysicsManager,
   IBoxColliderShape,
-  ISphereColliderShape,
   ICapsuleColliderShape,
+  ICharacterController,
   IDynamicCollider,
-  IStaticCollider,
-  IPlaneColliderShape
+  IPhysics,
+  IPhysicsManager,
+  IPhysicsMaterial,
+  IPlaneColliderShape,
+  ISphereColliderShape,
+  IStaticCollider
 } from "@oasis-engine/design";
-import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "oasis-engine";
-import { LiteStaticCollider } from "./LiteStaticCollider";
-import { LitePhysicsMaterial } from "./LitePhysicsMaterial";
-import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
-import { LitePhysicsManager } from "./LitePhysicsManager";
-import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
+import { LitePhysicsManager } from "./LitePhysicsManager";
+import { LitePhysicsMaterial } from "./LitePhysicsMaterial";
+import { LiteStaticCollider } from "./LiteStaticCollider";
+import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
+import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
+import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 @StaticInterfaceImplement<IPhysics>()
 export class LitePhysics {
@@ -53,6 +54,13 @@ export class LitePhysics {
    */
   static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
     return new LiteDynamicCollider(position, rotation);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createCharacterController }
+   */
+  static createCharacterController(): ICharacterController {
+    throw "Physics-lite don't support createCharacterController. Use Physics-PhysX instead!";
   }
 
   /**

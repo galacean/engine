@@ -1,13 +1,12 @@
 import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Ray, Vector3 } from "@oasis-engine/math";
+import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
+import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
-import { DisorderedArray } from "../DisorderedArray";
-import { CharacterController } from "./CharacterController";
-import { ICharacterController } from "@oasis-engine/design/src";
 
 /**
  * A physics manager is a collection of bodies and constraints which can interact.
@@ -359,15 +358,6 @@ export class PhysicsManager {
     replaced && (replaced._index = controller._index);
     controller._index = -1;
     this._nativePhysicsManager.removeCharacterController(controller._nativeCharacterController);
-  }
-
-  /**
-   * Creates a new character controller.
-   * @param shape The controllers shape
-   * @internal
-   */
-  _createCharacterController(shape: ColliderShape): ICharacterController {
-    return this._nativePhysicsManager.createCharacterController(shape._nativeShape);
   }
 
   /**

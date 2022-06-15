@@ -1,4 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
+import { IColliderShape } from "./shape/IColliderShape";
 
 /**
  * Base class for character controllers.
@@ -52,6 +53,18 @@ export interface ICharacterController {
    * Update collider shape
    */
   updateShape(): void;
+
+  /**
+   * Add collider shape on collider.
+   * @param shape - The collider shape attached
+   */
+  addShape(shape: IColliderShape): void;
+
+  /**
+   * Remove collider shape on collider.
+   * @param shape - The collider shape attached
+   */
+  removeShape(shape: IColliderShape): void;
 
   /**
    * Deletes the collider.

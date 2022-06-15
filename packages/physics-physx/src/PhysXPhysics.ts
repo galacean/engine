@@ -1,6 +1,7 @@
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
+  ICharacterController,
   IDynamicCollider,
   IPhysics,
   IPhysicsManager,
@@ -9,17 +10,18 @@ import {
   ISphereColliderShape,
   IStaticCollider
 } from "@oasis-engine/design";
-import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
-import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
-import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
-import { PhysXStaticCollider } from "./PhysXStaticCollider";
-import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "oasis-engine";
-import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
-import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { PhysXCharacterController } from "./PhysXCharacterController";
+import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
+import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
+import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
+import { PhysXStaticCollider } from "./PhysXStaticCollider";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
+import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 /**
  * PhysX object creation.
@@ -125,6 +127,13 @@ export class PhysXPhysics {
    */
   static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
     return new PhysXDynamicCollider(position, rotation);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createCharacterController }
+   */
+  static createCharacterController(): ICharacterController {
+    return new PhysXCharacterController();
   }
 
   /**
