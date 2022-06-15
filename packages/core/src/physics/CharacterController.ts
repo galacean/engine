@@ -93,7 +93,7 @@ export class CharacterController extends Collider {
    * @override
    */
   addShape(shape: ColliderShape): void {
-    if (this._shapes.length > 1) {
+    if (this._shapes.length > 0) {
       throw "only allow single shape on controller!";
     }
     super.addShape(shape);
@@ -104,7 +104,9 @@ export class CharacterController extends Collider {
    * @override
    */
   clearShapes(): void {
-    this.removeShape(this._shapes[0]);
+    if (this._shapes.length > 0) {
+      super.removeShape(this._shapes[0]);
+    }
   }
 
   /**
