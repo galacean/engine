@@ -69,14 +69,6 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * Resize controller.
-   * @param height
-   */
-  resize(height: number): void {
-    this._nativeCharacterController.resize(height);
-  }
-
-  /**
    * Moves the character using a "collide-and-slide" algorithm.
    * @param disp - Displacement vector
    * @param minDist - The minimum travelled distance to consider.

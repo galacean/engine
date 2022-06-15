@@ -49,12 +49,6 @@ export interface ICharacterController {
   setSlopeLimit(slopeLimit: number): void;
 
   /**
-   * Resize controller.
-   * @param height
-   */
-  resize(height: number): void;
-
-  /**
    * Update collider shape
    */
   updateShape(): void;

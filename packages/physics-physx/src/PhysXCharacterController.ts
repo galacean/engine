@@ -69,13 +69,6 @@ export class PhysXCharacterController implements ICharacterController {
   }
 
   /**
-   * {@inheritDoc ICharacterController.resize }
-   */
-  resize(height: number): void {
-    this._pxController.resize(height);
-  }
-
-  /**
    * {@inheritDoc ICharacterController.updateShape }
    */
   updateShape(): void {
