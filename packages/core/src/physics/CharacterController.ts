@@ -12,8 +12,6 @@ import { ColliderShape } from "./shape";
 export class CharacterController extends Collider {
   /** @internal */
   _index: number = -1;
-  /** @internal */
-  _nativeCharacterController: ICharacterController;
 
   private _stepOffset: number = 0;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
@@ -29,7 +27,7 @@ export class CharacterController extends Collider {
 
   set stepOffset(newValue: number) {
     this._stepOffset = newValue;
-    this._nativeCharacterController.setStepOffset(newValue);
+    (<ICharacterController>this._nativeCollider).setStepOffset(newValue);
   }
 
   /**
@@ -41,7 +39,7 @@ export class CharacterController extends Collider {
 
   set nonWalkableMode(newValue: ControllerNonWalkableMode) {
     this._nonWalkableMode = newValue;
-    this._nativeCharacterController.setNonWalkableMode(newValue);
+    (<ICharacterController>this._nativeCollider).setNonWalkableMode(newValue);
   }
 
   /**
@@ -55,7 +53,7 @@ export class CharacterController extends Collider {
     if (this._upDirection !== newValue) {
       newValue.cloneTo(this._upDirection);
     }
-    this._nativeCharacterController.setUpDirection(this._upDirection);
+    (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }
 
   /**
@@ -67,7 +65,7 @@ export class CharacterController extends Collider {
 
   set slopeLimit(newValue: number) {
     this._slopeLimit = newValue;
-    this._nativeCharacterController.setSlopeLimit(newValue);
+    (<ICharacterController>this._nativeCollider).setSlopeLimit(newValue);
   }
 
   /**
@@ -75,7 +73,7 @@ export class CharacterController extends Collider {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._nativeCharacterController = PhysicsManager._nativePhysics.createCharacterController();
+    (<ICharacterController>this._nativeCollider) = PhysicsManager._nativePhysics.createCharacterController();
   }
 
   /**
@@ -86,7 +84,7 @@ export class CharacterController extends Collider {
    * @return flags - The ControllerCollisionFlag
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return this._nativeCharacterController.move(disp, minDist, elapsedTime);
+    return (<ICharacterController>this._nativeCollider).move(disp, minDist, elapsedTime);
   }
 
   /**
@@ -116,16 +114,16 @@ export class CharacterController extends Collider {
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      this._nativeCharacterController.setWorldPosition(transform.worldPosition);
+      (<ICharacterController>this._nativeCollider).setWorldPosition(transform.worldPosition);
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = this.shapes.length; i < n; i++) {
         this.shapes[i]._nativeShape.setWorldScale(worldScale);
       }
-      this._nativeCharacterController.updateShape();
+      (<ICharacterController>this._nativeCollider).updateShape();
       this._updateFlag.flag = false;
     }
-    this._nativeCharacterController.updateShape();
+    (<ICharacterController>this._nativeCollider).updateShape();
   }
 
   /**
@@ -134,7 +132,7 @@ export class CharacterController extends Collider {
    */
   _onLateUpdate() {
     let position = this.entity.transform.worldPosition;
-    this._nativeCharacterController.getWorldPosition(position);
+    (<ICharacterController>this._nativeCollider).getWorldPosition(position);
     this.entity.transform.worldPosition = position;
     this._updateFlag.flag = false;
   }

@@ -1,4 +1,4 @@
-import { ICollider } from "@oasis-engine/design";
+import { ICollider, IStaticCollider } from "@oasis-engine/design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
@@ -86,10 +86,13 @@ export class Collider extends Component {
   /**
    * @internal
    */
-  _onUpdate() {
+  _onUpdate(): void {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      this._nativeCollider.setWorldTransform(transform.worldPosition, transform.worldRotationQuaternion);
+      (<IStaticCollider>this._nativeCollider).setWorldTransform(
+        transform.worldPosition,
+        transform.worldRotationQuaternion
+      );
       this._updateFlag.flag = false;
 
       const worldScale = transform.lossyWorldScale;
@@ -102,13 +105,13 @@ export class Collider extends Component {
   /**
    * @internal
    */
-  _onLateUpdate() {}
+  _onLateUpdate(): void {}
 
   /**
    * @override
    * @internal
    */
-  _onEnable() {
+  _onEnable(): void {
     this.engine.physicsManager._addCollider(this);
   }
 
@@ -116,7 +119,7 @@ export class Collider extends Component {
    * @override
    * @internal
    */
-  _onDisable() {
+  _onDisable(): void {
     this.engine.physicsManager._removeCollider(this);
   }
 
@@ -124,7 +127,7 @@ export class Collider extends Component {
    * @override
    * @internal
    */
-  _onDestroy() {
+  _onDestroy(): void {
     this.clearShapes();
     this._nativeCollider.destroy();
   }

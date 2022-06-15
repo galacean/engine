@@ -1,10 +1,10 @@
 import { Vector3 } from "@oasis-engine/math";
-import { IColliderShape } from "./shape/IColliderShape";
+import { ICollider } from "./ICollider";
 
 /**
  * Base class for character controllers.
  */
-export interface ICharacterController {
+export interface ICharacterController extends ICollider {
   /**
    * Moves the character using a "collide-and-slide" algorithm.
    * @param disp Displacement vector
@@ -53,21 +53,4 @@ export interface ICharacterController {
    * Update collider shape
    */
   updateShape(): void;
-
-  /**
-   * Add collider shape on collider.
-   * @param shape - The collider shape attached
-   */
-  addShape(shape: IColliderShape): void;
-
-  /**
-   * Remove collider shape on collider.
-   * @param shape - The collider shape attached
-   */
-  removeShape(shape: IColliderShape): void;
-
-  /**
-   * Deletes the collider.
-   */
-  destroy(): void;
 }
