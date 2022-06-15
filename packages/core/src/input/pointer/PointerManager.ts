@@ -1,17 +1,20 @@
 import { Ray, Vector2 } from "@oasis-engine/math";
 import { Canvas } from "../../Canvas";
+import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
-import { HitResult, PhysicsManager } from "../../physics";
+import { HitResult } from "../../physics";
 import { PointerPhase } from "../enums/PointerPhase";
+import { PointerButton } from "../enums/PointerType";
+import { IInput } from "../IInput";
 import { Pointer } from "./Pointer";
 
 /**
  * Pointer Manager.
  * @internal
  */
-export class PointerManager {
+export class PointerManager implements IInput {
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
   private static _tempHitResult: HitResult = new HitResult();
@@ -19,10 +22,26 @@ export class PointerManager {
   /** @internal */
   _pointers: Pointer[] = [];
   /** @internal */
+  _movingDelta: Vector2 = new Vector2();
+  /** @internal */
   _multiPointerEnabled: boolean = true;
+
+  /** @internal */
+  _heldDownMap: number[] = [];
+  /** @internal */
+  _upMap: number[] = [];
+  /** @internal */
+  _downMap: number[] = [];
+  /** @internal */
+  _heldDownList: DisorderedArray<PointerButton> = new DisorderedArray();
+  /** @internal */
+  _downList: DisorderedArray<PointerButton> = new DisorderedArray();
+  /** @internal */
+  _upList: DisorderedArray<PointerButton> = new DisorderedArray();
 
   private _engine: Engine;
   private _canvas: Canvas;
+  private _htmlCanvas: HTMLCanvasElement;
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _keyEventList: number[] = [];
@@ -40,11 +59,13 @@ export class PointerManager {
   constructor(engine: Engine, htmlCanvas: HTMLCanvasElement) {
     this._engine = engine;
     this._canvas = engine.canvas;
+    this._htmlCanvas = htmlCanvas;
     htmlCanvas.style.touchAction = "none";
-    // prettier-ignore
-    htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = (evt: PointerEvent) => {
-      this._nativeEvents.push(evt);
-    };
+    const onPointerEvent = (this._onPointerEvent = this._onPointerEvent.bind(this));
+    htmlCanvas.addEventListener("pointerdown", onPointerEvent);
+    htmlCanvas.addEventListener("pointerup", onPointerEvent);
+    htmlCanvas.addEventListener("pointerout", onPointerEvent);
+    htmlCanvas.addEventListener("pointermove", onPointerEvent);
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
     this._pointerPool = new Array<Pointer>(11);
   }
@@ -52,9 +73,12 @@ export class PointerManager {
   /**
    * @internal
    */
-  _update(): void {
+  _update(frameCount: number): void {
     this._needOverallPointers && this._overallPointers();
-    this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents);
+    this._downList.length = 0;
+    this._upList.length = 0;
+    this._movingDelta.setValue(0, 0);
+    this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents, frameCount);
     if (this._engine.physicsManager._initialized) {
       const rayCastEntity = this._pointerRayCast();
       const { _keyEventCount: keyEventCount } = this;
@@ -83,6 +107,38 @@ export class PointerManager {
   /**
    * @internal
    */
+  _enable(): void {
+    const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
+    htmlCanvas.addEventListener("pointerdown", onPointerEvent);
+    htmlCanvas.addEventListener("pointerup", onPointerEvent);
+    htmlCanvas.addEventListener("pointerout", onPointerEvent);
+    htmlCanvas.addEventListener("pointermove", onPointerEvent);
+  }
+
+  /**
+   * @internal
+   */
+  _disable(): void {
+    const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
+    htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
+    htmlCanvas.removeEventListener("pointerup", onPointerEvent);
+    htmlCanvas.removeEventListener("pointerout", onPointerEvent);
+    htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+  }
+
+  /**
+   * @internal
+   */
+  _onBlur(): void {
+    this._heldDownMap.length = 0;
+    this._heldDownList.length = 0;
+    this._downList.length = 0;
+    this._upList.length = 0;
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     // @ts-ignore
     const htmlCanvas = this._canvas._webCanvas as HTMLCanvasElement;
@@ -95,6 +151,10 @@ export class PointerManager {
     this._currentPressedEntity = null;
     this._engine = null;
     this._canvas = null;
+  }
+
+  private _onPointerEvent(evt: PointerEvent) {
+    this._nativeEvents.push(evt);
   }
 
   private _overallPointers(): void {
@@ -159,13 +219,24 @@ export class PointerManager {
     updatedPointer.phase = phase;
   }
 
-  private _handlePointerEvent(nativeEvents: PointerEvent[]): void {
-    const { _pointers: pointers, _keyEventList: keyEventList } = this;
+  private _handlePointerEvent(nativeEvents: PointerEvent[], frameCount: number): void {
+    const {
+      _pointers: pointers,
+      _keyEventList: keyEventList,
+      _heldDownMap: heldDownMap,
+      _upMap: upMap,
+      _downMap: downMap,
+      _heldDownList: heldDownList,
+      _upList: upList,
+      _downList: downList
+    } = this;
     let activePointerCount = pointers.length;
+    let delIndex: number;
     const nativeEventsLen = nativeEvents.length;
     for (let i = 0; i < nativeEventsLen; i++) {
       const evt = nativeEvents[i];
-      let pointerIndex = this._getIndexByPointerID(evt.pointerId);
+      const pointerButton: PointerButton = evt.hasOwnProperty("button") ? evt.button : PointerButton.Left;
+      const pointerIndex = this._getIndexByPointerID(evt.pointerId);
       switch (evt.type) {
         case "pointerdown":
           if (pointerIndex === -1) {
@@ -175,12 +246,24 @@ export class PointerManager {
             this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down);
           }
           activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
+          downList.add(pointerButton);
+          heldDownList.add(pointerButton);
+          heldDownMap[pointerButton] = heldDownList.length - 1;
+          downMap[pointerButton] = frameCount;
           break;
         case "pointerup":
           if (pointerIndex >= 0) {
             this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Up);
             activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
           }
+          delIndex = heldDownMap[pointerButton];
+          if (delIndex != null) {
+            heldDownMap[pointerButton] = null;
+            const swapCode = heldDownList.deleteByIndex(delIndex);
+            swapCode && (heldDownMap[swapCode] = delIndex);
+          }
+          upList.add(pointerButton);
+          upMap[pointerButton] = frameCount;
           break;
         case "pointermove":
           if (pointerIndex === -1) {
@@ -196,16 +279,21 @@ export class PointerManager {
             --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Leave);
             this._needOverallPointers = true;
           }
+          delIndex = heldDownMap[pointerButton];
+          if (delIndex !== null) {
+            heldDownMap[pointerButton] = null;
+            const swapCode = heldDownList.deleteByIndex(delIndex);
+            swapCode && (heldDownMap[swapCode] = delIndex);
+          }
           break;
       }
     }
     const pointerCount = pointers.length;
     if (pointerCount > 0) {
-      const { _canvas: canvas, _currentPosition: currentPosition } = this;
-      // @ts-ignore
-      const pixelRatioWidth = canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
-      // @ts-ignore
-      const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientHeight;
+      const { _canvas: canvas, _currentPosition: currentPosition, _htmlCanvas: htmlCanvas } = this;
+      const { x: lastX, y: lastY } = currentPosition;
+      const pixelRatioWidth = canvas.width / htmlCanvas.clientWidth;
+      const pixelRatioHeight = canvas.height / htmlCanvas.clientHeight;
       if (activePointerCount === 0) {
         // Get the pointer coordinates when leaving, and use it to correctly dispatch the click event.
         const lastNativeEvent = nativeEvents[nativeEventsLen - 1];
@@ -222,6 +310,11 @@ export class PointerManager {
           currentPosition.add(position);
         }
         currentPosition.scale(1 / pointerCount);
+      }
+      // Update pointer moving delta.
+      // Todo: Need to consider if the last coordinate is（0, 0）.
+      if (lastX !== 0 || lastY !== 0) {
+        this._movingDelta.setValue(currentPosition.x - lastX, currentPosition.y - lastY);
       }
     }
     nativeEvents.length = 0;
