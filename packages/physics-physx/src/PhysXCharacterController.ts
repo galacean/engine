@@ -18,8 +18,6 @@ export class PhysXCharacterController implements ICharacterController {
   _pxManager: PhysXPhysicsManager;
   /** @internal */
   _shape: PhysXColliderShape;
-
-  private _isBoxShape: boolean | null = null;
   /**
    * {@inheritDoc ICharacterController.move }
    */
@@ -108,13 +106,11 @@ export class PhysXCharacterController implements ICharacterController {
       desc.halfHeight = shape._halfSize.x;
       desc.halfSideExtent = shape._halfSize.y;
       desc.halfForwardExtent = shape._halfSize.z;
-      this._isBoxShape = true;
     } else if (shape instanceof PhysXCapsuleColliderShape) {
       desc = new PhysXPhysics._physX.PxCapsuleControllerDesc();
       desc.radius = shape._radius;
       desc.height = shape._halfHeight * 2;
       desc.climbingMode = 1; // constraint mode
-      this._isBoxShape = false;
     } else {
       throw "unsupported shape type";
     }
