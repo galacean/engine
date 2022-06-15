@@ -1,8 +1,8 @@
-import { PhysXPhysics } from "../PhysXPhysics";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
-import { PhysXColliderShape } from "./PhysXColliderShape";
-import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { Vector3 } from "oasis-engine";
+import { PhysXPhysics } from "../PhysXPhysics";
+import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { PhysXColliderShape } from "./PhysXColliderShape";
 
 /**
  * Capsule collider shape in PhysX.
@@ -36,7 +36,6 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc ICapsuleColliderShape.setRadius }
    */
   setRadius(value: number): void {
-    this._isDirty = true;
     this._radius = value;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
@@ -50,13 +49,17 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
         break;
     }
     this._pxShape.setGeometry(this._pxGeometry);
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController.setRadius(value);
+    }
   }
 
   /**
    * {@inheritDoc ICapsuleColliderShape.setHeight }
    */
   setHeight(value: number): void {
-    this._isDirty = true;
     this._halfHeight = value * 0.5;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
@@ -70,13 +73,17 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
         break;
     }
     this._pxShape.setGeometry(this._pxGeometry);
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController.setHeight(value);
+    }
   }
 
   /**
    * {@inheritDoc ICapsuleColliderShape.setUpAxis }
    */
   setUpAxis(upAxis: ColliderShapeUpAxis): void {
-    this._isDirty = true;
     this._upAxis = upAxis;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:

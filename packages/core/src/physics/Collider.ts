@@ -93,12 +93,12 @@ export class Collider extends Component {
         transform.worldPosition,
         transform.worldRotationQuaternion
       );
-      this._updateFlag.flag = false;
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = this.shapes.length; i < n; i++) {
         this.shapes[i]._nativeShape.setWorldScale(worldScale);
       }
+      this._updateFlag.flag = false;
     }
   }
 

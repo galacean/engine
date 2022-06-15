@@ -1,7 +1,9 @@
 import { IColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "oasis-engine";
-import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { DisorderedArray } from "../DisorderedArray";
+import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
+import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
 /**
  * Flags which affect the behavior of Shapes.
@@ -24,15 +26,18 @@ export abstract class PhysXColliderShape implements IColliderShape {
     translation: new Vector3(),
     rotation: null
   };
+
+  /** @internal */
+  _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
+
   protected _position: Vector3 = new Vector3();
   protected _rotation: Quaternion = new Quaternion();
   protected _scale: Vector3 = new Vector3(1, 1, 1);
+
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
   /** @internal */
   _pxMaterials: any[] = new Array(1);
-  /** @internal */
-  _isDirty: boolean = false;
   /** @internal */
   _pxShape: any;
   /** @internal */
@@ -61,9 +66,13 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setContactOffset }
    */
   setContactOffset(offset: number): void {
-    this._isDirty = true;
     this._contactOffset = offset;
     this._pxShape.setContactOffset(offset);
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController.setContactOffset(offset);
+    }
   }
 
   /**

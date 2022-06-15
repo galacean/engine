@@ -79,6 +79,7 @@ export class PhysXCharacterController implements ICharacterController {
   addShape(shape: PhysXColliderShape): void {
     this._pxManager && this._createPXController(this._pxManager, shape);
     this._shape = shape;
+    shape._controllers.add(this);
   }
 
   /**
@@ -87,29 +88,7 @@ export class PhysXCharacterController implements ICharacterController {
   removeShape(shape: PhysXColliderShape): void {
     this._destroyPXController();
     this._shape = null;
-  }
-
-  /**
-   * {@inheritDoc ICharacterController.updateShape }
-   */
-  updateShape(): void {
-    const shape = this._shape;
-    if (shape._isDirty) {
-      const controller = this._pxController;
-      const isBoxShape = this._isBoxShape;
-      if (isBoxShape) {
-        const box = <PhysXBoxColliderShape>shape;
-        controller.setHalfHeight(box._halfSize.x);
-        controller.setHalfSideExtent(box._halfSize.y);
-        controller.setHalfForwardExtent(box._halfSize.z);
-      } else {
-        const capsule = <PhysXCapsuleColliderShape>shape;
-        controller.setRadius(capsule._radius);
-        controller.setHeight(capsule._halfHeight * 2.0);
-      }
-      controller.setContactOffset(shape._contactOffset);
-      shape._isDirty = false;
-    }
+    shape._controllers.delete(this);
   }
 
   /**

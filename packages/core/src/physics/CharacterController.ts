@@ -120,10 +120,8 @@ export class CharacterController extends Collider {
       for (let i = 0, n = this.shapes.length; i < n; i++) {
         this.shapes[i]._nativeShape.setWorldScale(worldScale);
       }
-      (<ICharacterController>this._nativeCollider).updateShape();
       this._updateFlag.flag = false;
     }
-    (<ICharacterController>this._nativeCollider).updateShape();
   }
 
   /**

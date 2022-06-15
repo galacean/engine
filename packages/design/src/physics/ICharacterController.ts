@@ -48,9 +48,4 @@ export interface ICharacterController extends ICollider {
    * @param slopeLimit The slope limit for the controller.
    */
   setSlopeLimit(slopeLimit: number): void;
-
-  /**
-   * Update collider shape
-   */
-  updateShape(): void;
 }
