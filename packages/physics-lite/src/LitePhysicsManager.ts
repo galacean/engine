@@ -1,4 +1,4 @@
-import { IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterController, IPhysicsManager } from "@oasis-engine/design";
 import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -6,6 +6,7 @@ import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { DisorderedArray } from "./DisorderedArray";
+import { IColliderShape } from "@oasis-engine/design/src";
 
 /**
  * A manager is a collection of bodies and constraints which can interact.
@@ -153,7 +154,21 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Calculate the boundingbox in world space from boxCollider.
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
+  addCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
+  removeCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * Calculate the bounding box in world space from boxCollider.
    * @param boxCollider - The boxCollider to calculate
    * @param out - The calculated boundingBox
    */

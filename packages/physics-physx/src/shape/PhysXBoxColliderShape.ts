@@ -9,7 +9,8 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  */
 export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxColliderShape {
   private static _tempHalfExtents = new Vector3();
-  private _halfSize: Vector3 = new Vector3();
+  /** @internal */
+  _halfSize: Vector3 = new Vector3();
 
   /**
    * Init Box Shape and alloc PhysX objects.
@@ -27,9 +28,8 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
       this._halfSize.y * this._scale.y,
       this._halfSize.z * this._scale.z
     );
-    this._allocShape(material);
+    this._initialize(material, uniqueID);
     this._setLocalPose();
-    this.setUniqueID(uniqueID);
   }
 
   /**
@@ -40,6 +40,14 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
     this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
     this._pxShape.setGeometry(this._pxGeometry);
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      const pxController = controllers.get(i)._pxController;
+      pxController.setHalfHeight(this._halfSize.x);
+      pxController.setHalfSideExtent(this._halfSize.y);
+      pxController.setHalfForwardExtent(this._halfSize.z);
+    }
   }
 
   /**
