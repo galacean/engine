@@ -5,7 +5,7 @@ import { Component } from "../Component";
 import { dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
-import { ColliderShape } from "./shape/ColliderShape";
+import { ColliderShape } from "./shape";
 
 /**
  * Base class for all colliders.

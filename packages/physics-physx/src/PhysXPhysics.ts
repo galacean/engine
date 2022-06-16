@@ -8,7 +8,13 @@ import {
   IPhysicsMaterial,
   IPlaneColliderShape,
   ISphereColliderShape,
-  IStaticCollider
+  IStaticCollider,
+  IFixedJoint,
+  IHingeJoint,
+  ISphericalJoint,
+  ISpringJoint,
+  ITranslationalJoint,
+  IConfigurableJoint
 } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
@@ -21,6 +27,13 @@ import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
+import { PhysXCollider } from "./PhysXCollider";
+import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
+import { PhysXSphericalJoint } from "./joint/PhysXSphericalJoint";
+import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
+import { PhysXTranslationalJoint } from "./joint/PhysXTranslationalJoint";
+import { PhysXConfigurableJoint } from "./joint/PhysXConfigurableJoint";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 /**
@@ -184,6 +197,90 @@ export class PhysXPhysics {
     material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
     return new PhysXCapsuleColliderShape(uniqueID, radius, height, material);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createFixedJoint }
+   */
+  static createFixedJoint(
+    actor0: PhysXCollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: PhysXCollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): IFixedJoint {
+    return new PhysXFixedJoint(actor0, position0, rotation0, actor1, position1, rotation1);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createHingeJoint }
+   */
+  static createHingeJoint(
+    actor0: PhysXCollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: PhysXCollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): IHingeJoint {
+    return new PhysXHingeJoint(actor0, position0, rotation0, actor1, position1, rotation1);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createSphericalJoint }
+   */
+  static createSphericalJoint(
+    actor0: PhysXCollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: PhysXCollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): ISphericalJoint {
+    return new PhysXSphericalJoint(actor0, position0, rotation0, actor1, position1, rotation1);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createSpringJoint }
+   */
+  static createSpringJoint(
+    actor0: PhysXCollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: PhysXCollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): ISpringJoint {
+    return new PhysXSpringJoint(actor0, position0, rotation0, actor1, position1, rotation1);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createTranslationalJoint }
+   */
+  static createTranslationalJoint(
+    actor0: PhysXCollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: PhysXCollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): ITranslationalJoint {
+    return new PhysXTranslationalJoint(actor0, position0, rotation0, actor1, position1, rotation1);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createConfigurableJoint }
+   */
+  static createConfigurableJoint(
+    actor0: PhysXCollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: PhysXCollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): IConfigurableJoint {
+    return new PhysXConfigurableJoint(actor0, position0, rotation0, actor1, position1, rotation1);
   }
 
   private static _init(PHYSX: any): void {

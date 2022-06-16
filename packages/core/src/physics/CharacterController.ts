@@ -2,7 +2,7 @@ import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
+import { ControllerNonWalkableMode } from "./enums";
 import { PhysicsManager } from "./PhysicsManager";
 import { ColliderShape } from "./shape";
 
