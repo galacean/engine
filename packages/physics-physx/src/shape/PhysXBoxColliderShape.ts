@@ -36,11 +36,18 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * {@inheritDoc IBoxColliderShape.setSize }
    */
   setSize(value: Vector3): void {
-    this._isDirty = true;
     this._halfSize.setValue(value.x * 0.5, value.y * 0.5, value.z * 0.5);
     Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
     this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
     this._pxShape.setGeometry(this._pxGeometry);
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      const pxController = controllers.get(i)._pxController;
+      pxController.setHalfHeight(this._halfSize.x);
+      pxController.setHalfSideExtent(this._halfSize.y);
+      pxController.setHalfForwardExtent(this._halfSize.z);
+    }
   }
 
   /**

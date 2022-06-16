@@ -4,6 +4,7 @@ import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape, IPlaneC
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { ICharacterController } from "./ICharacterController";
 
 /**
  * The interface of physics creation.
@@ -40,6 +41,11 @@ export interface IPhysics {
    * @param rotation - The global rotation
    */
   createStaticCollider(position: Vector3, rotation: Quaternion): IStaticCollider;
+
+  /**
+   * Create character controller.
+   */
+  createCharacterController(): ICharacterController;
 
   /**
    * Create physics material.

@@ -1,13 +1,12 @@
-import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterController, ICollider, IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Ray, Vector3 } from "@oasis-engine/math";
+import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
+import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
-import { DisorderedArray } from "../DisorderedArray";
-import { CharacterController } from "./CharacterController";
-import { ICharacterController } from "@oasis-engine/design/src";
 
 /**
  * A physics manager is a collection of bodies and constraints which can interact.
@@ -321,7 +320,7 @@ export class PhysicsManager {
       collider._index = this._colliders.length;
       this._colliders.add(collider);
     }
-    this._nativePhysicsManager.addCollider(collider._nativeCollider);
+    this._nativePhysicsManager.addCollider(<ICollider>collider._nativeCollider);
   }
 
   /**
@@ -334,7 +333,7 @@ export class PhysicsManager {
       controller._index = this._colliders.length;
       this._colliders.add(controller);
     }
-    this._nativePhysicsManager.addCharacterController(controller._nativeCharacterController);
+    this._nativePhysicsManager.addCharacterController(<ICharacterController>controller._nativeCollider);
   }
 
   /**
@@ -346,7 +345,7 @@ export class PhysicsManager {
     const replaced = this._colliders.deleteByIndex(collider._index);
     replaced && (replaced._index = collider._index);
     collider._index = -1;
-    this._nativePhysicsManager.removeCollider(collider._nativeCollider);
+    this._nativePhysicsManager.removeCollider(<ICollider>collider._nativeCollider);
   }
 
   /**
@@ -358,16 +357,7 @@ export class PhysicsManager {
     const replaced = this._colliders.deleteByIndex(controller._index);
     replaced && (replaced._index = controller._index);
     controller._index = -1;
-    this._nativePhysicsManager.removeCharacterController(controller._nativeCharacterController);
-  }
-
-  /**
-   * Creates a new character controller.
-   * @param shape The controllers shape
-   * @internal
-   */
-  _createCharacterController(shape: ColliderShape): ICharacterController {
-    return this._nativePhysicsManager.createCharacterController(shape._nativeShape);
+    this._nativePhysicsManager.removeCharacterController(<ICharacterController>controller._nativeCollider);
   }
 
   /**

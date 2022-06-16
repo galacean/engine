@@ -1,9 +1,10 @@
 import { Vector3 } from "@oasis-engine/math";
+import { ICollider } from "./ICollider";
 
 /**
  * Base class for character controllers.
  */
-export interface ICharacterController {
+export interface ICharacterController extends ICollider {
   /**
    * Moves the character using a "collide-and-slide" algorithm.
    * @param disp Displacement vector
@@ -47,14 +48,4 @@ export interface ICharacterController {
    * @param slopeLimit The slope limit for the controller.
    */
   setSlopeLimit(slopeLimit: number): void;
-
-  /**
-   * Update collider shape
-   */
-  updateShape(): void;
-
-  /**
-   * Deletes the collider.
-   */
-  destroy(): void;
 }

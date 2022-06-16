@@ -1,8 +1,10 @@
 import { ICharacterController } from "@oasis-engine/design";
 import { Vector3 } from "@oasis-engine/math";
-import { ColliderShape } from "./shape";
+import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
+import { PhysicsManager } from "./PhysicsManager";
+import { ColliderShape } from "./shape";
 
 /**
  * The character controllers.
@@ -10,8 +12,6 @@ import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 export class CharacterController extends Collider {
   /** @internal */
   _index: number = -1;
-  /** @internal */
-  _nativeCharacterController: ICharacterController;
 
   private _stepOffset: number = 0;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
@@ -27,7 +27,7 @@ export class CharacterController extends Collider {
 
   set stepOffset(newValue: number) {
     this._stepOffset = newValue;
-    this._nativeCharacterController.setStepOffset(newValue);
+    (<ICharacterController>this._nativeCollider).setStepOffset(newValue);
   }
 
   /**
@@ -39,7 +39,7 @@ export class CharacterController extends Collider {
 
   set nonWalkableMode(newValue: ControllerNonWalkableMode) {
     this._nonWalkableMode = newValue;
-    this._nativeCharacterController.setNonWalkableMode(newValue);
+    (<ICharacterController>this._nativeCollider).setNonWalkableMode(newValue);
   }
 
   /**
@@ -53,7 +53,7 @@ export class CharacterController extends Collider {
     if (this._upDirection !== newValue) {
       newValue.cloneTo(this._upDirection);
     }
-    this._nativeCharacterController.setUpDirection(this._upDirection);
+    (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }
 
   /**
@@ -65,7 +65,15 @@ export class CharacterController extends Collider {
 
   set slopeLimit(newValue: number) {
     this._slopeLimit = newValue;
-    this._nativeCharacterController.setSlopeLimit(newValue);
+    (<ICharacterController>this._nativeCollider).setSlopeLimit(newValue);
+  }
+
+  /**
+   * @internal
+   */
+  constructor(entity: Entity) {
+    super(entity);
+    (<ICharacterController>this._nativeCollider) = PhysicsManager._nativePhysics.createCharacterController();
   }
 
   /**
@@ -76,7 +84,7 @@ export class CharacterController extends Collider {
    * @return flags - The ControllerCollisionFlag
    */
   move(disp: Vector3, minDist: number, elapsedTime: number): number {
-    return this._nativeCharacterController.move(disp, minDist, elapsedTime);
+    return (<ICharacterController>this._nativeCollider).move(disp, minDist, elapsedTime);
   }
 
   /**
@@ -85,44 +93,10 @@ export class CharacterController extends Collider {
    * @override
    */
   addShape(shape: ColliderShape): void {
-    if (this._shapes.length > 1) {
+    if (this._shapes.length > 0) {
       throw "only allow single shape on controller!";
     }
-
-    const oldCollider = shape._collider;
-    if (oldCollider !== this) {
-      if (oldCollider) {
-        oldCollider.removeShape(shape);
-      }
-      // create controller first which will examine shape is proper.
-      this._nativeCharacterController = this.engine.physicsManager._createCharacterController(shape);
-      if (this.enabled && this.entity.isActiveInHierarchy) {
-        this.engine.physicsManager._addCharacterController(this);
-      }
-      this._shapes.push(shape);
-      this.engine.physicsManager._addColliderShape(shape);
-      shape._collider = this;
-    }
-  }
-
-  /**
-   * Remove a collider shape.
-   * @param shape - The collider shape.
-   * @override
-   */
-  removeShape(shape: ColliderShape): void {
-    const index = this._shapes.indexOf(shape);
-    if (index !== -1) {
-      this._shapes.splice(index, 1);
-      this.engine.physicsManager._removeColliderShape(shape);
-      shape._collider = null;
-
-      this._nativeCharacterController.destroy();
-      this._nativeCharacterController = null;
-      if (this.enabled && this.entity.isActiveInHierarchy) {
-        this.engine.physicsManager._removeCharacterController(this);
-      }
-    }
+    super.addShape(shape);
   }
 
   /**
@@ -130,7 +104,9 @@ export class CharacterController extends Collider {
    * @override
    */
   clearShapes(): void {
-    this.removeShape(this._shapes[0]);
+    if (this._shapes.length > 0) {
+      super.removeShape(this._shapes[0]);
+    }
   }
 
   /**
@@ -140,16 +116,14 @@ export class CharacterController extends Collider {
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      this._nativeCharacterController.setWorldPosition(transform.worldPosition);
+      (<ICharacterController>this._nativeCollider).setWorldPosition(transform.worldPosition);
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = this.shapes.length; i < n; i++) {
         this.shapes[i]._nativeShape.setWorldScale(worldScale);
       }
-      this._nativeCharacterController.updateShape();
       this._updateFlag.flag = false;
     }
-    this._nativeCharacterController.updateShape();
   }
 
   /**
@@ -157,8 +131,8 @@ export class CharacterController extends Collider {
    * @override
    */
   _onLateUpdate() {
-    let position = this.entity.transform.worldPosition;
-    this._nativeCharacterController.getWorldPosition(position);
+    const position = this.entity.transform.worldPosition;
+    (<ICharacterController>this._nativeCollider).getWorldPosition(position);
     this.entity.transform.worldPosition = position;
     this._updateFlag.flag = false;
   }
@@ -168,7 +142,7 @@ export class CharacterController extends Collider {
    * @internal
    */
   _onEnable() {
-    this._nativeCharacterController && this.engine.physicsManager._addCharacterController(this);
+    this.engine.physicsManager._addCharacterController(this);
   }
 
   /**
@@ -176,6 +150,6 @@ export class CharacterController extends Collider {
    * @internal
    */
   _onDisable() {
-    this._nativeCharacterController && this.engine.physicsManager._removeCharacterController(this);
+    this.engine.physicsManager._removeCharacterController(this);
   }
 }

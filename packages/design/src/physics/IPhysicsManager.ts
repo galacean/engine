@@ -1,7 +1,7 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
+import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
 import { IColliderShape } from "./shape";
-import { ICharacterController } from "./ICharacterController";
 
 /**
  * Interface for physics manager.
@@ -48,12 +48,6 @@ export interface IPhysicsManager {
    * @param characterController The Character Controller.
    */
   removeCharacterController(characterController: ICharacterController): void;
-
-  /**
-   * Creates a new character controller.
-   * @param shape The controllers shape
-   */
-  createCharacterController(shape: IColliderShape): ICharacterController;
 
   /**
    * Call on every frame to update pose of objects.
