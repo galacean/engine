@@ -41,6 +41,13 @@ export abstract class LiteColliderShape implements IColliderShape {
   abstract setWorldScale(scale: Vector3): void;
 
   /**
+   * {@inheritDoc IColliderShape.setContactOffset }
+   */
+  setContactOffset(offset: number): void {
+    throw "Physics-lite don't support setContactOffset. Use Physics-PhysX instead!";
+  }
+
+  /**
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(material: IPhysicsMaterial): void {

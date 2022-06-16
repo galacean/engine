@@ -36,52 +36,6 @@ export class Camera extends Component {
   private static _inverseProjectionMatrixProperty = Shader.getPropertyByName("u_projInvMat");
   private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
 
-  /**
-   * Compute the inverse of the rotation translation matrix.
-   * @param rotation - The rotation used to calculate matrix
-   * @param translation - The translation used to calculate matrix
-   * @param out - The calculated matrix
-   */
-  private static _rotationTranslationInv(rotation: Quaternion, translation: Vector3, out: Matrix) {
-    const oe = out.elements;
-    const { x, y, z, w } = rotation;
-    let x2 = x + x;
-    let y2 = y + y;
-    let z2 = z + z;
-
-    let xx = x * x2;
-    let xy = x * y2;
-    let xz = x * z2;
-    let yy = y * y2;
-    let yz = y * z2;
-    let zz = z * z2;
-    let wx = w * x2;
-    let wy = w * y2;
-    let wz = w * z2;
-
-    oe[0] = 1 - (yy + zz);
-    oe[1] = xy + wz;
-    oe[2] = xz - wy;
-    oe[3] = 0;
-
-    oe[4] = xy - wz;
-    oe[5] = 1 - (xx + zz);
-    oe[6] = yz + wx;
-    oe[7] = 0;
-
-    oe[8] = xz + wy;
-    oe[9] = yz - wx;
-    oe[10] = 1 - (xx + yy);
-    oe[11] = 0;
-
-    oe[12] = translation.x;
-    oe[13] = translation.y;
-    oe[14] = translation.z;
-    oe[15] = 1;
-
-    out.invert();
-  }
-
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
 
@@ -241,11 +195,12 @@ export class Camera extends Component {
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
       // Ignore scale.
-      Camera._rotationTranslationInv(
+      Matrix.rotationTranslation(
         this._transform.worldRotationQuaternion,
         this._transform.worldPosition,
         this._viewMatrix
       );
+      this._viewMatrix.invert();
     }
     return this._viewMatrix;
   }

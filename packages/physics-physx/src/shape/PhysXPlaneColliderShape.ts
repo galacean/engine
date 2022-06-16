@@ -18,9 +18,8 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
     this._rotation.setValue(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
 
     this._pxGeometry = new PhysXPhysics._physX.PxPlaneGeometry();
-    this._allocShape(material);
+    this._initialize(material, uniqueID);
     this._setLocalPose();
-    this.setUniqueID(uniqueID);
   }
 
   /**

@@ -1,14 +1,18 @@
-import { PhysXPhysics } from "./PhysXPhysics";
-import { Ray, Vector3 } from "oasis-engine";
 import { IPhysicsManager } from "@oasis-engine/design";
-import { PhysXCollider } from "./PhysXCollider";
+import { Ray, Vector3 } from "oasis-engine";
 import { DisorderedArray } from "./DisorderedArray";
+import { PhysXCharacterController } from "./PhysXCharacterController";
+import { PhysXCollider } from "./PhysXCollider";
+import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
  * A manager is a collection of bodies and constraints which can interact.
  */
 export class PhysXPhysicsManager implements IPhysicsManager {
+  /** @internal */
+  _pxControllerManager: any = null;
+
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _pxRaycastHit: any;
@@ -144,6 +148,32 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   /**
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
+  addCharacterController(characterController: PhysXCharacterController): void {
+    const lastPXManager = characterController._pxManager;
+    const shape = characterController._shape;
+    if (shape) {
+      if (lastPXManager !== this) {
+        lastPXManager && characterController._destroyPXController();
+        characterController._createPXController(this, shape);
+      }
+      this._pxScene.addController(characterController._pxController);
+    }
+    characterController._pxManager = this;
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
+  removeCharacterController(characterController: PhysXCharacterController): void {
+    if (characterController._shape) {
+      this._pxScene.removeController(characterController._pxController);
+    }
+    characterController._pxManager = null;
+  }
+
+  /**
    * {@inheritDoc IPhysicsManager.update }
    */
   update(elapsedTime: number): void {
@@ -179,6 +209,17 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       hit(pxHitResult.getShape().getQueryFilterData().word0, pxHitResult.distance, position, normal);
     }
     return result;
+  }
+
+  /**
+   * @internal
+   */
+  _getControllerManager(): any {
+    let pxControllerManager = this._pxControllerManager;
+    if (pxControllerManager === null) {
+      this._pxControllerManager = pxControllerManager = this._pxScene.createControllerManager();
+    }
+    return pxControllerManager;
   }
 
   private _simulate(elapsedTime: number): void {
