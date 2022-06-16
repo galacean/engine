@@ -371,10 +371,12 @@ export class TextRenderer extends Renderer {
    */
   _clearTexture(): void {
     const { _sprite } = this;
-    // Remove sprite from dynamic atlas.
-    this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
-    _sprite.atlasRegion = _sprite.region;
+    if (_sprite) {
+      // Remove sprite from dynamic atlas.
+      this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
+      this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
+      _sprite.atlasRegion = _sprite.region;
+    }
   }
 
   /**
@@ -442,7 +444,6 @@ export class TextRenderer extends Renderer {
   }
 
   private _drawPrimitive(camera: Camera, renderData: RenderData2D, texture: Texture2D): void {
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
     const { positions, triangles, uvs, color } = renderData;
@@ -452,6 +453,7 @@ export class TextRenderer extends Renderer {
       uvs,
       triangles,
       color,
+      texture,
       this.getMaterial(),
       camera
     );

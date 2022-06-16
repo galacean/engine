@@ -45,7 +45,8 @@ export class DynamicTextAtlas {
     const { _space: space, _texture: texture } = this;
     const { width, height } = imageSource;
 
-    const endX = this._curX + width + space;
+    const offsetWidth = width + space;
+    const endX = this._curX + offsetWidth;
     if (endX >= this._width) {
       this._curX = space;
       this._curY = this._nextY + space;
@@ -72,7 +73,7 @@ export class DynamicTextAtlas {
     // Update atlas texture.
     sprite.atlasRegion = region;
     sprite.texture = texture;
-    this._curX = endX + space;
+    this._curX += offsetWidth + space;
 
     return true;
   }

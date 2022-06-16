@@ -212,12 +212,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
     const material = this.getMaterial();
-
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
-    spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, material, camera);
+    spriteElement.setValue(this, _positions, sprite._uv, sprite._triangles, this.color, texture, material, camera);
     camera._renderPipeline.pushPrimitive(spriteElement);
   }
 

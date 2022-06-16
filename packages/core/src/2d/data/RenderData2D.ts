@@ -1,4 +1,5 @@
 import { Color, Vector2, Vector3 } from "@oasis-engine/math";
+import { Texture2D } from "../../texture";
 
 export interface RenderData2D {
   /** @internal */
@@ -11,4 +12,6 @@ export interface RenderData2D {
   triangles: number[];
   /** @internal */
   color: Color;
+  /** @internal */
+  texture: Texture2D;
 }

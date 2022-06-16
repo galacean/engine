@@ -74,14 +74,28 @@ export class CharAssembler {
       : CharAssembler._measureTextWithoutWrap(renderer);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const { _charUtils, _charRenderDataPool } = CharAssembler;
+    const halfLineHeight = lineHeight * 0.5;
     const textureSizeReciprocal = 1.0 / _charUtils.getTextureSize();
+    const linesLen = lines.length;
 
-    for (let i = 0, n = lines.length; i < n; ++i) {
+    let startY = 0;
+    const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
+    const bottomDiff = lineHeight * 0.5 - lineMaxSizes[linesLen - 1].descent - 1;
+    switch (verticalAlignment) {
+      case TextVerticalAlignment.Top:
+        startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
+        break;
+      case TextVerticalAlignment.Center:
+        startY = height * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
+        break;
+      case TextVerticalAlignment.Bottom:
+        startY = height - rendererHeight * 0.5 - halfLineHeight - bottomDiff;
+        break;
+    }
+
+    for (let i = 0; i < linesLen; ++i) {
       const line = lines[i];
       const lineWidth = lineWidths[i];
-      const sizeInfo = lineMaxSizes[i];
-      const { ascent: maxAscent } = sizeInfo;
-      const halfLineHeightDiff = (lineHeight - sizeInfo.size) * 0.5;
 
       let startX = 0;
       switch (horizontalAlignment) {
@@ -93,18 +107,6 @@ export class CharAssembler {
           break;
         case TextHorizontalAlignment.Right:
           startX = rendererWidth * 0.5 - lineWidth;
-          break;
-      }
-      let startY = 0;
-      switch (verticalAlignment) {
-        case TextVerticalAlignment.Top:
-          startY = rendererHeight * 0.5 + halfLineHeightDiff - i * lineHeight;
-          break;
-        case TextVerticalAlignment.Center:
-          startY = height * 0.5 - i * lineHeight;
-          break;
-        case TextVerticalAlignment.Bottom:
-          startY = height - rendererHeight * 0.5 - halfLineHeightDiff - i * lineHeight;
           break;
       }
 
@@ -122,10 +124,16 @@ export class CharAssembler {
 
           const { uvs } = renderData;
           const { x, y, w, h } = charDef;
+
+          const { offsetY } = charDef;
+          const halfH = charDef.h * 0.5;
+          const ascent = halfH + offsetY;
+          const descent = halfH - offsetY;
+
           const left = startX * pixelsPerUnitReciprocal;
           const right = (startX + w) * pixelsPerUnitReciprocal;
-          const top = (startY - halfLineHeightDiff - maxAscent + h * 0.5 + charDef.offsetY) * pixelsPerUnitReciprocal;
-          const bottom = top - h * pixelsPerUnitReciprocal;
+          const top = (startY + ascent) * pixelsPerUnitReciprocal;
+          const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
           const u0 = x * textureSizeReciprocal;
           const u1 = (x + w) * textureSizeReciprocal;
           const v0 = y * textureSizeReciprocal;
@@ -147,6 +155,8 @@ export class CharAssembler {
         }
         startX += charDef.xAdvance;
       }
+
+      startY -= lineHeight;
     }
   }
 
@@ -298,16 +308,17 @@ export class CharAssembler {
     let charDefWithTexture = _charUtils.getCharDef(key);
     if (!charDefWithTexture) {
       const charMetrics = TextUtils.measureChar(char, fontString);
-      const { sizeInfo } = charMetrics;
+      const { width, sizeInfo } = charMetrics;
       const { ascent, descent } = sizeInfo;
       const offsetY = (ascent - descent) * 0.5;
       charDefWithTexture = _charUtils.addCharDef(
         key,
         TextUtils.textContext().canvas,
-        charMetrics.width,
+        width,
         sizeInfo.size,
         0,
-        offsetY
+        offsetY,
+        width
       );
     }
 
