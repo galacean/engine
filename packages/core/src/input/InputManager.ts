@@ -3,7 +3,7 @@ import { KeyboardManager } from "./keyboard/KeyboardManager";
 import { Keys } from "./enums/Keys";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
-import { PointerButton } from "./enums/PointerType";
+import { PointerButton } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
 import { InputType } from "./enums/InputType";
 import { Vector2 } from "@oasis-engine/math";
@@ -17,7 +17,7 @@ export class InputManager {
   _initialized: boolean = false;
 
   private _enabledTypes: number = InputType.None;
-  private _curFrameCount: number;
+  private _curFrameCount: number = 0;
 
   private _wheelManager: WheelManager;
   private _pointerManager: PointerManager;
@@ -81,6 +81,16 @@ export class InputManager {
   }
 
   /**
+   * Get the position of the pointer.
+   * @returns The position of the pointer
+   */
+  get pointerPosition(): Readonly<Vector2> {
+    return this._initialized && this._pointerManager._pointers.length > 0
+      ? this._pointerManager._currentPosition
+      : null;
+  }
+
+  /**
    * Handle this type of input.
    * @param type - The type of the input
    */
@@ -122,9 +132,9 @@ export class InputManager {
       if (key === undefined) {
         return this._keyboardManager._curFrameDownList.length > 0;
       } else if (typeof key === "string") {
-        return !!this._keyboardManager._curHeldDownKeyToIndexMap[Keys[key]];
+        return this._keyboardManager._curHeldDownKeyToIndexMap[Keys[key]] != null;
       } else {
-        return !!this._keyboardManager._curHeldDownKeyToIndexMap[key];
+        return this._keyboardManager._curHeldDownKeyToIndexMap[key] != null;
       }
     } else {
       return false;
@@ -179,7 +189,7 @@ export class InputManager {
       if (button === undefined) {
         return this._pointerManager._heldDownList.length > 0;
       } else {
-        return !!this._pointerManager._heldDownMap[button];
+        return this._pointerManager._heldDownMap[button] != null;
       }
     } else {
       return false;

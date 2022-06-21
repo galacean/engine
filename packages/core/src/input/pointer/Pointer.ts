@@ -1,4 +1,5 @@
 import { Vector2 } from "@oasis-engine/math";
+import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 
 /**
@@ -10,6 +11,8 @@ export class Pointer {
    * @remark Start from 0.
    */
   readonly id: number;
+  /** The button of pointer. */
+  button: PointerButton = PointerButton.Left;
   /** The phase of pointer. */
   phase: PointerPhase = PointerPhase.Leave;
   /** The position of the pointer in screen space pixel coordinates. */

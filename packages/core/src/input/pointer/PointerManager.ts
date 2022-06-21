@@ -6,7 +6,7 @@ import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
 import { PointerPhase } from "../enums/PointerPhase";
-import { PointerButton } from "../enums/PointerType";
+import { PointerButton } from "../enums/PointerButton";
 import { IInput } from "../IInput";
 import { Pointer } from "./Pointer";
 
@@ -39,6 +39,11 @@ export class PointerManager implements IInput {
   /** @internal */
   _upList: DisorderedArray<PointerButton> = new DisorderedArray();
 
+  /** @internal */
+  _currentPosition: Vector2 = new Vector2();
+  private _currentPressedEntity: Entity;
+  private _currentEnteredEntity: Entity;
+
   private _engine: Engine;
   private _canvas: Canvas;
   private _htmlCanvas: HTMLCanvasElement;
@@ -47,9 +52,6 @@ export class PointerManager implements IInput {
   private _keyEventList: number[] = [];
   private _keyEventCount: number = 0;
   private _needOverallPointers: boolean = false;
-  private _currentPosition: Vector2 = new Vector2();
-  private _currentPressedEntity: Entity;
-  private _currentEnteredEntity: Entity;
 
   /**
    * Create a PointerManager.
@@ -184,7 +186,7 @@ export class PointerManager implements IInput {
     return -1;
   }
 
-  private _addPointer(pointerId: number, x: number, y: number, phase: PointerPhase): void {
+  private _addPointer(pointerId: number, x: number, y: number, button: PointerButton, phase: PointerPhase): void {
     const { _pointers: pointers } = this;
     const lastCount = pointers.length;
     if (lastCount === 0 || this._multiPointerEnabled) {
@@ -202,20 +204,24 @@ export class PointerManager implements IInput {
       }
       pointer._uniqueID = pointerId;
       pointer._needUpdate = true;
+      pointer.button = button;
       pointer.position.setValue(x, y);
       pointer.phase = phase;
       pointers.splice(i, 0, pointer);
     }
   }
 
-  private _removePointer(pointerIndex: number): void {
-    this._pointers[pointerIndex].phase = PointerPhase.Leave;
+  private _removePointer(pointerIndex: number): PointerButton {
+    const leavePointer = this._pointers[pointerIndex];
+    leavePointer.phase = PointerPhase.Leave;
+    return leavePointer.button;
   }
 
-  private _updatePointer(pointerIndex: number, x: number, y: number, phase: PointerPhase): void {
+  private _updatePointer(pointerIndex: number, x: number, y: number, button: PointerButton, phase: PointerPhase): void {
     const updatedPointer = this._pointers[pointerIndex];
     updatedPointer.position.setValue(x, y);
     updatedPointer._needUpdate = true;
+    updatedPointer.button = button;
     updatedPointer.phase = phase;
   }
 
@@ -235,28 +241,29 @@ export class PointerManager implements IInput {
     const nativeEventsLen = nativeEvents.length;
     for (let i = 0; i < nativeEventsLen; i++) {
       const evt = nativeEvents[i];
-      const pointerButton: PointerButton = evt.hasOwnProperty("button") ? evt.button : PointerButton.Left;
+      const pointerButton: PointerButton = evt.button | PointerButton.Left;
       const pointerIndex = this._getIndexByPointerID(evt.pointerId);
       switch (evt.type) {
         case "pointerdown":
           if (pointerIndex === -1) {
-            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Down);
+            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Down);
             activePointerCount++;
           } else {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down);
+            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Down);
           }
           activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
           downList.add(pointerButton);
+          heldDownMap[pointerButton] = heldDownList.length;
           heldDownList.add(pointerButton);
-          heldDownMap[pointerButton] = heldDownList.length - 1;
           downMap[pointerButton] = frameCount;
           break;
         case "pointerup":
           if (pointerIndex >= 0) {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Up);
+            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Up);
             activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
           }
           delIndex = heldDownMap[pointerButton];
+          console.log("移除了button", pointerButton);
           if (delIndex != null) {
             heldDownMap[pointerButton] = null;
             const swapCode = heldDownList.deleteByIndex(delIndex);
@@ -267,10 +274,10 @@ export class PointerManager implements IInput {
           break;
         case "pointermove":
           if (pointerIndex === -1) {
-            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Move);
+            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Move);
             activePointerCount++;
           } else {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Move);
+            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Move);
           }
           break;
         case "pointerout":
@@ -278,12 +285,13 @@ export class PointerManager implements IInput {
             this._removePointer(pointerIndex);
             --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Leave);
             this._needOverallPointers = true;
-          }
-          delIndex = heldDownMap[pointerButton];
-          if (delIndex !== null) {
-            heldDownMap[pointerButton] = null;
-            const swapCode = heldDownList.deleteByIndex(delIndex);
-            swapCode && (heldDownMap[swapCode] = delIndex);
+
+            delIndex = heldDownMap[pointerButton];
+            if (delIndex != null) {
+              heldDownMap[pointerButton] = null;
+              const swapCode = heldDownList.deleteByIndex(delIndex);
+              swapCode && (heldDownMap[swapCode] = delIndex);
+            }
           }
           break;
       }

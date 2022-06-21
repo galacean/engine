@@ -51,7 +51,7 @@ export class KeyboardManager {
         switch (evt.type) {
           case "keydown":
             // Filter the repeated triggers of the keyboard.
-            if (curHeldDownKeyToIndexMap[codeKey] === null) {
+            if (curHeldDownKeyToIndexMap[codeKey] == null) {
               curFrameDownList.add(codeKey);
               curFrameHeldDownList.add(codeKey);
               curHeldDownKeyToIndexMap[codeKey] = curFrameHeldDownList.length - 1;
@@ -60,7 +60,7 @@ export class KeyboardManager {
             break;
           case "keyup":
             const delIndex = curHeldDownKeyToIndexMap[codeKey];
-            if (delIndex !== null) {
+            if (delIndex != null) {
               curHeldDownKeyToIndexMap[codeKey] = null;
               const swapCode = curFrameHeldDownList.deleteByIndex(delIndex);
               swapCode && (curHeldDownKeyToIndexMap[swapCode] = delIndex);
