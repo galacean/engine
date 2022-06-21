@@ -40,7 +40,7 @@ export class InputManager {
     if (key === undefined) {
       return this._keyboardManager._curFrameHeldDownList.length > 0;
     } else {
-      return !!this._keyboardManager._curHeldDownKeyToIndexMap[key];
+      return this._keyboardManager._curHeldDownKeyToIndexMap[key] != null;
     }
   }
 
