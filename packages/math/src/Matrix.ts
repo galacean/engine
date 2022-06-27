@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix3x3 } from "./Matrix3x3";
 import { Quaternion } from "./Quaternion";
@@ -7,7 +8,7 @@ import { Vector3 } from "./Vector3";
 /**
  * Represents a 4x4 mathematical matrix.
  */
-export class Matrix implements IClone {
+export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
   private static readonly _tempVec30: Vector3 = new Vector3();
   private static readonly _tempVec31: Vector3 = new Vector3();
   private static readonly _tempVec32: Vector3 = new Vector3();

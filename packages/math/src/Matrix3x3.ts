@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";
@@ -7,7 +8,7 @@ import { Vector2 } from "./Vector2";
 /**
  * Represents a 3x3 mathematical matrix.
  */
-export class Matrix3x3 implements IClone {
+export class Matrix3x3 implements IClone<Matrix3x3>, ICopy<Matrix3x3, Matrix3x3> {
   /**
    * Determines the sum of two matrices.
    * @param left - The first matrix to add
@@ -682,7 +683,7 @@ export class Matrix3x3 implements IClone {
    * @param source - The specified matrix
    * @returns This matrix
    */
-  cloneTo(source: Matrix3x3): Matrix3x3 {
+  copyFrom(source: Matrix3x3): Matrix3x3 {
     const e = this.elements;
     const se = source.elements;
 

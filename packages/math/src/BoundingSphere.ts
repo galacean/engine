@@ -1,11 +1,12 @@
 import { BoundingBox } from "./BoundingBox";
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
 
 /**
  * A bounding sphere.
  * */
-export class BoundingSphere implements IClone {
+export class BoundingSphere implements IClone<BoundingSphere>, ICopy<BoundingSphere, BoundingSphere> {
   private static _tempVec30: Vector3 = new Vector3();
 
   /**

@@ -1,10 +1,11 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 
 /**
  * Describes a color in the from of RGBA (in order: R, G, B, A).
  */
-export class Color implements IClone {
+export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /**
    * Modify a value from the gamma space to the linear space.
    * @param value - The value in gamma space

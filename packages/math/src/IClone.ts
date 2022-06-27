@@ -1,10 +1,10 @@
 /**
  * Clone interface.
  */
-export interface IClone {
+export interface IClone<T> {
   /**
    * Clone and return object.
    * @returns Clone object
    */
-  clone(): Object;
+  clone(): T;
 }

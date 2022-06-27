@@ -1,7 +1,8 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 
 // A 2d rectangle defined by x and y position, width and height.
-export class Rect implements IClone {
+export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
   /** The x coordinate of the rectangle. */
   public x: number;
   /** The y coordinate of the rectangle. */

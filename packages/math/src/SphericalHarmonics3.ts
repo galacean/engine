@@ -1,5 +1,6 @@
 import { Color } from "./Color";
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
 
 /**
@@ -9,7 +10,9 @@ import { Vector3 } from "./Vector3";
  * http://www.ppsloan.org/publications/StupidSH36.pdf
  * https://google.github.io/filament/Filament.md.html#annex/sphericalharmonics
  */
-export class SphericalHarmonics3 implements IClone {
+export class SphericalHarmonics3
+  implements IClone<SphericalHarmonics3>, ICopy<SphericalHarmonics3, SphericalHarmonics3>
+{
   /** The coefficients of SphericalHarmonics3. */
   coefficients: Float32Array = new Float32Array(27);
 

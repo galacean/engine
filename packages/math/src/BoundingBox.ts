@@ -1,12 +1,13 @@
 import { BoundingSphere } from "./BoundingSphere";
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Matrix } from "./Matrix";
 import { Vector3 } from "./Vector3";
 
 /**
  * Axis Aligned Bound Box (AABB).
  */
-export class BoundingBox implements IClone {
+export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, BoundingBox> {
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
 

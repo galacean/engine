@@ -1,10 +1,11 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
 
 /**
  * Represents a plane in three dimensional space.
  */
-export class Plane implements IClone {
+export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
   /**
    * Normalize the normal vector of the specified plane.
    * @param p - The specified plane

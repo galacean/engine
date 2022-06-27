@@ -1,10 +1,11 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 
 /**
  * Describes a 2D-vector.
  */
-export class Vector2 implements IClone {
+export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   /** @internal */
   static readonly _zero = new Vector2(0.0, 0.0);
   /** @internal */

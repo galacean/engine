@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";
@@ -6,7 +7,7 @@ import { Quaternion } from "./Quaternion";
 /**
  * Describes a 4D-vector.
  */
-export class Vector4 implements IClone {
+export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
   /** @internal */
   static readonly _zero = new Vector4(0.0, 0.0, 0.0, 0.0);
   /** @internal */

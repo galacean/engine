@@ -3,13 +3,14 @@ import { BoundingSphere } from "./BoundingSphere";
 import { CollisionUtil } from "./CollisionUtil";
 import { ContainmentType } from "./enums/ContainmentType";
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Matrix } from "./Matrix";
 import { Plane } from "./Plane";
 
 /**
  * A bounding frustum.
  */
-export class BoundingFrustum implements IClone {
+export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingFrustum, BoundingFrustum> {
   /** The near plane of this frustum. */
   public near: Plane;
   /** The far plane of this frustum. */
