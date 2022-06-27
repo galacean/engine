@@ -2,7 +2,7 @@ uniform float u_alphaCutoff;
 uniform vec4 u_baseColor;
 uniform float u_metal;
 uniform float u_roughness;
-uniform vec3 u_specularColor;
+uniform vec3 u_PBRSpecularColor;
 uniform float u_glossiness;
 uniform vec3 u_emissiveColor;
 
@@ -12,33 +12,33 @@ uniform vec3 u_emissiveColor;
 #endif
 
 uniform float u_normalIntensity;
-uniform float u_occlusionStrength;
+uniform float u_occlusionIntensity;
 uniform float u_occlusionTextureCoord;
 
 // Texture
-#ifdef HAS_BASECOLORMAP
-    uniform sampler2D u_baseColorSampler;
+#ifdef BASETEXTURE
+    uniform sampler2D u_baseTexture;
 #endif
 
-#ifdef O3_NORMAL_TEXTURE
+#ifdef NORMALTEXTURE
     uniform sampler2D u_normalTexture;
 #endif
 
-#ifdef HAS_EMISSIVEMAP
-    uniform sampler2D u_emissiveSampler;
+#ifdef EMISSIVETEXTURE
+    uniform sampler2D u_emissiveTexture;
 #endif
 
-#ifdef HAS_METALROUGHNESSMAP
-    uniform sampler2D u_metallicRoughnessSampler;
+#ifdef ROUGHNESSMETALLICTEXTURE
+    uniform sampler2D u_roughnessMetallicTexture;
 #endif
 
 
-#ifdef HAS_SPECULARGLOSSINESSMAP
-    uniform sampler2D u_specularGlossinessSampler;
+#ifdef SPECULARGLOSSINESSTEXTURE
+    uniform sampler2D u_specularGlossinessTexture;
 #endif
 
-#ifdef HAS_OCCLUSIONMAP
-    uniform sampler2D u_occlusionSampler;
+#ifdef OCCLUSIONTEXTURE
+    uniform sampler2D u_occlusionTexture;
 #endif
 
 #ifdef HAS_CLEARCOATTEXTURE
