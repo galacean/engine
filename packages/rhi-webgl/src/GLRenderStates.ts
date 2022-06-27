@@ -39,7 +39,6 @@ export class GLRenderStates {
     gl.stencilMask(0xff);
 
     // init raster state same as RasterState default value.
-    gl.enable(gl.SCISSOR_TEST);
     gl.enable(gl.CULL_FACE);
     gl.cullFace(gl.BACK);
     gl.disable(gl.POLYGON_OFFSET_FILL);

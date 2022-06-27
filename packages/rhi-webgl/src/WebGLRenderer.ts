@@ -66,6 +66,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _extensions;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
+  private _webCanvas: WebCanvas;
 
   private _activeTextureID: number;
   private _activeTextures: GLTexture[] = new Array(32);
@@ -73,6 +74,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   // cache value
   private _lastViewport: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
+  private _scissorEnable: boolean = false;
 
   get isWebGL2() {
     return this._isWebGL2;
@@ -106,8 +108,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     const option = this._options;
     option.alpha === undefined && (option.alpha = false);
     option.stencil === undefined && (option.stencil = true);
-
-    const webCanvas = (canvas as WebCanvas)._webCanvas;
+    const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
@@ -182,11 +183,21 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   viewport(x: number, y: number, width: number, height: number): void {
-    const gl = this._gl;
-    const lv = this._lastViewport;
-
+    const { _gl: gl, _lastViewport: lv } = this;
     if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
-      gl.scissor(x, y, width, height);
+      const { _webCanvas: webCanvas } = this;
+      if (x === 0 && y === 0 && width === webCanvas.width && height === webCanvas.height) {
+        if (this._scissorEnable) {
+          gl.disable(gl.SCISSOR_TEST);
+          this._scissorEnable = false;
+        }
+      } else {
+        if (!this._scissorEnable) {
+          gl.enable(gl.SCISSOR_TEST);
+          this._scissorEnable = true;
+        }
+        gl.scissor(x, y, width, height);
+      }
       gl.viewport(x, y, width, height);
       lv.setValue(x, y, width, height);
     }
