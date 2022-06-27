@@ -35,12 +35,8 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.getWorldPosition }
    */
-  getWorldPosition(position: Vector3): void {
-    position.set(
-      this._pxController.getPosition().x,
-      this._pxController.getPosition().y,
-      this._pxController.getPosition().z
-    );
+  getWorldPosition(position: Vector3): void {ƒ
+    position.copyFrom(this._pxController.getPosition());
   }
 
   /**
