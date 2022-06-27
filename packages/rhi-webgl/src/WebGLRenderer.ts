@@ -73,7 +73,6 @@ export class WebGLRenderer implements IHardwareRenderer {
   // cache value
   private _lastViewport: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
-  private _scissorEnable: boolean = false;
 
   get isWebGL2() {
     return this._isWebGL2;
@@ -187,10 +186,6 @@ export class WebGLRenderer implements IHardwareRenderer {
     const lv = this._lastViewport;
 
     if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
-      if (!this._scissorEnable) {
-        gl.enable(gl.SCISSOR_TEST);
-        this._scissorEnable = true;
-      }
       gl.scissor(x, y, width, height);
       gl.viewport(x, y, width, height);
       lv.setValue(x, y, width, height);
