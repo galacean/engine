@@ -40,8 +40,8 @@ export abstract class PhysXCollider implements ICollider {
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
     const transform = this._pxActor.getGlobalPose();
-    outPosition.setValue(transform.translation.x, transform.translation.y, transform.translation.z);
-    outRotation.setValue(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
+    outPosition.set(transform.translation.x, transform.translation.y, transform.translation.z);
+    outRotation.set(transform.rotation.x, transform.rotation.y, transform.rotation.z, transform.rotation.w);
   }
 
   /**

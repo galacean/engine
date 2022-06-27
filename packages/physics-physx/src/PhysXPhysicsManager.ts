@@ -203,8 +203,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     if (result && hit != undefined) {
       const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsManager;
       const { position: pxPosition, normal: pxNormal } = pxHitResult;
-      position.setValue(pxPosition.x, pxPosition.y, pxPosition.z);
-      normal.setValue(pxNormal.x, pxNormal.y, pxNormal.z);
+      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
+      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
 
       hit(pxHitResult.getShape().getQueryFilterData().word0, pxHitResult.distance, position, normal);
     }

@@ -85,7 +85,7 @@ export class Sprite extends RefObject {
   set atlasRegion(value: Rect) {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    this._atlasRegion.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
+    this._atlasRegion.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
@@ -99,7 +99,7 @@ export class Sprite extends RefObject {
   set atlasRegionOffset(value: Vector4) {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    this._atlasRegionOffset.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
+    this._atlasRegionOffset.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
     this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
@@ -114,7 +114,7 @@ export class Sprite extends RefObject {
     const pivot = this._pivot;
     const { x, y } = value;
     if (pivot === value || pivot.x !== x || pivot.y !== y) {
-      pivot.setValue(x, y);
+      pivot.set(x, y);
       this._setDirtyFlagTrue(DirtyFlag.positions);
     }
   }
@@ -130,7 +130,7 @@ export class Sprite extends RefObject {
     const region = this._region;
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    region.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
+    region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._setDirtyFlagTrue(DirtyFlag.positions | DirtyFlag.uv);
   }
 
@@ -171,8 +171,8 @@ export class Sprite extends RefObject {
     this._texture = texture;
     this._pixelsPerUnit = pixelsPerUnit;
 
-    region && region.cloneTo(this._region);
-    pivot && pivot.cloneTo(this._pivot);
+    region && this._region.copyFrom(region);
+    pivot && this._pivot.copyFrom(pivot);
 
     this._triangles = Sprite._rectangleTriangles;
   }
@@ -192,8 +192,8 @@ export class Sprite extends RefObject {
     );
     cloneSprite._assetID = this._assetID;
     cloneSprite._atlasRotated = this._atlasRotated;
-    this._atlasRegion.cloneTo(cloneSprite._atlasRegion);
-    this._atlasRegionOffset.cloneTo(cloneSprite._atlasRegionOffset);
+    cloneSprite._atlasRegion.copyFrom(this._atlasRegion);
+    cloneSprite._atlasRegionOffset.copyFrom(this._atlasRegionOffset);
     return cloneSprite;
   }
 
@@ -237,21 +237,21 @@ export class Sprite extends RefObject {
       // Assign values ​​to _positions
       const positions = this._positions;
       // Top-left.
-      positions[0].setValue(left, top);
+      positions[0].set(left, top);
       // Top-right.
-      positions[1].setValue(right, top);
+      positions[1].set(right, top);
       // Bottom-right.
-      positions[2].setValue(right, bottom);
+      positions[2].set(right, bottom);
       // Bottom-left.
-      positions[3].setValue(left, bottom);
+      positions[3].set(left, bottom);
 
       // Update bounds.
-      bounds.min.setValue(left, bottom, 0);
-      bounds.max.setValue(right, top, 0);
+      bounds.min.set(left, bottom, 0);
+      bounds.max.set(right, top, 0);
     } else {
       // Update bounds.
-      bounds.min.setValue(0, 0, 0);
-      bounds.max.setValue(0, 0, 0);
+      bounds.min.set(0, 0, 0);
+      bounds.max.set(0, 0, 0);
     }
   }
 
@@ -278,13 +278,13 @@ export class Sprite extends RefObject {
       const right = atlasRegionW + atlasRegionX - Math.max(regionRight - offsetRight, 0) * realWidth;
       const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
       // Top-left.
-      uv[0].setValue(left, top);
+      uv[0].set(left, top);
       // Top-right.
-      uv[1].setValue(right, top);
+      uv[1].set(right, top);
       // Bottom-right.
-      uv[2].setValue(right, bottom);
+      uv[2].set(right, bottom);
       // Bottom-left.
-      uv[3].setValue(left, bottom);
+      uv[3].set(left, bottom);
     }
     this._setDirtyFlagFalse(DirtyFlag.all);
   }

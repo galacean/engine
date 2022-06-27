@@ -79,7 +79,7 @@ export class AmbientLight {
 
   set diffuseSolidColor(value: Color) {
     if (value !== this._diffuseSolidColor) {
-      value.cloneTo(this._diffuseSolidColor);
+      this._diffuseSolidColor.copyFrom(value);
     }
   }
 

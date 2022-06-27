@@ -7,10 +7,4 @@ export interface IClone {
    * @returns Clone object
    */
   clone(): Object;
-
-  /**
-   * Clone to the target object.
-   * @param target - Target object
-   */
-  cloneTo(target: Object): Object;
 }

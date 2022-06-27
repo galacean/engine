@@ -24,7 +24,7 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   set specularColor(value: Color) {
     const specularColor = this.shaderData.getColor(PBRSpecularMaterial._specularColorProp);
     if (value !== specularColor) {
-      value.cloneTo(specularColor);
+      specularColor.copyFrom(value);
     }
   }
 

@@ -23,7 +23,7 @@ export class EntityParser extends Parser {
       const { transform } = entity;
       if (matrix) {
         const localMatrix = transform.localMatrix;
-        localMatrix.setValueByArray(matrix);
+        localMatrix.copyFromArray(matrix);
         transform.localMatrix = localMatrix;
       } else {
         if (translation) {
