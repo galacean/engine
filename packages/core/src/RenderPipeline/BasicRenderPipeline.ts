@@ -180,7 +180,7 @@ export class BasicRenderPipeline {
       } else {
         this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
-        if (camera.clearFlags === CameraClearFlags.DepthColor) {
+        if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             this._drawSky(engine, camera, background.sky);
           } else if (background.mode === BackgroundMode.Texture && background.texture) {

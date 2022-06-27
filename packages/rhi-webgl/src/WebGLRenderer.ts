@@ -73,6 +73,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   // cache value
   private _lastViewport: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
+  private _scissorEnable: boolean = false;
 
   get isWebGL2() {
     return this._isWebGL2;
@@ -182,12 +183,15 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   viewport(x: number, y: number, width: number, height: number): void {
-    // gl.enable(gl.SCISSOR_TEST);
-    // gl.scissor(x, transformY, width, height);
     const gl = this._gl;
     const lv = this._lastViewport;
 
     if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
+      if (!this._scissorEnable) {
+        gl.enable(gl.SCISSOR_TEST);
+        this._scissorEnable = true;
+      }
+      gl.scissor(x, y, width, height);
       gl.viewport(x, y, width, height);
       lv.setValue(x, y, width, height);
     }
@@ -197,26 +201,19 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._gl.colorMask(r, g, b, a);
   }
 
-  clearRenderTarget(
-    engine: Engine,
-    clearFlags: CameraClearFlags.Depth | CameraClearFlags.DepthColor,
-    clearColor: Color
-  ) {
+  clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor: Color) {
     const gl = this._gl;
     const {
       blendState: { targetBlendState },
       depthState,
       stencilState
     } = engine._lastRenderState;
-
-    let clearFlag = gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
-
-    if (clearFlags === CameraClearFlags.DepthColor) {
+    let clearFlag = 0;
+    if (clearFlags & CameraClearFlags.Color) {
       clearFlag |= gl.COLOR_BUFFER_BIT;
 
       const lc = this._lastClearColor;
       const { r, g, b, a } = clearColor;
-
       if (clearColor && (r !== lc.r || g !== lc.g || b !== lc.b || a !== lc.a)) {
         gl.clearColor(r, g, b, a);
         lc.setValue(r, g, b, a);
@@ -227,17 +224,20 @@ export class WebGLRenderer implements IHardwareRenderer {
         targetBlendState.colorWriteMask = ColorWriteMask.All;
       }
     }
-
-    if (depthState.writeEnabled !== true) {
-      gl.depthMask(true);
-      depthState.writeEnabled = true;
+    if (clearFlags & CameraClearFlags.Depth) {
+      clearFlag |= gl.DEPTH_BUFFER_BIT;
+      if (depthState.writeEnabled !== true) {
+        gl.depthMask(true);
+        depthState.writeEnabled = true;
+      }
     }
-
-    if (stencilState.writeMask !== 0xff) {
-      gl.stencilMask(0xff);
-      stencilState.writeMask = 0xff;
+    if (clearFlags & CameraClearFlags.Stencil) {
+      clearFlag |= gl.STENCIL_BUFFER_BIT;
+      if (stencilState.writeMask !== 0xff) {
+        gl.stencilMask(0xff);
+        stencilState.writeMask = 0xff;
+      }
     }
-
     gl.clear(clearFlag);
   }
 
