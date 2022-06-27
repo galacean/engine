@@ -1,4 +1,3 @@
-import { StateMachineScript } from '../StateMachineScript';
 import { AnimationEventHandler } from "./AnimationEventHandler";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
