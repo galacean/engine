@@ -3,7 +3,6 @@ import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, Sprite, Text
 @resourceLoader(AssetType.Sprite, ["sprite"], false)
 class SpriteLoader extends Loader<Sprite> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Sprite> {
-    debugger;
     return new AssetPromise((resolve, reject) => {
       this.request<any>(item.url, {
         ...item,

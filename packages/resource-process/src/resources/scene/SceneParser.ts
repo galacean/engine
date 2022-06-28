@@ -5,7 +5,6 @@ import { ReflectionParser } from "../prefab/ReflectionParser";
 
 export class SceneParser {
   static parse(engine: Engine, sceneData: IScene): Promise<Scene> {
-    debugger;
     const scene = new Scene(engine);
     const entitiesMap: Record<string, Entity> = {};
     const entitiesConfigMap: Record<string, IEntity> = {};
