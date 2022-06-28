@@ -242,6 +242,7 @@ export class ResourceManager {
   }
 
   private _loadSingleItem<T>(item: LoadItem | string): AssetPromise<T> {
+    debugger;
     const info = this._assignDefaultOptions(typeof item === "string" ? { url: item } : item);
     const infoUrl = info.url;
     // check url mapping
