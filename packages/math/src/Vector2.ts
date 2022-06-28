@@ -374,10 +374,15 @@ export class Vector2 implements IClone {
     return out;
   }
 
-  toJSON() {
+  toObject() {
     return {
       x: this.x,
       y: this.y
     };
+  }
+
+  setFromObject(obj: { x: number; y: number }) {
+    this.x = obj.x;
+    this.y = obj.y;
   }
 }

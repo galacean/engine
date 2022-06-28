@@ -202,7 +202,7 @@ export class Color implements IClone {
     this.a = color.a;
   }
 
-  toJSON() {
+  toObject() {
     return {
       r: this.r,
       g: this.g,

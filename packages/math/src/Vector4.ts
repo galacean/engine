@@ -503,7 +503,7 @@ export class Vector4 implements IClone {
     return out;
   }
 
-  toJSON() {
+  toObject() {
     return {
       x: this.x,
       y: this.y,

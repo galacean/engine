@@ -585,7 +585,7 @@ export class Vector3 implements IClone {
     return this;
   }
 
-  toJSON() {
+  toObject() {
     return { x: this.x, y: this.y, z: this.z };
   }
 }
