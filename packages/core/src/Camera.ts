@@ -1,4 +1,4 @@
-import { BoundingFrustum, MathUtil, Matrix, Quaternion, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
@@ -159,7 +159,7 @@ export class Camera extends Component {
 
   set viewport(value: Vector4) {
     if (value !== this._viewport) {
-      value.cloneTo(this._viewport);
+      this._viewport.copyFrom(value);
     }
     this._projMatChange();
   }
@@ -313,7 +313,7 @@ export class Camera extends Component {
     Vector3.transformToVec4(cameraPoint, this.projectionMatrix, viewportPoint);
 
     const w = viewportPoint.w;
-    out.setValue((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, -cameraPoint.z);
+    out.set((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, -cameraPoint.z);
     return out;
   }
 
@@ -494,7 +494,7 @@ export class Camera extends Component {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
     // Transform to clipping space matrix
     const clipPoint = MathTemp.tempVec3;
-    clipPoint.setValue(x * 2 - 1, 1 - y * 2, z * 2 - 1);
+    clipPoint.set(x * 2 - 1, 1 - y * 2, z * 2 - 1);
     Vector3.transformCoordinate(clipPoint, invViewProjMat, out);
     return out;
   }

@@ -1,12 +1,13 @@
-import { IClone } from "./IClone";
 import { BoundingSphere } from "./BoundingSphere";
+import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Matrix } from "./Matrix";
 import { Vector3 } from "./Vector3";
 
 /**
  * Axis Aligned Bound Box (AABB).
  */
-export class BoundingBox implements IClone {
+export class BoundingBox implements IClone<BoundingBox>, ICopy<BoundingBox, BoundingBox> {
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
 
@@ -108,27 +109,8 @@ export class BoundingBox implements IClone {
    * @param max - The maximum point of the box
    */
   constructor(min: Vector3 = null, max: Vector3 = null) {
-    min && min.cloneTo(this.min);
-    max && max.cloneTo(this.max);
-  }
-
-  /**
-   * Creates a clone of this box.
-   * @returns A clone of this box
-   */
-  clone(): BoundingBox {
-    return new BoundingBox(this.min, this.max);
-  }
-
-  /**
-   * Clones this box to the specified box.
-   * @param out - The specified box
-   * @returns The specified box
-   */
-  cloneTo(out: BoundingBox): BoundingBox {
-    this.min.cloneTo(out.min);
-    this.max.cloneTo(out.max);
-    return out;
+    min && this.min.copyFrom(min);
+    max && this.max.copyFrom(max);
   }
 
   /**
@@ -175,14 +157,14 @@ export class BoundingBox implements IClone {
       }
     }
 
-    out[0].setValue(minX, maxY, maxZ);
-    out[1].setValue(maxX, maxY, maxZ);
-    out[2].setValue(maxX, minY, maxZ);
-    out[3].setValue(minX, minY, maxZ);
-    out[4].setValue(minX, maxY, minZ);
-    out[5].setValue(maxX, maxY, minZ);
-    out[6].setValue(maxX, minY, minZ);
-    out[7].setValue(minX, minY, minZ);
+    out[0].set(minX, maxY, maxZ);
+    out[1].set(maxX, maxY, maxZ);
+    out[2].set(maxX, minY, maxZ);
+    out[3].set(minX, minY, maxZ);
+    out[4].set(minX, maxY, minZ);
+    out[5].set(maxX, maxY, minZ);
+    out[6].set(maxX, minY, minZ);
+    out[7].set(minX, minY, minZ);
 
     return out;
   }
@@ -194,6 +176,25 @@ export class BoundingBox implements IClone {
    */
   public transform(matrix: Matrix): BoundingBox {
     BoundingBox.transform(this, matrix, this);
+    return this;
+  }
+
+  /**
+   * Creates a clone of this box.
+   * @returns A clone of this box
+   */
+  clone(): BoundingBox {
+    return new BoundingBox(this.min, this.max);
+  }
+
+  /**
+   * Copy this bounding box from the specified box.
+   * @param source - The specified box
+   * @returns This bounding box
+   */
+  copyFrom(source: BoundingBox): BoundingBox {
+    this.min.copyFrom(source.min);
+    this.max.copyFrom(source.max);
     return this;
   }
 }

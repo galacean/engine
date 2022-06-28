@@ -68,7 +68,7 @@ export abstract class ColliderShape {
 
   set position(value: Vector3) {
     if (this._position !== value) {
-      value.cloneTo(this._position);
+      this._position.copyFrom(value);
     }
     this._nativeShape.setPosition(value);
   }
@@ -97,7 +97,7 @@ export abstract class ColliderShape {
    * @param z - The z component of the vector, default 0
    */
   setPosition(x: number, y: number, z: number): void {
-    this._position.setValue(x, y, z);
+    this._position.set(x, y, z);
     this._nativeShape.setPosition(this._position);
   }
 

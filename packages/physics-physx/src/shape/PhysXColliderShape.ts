@@ -52,7 +52,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
    */
   setPosition(value: Vector3): void {
     if (value !== this._position) {
-      value.cloneTo(this._position);
+      this._position.copyFrom(value);
     }
     this._setLocalPose();
   }

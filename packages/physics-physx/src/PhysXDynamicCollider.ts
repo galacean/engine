@@ -1,7 +1,7 @@
-import { PhysXPhysics } from "./PhysXPhysics";
-import { Quaternion, Vector3 } from "oasis-engine";
 import { IDynamicCollider } from "@oasis-engine/design";
+import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXCollider } from "./PhysXCollider";
+import { PhysXPhysics } from "./PhysXPhysics";
 
 /**
  * The collision detection mode constants used for PhysXDynamicCollider.collisionDetectionMode.
@@ -48,14 +48,14 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    * {@inheritDoc IDynamicCollider.setLinearVelocity }
    */
   setLinearVelocity(value: Vector3): void {
-    this._pxActor.setLinearVelocity({ x: value.x, y: value.y, z: value.z }, true);
+    this._pxActor.setLinearVelocity(value, true);
   }
 
   /**
    * {@inheritDoc IDynamicCollider.setAngularVelocity }
    */
   setAngularVelocity(value: Vector3): void {
-    this._pxActor.setAngularVelocity({ x: value.x, y: value.y, z: value.z }, true);
+    this._pxActor.setAngularVelocity(value, true);
   }
 
   /**

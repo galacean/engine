@@ -18,7 +18,7 @@ export class UnlitMaterial extends BaseMaterial {
   set baseColor(value: Color) {
     const baseColor = this.shaderData.getColor(UnlitMaterial._baseColorProp);
     if (value !== baseColor) {
-      value.cloneTo(baseColor);
+      baseColor.copyFrom(value);
     }
   }
 
@@ -48,7 +48,7 @@ export class UnlitMaterial extends BaseMaterial {
   set tilingOffset(value: Vector4) {
     const tilingOffset = this.shaderData.getVector4(UnlitMaterial._tilingOffsetProp);
     if (value !== tilingOffset) {
-      value.cloneTo(tilingOffset);
+      tilingOffset.copyFrom(value);
     }
   }
 

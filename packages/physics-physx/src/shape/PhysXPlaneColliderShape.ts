@@ -1,8 +1,8 @@
-import { PhysXColliderShape } from "./PhysXColliderShape";
 import { IPlaneColliderShape } from "@oasis-engine/design";
-import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { PhysXPhysics } from "../PhysXPhysics";
 import { Quaternion, Vector3 } from "oasis-engine";
+import { PhysXPhysics } from "../PhysXPhysics";
+import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { PhysXColliderShape } from "./PhysXColliderShape";
 
 /**
  * Plane collider shape in PhysX.
@@ -15,7 +15,7 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
    */
   constructor(uniqueID: number, material: PhysXPhysicsMaterial) {
     super();
-    this._rotation.setValue(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
+    this._rotation.set(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
 
     this._pxGeometry = new PhysXPhysics._physX.PxPlaneGeometry();
     this._initialize(material, uniqueID);
@@ -36,7 +36,7 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    scale.cloneTo(this._scale);
+    this._scale.copyFrom(scale);
     this._setLocalPose();
   }
 }
