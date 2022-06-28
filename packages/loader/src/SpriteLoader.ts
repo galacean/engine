@@ -1,4 +1,13 @@
-import { resourceLoader, Loader, AssetPromise, AssetType, LoadItem, Sprite, Texture2D, ResourceManager } from "@oasis-engine/core";
+import {
+  resourceLoader,
+  Loader,
+  AssetPromise,
+  AssetType,
+  LoadItem,
+  Sprite,
+  Texture2D,
+  ResourceManager
+} from "@oasis-engine/core";
 
 @resourceLoader(AssetType.Sprite, ["sprite"], false)
 class SpriteLoader extends Loader<Sprite> {
