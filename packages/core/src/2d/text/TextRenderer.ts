@@ -75,7 +75,7 @@ export class TextRenderer extends Renderer {
 
   set color(value: Color) {
     if (this._color !== value) {
-      value.cloneTo(this._color);
+      this._color.copyFrom(value);
     }
   }
 
@@ -446,7 +446,7 @@ export class TextRenderer extends Renderer {
     const { _positions } = this;
     for (let i = 0, n = _positions.length; i < n; i++) {
       const curVertexPos = localPositions[i];
-      localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
+      localVertexPos.set(curVertexPos.x, curVertexPos.y, 0);
       Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
     }
   }

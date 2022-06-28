@@ -1,8 +1,8 @@
 import { IColliderShape, IPhysicsMaterial } from "@oasis-engine/design";
 import { Matrix, Ray, Vector3 } from "oasis-engine";
+import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
 import { LiteTransform } from "../LiteTransform";
-import { LiteCollider } from "../LiteCollider";
 import { LiteUpdateFlag } from "../LiteUpdateFlag";
 
 /**
@@ -39,6 +39,13 @@ export abstract class LiteColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   abstract setWorldScale(scale: Vector3): void;
+
+  /**
+   * {@inheritDoc IColliderShape.setContactOffset }
+   */
+  setContactOffset(offset: number): void {
+    throw "Physics-lite don't support setContactOffset. Use Physics-PhysX instead!";
+  }
 
   /**
    * {@inheritDoc IColliderShape.setMaterial }
@@ -94,7 +101,7 @@ export abstract class LiteColliderShape implements IColliderShape {
     const distance = Vector3.distance(origin, hitPoint);
 
     if (distance < outHit.distance) {
-      hitPoint.cloneTo(outHit.point);
+      outHit.point.copyFrom(hitPoint);
       outHit.distance = distance;
       outHit.shapeID = this._id;
     }

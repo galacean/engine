@@ -1,10 +1,11 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 
 /**
  * Describes a color in the from of RGBA (in order: R, G, B, A).
  */
-export class Color implements IClone {
+export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   /**
    * Modify a value from the gamma space to the linear space.
    * @param value - The value in gamma space
@@ -113,7 +114,7 @@ export class Color implements IClone {
    * @param a - The alpha component of the color
    * @returns This color.
    */
-  setValue(r: number, g: number, b: number, a: number): Color {
+  set(r: number, g: number, b: number, a: number): Color {
     this.r = r;
     this.g = g;
     this.b = b;
@@ -159,16 +160,16 @@ export class Color implements IClone {
   }
 
   /**
-   * Clones this color to the specified color.
-   * @param out - The specified color
-   * @returns The specified color
+   * Copy from color like object.
+   * @param source - Color like object.
+   * @returns This vector
    */
-  cloneTo(out: Color): Color {
-    out.r = this.r;
-    out.g = this.g;
-    out.b = this.b;
-    out.a = this.a;
-    return out;
+  copyFrom(source: ColorLike): Color {
+    this.r = source.r;
+    this.g = source.g;
+    this.b = source.b;
+    this.a = source.a;
+    return this;
   }
 
   /**
@@ -202,7 +203,7 @@ export class Color implements IClone {
     this.a = color.a;
   }
 
-  toJSON() {
+  toObject() {
     return {
       r: this.r,
       g: this.g,
@@ -210,4 +211,15 @@ export class Color implements IClone {
       a: this.a
     };
   }
+}
+
+interface ColorLike {
+  /** {@inheritDoc Color.r} */
+  r: number;
+  /** {@inheritDoc Color.g} */
+  g: number;
+  /** {@inheritDoc Color.b} */
+  b: number;
+  /** {@inheritDoc Color.a} */
+  a: number;
 }

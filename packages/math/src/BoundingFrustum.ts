@@ -3,13 +3,14 @@ import { BoundingSphere } from "./BoundingSphere";
 import { CollisionUtil } from "./CollisionUtil";
 import { ContainmentType } from "./enums/ContainmentType";
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Matrix } from "./Matrix";
 import { Plane } from "./Plane";
 
 /**
  * A bounding frustum.
  */
-export class BoundingFrustum implements IClone {
+export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingFrustum, BoundingFrustum> {
   /** The near plane of this frustum. */
   public near: Plane;
   /** The far plane of this frustum. */
@@ -36,31 +37,6 @@ export class BoundingFrustum implements IClone {
     this.bottom = new Plane();
 
     matrix && this.calculateFromMatrix(matrix);
-  }
-
-  /**
-   * Creates a clone of this frustum.
-   * @returns A clone of this frustum
-   */
-  clone(): BoundingFrustum {
-    const bf = new BoundingFrustum();
-    this.cloneTo(bf);
-    return bf;
-  }
-
-  /**
-   * Clones this frustum to the specified frustum.
-   * @param out - The specified frustum
-   * @returns The specified frustum
-   */
-  cloneTo(out: BoundingFrustum): BoundingFrustum {
-    this.near.cloneTo(out.near);
-    this.far.cloneTo(out.far);
-    this.left.cloneTo(out.left);
-    this.right.cloneTo(out.right);
-    this.top.cloneTo(out.top);
-    this.bottom.cloneTo(out.bottom);
-    return out;
   }
 
   /**
@@ -118,38 +94,38 @@ export class BoundingFrustum implements IClone {
 
     // near
     const nearNormal = this.near.normal;
-    nearNormal.setValue(-m14 - m13, -m24 - m23, -m34 - m33);
+    nearNormal.set(-m14 - m13, -m24 - m23, -m34 - m33);
     this.near.distance = -m44 - m43;
     this.near.normalize();
 
     // far
     const farNormal = this.far.normal;
-    farNormal.setValue(m13 - m14, m23 - m24, m33 - m34);
+    farNormal.set(m13 - m14, m23 - m24, m33 - m34);
     this.far.distance = m43 - m44;
 
     this.far.normalize();
 
     // left
     const leftNormal = this.left.normal;
-    leftNormal.setValue(-m14 - m11, -m24 - m21, -m34 - m31);
+    leftNormal.set(-m14 - m11, -m24 - m21, -m34 - m31);
     this.left.distance = -m44 - m41;
     this.left.normalize();
 
     // right
     const rightNormal = this.right.normal;
-    rightNormal.setValue(m11 - m14, m21 - m24, m31 - m34);
+    rightNormal.set(m11 - m14, m21 - m24, m31 - m34);
     this.right.distance = m41 - m44;
     this.right.normalize();
 
     // top
     const topNormal = this.top.normal;
-    topNormal.setValue(m12 - m14, m22 - m24, m32 - m34);
+    topNormal.set(m12 - m14, m22 - m24, m32 - m34);
     this.top.distance = m42 - m44;
     this.top.normalize();
 
     // bottom
     const bottomNormal = this.bottom.normal;
-    bottomNormal.setValue(-m14 - m12, -m24 - m22, -m34 - m32);
+    bottomNormal.set(-m14 - m12, -m24 - m22, -m34 - m32);
     this.bottom.distance = -m44 - m42;
     this.bottom.normalize();
   }
@@ -170,5 +146,30 @@ export class BoundingFrustum implements IClone {
    */
   public intersectsSphere(sphere: BoundingSphere): boolean {
     return CollisionUtil.frustumContainsSphere(this, sphere) !== ContainmentType.Disjoint;
+  }
+
+  /**
+   * Creates a clone of this frustum.
+   * @returns A clone of this frustum
+   */
+  clone(): BoundingFrustum {
+    const out = new BoundingFrustum();
+    out.copyFrom(this);
+    return out;
+  }
+
+  /**
+   * Copy this frustum from the specified frustum.
+   * @param source - The specified frustum
+   * @returns This frustum
+   */
+  copyFrom(source: BoundingFrustum): BoundingFrustum {
+    this.near.copyFrom(source.near);
+    this.far.copyFrom(source.far);
+    this.left.copyFrom(source.left);
+    this.right.copyFrom(source.right);
+    this.top.copyFrom(source.top);
+    this.bottom.copyFrom(source.bottom);
+    return this;
   }
 }

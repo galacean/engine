@@ -1,4 +1,3 @@
-import { IClone } from "@oasis-engine/design";
 import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { InterpolationType } from "./enums/InterpolationType";
@@ -242,7 +241,7 @@ export class AnimationCurve {
       case InterpolableValueType.Vector3:
       case InterpolableValueType.Vector4:
       case InterpolableValueType.Quaternion:
-        (keys[frameIndex].value as IClone).cloneTo(out);
+        (<Vector4>out).copyFrom(<Vector4>keys[frameIndex].value);
         return out;
     }
   }

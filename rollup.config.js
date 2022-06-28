@@ -126,6 +126,7 @@ function config({ location, pkgJson }) {
           },
           {
             file: path.join(location, pkgJson.main),
+            sourcemap: true,
             format: "commonjs"
           }
         ],
