@@ -203,7 +203,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     this.a = color.a;
   }
 
-  toJSON() {
+  toObject() {
     return {
       r: this.r,
       g: this.g,

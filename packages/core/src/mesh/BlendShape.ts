@@ -122,10 +122,10 @@ export class BlendShape {
     }
   }
 
-  toJSON() {
+  toObject() {
     return {
       name: this.name,
-      frames: this._frames.map(frame => frame.toJSON()),
+      frames: this._frames.map(frame => frame.toObject()),
     };
   }
 }

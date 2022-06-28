@@ -492,6 +492,14 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     return this;
   }
 
+  toObject() {
+    return {
+      x: this.x,
+      y: this.y,
+      z: this.z,
+      w: this.w
+    };
+  }
   /**
    * Copy the value of this vector to an array.
    * @param out - The array
@@ -503,6 +511,17 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
     out[outOffset + 2] = this._z;
     out[outOffset + 3] = this._w;
   }
+}
+
+interface Vector4Like {
+  /** {@inheritDoc Vector4.x} */
+  x: number;
+  /** {@inheritDoc Vector4.y} */
+  y: number;
+  /** {@inheritDoc Vector4.z} */
+  z: number;
+  /** {@inheritDoc Vector4.w} */
+  w: number;
 }
 
 interface Vector4Like {

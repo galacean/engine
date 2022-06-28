@@ -15,7 +15,7 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.7.0-beta.6",
-    "@oasis-engine/math": "0.7.0-beta.6"
+    "@oasis-engine/core": "0.7.0-beta.7",
+    "@oasis-engine/math": "0.7.0-beta.7"
   }
 }

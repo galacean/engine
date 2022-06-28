@@ -15,6 +15,7 @@
     "types/**/*"
   ],
   "dependencies": {
+    "@oasis-engine/resource-process": "0.7.0-beta.7",
     "@oasis-engine/core": "0.7.0-beta.7",
     "@oasis-engine/draco": "0.7.0-beta.7",
     "@oasis-engine/math": "0.7.0-beta.7",
