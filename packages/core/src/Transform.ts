@@ -429,7 +429,7 @@ export class Transform extends Component {
   /**
    * Translate in the direction and distance of the translation.
    * @param translation - Direction and distance of translation
-   * @param relativeToLocal - Is relative to the local coordinate system
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   translate(translation: Vector3, relativeToLocal?: boolean): void;
 
@@ -438,7 +438,7 @@ export class Transform extends Component {
    * @param x - Distance along the x axis
    * @param y - Distance along the y axis
    * @param z - Distance along the z axis
-   * @param relativeToLocal - Is relative to the local coordinate system
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   translate(x: number, y: number, z: number, relativeToLocal?: boolean): void;
 
