@@ -7,13 +7,14 @@ class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, { type: "json" }).then((data) => {
+      return this.request<any>(item.url, { type: "json" }).then((data) => {
         engine.resourceManager.initVirtualResources(data.files);
-        SceneParser.parse(engine, data).then((scene) => {
+        return SceneParser.parse(engine, data).then((scene) => {
           const entity = scene.findEntityByName("Camera");
           entity.transform.setPosition(10, 10, 10);
           entity.transform.lookAt(new Vector3());
           engine.sceneManager.activeScene = scene;
+          resolve(scene);
         });
       });
       //
