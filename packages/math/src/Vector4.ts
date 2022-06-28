@@ -523,14 +523,3 @@ interface Vector4Like {
   /** {@inheritDoc Vector4.w} */
   w: number;
 }
-
-interface Vector4Like {
-  /** {@inheritDoc Vector4.x} */
-  x: number;
-  /** {@inheritDoc Vector4.y} */
-  y: number;
-  /** {@inheritDoc Vector4.z} */
-  z: number;
-  /** {@inheritDoc Vector4.w} */
-  w: number;
-}
