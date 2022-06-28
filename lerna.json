@@ -1,11 +1,12 @@
 {
   "npmClient": "npm",
-  "version": "0.7.0-beta.6",
+  "version": "0.7.0-beta.7",
   "bootstrap": {
     "hoist": true
   },
   "packages": [
-    "packages/*"
+    "packages/*",
+    "tests/**"
   ],
   "loglevel": "verbose"
 }

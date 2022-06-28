@@ -65,7 +65,7 @@ export class DynamicTextAtlas {
 
     const { _width, _height } = this;
     const region = DynamicTextAtlas._region;
-    region.setValue(this._curX / _width, this._curY / _height, width / _width, height / _height);
+    region.set(this._curX / _width, this._curY / _height, width / _width, height / _height);
 
     // destroy origin texture.
     sprite.texture && sprite.texture.destroy();

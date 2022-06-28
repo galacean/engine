@@ -19,8 +19,8 @@ export class Ray {
    * @param direction - The direction vector
    */
   constructor(origin: Vector3 = null, direction: Vector3 = null) {
-    origin && origin.cloneTo(this.origin);
-    direction && direction.cloneTo(this.direction);
+    origin && this.origin.copyFrom(origin);
+    direction && this.direction.copyFrom(direction);
   }
 
   /**

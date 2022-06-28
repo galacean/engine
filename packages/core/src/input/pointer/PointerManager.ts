@@ -142,7 +142,7 @@ export class PointerManager {
       }
       pointer._uniqueID = pointerId;
       pointer._needUpdate = true;
-      pointer.position.setValue(x, y);
+      pointer.position.set(x, y);
       pointer.phase = phase;
       pointers.splice(i, 0, pointer);
     }
@@ -154,7 +154,7 @@ export class PointerManager {
 
   private _updatePointer(pointerIndex: number, x: number, y: number, phase: PointerPhase): void {
     const updatedPointer = this._pointers[pointerIndex];
-    updatedPointer.position.setValue(x, y);
+    updatedPointer.position.set(x, y);
     updatedPointer._needUpdate = true;
     updatedPointer.phase = phase;
   }
@@ -209,14 +209,14 @@ export class PointerManager {
       if (activePointerCount === 0) {
         // Get the pointer coordinates when leaving, and use it to correctly dispatch the click event.
         const lastNativeEvent = nativeEvents[nativeEventsLen - 1];
-        currentPosition.setValue(lastNativeEvent.offsetX * pixelRatioWidth, lastNativeEvent.offsetY * pixelRatioHeight);
+        currentPosition.set(lastNativeEvent.offsetX * pixelRatioWidth, lastNativeEvent.offsetY * pixelRatioHeight);
       } else {
-        currentPosition.setValue(0, 0);
+        currentPosition.set(0, 0);
         for (let i = 0; i < pointerCount; i++) {
           const pointer = pointers[i];
           const { position } = pointer;
           if (pointer._needUpdate) {
-            position.setValue(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
+            position.set(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
             pointer._needUpdate = false;
           }
           currentPosition.add(position);
@@ -240,7 +240,7 @@ export class PointerManager {
         }
         const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
         if (x >= vpX && y >= vpY && x - vpX <= vpW && y - vpY <= vpH) {
-          point.setValue((x - vpX) / vpW, (y - vpY) / vpH);
+          point.set((x - vpX) / vpW, (y - vpY) / vpH);
           // TODO: Only check which colliders have listened to the input.
           if (this._engine.physicsManager.raycast(camera.viewportPointToRay(point, ray), hitResult)) {
             return hitResult.entity;

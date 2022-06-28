@@ -4,6 +4,7 @@ for (let key in CoreObjects) {
   Loader.register(key, CoreObjects[key]);
 }
 
+alert('hehehe')
 //@ts-ignore
 export const version = `__buildVersion`;
 

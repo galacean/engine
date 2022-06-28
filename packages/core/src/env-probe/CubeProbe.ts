@@ -47,7 +47,7 @@ export class CubeProbe extends Probe {
    * Store original camera parameters.
    */
   private _storeCamera(camera: Camera) {
-    camera.viewMatrix.cloneTo(this.oriViewMatrix);
+    this.oriViewMatrix.copyFrom(camera.viewMatrix);
     this._oriFieldOfView = camera.fieldOfView;
   }
 
@@ -55,7 +55,7 @@ export class CubeProbe extends Probe {
    * Restore camera parameters.
    */
   private _restoreCamera(camera: Camera) {
-    this.oriViewMatrix.cloneTo(camera.viewMatrix);
+    camera.viewMatrix.copyFrom(this.oriViewMatrix);
     camera.fieldOfView = this._oriFieldOfView;
   }
 
@@ -66,33 +66,33 @@ export class CubeProbe extends Probe {
     switch (faceIndex) {
       // positive_x
       case 0:
-        cacheUp.setValue(0, -1, 0);
-        cacheDir.setValue(1, 0, 0);
+        cacheUp.set(0, -1, 0);
+        cacheDir.set(1, 0, 0);
         break;
       // negative_x
       case 1:
-        cacheUp.setValue(0, -1, 0);
-        cacheDir.setValue(-1, 0, 0);
+        cacheUp.set(0, -1, 0);
+        cacheDir.set(-1, 0, 0);
         break;
       // positive_y
       case 2:
-        cacheUp.setValue(0, 0, 1);
-        cacheDir.setValue(0, 1, 0);
+        cacheUp.set(0, 0, 1);
+        cacheDir.set(0, 1, 0);
         break;
       // negative_y
       case 3:
-        cacheUp.setValue(0, 0, -1);
-        cacheDir.setValue(0, -1, 0);
+        cacheUp.set(0, 0, -1);
+        cacheDir.set(0, -1, 0);
         break;
       // positive_z
       case 4:
-        cacheUp.setValue(0, -1, 0);
-        cacheDir.setValue(0, 0, 1);
+        cacheUp.set(0, -1, 0);
+        cacheDir.set(0, 0, 1);
         break;
       // negative_z
       case 5:
-        cacheUp.setValue(0, -1, 0);
-        cacheDir.setValue(0, 0, -1);
+        cacheUp.set(0, -1, 0);
+        cacheDir.set(0, 0, -1);
         break;
     }
 
