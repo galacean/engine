@@ -48,7 +48,7 @@ export class WebCanvas implements Canvas {
   get scale(): Vector2 {
     const webCanvas = this._webCanvas;
     if (webCanvas instanceof HTMLCanvasElement) {
-      this._scale.setValue(
+      this._scale.set(
         (webCanvas.clientWidth * devicePixelRatio) / webCanvas.width,
         (webCanvas.clientHeight * devicePixelRatio) / webCanvas.height
       );
@@ -94,7 +94,7 @@ export class WebCanvas implements Canvas {
    * @param y - Scale along the Y axis
    */
   setScale(x: number, y: number): void {
-    this._scale.setValue(x, y);
+    this._scale.set(x, y);
     this.scale = this._scale;
   }
 }

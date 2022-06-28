@@ -8,7 +8,6 @@ import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { UpdateFlag } from "../../UpdateFlag";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
@@ -19,7 +18,7 @@ import { Sprite } from "./Sprite";
 export class SpriteRenderer extends Renderer implements ICustomClone {
   /** @internal */
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
-  
+
   private static _tempVec3: Vector3 = new Vector3();
 
   /** @internal temp solution. */
@@ -80,7 +79,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   set color(value: Color) {
     if (this._color !== value) {
-      value.cloneTo(this._color);
+      this._color.copyFrom(value);
     }
   }
 
@@ -173,7 +172,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
       for (let i = 0, n = _positions.length; i < n; i++) {
         const curVertexPos = localPositions[i];
-        localVertexPos.setValue(flipX ? -curVertexPos.x : curVertexPos.x, flipY ? -curVertexPos.y : curVertexPos.y, 0);
+        localVertexPos.set(flipX ? -curVertexPos.x : curVertexPos.x, flipY ? -curVertexPos.y : curVertexPos.y, 0);
         Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
       }
 
@@ -264,8 +263,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         BoundingBox.transform(localBounds, worldMatrix, worldBounds);
       }
     } else {
-      worldBounds.min.setValue(0, 0, 0);
-      worldBounds.max.setValue(0, 0, 0);
+      worldBounds.min.set(0, 0, 0);
+      worldBounds.max.set(0, 0, 0);
     }
   }
 

@@ -8,7 +8,6 @@ import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { UpdateFlag } from "../../UpdateFlag";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
 
@@ -119,7 +118,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
 
       for (let i = 0, n = positions.length; i < n; i++) {
         const curVertexPos = localPositions[i];
-        localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
+        localVertexPos.set(curVertexPos.x, curVertexPos.y, 0);
         Vector3.transformToVec3(localVertexPos, worldMatrix, positions[i]);
       }
 
