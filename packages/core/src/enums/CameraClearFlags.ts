@@ -3,21 +3,21 @@
  */
 export enum CameraClearFlags {
   /* Do nothing. */
-  None = 0,
+  None = 0x0,
   /* Clear color with scene background. */
-  Color = 1,
+  Color = 0x1,
   /* Clear depth only. */
-  Depth = 2,
+  Depth = 0x2,
   /* Clear depth only. */
-  Stencil = 4,
+  Stencil = 0x4,
 
   /* Clear color with scene background and depth. */
-  ColorDepth = 3,
+  ColorDepth = 0x3,
   /* Clear color with scene background and stencil. */
-  ColorStencil = 5,
+  ColorStencil = 0x5,
   /* Clear depth and stencil. */
-  DepthStencil = 6,
+  DepthStencil = 0x6,
 
   /* Clear color with scene background, depth, and stencil. */
-  All = 7
+  All = 0x7
 }
