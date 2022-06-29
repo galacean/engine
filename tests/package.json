@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/tests",
-  "version": "0.7.0-beta.4",
+  "version": "0.8.0-alpha.0",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -14,8 +14,8 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/math": "0.7.0-beta.4",
     "@oasis-engine/core": "0.7.0-beta.4",
+    "@oasis-engine/math": "0.7.0-beta.4",
     "@oasis-engine/rhi-webgl": "0.7.0-beta.4"
   },
   "devDependencies": {
