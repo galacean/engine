@@ -5,6 +5,7 @@ import "./KTXCubeLoader";
 import "./KTXLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
+import "./SpriteLoader";
 import "./SpriteAtlasLoader";
 import "./EnvLoader";
 import "./HDRLoader";
