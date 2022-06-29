@@ -10,7 +10,6 @@ export * from "@oasis-engine/loader";
 export * from "@oasis-engine/math";
 export * from "@oasis-engine/rhi-webgl";
 
-console.log(Loader)
 for (let key in CoreObjects) {
   Loader.register(key, CoreObjects[key]);
 }
