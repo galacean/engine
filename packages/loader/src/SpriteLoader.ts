@@ -17,7 +17,8 @@ class SpriteLoader extends Loader<Sprite> {
         ...item,
         type: "json"
       }).then((data) => {
-        resourceManager.getResourceByRef<Texture2D>({ refId: data.texture.refId }).then((texture) => {
+        debugger;
+        resourceManager.getResourceByRef<Texture2D>(data.texture).then((texture) => {
           const sprite = new Sprite(resourceManager.engine, texture);
           sprite.region = data.region;
           sprite.pivot = data.pivot;
