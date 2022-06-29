@@ -196,13 +196,6 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     return out;
   }
 
-  copyFrom(color: Color) {
-    this.r = color.r;
-    this.g = color.g;
-    this.b = color.b;
-    this.a = color.a;
-  }
-
   toObject() {
     return {
       r: this.r,
