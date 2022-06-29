@@ -244,7 +244,7 @@ export class PointerManager {
           // TODO: Only check which colliders have listened to the input.
           if (this._engine.physicsManager.raycast(camera.viewportPointToRay(point, ray), hitResult)) {
             return hitResult.entity;
-          } else if (camera.clearFlags === CameraClearFlags.DepthColor) {
+          } else if (camera.clearFlags & CameraClearFlags.Color) {
             return null;
           }
         }
