@@ -252,6 +252,8 @@ export class InputManager {
       this._keyboardManager = new KeyboardManager();
       this._onBlur = this._onBlur.bind(this);
       window.addEventListener("blur", this._onBlur);
+      this._onFocus = this._onFocus.bind(this);
+      window.addEventListener("focus", this._onFocus);
       this._initialized = true;
     }
   }
@@ -282,5 +284,12 @@ export class InputManager {
     enabledTypes & InputType.Wheel && this._wheelManager._onBlur();
     enabledTypes & InputType.Pointer && this._pointerManager._onBlur();
     enabledTypes & InputType.Keyboard && this._keyboardManager._onBlur();
+  }
+
+  private _onFocus(): void {
+    const { _enabledTypes: enabledTypes } = this;
+    enabledTypes & InputType.Wheel && this._wheelManager._onFocus();
+    enabledTypes & InputType.Pointer && this._pointerManager._onFocus();
+    enabledTypes & InputType.Keyboard && this._keyboardManager._onFocus();
   }
 }

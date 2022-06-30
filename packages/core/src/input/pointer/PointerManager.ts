@@ -7,7 +7,7 @@ import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
 import { PointerPhase } from "../enums/PointerPhase";
 import { PointerButton } from "../enums/PointerButton";
-import { IInput } from "../IInput";
+import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
 
 /**
@@ -68,6 +68,7 @@ export class PointerManager implements IInput {
     htmlCanvas.addEventListener("pointerup", onPointerEvent);
     htmlCanvas.addEventListener("pointerout", onPointerEvent);
     htmlCanvas.addEventListener("pointermove", onPointerEvent);
+    htmlCanvas.addEventListener("pointercancel", onPointerEvent);
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
     this._pointerPool = new Array<Pointer>(11);
   }
@@ -115,6 +116,7 @@ export class PointerManager implements IInput {
     htmlCanvas.addEventListener("pointerup", onPointerEvent);
     htmlCanvas.addEventListener("pointerout", onPointerEvent);
     htmlCanvas.addEventListener("pointermove", onPointerEvent);
+    htmlCanvas.addEventListener("pointercancel", onPointerEvent);
   }
 
   /**
@@ -126,16 +128,30 @@ export class PointerManager implements IInput {
     htmlCanvas.removeEventListener("pointerup", onPointerEvent);
     htmlCanvas.removeEventListener("pointerout", onPointerEvent);
     htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+    htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
+    this._nativeEvents.length = 0;
+    this._pointerPool.length = 0;
+    this._currentPosition = null;
+    this._currentEnteredEntity = null;
+    this._currentPressedEntity = null;
+    this._heldDownMap.length = 0;
+    this._heldDownList.length = 0;
+    this._downList.length = 0;
+    this._upList.length = 0;
+  }
+
+  /**
+   * @internal
+   */
+  _onFocus(): void {
+    this._enable();
   }
 
   /**
    * @internal
    */
   _onBlur(): void {
-    this._heldDownMap.length = 0;
-    this._heldDownList.length = 0;
-    this._downList.length = 0;
-    this._upList.length = 0;
+    this._disable();
   }
 
   /**
@@ -263,7 +279,7 @@ export class PointerManager implements IInput {
             activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
           }
           delIndex = heldDownMap[pointerButton];
-          console.log("移除了button", pointerButton);
+          console.log("pointerup", pointerButton);
           if (delIndex != null) {
             heldDownMap[pointerButton] = null;
             const swapCode = heldDownList.deleteByIndex(delIndex);
@@ -281,6 +297,7 @@ export class PointerManager implements IInput {
           }
           break;
         case "pointerout":
+          console.log("pointerout", pointerButton);
           if (pointerIndex >= 0) {
             this._removePointer(pointerIndex);
             --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Leave);
@@ -293,6 +310,9 @@ export class PointerManager implements IInput {
               swapCode && (heldDownMap[swapCode] = delIndex);
             }
           }
+          break;
+        case "pointercancel":
+          console.log("pointercancel", pointerButton);
           break;
       }
     }

@@ -1,4 +1,4 @@
-import { IInput } from "../IInput";
+import { IInput } from "../interface/IInput";
 
 /**
  * Wheel Manager.
@@ -51,13 +51,22 @@ export class WheelManager implements IInput {
    */
   _disable(): void {
     this._canvas.removeEventListener("wheel", this._onWheelEvent);
+    this._nativeEvents.length = 0;
+    this._deltaX = this._deltaY = this._deltaZ = 0;
+  }
+
+  /**
+   * @internal
+   */
+  _onFocus(): void {
+    this._enable();
   }
 
   /**
    * @internal
    */
   _onBlur(): void {
-    this._nativeEvents.length = 0;
+    this._disable();
   }
 
   /**

@@ -1,11 +1,12 @@
 import { DisorderedArray } from "../../DisorderedArray";
 import { Keys } from "../enums/Keys";
+import { IInput } from "../interface/IInput";
 
 /**
  * Keyboard Manager.
  * @internal
  */
-export class KeyboardManager {
+export class KeyboardManager implements IInput {
   /** @internal */
   _curHeldDownKeyToIndexMap: number[] = [];
   /** @internal */
@@ -90,17 +91,25 @@ export class KeyboardManager {
   _disable(): void {
     window.removeEventListener("keydown", this._onKeyEvent);
     window.removeEventListener("keyup", this._onKeyEvent);
+    this._curHeldDownKeyToIndexMap.length = 0;
+    this._curFrameHeldDownList.length = 0;
+    this._curFrameDownList.length = 0;
+    this._curFrameUpList.length = 0;
+    this._nativeEvents.length = 0;
+  }
+
+  /**
+   * @internal
+   */
+  _onFocus(): void {
+    this._enable();
   }
 
   /**
    * @internal
    */
   _onBlur(): void {
-    this._curHeldDownKeyToIndexMap.length = 0;
-    this._curFrameHeldDownList.length = 0;
-    this._curFrameDownList.length = 0;
-    this._curFrameUpList.length = 0;
-    this._nativeEvents.length = 0;
+    this._disable();
   }
 
   /**
