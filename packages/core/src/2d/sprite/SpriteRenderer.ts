@@ -33,7 +33,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _renderData: RenderData2D;
 
-  /** Draw mode. */
   @ignoreClone
   private _drawMode: SpriteDrawMode;
   @ignoreClone
@@ -41,16 +40,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
-
-  /** About sprite. */
   @ignoreClone
   private _sprite: Sprite = null;
 
-  /** About transform. */
   @assignmentClone
-  private _width: number = 1;
+  private _width: number = undefined;
   @assignmentClone
-  private _height: number = 1;
+  private _height: number = undefined;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
@@ -87,7 +83,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           break;
       }
       this._assembler.resetData(this);
-      this._setDirtyFlagTrue(DirtyFlag.PositionAndUV);
+      this._setDirtyFlagTrue(DirtyFlag.All);
     }
   }
 
@@ -100,21 +96,19 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   set sprite(value: Sprite | null) {
     if (this._sprite !== value) {
-      this._spriteChangeFlag && this._spriteChangeFlag.destroy();
       this._sprite = value;
+      this._spriteChangeFlag && this._spriteChangeFlag.destroy();
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
-        if (value.texture) {
-          this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
-          // Set default size.
+        // Set default size.
+        if (value.texture && this._width === undefined && this._height === undefined) {
           this.width = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
           this.height = value._getPixelHeight() / SpriteRenderer._pixelPerUnit;
         }
-        this._setDirtyFlagTrue(DirtyFlag.PositionAndUV);
-      } else {
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
+        this._setDirtyFlagTrue(DirtyFlag.All);
       }
+      this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
     }
   }
 
@@ -307,15 +301,20 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag) {
     switch (dirtyFlag) {
       case SpritePropertyDirtyFlag.texture:
-        // Update shader data.
-        this.sprite.texture && this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
+        const { _sprite: sprite } = this;
+        const { texture } = sprite;
+        if (texture && this._width === undefined && this._height === undefined) {
+          this.width = sprite._getPixelWidth() / SpriteRenderer._pixelPerUnit;
+          this.height = sprite._getPixelHeight() / SpriteRenderer._pixelPerUnit;
+        }
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
         break;
       case SpritePropertyDirtyFlag.border:
-        this._drawMode === SpriteDrawMode.Sliced && this._setDirtyFlagTrue(DirtyFlag.PositionAndUV);
+        this._drawMode === SpriteDrawMode.Sliced && this._setDirtyFlagTrue(DirtyFlag.All);
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlas:
-        this._setDirtyFlagTrue(DirtyFlag.PositionAndUV);
+        this._setDirtyFlagTrue(DirtyFlag.All);
         break;
       case SpritePropertyDirtyFlag.pivot:
         this._setDirtyFlagTrue(DirtyFlag.Position);
@@ -341,7 +340,5 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 enum DirtyFlag {
   Position = 0x1,
   UV = 0x2,
-  All = 0x3,
-
-  PositionAndUV = 0x3
+  All = 0x3
 }

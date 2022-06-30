@@ -16,28 +16,22 @@ export class Sprite extends RefObject {
   /** @internal temp solution. */
   _assetID: number;
 
-  /** Intermediate product data. */
-  /** The pixel size of the sprite. */
   private _pixelWidth: number;
   private _pixelHeight: number;
 
-  /** Normalized left, bottom, right and top. */
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _bounds: BoundingBox = new BoundingBox();
 
-  /** How to get form texture. */
   private _texture: Texture2D = null;
   private _atlasRotated: boolean = false;
   private _atlasRegion: Rect = new Rect(0, 0, 1, 1);
   private _atlasRegionOffset: Vector4 = new Vector4(0, 0, 0, 0);
 
-  /** How to show sprite. */
   private _region: Rect = new Rect(0, 0, 1, 1);
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _border: Vector4 = new Vector4(0, 0, 0, 0);
 
-  /** Dirty flag. */
   private _dirtyFlag: DirtyFlag = DirtyFlag.all;
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
@@ -109,7 +103,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
+    this._dispatchSpriteChange(SpritePropertyDirtyFlag.region);
   }
 
   /**
@@ -147,7 +141,6 @@ export class Sprite extends RefObject {
   set border(value: Vector4) {
     const border = this._border;
     const x = MathUtil.clamp(value.x, 0, 1);
-
     const y = MathUtil.clamp(value.y, 0, 1);
     border.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
     this._dispatchSpriteChange(SpritePropertyDirtyFlag.border);
@@ -263,13 +256,9 @@ export class Sprite extends RefObject {
     const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
     const regionRight = 1 - regionX - regionW;
     const regionBottom = 1 - regionY - regionH;
-    // Left.
     const left = Math.max(blankLeft - regionX, 0) / regionW;
-    // Bottom.
     const bottom = Math.max(blankBottom - regionY, 0) / regionH;
-    // Right.
     const right = 1 - Math.max(blankRight - regionRight, 0) / regionW;
-    // Top.
     const top = 1 - Math.max(blankTop - regionBottom, 0) / regionH;
 
     // Update positions.
@@ -284,7 +273,6 @@ export class Sprite extends RefObject {
     positions[2].set(left, top);
     positions[3].set(right, top);
 
-    // Update bounds.
     const { min, max } = this._bounds;
     min.set(left, bottom, 0);
     max.set(right, top, 0);
@@ -338,7 +326,6 @@ export class Sprite extends RefObject {
         this._dirtyFlag |= DirtyFlag.all;
         break;
       case SpritePropertyDirtyFlag.border:
-        // Update sliced uvs.
         this._dirtyFlag |= DirtyFlag.uvs;
         break;
       default:
