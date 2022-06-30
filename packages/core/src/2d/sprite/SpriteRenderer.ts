@@ -14,9 +14,9 @@ import { Sprite } from "./Sprite";
 import { IAssembler } from "../assembler/IAssembler";
 import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
-import { SpriteSimple } from "../assembler/SpriteSimple";
+import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
-import { SpriteSliced } from "../assembler/SpriteSliced";
+import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -56,13 +56,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @assignmentClone
   private _flipY: boolean = false;
 
-  /** About mask. */
   @assignmentClone
   private _maskLayer: number = SpriteMaskLayer.Layer0;
   @assignmentClone
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
 
-  /** Dirty flag. */
   @ignoreClone
   private _dirtyFlag: number = 0;
   @ignoreClone
@@ -80,10 +78,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       this._drawMode = drawMode;
       switch (drawMode) {
         case SpriteDrawMode.Simple:
-          this._assembler = SpriteSimple;
+          this._assembler = SimpleSpriteAssembler;
           break;
         case SpriteDrawMode.Sliced:
-          this._assembler = SpriteSliced;
+          this._assembler = SlicedSpriteAssembler;
           break;
         default:
           break;
@@ -110,8 +108,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         if (value.texture) {
           this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
           // Set default size.
-          this.width = value.width / SpriteRenderer._pixelPerUnit;
-          this.height = value.height / SpriteRenderer._pixelPerUnit;
+          this.width = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
+          this.height = value._getPixelHeight() / SpriteRenderer._pixelPerUnit;
         }
         this._setDirtyFlagTrue(DirtyFlag.PositionAndUV);
       } else {

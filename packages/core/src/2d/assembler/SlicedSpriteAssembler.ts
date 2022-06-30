@@ -1,11 +1,11 @@
-import { Color, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
+import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 @StaticInterfaceImplement<IAssembler>()
-export class SpriteSliced {
+export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
     const vertexCount = 16;
@@ -35,11 +35,14 @@ export class SpriteSliced {
     // Update WorldMatrix.
     const { width, height, sprite } = renderer;
     const { positions, uvs, triangles } = renderer._renderData;
-    const { border, uvs: spriteUVs } = sprite;
+    const { border } = sprite;
+    const spriteUVs = sprite._getUVs();
     // Update local positions.
-    const [left, bottom, right, top] = sprite.edges;
-    const expectWidth = sprite.width / SpriteRenderer._pixelPerUnit;
-    const expectHeight = sprite.height / SpriteRenderer._pixelPerUnit;
+    const spritePositions = sprite._getPositions();
+    const { x: left, y: bottom } = spritePositions[0];
+    const { x: right, y: top } = spritePositions[3];
+    const expectWidth = sprite._getPixelWidth() / SpriteRenderer._pixelPerUnit;
+    const expectHeight = sprite._getPixelHeight() / SpriteRenderer._pixelPerUnit;
     const fixedLeft = expectWidth * border.x;
     const fixedBottom = expectHeight * border.y;
     const fixedRight = expectHeight * border.z;
@@ -85,7 +88,7 @@ export class SpriteSliced {
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
     const localTransY = renderer.height * pivotY;
-    const { _worldMatrix: worldMatrix } = SpriteSliced;
+    const { _worldMatrix: worldMatrix } = SlicedSpriteAssembler;
     // Parent's worldMatrix.
     const { elements: pE } = renderer.entity.transform.worldMatrix;
     // Renderer's worldMatrix.

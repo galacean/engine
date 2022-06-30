@@ -8,9 +8,7 @@ import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { IAssembler } from "../assembler/IAssembler";
-import { SpriteSimple } from "../assembler/SpriteSimple";
-import { SpriteSliced } from "../assembler/SpriteSliced";
+import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { RenderData2D } from "../data/RenderData2D";
 import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
@@ -27,19 +25,14 @@ export class SpriteMask extends Renderer implements ICustomClone {
   /** @internal */
   static _alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_maskAlphaCutoff");
 
-  /** @internal */
-  _maskElement: SpriteMaskElement;
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
+  /** @internal */
+  _maskElement: SpriteMaskElement;
 
   /** @internal */
   _renderData: RenderData2D;
-
-  @ignoreClone
-  private _drawMode: SpriteDrawMode;
-  @ignoreClone
-  private _assembler: IAssembler;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -139,31 +132,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * The draw mode of the sprite.
-   */
-  get drawMode(): SpriteDrawMode {
-    return this._drawMode;
-  }
-
-  set drawMode(drawMode: SpriteDrawMode) {
-    if (this._drawMode !== drawMode) {
-      this._drawMode = drawMode;
-      switch (drawMode) {
-        case SpriteDrawMode.Simple:
-          this._assembler = SpriteSimple;
-          break;
-        case SpriteDrawMode.Sliced:
-          this._assembler = SpriteSliced;
-          break;
-        default:
-          break;
-      }
-      this._assembler.resetData(this);
-      this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
-    }
-  }
-
-  /**
    * The Sprite to render.
    */
   get sprite(): Sprite {
@@ -180,8 +148,8 @@ export class SpriteMask extends Renderer implements ICustomClone {
         if (value.texture) {
           this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
           // Set default size.
-          this.width = value.width / SpriteRenderer._pixelPerUnit;
-          this.height = value.height / SpriteRenderer._pixelPerUnit;
+          this.width = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
+          this.height = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
         }
         this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
       } else {
@@ -209,7 +177,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
-    this.drawMode = SpriteDrawMode.Simple;
+    SimpleSpriteAssembler.resetData(this);
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._onSpriteChange = this._onSpriteChange.bind(this);
@@ -222,7 +190,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   _onDestroy(): void {
     this._pivot = null;
     this._sprite = null;
-    this._assembler = null;
     this._renderData = null;
     this._spriteChangeFlag && this._spriteChangeFlag.destroy();
     super._onDestroy();
@@ -239,14 +206,14 @@ export class SpriteMask extends Renderer implements ICustomClone {
     }
     // Update position.
     if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
-      this._assembler.updatePositions(this);
+      SimpleSpriteAssembler.updatePositions(this);
       this._setDirtyFlagFalse(DirtyFlag.Position);
       this._transformChangeFlag.flag = false;
     }
 
     // Update uv.
     if (this._isContainDirtyFlag(DirtyFlag.UV)) {
-      this._assembler.updateUVs(this);
+      SimpleSpriteAssembler.updateUVs(this);
       this._setDirtyFlagFalse(DirtyFlag.UV);
     }
 
@@ -262,7 +229,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
    */
   get bounds(): BoundingBox {
     if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
-      this._assembler.updatePositions(this);
+      SimpleSpriteAssembler.updatePositions(this);
       this._setDirtyFlagFalse(DirtyFlag.Position);
       this._transformChangeFlag.flag = false;
     }
@@ -282,9 +249,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
         if (this.sprite.texture) {
           this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
         }
-        break;
-      case SpritePropertyDirtyFlag.border:
-        this._drawMode === SpriteDrawMode.Sliced && this._setDirtyFlagTrue(DirtyFlag.UV);
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlas:

@@ -1,11 +1,11 @@
-import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 @StaticInterfaceImplement<IAssembler>()
-export class SpriteSimple {
+export class SimpleSpriteAssembler {
   static _rectangleTriangles: number[] = [0, 1, 2, 2, 1, 3];
   static _worldMatrix: Matrix = new Matrix();
 
@@ -15,12 +15,12 @@ export class SpriteSimple {
         vertexCount: 4,
         positions: [new Vector3(), new Vector3(), new Vector3(), new Vector3()],
         uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
-        triangles: SpriteSimple._rectangleTriangles,
+        triangles: SimpleSpriteAssembler._rectangleTriangles,
         color: renderer instanceof SpriteRenderer ? renderer.color : null
       };
     } else {
       renderer._renderData.vertexCount = 4;
-      renderer._renderData.triangles = SpriteSimple._rectangleTriangles;
+      renderer._renderData.triangles = SimpleSpriteAssembler._rectangleTriangles;
     }
   }
 
@@ -33,8 +33,9 @@ export class SpriteSimple {
       return;
     }
 
-    const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
-    const { _worldMatrix: worldMatrix } = SpriteSimple;
+    const { sprite } = renderer;
+    const { x: pivotX, y: pivotY } = sprite.pivot;
+    const { _worldMatrix: worldMatrix } = SimpleSpriteAssembler;
     // Parent's worldMatrix.
     const { elements: pE } = renderer.entity.transform.worldMatrix;
     // Renderer's worldMatrix;
@@ -54,45 +55,19 @@ export class SpriteSimple {
     //  0 - 1
     // ---------------
     // Update positions.
-    const [left, bottom, right, top] = renderer.sprite.edges;
+    const spritePositions = sprite._getPositions();
     const { positions } = renderer._renderData;
-    // Left-Bottom.
-    positions[0].set(
-      wE[0] * left + wE[4] * bottom + wE[12],
-      wE[1] * left + wE[5] * bottom + wE[13],
-      wE[2] * left + wE[6] * bottom + wE[14]
-    );
-
-    // Right-Bottom.
-    positions[1].set(
-      wE[0] * right + wE[4] * bottom + wE[12],
-      wE[1] * right + wE[5] * bottom + wE[13],
-      wE[2] * right + wE[6] * bottom + wE[14]
-    );
-
-    // Left-Top.
-    positions[2].set(
-      wE[0] * left + wE[4] * top + wE[12],
-      wE[1] * left + wE[5] * top + wE[13],
-      wE[2] * left + wE[6] * top + wE[14]
-    );
-
-    // Right-Top.
-    positions[3].set(
-      wE[0] * right + wE[4] * top + wE[12],
-      wE[1] * right + wE[5] * top + wE[13],
-      wE[2] * right + wE[6] * top + wE[14]
-    );
+    for (let i = 0; i < 4; i++) {
+      const { x, y } = spritePositions[i];
+      positions[i].set(wE[0] * x + wE[4] * y + wE[12], wE[1] * x + wE[5] * y + wE[13], wE[2] * x + wE[6] * y + wE[14]);
+    }
 
     // Update bounds.
-    const { min, max } = renderer._bounds;
-    min.set(left, bottom, 0);
-    max.set(right, top, 0);
-    renderer._bounds.transform(worldMatrix);
+    BoundingBox.transform(sprite._getBounds(), worldMatrix, renderer._bounds);
   }
 
   static updateUVs(renderer: SpriteRenderer | SpriteMask): void {
-    const spriteUVs = renderer.sprite.uvs;
+    const spriteUVs = renderer.sprite._getUVs();
     const renderUVs = renderer._renderData.uvs;
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
