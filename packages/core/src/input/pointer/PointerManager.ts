@@ -66,7 +66,6 @@ export class PointerManager implements IInput {
     htmlCanvas.addEventListener("pointerup", onPointerEvent);
     htmlCanvas.addEventListener("pointerout", onPointerEvent);
     htmlCanvas.addEventListener("pointermove", onPointerEvent);
-    htmlCanvas.addEventListener("pointercancel", onPointerEvent);
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
     this._pointerPool = new Array<Pointer>(11);
   }
@@ -114,7 +113,6 @@ export class PointerManager implements IInput {
     htmlCanvas.addEventListener("pointerup", onPointerEvent);
     htmlCanvas.addEventListener("pointerout", onPointerEvent);
     htmlCanvas.addEventListener("pointermove", onPointerEvent);
-    htmlCanvas.addEventListener("pointercancel", onPointerEvent);
   }
 
   /**
@@ -126,7 +124,6 @@ export class PointerManager implements IInput {
     htmlCanvas.removeEventListener("pointerup", onPointerEvent);
     htmlCanvas.removeEventListener("pointerout", onPointerEvent);
     htmlCanvas.removeEventListener("pointermove", onPointerEvent);
-    htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
     this._nativeEvents.length = 0;
     this._pointerPool.length = 0;
     this._currentPosition = null;
