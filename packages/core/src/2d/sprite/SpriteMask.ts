@@ -37,9 +37,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
 
-  /** About transform. */
-  @deepClone
-  private _pivot: Vector2 = new Vector2(0.5, 0.5);
   @assignmentClone
   private _width: number = 1;
   @assignmentClone
@@ -52,28 +49,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @assignmentClone
   private _alphaCutoff: number = 0.5;
 
-  /** Dirty flag. */
   @ignoreClone
   private _dirtyFlag: number = 0;
   @ignoreClone
   private _spriteChangeFlag: ListenerUpdateFlag = null;
-
-  /**
-   * Location of the sprite's center point in the rectangle region, specified in normalized.
-   * The origin is at the bottom left and the default value is (0.5, 0.5).
-   */
-  get pivot(): Vector2 {
-    return this._pivot;
-  }
-
-  set pivot(value: Vector2) {
-    const pivot = this._pivot;
-    const { x, y } = value;
-    if (pivot === value || pivot.x !== x || pivot.y !== y) {
-      pivot.set(x, y);
-    }
-    this._setDirtyFlagTrue(DirtyFlag.Position);
-  }
 
   /**
    * Render width.
@@ -85,7 +64,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set width(val: number) {
     if (this._width !== val) {
       this._width = val;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._dirtyFlag |= DirtyFlag.Position;
     }
   }
 
@@ -99,7 +78,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set height(val: number) {
     if (this._height !== val) {
       this._height = val;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._dirtyFlag |= DirtyFlag.Position;
     }
   }
 
@@ -113,7 +92,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._dirtyFlag |= DirtyFlag.Position;
     }
   }
 
@@ -127,7 +106,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._dirtyFlag |= DirtyFlag.Position;
     }
   }
 
@@ -151,7 +130,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
           this.width = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
           this.height = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
         }
-        this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
+        this._dirtyFlag |= DirtyFlag.All;
       } else {
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
       }
@@ -188,7 +167,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
    * @inheritdoc
    */
   _onDestroy(): void {
-    this._pivot = null;
     this._sprite = null;
     this._renderData = null;
     this._spriteChangeFlag && this._spriteChangeFlag.destroy();
@@ -205,16 +183,16 @@ export class SpriteMask extends Renderer implements ICustomClone {
       return;
     }
     // Update position.
-    if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
+    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       SimpleSpriteAssembler.updatePositions(this);
-      this._setDirtyFlagFalse(DirtyFlag.Position);
+      this._dirtyFlag &= ~DirtyFlag.Position;
       this._transformChangeFlag.flag = false;
     }
 
     // Update uv.
-    if (this._isContainDirtyFlag(DirtyFlag.UV)) {
+    if (this._dirtyFlag & DirtyFlag.UV) {
       SimpleSpriteAssembler.updateUVs(this);
-      this._setDirtyFlagFalse(DirtyFlag.UV);
+      this._dirtyFlag &= ~DirtyFlag.UV;
     }
 
     const spriteMaskElementPool = this._engine._spriteMaskElementPool;
@@ -228,9 +206,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
    * The bounding volume of the spriteRenderer.
    */
   get bounds(): BoundingBox {
-    if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
+    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       SimpleSpriteAssembler.updatePositions(this);
-      this._setDirtyFlagFalse(DirtyFlag.Position);
+      this._dirtyFlag &= ~DirtyFlag.Position;
       this._transformChangeFlag.flag = false;
     }
     return this._bounds;
@@ -252,23 +230,11 @@ export class SpriteMask extends Renderer implements ICustomClone {
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlas:
-        this._setDirtyFlagTrue(DirtyFlag.Position | DirtyFlag.UV);
+        this._dirtyFlag |= DirtyFlag.All;
         break;
       default:
         break;
     }
-  }
-
-  private _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  private _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
-  }
-
-  private _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
   }
 }
 

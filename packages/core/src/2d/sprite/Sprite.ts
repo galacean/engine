@@ -195,7 +195,7 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getPixelWidth(): number {
-    this._isContainDirtyFlag(DirtyFlag.size) && this._updateSize();
+    this._dirtyFlag & DirtyFlag.size && this._updateSize();
     return this._pixelWidth;
   }
 
@@ -203,7 +203,7 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getPixelHeight(): number {
-    this._isContainDirtyFlag(DirtyFlag.size) && this._updateSize();
+    this._dirtyFlag & DirtyFlag.size && this._updateSize();
     return this._pixelHeight;
   }
 
@@ -211,7 +211,7 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getPositions(): Vector2[] {
-    this._isContainDirtyFlag(DirtyFlag.positions) && this._updatePositions();
+    this._dirtyFlag & DirtyFlag.positions && this._updatePositions();
     return this._positions;
   }
 
@@ -219,7 +219,7 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getUVs(): Vector2[] {
-    this._isContainDirtyFlag(DirtyFlag.uvs) && this._updateUVs();
+    this._dirtyFlag & DirtyFlag.uvs && this._updateUVs();
     return this._uvs;
   }
 
@@ -227,7 +227,7 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getBounds(): BoundingBox {
-    this._isContainDirtyFlag(DirtyFlag.positions) && this._updatePositions();
+    this._dirtyFlag & DirtyFlag.positions && this._updatePositions();
     return this._bounds;
   }
 
@@ -248,7 +248,7 @@ export class Sprite extends RefObject {
       this._pixelHeight =
         ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) * _region.height;
     }
-    this._setDirtyFlagFalse(DirtyFlag.size);
+    this._dirtyFlag &= ~DirtyFlag.size;
   }
 
   private _updatePositions() {
@@ -276,7 +276,7 @@ export class Sprite extends RefObject {
     const { min, max } = this._bounds;
     min.set(left, bottom, 0);
     max.set(right, top, 0);
-    this._setDirtyFlagFalse(DirtyFlag.positions);
+    this._dirtyFlag &= ~DirtyFlag.positions;
   }
 
   private _updateUVs() {
@@ -308,15 +308,7 @@ export class Sprite extends RefObject {
     );
     // Right-Top
     uv[3].set(right, top);
-    this._setDirtyFlagFalse(DirtyFlag.uvs);
-  }
-
-  private _isContainDirtyFlag(type: DirtyFlag): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  private _setDirtyFlagFalse(type: DirtyFlag): void {
-    this._dirtyFlag &= ~type;
+    this._dirtyFlag &= ~DirtyFlag.uvs;
   }
 
   private _dispatchSpriteChange(type: SpritePropertyDirtyFlag): void {

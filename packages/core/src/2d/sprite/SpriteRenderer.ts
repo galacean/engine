@@ -83,7 +83,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           break;
       }
       this._assembler.resetData(this);
-      this._setDirtyFlagTrue(DirtyFlag.All);
+      this._dirtyFlag |= DirtyFlag.All;
     }
   }
 
@@ -106,7 +106,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           this.width = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
           this.height = value._getPixelHeight() / SpriteRenderer._pixelPerUnit;
         }
-        this._setDirtyFlagTrue(DirtyFlag.All);
+        this._dirtyFlag |= DirtyFlag.All;
       }
       this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
     }
@@ -135,7 +135,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set width(val: number) {
     if (this._width !== val) {
       this._width = val;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._dirtyFlag |= DirtyFlag.Position;
     }
   }
 
@@ -149,7 +149,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set height(val: number) {
     if (this._height !== val) {
       this._height = val;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._dirtyFlag |= DirtyFlag.Position;
     }
   }
 
@@ -163,7 +163,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._dirtyFlag |= DirtyFlag.Position;
     }
   }
 
@@ -177,7 +177,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._setDirtyFlagTrue(DirtyFlag.Position);
+      this._dirtyFlag |= DirtyFlag.Position;
     }
   }
 
@@ -185,9 +185,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * The bounding volume of the spriteRenderer.
    */
   get bounds(): BoundingBox {
-    if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
+    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       this._assembler.updatePositions(this);
-      this._setDirtyFlagFalse(DirtyFlag.Position);
+      this._dirtyFlag &= ~DirtyFlag.Position;
       this._transformChangeFlag.flag = false;
     }
     return this._bounds;
@@ -238,16 +238,16 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
 
     // Update position.
-    if (this._transformChangeFlag.flag || this._isContainDirtyFlag(DirtyFlag.Position)) {
+    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       this._assembler.updatePositions(this);
-      this._setDirtyFlagFalse(DirtyFlag.Position);
+      this._dirtyFlag &= ~DirtyFlag.Position;
       this._transformChangeFlag.flag = false;
     }
 
     // Update uv.
-    if (this._isContainDirtyFlag(DirtyFlag.UV)) {
+    if (this._dirtyFlag & DirtyFlag.UV) {
       this._assembler.updateUVs(this);
-      this._setDirtyFlagFalse(DirtyFlag.UV);
+      this._dirtyFlag &= ~DirtyFlag.UV;
     }
 
     // Push primitive.
@@ -310,30 +310,18 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
         break;
       case SpritePropertyDirtyFlag.border:
-        this._drawMode === SpriteDrawMode.Sliced && this._setDirtyFlagTrue(DirtyFlag.All);
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.All);
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlas:
-        this._setDirtyFlagTrue(DirtyFlag.All);
+        this._dirtyFlag |= DirtyFlag.All;
         break;
       case SpritePropertyDirtyFlag.pivot:
-        this._setDirtyFlagTrue(DirtyFlag.Position);
+        this._dirtyFlag |= DirtyFlag.Position;
         break;
       default:
         break;
     }
-  }
-
-  private _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  private _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
-  }
-
-  private _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
   }
 }
 
