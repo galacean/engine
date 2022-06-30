@@ -1,13 +1,13 @@
 import {
-  resourceLoader,
-  Loader,
   AssetPromise,
   AssetType,
+  Loader,
   LoadItem,
+  resourceLoader,
   ResourceManager,
-  Texture2D,
   Sprite,
-  SpriteAtlas
+  SpriteAtlas,
+  Texture2D
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
 import { Rect, Vector2 } from "@oasis-engine/math";
@@ -56,12 +56,12 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 const sprite = new Sprite(
                   engine,
                   texture,
-                  region ? tempRect.setValue(region.x, region.y, region.w, region.h) : undefined,
-                  pivot ? tempVec2.setValue(pivot.x, pivot.y) : undefined,
+                  region ? tempRect.set(region.x, region.y, region.w, region.h) : undefined,
+                  pivot ? tempVec2.set(pivot.x, pivot.y) : undefined,
                   undefined,
                   atlasSprite.name
                 );
-                sprite.atlasRegion.setValue(
+                sprite.atlasRegion.set(
                   atlasRegion.x * sourceWidthReciprocal,
                   atlasRegion.y * sourceHeightReciprocal,
                   atlasRegion.w * sourceWidthReciprocal,
@@ -70,7 +70,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 atlasSprite.atlasRotated && (sprite.atlasRotated = true);
                 if (atlasRegionOffset) {
                   const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
-                  sprite.atlasRegionOffset.setValue(
+                  sprite.atlasRegionOffset.set(
                     offsetLeft * sourceWidthReciprocal,
                     offsetTop * sourceHeightReciprocal,
                     offsetRight * sourceWidthReciprocal,

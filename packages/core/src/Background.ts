@@ -92,24 +92,24 @@ export class Background {
 
     switch (this._textureFillMode) {
       case BackgroundTextureFillMode.Fill:
-        positions[0].setValue(-1, -1, 1);
-        positions[1].setValue(1, -1, 1);
-        positions[2].setValue(-1, 1, 1);
-        positions[3].setValue(1, 1, 1);
+        positions[0].set(-1, -1, 1);
+        positions[1].set(1, -1, 1);
+        positions[2].set(-1, 1, 1);
+        positions[3].set(1, 1, 1);
         break;
       case BackgroundTextureFillMode.AspectFitWidth:
         const fitWidthScale = (this._texture.height * width) / this.texture.width / height;
-        positions[0].setValue(-1, -fitWidthScale, 1);
-        positions[1].setValue(1, -fitWidthScale, 1);
-        positions[2].setValue(-1, fitWidthScale, 1);
-        positions[3].setValue(1, fitWidthScale, 1);
+        positions[0].set(-1, -fitWidthScale, 1);
+        positions[1].set(1, -fitWidthScale, 1);
+        positions[2].set(-1, fitWidthScale, 1);
+        positions[3].set(1, fitWidthScale, 1);
         break;
       case BackgroundTextureFillMode.AspectFitHeight:
         const fitHeightScale = (this._texture.width * height) / this.texture.height / width;
-        positions[0].setValue(-fitHeightScale, -1, 1);
-        positions[1].setValue(fitHeightScale, -1, 1);
-        positions[2].setValue(-fitHeightScale, 1, 1);
-        positions[3].setValue(fitHeightScale, 1, 1);
+        positions[0].set(-fitHeightScale, -1, 1);
+        positions[1].set(fitHeightScale, -1, 1);
+        positions[2].set(-fitHeightScale, 1, 1);
+        positions[3].set(fitHeightScale, 1, 1);
         break;
     }
     _backgroundTextureMesh.setPositions(positions);

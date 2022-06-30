@@ -116,12 +116,12 @@ export class SpriteSliced {
       const rowU = spriteUVs[i].x;
       for (let j = 0; j < 4; j++) {
         const columnValue = column[j];
-        positions[vertexCount].setValue(
+        positions[vertexCount].set(
           wE[0] * rowValue + wE[4] * columnValue + wE[12],
           wE[1] * rowValue + wE[5] * columnValue + wE[13],
           wE[2] * rowValue + wE[6] * columnValue + wE[14]
         );
-        uvs[vertexCount].setValue(rowU, spriteUVs[j].y);
+        uvs[vertexCount].set(rowU, spriteUVs[j].y);
         ++vertexCount;
       }
       ++realICount;
@@ -145,8 +145,8 @@ export class SpriteSliced {
 
     // Update bounds.
     const { min, max } = renderer._bounds;
-    min.setValue(row[0], column[0], 0);
-    max.setValue(row[3], column[3], 0);
+    min.set(row[0], column[0], 0);
+    max.set(row[3], column[3], 0);
     renderer._bounds.transform(worldMatrix);
   }
 

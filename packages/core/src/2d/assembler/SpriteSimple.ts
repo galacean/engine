@@ -57,28 +57,28 @@ export class SpriteSimple {
     const [left, bottom, right, top] = renderer.sprite.edges;
     const { positions } = renderer._renderData;
     // Left-Bottom.
-    positions[0].setValue(
+    positions[0].set(
       wE[0] * left + wE[4] * bottom + wE[12],
       wE[1] * left + wE[5] * bottom + wE[13],
       wE[2] * left + wE[6] * bottom + wE[14]
     );
 
     // Right-Bottom.
-    positions[1].setValue(
+    positions[1].set(
       wE[0] * right + wE[4] * bottom + wE[12],
       wE[1] * right + wE[5] * bottom + wE[13],
       wE[2] * right + wE[6] * bottom + wE[14]
     );
 
     // Left-Top.
-    positions[2].setValue(
+    positions[2].set(
       wE[0] * left + wE[4] * top + wE[12],
       wE[1] * left + wE[5] * top + wE[13],
       wE[2] * left + wE[6] * top + wE[14]
     );
 
     // Right-Top.
-    positions[3].setValue(
+    positions[3].set(
       wE[0] * right + wE[4] * top + wE[12],
       wE[1] * right + wE[5] * top + wE[13],
       wE[2] * right + wE[6] * top + wE[14]
@@ -86,8 +86,8 @@ export class SpriteSimple {
 
     // Update bounds.
     const { min, max } = renderer._bounds;
-    min.setValue(left, bottom, 0);
-    max.setValue(right, top, 0);
+    min.set(left, bottom, 0);
+    max.set(right, top, 0);
     renderer._bounds.transform(worldMatrix);
   }
 
@@ -96,9 +96,9 @@ export class SpriteSimple {
     const renderUVs = renderer._renderData.uvs;
     const { x: left, y: bottom } = spriteUVs[0];
     const { x: right, y: top } = spriteUVs[3];
-    renderUVs[0].setValue(left, bottom);
-    renderUVs[1].setValue(right, bottom);
-    renderUVs[2].setValue(left, top);
-    renderUVs[3].setValue(right, top);
+    renderUVs[0].set(left, bottom);
+    renderUVs[1].set(right, bottom);
+    renderUVs[2].set(left, top);
+    renderUVs[3].set(right, top);
   }
 }

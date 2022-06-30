@@ -5,14 +5,14 @@
 uniform vec4 u_baseColor;
 uniform float u_alphaCutoff;
 
-#ifdef O3_BASE_TEXTURE
+#ifdef BASETEXTURE
     uniform sampler2D u_baseTexture;
 #endif
 
 void main() {
      vec4 baseColor = u_baseColor;
 
-    #ifdef O3_BASE_TEXTURE
+    #ifdef BASETEXTURE
         vec4 textureColor = texture2D(u_baseTexture, v_uv);
         #ifndef OASIS_COLORSPACE_GAMMA
             textureColor = gammaToLinear(textureColor);

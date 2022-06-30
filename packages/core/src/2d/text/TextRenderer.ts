@@ -1,14 +1,18 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
-import { Sprite, SpriteMaskInteraction, SpriteMaskLayer, SpriteRenderer } from "..";
-import { CompareFunction, Renderer, UpdateFlag } from "../..";
 import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
+import { Renderer } from "../../Renderer";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Texture2D } from "../../texture";
 import { FontStyle } from "../enums/FontStyle";
+import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
+import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
+import { Sprite } from "../sprite/Sprite";
+import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { Font } from "./Font";
 import { TextUtils } from "./TextUtils";
 
@@ -71,7 +75,7 @@ export class TextRenderer extends Renderer {
 
   set color(value: Color) {
     if (this._color !== value) {
-      value.cloneTo(this._color);
+      this._color.copyFrom(value);
     }
   }
 
@@ -377,10 +381,10 @@ export class TextRenderer extends Renderer {
     const { pixelsPerUnit, pivot } = sprite;
     switch (horizontalAlignment) {
       case TextHorizontalAlignment.Left:
-        pivot.x = (this.width * pixelsPerUnit) / width * 0.5;
+        pivot.x = ((this.width * pixelsPerUnit) / width) * 0.5;
         break;
       case TextHorizontalAlignment.Right:
-        pivot.x = 1 - (this.width * pixelsPerUnit) / width * 0.5;
+        pivot.x = 1 - ((this.width * pixelsPerUnit) / width) * 0.5;
         break;
       case TextHorizontalAlignment.Center:
         pivot.x = 0.5;
@@ -388,10 +392,10 @@ export class TextRenderer extends Renderer {
     }
     switch (verticalAlignment) {
       case TextVerticalAlignment.Top:
-        pivot.y = 1 - (this.height * pixelsPerUnit) / height * 0.5;
+        pivot.y = 1 - ((this.height * pixelsPerUnit) / height) * 0.5;
         break;
       case TextVerticalAlignment.Bottom:
-        pivot.y = (this.height * pixelsPerUnit) / height * 0.5;
+        pivot.y = ((this.height * pixelsPerUnit) / height) * 0.5;
         break;
       case TextVerticalAlignment.Center:
         pivot.y = 0.5;
@@ -442,7 +446,7 @@ export class TextRenderer extends Renderer {
     const { _positions } = this;
     for (let i = 0, n = _positions.length; i < n; i++) {
       const curVertexPos = localPositions[i];
-      localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
+      localVertexPos.set(curVertexPos.x, curVertexPos.y, 0);
       Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
     }
   }

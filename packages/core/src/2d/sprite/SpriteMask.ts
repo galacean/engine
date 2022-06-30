@@ -1,5 +1,4 @@
 import { BoundingBox, Vector2, Vector3 } from "@oasis-engine/math";
-import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
@@ -9,7 +8,6 @@ import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
-import { UpdateFlag } from "../../UpdateFlag";
 import { IAssembler } from "../assembler/IAssembler";
 import { SpriteSimple } from "../assembler/SpriteSimple";
 import { SpriteSliced } from "../assembler/SpriteSliced";
@@ -79,7 +77,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
     const pivot = this._pivot;
     const { x, y } = value;
     if (pivot === value || pivot.x !== x || pivot.y !== y) {
-      pivot.setValue(x, y);
+      pivot.set(x, y);
     }
     this._setDirtyFlagTrue(DirtyFlag.Position);
   }

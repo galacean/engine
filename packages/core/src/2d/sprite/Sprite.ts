@@ -77,7 +77,7 @@ export class Sprite extends RefObject {
   set atlasRegion(value: Rect) {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    this._atlasRegion.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
+    this._atlasRegion.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
   }
 
@@ -91,7 +91,7 @@ export class Sprite extends RefObject {
   set atlasRegionOffset(value: Vector4) {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    this._atlasRegionOffset.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
+    this._atlasRegionOffset.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
     this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
   }
 
@@ -106,7 +106,7 @@ export class Sprite extends RefObject {
     const region = this._region;
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    region.setValue(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
+    region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
   }
 
@@ -125,7 +125,7 @@ export class Sprite extends RefObject {
     } else {
       const { x, y } = value;
       if (pivot.x !== x || pivot.y !== y) {
-        pivot.setValue(x, y);
+        pivot.set(x, y);
         this._dispatchSpriteChange(SpritePropertyDirtyFlag.pivot);
       }
     }
@@ -145,7 +145,7 @@ export class Sprite extends RefObject {
     const border = this._border;
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
-    border.setValue(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
+    border.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
     this._dispatchSpriteChange(SpritePropertyDirtyFlag.border);
   }
 
@@ -200,9 +200,9 @@ export class Sprite extends RefObject {
   ) {
     super(engine);
     this._texture = texture;
-    region && region.cloneTo(this._region);
-    pivot && pivot.cloneTo(this._pivot);
-    border && border.cloneTo(this._border);
+    region && region.copyFrom(this._region);
+    pivot && pivot.copyFrom(this._pivot);
+    border && border.copyFrom(this._border);
     this.name = name;
   }
 
@@ -213,6 +213,9 @@ export class Sprite extends RefObject {
   clone(): Sprite {
     const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._pivot, this._border, this.name);
     cloneSprite._assetID = this._assetID;
+    cloneSprite._atlasRotated = this._atlasRotated;
+    cloneSprite._atlasRegion.copyFrom(this._atlasRegion);
+    cloneSprite._atlasRegionOffset.copyFrom(this._atlasRegionOffset);
     return cloneSprite;
   }
 
@@ -277,19 +280,19 @@ export class Sprite extends RefObject {
     const bottom = atlasRegionH + atlasRegionY - Math.max(regionY - offsetBottom, 0) * realHeight;
     const { x: borderLeft, y: borderBottom, z: borderRight, w: borderTop } = this._border;
     // Left-Bottom
-    uv[0].setValue(left, bottom);
+    uv[0].set(left, bottom);
     // Border ( Left-Bottom )
-    uv[1].setValue(
+    uv[1].set(
       (regionX - offsetLeft + borderLeft * regionW) * realWidth + atlasRegionX,
       atlasRegionH + atlasRegionY - (regionY - offsetBottom + borderBottom * regionH) * realHeight
     );
     // Border ( Right-Top )
-    uv[2].setValue(
+    uv[2].set(
       atlasRegionW + atlasRegionX - (regionRight - offsetRight + borderRight * regionW) * realWidth,
       (regionBottom - offsetTop + borderTop * regionH) * realHeight + atlasRegionY
     );
     // Right-Top
-    uv[3].setValue(right, top);
+    uv[3].set(right, top);
     this._setDirtyFlagFalse(DirtyFlag.uvs);
   }
 

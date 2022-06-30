@@ -1,10 +1,11 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 
 /**
  * Describes a 2D-vector.
  */
-export class Vector2 implements IClone {
+export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   /** @internal */
   static readonly _zero = new Vector2(0.0, 0.0);
   /** @internal */
@@ -226,22 +227,9 @@ export class Vector2 implements IClone {
    * @param y - The y component of the vector
    * @returns This vector
    */
-  setValue(x: number, y: number): Vector2 {
+  set(x: number, y: number): Vector2 {
     this._x = x;
     this._y = y;
-    this._onValueChanged && this._onValueChanged();
-    return this;
-  }
-
-  /**
-   * Set the value of this vector by an array.
-   * @param array - The array
-   * @param offset - The start offset of the array
-   * @returns This vector
-   */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector2 {
-    this._x = array[offset];
-    this._y = array[offset + 1];
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -345,16 +333,6 @@ export class Vector2 implements IClone {
   }
 
   /**
-   * Clone the value of this vector to an array.
-   * @param out - The array
-   * @param outOffset - The start offset of the array
-   */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    out[outOffset] = this._x;
-    out[outOffset + 1] = this._y;
-  }
-
-  /**
    * Creates a clone of this vector.
    * @returns A clone of this vector
    */
@@ -363,14 +341,44 @@ export class Vector2 implements IClone {
   }
 
   /**
-   * Clones this vector to the specified vector.
-   * @param out - The specified vector
-   * @returns The specified vector
+   * Copy from vector2 like object.
+   * @param source - Vector2 like object
+   * @returns This vector
    */
-  cloneTo(out: Vector2): Vector2 {
-    out._x = this._x;
-    out._y = this._y;
-    out._onValueChanged && out._onValueChanged();
-    return out;
+  copyFrom(source: Vector2Like): Vector2 {
+    this._x = source.x;
+    this._y = source.y;
+    this._onValueChanged && this._onValueChanged();
+    return this;
   }
+
+  /**
+   * Copy the value of this vector from an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
+   * @returns This vector
+   */
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): Vector2 {
+    this._x = array[offset];
+    this._y = array[offset + 1];
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this vector to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this._x;
+    out[outOffset + 1] = this._y;
+  }
+}
+
+interface Vector2Like {
+  /** {@inheritDoc Vector2.x} */
+  x: number;
+  /** {@inheritDoc Vector2.y} */
+  y: number;
 }

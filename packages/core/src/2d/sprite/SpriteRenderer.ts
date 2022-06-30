@@ -129,7 +129,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   set color(value: Color) {
     if (this._color !== value) {
-      value.cloneTo(this._color);
+      this._color.copyFrom(value);
     }
   }
 

@@ -47,7 +47,7 @@ class EnvLoader extends Loader<AmbientLight> {
           const sh = new SphericalHarmonics3();
 
           ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
-          sh.setValueByArray(shArray);
+          sh.copyFromArray(shArray);
           ambientLight.diffuseSphericalHarmonics = sh;
           ambientLight.specularTexture = texture;
           ambientLight.specularTextureDecodeRGBM = true;

@@ -1,4 +1,5 @@
 import { Ray, Vector3 } from "@oasis-engine/math";
+import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
 import { IColliderShape } from "./shape";
 
@@ -35,6 +36,18 @@ export interface IPhysicsManager {
    * @param collider - StaticCollider or DynamicCollider.
    */
   removeCollider(collider: ICollider): void;
+
+  /**
+   * Add ICharacterController into the manager.
+   * @param characterController The Character Controller.
+   */
+  addCharacterController(characterController: ICharacterController): void;
+
+  /**
+   * Remove ICharacterController.
+   * @param characterController The Character Controller.
+   */
+  removeCharacterController(characterController: ICharacterController): void;
 
   /**
    * Call on every frame to update pose of objects.
