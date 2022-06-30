@@ -10,18 +10,16 @@ export class SimpleSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    if (!renderer._renderData) {
-      renderer._renderData = {
-        vertexCount: 4,
-        positions: [new Vector3(), new Vector3(), new Vector3(), new Vector3()],
-        uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
-        triangles: SimpleSpriteAssembler._rectangleTriangles,
-        color: renderer instanceof SpriteRenderer ? renderer.color : null
-      };
-    } else {
-      renderer._renderData.vertexCount = 4;
-      renderer._renderData.triangles = SimpleSpriteAssembler._rectangleTriangles;
+    const { _renderData: renderData } = renderer;
+    const vertexCount = (renderData.vertexCount = 4);
+    const { positions, uvs } = renderData;
+    if (positions.length < vertexCount) {
+      for (let i = positions.length; i < vertexCount; i++) {
+        positions.push(new Vector3());
+        uvs.push(new Vector2());
+      }
     }
+    renderData.triangles = SimpleSpriteAssembler._rectangleTriangles;
   }
 
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}

@@ -8,25 +8,15 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    const vertexCount = 16;
-    if (!renderer._renderData) {
-      renderer._renderData = {
-        vertexCount: vertexCount,
-        positions: [],
-        uvs: [],
-        triangles: [],
-        color: renderer instanceof SpriteRenderer ? renderer.color : null
-      };
-    } else {
-      renderer._renderData.triangles = [];
-    }
-    const { positions, uvs } = renderer._renderData;
-    if (positions.length < vertexCount) {
-      for (let i = positions.length; i < vertexCount; i++) {
+    const { _renderData: renderData } = renderer;
+    const { positions, uvs } = renderData;
+    if (positions.length < 16) {
+      for (let i = positions.length; i < 16; i++) {
         positions.push(new Vector3());
         uvs.push(new Vector2());
       }
     }
+    renderData.triangles = [];
   }
 
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}

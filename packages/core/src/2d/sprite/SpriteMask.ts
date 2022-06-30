@@ -156,6 +156,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._renderData = new RenderData2D(4, [], []);
     SimpleSpriteAssembler.resetData(this);
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);

@@ -3,10 +3,12 @@ import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 /**
  * @internal
  */
-export interface RenderData2D {
-  vertexCount: number;
-  positions: Vector3[];
-  uvs: Vector2[];
-  triangles: number[];
-  color: Color;
+export class RenderData2D {
+  constructor(
+    public vertexCount: number,
+    public positions: Vector3[],
+    public uvs: Vector2[],
+    public triangles: number[] = null,
+    public color: Color = null
+  ) {}
 }

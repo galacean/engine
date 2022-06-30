@@ -28,7 +28,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   /** Conversion of space units to pixel units. */
   static _pixelPerUnit: number = 128;
 
-  /** Render data. */
   /** @internal */
   @ignoreClone
   _renderData: RenderData2D;
@@ -43,9 +42,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
 
-  @assignmentClone
+  @ignoreClone
   private _width: number = undefined;
-  @assignmentClone
+  @ignoreClone
   private _height: number = undefined;
   @assignmentClone
   private _flipX: boolean = false;
@@ -223,6 +222,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
+    this._renderData = new RenderData2D(4, [], [], null, this._color);
     this.drawMode = SpriteDrawMode.Simple;
     this.setMaterial(this._engine._spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
