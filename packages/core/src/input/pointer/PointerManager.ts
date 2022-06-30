@@ -27,13 +27,11 @@ export class PointerManager implements IInput {
   _multiPointerEnabled: boolean = true;
 
   /** @internal */
-  _heldDownMap: number[] = [];
+  _buttons: number = PointerButton.None;
   /** @internal */
   _upMap: number[] = [];
   /** @internal */
   _downMap: number[] = [];
-  /** @internal */
-  _heldDownList: DisorderedArray<PointerButton> = new DisorderedArray();
   /** @internal */
   _downList: DisorderedArray<PointerButton> = new DisorderedArray();
   /** @internal */
@@ -134,8 +132,6 @@ export class PointerManager implements IInput {
     this._currentPosition = null;
     this._currentEnteredEntity = null;
     this._currentPressedEntity = null;
-    this._heldDownMap.length = 0;
-    this._heldDownList.length = 0;
     this._downList.length = 0;
     this._upList.length = 0;
   }
@@ -245,76 +241,56 @@ export class PointerManager implements IInput {
     const {
       _pointers: pointers,
       _keyEventList: keyEventList,
-      _heldDownMap: heldDownMap,
       _upMap: upMap,
       _downMap: downMap,
-      _heldDownList: heldDownList,
       _upList: upList,
       _downList: downList
     } = this;
     let activePointerCount = pointers.length;
-    let delIndex: number;
     const nativeEventsLen = nativeEvents.length;
-    for (let i = 0; i < nativeEventsLen; i++) {
-      const evt = nativeEvents[i];
-      const pointerButton: PointerButton = evt.button | PointerButton.Left;
-      const pointerIndex = this._getIndexByPointerID(evt.pointerId);
-      switch (evt.type) {
-        case "pointerdown":
-          if (pointerIndex === -1) {
-            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Down);
-            activePointerCount++;
-          } else {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Down);
-          }
-          activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
-          downList.add(pointerButton);
-          heldDownMap[pointerButton] = heldDownList.length;
-          heldDownList.add(pointerButton);
-          downMap[pointerButton] = frameCount;
-          break;
-        case "pointerup":
-          if (pointerIndex >= 0) {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Up);
-            activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
-          }
-          delIndex = heldDownMap[pointerButton];
-          console.log("pointerup", pointerButton);
-          if (delIndex != null) {
-            heldDownMap[pointerButton] = null;
-            const swapCode = heldDownList.deleteByIndex(delIndex);
-            swapCode && (heldDownMap[swapCode] = delIndex);
-          }
-          upList.add(pointerButton);
-          upMap[pointerButton] = frameCount;
-          break;
-        case "pointermove":
-          if (pointerIndex === -1) {
-            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Move);
-            activePointerCount++;
-          } else {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Move);
-          }
-          break;
-        case "pointerout":
-          console.log("pointerout", pointerButton);
-          if (pointerIndex >= 0) {
-            this._removePointer(pointerIndex);
-            --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Leave);
-            this._needOverallPointers = true;
-
-            delIndex = heldDownMap[pointerButton];
-            if (delIndex != null) {
-              heldDownMap[pointerButton] = null;
-              const swapCode = heldDownList.deleteByIndex(delIndex);
-              swapCode && (heldDownMap[swapCode] = delIndex);
+    if (nativeEventsLen > 0) {
+      for (let i = 0; i < nativeEventsLen; i++) {
+        const evt = nativeEvents[i];
+        const pointerButton: PointerButton = evt.button | PointerButton.Left;
+        const pointerIndex = this._getIndexByPointerID(evt.pointerId);
+        switch (evt.type) {
+          case "pointerdown":
+            if (pointerIndex === -1) {
+              this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Down);
+              activePointerCount++;
+            } else {
+              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Down);
             }
-          }
-          break;
-        case "pointercancel":
-          console.log("pointercancel", pointerButton);
-          break;
+            activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
+            downList.add(pointerButton);
+            downMap[pointerButton] = frameCount;
+            break;
+          case "pointerup":
+            if (pointerIndex >= 0) {
+              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Up);
+              activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
+            }
+            upList.add(pointerButton);
+            upMap[pointerButton] = frameCount;
+            break;
+          case "pointermove":
+            if (pointerIndex === -1) {
+              this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Move);
+              activePointerCount++;
+            } else {
+              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Move);
+            }
+            break;
+          case "pointerout":
+            if (pointerIndex >= 0) {
+              this._removePointer(pointerIndex);
+              --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Leave);
+              this._needOverallPointers = true;
+            }
+            break;
+        }
       }
+      this._buttons = nativeEvents[nativeEventsLen - 1].buttons;
     }
     const pointerCount = pointers.length;
     if (pointerCount > 0) {
