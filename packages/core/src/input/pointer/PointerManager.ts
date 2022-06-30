@@ -198,7 +198,7 @@ export class PointerManager implements IInput {
     return -1;
   }
 
-  private _addPointer(pointerId: number, x: number, y: number, button: PointerButton, phase: PointerPhase): void {
+  private _addPointer(pointerId: number, x: number, y: number, phase: PointerPhase): void {
     const { _pointers: pointers } = this;
     const lastCount = pointers.length;
     if (lastCount === 0 || this._multiPointerEnabled) {
@@ -216,24 +216,21 @@ export class PointerManager implements IInput {
       }
       pointer._uniqueID = pointerId;
       pointer._needUpdate = true;
-      pointer.button = button;
       pointer.position.set(x, y);
       pointer.phase = phase;
       pointers.splice(i, 0, pointer);
     }
   }
 
-  private _removePointer(pointerIndex: number): PointerButton {
+  private _removePointer(pointerIndex: number): void {
     const leavePointer = this._pointers[pointerIndex];
     leavePointer.phase = PointerPhase.Leave;
-    return leavePointer.button;
   }
 
-  private _updatePointer(pointerIndex: number, x: number, y: number, button: PointerButton, phase: PointerPhase): void {
+  private _updatePointer(pointerIndex: number, x: number, y: number, phase: PointerPhase): void {
     const updatedPointer = this._pointers[pointerIndex];
     updatedPointer.position.set(x, y);
     updatedPointer._needUpdate = true;
-    updatedPointer.button = button;
     updatedPointer.phase = phase;
   }
 
@@ -256,10 +253,10 @@ export class PointerManager implements IInput {
         switch (evt.type) {
           case "pointerdown":
             if (pointerIndex === -1) {
-              this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Down);
+              this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Down);
               activePointerCount++;
             } else {
-              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Down);
+              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down);
             }
             activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
             downList.add(pointerButton);
@@ -267,7 +264,7 @@ export class PointerManager implements IInput {
             break;
           case "pointerup":
             if (pointerIndex >= 0) {
-              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Up);
+              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Up);
               activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
             }
             upList.add(pointerButton);
@@ -275,10 +272,10 @@ export class PointerManager implements IInput {
             break;
           case "pointermove":
             if (pointerIndex === -1) {
-              this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Move);
+              this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Move);
               activePointerCount++;
             } else {
-              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, pointerButton, PointerPhase.Move);
+              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Move);
             }
             break;
           case "pointerout":
