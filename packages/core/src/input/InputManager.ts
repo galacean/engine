@@ -187,9 +187,9 @@ export class InputManager {
   isButtonHeldDown(button?: PointerButton): boolean {
     if (this._initialized) {
       if (button === undefined) {
-        return this._pointerManager._buttons !== PointerButton.None;
+        return this._pointerManager._buttons !== 0;
       } else {
-        return (this._pointerManager._buttons & button) !== 0;
+        return (this._pointerManager._buttons & PointerManager.Buttons[button]) !== 0;
       }
     } else {
       return false;

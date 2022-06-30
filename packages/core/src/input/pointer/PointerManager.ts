@@ -15,6 +15,9 @@ import { Pointer } from "./Pointer";
  * @internal
  */
 export class PointerManager implements IInput {
+  /** Refer to the W3C standards.(https://www.w3.org/TR/uievents/#dom-mouseevent-buttons) */
+  public static Buttons = [0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400];
+
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
   private static _tempHitResult: HitResult = new HitResult();
@@ -27,7 +30,7 @@ export class PointerManager implements IInput {
   _multiPointerEnabled: boolean = true;
 
   /** @internal */
-  _buttons: number = PointerButton.None;
+  _buttons: number = 0x0;
   /** @internal */
   _upMap: number[] = [];
   /** @internal */
