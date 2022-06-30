@@ -1,8 +1,8 @@
 import { IDynamicCollider } from "@oasis-engine/design";
+import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { PhysicsManager } from "./PhysicsManager";
-import { Vector3, Quaternion } from "@oasis-engine/math";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force.
@@ -56,7 +56,7 @@ export class DynamicCollider extends Collider {
 
   set linearVelocity(value: Vector3) {
     if (this._linearVelocity !== value) {
-      value.cloneTo(this._linearVelocity);
+      this._linearVelocity.copyFrom(value);
     }
     (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
@@ -70,7 +70,7 @@ export class DynamicCollider extends Collider {
 
   set angularVelocity(value: Vector3) {
     if (this._angularVelocity !== value) {
-      value.cloneTo(this._angularVelocity);
+      this._angularVelocity.copyFrom(value);
     }
     (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
@@ -96,7 +96,7 @@ export class DynamicCollider extends Collider {
 
   set centerOfMass(value: Vector3) {
     if (this._centerOfMass !== value) {
-      value.cloneTo(this._centerOfMass);
+      this._centerOfMass.copyFrom(value);
     }
     (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
   }
@@ -110,7 +110,7 @@ export class DynamicCollider extends Collider {
 
   set inertiaTensor(value: Vector3) {
     if (this._inertiaTensor !== value) {
-      value.cloneTo(this._inertiaTensor);
+      this._inertiaTensor.copyFrom(value);
     }
     (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
@@ -199,6 +199,9 @@ export class DynamicCollider extends Collider {
     (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
   }
 
+  /**
+   * @internal
+   */
   constructor(entity: Entity) {
     super(entity);
     const { transform } = this.entity;
@@ -268,7 +271,7 @@ export class DynamicCollider extends Collider {
   _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
-    this._nativeCollider.getWorldTransform(worldPosition, worldRotationQuaternion);
+    (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
     transform.worldPosition = worldPosition;
     transform.worldRotationQuaternion = worldRotationQuaternion;
     this._updateFlag.flag = false;

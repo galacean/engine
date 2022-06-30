@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix3x3 } from "./Matrix3x3";
 import { Quaternion } from "./Quaternion";
@@ -7,7 +8,7 @@ import { Vector3 } from "./Vector3";
 /**
  * Represents a 4x4 mathematical matrix.
  */
-export class Matrix implements IClone {
+export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
   private static readonly _tempVec30: Vector3 = new Vector3();
   private static readonly _tempVec31: Vector3 = new Vector3();
   private static readonly _tempVec32: Vector3 = new Vector3();
@@ -846,7 +847,7 @@ export class Matrix implements IClone {
    * @param m44 - column 4, row 4
    * @returns This matrix
    */
-  setValue(
+  set(
     m11: number,
     m12: number,
     m13: number,
@@ -887,105 +888,6 @@ export class Matrix implements IClone {
     e[15] = m44;
 
     return this;
-  }
-
-  /**
-   * Set the value of this matrix by an array.
-   * @param array - The array
-   * @param offset - The start offset of the array
-   * @returns This matrix
-   */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): Matrix {
-    const srce = this.elements;
-    for (let i = 0; i < 16; i++) {
-      srce[i] = array[i + offset];
-    }
-    return this;
-  }
-
-  /**
-   * Clone the value of this matrix to an array.
-   * @param out - The array
-   * @param outOffset - The start offset of the array
-   */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    const e = this.elements;
-
-    out[outOffset] = e[0];
-    out[outOffset + 1] = e[1];
-    out[outOffset + 2] = e[2];
-    out[outOffset + 3] = e[3];
-    out[outOffset + 4] = e[4];
-    out[outOffset + 5] = e[5];
-    out[outOffset + 6] = e[6];
-    out[outOffset + 7] = e[7];
-    out[outOffset + 8] = e[8];
-    out[outOffset + 9] = e[9];
-    out[outOffset + 10] = e[10];
-    out[outOffset + 11] = e[11];
-    out[outOffset + 12] = e[12];
-    out[outOffset + 13] = e[13];
-    out[outOffset + 14] = e[14];
-    out[outOffset + 15] = e[15];
-  }
-
-  /**
-   * Creates a clone of this matrix.
-   * @returns A clone of this matrix
-   */
-  clone(): Matrix {
-    const e = this.elements;
-    let ret = new Matrix(
-      e[0],
-      e[1],
-      e[2],
-      e[3],
-      e[4],
-      e[5],
-      e[6],
-      e[7],
-      e[8],
-      e[9],
-      e[10],
-      e[11],
-      e[12],
-      e[13],
-      e[14],
-      e[15]
-    );
-    return ret;
-  }
-
-  /**
-   * Clones this matrix to the specified matrix.
-   * @param out - The specified matrix
-   * @returns The specified matrix
-   */
-  cloneTo(out: Matrix): Matrix {
-    const e = this.elements;
-    const oe = out.elements;
-
-    oe[0] = e[0];
-    oe[1] = e[1];
-    oe[2] = e[2];
-    oe[3] = e[3];
-
-    oe[4] = e[4];
-    oe[5] = e[5];
-    oe[6] = e[6];
-    oe[7] = e[7];
-
-    oe[8] = e[8];
-    oe[9] = e[9];
-    oe[10] = e[10];
-    oe[11] = e[11];
-
-    oe[12] = e[12];
-    oe[13] = e[13];
-    oe[14] = e[14];
-    oe[15] = e[15];
-
-    return out;
   }
 
   /**
@@ -1064,7 +966,7 @@ export class Matrix implements IClone {
     const m32 = e[9];
     const m33 = e[10];
     const m34 = e[11];
-    translation.setValue(e[12], e[13], e[14]);
+    translation.set(e[12], e[13], e[14]);
 
     const xs = Math.sign(m11 * m12 * m13 * m14) < 0 ? -1 : 1;
     const ys = Math.sign(m21 * m22 * m23 * m24) < 0 ? -1 : 1;
@@ -1073,7 +975,7 @@ export class Matrix implements IClone {
     const sx = xs * Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13);
     const sy = ys * Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23);
     const sz = zs * Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33);
-    scale.setValue(sx, sy, sz);
+    scale.set(sx, sy, sz);
 
     if (
       Math.abs(sx) < MathUtil.zeroTolerance ||
@@ -1158,7 +1060,11 @@ export class Matrix implements IClone {
       m32 = e[9],
       m33 = e[10];
 
-    out.setValue(Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13), Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23), Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33));
+    out.set(
+      Math.sqrt(m11 * m11 + m12 * m12 + m13 * m13),
+      Math.sqrt(m21 * m21 + m22 * m22 + m23 * m23),
+      Math.sqrt(m31 * m31 + m32 * m32 + m33 * m33)
+    );
 
     return out;
   }
@@ -1170,7 +1076,7 @@ export class Matrix implements IClone {
    */
   getTranslation(out: Vector3): Vector3 {
     const e = this.elements;
-    out.setValue(e[12], e[13], e[14]);
+    out.set(e[12], e[13], e[14]);
     return out;
   }
 
@@ -1251,5 +1157,104 @@ export class Matrix implements IClone {
   transpose(): Matrix {
     Matrix.transpose(this, this);
     return this;
+  }
+
+  /**
+   * Creates a clone of this matrix.
+   * @returns A clone of this matrix
+   */
+  clone(): Matrix {
+    const e = this.elements;
+    let ret = new Matrix(
+      e[0],
+      e[1],
+      e[2],
+      e[3],
+      e[4],
+      e[5],
+      e[6],
+      e[7],
+      e[8],
+      e[9],
+      e[10],
+      e[11],
+      e[12],
+      e[13],
+      e[14],
+      e[15]
+    );
+    return ret;
+  }
+
+  /**
+   * Copy this matrix from the specified matrix.
+   * @param source - The specified matrix
+   * @returns This matrix
+   */
+  copyFrom(source: Matrix): Matrix {
+    const e = this.elements;
+    const se = source.elements;
+
+    e[0] = se[0];
+    e[1] = se[1];
+    e[2] = se[2];
+    e[3] = se[3];
+
+    e[4] = se[4];
+    e[5] = se[5];
+    e[6] = se[6];
+    e[7] = se[7];
+
+    e[8] = se[8];
+    e[9] = se[9];
+    e[10] = se[10];
+    e[11] = se[11];
+
+    e[12] = se[12];
+    e[13] = se[13];
+    e[14] = se[14];
+    e[15] = se[15];
+
+    return this;
+  }
+
+  /**
+   * Copy the value of this matrix from an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
+   * @returns This matrix
+   */
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): Matrix {
+    const srce = this.elements;
+    for (let i = 0; i < 16; i++) {
+      srce[i] = array[i + offset];
+    }
+    return this;
+  }
+
+  /**
+   * Copy the value of this matrix to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0): void {
+    const e = this.elements;
+
+    out[outOffset] = e[0];
+    out[outOffset + 1] = e[1];
+    out[outOffset + 2] = e[2];
+    out[outOffset + 3] = e[3];
+    out[outOffset + 4] = e[4];
+    out[outOffset + 5] = e[5];
+    out[outOffset + 6] = e[6];
+    out[outOffset + 7] = e[7];
+    out[outOffset + 8] = e[8];
+    out[outOffset + 9] = e[9];
+    out[outOffset + 10] = e[10];
+    out[outOffset + 11] = e[11];
+    out[outOffset + 12] = e[12];
+    out[outOffset + 13] = e[13];
+    out[outOffset + 14] = e[14];
+    out[outOffset + 15] = e[15];
   }
 }

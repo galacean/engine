@@ -189,7 +189,7 @@ export class WebGLRenderer implements IHardwareRenderer {
 
     if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
       gl.viewport(x, y, width, height);
-      lv.setValue(x, y, width, height);
+      lv.set(x, y, width, height);
     }
   }
 
@@ -219,7 +219,7 @@ export class WebGLRenderer implements IHardwareRenderer {
 
       if (clearColor && (r !== lc.r || g !== lc.g || b !== lc.b || a !== lc.a)) {
         gl.clearColor(r, g, b, a);
-        lc.setValue(r, g, b, a);
+        lc.set(r, g, b, a);
       }
 
       if (targetBlendState.colorWriteMask !== ColorWriteMask.All) {

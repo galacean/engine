@@ -5,13 +5,14 @@
 ![npm-download](https://img.shields.io/npm/dm/oasis-engine)
 [![codecov](https://codecov.io/gh/oasis-engine/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/oasis-engine/engine)
 
-This is a **web-first** and **mobile-first** high-performance real-time development platform. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
+This is a **web-first** and **mobile-first** high-performance real-time interactive engine. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ## Features
 
 - 🖥  &nbsp;**Platform** - Suppport HTML5 and Alipay miniprogram
 - 🔮  &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
 - 🏃  &nbsp;**Animation** - Powerful animation system
+- 🧱  &nbsp;**Physics** - Powerful and easy-to-use physical features
 - 📑  &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
 ## Usage
@@ -75,7 +76,7 @@ Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [贡�
 
 ## Build
 
-If you don't already have Node.js and NPM, go install them. Then, in the folder where you have cloned the repository, install the build dependencies using npm:
+If you don't already have [Node.js v15.0.0+](https://nodejs.org/en/) and NPM, go install them. Then, in the folder where you have cloned the repository, install the build dependencies using npm:
 
 ```sh
 npm run bootstrap

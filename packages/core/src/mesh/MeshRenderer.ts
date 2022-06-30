@@ -8,7 +8,6 @@ import { Entity } from "../Entity";
 import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
-import { UpdateFlag } from "../UpdateFlag";
 
 /**
  * MeshRenderer Component.
@@ -139,8 +138,8 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       const worldMatrix = this._entity.transform.worldMatrix;
       BoundingBox.transform(localBounds, worldMatrix, worldBounds);
     } else {
-      worldBounds.min.setValue(0, 0, 0);
-      worldBounds.max.setValue(0, 0, 0);
+      worldBounds.min.set(0, 0, 0);
+      worldBounds.max.set(0, 0, 0);
     }
   }
 }
