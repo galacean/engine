@@ -97,11 +97,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
-        // Set default size.
-        if (this._width === undefined && this._height === undefined) {
-          this.width = value.width;
-          this.height = value.height;
-        }
         this._dirtyFlag |= DirtyFlag.All;
       }
       this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
@@ -125,12 +120,15 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render width.
    */
   get width(): number {
+    if (this._width === undefined && this._sprite) {
+      this.width = this._sprite.width;
+    }
     return this._width;
   }
 
-  set width(val: number) {
-    if (this._width !== val) {
-      this._width = val;
+  set width(value: number) {
+    if (this._width !== value) {
+      this._width = value;
       this._dirtyFlag |= DirtyFlag.Position;
     }
   }
@@ -139,12 +137,15 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render height.
    */
   get height(): number {
+    if (this._height === undefined && this._sprite) {
+      this.height = this._sprite.height;
+    }
     return this._height;
   }
 
-  set height(val: number) {
-    if (this._height !== val) {
-      this._height = val;
+  set height(value: number) {
+    if (this._height !== value) {
+      this._height = value;
       this._dirtyFlag |= DirtyFlag.Position;
     }
   }
@@ -229,8 +230,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _render(camera: Camera): void {
-    const { sprite } = this;
-    if (!sprite || !sprite.texture) {
+    if (!this.sprite?.texture) {
       return;
     }
 

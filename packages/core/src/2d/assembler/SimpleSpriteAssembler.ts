@@ -5,6 +5,9 @@ import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 @StaticInterfaceImplement<IAssembler>()
+/**
+ * @internal
+ */
 export class SimpleSpriteAssembler {
   static _rectangleTriangles: number[] = [0, 1, 2, 2, 1, 3];
   static _worldMatrix: Matrix = new Matrix();
@@ -25,12 +28,10 @@ export class SimpleSpriteAssembler {
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
-    // Update ModelMatrix.
     const { width, height } = renderer;
     if (width === 0 || height === 0) {
       return;
     }
-
     const { sprite } = renderer;
     const { x: pivotX, y: pivotY } = sprite.pivot;
     // Renderer's worldMatrix;

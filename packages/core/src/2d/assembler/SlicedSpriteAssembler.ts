@@ -5,6 +5,9 @@ import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 @StaticInterfaceImplement<IAssembler>()
+/**
+ * @internal
+ */
 export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
@@ -22,8 +25,11 @@ export class SlicedSpriteAssembler {
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
-    // Update WorldMatrix.
-    const { width, height, sprite } = renderer;
+    const { width, height } = renderer;
+    if (width === 0 || height === 0) {
+      return;
+    }
+    const { sprite } = renderer;
     const { positions, uvs, triangles } = renderer._renderData;
     const { border } = sprite;
     const spriteUVs = sprite._getUVs();
