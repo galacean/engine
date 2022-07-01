@@ -33,19 +33,19 @@ export class SimpleSpriteAssembler {
 
     const { sprite } = renderer;
     const { x: pivotX, y: pivotY } = sprite.pivot;
-    const { _worldMatrix: worldMatrix } = SimpleSpriteAssembler;
-    // Parent's worldMatrix.
-    const { elements: pE } = renderer.entity.transform.worldMatrix;
     // Renderer's worldMatrix;
+    const { _worldMatrix: worldMatrix } = SimpleSpriteAssembler;
     const { elements: wE } = worldMatrix;
+    // Parent's worldMatrix.
+    const { elements: pWE } = renderer.entity.transform.worldMatrix;
     const sx = renderer.flipX ? -width : width;
     const sy = renderer.flipY ? -height : height;
-    (wE[0] = pE[0] * sx), (wE[1] = pE[1] * sx), (wE[2] = pE[2] * sx);
-    (wE[4] = pE[4] * sy), (wE[5] = pE[5] * sy), (wE[6] = pE[6] * sy);
-    (wE[8] = pE[8]), (wE[9] = pE[9]), (wE[10] = pE[10]);
-    wE[12] = pE[12] - pivotX * wE[0] - pivotY * wE[4];
-    wE[13] = pE[13] - pivotX * wE[1] - pivotY * wE[5];
-    wE[14] = pE[14];
+    (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);
+    (wE[4] = pWE[4] * sy), (wE[5] = pWE[5] * sy), (wE[6] = pWE[6] * sy);
+    (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);
+    wE[12] = pWE[12] - pivotX * wE[0] - pivotY * wE[4];
+    wE[13] = pWE[13] - pivotX * wE[1] - pivotY * wE[5];
+    wE[14] = pWE[14];
 
     // ---------------
     //  2 - 3

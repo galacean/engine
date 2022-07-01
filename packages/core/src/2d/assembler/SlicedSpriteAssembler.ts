@@ -77,19 +77,19 @@ export class SlicedSpriteAssembler {
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
     const localTransY = renderer.height * pivotY;
-    const { _worldMatrix: worldMatrix } = SlicedSpriteAssembler;
-    // Parent's worldMatrix.
-    const { elements: pE } = renderer.entity.transform.worldMatrix;
     // Renderer's worldMatrix.
+    const { _worldMatrix: worldMatrix } = SlicedSpriteAssembler;
     const { elements: wE } = worldMatrix;
+    // Parent's worldMatrix.
+    const { elements: pWE } = renderer.entity.transform.worldMatrix;
     const sx = renderer.flipX ? -1 : 1;
     const sy = renderer.flipY ? -1 : 1;
-    (wE[0] = pE[0] * sx), (wE[1] = pE[1] * sx), (wE[2] = pE[2] * sx);
-    (wE[4] = pE[4] * sy), (wE[5] = pE[5] * sy), (wE[6] = pE[6] * sy);
-    (wE[8] = pE[8]), (wE[9] = pE[9]), (wE[10] = pE[10]);
-    wE[12] = pE[12] - localTransX * wE[0] - localTransY * wE[4];
-    wE[13] = pE[13] - localTransX * wE[1] - localTransY * wE[5];
-    wE[14] = pE[14];
+    (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);
+    (wE[4] = pWE[4] * sy), (wE[5] = pWE[5] * sy), (wE[6] = pWE[6] * sy);
+    (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);
+    wE[12] = pWE[12] - localTransX * wE[0] - localTransY * wE[4];
+    wE[13] = pWE[13] - localTransX * wE[1] - localTransY * wE[5];
+    wE[14] = pWE[14];
 
     // ------------------------
     //  3 - 7 - 11 - 15
@@ -135,7 +135,6 @@ export class SlicedSpriteAssembler {
     renderer._renderData.vertexCount = realICount * realJCount;
     triangles.length = (realICount - 1) * (realJCount - 1) * 6;
 
-    // Update bounds.
     const { min, max } = renderer._bounds;
     min.set(row[0], column[0], 0);
     max.set(row[3], column[3], 0);

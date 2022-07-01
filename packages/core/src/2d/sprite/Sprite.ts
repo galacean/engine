@@ -10,8 +10,7 @@ import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
  * 2D sprite.
  */
 export class Sprite extends RefObject {
-  /** Conversion of space units to pixel units. */
-  /** @internal */
+  /** @internal Conversion of space units to pixel units. */
   static _pixelPerUnit: number = 100;
 
   /** The name of sprite. */
@@ -271,15 +270,15 @@ export class Sprite extends RefObject {
     }
   }
 
-  private _updatePositions() {
-    const { x: blankLeft, y: blankTop, z: blankRight, w: blankBottom } = this._atlasRegionOffset;
+  private _updatePositions(): void {
+    const blank = this._atlasRegionOffset;
     const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
     const regionRight = 1 - regionX - regionW;
     const regionBottom = 1 - regionY - regionH;
-    const left = Math.max(blankLeft - regionX, 0) / regionW;
-    const bottom = Math.max(blankBottom - regionY, 0) / regionH;
-    const right = 1 - Math.max(blankRight - regionRight, 0) / regionW;
-    const top = 1 - Math.max(blankTop - regionBottom, 0) / regionH;
+    const left = Math.max(blank.x - regionX, 0) / regionW;
+    const bottom = Math.max(blank.w - regionY, 0) / regionH;
+    const right = 1 - Math.max(blank.z - regionRight, 0) / regionW;
+    const top = 1 - Math.max(blank.y - regionBottom, 0) / regionH;
 
     // Update positions.
     // ---------------
@@ -299,7 +298,7 @@ export class Sprite extends RefObject {
     this._dirtyFlag &= ~DirtyFlag.positions;
   }
 
-  private _updateUVs() {
+  private _updateUVs(): void {
     const { _uvs: uv, _atlasRegionOffset: atlasRegionOffset } = this;
     const { x: regionX, y: regionY, width: regionW, height: regionH } = this._region;
     const regionRight = 1 - regionX - regionW;
