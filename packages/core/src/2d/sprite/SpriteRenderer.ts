@@ -295,7 +295,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag) {
+  private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag): void {
     switch (dirtyFlag) {
       case SpritePropertyDirtyFlag.texture:
         const { _sprite: sprite } = this;

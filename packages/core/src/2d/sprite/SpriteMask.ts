@@ -218,7 +218,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
     target.sprite = this._sprite;
   }
 
-  private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag) {
+  private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag): void {
     switch (dirtyFlag) {
       case SpritePropertyDirtyFlag.texture:
         const { _sprite: sprite } = this;
