@@ -3,8 +3,9 @@
  */
 export enum SpritePropertyDirtyFlag {
   texture = 0x1,
-  region = 0x2,
-  pivot = 0x4,
-  border = 0x8,
-  atlas = 0x10
+  size = 0x2,
+  region = 0x4,
+  pivot = 0x8,
+  border = 0x10,
+  atlas = 0x20
 }

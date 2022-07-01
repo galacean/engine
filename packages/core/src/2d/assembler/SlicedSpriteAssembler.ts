@@ -31,8 +31,7 @@ export class SlicedSpriteAssembler {
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
-    const expectWidth = sprite._getPixelWidth() / SpriteRenderer._pixelPerUnit;
-    const expectHeight = sprite._getPixelHeight() / SpriteRenderer._pixelPerUnit;
+    const { width: expectWidth, height: expectHeight } = sprite;
     const fixedLeft = expectWidth * border.x;
     const fixedBottom = expectHeight * border.y;
     const fixedRight = expectHeight * border.z;

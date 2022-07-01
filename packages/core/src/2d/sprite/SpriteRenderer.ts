@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
@@ -24,9 +24,6 @@ import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 export class SpriteRenderer extends Renderer implements ICustomClone {
   /** @internal */
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
-  /** @internal */
-  /** Conversion of space units to pixel units. */
-  static _pixelPerUnit: number = 128;
 
   /** @internal */
   @ignoreClone
@@ -102,8 +99,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this._spriteChangeFlag.listener = this._onSpriteChange;
         // Set default size.
         if (value.texture && this._width === undefined && this._height === undefined) {
-          this.width = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
-          this.height = value._getPixelHeight() / SpriteRenderer._pixelPerUnit;
+          this.width = value.width;
+          this.height = value.height;
         }
         this._dirtyFlag |= DirtyFlag.All;
       }
@@ -304,10 +301,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         const { _sprite: sprite } = this;
         const { texture } = sprite;
         if (texture && this._width === undefined && this._height === undefined) {
-          this.width = sprite._getPixelWidth() / SpriteRenderer._pixelPerUnit;
-          this.height = sprite._getPixelHeight() / SpriteRenderer._pixelPerUnit;
+          this.width = sprite.width;
+          this.height = sprite.height;
         }
         this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
+        break;
+      case SpritePropertyDirtyFlag.size:
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.Position);
         break;
       case SpritePropertyDirtyFlag.border:
         this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.All);

@@ -10,14 +10,18 @@ import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
  * 2D sprite.
  */
 export class Sprite extends RefObject {
+  /** Conversion of space units to pixel units. */
+  /** @internal */
+  static _pixelPerUnit: number = 100;
+
   /** The name of sprite. */
   name: string;
 
   /** @internal temp solution. */
   _assetID: number;
 
-  private _pixelWidth: number;
-  private _pixelHeight: number;
+  private _width: number = undefined;
+  private _height: number = undefined;
 
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
@@ -46,6 +50,38 @@ export class Sprite extends RefObject {
     if (this._texture !== value) {
       this._texture = value;
       this._dispatchSpriteChange(SpritePropertyDirtyFlag.texture);
+    }
+  }
+
+  /**
+   * The width of the sprite (in 3D world coordinates).
+   * @defaultValue Obtained by calling the function '_calDefaultSize'
+   */
+  get width(): number {
+    this._height === undefined && this._calDefaultSize();
+    return this._width;
+  }
+
+  set width(val: number) {
+    if (this._width !== val) {
+      this._width = val;
+      this._dispatchSpriteChange(SpritePropertyDirtyFlag.size);
+    }
+  }
+
+  /**
+   * The height of the sprite (in 3D world coordinates).
+   * @defaultValue Obtained by calling the function '_calDefaultSize'
+   */
+  get height(): number {
+    this._height === undefined && this._calDefaultSize();
+    return this._height;
+  }
+
+  set height(val: number) {
+    if (this._height !== val) {
+      this._height = val;
+      this._dispatchSpriteChange(SpritePropertyDirtyFlag.size);
     }
   }
 
@@ -194,22 +230,6 @@ export class Sprite extends RefObject {
   /**
    * @internal
    */
-  _getPixelWidth(): number {
-    this._dirtyFlag & DirtyFlag.size && this._updateSize();
-    return this._pixelWidth;
-  }
-
-  /**
-   * @internal
-   */
-  _getPixelHeight(): number {
-    this._dirtyFlag & DirtyFlag.size && this._updateSize();
-    return this._pixelHeight;
-  }
-
-  /**
-   * @internal
-   */
   _getPositions(): Vector2[] {
     this._dirtyFlag & DirtyFlag.positions && this._updatePositions();
     return this._positions;
@@ -240,15 +260,17 @@ export class Sprite extends RefObject {
     }
   }
 
-  private _updateSize(): void {
+  private _calDefaultSize(): void {
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
-      this._pixelWidth =
-        ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width;
-      this._pixelHeight =
-        ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) * _region.height;
+      this.width =
+        (((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width) /
+        Sprite._pixelPerUnit;
+      this.height =
+        (((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
+          _region.height) /
+        Sprite._pixelPerUnit;
     }
-    this._dirtyFlag &= ~DirtyFlag.size;
   }
 
   private _updatePositions() {
@@ -328,8 +350,7 @@ export class Sprite extends RefObject {
 }
 
 enum DirtyFlag {
-  size = 0x1,
-  positions = 0x2,
-  uvs = 0x4,
-  all = 0x7
+  positions = 0x1,
+  uvs = 0x2,
+  all = 0x3
 }

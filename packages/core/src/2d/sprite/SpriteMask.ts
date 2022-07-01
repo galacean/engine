@@ -1,6 +1,6 @@
-import { BoundingBox, Vector2, Vector3 } from "@oasis-engine/math";
+import { BoundingBox } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
@@ -11,7 +11,6 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { RenderData2D } from "../data/RenderData2D";
 import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
-import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
 import { SpriteRenderer } from "./SpriteRenderer";
@@ -37,10 +36,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
 
-  @assignmentClone
-  private _width: number = 1;
-  @assignmentClone
-  private _height: number = 1;
+  @ignoreClone
+  private _width: number = undefined;
+  @ignoreClone
+  private _height: number = undefined;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
@@ -119,21 +118,19 @@ export class SpriteMask extends Renderer implements ICustomClone {
 
   set sprite(value: Sprite | null) {
     if (this._sprite !== value) {
-      this._spriteChangeFlag && this._spriteChangeFlag.destroy();
       this._sprite = value;
+      this._spriteChangeFlag && this._spriteChangeFlag.destroy();
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
-        if (value.texture) {
-          this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
-          // Set default size.
-          this.width = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
-          this.height = value._getPixelWidth() / SpriteRenderer._pixelPerUnit;
+        // Set default size.
+        if (value.texture && this._width === undefined && this._height === undefined) {
+          this.width = value.width;
+          this.height = value.height;
         }
         this._dirtyFlag |= DirtyFlag.All;
-      } else {
-        this.shaderData.setTexture(SpriteMask._textureProperty, null);
       }
+      this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
     }
   }
 
@@ -225,9 +222,13 @@ export class SpriteMask extends Renderer implements ICustomClone {
   private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag) {
     switch (dirtyFlag) {
       case SpritePropertyDirtyFlag.texture:
-        if (this.sprite.texture) {
-          this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
+        const { _sprite: sprite } = this;
+        const { texture } = sprite;
+        if (texture && this._width === undefined && this._height === undefined) {
+          this.width = sprite.width;
+          this.height = sprite.height;
         }
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlas:
