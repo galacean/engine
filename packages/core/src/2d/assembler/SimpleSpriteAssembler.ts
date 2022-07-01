@@ -60,7 +60,6 @@ export class SimpleSpriteAssembler {
       positions[i].set(wE[0] * x + wE[4] * y + wE[12], wE[1] * x + wE[5] * y + wE[13], wE[2] * x + wE[6] * y + wE[14]);
     }
 
-    // Update bounds.
     BoundingBox.transform(sprite._getBounds(), worldMatrix, renderer._bounds);
   }
 
