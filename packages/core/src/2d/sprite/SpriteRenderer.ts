@@ -313,8 +313,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.All);
         break;
       case SpritePropertyDirtyFlag.region:
-      case SpritePropertyDirtyFlag.atlas:
+      case SpritePropertyDirtyFlag.atlasRegionOffset:
         this._dirtyFlag |= DirtyFlag.All;
+        break;
+      case SpritePropertyDirtyFlag.atlasRegion:
+        this._dirtyFlag |= DirtyFlag.UV;
         break;
       case SpritePropertyDirtyFlag.pivot:
         this._dirtyFlag |= DirtyFlag.Position;

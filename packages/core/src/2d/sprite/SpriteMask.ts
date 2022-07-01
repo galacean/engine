@@ -231,8 +231,11 @@ export class SpriteMask extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
         break;
       case SpritePropertyDirtyFlag.region:
-      case SpritePropertyDirtyFlag.atlas:
+      case SpritePropertyDirtyFlag.atlasRegionOffset:
         this._dirtyFlag |= DirtyFlag.All;
+        break;
+      case SpritePropertyDirtyFlag.atlasRegion:
+        this._dirtyFlag |= DirtyFlag.UV;
         break;
       default:
         break;

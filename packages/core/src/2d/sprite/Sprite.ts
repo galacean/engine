@@ -92,7 +92,6 @@ export class Sprite extends RefObject {
   set atlasRotated(value: boolean) {
     if (this._atlasRotated != value) {
       this._atlasRotated = value;
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
     }
   }
 
@@ -107,7 +106,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
+    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlasRegion);
   }
 
   /**
@@ -121,7 +120,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlas);
+    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlasRegionOffset);
   }
 
   /**
@@ -332,10 +331,11 @@ export class Sprite extends RefObject {
 
   private _dispatchSpriteChange(type: SpritePropertyDirtyFlag): void {
     switch (type) {
-      case SpritePropertyDirtyFlag.atlas:
+      case SpritePropertyDirtyFlag.atlasRegionOffset:
       case SpritePropertyDirtyFlag.region:
         this._dirtyFlag |= DirtyFlag.all;
         break;
+      case SpritePropertyDirtyFlag.atlasRegion:
       case SpritePropertyDirtyFlag.border:
         this._dirtyFlag |= DirtyFlag.uvs;
         break;
