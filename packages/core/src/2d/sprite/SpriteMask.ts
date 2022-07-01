@@ -123,7 +123,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
         // Set default size.
-        if (value.texture && this._width === undefined && this._height === undefined) {
+        if (this._width === undefined && this._height === undefined) {
           this.width = value.width;
           this.height = value.height;
         }
@@ -222,12 +222,11 @@ export class SpriteMask extends Renderer implements ICustomClone {
     switch (dirtyFlag) {
       case SpritePropertyDirtyFlag.texture:
         const { _sprite: sprite } = this;
-        const { texture } = sprite;
-        if (texture && this._width === undefined && this._height === undefined) {
+        if (this._width === undefined && this._height === undefined) {
           this.width = sprite.width;
           this.height = sprite.height;
         }
-        this.shaderData.setTexture(SpriteMask._textureProperty, texture);
+        this.shaderData.setTexture(SpriteMask._textureProperty, sprite.texture);
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlasRegionOffset:
