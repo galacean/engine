@@ -59,7 +59,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   private _spriteChangeFlag: ListenerUpdateFlag = null;
 
   /**
-   * The draw mode of the sprite.
+   * The draw mode of the sprite renderer.
    */
   get drawMode(): SpriteDrawMode {
     return this._drawMode;

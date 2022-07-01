@@ -13,7 +13,6 @@ import { RenderData2D } from "../data/RenderData2D";
 import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
-import { SpriteRenderer } from "./SpriteRenderer";
 
 /**
  * A component for masking Sprites.
@@ -130,7 +129,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
         }
         this._dirtyFlag |= DirtyFlag.All;
       }
-      this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
+      this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
     }
   }
 
@@ -228,7 +227,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
           this.width = sprite.width;
           this.height = sprite.height;
         }
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, texture);
+        this.shaderData.setTexture(SpriteMask._textureProperty, texture);
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlasRegionOffset:

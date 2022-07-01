@@ -11,7 +11,7 @@ import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
  */
 export class Sprite extends RefObject {
   /** @internal Conversion of space units to pixel units. */
-  static _pixelPerUnit: number = 100;
+  static _pixelPerUnit: number = 128;
 
   /** The name of sprite. */
   name: string;
