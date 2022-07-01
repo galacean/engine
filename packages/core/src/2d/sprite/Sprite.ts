@@ -54,33 +54,31 @@ export class Sprite extends RefObject {
   }
 
   /**
-   * The width of the sprite (in 3D world coordinates).
-   * @defaultValue Obtained by calling the function '_calDefaultSize'
+   * The width of the sprite (in world coordinates).
    */
   get width(): number {
-    this._height === undefined && this._calDefaultSize();
+    this._width === undefined && this._calDefaultSize();
     return this._width;
   }
 
-  set width(val: number) {
-    if (this._width !== val) {
-      this._width = val;
+  set width(value: number) {
+    if (this._width !== value) {
+      this._width = value;
       this._dispatchSpriteChange(SpritePropertyDirtyFlag.size);
     }
   }
 
   /**
-   * The height of the sprite (in 3D world coordinates).
-   * @defaultValue Obtained by calling the function '_calDefaultSize'
+   * The height of the sprite (in world coordinates).
    */
   get height(): number {
     this._height === undefined && this._calDefaultSize();
     return this._height;
   }
 
-  set height(val: number) {
-    if (this._height !== val) {
-      this._height = val;
+  set height(value: number) {
+    if (this._height !== value) {
+      this._height = value;
       this._dispatchSpriteChange(SpritePropertyDirtyFlag.size);
     }
   }
