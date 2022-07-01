@@ -3,10 +3,14 @@ import { IHingeJoint } from "@oasis-engine/design";
 import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { HingeJointFlag } from "../enums";
+import { DynamicCollider } from "../DynamicCollider";
+import { dependentComponents } from "../../ComponentsDependencies";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
+ * @decorator `@dependentComponents(DynamicCollider)`
  */
+@dependentComponents(DynamicCollider)
 export class HingeJoint extends Joint {
   private _driveVelocity: number = 0;
   private _driveForceLimit: number = 0;
@@ -21,9 +25,9 @@ export class HingeJoint extends Joint {
     return this._driveVelocity;
   }
 
-  set driveVelocity(newValue: number) {
-    this._driveVelocity = newValue;
-    (<IHingeJoint>this._nativeJoint).setDriveVelocity(newValue);
+  set driveVelocity(value: number) {
+    this._driveVelocity = value;
+    (<IHingeJoint>this._nativeJoint).setDriveVelocity(value);
   }
 
   /**
@@ -33,9 +37,9 @@ export class HingeJoint extends Joint {
     return this._driveForceLimit;
   }
 
-  set driveForceLimit(newValue: number) {
-    this._driveForceLimit = newValue;
-    (<IHingeJoint>this._nativeJoint).setDriveForceLimit(newValue);
+  set driveForceLimit(value: number) {
+    this._driveForceLimit = value;
+    (<IHingeJoint>this._nativeJoint).setDriveForceLimit(value);
   }
 
   /**
@@ -45,9 +49,9 @@ export class HingeJoint extends Joint {
     return this._driveGearRatio;
   }
 
-  set driveGearRatio(newValue: number) {
-    this._driveGearRatio = newValue;
-    (<IHingeJoint>this._nativeJoint).setDriveGearRatio(newValue);
+  set driveGearRatio(value: number) {
+    this._driveGearRatio = value;
+    (<IHingeJoint>this._nativeJoint).setDriveGearRatio(value);
   }
 
   /**
@@ -57,9 +61,9 @@ export class HingeJoint extends Joint {
     return this._projectionLinearTolerance;
   }
 
-  set projectionLinearTolerance(newValue: number) {
-    this._projectionLinearTolerance = newValue;
-    (<IHingeJoint>this._nativeJoint).setProjectionLinearTolerance(newValue);
+  set projectionLinearTolerance(value: number) {
+    this._projectionLinearTolerance = value;
+    (<IHingeJoint>this._nativeJoint).setProjectionLinearTolerance(value);
   }
 
   /**
@@ -69,25 +73,20 @@ export class HingeJoint extends Joint {
     return this._projectionAngularTolerance;
   }
 
-  set projectionAngularTolerance(newValue: number) {
-    this._projectionAngularTolerance = newValue;
-    (<IHingeJoint>this._nativeJoint).setProjectionAngularTolerance(newValue);
+  set projectionAngularTolerance(value: number) {
+    this._projectionAngularTolerance = value;
+    (<IHingeJoint>this._nativeJoint).setProjectionAngularTolerance(value);
   }
 
-  constructor(collider0: Collider, collider1: Collider) {
-    super();
-    const jointActor0 = this._jointActor0;
-    const jointActor1 = this._jointActor1;
-    jointActor0._collider = collider0;
-    jointActor1._collider = collider1;
-    this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(
-      collider0?._nativeCollider,
-      jointActor0._localPosition,
-      jointActor0._localRotation,
-      collider1?._nativeCollider,
-      jointActor1._localPosition,
-      jointActor1._localRotation
-    );
+  /**
+   * The connected collider.
+   */
+  get connectedCollider(): DynamicCollider {
+    return this.collider0;
+  }
+
+  set connectedCollider(value: DynamicCollider) {
+    this.collider0 = value;
   }
 
   /**
@@ -118,5 +117,24 @@ export class HingeJoint extends Joint {
    */
   setHingeJointFlag(flag: HingeJointFlag, value: boolean): void {
     (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(flag, value);
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onAwake() {
+    const jointCollider0 = this._jointCollider0;
+    const jointCollider1 = this._jointCollider1;
+    jointCollider0.collider = null;
+    jointCollider1.collider = this.entity.getComponent(DynamicCollider);
+    this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(
+      null,
+      jointCollider0.localPosition,
+      jointCollider0.localRotation,
+      jointCollider1.collider._nativeCollider,
+      jointCollider1.localPosition,
+      jointCollider1.localRotation
+    );
   }
 }

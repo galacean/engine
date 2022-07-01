@@ -11,10 +11,7 @@ import {
   IStaticCollider,
   IFixedJoint,
   IHingeJoint,
-  ISphericalJoint,
   ISpringJoint,
-  ITranslationalJoint,
-  IConfigurableJoint
 } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
@@ -149,20 +146,6 @@ export class LitePhysics {
   }
 
   /**
-   * {@inheritDoc IPhysics.createSphericalJoint }
-   */
-  static createSphericalJoint(
-    actor0: LiteCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: LiteCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): ISphericalJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
-  }
-
-  /**
    * {@inheritDoc IPhysics.createSpringJoint }
    */
   static createSpringJoint(
@@ -173,34 +156,6 @@ export class LitePhysics {
     position1: Vector3,
     rotation1: Quaternion
   ): ISpringJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createTranslationalJoint }
-   */
-  static createTranslationalJoint(
-    actor0: LiteCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: LiteCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): ITranslationalJoint {
-    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
-  }
-
-  /**
-   * {@inheritDoc IPhysics.createConfigurableJoint }
-   */
-  static createConfigurableJoint(
-    actor0: LiteCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: LiteCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): IConfigurableJoint {
     throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
   }
 }

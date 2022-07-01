@@ -1,11 +1,15 @@
 import { Joint } from "./Joint";
 import { IFixedJoint } from "@oasis-engine/design";
-import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
+import { dependentComponents } from "../../ComponentsDependencies";
+import { DynamicCollider } from "../DynamicCollider";
+import { Collider } from "../Collider";
 
 /*
  * A fixed joint permits no relative movement between two bodies. ie the bodies are glued together.
+ * @decorator `@dependentComponents(DynamicCollider)`
  */
+@dependentComponents(DynamicCollider)
 export class FixedJoint extends Joint {
   private _projectionLinearTolerance: number = 0;
   private _projectionAngularTolerance: number = 0;
@@ -17,8 +21,8 @@ export class FixedJoint extends Joint {
     return this._projectionLinearTolerance;
   }
 
-  set projectionLinearTolerance(newValue: number) {
-    this._projectionLinearTolerance = newValue;
+  set projectionLinearTolerance(value: number) {
+    this._projectionLinearTolerance = value;
     (<IFixedJoint>this._nativeJoint).setProjectionLinearTolerance(this._projectionLinearTolerance);
   }
 
@@ -29,24 +33,38 @@ export class FixedJoint extends Joint {
     return this._projectionAngularTolerance;
   }
 
-  set projectionAngularTolerance(newValue: number) {
-    this._projectionAngularTolerance = newValue;
+  set projectionAngularTolerance(value: number) {
+    this._projectionAngularTolerance = value;
     (<IFixedJoint>this._nativeJoint).setProjectionAngularTolerance(this._projectionAngularTolerance);
   }
 
-  constructor(collider0: Collider, collider1: Collider) {
-    super();
-    const jointActor0 = this._jointActor0;
-    const jointActor1 = this._jointActor1;
-    jointActor0._collider = collider0;
-    jointActor1._collider = collider1;
+  /**
+   * The connected collider.
+   */
+  get connectedCollider(): DynamicCollider {
+    return this.collider0;
+  }
+
+  set connectedCollider(value: DynamicCollider) {
+    this.collider0 = value;
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onAwake() {
+    const jointCollider0 = this._jointCollider0;
+    const jointCollider1 = this._jointCollider1;
+    jointCollider0.collider = null;
+    jointCollider1.collider = this.entity.getComponent(DynamicCollider);
     this._nativeJoint = PhysicsManager._nativePhysics.createFixedJoint(
-      collider0?._nativeCollider,
-      jointActor0._localPosition,
-      jointActor0._localRotation,
-      collider1?._nativeCollider,
-      jointActor1._localPosition,
-      jointActor1._localRotation
+      null,
+      jointCollider0.localPosition,
+      jointCollider0.localRotation,
+      jointCollider1.collider._nativeCollider,
+      jointCollider1.localPosition,
+      jointCollider1.localRotation
     );
   }
 }

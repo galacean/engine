@@ -3,10 +3,14 @@ import { ISpringJoint } from "@oasis-engine/design";
 import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { SpringJointFlag } from "../enums";
+import { DynamicCollider } from "../DynamicCollider";
+import { dependentComponents } from "../../ComponentsDependencies";
 
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
+ * @decorator `@dependentComponents(DynamicCollider)`
  */
+@dependentComponents(DynamicCollider)
 export class SpringJoint extends Joint {
   private _minDistance: number = 0;
   private _maxDistance: number = 0;
@@ -21,9 +25,9 @@ export class SpringJoint extends Joint {
     return this._minDistance;
   }
 
-  set minDistance(newValue: number) {
-    this._minDistance = newValue;
-    (<ISpringJoint>this._nativeJoint).setMinDistance(newValue);
+  set minDistance(value: number) {
+    this._minDistance = value;
+    (<ISpringJoint>this._nativeJoint).setMinDistance(value);
   }
 
   /**
@@ -33,9 +37,9 @@ export class SpringJoint extends Joint {
     return this._maxDistance;
   }
 
-  set maxDistance(newValue: number) {
-    this._maxDistance = newValue;
-    (<ISpringJoint>this._nativeJoint).setMaxDistance(newValue);
+  set maxDistance(value: number) {
+    this._maxDistance = value;
+    (<ISpringJoint>this._nativeJoint).setMaxDistance(value);
   }
 
   /**
@@ -45,9 +49,9 @@ export class SpringJoint extends Joint {
     return this._tolerance;
   }
 
-  set tolerance(newValue: number) {
-    this._tolerance = newValue;
-    (<ISpringJoint>this._nativeJoint).setTolerance(newValue);
+  set tolerance(value: number) {
+    this._tolerance = value;
+    (<ISpringJoint>this._nativeJoint).setTolerance(value);
   }
 
   /**
@@ -57,9 +61,9 @@ export class SpringJoint extends Joint {
     return this._stiffness;
   }
 
-  set stiffness(newValue: number) {
-    this._stiffness = newValue;
-    (<ISpringJoint>this._nativeJoint).setStiffness(newValue);
+  set stiffness(value: number) {
+    this._stiffness = value;
+    (<ISpringJoint>this._nativeJoint).setStiffness(value);
   }
 
   /**
@@ -69,25 +73,20 @@ export class SpringJoint extends Joint {
     return this._damping;
   }
 
-  set damping(newValue: number) {
-    this._damping = newValue;
-    (<ISpringJoint>this._nativeJoint).setDamping(newValue);
+  set damping(value: number) {
+    this._damping = value;
+    (<ISpringJoint>this._nativeJoint).setDamping(value);
   }
 
-  constructor(collider0: Collider, collider1: Collider) {
-    super();
-    const jointActor0 = this._jointActor0;
-    const jointActor1 = this._jointActor1;
-    jointActor0._collider = collider0;
-    jointActor1._collider = collider1;
-    this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(
-      collider0?._nativeCollider,
-      jointActor0._localPosition,
-      jointActor0._localRotation,
-      collider1?._nativeCollider,
-      jointActor1._localPosition,
-      jointActor1._localRotation
-    );
+  /**
+   * The connected collider.
+   */
+  get connectedCollider(): DynamicCollider {
+    return this.collider0;
+  }
+
+  set connectedCollider(value: DynamicCollider) {
+    this.collider0 = value;
   }
 
   /**
@@ -97,5 +96,24 @@ export class SpringJoint extends Joint {
    */
   setDistanceJointFlag(flag: SpringJointFlag, value: boolean): void {
     (<ISpringJoint>this._nativeJoint).setDistanceJointFlag(flag, value);
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onAwake() {
+    const jointCollider0 = this._jointCollider0;
+    const jointCollider1 = this._jointCollider1;
+    jointCollider0.collider = null;
+    jointCollider1.collider = this.entity.getComponent(DynamicCollider);
+    this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(
+      null,
+      jointCollider0.localPosition,
+      jointCollider0.localRotation,
+      jointCollider1.collider._nativeCollider,
+      jointCollider1.localPosition,
+      jointCollider1.localRotation
+    );
   }
 }

@@ -6,14 +6,7 @@ import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
 import { ICharacterController } from "./ICharacterController";
-import {
-  IConfigurableJoint,
-  IFixedJoint,
-  IHingeJoint,
-  ISphericalJoint,
-  ISpringJoint,
-  ITranslationalJoint
-} from "./joints";
+import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
 
 /**
  * The interface of physics creation.
@@ -128,15 +121,6 @@ export interface IPhysics {
     rotation1: Quaternion
   ): IHingeJoint;
 
-  createSphericalJoint(
-    actor0: ICollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: ICollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): ISphericalJoint;
-
   createSpringJoint(
     actor0: ICollider,
     position0: Vector3,
@@ -145,22 +129,4 @@ export interface IPhysics {
     position1: Vector3,
     rotation1: Quaternion
   ): ISpringJoint;
-
-  createTranslationalJoint(
-    actor0: ICollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: ICollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): ITranslationalJoint;
-
-  createConfigurableJoint(
-    actor0: ICollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: ICollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): IConfigurableJoint;
 }
