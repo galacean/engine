@@ -1,10 +1,10 @@
 import { Joint } from "./Joint";
 import { IHingeJoint } from "@oasis-engine/design";
-import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { HingeJointFlag } from "../enums";
 import { DynamicCollider } from "../DynamicCollider";
 import { dependentComponents } from "../../ComponentsDependencies";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
@@ -79,14 +79,36 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * The connected collider.
+   * The anchor position.
    */
-  get connectedCollider(): DynamicCollider {
-    return this.collider0;
+  get anchorPosition(): Vector3 {
+    const position = new Vector3();
+    if (this.collider0) {
+      Vector3.add(this.collider0.entity.transform.worldPosition, this.localPosition0, position);
+    } else {
+      position.copyFrom(this.localPosition0);
+    }
+    return position;
   }
 
-  set connectedCollider(value: DynamicCollider) {
-    this.collider0 = value;
+  /**
+   * Set the anchor location.
+   * @param position - The world position of anchor location.
+   */
+  setConnectedLocation(position: Vector3): void;
+
+  /**
+   * Set the anchor location.
+   * @param relativePosition - The local position of anchor location.
+   * @param collider - The collider.
+   */
+  setConnectedLocation(relativePosition: Vector3, collider: DynamicCollider): void;
+
+  setConnectedLocation(relativePosition: Vector3, collider?: DynamicCollider): void {
+    if (collider) {
+      this.collider0 = collider;
+    }
+    this.localPosition0 = relativePosition;
   }
 
   /**

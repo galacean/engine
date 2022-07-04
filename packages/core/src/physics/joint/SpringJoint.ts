@@ -1,10 +1,10 @@
 import { Joint } from "./Joint";
 import { ISpringJoint } from "@oasis-engine/design";
-import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { SpringJointFlag } from "../enums";
 import { DynamicCollider } from "../DynamicCollider";
 import { dependentComponents } from "../../ComponentsDependencies";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
@@ -79,14 +79,43 @@ export class SpringJoint extends Joint {
   }
 
   /**
-   * The connected collider.
+   * The anchor collider.
    */
-  get connectedCollider(): DynamicCollider {
+  get anchorCollider(): DynamicCollider {
     return this.collider0;
   }
 
-  set connectedCollider(value: DynamicCollider) {
-    this.collider0 = value;
+  /**
+   * The anchor position.
+   */
+  get anchorPosition(): Vector3 {
+    const position = new Vector3();
+    if (this.collider0) {
+      Vector3.add(this.collider0.entity.transform.worldPosition, this.localPosition0, position);
+    } else {
+      position.copyFrom(this.localPosition0);
+    }
+    return position;
+  }
+
+  /**
+   * Set the anchor location.
+   * @param position - The world position of anchor location.
+   */
+  setConnectedLocation(position: Vector3): void;
+
+  /**
+   * Set the anchor location.
+   * @param relativePosition - The local position of anchor location.
+   * @param collider - The collider.
+   */
+  setConnectedLocation(relativePosition: Vector3, collider: DynamicCollider): void;
+
+  setConnectedLocation(relativePosition: Vector3, collider?: DynamicCollider): void {
+    if (collider) {
+      this.collider0 = collider;
+    }
+    this.localPosition0 = relativePosition;
   }
 
   /**
