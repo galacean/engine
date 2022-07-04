@@ -33,11 +33,4 @@ export interface ISpringJoint extends IJoint {
    * @param damping the degree of damping of the joint spring of the joint
    */
   setDamping(damping: number): void;
-
-  /**
-   * Set a single flag specific to a Distance Joint to true or false.
-   * @param flag The flag to set or clear.
-   * @param value the value to which to set the flag
-   */
-  setDistanceJointFlag(flag: number, value: boolean): void;
 }

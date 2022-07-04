@@ -86,18 +86,4 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   setRevoluteJointFlag(flag: number, value: boolean): void {
     this._pxJoint.setRevoluteJointFlag(flag, value);
   }
-
-  /**
-   * {@inheritDoc IHingeJoint.setProjectionLinearTolerance }
-   */
-  setProjectionLinearTolerance(tolerance: number): void {
-    this._pxJoint.setProjectionLinearTolerance(tolerance);
-  }
-
-  /**
-   * {@inheritDoc IHingeJoint.setProjectionAngularTolerance }
-   */
-  setProjectionAngularTolerance(tolerance: number): void {
-    this._pxJoint.setProjectionAngularTolerance(tolerance);
-  }
 }

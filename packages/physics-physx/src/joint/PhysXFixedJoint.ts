@@ -26,18 +26,4 @@ export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
       rotation1
     );
   }
-
-  /**
-   * {@inheritDoc IFixedJoint.setProjectionLinearTolerance }
-   */
-  setProjectionLinearTolerance(tolerance: number): void {
-    this._pxJoint.setProjectionLinearTolerance(tolerance);
-  }
-
-  /**
-   * {@inheritDoc IFixedJoint.setProjectionAngularTolerance }
-   */
-  setProjectionAngularTolerance(tolerance: number): void {
-    this._pxJoint.setProjectionAngularTolerance(tolerance);
-  }
 }

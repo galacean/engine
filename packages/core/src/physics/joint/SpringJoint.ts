@@ -1,7 +1,6 @@
 import { Joint } from "./Joint";
 import { ISpringJoint } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
-import { SpringJointFlag } from "../enums";
 import { Collider } from "../Collider";
 import { dependentComponents } from "../../ComponentsDependencies";
 import { Vector3 } from "@oasis-engine/math";
@@ -14,10 +13,48 @@ import { Vector3 } from "@oasis-engine/math";
 export class SpringJoint extends Joint {
   private _minDistance: number = 0;
   private _maxDistance: number = 0;
-  private _tolerance: number = 0;
+  private _tolerance: number = 0.25;
   private _stiffness: number = 0;
   private _damping: number = 0;
   private _swingOffset: Vector3 = new Vector3();
+
+  /**
+   * The swing offset.
+   */
+  get swingOffset(): Vector3 {
+    return this._swingOffset;
+  }
+
+  set swingOffset(value: Vector3) {
+    if (value !== this._swingOffset) {
+      this._swingOffset.copyFrom(value);
+    }
+    this.localPosition1 = value;
+  }
+
+  /**
+   * The connected collider.
+   */
+  get connectedCollider(): Collider {
+    return this.collider0;
+  }
+
+  set connectedCollider(value: Collider) {
+    this.collider0 = value;
+  }
+
+  /**
+   * The connected anchor position.
+   * @note If connectedCollider is set, this anchor is relative offset.
+   * Or the anchor is world anchor position.
+   */
+  get connectedAnchor(): Vector3 {
+    return this.localPosition0;
+  }
+
+  set connectedAnchor(value: Vector3) {
+    this.localPosition0 = value;
+  }
 
   /**
    * The minimum distance.
@@ -77,53 +114,6 @@ export class SpringJoint extends Joint {
   set damping(value: number) {
     this._damping = value;
     (<ISpringJoint>this._nativeJoint).setDamping(value);
-  }
-
-  /**
-   * The swing offset.
-   */
-  get swingOffset(): Vector3 {
-    return this._swingOffset;
-  }
-
-  set swingOffset(value: Vector3) {
-    if (value !== this._swingOffset) {
-      this._swingOffset.copyFrom(value);
-    }
-    this.localPosition1 = value;
-  }
-
-  /**
-   * The connected collider.
-   */
-  get connectedCollider(): Collider {
-    return this.collider0;
-  }
-
-  set connectedCollider(value: Collider) {
-    this.collider0 = value;
-  }
-
-  /**
-   * The connected anchor position.
-   * @note If connectedCollider is set, this anchor is relative offset.
-   * Or the anchor is world anchor position.
-   */
-  get connectedAnchor(): Vector3 {
-    return this.localPosition0;
-  }
-
-  set connectedAnchor(value: Vector3) {
-    this.localPosition0 = value;
-  }
-
-  /**
-   * Set a single flag specific to a Distance Joint to true or false.
-   * @param flag The flag to set or clear.
-   * @param value the value to which to set the flag
-   */
-  setDistanceJointFlag(flag: SpringJointFlag, value: boolean): void {
-    (<ISpringJoint>this._nativeJoint).setDistanceJointFlag(flag, value);
   }
 
   /**

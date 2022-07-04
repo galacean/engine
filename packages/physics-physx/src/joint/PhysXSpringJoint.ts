@@ -25,6 +25,9 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
       position1,
       rotation1
     );
+    this._pxJoint.setDistanceJointFlag(1, true); // enable max distance;
+    this._pxJoint.setDistanceJointFlag(2, true); // enable min distance;
+    this._pxJoint.setDistanceJointFlag(4, true); // enable spring;
   }
 
   /**
@@ -60,12 +63,5 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
    */
   setDamping(damping: number): void {
     this._pxJoint.setDamping(damping);
-  }
-
-  /**
-   * {@inheritDoc ISpringJoint.setDistanceJointFlag }
-   */
-  setDistanceJointFlag(flag: number, value: boolean): void {
-    this._pxJoint.setDistanceJointFlag(flag, value);
   }
 }

@@ -24,9 +24,6 @@ export class HingeJoint extends Joint {
   private _jointMonitor: JointMotor;
   private _jointLimits: JointLimits;
 
-  private _projectionLinearTolerance: number = 0;
-  private _projectionAngularTolerance: number = 0;
-
   /**
    * The anchor rotation.
    */

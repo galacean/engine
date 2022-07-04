@@ -12,32 +12,6 @@ import { Vector3 } from "@oasis-engine/math";
 @dependentComponents(Collider)
 export class FixedJoint extends Joint {
   private static _offsetVector = new Vector3(1, 0, 0);
-  private _projectionLinearTolerance: number = 0;
-  private _projectionAngularTolerance: number = 0;
-
-  /**
-   * The linear tolerance threshold.
-   */
-  get projectionLinearTolerance(): number {
-    return this._projectionLinearTolerance;
-  }
-
-  set projectionLinearTolerance(value: number) {
-    this._projectionLinearTolerance = value;
-    (<IFixedJoint>this._nativeJoint).setProjectionLinearTolerance(this._projectionLinearTolerance);
-  }
-
-  /**
-   * The angular tolerance threshold in radians.
-   */
-  get projectionAngularTolerance(): number {
-    return this._projectionAngularTolerance;
-  }
-
-  set projectionAngularTolerance(value: number) {
-    this._projectionAngularTolerance = value;
-    (<IFixedJoint>this._nativeJoint).setProjectionAngularTolerance(this._projectionAngularTolerance);
-  }
 
   /**
    * The connected collider.

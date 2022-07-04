@@ -56,16 +56,4 @@ export interface IHingeJoint extends IJoint {
    * @param value the value to which to set the flag
    */
   setRevoluteJointFlag(flag: number, value: boolean): void;
-
-  /**
-   * Set the linear tolerance threshold for projection.
-   * @param tolerance the linear tolerance threshold
-   */
-  setProjectionLinearTolerance(tolerance: number): void;
-
-  /**
-   * Set the angular tolerance threshold for projection.
-   * @param tolerance the angular tolerance threshold in radians
-   */
-  setProjectionAngularTolerance(tolerance: number): void;
 }
