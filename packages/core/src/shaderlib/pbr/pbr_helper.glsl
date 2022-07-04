@@ -21,11 +21,11 @@ void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
 
-    #if defined(O3_NORMAL_TEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE)
+    #if defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE)
         mat3 tbn = getTBN();
     #endif
 
-    #ifdef O3_NORMAL_TEXTURE
+    #ifdef NORMALTEXTURE
         geometry.normal = getNormalByNormalTexture(tbn, u_normalTexture, u_normalIntensity, v_uv);
     #else
         geometry.normal = getNormal();
@@ -49,12 +49,12 @@ void initMaterial(out Material material, const in Geometry geometry){
         vec4 baseColor = u_baseColor;
         float metal = u_metal;
         float roughness = u_roughness;
-        vec3 specularColor = u_specularColor;
+        vec3 specularColor = u_PBRSpecularColor;
         float glossiness = u_glossiness;
         float alphaCutoff = u_alphaCutoff;
 
-        #ifdef HAS_BASECOLORMAP
-            vec4 baseTextureColor = texture2D(u_baseColorSampler, v_uv);
+        #ifdef BASETEXTURE
+            vec4 baseTextureColor = texture2D(u_baseTexture, v_uv);
             #ifndef OASIS_COLORSPACE_GAMMA
                 baseTextureColor = gammaToLinear(baseTextureColor);
             #endif
@@ -72,14 +72,14 @@ void initMaterial(out Material material, const in Geometry geometry){
             }
         #endif
 
-        #ifdef HAS_METALROUGHNESSMAP
-            vec4 metalRoughMapColor = texture2D( u_metallicRoughnessSampler, v_uv );
+        #ifdef ROUGHNESSMETALLICTEXTURE
+            vec4 metalRoughMapColor = texture2D( u_roughnessMetallicTexture, v_uv );
             roughness *= metalRoughMapColor.g;
             metal *= metalRoughMapColor.b;
         #endif
 
-        #ifdef HAS_SPECULARGLOSSINESSMAP
-            vec4 specularGlossinessColor = texture2D(u_specularGlossinessSampler, v_uv );
+        #ifdef SPECULARGLOSSINESSTEXTURE
+            vec4 specularGlossinessColor = texture2D(u_specularGlossinessTexture, v_uv );
             #ifndef OASIS_COLORSPACE_GAMMA
                 specularGlossinessColor = gammaToLinear(specularGlossinessColor);
             #endif

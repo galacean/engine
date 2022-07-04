@@ -42,7 +42,7 @@ export class AnimationClip extends Motion {
   /**
    * @param name - The AnimationClip's name
    */
-  constructor (public readonly name: string) {
+  constructor(public readonly name: string) {
     super();
   }
 
@@ -60,9 +60,8 @@ export class AnimationClip extends Motion {
    */
   addEvent(event: AnimationEvent): void;
 
-
   addEvent(param: AnimationEvent | string, time?: number, parameter?: Object): void {
-    if (typeof param === 'string') {
+    if (typeof param === "string") {
       const event = new AnimationEvent();
       event.functionName = param;
       event.time = time;

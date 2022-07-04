@@ -87,13 +87,13 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     this._upAxis = upAxis;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        this._rotation.setValue(0, 0, 0, 1);
+        this._rotation.set(0, 0, 0, 1);
         break;
       case ColliderShapeUpAxis.Y:
-        this._rotation.setValue(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
+        this._rotation.set(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
         break;
       case ColliderShapeUpAxis.Z:
-        this._rotation.setValue(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
+        this._rotation.set(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
         break;
     }
     this._setLocalPose();
@@ -103,7 +103,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    scale.cloneTo(this._scale);
+    this._scale.copyFrom(scale);
     this._setLocalPose();
 
     switch (this._upAxis) {

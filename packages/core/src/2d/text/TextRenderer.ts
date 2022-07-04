@@ -1,6 +1,4 @@
 import { BoundingBox, Color } from "@oasis-engine/math";
-import { Sprite, SpriteMaskInteraction, SpriteMaskLayer, SpriteRenderer } from "..";
-import { CompareFunction, Renderer } from "../..";
 import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
@@ -14,6 +12,12 @@ import { FontStyle } from "../enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
+import { Renderer } from "../../Renderer";
+import { Sprite } from "../sprite/Sprite";
+import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
+import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
+import { SpriteRenderer } from "../sprite/SpriteRenderer";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
 
 /**
  * Renders a text for 2D graphics.
@@ -77,7 +81,7 @@ export class TextRenderer extends Renderer {
 
   set color(value: Color) {
     if (this._color !== value) {
-      value.cloneTo(this._color);
+      this._color.copyFrom(value);
     }
   }
 
@@ -387,8 +391,8 @@ export class TextRenderer extends Renderer {
     if (this._useCharCache) {
       const bounds = TextRenderer._tempBounds;
       const { min, max } = bounds;
-      min.setValue(0, 0, 0);
-      max.setValue(0, 0, 0);
+      min.set(0, 0, 0);
+      max.set(0, 0, 0);
       const { _charRenderDatas } = this;
       const dataLen = _charRenderDatas.length;
       if (dataLen > 0) {
@@ -410,12 +414,12 @@ export class TextRenderer extends Renderer {
           maxX < maxPos.x && (maxX = maxPos.x);
           maxY < maxPos.y && (maxY = maxPos.y);
         }
-        min.setValue(minX, minY, 0);
-        max.setValue(maxX, maxY, 0);
+        min.set(minX, minY, 0);
+        max.set(maxX, maxY, 0);
       }
       BoundingBox.transform(bounds, worldMatrix, worldBounds);
     } else {
-      BoundingBox.transform(this._sprite.bounds, worldMatrix, worldBounds);
+      BoundingBox.transform(this._sprite._getBounds(), worldMatrix, worldBounds);
     }
   }
 
@@ -446,17 +450,7 @@ export class TextRenderer extends Renderer {
   private _drawPrimitive(camera: Camera, renderData: RenderData2D, texture: Texture2D): void {
     const spriteElementPool = this._engine._spriteElementPool;
     const spriteElement = spriteElementPool.getFromPool();
-    const { positions, triangles, uvs, color } = renderData;
-    spriteElement.setValue(
-      this,
-      positions,
-      uvs,
-      triangles,
-      color,
-      texture,
-      this.getMaterial(),
-      camera
-    );
+    spriteElement.setValue(this, renderData, this.getMaterial(), texture);
     camera._renderPipeline.pushPrimitive(spriteElement);
   }
 }

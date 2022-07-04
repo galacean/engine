@@ -1,4 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
+import { Engine } from "../../Engine";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
@@ -63,7 +64,7 @@ export class CharAssembler {
   private static _updateText(renderer: TextRenderer): void {
     const { color, fontSize, fontStyle, horizontalAlignment, verticalAlignment, _charRenderDatas } = renderer;
     const { name } = renderer.font;
-    const { _pixelsPerUnit } = TextUtils;
+    const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
     const fontHash = TextUtils.getNativeFontHash(name, fontSize, fontStyle);
     const rendererWidth = renderer.width * _pixelsPerUnit;
@@ -139,17 +140,17 @@ export class CharAssembler {
           const v0 = y * textureSizeReciprocal;
           const v1 = (y + h) * textureSizeReciprocal;
           // Top-left.
-          localPositions[0].setValue(left, top, 0);
-          uvs[0].setValue(u0, v0);
+          localPositions[0].set(left, top, 0);
+          uvs[0].set(u0, v0);
           // Top-right.
-          localPositions[1].setValue(right, top, 0);
-          uvs[1].setValue(u1, v0);
+          localPositions[1].set(right, top, 0);
+          uvs[1].set(u1, v0);
           // Bottom-right.
-          localPositions[2].setValue(right, bottom, 0);
-          uvs[2].setValue(u1, v1);
+          localPositions[2].set(right, bottom, 0);
+          uvs[2].set(u1, v1);
           // Bottom-left.
-          localPositions[3].setValue(left, bottom, 0);
-          uvs[3].setValue(u0, v1);
+          localPositions[3].set(left, bottom, 0);
+          uvs[3].set(u0, v1);
 
           _charRenderDatas.push(charRenderData);
         }
@@ -170,7 +171,7 @@ export class CharAssembler {
     const lines = new Array<string>();
     const lineWidths = new Array<number>();
     const lineMaxSizes = new Array<FontSizeInfo>();
-    const { _pixelsPerUnit } = TextUtils;
+    const { _pixelsPerUnit } = Engine;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
     const wrapWidth = renderer.width * _pixelsPerUnit;
     let width = 0;
@@ -256,7 +257,7 @@ export class CharAssembler {
     const lineCount = lines.length;
     const lineWidths = new Array<number>();
     const lineMaxSizes = new Array<FontSizeInfo>();
-    const { _pixelsPerUnit } = TextUtils;
+    const { _pixelsPerUnit } = Engine;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
     let width = 0;
     let height = renderer.height * _pixelsPerUnit;

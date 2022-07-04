@@ -1,7 +1,8 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 
 // A 2d rectangle defined by x and y position, width and height.
-export class Rect implements IClone {
+export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
   /** The x coordinate of the rectangle. */
   public x: number;
   /** The y coordinate of the rectangle. */
@@ -33,7 +34,7 @@ export class Rect implements IClone {
    * @param height - The height of the rectangle, measured from the y position
    * @returns This rectangle
    */
-  setValue(x: number, y: number, width: number, height: number): Rect {
+  set(x: number, y: number, width: number, height: number): Rect {
     this.x = x;
     this.y = y;
     this.width = width;
@@ -50,15 +51,15 @@ export class Rect implements IClone {
   }
 
   /**
-   * Clones this rect to the specified rect.
-   * @param out - The specified rect
-   * @returns The specified rect
+   * Copy this rect from the specified rect.
+   * @param source - The specified rect
+   * @returns This rect
    */
-  cloneTo(out: Rect): Rect {
-    out.x = this.x;
-    out.y = this.y;
-    out.width = this.width;
-    out.height = this.height;
-    return out;
+  copyFrom(source: Rect): Rect {
+    this.x = source.x;
+    this.y = source.y;
+    this.width = source.width;
+    this.height = source.height;
+    return this;
   }
 }

@@ -1,36 +1,18 @@
-import { Color, Vector2, Vector3 } from "@oasis-engine/math";
-import { Camera } from "../Camera";
+import { RenderData2D } from "../2d/data/RenderData2D";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { Texture2D } from "../texture";
 
 export class SpriteElement {
   component: Renderer;
-  positions: Vector3[];
-  uv: Vector2[];
-  triangles: number[];
-  color: Color;
-  texture: Texture2D;
+  renderData: RenderData2D;
   material: Material;
-  camera: Camera;
+  texture: Texture2D;
 
-  setValue(
-    component: Renderer,
-    positions: Vector3[],
-    uv: Vector2[],
-    triangles: number[],
-    color: Color,
-    texture: Texture2D,
-    material: Material,
-    camera: Camera
-  ): void {
+  setValue(component: Renderer, renderDate: RenderData2D, material: Material, texture: Texture2D = null): void {
     this.component = component;
-    this.positions = positions;
-    this.uv = uv;
-    this.triangles = triangles;
-    this.color = color;
-    this.texture = texture;
+    this.renderData = renderDate;
     this.material = material;
-    this.camera = camera;
+    this.texture = texture;
   }
 }

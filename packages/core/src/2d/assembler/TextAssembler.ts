@@ -1,5 +1,7 @@
 import { Color, Vector2, Vector3 } from "@oasis-engine/math";
+import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
+import { RenderData2D } from "../data/RenderData2D";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
@@ -24,10 +26,14 @@ export class TextAssembler {
     positions[1] = new Vector3();
     positions[2] = new Vector3();
     positions[3] = new Vector3();
-    triangles[0] = 0, triangles[1] = 2, triangles[2] = 1;
-    triangles[3] = 2, triangles[4] = 0, triangles[5] = 3;
+    uvs[0] = new Vector2();
+    uvs[1] = new Vector2();
+    uvs[2] = new Vector2();
+    uvs[3] = new Vector2();
+    triangles[0] = 0, triangles[1] = 1, triangles[2] = 2;
+    triangles[3] = 2, triangles[4] = 1, triangles[5] = 3;
 
-    renderer._renderData = { positions, uvs, triangles, color, vertexCount: 4, texture: null };
+    renderer._renderData = new RenderData2D(4, positions, uvs, triangles, color);
   }
 
   static updateData(renderer: TextRenderer): void {
@@ -37,6 +43,7 @@ export class TextAssembler {
       renderer._setDirtyFlagFalse(DirtyFlag.Property);
     }
 
+    debugger;
     if (renderer._isWorldMatrixDirty.flag || isTextureDirty) {
       TextAssembler._updatePosition(renderer);
       renderer._isWorldMatrixDirty.flag = false;
@@ -54,14 +61,18 @@ export class TextAssembler {
   }
 
   private static _updatePosition(renderer: TextRenderer): void {
-    const localPositions = renderer._sprite._positions;
+    const { _sprite } = renderer;
+    const { width, height, pivot } = _sprite;
+    const localPositions = _sprite._getPositions();
     const localVertexPos = TextAssembler._tempVec3;
     const worldMatrix = renderer.entity.transform.worldMatrix;
 
     const { positions: _positions } = renderer._renderData;
     for (let i = 0, n = _positions.length; i < n; i++) {
       const curVertexPos = localPositions[i];
-      localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
+      curVertexPos.x = (curVertexPos.x - pivot.x) * width;
+      curVertexPos.y = (curVertexPos.y - pivot.y) * height;
+      localVertexPos.set(curVertexPos.x, curVertexPos.y, 0);
       Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
     }
   }
@@ -91,7 +102,7 @@ export class TextAssembler {
     overflowMode: OverflowMode,
     fontString: string
   ): TextMetrics {
-    const { _pixelsPerUnit } = TextUtils;
+    const  { _pixelsPerUnit }  = Engine;
     const fontSize = TextUtils.measureFont(fontString).size;
     const context = TextUtils.textContext().context;
     const lines = TextAssembler._wordWrap(text, originWidth, enableWrapping, fontString);
@@ -175,7 +186,8 @@ export class TextAssembler {
     const { _sprite: sprite, horizontalAlignment, verticalAlignment } = renderer;
 
     // Handle the case that width or height of text is larger than real width or height.
-    const { pixelsPerUnit, pivot } = sprite;
+    const { _pixelsPerUnit: pixelsPerUnit } = Engine;
+    const { pivot } = sprite;
     switch (horizontalAlignment) {
       case TextHorizontalAlignment.Left:
         pivot.x = (renderer.width * pixelsPerUnit) / width * 0.5;
@@ -208,8 +220,7 @@ export class TextAssembler {
       sprite.texture = texture;
     }
     // Update sprite data.
-    sprite._updateMesh();
-    renderer._renderData.uvs = sprite._uv;
+    TextAssembler._updateUVs(renderer);
   }
 
   private static _wordWrap(text: string, width: number, enableWrapping: boolean, fontString: string): Array<string> {
@@ -296,5 +307,16 @@ export class TextAssembler {
         out.x = (width - lineWidth) * 0.5;
         break;
     }
+  }
+
+  private static _updateUVs(renderer: TextRenderer): void {
+    const spriteUVs = renderer._sprite._getUVs();
+    const renderUVs = renderer._renderData.uvs;
+    const { x: left, y: bottom } = spriteUVs[0];
+    const { x: right, y: top } = spriteUVs[3];
+    renderUVs[0].set(left, bottom);
+    renderUVs[1].set(right, bottom);
+    renderUVs[2].set(left, top);
+    renderUVs[3].set(right, top);
   }
 }

@@ -7,3 +7,4 @@ export function StaticInterfaceImplement<T>() {
     constructor;
   };
 }
+

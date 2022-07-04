@@ -143,7 +143,7 @@ export class BlendState {
       const blendColor = this.blendColor;
       if (!Color.equals(lastState.blendColor, blendColor)) {
         gl.blendColor(blendColor.r, blendColor.g, blendColor.b, blendColor.a);
-        blendColor.cloneTo(lastState.blendColor);
+        lastState.blendColor.copyFrom(blendColor);
       }
     }
 

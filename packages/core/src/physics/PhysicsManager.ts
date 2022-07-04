@@ -140,7 +140,7 @@ export class PhysicsManager {
   set gravity(value: Vector3) {
     const gravity = this._gravity;
     if (gravity !== value) {
-      value.cloneTo(gravity);
+      gravity.copyFrom(value);
     }
     this._nativePhysicsManager.setGravity(gravity);
   }
@@ -250,8 +250,8 @@ export class PhysicsManager {
       const result = this._nativePhysicsManager.raycast(ray, distance, (idx, distance, position, normal) => {
         hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
         hitResult.distance = distance;
-        normal.cloneTo(hitResult.normal);
-        position.cloneTo(hitResult.point);
+        hitResult.normal.copyFrom(normal);
+        hitResult.point.copyFrom(position);
       });
 
       if (result) {
@@ -260,8 +260,8 @@ export class PhysicsManager {
         } else {
           hitResult.entity = null;
           hitResult.distance = 0;
-          hitResult.point.setValue(0, 0, 0);
-          hitResult.normal.setValue(0, 0, 0);
+          hitResult.point.set(0, 0, 0);
+          hitResult.normal.set(0, 0, 0);
           return false;
         }
       }

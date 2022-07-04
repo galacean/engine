@@ -44,6 +44,8 @@ ShaderPool.init();
 export class Engine extends EventDispatcher {
   /** @internal */
   static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+  /** @internal Conversion of space units to pixel units. */
+  static _pixelsPerUnit: number = 128;
 
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;

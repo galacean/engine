@@ -180,7 +180,7 @@ export class BasicRenderPipeline {
       } else {
         this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
-        if (camera.clearFlags === CameraClearFlags.DepthColor) {
+        if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             this._drawSky(engine, camera, background.sky);
           } else if (background.mode === BackgroundMode.Texture && background.texture) {
@@ -224,7 +224,7 @@ export class BasicRenderPipeline {
       (this._lastCanvasSize.x !== canvas.width || this._lastCanvasSize.y !== canvas.height) &&
       background._textureFillMode !== BackgroundTextureFillMode.Fill
     ) {
-      this._lastCanvasSize.setValue(canvas.width, canvas.height);
+      this._lastCanvasSize.set(canvas.width, canvas.height);
       background._resizeBackgroundTexture();
     }
 
@@ -255,7 +255,7 @@ export class BasicRenderPipeline {
     ShaderMacroCollection.unionCollection(camera._globalShaderMacro, shaderData._macroCollection, compileMacros);
 
     const { viewMatrix, projectionMatrix } = camera;
-    viewMatrix.cloneTo(_matrix);
+    _matrix.copyFrom(viewMatrix);
     const e = _matrix.elements;
     e[12] = e[13] = e[14] = 0;
     Matrix.multiply(projectionMatrix, _matrix, _matrix);

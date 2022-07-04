@@ -160,7 +160,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         if (joints[i]) {
           Matrix.multiply(joints[i].transform.worldMatrix, ibms[i], mat);
         } else {
-          ibms[i].cloneTo(mat);
+          mat.copyFrom(ibms[i]);
         }
         Matrix.multiply(worldToLocal, mat, mat);
         matrixPalette.set(mat.elements, i * 16);
