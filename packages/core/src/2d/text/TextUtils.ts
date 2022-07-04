@@ -59,8 +59,6 @@ export class TextUtils {
     "fangsong"
   ];
   /** These characters are all tall to help calculate the height required for text. */
-  /** @internal */
-  static _pixelsPerUnit: number = 128;
   private static _measureString: string = "|ÉqÅ";
   private static _measureBaseline: string = "M";
   private static _heightMultiplier: number = 2;
