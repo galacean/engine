@@ -3,7 +3,6 @@ export { SpriteMaskLayer } from "./enums/SpriteMaskLayer";
 export { TextHorizontalAlignment, TextVerticalAlignment } from "./enums/TextAlignment";
 export { OverflowMode } from "./enums/TextOverflow";
 export { FontStyle } from "./enums/FontStyle";
-export { FontAtlas } from "./atlas/FontAtlas";
 export { SpriteAtlas } from "./atlas/SpriteAtlas";
 export { SpriteDrawMode } from "./enums/SpriteDrawMode";
 export * from "./sprite/index";

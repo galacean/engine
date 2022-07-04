@@ -2,6 +2,9 @@ import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 
+/**
+ * @internal
+ */
 export interface CharDef {
   x: number,
   y: number,
@@ -12,11 +15,15 @@ export interface CharDef {
   xAdvance: number
 }
 
+/**
+ * @internal
+ */
 export interface CharDefDict {
   [key: string]: CharDef;
 }
 
 /**
+ * @internal
  * Font Atlas.
  */
 export class FontAtlas extends RefObject {
