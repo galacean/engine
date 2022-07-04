@@ -46,7 +46,6 @@ export class TextAssembler {
       renderer._setDirtyFlagFalse(DirtyFlag.Property);
     }
 
-    debugger;
     if (renderer._isWorldMatrixDirty.flag || isTextureDirty) {
       TextAssembler._updatePosition(renderer);
       renderer._isWorldMatrixDirty.flag = false;
