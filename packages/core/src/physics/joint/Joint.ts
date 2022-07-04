@@ -2,7 +2,7 @@ import { IJoint } from "@oasis-engine/design";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 import { ConstraintFlag } from "../enums";
 import { Component } from "../../Component";
-import { DynamicCollider } from "../DynamicCollider";
+import { Collider } from "../Collider";
 
 /**
  * A base class providing common functionality for joints.
@@ -98,11 +98,11 @@ export class Joint extends Component {
   /**
    * The first collider.
    */
-  protected get collider0(): DynamicCollider {
+  protected get collider0(): Collider {
     return this._jointCollider0.collider;
   }
 
-  protected set collider0(value: DynamicCollider) {
+  protected set collider0(value: Collider) {
     this._jointCollider0.collider = value;
     this._nativeJoint.setActors(
       this._jointCollider0.collider?._nativeCollider,
@@ -113,11 +113,11 @@ export class Joint extends Component {
   /**
    * The second collider.
    */
-  protected get collider1(): DynamicCollider {
+  protected get collider1(): Collider {
     return this._jointCollider1.collider;
   }
 
-  protected set collider1(value: DynamicCollider) {
+  protected set collider1(value: Collider) {
     this._jointCollider1.collider = value;
     this._nativeJoint.setActors(
       this._jointCollider0.collider?._nativeCollider,
@@ -135,8 +135,8 @@ export class Joint extends Component {
   protected set localPosition0(value: Vector3) {
     if (value !== this._jointCollider0.localPosition) {
       this._jointCollider0.localPosition.copyFrom(value);
-      this._nativeJoint.setLocalPose(0, this._jointCollider0.localPosition, this._jointCollider0.localRotation);
     }
+    this._nativeJoint.setLocalPose(0, this._jointCollider0.localPosition, this._jointCollider0.localRotation);
   }
 
   /**
@@ -149,8 +149,8 @@ export class Joint extends Component {
   protected set localRotation0(value: Quaternion) {
     if (value !== this._jointCollider0.localRotation) {
       this._jointCollider0.localRotation.copyFrom(value);
-      this._nativeJoint.setLocalPose(0, this._jointCollider0.localPosition, this._jointCollider0.localRotation);
     }
+    this._nativeJoint.setLocalPose(0, this._jointCollider0.localPosition, this._jointCollider0.localRotation);
   }
 
   /**
@@ -163,8 +163,8 @@ export class Joint extends Component {
   protected set localPosition1(value: Vector3) {
     if (value !== this._jointCollider1.localPosition) {
       this._jointCollider1.localPosition.copyFrom(value);
-      this._nativeJoint.setLocalPose(1, this._jointCollider1.localPosition, this._jointCollider1.localRotation);
     }
+    this._nativeJoint.setLocalPose(1, this._jointCollider1.localPosition, this._jointCollider1.localRotation);
   }
 
   /**
@@ -177,13 +177,13 @@ export class Joint extends Component {
   protected set localRotation1(value: Quaternion) {
     if (value !== this._jointCollider1.localRotation) {
       this._jointCollider1.localRotation.copyFrom(value);
-      this._nativeJoint.setLocalPose(1, this._jointCollider1.localPosition, this._jointCollider1.localRotation);
     }
+    this._nativeJoint.setLocalPose(1, this._jointCollider1.localPosition, this._jointCollider1.localRotation);
   }
 }
 
 class JointCollider {
-  collider: DynamicCollider;
+  collider: Collider;
   localPosition = new Vector3();
   localRotation = new Quaternion();
   invMassScale: number = 0;

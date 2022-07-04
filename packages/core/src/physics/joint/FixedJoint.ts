@@ -2,14 +2,16 @@ import { Joint } from "./Joint";
 import { IFixedJoint } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 import { dependentComponents } from "../../ComponentsDependencies";
-import { DynamicCollider } from "../DynamicCollider";
+import { Collider } from "../Collider";
+import { Vector3 } from "@oasis-engine/math";
 
 /*
  * A fixed joint permits no relative movement between two bodies. ie the bodies are glued together.
- * @decorator `@dependentComponents(DynamicCollider)`
+ * @decorator `@dependentComponents(Collider)`
  */
-@dependentComponents(DynamicCollider)
+@dependentComponents(Collider)
 export class FixedJoint extends Joint {
+  private static _offsetVector = new Vector3(1, 0, 0);
   private _projectionLinearTolerance: number = 0;
   private _projectionAngularTolerance: number = 0;
 
@@ -38,13 +40,16 @@ export class FixedJoint extends Joint {
   }
 
   /**
-   * The anchor collider.
+   * The connected collider.
    */
-  get anchorCollider(): DynamicCollider {
+  get connectedCollider(): Collider {
     return this.collider0;
   }
 
-  set anchorCollider(value: DynamicCollider) {
+  set connectedCollider(value: Collider) {
+    const offsetVector = FixedJoint._offsetVector;
+    Vector3.subtract(this.entity.transform.worldPosition, value.entity.transform.worldPosition, offsetVector);
+    this.localPosition0 = offsetVector;
     this.collider0 = value;
   }
 
@@ -56,7 +61,7 @@ export class FixedJoint extends Joint {
     const jointCollider0 = this._jointCollider0;
     const jointCollider1 = this._jointCollider1;
     jointCollider0.collider = null;
-    jointCollider1.collider = this.entity.getComponent(DynamicCollider);
+    jointCollider1.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsManager._nativePhysics.createFixedJoint(
       null,
       jointCollider0.localPosition,

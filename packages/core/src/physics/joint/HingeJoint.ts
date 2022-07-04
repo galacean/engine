@@ -2,25 +2,26 @@ import { Joint } from "./Joint";
 import { IHingeJoint } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 import { HingeJointFlag } from "../enums";
-import { DynamicCollider } from "../DynamicCollider";
+import { Collider } from "../Collider";
 import { dependentComponents } from "../../ComponentsDependencies";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
- * @decorator `@dependentComponents(DynamicCollider)`
+ * @decorator `@dependentComponents(Collider)`
  */
-@dependentComponents(DynamicCollider)
+@dependentComponents(Collider)
 export class HingeJoint extends Joint {
   private static _axisRotationQuaternion = new Quaternion();
+  private static _tempVector = new Vector3(1, 0, 0);
 
   private _driveVelocity: number = 0;
   private _driveForceLimit: number = 0;
   private _driveGearRatio: number = 0;
   private _projectionLinearTolerance: number = 0;
   private _projectionAngularTolerance: number = 0;
-  private _anchorOffset: Vector3 = new Vector3();
-  private _anchorRotation: Vector3 = new Vector3();
+  private _swingOffset: Vector3 = new Vector3();
+  private _axis: Vector3 = new Vector3();
 
   /**
    * The drive target velocity.
@@ -85,72 +86,60 @@ export class HingeJoint extends Joint {
   /**
    * The anchor rotation.
    */
-  get anchorRotation(): Vector3 {
-    return this._anchorRotation;
+  get axis(): Vector3 {
+    return this._axis;
   }
 
-  set anchorRotation(value: Vector3) {
-    const anchorRotation = this._anchorRotation;
-    if (value !== anchorRotation) {
-      anchorRotation.copyFrom(value);
+  set axis(value: Vector3) {
+    const axis = this._axis;
+    if (value !== axis) {
+      axis.copyFrom(value);
     }
+    const tempVector = HingeJoint._tempVector;
     const axisRotationQuaternion = HingeJoint._axisRotationQuaternion;
-    Quaternion.rotationEuler(anchorRotation.x, anchorRotation.y, anchorRotation.z, axisRotationQuaternion);
+    tempVector.set(1, 0, 0);
+    const angle = Math.atan(Vector3.dot(tempVector, value));
+    Vector3.cross(tempVector, value, tempVector);
+    Quaternion.rotationAxisAngle(tempVector, angle, axisRotationQuaternion);
     this.localRotation1 = axisRotationQuaternion;
   }
 
   /**
-   * The anchor offset.
+   * The swing offset.
    */
-  get anchorOffset(): Vector3 {
-    return this._anchorOffset;
+  get swingOffset(): Vector3 {
+    return this._swingOffset;
   }
 
-  set anchorOffset(value: Vector3) {
-    if (value !== this._anchorOffset) {
-      this._anchorOffset.copyFrom(value);
+  set swingOffset(value: Vector3) {
+    if (value !== this._swingOffset) {
+      this._swingOffset.copyFrom(value);
     }
     this.localPosition1 = value;
   }
 
   /**
-   * The anchor collider.
+   * The connected collider.
    */
-  get anchorCollider(): DynamicCollider {
+  get connectedCollider(): Collider {
     return this.collider0;
   }
 
-  /**
-   * The anchor position.
-   */
-  get anchorPosition(): Vector3 {
-    const position = new Vector3();
-    if (this.collider0) {
-      Vector3.add(this.collider0.entity.transform.worldPosition, this.localPosition0, position);
-    } else {
-      position.copyFrom(this.localPosition0);
-    }
-    return position;
+  set connectedCollider(value: Collider) {
+    this.collider0 = value;
   }
 
   /**
-   * Set the anchor location.
-   * @param position - The world position of anchor location.
+   * The connected anchor position.
+   * @note If connectedCollider is set, this anchor is relative offset.
+   * Or the anchor is world anchor position.
    */
-  setAnchorLocation(position: Vector3): void;
+  get connectedAnchor(): Vector3 {
+    return this.localPosition0;
+  }
 
-  /**
-   * Set the anchor location.
-   * @param relativePosition - The local position of anchor location.
-   * @param collider - The collider.
-   */
-  setAnchorLocation(relativePosition: Vector3, collider: DynamicCollider): void;
-
-  setAnchorLocation(relativePosition: Vector3, collider?: DynamicCollider): void {
-    if (collider) {
-      this.collider0 = collider;
-    }
-    this.localPosition0 = relativePosition;
+  set connectedAnchor(value: Vector3) {
+    this.localPosition0 = value;
   }
 
   /**
@@ -191,7 +180,7 @@ export class HingeJoint extends Joint {
     const jointCollider0 = this._jointCollider0;
     const jointCollider1 = this._jointCollider1;
     jointCollider0.collider = null;
-    jointCollider1.collider = this.entity.getComponent(DynamicCollider);
+    jointCollider1.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(
       null,
       jointCollider0.localPosition,

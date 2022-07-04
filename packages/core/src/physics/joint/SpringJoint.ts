@@ -2,22 +2,22 @@ import { Joint } from "./Joint";
 import { ISpringJoint } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 import { SpringJointFlag } from "../enums";
-import { DynamicCollider } from "../DynamicCollider";
+import { Collider } from "../Collider";
 import { dependentComponents } from "../../ComponentsDependencies";
 import { Vector3 } from "@oasis-engine/math";
 
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
- * @decorator `@dependentComponents(DynamicCollider)`
+ * @decorator `@dependentComponents(Collider)`
  */
-@dependentComponents(DynamicCollider)
+@dependentComponents(Collider)
 export class SpringJoint extends Joint {
   private _minDistance: number = 0;
   private _maxDistance: number = 0;
   private _tolerance: number = 0;
   private _stiffness: number = 0;
   private _damping: number = 0;
-  private _anchorOffset: Vector3 = new Vector3();
+  private _swingOffset: Vector3 = new Vector3();
 
   /**
    * The minimum distance.
@@ -80,57 +80,41 @@ export class SpringJoint extends Joint {
   }
 
   /**
-   * The anchor offset.
+   * The swing offset.
    */
-  get anchorOffset(): Vector3 {
-    return this._anchorOffset;
+  get swingOffset(): Vector3 {
+    return this._swingOffset;
   }
 
-  set anchorOffset(value: Vector3) {
-    if (value !== this._anchorOffset) {
-      this._anchorOffset.copyFrom(value);
+  set swingOffset(value: Vector3) {
+    if (value !== this._swingOffset) {
+      this._swingOffset.copyFrom(value);
     }
     this.localPosition1 = value;
   }
 
   /**
-   * The anchor collider.
+   * The connected collider.
    */
-  get anchorCollider(): DynamicCollider {
+  get connectedCollider(): Collider {
     return this.collider0;
   }
 
-  /**
-   * The anchor position.
-   */
-  get anchorPosition(): Vector3 {
-    const position = new Vector3();
-    if (this.collider0) {
-      Vector3.add(this.collider0.entity.transform.worldPosition, this.localPosition0, position);
-    } else {
-      position.copyFrom(this.localPosition0);
-    }
-    return position;
+  set connectedCollider(value: Collider) {
+    this.collider0 = value;
   }
 
   /**
-   * Set the anchor location.
-   * @param position - The world position of anchor location.
+   * The connected anchor position.
+   * @note If connectedCollider is set, this anchor is relative offset.
+   * Or the anchor is world anchor position.
    */
-  setAnchorLocation(position: Vector3): void;
+  get connectedAnchor(): Vector3 {
+    return this.localPosition0;
+  }
 
-  /**
-   * Set the anchor location.
-   * @param relativePosition - The local position of anchor location.
-   * @param collider - The collider.
-   */
-  setAnchorLocation(relativePosition: Vector3, collider: DynamicCollider): void;
-
-  setAnchorLocation(relativePosition: Vector3, collider?: DynamicCollider): void {
-    if (collider) {
-      this.collider0 = collider;
-    }
-    this.localPosition0 = relativePosition;
+  set connectedAnchor(value: Vector3) {
+    this.localPosition0 = value;
   }
 
   /**
@@ -150,7 +134,7 @@ export class SpringJoint extends Joint {
     const jointCollider0 = this._jointCollider0;
     const jointCollider1 = this._jointCollider1;
     jointCollider0.collider = null;
-    jointCollider1.collider = this.entity.getComponent(DynamicCollider);
+    jointCollider1.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(
       null,
       jointCollider0.localPosition,
