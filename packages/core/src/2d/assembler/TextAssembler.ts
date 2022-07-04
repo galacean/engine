@@ -226,7 +226,7 @@ export class TextAssembler {
   private static _wordWrap(text: string, width: number, enableWrapping: boolean, fontString: string): Array<string> {
     const { context } = TextUtils.textContext();
     const { _maxWidth: maxWidth } = TextAssembler;
-    const widthInPixel = width * TextUtils._pixelsPerUnit;
+    const widthInPixel = width * Engine._pixelsPerUnit;
     const wrapWidth = Math.min(widthInPixel, maxWidth);
     const wrappedSubTexts = new Array<string>();
     const subTexts = text.split(/(?:\r\n|\r|\n)/);
