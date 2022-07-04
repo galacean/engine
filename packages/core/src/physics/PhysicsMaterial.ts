@@ -1,6 +1,6 @@
 import { IPhysicsMaterial } from "@oasis-engine/design";
 import { PhysicsManager } from "./PhysicsManager";
-import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
+import { PhysicsMaterialCombineMode } from "./enums";
 
 /**
  * Material class to represent a set of surface properties.

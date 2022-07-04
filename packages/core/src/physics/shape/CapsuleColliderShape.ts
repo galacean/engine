@@ -1,7 +1,7 @@
 import { ColliderShape } from "./ColliderShape";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
-import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
+import { ColliderShapeUpAxis } from "../enums";
 
 /**
  * Physical collider shape for capsule.
