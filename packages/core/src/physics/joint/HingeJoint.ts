@@ -4,7 +4,7 @@ import { PhysicsManager } from "../PhysicsManager";
 import { HingeJointFlag } from "../enums";
 import { DynamicCollider } from "../DynamicCollider";
 import { dependentComponents } from "../../ComponentsDependencies";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3, Quaternion } from "@oasis-engine/math";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
@@ -12,11 +12,15 @@ import { Vector3 } from "@oasis-engine/math";
  */
 @dependentComponents(DynamicCollider)
 export class HingeJoint extends Joint {
+  private static _axisRotationQuaternion = new Quaternion();
+
   private _driveVelocity: number = 0;
   private _driveForceLimit: number = 0;
   private _driveGearRatio: number = 0;
   private _projectionLinearTolerance: number = 0;
   private _projectionAngularTolerance: number = 0;
+  private _anchorOffset: Vector3 = new Vector3();
+  private _anchorRotation: Vector3 = new Vector3();
 
   /**
    * The drive target velocity.
@@ -76,6 +80,37 @@ export class HingeJoint extends Joint {
   set projectionAngularTolerance(value: number) {
     this._projectionAngularTolerance = value;
     (<IHingeJoint>this._nativeJoint).setProjectionAngularTolerance(value);
+  }
+
+  /**
+   * The anchor rotation.
+   */
+  get anchorRotation(): Vector3 {
+    return this._anchorRotation;
+  }
+
+  set anchorRotation(value: Vector3) {
+    const anchorRotation = this._anchorRotation;
+    if (value !== anchorRotation) {
+      anchorRotation.copyFrom(value);
+    }
+    const axisRotationQuaternion = HingeJoint._axisRotationQuaternion;
+    Quaternion.rotationEuler(anchorRotation.x, anchorRotation.y, anchorRotation.z, axisRotationQuaternion);
+    this.localRotation1 = axisRotationQuaternion;
+  }
+
+  /**
+   * The anchor offset.
+   */
+  get anchorOffset(): Vector3 {
+    return this._anchorOffset;
+  }
+
+  set anchorOffset(value: Vector3) {
+    if (value !== this._anchorOffset) {
+      this._anchorOffset.copyFrom(value);
+    }
+    this.localPosition1 = value;
   }
 
   /**

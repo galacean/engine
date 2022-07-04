@@ -17,6 +17,7 @@ export class SpringJoint extends Joint {
   private _tolerance: number = 0;
   private _stiffness: number = 0;
   private _damping: number = 0;
+  private _anchorOffset: Vector3 = new Vector3();
 
   /**
    * The minimum distance.
@@ -76,6 +77,20 @@ export class SpringJoint extends Joint {
   set damping(value: number) {
     this._damping = value;
     (<ISpringJoint>this._nativeJoint).setDamping(value);
+  }
+
+  /**
+   * The anchor offset.
+   */
+  get anchorOffset(): Vector3 {
+    return this._anchorOffset;
+  }
+
+  set anchorOffset(value: Vector3) {
+    if (value !== this._anchorOffset) {
+      this._anchorOffset.copyFrom(value);
+    }
+    this.localPosition1 = value;
   }
 
   /**
