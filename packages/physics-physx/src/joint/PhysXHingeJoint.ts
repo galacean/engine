@@ -8,6 +8,8 @@ import { Quaternion, Vector3 } from "oasis-engine";
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
+  private _velocity = new Vector3();
+
   constructor(
     actor0: PhysXCollider,
     position0: Vector3,
@@ -25,6 +27,22 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
       position1,
       rotation1
     );
+  }
+
+  /**
+   * {@inheritDoc IHingeJoint.getAngle }
+   */
+  getAngle(): number {
+    return this._pxJoint.getAngle();
+  }
+
+  /**
+   * {@inheritDoc IHingeJoint.getVelocity }
+   */
+  getVelocity(): Vector3 {
+    const velocity = this._velocity;
+    velocity.copyFrom(this._pxJoint.getVelocity());
+    return velocity;
   }
 
   /**

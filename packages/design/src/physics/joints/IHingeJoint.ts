@@ -1,9 +1,20 @@
 import { IJoint } from "./IJoint";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export interface IHingeJoint extends IJoint {
+  /**
+   * The current angle in degrees of the joint relative to its rest position.
+   */
+  getAngle(): number;
+
+  /**
+   * The angular velocity of the joint in degrees per second.
+   */
+  getVelocity(): Vector3;
+
   /**
    * Set a cone hard limit.
    * @param lowerLimit The lower angle of the limit

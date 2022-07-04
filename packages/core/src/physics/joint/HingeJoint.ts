@@ -5,6 +5,8 @@ import { HingeJointFlag } from "../enums";
 import { Collider } from "../Collider";
 import { dependentComponents } from "../../ComponentsDependencies";
 import { Vector3, Quaternion } from "@oasis-engine/math";
+import { JointMotor } from "./JointMotor";
+import { JointLimits } from "./JointLimits";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
@@ -15,73 +17,15 @@ export class HingeJoint extends Joint {
   private static _axisRotationQuaternion = new Quaternion();
   private static _tempVector = new Vector3(1, 0, 0);
 
-  private _driveVelocity: number = 0;
-  private _driveForceLimit: number = 0;
-  private _driveGearRatio: number = 0;
-  private _projectionLinearTolerance: number = 0;
-  private _projectionAngularTolerance: number = 0;
   private _swingOffset: Vector3 = new Vector3();
   private _axis: Vector3 = new Vector3();
+  private _flags: number = 0;
+  private _useSpring: boolean = false;
+  private _jointMonitor: JointMotor;
+  private _jointLimits: JointLimits;
 
-  /**
-   * The drive target velocity.
-   */
-  get driveVelocity(): number {
-    return this._driveVelocity;
-  }
-
-  set driveVelocity(value: number) {
-    this._driveVelocity = value;
-    (<IHingeJoint>this._nativeJoint).setDriveVelocity(value);
-  }
-
-  /**
-   * The maximum torque.
-   */
-  get driveForceLimit(): number {
-    return this._driveForceLimit;
-  }
-
-  set driveForceLimit(value: number) {
-    this._driveForceLimit = value;
-    (<IHingeJoint>this._nativeJoint).setDriveForceLimit(value);
-  }
-
-  /**
-   * The gear ratio.
-   */
-  get driveGearRatio(): number {
-    return this._driveGearRatio;
-  }
-
-  set driveGearRatio(value: number) {
-    this._driveGearRatio = value;
-    (<IHingeJoint>this._nativeJoint).setDriveGearRatio(value);
-  }
-
-  /**
-   * The linear tolerance threshold.
-   */
-  get projectionLinearTolerance(): number {
-    return this._projectionLinearTolerance;
-  }
-
-  set projectionLinearTolerance(value: number) {
-    this._projectionLinearTolerance = value;
-    (<IHingeJoint>this._nativeJoint).setProjectionLinearTolerance(value);
-  }
-
-  /**
-   * The angular tolerance threshold in radians.
-   */
-  get projectionAngularTolerance(): number {
-    return this._projectionAngularTolerance;
-  }
-
-  set projectionAngularTolerance(value: number) {
-    this._projectionAngularTolerance = value;
-    (<IHingeJoint>this._nativeJoint).setProjectionAngularTolerance(value);
-  }
+  private _projectionLinearTolerance: number = 0;
+  private _projectionAngularTolerance: number = 0;
 
   /**
    * The anchor rotation.
@@ -143,33 +87,87 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * Set a cone hard limit.
-   * @param lowerLimit The lower angle of the limit
-   * @param upperLimit The upper angle of the limit
-   * @param contactDist The distance from the limit at which it becomes active
+   * The current angle in degrees of the joint relative to its rest position.
    */
-  setHardLimit(lowerLimit: number, upperLimit: number, contactDist: number = -1.0): void {
-    (<IHingeJoint>this._nativeJoint).setHardLimit(lowerLimit, upperLimit, contactDist);
+  get angle(): number {
+    return (<IHingeJoint>this._nativeJoint).getAngle();
   }
 
   /**
-   * Set a cone soft limit.
-   * @param lowerLimit The lower angle of the limit
-   * @param upperLimit The upper angle of the limit
-   * @param stiffness the spring strength of the drive
-   * @param damping the damping strength of the drive
+   * The angular velocity of the joint in degrees per second.
    */
-  setSoftLimit(lowerLimit: number, upperLimit: number, stiffness: number, damping: number): void {
-    (<IHingeJoint>this._nativeJoint).setSoftLimit(lowerLimit, upperLimit, stiffness, damping);
+  get velocity(): Vector3 {
+    return (<IHingeJoint>this._nativeJoint).getVelocity();
   }
 
   /**
-   * sets a single flag specific to a Revolute Joint.
-   * @param flag The flag to set or clear.
-   * @param value the value to which to set the flag
+   * Enables the joint's limits. Disabled by default.
    */
-  setHingeJointFlag(flag: HingeJointFlag, value: boolean): void {
-    (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(flag, value);
+  get useLimit(): boolean {
+    return (this._flags & HingeJointFlag.LimitEnabled) == HingeJointFlag.LimitEnabled;
+  }
+
+  set useLimit(value: boolean) {
+    if (value !== this.useLimit) {
+      this._flags |= HingeJointFlag.LimitEnabled;
+    }
+    (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(HingeJointFlag.LimitEnabled, value);
+  }
+
+  /**
+   * Enables the joint's motor. Disabled by default.
+   */
+  get useMotor(): boolean {
+    return (this._flags & HingeJointFlag.DriveEnabled) == HingeJointFlag.DriveEnabled;
+  }
+
+  set useMotor(value: boolean) {
+    if (value !== this.useMotor) {
+      this._flags |= HingeJointFlag.DriveEnabled;
+    }
+    (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(HingeJointFlag.DriveEnabled, value);
+  }
+
+  /**
+   * Enables the joint's spring. Disabled by default.
+   */
+  get useSpring(): boolean {
+    return this._useSpring;
+  }
+
+  set useSpring(value: boolean) {
+    this._useSpring = value;
+  }
+
+  /**
+   * The motor will apply a force up to a maximum force to achieve the target velocity in degrees per second.
+   */
+  get motor(): JointMotor {
+    return this._jointMonitor;
+  }
+
+  set motor(value: JointMotor) {
+    this._jointMonitor = value;
+    (<IHingeJoint>this._nativeJoint).setDriveVelocity(value.targetVelocity);
+    (<IHingeJoint>this._nativeJoint).setDriveForceLimit(value.forceLimit);
+    (<IHingeJoint>this._nativeJoint).setDriveGearRatio(value.gearRation);
+    (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(HingeJointFlag.DriveFreeSpin, value.freeSpin);
+  }
+
+  /**
+   * Limit of angular rotation (in degrees) on the hinge joint.
+   */
+  get jointLimits(): JointLimits {
+    return this._jointLimits;
+  }
+
+  set jointLimits(value: JointLimits) {
+    this._jointLimits = value;
+    if (this.useSpring) {
+      (<IHingeJoint>this._nativeJoint).setSoftLimit(value.min, value.max, value.stiffness, value.damping);
+    } else {
+      (<IHingeJoint>this._nativeJoint).setHardLimit(value.min, value.max, value.contactDistance);
+    }
   }
 
   /**
