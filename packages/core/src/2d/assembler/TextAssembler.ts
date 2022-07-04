@@ -9,6 +9,9 @@ import { TextUtils, TextMetrics } from "../text/TextUtils";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
+/**
+ * @internal
+ */
 @StaticInterfaceImplement<IAssembler>()
 export class TextAssembler {
   private static _tempVec2: Vector2 = new Vector2();

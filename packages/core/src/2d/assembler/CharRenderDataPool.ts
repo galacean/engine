@@ -3,6 +3,9 @@ import { Texture2D } from "../../texture";
 import { RenderData2D } from "../data/RenderData2D";
 import { CharRenderData } from "./CharRenderData";
 
+/**
+ * @internal
+ */
 export class CharRenderDataPool {
   private _pools: Array<CharRenderData> = [];
   private _poolIndex: number = -1;

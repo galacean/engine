@@ -4,10 +4,10 @@ import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
-@StaticInterfaceImplement<IAssembler>()
 /**
  * @internal
  */
+@StaticInterfaceImplement<IAssembler>()
 export class SimpleSpriteAssembler {
   static _rectangleTriangles: number[] = [0, 1, 2, 2, 1, 3];
   static _worldMatrix: Matrix = new Matrix();

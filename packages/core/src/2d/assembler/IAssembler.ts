@@ -1,5 +1,8 @@
 import { Renderer } from "../../Renderer";
 
+/**
+ * @internal
+ */
 export interface IAssembler {
   resetData(renderer: Renderer): void;
   updateData(renderer: Renderer): void;

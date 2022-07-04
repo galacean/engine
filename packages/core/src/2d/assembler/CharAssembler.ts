@@ -9,6 +9,9 @@ import { CharDefWithTexture, CharUtils } from "./CharUtils";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
+/**
+ * @internal
+ */
 @StaticInterfaceImplement<IAssembler>()
 export class CharAssembler {
   private static _charUtils: CharUtils;

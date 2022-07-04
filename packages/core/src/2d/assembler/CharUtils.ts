@@ -2,11 +2,17 @@ import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 import { CharDef, FontAtlas } from "../atlas/FontAtlas";
 
+/**
+ * @internal
+ */
 export interface CharDefWithTexture {
   texture: Texture2D;
   charDef: CharDef;
 }
 
+/**
+ * @internal
+ */
 export class CharUtils {
   private _fontAtlasList: Array<FontAtlas> = [];
   private _curFontAtlas: FontAtlas = null;
