@@ -729,7 +729,10 @@ export class Animator extends Component {
     } else if (owner.type === SkinnedMeshRenderer) {
       switch (owner.property) {
         case AnimationProperty.BlendShapeWeights:
-          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          value = Animator._baseTempValue.getFloatArray((<Float32Array>srcValue).length);
+          for (let i = 0, length = (<Float32Array>value).length; i < length; ++i) {
+            value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
+          }
           break;
       }
     }
@@ -773,7 +776,14 @@ export class Animator extends Component {
     } else if (owner.type === SkinnedMeshRenderer) {
       switch (owner.property) {
         case AnimationProperty.BlendShapeWeights:
-          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          if (weight === 1.0) {
+            (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          } else {
+            const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+            for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+              blendShapeWeights[i] += (blendShapeWeights[i] - value[i]) * weight;
+            }
+          }
           break;
       }
     }
@@ -802,6 +812,12 @@ export class Animator extends Component {
           AnimatorUtils.scaleWeight(scale, weight, scale);
           Vector3.multiply(scale, <Vector3>additiveValue, scale);
           transform.scale = scale;
+          break;
+        case AnimationProperty.BlendShapeWeights:
+          const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+          for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+            (<SkinnedMeshRenderer>owner.component).blendShapeWeights[i] += additiveValue[i] * weight;
+          }
           break;
       }
     }
