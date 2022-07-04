@@ -56,11 +56,13 @@ export class TextAssembler {
   }
 
   static clearData(renderer: TextRenderer): void {
-    const { positions, uvs, triangles } = renderer._renderData;
-    positions.length = 0;
-    uvs.length = 0;
-    triangles.length = 0;
-    renderer._renderData = null;
+    if (renderer._renderData) {
+      const { positions, uvs, triangles } = renderer._renderData;
+      positions.length = 0;
+      uvs.length = 0;
+      triangles.length = 0;
+      renderer._renderData = null;
+    }
   }
 
   private static _updatePosition(renderer: TextRenderer): void {

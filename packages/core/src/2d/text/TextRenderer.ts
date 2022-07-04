@@ -58,7 +58,7 @@ export class TextRenderer extends Renderer {
   @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
-  private _useCharCache: boolean = false;
+  private _useCharCache: boolean = true;
   @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
@@ -197,9 +197,11 @@ export class TextRenderer extends Renderer {
       this._setDirtyFlagTrue(DirtyFlag.Property);
 
       if (value) {
-        this._clearTexture();
-        this._sprite.destroy();
-        this._sprite = null;
+        if (this._sprite) {
+          this._clearTexture();
+          this._sprite.destroy();
+          this._sprite = null;
+        }
         TextAssembler.clearData(this);
         CharAssembler.resetData(this);
       } else {
@@ -295,8 +297,7 @@ export class TextRenderer extends Renderer {
     super(entity);
     const { engine } = this;
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    this._sprite = new Sprite(engine);
-    TextAssembler.resetData(this);
+    CharAssembler.resetData(this);
     this.font = Font.createFromOS(engine);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
