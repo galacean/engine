@@ -79,7 +79,6 @@ export class CharAssembler {
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
     const { _charUtils, _charRenderDataPool } = CharAssembler;
     const halfLineHeight = lineHeight * 0.5;
-    const textureSizeReciprocal = 1.0 / _charUtils.getTextureSize();
     const linesLen = lines.length;
 
     let startY = 0;
@@ -127,8 +126,7 @@ export class CharAssembler {
           renderData.color = color;
 
           const { uvs } = renderData;
-          const { x, y, w, h } = charDef;
-
+          const { w, u0, v0, u1, v1 } = charDef;
           const { offsetY } = charDef;
           const halfH = charDef.h * 0.5;
           const ascent = halfH + offsetY;
@@ -138,10 +136,6 @@ export class CharAssembler {
           const right = (startX + w) * pixelsPerUnitReciprocal;
           const top = (startY + ascent) * pixelsPerUnitReciprocal;
           const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
-          const u0 = x * textureSizeReciprocal;
-          const u1 = (x + w) * textureSizeReciprocal;
-          const v0 = y * textureSizeReciprocal;
-          const v1 = (y + h) * textureSizeReciprocal;
           // Top-left.
           localPositions[0].set(left, top, 0);
           uvs[0].set(u0, v0);

@@ -12,7 +12,11 @@ export interface CharDef {
   h: number,
   offsetX: number,
   offsetY: number,
-  xAdvance: number
+  xAdvance: number,
+  u0: number,
+  v0: number,
+  u1: number,
+  v1: number
 }
 
 /**

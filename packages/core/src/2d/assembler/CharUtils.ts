@@ -67,16 +67,17 @@ export class CharUtils {
       curTexture.setImageSource(imageSource, 0, false, false,  this._curX, this._curY);
       curTexture.generateMipmaps();
     }
-
-    const charDef = {
-      x: this._curX,
-      y: this._curY,
-      w: width,
-      h: height,
-      offsetX,
-      offsetY,
-      xAdvance
-    };
+    
+    const textureSizeReciprocal = 1.0 / curTexture.width;
+    const x = this._curX;
+    const y = this._curY;
+    const w = width;
+    const h = height;
+    const u0 = x * textureSizeReciprocal;
+    const u1 = (x + w) * textureSizeReciprocal;
+    const v0 = y * textureSizeReciprocal;
+    const v1 = (y + h) * textureSizeReciprocal;
+    const charDef = { x, y, w, h, offsetX, offsetY, xAdvance, u0, v0, u1, v1 };
     this._curFontAtlas.addCharDef(key, charDef);
     this._curX += offsetWidth + space;
 
@@ -109,10 +110,6 @@ export class CharUtils {
       fontAtlas.destroy();
     }
     _fontAtlasList.length = 0;
-  }
-
-  getTextureSize(): number {
-    return this._textureSize;
   }
 
   private _createFontAtlas(): void {
