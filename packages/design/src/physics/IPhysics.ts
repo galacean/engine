@@ -4,7 +4,9 @@ import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape, IPlaneC
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { ICollider } from "./ICollider";
 import { ICharacterController } from "./ICharacterController";
+import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
 
 /**
  * The interface of physics creation.
@@ -99,4 +101,32 @@ export interface IPhysics {
     height: number,
     material: IPhysicsMaterial
   ): ICapsuleColliderShape;
+
+  //MARK: - Joint
+  createFixedJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): IFixedJoint;
+
+  createHingeJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): IHingeJoint;
+
+  createSpringJoint(
+    actor0: ICollider,
+    position0: Vector3,
+    rotation0: Quaternion,
+    actor1: ICollider,
+    position1: Vector3,
+    rotation1: Quaternion
+  ): ISpringJoint;
 }
