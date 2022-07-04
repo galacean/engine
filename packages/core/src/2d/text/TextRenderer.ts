@@ -18,11 +18,12 @@ import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { ICustomClone } from "../../clone/ComponentCloner";
 
 /**
  * Renders a text for 2D graphics.
  */
-export class TextRenderer extends Renderer {
+export class TextRenderer extends Renderer implements ICustomClone {
   private static _tempBounds: BoundingBox = new BoundingBox();
 
   /** @internal */
@@ -57,7 +58,7 @@ export class TextRenderer extends Renderer {
   private _fontStyle: FontStyle = FontStyle.None;
   @assignmentClone
   private _lineSpacing: number = 0;
-  @assignmentClone
+  @ignoreClone
   private _useCharCache: boolean = true;
   @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
@@ -348,6 +349,7 @@ export class TextRenderer extends Renderer {
    */
   _cloneTo(target: TextRenderer): void {
     target.font = this._font;
+    target.useCharCache = this._useCharCache;
   }
 
   /**
@@ -389,11 +391,11 @@ export class TextRenderer extends Renderer {
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
     const worldMatrix = this._entity.transform.worldMatrix;
+    let bounds = TextRenderer._tempBounds;
+    const { min, max } = bounds;
+    min.set(0, 0, 0);
+    max.set(0, 0, 0);
     if (this._useCharCache) {
-      const bounds = TextRenderer._tempBounds;
-      const { min, max } = bounds;
-      min.set(0, 0, 0);
-      max.set(0, 0, 0);
       const { _charRenderDatas } = this;
       const dataLen = _charRenderDatas.length;
       if (dataLen > 0) {
@@ -420,7 +422,10 @@ export class TextRenderer extends Renderer {
       }
       BoundingBox.transform(bounds, worldMatrix, worldBounds);
     } else {
-      BoundingBox.transform(this._sprite._getBounds(), worldMatrix, worldBounds);
+      if (this._sprite) {
+        bounds = this._sprite._getBounds();
+      }
+      BoundingBox.transform(bounds, worldMatrix, worldBounds);
     }
   }
 
