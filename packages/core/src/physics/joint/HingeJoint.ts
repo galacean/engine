@@ -15,7 +15,7 @@ import { JointLimits } from "./JointLimits";
 @dependentComponents(Collider)
 export class HingeJoint extends Joint {
   private _swingOffset: Vector3 = new Vector3();
-  private _axis: Vector3 = new Vector3();
+  private _axis: Vector3 = new Vector3(1, 0, 0);
   private _hingeFlags: number = 0;
   private _useSpring: boolean = false;
   private _jointMonitor: JointMotor;

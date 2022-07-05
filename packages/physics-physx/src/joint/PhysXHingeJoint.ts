@@ -49,11 +49,12 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
     const tempVector = PhysXHingeJoint._tempVector;
     const axisRotationQuaternion = this._axisRotationQuaternion;
     tempVector.set(1, 0, 0);
-    const angle = Math.atan(Vector3.dot(tempVector, value));
+    value.normalize();
+    const angle = Math.acos(Vector3.dot(tempVector, value));
     Vector3.cross(tempVector, value, tempVector);
     Quaternion.rotationAxisAngle(tempVector, angle, axisRotationQuaternion);
 
-    this._setLocalPose(1, this._swingOffset, axisRotationQuaternion);
+    this._setLocalPose(0, this._swingOffset, axisRotationQuaternion);
   }
 
   /**
