@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/physics-physx",
-  "version": "0.7.0-beta.7",
+  "version": "0.7.0-beta.8",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -15,8 +15,8 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/design": "0.7.0-beta.7",
-    "oasis-engine": "0.7.0-beta.7"
+    "@oasis-engine/design": "0.7.0-beta.8",
+    "oasis-engine": "0.7.0-beta.8"
   },
   "publishConfig": {
     "access": "public"

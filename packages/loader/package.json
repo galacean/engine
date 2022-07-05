@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/loader",
-  "version": "0.7.0-beta.7",
+  "version": "0.7.0-beta.8",
   "license": "MIT",
   "types": "types/index.d.ts",
   "scripts": {
@@ -14,9 +14,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.7.0-beta.7",
-    "@oasis-engine/draco": "0.7.0-beta.7",
-    "@oasis-engine/math": "0.7.0-beta.7",
-    "@oasis-engine/rhi-webgl": "0.7.0-beta.7"
+    "@oasis-engine/core": "0.7.0-beta.8",
+    "@oasis-engine/draco": "0.7.0-beta.8",
+    "@oasis-engine/math": "0.7.0-beta.8",
+    "@oasis-engine/rhi-webgl": "0.7.0-beta.8"
   }
 }
