@@ -115,8 +115,7 @@ export class CharAssembler {
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const char = line[j];
-        const key = `${fontHash}${char.charCodeAt(0)}`;
-        const charDefWithTexture = _charUtils.getCharDef(key);
+        const charDefWithTexture = _charUtils.getCharDef(fontHash, char.charCodeAt(0));
         const { charDef } = charDefWithTexture;
 
         if (charDef.h > 0) {
@@ -126,11 +125,7 @@ export class CharAssembler {
           renderData.color = color;
 
           const { uvs } = renderData;
-          const { w, u0, v0, u1, v1 } = charDef;
-          const { offsetY } = charDef;
-          const halfH = charDef.h * 0.5;
-          const ascent = halfH + offsetY;
-          const descent = halfH - offsetY;
+          const { w, u0, v0, u1, v1, ascent, descent } = charDef;
 
           const left = startX * pixelsPerUnitReciprocal;
           const right = (startX + w) * pixelsPerUnitReciprocal;
@@ -302,21 +297,24 @@ export class CharAssembler {
 
   private static _getCharDefWithTexture(char: string, fontString: string, fontHash: string): CharDefWithTexture {
     const { _charUtils } = CharAssembler;
-    const key = `${fontHash}${char.charCodeAt(0)}`;
-    let charDefWithTexture = _charUtils.getCharDef(key);
+    const id = char.charCodeAt(0);
+    let charDefWithTexture = _charUtils.getCharDef(fontHash, id);
     if (!charDefWithTexture) {
       const charMetrics = TextUtils.measureChar(char, fontString);
       const { width, sizeInfo } = charMetrics;
       const { ascent, descent } = sizeInfo;
       const offsetY = (ascent - descent) * 0.5;
       charDefWithTexture = _charUtils.addCharDef(
-        key,
+        fontHash,
+        id,
         TextUtils.textContext().canvas,
         width,
         sizeInfo.size,
         0,
         offsetY,
-        width
+        width,
+        ascent,
+        descent
       );
     }
 

@@ -6,24 +6,19 @@ import { Texture2D } from "../../texture/Texture2D";
  * @internal
  */
 export interface CharDef {
-  x: number,
-  y: number,
-  w: number,
-  h: number,
-  offsetX: number,
-  offsetY: number,
-  xAdvance: number,
-  u0: number,
-  v0: number,
-  u1: number,
-  v1: number
-}
-
-/**
- * @internal
- */
-export interface CharDefDict {
-  [key: string]: CharDef;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  offsetX: number;
+  offsetY: number;
+  xAdvance: number;
+  u0: number;
+  v0: number;
+  u1: number;
+  v1: number;
+  ascent: number;
+  descent: number;
 }
 
 /**
@@ -31,17 +26,23 @@ export interface CharDefDict {
  * Font Atlas.
  */
 export class FontAtlas extends RefObject {
-  private _charDefDict: CharDefDict;
+  private _charDefMap: Record<number, CharDef> = {};
   private _texture: Texture2D;
+
+  get texture(): Texture2D {
+    return this._texture;
+  }
+
+  set texture(value: Texture2D) {
+    this._texture = value;
+  }
 
   /**
    * Constructor a FontAtlas.
    * @param engine - Engine to which the FontAtlas belongs
    */
-  constructor(engine: Engine, texture: Texture2D) {
+  constructor(engine: Engine) {
     super(engine);
-    this._charDefDict = {};
-    this._texture = texture;
   }
 
   /**
@@ -50,19 +51,14 @@ export class FontAtlas extends RefObject {
   _onDestroy(): void {
     this._texture.destroy();
     this._texture = null;
-    this._charDefDict = {};
+    this._charDefMap = {};
   }
 
-  addCharDef(key: string, def: CharDef): void {
-    this._charDefDict[key] = def;
+  addCharDef(id: number, def: CharDef): void {
+    this._charDefMap[id] = def;
   }
 
-  getCharDef(key: string): CharDef {
-    return this._charDefDict[key];
-  }
-
-  getTexture(): Texture2D {
-    return this._texture;
+  getCharDef(id: number): CharDef {
+    return this._charDefMap[id];
   }
 }
-
