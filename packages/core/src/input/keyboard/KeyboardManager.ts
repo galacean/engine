@@ -110,8 +110,11 @@ export class KeyboardManager implements IInput {
    * @internal
    */
   _destroy(): void {
-    window.removeEventListener("keydown", this._onKeyEvent);
-    window.removeEventListener("keyup", this._onKeyEvent);
+    if (this._hadListener) {
+      window.removeEventListener("keydown", this._onKeyEvent);
+      window.removeEventListener("keyup", this._onKeyEvent);
+      this._hadListener = false;
+    }
     this._curHeldDownKeyToIndexMap = null;
     this._upKeyToFrameCountMap = null;
     this._downKeyToFrameCountMap = null;

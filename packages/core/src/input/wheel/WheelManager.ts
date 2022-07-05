@@ -19,6 +19,7 @@ export class WheelManager implements IInput {
   constructor(htmlCanvas: HTMLCanvasElement) {
     this._onWheelEvent = this._onWheelEvent.bind(this);
     htmlCanvas.addEventListener("wheel", this._onWheelEvent);
+    this._canvas = htmlCanvas;
     this._hadListener = true;
   }
 
@@ -36,6 +37,7 @@ export class WheelManager implements IInput {
         delta.y += evt.deltaY;
         delta.z += evt.deltaZ;
       }
+      nativeEvents.length = 0;
     }
   }
 
@@ -65,7 +67,10 @@ export class WheelManager implements IInput {
    * @internal
    */
   _destroy(): void {
-    this._canvas.removeEventListener("wheel", this._onWheelEvent);
+    if (this._hadListener) {
+      this._canvas.removeEventListener("wheel", this._onWheelEvent);
+      this._hadListener = false;
+    }
     this._nativeEvents = null;
   }
 

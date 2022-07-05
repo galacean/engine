@@ -70,7 +70,7 @@ export class InputManager {
   isKeyHeldDown(key?: Keys): boolean {
     if (this._initialized) {
       if (key === undefined) {
-        return this._keyboardManager._curFrameDownList.length > 0;
+        return this._keyboardManager._curFrameHeldDownList.length > 0;
       } else {
         return this._keyboardManager._curHeldDownKeyToIndexMap[key] != null;
       }

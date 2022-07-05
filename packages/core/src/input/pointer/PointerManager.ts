@@ -16,7 +16,7 @@ import { Pointer } from "./Pointer";
  */
 export class PointerManager implements IInput {
   /** Refer to the W3C standards.(https://www.w3.org/TR/uievents/#dom-mouseevent-buttons) */
-  public static Buttons = [0x1, 0x2, 0x4, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400];
+  public static Buttons = [0x1, 0x4, 0x2, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400];
 
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
@@ -64,6 +64,9 @@ export class PointerManager implements IInput {
     this._canvas = engine.canvas;
     this._htmlCanvas = htmlCanvas;
     htmlCanvas.style.touchAction = "none";
+    htmlCanvas.oncontextmenu = (event: UIEvent) => {
+      return false;
+    };
     const onPointerEvent = (this._onPointerEvent = this._onPointerEvent.bind(this));
     htmlCanvas.addEventListener("pointerdown", onPointerEvent);
     htmlCanvas.addEventListener("pointerup", onPointerEvent);
@@ -134,7 +137,6 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       this._nativeEvents.length = 0;
       this._pointerPool.length = 0;
-      this._currentPosition = null;
       this._currentEnteredEntity = null;
       this._currentPressedEntity = null;
       this._downList.length = 0;
@@ -148,8 +150,14 @@ export class PointerManager implements IInput {
    */
   _destroy(): void {
     // @ts-ignore
-    const htmlCanvas = this._canvas._webCanvas as HTMLCanvasElement;
-    htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = null;
+    if (this._hadListener) {
+      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
+      htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
+      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      this._hadListener = false;
+    }
     this._nativeEvents.length = 0;
     this._pointerPool.length = 0;
     this._pointers.length = 0;
