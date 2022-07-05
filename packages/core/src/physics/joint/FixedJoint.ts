@@ -17,7 +17,8 @@ export class FixedJoint extends Joint {
    * @override
    */
   set connectedCollider(value: Collider) {
-    super.connectedCollider = value;
+    this._connectedCollider.collider = value;
+    this._nativeJoint.setConnectedCollider(value._nativeCollider);
     const offsetVector = FixedJoint._offsetVector;
     Vector3.subtract(this.entity.transform.worldPosition, value.entity.transform.worldPosition, offsetVector);
     (<IFixedJoint>this._nativeJoint).setOffset(offsetVector);
