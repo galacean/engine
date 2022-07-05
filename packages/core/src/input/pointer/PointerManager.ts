@@ -242,7 +242,7 @@ export class PointerManager implements IInput {
     if (nativeEventsLen > 0) {
       for (let i = 0; i < nativeEventsLen; i++) {
         const evt = nativeEvents[i];
-        const pointerButton: PointerButton = evt.button | PointerButton.Left;
+        const pointerButton: PointerButton = evt.button | PointerButton.Primary;
         const pointerIndex = this._getIndexByPointerID(evt.pointerId);
         switch (evt.type) {
           case "pointerdown":

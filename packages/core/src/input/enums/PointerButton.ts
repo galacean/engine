@@ -5,11 +5,11 @@
  */
 export enum PointerButton {
   /** Indicate the primary pointer of the device (in general, the left button or the only button on single-button devices, used to activate a user interface control or select text) or the un-initialized value. */
-  Left = 0,
+  Primary = 0,
   /** Indicate the auxiliary pointer (in general, the middle button, often combined with a mouse wheel). */
-  Middle = 1,
+  Auxiliary = 1,
   /** Indicate the secondary pointer (in general, the right button, often used to display a context menu). */
-  Right = 2,
+  Secondary = 2,
   /** Indicate the X1 (back) pointer. */
   XButton1 = 3,
   /** Indicate the X2 (forward) pointer. */
