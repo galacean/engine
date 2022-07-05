@@ -29,18 +29,7 @@ export class SpringJoint extends Joint {
     if (value !== this._swingOffset) {
       this._swingOffset.copyFrom(value);
     }
-    this.localPosition1 = value;
-  }
-
-  /**
-   * The connected collider.
-   */
-  get connectedCollider(): Collider {
-    return this.collider0;
-  }
-
-  set connectedCollider(value: Collider) {
-    this.collider0 = value;
+    (<ISpringJoint>this._nativeJoint).setSwingOffset(value);
   }
 
   /**
@@ -49,11 +38,11 @@ export class SpringJoint extends Joint {
    * Or the anchor is world anchor position.
    */
   get connectedAnchor(): Vector3 {
-    return this.localPosition0;
+    return this._connectedCollider.localPosition;
   }
 
   set connectedAnchor(value: Vector3) {
-    this.localPosition0 = value;
+    (<ISpringJoint>this._nativeJoint).setConnectedAnchor(value);
   }
 
   /**
@@ -121,8 +110,8 @@ export class SpringJoint extends Joint {
    * @internal
    */
   _onAwake() {
-    const jointCollider0 = this._jointCollider0;
-    const jointCollider1 = this._jointCollider1;
+    const jointCollider0 = this._connectedCollider;
+    const jointCollider1 = this._collider;
     jointCollider0.collider = null;
     jointCollider1.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(

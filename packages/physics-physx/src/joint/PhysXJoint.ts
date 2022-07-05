@@ -1,6 +1,7 @@
 import { IJoint } from "@oasis-engine/design";
 import { PhysXCollider } from "../PhysXCollider";
 import { Quaternion, Vector3 } from "oasis-engine";
+import { ICollider } from "@oasis-engine/design/src";
 
 /**
  * a base interface providing common functionality for PhysX joints
@@ -8,60 +9,75 @@ import { Quaternion, Vector3 } from "oasis-engine";
 export class PhysXJoint implements IJoint {
   /** @internal */
   _pxJoint: any;
+  private _breakForce: number = Number.MAX_VALUE;
+  private _breakTorque: number = Number.MAX_VALUE;
+  protected _collider: PhysXCollider;
 
   /**
-   * {@inheritDoc IJoint.setActors }
+   * {@inheritDoc IJoint.setConnectedCollider }
    */
-  setActors(actor0?: PhysXCollider, actor1?: PhysXCollider): void {
-    this._pxJoint.setActors(actor1?._pxActor, actor1?._pxActor);
+  setConnectedCollider(value: PhysXCollider): void {
+    this._pxJoint.setActors(value?._pxActor || null, this._collider?._pxActor || null);
   }
 
   /**
-   * {@inheritDoc IJoint.setLocalPose }
+   * {@inheritDoc IJoint.setConnectedMassScale }
    */
-  setLocalPose(actor: number, position: Vector3, rotation: Quaternion): void {
-    this._pxJoint.setLocalPose(actor, position, rotation);
+  setConnectedMassScale(value: number): void {
+    this._pxJoint.setInvMassScale0(1 / value);
+  }
+
+  /**
+   * {@inheritDoc IJoint.setConnectedInertiaScale }
+   */
+  setConnectedInertiaScale(value: number): void {
+    this._pxJoint.setInvInertiaScale0(1 / value);
+  }
+
+  /**
+   * {@inheritDoc IJoint.setMassScale }
+   */
+  setMassScale(value: number): void {
+    this._pxJoint.setInvMassScale1(1 / value);
+  }
+
+  /**
+   * {@inheritDoc IJoint.setInertiaScale }
+   */
+  setInertiaScale(value: number): void {
+    this._pxJoint.setInvInertiaScale1(1 / value);
   }
 
   /**
    * {@inheritDoc IJoint.setBreakForce }
    */
-  setBreakForce(force: number, torque: number): void {
-    this._pxJoint.setBreakForce(force, torque);
+  setBreakForce(value: number): void {
+    this._breakForce = value;
+    this._pxJoint.setBreakForce(this._breakForce, this._breakTorque);
   }
 
   /**
-   * {@inheritDoc IJoint.setConstraintFlag }
+   * {@inheritDoc IJoint.setBreakTorque }
    */
-  setConstraintFlag(flags: number, value: boolean): void {
-    this._pxJoint.setConstraintFlag(flags, value);
+  setBreakTorque(value: number): void {
+    this._breakTorque = value;
+    this._pxJoint.setBreakForce(this._breakForce, this._breakTorque);
   }
 
   /**
-   * {@inheritDoc IJoint.setInvMassScale0 }
+   * {@inheritDoc IJoint.setConstraintFlags }
    */
-  setInvMassScale0(invMassScale: number): void {
-    this._pxJoint.setInvMassScale0(invMassScale);
+  setConstraintFlags(flags: number): void {
+    this._pxJoint.setConstraintFlags(flags);
   }
 
   /**
-   * {@inheritDoc IJoint.setInvInertiaScale0 }
+   * Set the joint local pose for an actor.
+   * @param actor 0 for the first actor, 1 for the second actor.
+   * @param position the local position for the actor this joint
+   * @param rotation the local rotation for the actor this joint
    */
-  setInvInertiaScale0(invInertiaScale: number): void {
-    this._pxJoint.setInvInertiaScale0(invInertiaScale);
-  }
-
-  /**
-   * {@inheritDoc IJoint.setInvMassScale1 }
-   */
-  setInvMassScale1(invMassScale: number): void {
-    this._pxJoint.setInvMassScale1(invMassScale);
-  }
-
-  /**
-   * {@inheritDoc IJoint.setInvInertiaScale1 }
-   */
-  setInvInertiaScale1(invInertiaScale: number): void {
-    this._pxJoint.setInvInertiaScale1(invInertiaScale);
+  protected _setLocalPose(actor: number, position: Vector3, rotation: Quaternion): void {
+    this._pxJoint.setLocalPose(actor, position, rotation);
   }
 }

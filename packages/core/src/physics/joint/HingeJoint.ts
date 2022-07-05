@@ -14,15 +14,12 @@ import { JointLimits } from "./JointLimits";
  */
 @dependentComponents(Collider)
 export class HingeJoint extends Joint {
-  private static _axisRotationQuaternion = new Quaternion();
-  private static _tempVector = new Vector3(1, 0, 0);
-
   private _swingOffset: Vector3 = new Vector3();
   private _axis: Vector3 = new Vector3();
-  private _flags: number = 0;
+  private _hingeFlags: number = 0;
   private _useSpring: boolean = false;
   private _jointMonitor: JointMotor;
-  private _jointLimits: JointLimits;
+  private _limits: JointLimits;
 
   /**
    * The anchor rotation.
@@ -36,13 +33,7 @@ export class HingeJoint extends Joint {
     if (value !== axis) {
       axis.copyFrom(value);
     }
-    const tempVector = HingeJoint._tempVector;
-    const axisRotationQuaternion = HingeJoint._axisRotationQuaternion;
-    tempVector.set(1, 0, 0);
-    const angle = Math.atan(Vector3.dot(tempVector, value));
-    Vector3.cross(tempVector, value, tempVector);
-    Quaternion.rotationAxisAngle(tempVector, angle, axisRotationQuaternion);
-    this.localRotation1 = axisRotationQuaternion;
+    (<IHingeJoint>this._nativeJoint).setAxis(axis);
   }
 
   /**
@@ -53,21 +44,11 @@ export class HingeJoint extends Joint {
   }
 
   set swingOffset(value: Vector3) {
-    if (value !== this._swingOffset) {
-      this._swingOffset.copyFrom(value);
+    const swingOffset = this._swingOffset;
+    if (value !== swingOffset) {
+      swingOffset.copyFrom(value);
     }
-    this.localPosition1 = value;
-  }
-
-  /**
-   * The connected collider.
-   */
-  get connectedCollider(): Collider {
-    return this.collider0;
-  }
-
-  set connectedCollider(value: Collider) {
-    this.collider0 = value;
+    (<IHingeJoint>this._nativeJoint).setSwingOffset(swingOffset);
   }
 
   /**
@@ -76,11 +57,11 @@ export class HingeJoint extends Joint {
    * Or the anchor is world anchor position.
    */
   get connectedAnchor(): Vector3 {
-    return this.localPosition0;
+    return this._connectedCollider.localPosition;
   }
 
   set connectedAnchor(value: Vector3) {
-    this.localPosition0 = value;
+    (<IHingeJoint>this._nativeJoint).setConnectedAnchor(value);
   }
 
   /**
@@ -93,20 +74,20 @@ export class HingeJoint extends Joint {
   /**
    * The angular velocity of the joint in degrees per second.
    */
-  get velocity(): Vector3 {
+  get velocity(): Readonly<Vector3> {
     return (<IHingeJoint>this._nativeJoint).getVelocity();
   }
 
   /**
    * Enables the joint's limits. Disabled by default.
    */
-  get useLimit(): boolean {
-    return (this._flags & HingeJointFlag.LimitEnabled) == HingeJointFlag.LimitEnabled;
+  get useLimits(): boolean {
+    return (this._hingeFlags & HingeJointFlag.LimitEnabled) == HingeJointFlag.LimitEnabled;
   }
 
-  set useLimit(value: boolean) {
-    if (value !== this.useLimit) {
-      this._flags |= HingeJointFlag.LimitEnabled;
+  set useLimits(value: boolean) {
+    if (value !== this.useLimits) {
+      this._hingeFlags |= HingeJointFlag.LimitEnabled;
     }
     (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(HingeJointFlag.LimitEnabled, value);
   }
@@ -115,12 +96,12 @@ export class HingeJoint extends Joint {
    * Enables the joint's motor. Disabled by default.
    */
   get useMotor(): boolean {
-    return (this._flags & HingeJointFlag.DriveEnabled) == HingeJointFlag.DriveEnabled;
+    return (this._hingeFlags & HingeJointFlag.DriveEnabled) == HingeJointFlag.DriveEnabled;
   }
 
   set useMotor(value: boolean) {
     if (value !== this.useMotor) {
-      this._flags |= HingeJointFlag.DriveEnabled;
+      this._hingeFlags |= HingeJointFlag.DriveEnabled;
     }
     (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(HingeJointFlag.DriveEnabled, value);
   }
@@ -154,12 +135,12 @@ export class HingeJoint extends Joint {
   /**
    * Limit of angular rotation (in degrees) on the hinge joint.
    */
-  get jointLimits(): JointLimits {
-    return this._jointLimits;
+  get limits(): JointLimits {
+    return this._limits;
   }
 
-  set jointLimits(value: JointLimits) {
-    this._jointLimits = value;
+  set limits(value: JointLimits) {
+    this._limits = value;
     if (this.useSpring) {
       (<IHingeJoint>this._nativeJoint).setSoftLimit(value.min, value.max, value.stiffness, value.damping);
     } else {
@@ -172,8 +153,8 @@ export class HingeJoint extends Joint {
    * @internal
    */
   _onAwake() {
-    const jointCollider0 = this._jointCollider0;
-    const jointCollider1 = this._jointCollider1;
+    const jointCollider0 = this._connectedCollider;
+    const jointCollider1 = this._collider;
     jointCollider0.collider = null;
     jointCollider1.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(

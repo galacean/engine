@@ -14,17 +14,13 @@ export class FixedJoint extends Joint {
   private static _offsetVector = new Vector3(1, 0, 0);
 
   /**
-   * The connected collider.
+   * @override
    */
-  get connectedCollider(): Collider {
-    return this.collider0;
-  }
-
   set connectedCollider(value: Collider) {
+    super.connectedCollider = value;
     const offsetVector = FixedJoint._offsetVector;
     Vector3.subtract(this.entity.transform.worldPosition, value.entity.transform.worldPosition, offsetVector);
-    this.localPosition0 = offsetVector;
-    this.collider0 = value;
+    (<IFixedJoint>this._nativeJoint).setOffset(offsetVector);
   }
 
   /**
@@ -32,8 +28,8 @@ export class FixedJoint extends Joint {
    * @internal
    */
   _onAwake() {
-    const jointCollider0 = this._jointCollider0;
-    const jointCollider1 = this._jointCollider1;
+    const jointCollider0 = this._connectedCollider;
+    const jointCollider1 = this._collider;
     jointCollider0.collider = null;
     jointCollider1.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsManager._nativePhysics.createFixedJoint(

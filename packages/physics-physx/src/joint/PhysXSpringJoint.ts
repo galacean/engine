@@ -8,6 +8,10 @@ import { Quaternion, Vector3 } from "oasis-engine";
  * a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects
  */
 export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
+  private static _tempQuat = new Quaternion();
+  private _connectedAnchor = new Vector3();
+  private _swingOffset = new Vector3();
+
   constructor(
     actor0: PhysXCollider,
     position0: Vector3,
@@ -18,16 +22,32 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
   ) {
     super();
     this._pxJoint = PhysXPhysics._pxPhysics.createDistanceJoint(
-      actor0?._pxActor,
+      actor0?._pxActor || null,
       position0,
       rotation0,
-      actor1?._pxActor,
+      actor1?._pxActor || null,
       position1,
       rotation1
     );
     this._pxJoint.setDistanceJointFlag(1, true); // enable max distance;
     this._pxJoint.setDistanceJointFlag(2, true); // enable min distance;
     this._pxJoint.setDistanceJointFlag(4, true); // enable spring;
+  }
+
+  /**
+   * {@inheritDoc ISpringJoint.setConnectedAnchor }
+   */
+  setConnectedAnchor(value: Vector3): void {
+    this._connectedAnchor.copyFrom(value);
+    this._setLocalPose(0, value, PhysXSpringJoint._tempQuat);
+  }
+
+  /**
+   * {@inheritDoc ISpringJoint.setSwingOffset }
+   */
+  setSwingOffset(value: Vector3): void {
+    this._swingOffset.copyFrom(value);
+    this._setLocalPose(1, value, PhysXSpringJoint._tempQuat);
   }
 
   /**

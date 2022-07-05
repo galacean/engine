@@ -6,6 +6,23 @@ import { Vector3 } from "@oasis-engine/math";
  */
 export interface IHingeJoint extends IJoint {
   /**
+   * The connected anchor position.
+   * @note If connectedCollider is set, this anchor is relative offset.
+   * Or the anchor is world anchor position.
+   */
+  setConnectedAnchor(value: Vector3): void;
+
+  /**
+   * The anchor rotation.
+   */
+  setAxis(value: Vector3): void;
+
+  /**
+   * The swing offset.
+   */
+  setSwingOffset(value: Vector3): void;
+
+  /**
    * The current angle in degrees of the joint relative to its rest position.
    */
   getAngle(): number;
@@ -13,7 +30,7 @@ export interface IHingeJoint extends IJoint {
   /**
    * The angular velocity of the joint in degrees per second.
    */
-  getVelocity(): Vector3;
+  getVelocity(): Readonly<Vector3>;
 
   /**
    * Set a cone hard limit.

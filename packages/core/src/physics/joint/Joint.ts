@@ -10,182 +10,112 @@ import { Collider } from "../Collider";
 export class Joint extends Component {
   private _force: number = 0;
   private _torque: number = 0;
+  private _flags: number = 0;
+  protected _connectedCollider = new JointCollider();
+  protected _collider = new JointCollider();
   protected _nativeJoint: IJoint;
-  protected _jointCollider0 = new JointCollider();
-  protected _jointCollider1 = new JointCollider();
+
+  /**
+   * The connected collider.
+   */
+  get connectedCollider(): Collider {
+    return this._connectedCollider.collider;
+  }
+
+  set connectedCollider(value: Collider) {
+    this._connectedCollider.collider = value;
+    this._nativeJoint.setConnectedCollider(value._nativeCollider);
+  }
 
   /**
    *  The scale to apply to the inverse mass of collider 0 for resolving this constraint.
    */
-  get invMassScale0(): number {
-    return this._jointCollider0.invMassScale;
+  get connectedMassScale(): number {
+    return this._connectedCollider.massScale;
   }
 
-  set invMassScale0(value: number) {
-    this._jointCollider0.invMassScale = value;
-    this._nativeJoint.setInvMassScale0(this._jointCollider0.invMassScale);
+  set connectedMassScale(value: number) {
+    this._connectedCollider.massScale = value;
+    this._nativeJoint.setConnectedMassScale(value);
   }
 
   /**
    * The scale to apply to the inverse inertia of collider0 for resolving this constraint.
    */
-  get invInertiaScale0(): number {
-    return this._jointCollider0.invInertiaScale;
+  get connectedInertiaScale(): number {
+    return this._connectedCollider.inertiaScale;
   }
 
-  set invInertiaScale0(value: number) {
-    this._jointCollider0.invInertiaScale = value;
-    this._nativeJoint.setInvInertiaScale0(this._jointCollider0.invInertiaScale);
+  set connectedInertiaScale(value: number) {
+    this._connectedCollider.inertiaScale = value;
+    this._nativeJoint.setConnectedInertiaScale(value);
   }
 
   /**
    * The scale to apply to the inverse mass of collider 1 for resolving this constraint.
    */
-  get invMassScale1(): number {
-    return this._jointCollider1.invMassScale;
+  get massScale(): number {
+    return this._collider.massScale;
   }
 
-  set invMassScale1(value: number) {
-    this._jointCollider1.invMassScale = value;
-    this._nativeJoint.setInvMassScale1(this._jointCollider1.invMassScale);
+  set massScale(value: number) {
+    this._collider.massScale = value;
+    this._nativeJoint.setMassScale(value);
   }
 
   /**
    * The scale to apply to the inverse inertia of collider1 for resolving this constraint.
    */
-  get invInertiaScale1(): number {
-    return this._jointCollider1.invInertiaScale;
+  get inertiaScale(): number {
+    return this._collider.inertiaScale;
   }
 
-  set invInertiaScale1(value: number) {
-    this._jointCollider1.invInertiaScale = value;
-    this._nativeJoint.setInvInertiaScale1(this._jointCollider1.invInertiaScale);
+  set inertiaScale(value: number) {
+    this._collider.inertiaScale = value;
+    this._nativeJoint.setInertiaScale(value);
   }
 
   /**
    * The maximum force the joint can apply before breaking.
    */
-  get BreakForce(): number {
+  get breakForce(): number {
     return this._force;
   }
 
-  set BreakForce(value: number) {
+  set breakForce(value: number) {
     this._force = value;
-    this._nativeJoint.setBreakForce(this._force, this._torque);
+    this._nativeJoint.setBreakForce(value);
   }
 
   /**
    * The maximum torque the joint can apply before breaking.
    */
-  get BreakTorque(): number {
+  get breakTorque(): number {
     return this._torque;
   }
 
-  set BreakTorque(value: number) {
+  set breakTorque(value: number) {
     this._torque = value;
-    this._nativeJoint.setBreakForce(this._force, this._torque);
+    this._nativeJoint.setBreakTorque(value);
   }
 
   /**
-   * Set a constraint flags for this joint to a specified value.
-   * @param flags the constraint flag
-   * @param value the value to which to set the flag
+   * Constraint flags for this joint.
    */
-  setConstraintFlag(flags: ConstraintFlag, value: boolean): void {
-    this._nativeJoint.setConstraintFlag(flags, value);
+  get constraints(): number {
+    return this._flags;
   }
 
-  /**
-   * The first collider.
-   */
-  protected get collider0(): Collider {
-    return this._jointCollider0.collider;
-  }
-
-  protected set collider0(value: Collider) {
-    this._jointCollider0.collider = value;
-    this._nativeJoint.setActors(
-      this._jointCollider0.collider?._nativeCollider,
-      this._jointCollider1.collider?._nativeCollider
-    );
-  }
-
-  /**
-   * The second collider.
-   */
-  protected get collider1(): Collider {
-    return this._jointCollider1.collider;
-  }
-
-  protected set collider1(value: Collider) {
-    this._jointCollider1.collider = value;
-    this._nativeJoint.setActors(
-      this._jointCollider0.collider?._nativeCollider,
-      this._jointCollider1.collider?._nativeCollider
-    );
-  }
-
-  /**
-   *  The local position for the first collider this joint.
-   */
-  protected get localPosition0(): Vector3 {
-    return this._jointCollider0.localPosition;
-  }
-
-  protected set localPosition0(value: Vector3) {
-    if (value !== this._jointCollider0.localPosition) {
-      this._jointCollider0.localPosition.copyFrom(value);
-    }
-    this._nativeJoint.setLocalPose(0, this._jointCollider0.localPosition, this._jointCollider0.localRotation);
-  }
-
-  /**
-   *  The local rotation for the first collider this joint.
-   */
-  protected get localRotation0(): Quaternion {
-    return this._jointCollider0.localRotation;
-  }
-
-  protected set localRotation0(value: Quaternion) {
-    if (value !== this._jointCollider0.localRotation) {
-      this._jointCollider0.localRotation.copyFrom(value);
-    }
-    this._nativeJoint.setLocalPose(0, this._jointCollider0.localPosition, this._jointCollider0.localRotation);
-  }
-
-  /**
-   *  The local position for the second collider this joint.
-   */
-  protected get localPosition1(): Vector3 {
-    return this._jointCollider1.localPosition;
-  }
-
-  protected set localPosition1(value: Vector3) {
-    if (value !== this._jointCollider1.localPosition) {
-      this._jointCollider1.localPosition.copyFrom(value);
-    }
-    this._nativeJoint.setLocalPose(1, this._jointCollider1.localPosition, this._jointCollider1.localRotation);
-  }
-
-  /**
-   *  The local rotation for the second collider this joint.
-   */
-  protected get localRotation1(): Quaternion {
-    return this._jointCollider1.localRotation;
-  }
-
-  protected set localRotation1(value: Quaternion) {
-    if (value !== this._jointCollider1.localRotation) {
-      this._jointCollider1.localRotation.copyFrom(value);
-    }
-    this._nativeJoint.setLocalPose(1, this._jointCollider1.localPosition, this._jointCollider1.localRotation);
+  set constraints(value: number) {
+    this._flags = value;
+    this._nativeJoint.setConstraintFlags(value);
   }
 }
 
 class JointCollider {
-  collider: Collider;
+  collider: Collider = null;
   localPosition = new Vector3();
   localRotation = new Quaternion();
-  invMassScale: number = 0;
-  invInertiaScale: number = 0;
+  massScale: number = 0;
+  inertiaScale: number = 0;
 }

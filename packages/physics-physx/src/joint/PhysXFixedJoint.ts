@@ -8,6 +8,8 @@ import { PhysXPhysics } from "../PhysXPhysics";
  * A fixed joint permits no relative movement between two bodies. ie the bodies are glued together.
  */
 export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
+  private static _tempQuat = new Quaternion();
+
   constructor(
     actor0: PhysXCollider,
     position0: Vector3,
@@ -17,13 +19,21 @@ export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
     rotation1: Quaternion
   ) {
     super();
+    this._collider = actor1;
     this._pxJoint = PhysXPhysics._pxPhysics.createFixedJoint(
-      actor0?._pxActor,
+      actor0?._pxActor || null,
       position0,
       rotation0,
-      actor1?._pxActor,
+      actor1?._pxActor || null,
       position1,
       rotation1
     );
+  }
+
+  /**
+   * {@inheritDoc IFixedJoint.setOffset }
+   */
+  setOffset(value: Vector3): void {
+    this._setLocalPose(0, value, PhysXFixedJoint._tempQuat);
   }
 }
