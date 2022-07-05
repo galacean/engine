@@ -6,7 +6,7 @@ import { PointerManager } from "./pointer/PointerManager";
 import { PointerButton } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
 import { InputType } from "./enums/InputType";
-import { Vector2 } from "@oasis-engine/math";
+import { Vector2, Vector3 } from "@oasis-engine/math";
 
 /**
  * InputManager manages device input such as mouse, touch, keyboard, etc.
@@ -15,20 +15,11 @@ export class InputManager {
   /** Sometimes the input module will not be initialized, such as off-screen rendering. */
   /** @internal */
   _initialized: boolean = false;
-
-  private _enabledTypes: number = InputType.None;
   private _curFrameCount: number = 0;
 
   private _wheelManager: WheelManager;
   private _pointerManager: PointerManager;
   private _keyboardManager: KeyboardManager;
-
-  /**
-   * Set of received input types.
-   */
-  get enabledTypes(): number {
-    return this._enabledTypes;
-  }
 
   /**
    * Pointer List.
@@ -52,24 +43,8 @@ export class InputManager {
    * Get the change of the scroll wheel on the x-axis.
    * @returns Change value
    */
-  get wheelDeltaX(): number {
-    return this._initialized ? this._wheelManager._deltaX : 0;
-  }
-
-  /**
-   * Get the change of the scroll wheel on the y-axis.
-   * @returns Change value
-   */
-  get wheelDeltaY(): number {
-    return this._initialized ? this._wheelManager._deltaY : 0;
-  }
-
-  /**
-   * Get the change of the scroll wheel on the z-axis.
-   * @returns Change value
-   */
-  get wheelDeltaZ(): number {
-    return this._initialized ? this._wheelManager._deltaY : 0;
+  get wheelDelta(): Readonly<Vector3 | null> {
+    return this._initialized ? this._wheelManager._delta : null;
   }
 
   /**
@@ -88,38 +63,6 @@ export class InputManager {
     return this._initialized && this._pointerManager._pointers.length > 0
       ? this._pointerManager._currentPosition
       : null;
-  }
-
-  /**
-   * Handle this type of input.
-   * @param type - The type of the input
-   */
-  enableInput(type: InputType): void {
-    if (this._initialized) {
-      const diff = this._enabledTypes ^ type;
-      if (diff) {
-        this._enabledTypes |= type;
-        diff & InputType.Wheel && this._wheelManager._enable();
-        diff & InputType.Pointer && this._pointerManager._enable();
-        diff & InputType.Keyboard && this._keyboardManager._enable();
-      }
-    }
-  }
-
-  /**
-   * Does not handle this type of input.
-   * @param type - The type of the input
-   */
-  disableInput(type: InputType): void {
-    if (this._initialized) {
-      const same = this._enabledTypes & type;
-      if (same) {
-        this._enabledTypes &= ~type;
-        same & InputType.Wheel && this._wheelManager._disable();
-        same & InputType.Pointer && this._pointerManager._disable();
-        same & InputType.Keyboard && this._keyboardManager._disable();
-      }
-    }
   }
 
   /**
@@ -180,16 +123,16 @@ export class InputManager {
   }
 
   /**
-   * Whether the button is being held down, if there is no parameter, return whether any button is being held down.
-   * @param button - The buttons on a mouse device
-   * @returns Whether the button is being held down
+   * Whether the pointer is being held down, if there is no parameter, return whether any pointer is being held down.
+   * @param pointerButton - The pointerButton on a pointer device
+   * @returns Whether the pointer is being held down
    */
-  isButtonHeldDown(button?: PointerButton): boolean {
+  isPointerHeldDown(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
-      if (button === undefined) {
+      if (pointerButton === undefined) {
         return this._pointerManager._buttons !== 0;
       } else {
-        return (this._pointerManager._buttons & PointerManager.Buttons[button]) !== 0;
+        return (this._pointerManager._buttons & PointerManager.Buttons[pointerButton]) !== 0;
       }
     } else {
       return false;
@@ -197,16 +140,16 @@ export class InputManager {
   }
 
   /**
-   * Whether the button starts to be pressed down during the current frame, if there is no parameter, return whether any button starts to be pressed down during the current frame.
-   * @param button - The buttons on a mouse device
-   * @returns Whether the button starts to be pressed down during the current frame
+   * Whether the pointer starts to be pressed down during the current frame, if there is no parameter, return whether any pointer starts to be pressed down during the current frame.
+   * @param pointerButton - The pointerButton on a pointer device
+   * @returns Whether the pointer starts to be pressed down during the current frame
    */
-  isButtonDown(button: PointerButton): boolean {
+  isPointerDown(pointerButton: PointerButton): boolean {
     if (this._initialized) {
-      if (button === undefined) {
+      if (pointerButton === undefined) {
         return this._pointerManager._downList.length > 0;
       } else {
-        return this._pointerManager._downMap[button] === this._curFrameCount;
+        return this._pointerManager._downMap[pointerButton] === this._curFrameCount;
       }
     } else {
       return false;
@@ -214,16 +157,16 @@ export class InputManager {
   }
 
   /**
-   * Whether the button is released during the current frame, if there is no parameter, return whether any button released during the current frame.
-   * @param button - The buttons on a mouse device
-   * @returns Whether the button is released during the current frame
+   * Whether the pointer is released during the current frame, if there is no parameter, return whether any pointer released during the current frame.
+   * @param pointerButton - The pointerButtons on a mouse device
+   * @returns Whether the pointer is released during the current frame
    */
-  isButtonUp(button: PointerButton): boolean {
+  isPointerUp(pointerButton: PointerButton): boolean {
     if (this._initialized) {
-      if (button === undefined) {
+      if (pointerButton === undefined) {
         return this._pointerManager._upList.length > 0;
       } else {
-        return this._pointerManager._upMap[button] === this._curFrameCount;
+        return this._pointerManager._upMap[pointerButton] === this._curFrameCount;
       }
     } else {
       return false;
@@ -246,7 +189,6 @@ export class InputManager {
     // @ts-ignore
     const canvas = engine._canvas._webCanvas;
     if (canvas instanceof HTMLCanvasElement) {
-      this._enabledTypes = InputType.All;
       this._wheelManager = new WheelManager(canvas);
       this._pointerManager = new PointerManager(engine, canvas);
       this._keyboardManager = new KeyboardManager();
@@ -263,10 +205,9 @@ export class InputManager {
    */
   _update(): void {
     ++this._curFrameCount;
-    const { _enabledTypes: enabledTypes } = this;
-    enabledTypes & InputType.Wheel && this._wheelManager._update();
-    enabledTypes & InputType.Pointer && this._pointerManager._update(this._curFrameCount);
-    enabledTypes & InputType.Keyboard && this._keyboardManager._update(this._curFrameCount);
+    this._wheelManager._update();
+    this._pointerManager._update(this._curFrameCount);
+    this._keyboardManager._update(this._curFrameCount);
   }
 
   /**
@@ -280,16 +221,14 @@ export class InputManager {
   }
 
   private _onBlur(): void {
-    const { _enabledTypes: enabledTypes } = this;
-    enabledTypes & InputType.Wheel && this._wheelManager._onBlur();
-    enabledTypes & InputType.Pointer && this._pointerManager._onBlur();
-    enabledTypes & InputType.Keyboard && this._keyboardManager._onBlur();
+    this._wheelManager._onBlur();
+    this._pointerManager._onBlur();
+    this._keyboardManager._onBlur();
   }
 
   private _onFocus(): void {
-    const { _enabledTypes: enabledTypes } = this;
-    enabledTypes & InputType.Wheel && this._wheelManager._onFocus();
-    enabledTypes & InputType.Pointer && this._pointerManager._onFocus();
-    enabledTypes & InputType.Keyboard && this._keyboardManager._onFocus();
+    this._wheelManager._onFocus();
+    this._pointerManager._onFocus();
+    this._keyboardManager._onFocus();
   }
 }

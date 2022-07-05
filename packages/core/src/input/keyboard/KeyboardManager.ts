@@ -22,6 +22,7 @@ export class KeyboardManager implements IInput {
   _curFrameUpList: DisorderedArray<Keys> = new DisorderedArray();
 
   private _nativeEvents: KeyboardEvent[] = [];
+  private _hadListener: boolean = false;
 
   /**
    * Create a KeyboardManager.
@@ -30,6 +31,7 @@ export class KeyboardManager implements IInput {
     this._onKeyEvent = this._onKeyEvent.bind(this);
     window.addEventListener("keydown", this._onKeyEvent);
     window.addEventListener("keyup", this._onKeyEvent);
+    this._hadListener = true;
   }
 
   /**
@@ -80,36 +82,28 @@ export class KeyboardManager implements IInput {
   /**
    * @internal
    */
-  _enable(): void {
-    window.addEventListener("keydown", this._onKeyEvent);
-    window.addEventListener("keyup", this._onKeyEvent);
-  }
-
-  /**
-   * @internal
-   */
-  _disable(): void {
-    window.removeEventListener("keydown", this._onKeyEvent);
-    window.removeEventListener("keyup", this._onKeyEvent);
-    this._curHeldDownKeyToIndexMap.length = 0;
-    this._curFrameHeldDownList.length = 0;
-    this._curFrameDownList.length = 0;
-    this._curFrameUpList.length = 0;
-    this._nativeEvents.length = 0;
-  }
-
-  /**
-   * @internal
-   */
   _onFocus(): void {
-    this._enable();
+    if (!this._hadListener) {
+      window.addEventListener("keydown", this._onKeyEvent);
+      window.addEventListener("keyup", this._onKeyEvent);
+      this._hadListener = true;
+    }
   }
 
   /**
    * @internal
    */
   _onBlur(): void {
-    this._disable();
+    if (this._hadListener) {
+      window.removeEventListener("keydown", this._onKeyEvent);
+      window.removeEventListener("keyup", this._onKeyEvent);
+      this._curHeldDownKeyToIndexMap.length = 0;
+      this._curFrameHeldDownList.length = 0;
+      this._curFrameDownList.length = 0;
+      this._curFrameUpList.length = 0;
+      this._nativeEvents.length = 0;
+      this._hadListener = false;
+    }
   }
 
   /**

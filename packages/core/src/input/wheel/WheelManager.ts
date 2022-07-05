@@ -1,3 +1,4 @@
+import { Vector3 } from "@oasis-engine/math";
 import { IInput } from "../interface/IInput";
 
 /**
@@ -6,14 +7,11 @@ import { IInput } from "../interface/IInput";
  */
 export class WheelManager implements IInput {
   /** @internal */
-  _deltaX: number = 0;
-  /** @internal */
-  _deltaY: number = 0;
-  /** @internal */
-  _deltaZ: number = 0;
+  _delta: Vector3 = new Vector3();
 
   private _nativeEvents: WheelEvent[] = [];
   private _canvas: HTMLCanvasElement;
+  private _hadListener: boolean;
 
   /**
    * Create a KeyboardManager.
@@ -21,20 +19,22 @@ export class WheelManager implements IInput {
   constructor(htmlCanvas: HTMLCanvasElement) {
     this._onWheelEvent = this._onWheelEvent.bind(this);
     htmlCanvas.addEventListener("wheel", this._onWheelEvent);
+    this._hadListener = true;
   }
 
   /**
    * @internal
    */
   _update(): void {
-    this._deltaX = this._deltaY = this._deltaZ = 0;
+    const { _delta: delta } = this;
+    delta.setValue(0, 0, 0);
     const { _nativeEvents: nativeEvents } = this;
     if (nativeEvents.length > 0) {
       for (let i = nativeEvents.length - 1; i >= 0; i--) {
         const evt = nativeEvents[i];
-        this._deltaX += evt.deltaX;
-        this._deltaY += evt.deltaY;
-        this._deltaZ += evt.deltaZ;
+        delta.x += evt.deltaX;
+        delta.y += evt.deltaY;
+        delta.z += evt.deltaZ;
       }
     }
   }
@@ -42,31 +42,23 @@ export class WheelManager implements IInput {
   /**
    * @internal
    */
-  _enable(): void {
-    this._canvas.addEventListener("wheel", this._onWheelEvent);
-  }
-
-  /**
-   * @internal
-   */
-  _disable(): void {
-    this._canvas.removeEventListener("wheel", this._onWheelEvent);
-    this._nativeEvents.length = 0;
-    this._deltaX = this._deltaY = this._deltaZ = 0;
-  }
-
-  /**
-   * @internal
-   */
   _onFocus(): void {
-    this._enable();
+    if (!this._hadListener) {
+      this._canvas.addEventListener("wheel", this._onWheelEvent);
+      this._hadListener = true;
+    }
   }
 
   /**
    * @internal
    */
   _onBlur(): void {
-    this._disable();
+    if (this._hadListener) {
+      this._canvas.removeEventListener("wheel", this._onWheelEvent);
+      this._nativeEvents.length = 0;
+      this._delta.setValue(0, 0, 0);
+      this._hadListener = false;
+    }
   }
 
   /**

@@ -53,6 +53,7 @@ export class PointerManager implements IInput {
   private _keyEventList: number[] = [];
   private _keyEventCount: number = 0;
   private _needOverallPointers: boolean = false;
+  private _hadListener: boolean = false;
 
   /**
    * Create a PointerManager.
@@ -69,6 +70,7 @@ export class PointerManager implements IInput {
     htmlCanvas.addEventListener("pointerup", onPointerEvent);
     htmlCanvas.addEventListener("pointerout", onPointerEvent);
     htmlCanvas.addEventListener("pointermove", onPointerEvent);
+    this._hadListener = true;
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
     this._pointerPool = new Array<Pointer>(11);
   }
@@ -110,44 +112,36 @@ export class PointerManager implements IInput {
   /**
    * @internal
    */
-  _enable(): void {
-    const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
-    htmlCanvas.addEventListener("pointerdown", onPointerEvent);
-    htmlCanvas.addEventListener("pointerup", onPointerEvent);
-    htmlCanvas.addEventListener("pointerout", onPointerEvent);
-    htmlCanvas.addEventListener("pointermove", onPointerEvent);
-  }
-
-  /**
-   * @internal
-   */
-  _disable(): void {
-    const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
-    htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
-    htmlCanvas.removeEventListener("pointerup", onPointerEvent);
-    htmlCanvas.removeEventListener("pointerout", onPointerEvent);
-    htmlCanvas.removeEventListener("pointermove", onPointerEvent);
-    this._nativeEvents.length = 0;
-    this._pointerPool.length = 0;
-    this._currentPosition = null;
-    this._currentEnteredEntity = null;
-    this._currentPressedEntity = null;
-    this._downList.length = 0;
-    this._upList.length = 0;
-  }
-
-  /**
-   * @internal
-   */
   _onFocus(): void {
-    this._enable();
+    if (!this._hadListener) {
+      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
+      htmlCanvas.addEventListener("pointerdown", onPointerEvent);
+      htmlCanvas.addEventListener("pointerup", onPointerEvent);
+      htmlCanvas.addEventListener("pointerout", onPointerEvent);
+      htmlCanvas.addEventListener("pointermove", onPointerEvent);
+      this._hadListener = true;
+    }
   }
 
   /**
    * @internal
    */
   _onBlur(): void {
-    this._disable();
+    if (this._hadListener) {
+      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
+      htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
+      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      this._nativeEvents.length = 0;
+      this._pointerPool.length = 0;
+      this._currentPosition = null;
+      this._currentEnteredEntity = null;
+      this._currentPressedEntity = null;
+      this._downList.length = 0;
+      this._upList.length = 0;
+      this._hadListener = false;
+    }
   }
 
   /**
