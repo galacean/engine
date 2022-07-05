@@ -5,7 +5,6 @@ import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
 import { PointerButton } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
-import { InputType } from "./enums/InputType";
 import { Vector2, Vector3 } from "@oasis-engine/math";
 
 /**
