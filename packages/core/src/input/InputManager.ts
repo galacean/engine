@@ -11,11 +11,10 @@ import { Vector2, Vector3 } from "@oasis-engine/math";
  * InputManager manages device input such as mouse, touch, keyboard, etc.
  */
 export class InputManager {
-  /** Sometimes the input module will not be initialized, such as off-screen rendering. */
-  /** @internal */
+  /** @internal Sometimes the input module will not be initialized, such as off-screen rendering. */
   _initialized: boolean = false;
-  private _curFrameCount: number = 0;
 
+  private _curFrameCount: number = 0;
   private _wheelManager: WheelManager;
   private _pointerManager: PointerManager;
   private _keyboardManager: KeyboardManager;
@@ -69,12 +68,10 @@ export class InputManager {
    * @param key - The keys of the keyboard
    * @returns Whether the key is being held down
    */
-  isKeyHeldDown(key?: Keys | string | number): boolean {
+  isKeyHeldDown(key?: Keys): boolean {
     if (this._initialized) {
       if (key === undefined) {
         return this._keyboardManager._curFrameDownList.length > 0;
-      } else if (typeof key === "string") {
-        return this._keyboardManager._curHeldDownKeyToIndexMap[Keys[key]] != null;
       } else {
         return this._keyboardManager._curHeldDownKeyToIndexMap[key] != null;
       }
@@ -88,12 +85,10 @@ export class InputManager {
    * @param key - The keys of the keyboard
    * @returns Whether the key starts to be pressed down during the current frame
    */
-  isKeyDown(key?: Keys | string | number): boolean {
+  isKeyDown(key?: Keys): boolean {
     if (this._initialized) {
       if (key === undefined) {
         return this._keyboardManager._curFrameDownList.length > 0;
-      } else if (typeof key === "string") {
-        return this._keyboardManager._downKeyToFrameCountMap[Keys[key]] === this._curFrameCount;
       } else {
         return this._keyboardManager._downKeyToFrameCountMap[key] === this._curFrameCount;
       }
@@ -107,12 +102,10 @@ export class InputManager {
    * @param key - The keys of the keyboard
    * @returns Whether the key is released during the current frame
    */
-  isKeyUp(key?: Keys | string | number): boolean {
+  isKeyUp(key?: Keys): boolean {
     if (this._initialized) {
       if (key === undefined) {
         return this._keyboardManager._curFrameUpList.length > 0;
-      } else if (typeof key === "string") {
-        return this._keyboardManager._upKeyToFrameCountMap[Keys[key]] === this._curFrameCount;
       } else {
         return this._keyboardManager._upKeyToFrameCountMap[key] === this._curFrameCount;
       }
@@ -170,15 +163,6 @@ export class InputManager {
     } else {
       return false;
     }
-  }
-
-  /**
-   * Set hotkey.
-   * @param key - The name of hotkey
-   * @param value - The value of hotkey
-   */
-  registerHotKey(key: string, value: number): void {
-    Keys[key] = value;
   }
 
   /**
