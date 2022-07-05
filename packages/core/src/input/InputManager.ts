@@ -12,8 +12,7 @@ import { Vector2, Vector3 } from "@oasis-engine/math";
  */
 export class InputManager {
   /** @internal Sometimes the input module will not be initialized, such as off-screen rendering. */
-  _initialized: boolean = false;
-
+  private _initialized: boolean = false;
   private _curFrameCount: number = 0;
   private _wheelManager: WheelManager;
   private _pointerManager: PointerManager;
@@ -187,21 +186,25 @@ export class InputManager {
    * @internal
    */
   _update(): void {
-    ++this._curFrameCount;
-    this._wheelManager._update();
-    this._pointerManager._update(this._curFrameCount);
-    this._keyboardManager._update(this._curFrameCount);
+    if (this._initialized) {
+      ++this._curFrameCount;
+      this._wheelManager._update();
+      this._pointerManager._update(this._curFrameCount);
+      this._keyboardManager._update(this._curFrameCount);
+    }
   }
 
   /**
    * @internal
    */
   _destroy(): void {
-    window.removeEventListener("blur", this._onBlur);
-    window.removeEventListener("focus", this._onFocus);
-    this._wheelManager._destroy();
-    this._pointerManager._destroy();
-    this._keyboardManager._destroy();
+    if (this._initialized) {
+      window.removeEventListener("blur", this._onBlur);
+      window.removeEventListener("focus", this._onFocus);
+      this._wheelManager._destroy();
+      this._pointerManager._destroy();
+      this._keyboardManager._destroy();
+    }
   }
 
   private _onBlur(): void {
