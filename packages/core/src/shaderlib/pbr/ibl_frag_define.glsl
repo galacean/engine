@@ -2,6 +2,7 @@
 
 // sh need be pre-scaled in CPU.
 vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
+      normal.x = -normal.x;
       vec3 result = sh[0] +
 
             sh[1] * (normal.y) +

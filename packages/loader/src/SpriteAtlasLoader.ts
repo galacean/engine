@@ -1,7 +1,13 @@
 import {
   AssetPromise,
-  AssetType, Loader, LoadItem, resourceLoader, ResourceManager, Sprite,
-  SpriteAtlas, Texture2D
+  AssetType,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager,
+  Sprite,
+  SpriteAtlas,
+  Texture2D
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
 import { Rect, Vector2 } from "@oasis-engine/math";
@@ -9,6 +15,8 @@ import { GLTFUtil } from "./gltf/GLTFUtil";
 
 @resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
 class SpriteAtlasLoader extends Loader<SpriteAtlas> {
+  private _tempRect: Rect = new Rect();
+  private _tempVec2: Vector2 = new Vector2();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
     return new AssetPromise((resolve, reject) => {
       this.request<AtlasConfig>(item.url, {
@@ -28,8 +36,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           ).then((imgs) => {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object.
-            const tempRect = new Rect();
-            const tempVect2 = new Vector2();
+            const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;
             const spriteAtlas = new SpriteAtlas(engine);
             for (let i = 0; i < atlasItemsLen; i++) {
               // Generate Texture2D according to configuration.
@@ -45,13 +52,13 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const sourceHeightReciprocal = 1.0 / height;
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
-                const { region, pivot, atlasRegionOffset, atlasRegion, id } = atlasSprite;
+                const { region, atlasRegionOffset, atlasRegion, id, pivot } = atlasSprite;
                 const sprite = new Sprite(
                   engine,
                   texture,
                   region ? tempRect.set(region.x, region.y, region.w, region.h) : undefined,
-                  pivot ? tempVect2.set(pivot.x, pivot.y) : undefined,
-                  atlasSprite.pixelsPerUnit || undefined,
+                  pivot ? tempVec2.set(pivot.x, pivot.y) : undefined,
+                  undefined,
                   atlasSprite.name
                 );
                 sprite.atlasRegion.set(
@@ -63,19 +70,11 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 atlasSprite.atlasRotated && (sprite.atlasRotated = true);
                 if (atlasRegionOffset) {
                   const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
-                  let originalWReciprocal: number, originalHReciprocal: number;
-                  if (atlasSprite.atlasRotated) {
-                    originalWReciprocal = 1 / (offsetLeft + atlasRegion.h + offsetRight);
-                    originalHReciprocal = 1 / (offsetTop + atlasRegion.w + offsetBottom);
-                  } else {
-                    originalWReciprocal = 1 / (offsetLeft + atlasRegion.w + offsetRight);
-                    originalHReciprocal = 1 / (offsetTop + atlasRegion.h + offsetBottom);
-                  }
                   sprite.atlasRegionOffset.set(
-                    offsetLeft * originalWReciprocal,
-                    offsetTop * originalHReciprocal,
-                    offsetRight * originalWReciprocal,
-                    offsetBottom * originalHReciprocal
+                    offsetLeft * sourceWidthReciprocal,
+                    offsetTop * sourceHeightReciprocal,
+                    offsetRight * sourceWidthReciprocal,
+                    offsetBottom * sourceHeightReciprocal
                   );
                 }
                 if (id !== undefined) {

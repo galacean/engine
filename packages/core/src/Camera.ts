@@ -47,9 +47,9 @@ export class Camera extends Component {
 
   /**
    * Determining what to clear when rendering by a Camera.
-   * @defaultValue `CameraClearFlags.DepthColor`
+   * @defaultValue `CameraClearFlags.All`
    */
-  clearFlags: CameraClearFlags = CameraClearFlags.DepthColor;
+  clearFlags: CameraClearFlags = CameraClearFlags.All;
 
   /**
    * Culling mask - which layers the camera renders.

@@ -324,7 +324,7 @@ export class CollisionUtil {
       const normal = plane.normal;
 
       back.set(normal.x >= 0 ? min.x : max.x, normal.y >= 0 ? min.y : max.y, normal.z >= 0 ? min.z : max.z);
-      if (Vector3.dot(plane.normal, back) > -plane.distance) {
+      if (Vector3.dot(normal, back) > -plane.distance) {
         return false;
       }
     }
