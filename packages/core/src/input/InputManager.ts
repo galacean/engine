@@ -11,7 +11,7 @@ import { Vector2, Vector3 } from "@oasis-engine/math";
  * InputManager manages device input such as mouse, touch, keyboard, etc.
  */
 export class InputManager {
-  /** @internal Sometimes the input module will not be initialized, such as off-screen rendering. */
+  /** Sometimes the input module will not be initialized, such as off-screen rendering. */
   private _initialized: boolean = false;
   private _curFrameCount: number = 0;
   private _wheelManager: WheelManager;
