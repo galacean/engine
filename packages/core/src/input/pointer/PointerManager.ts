@@ -28,7 +28,6 @@ export class PointerManager implements IInput {
   _movingDelta: Vector2 = new Vector2();
   /** @internal */
   _multiPointerEnabled: boolean = true;
-
   /** @internal */
   _buttons: number = 0x0;
   /** @internal */
@@ -39,9 +38,9 @@ export class PointerManager implements IInput {
   _downList: DisorderedArray<PointerButton> = new DisorderedArray();
   /** @internal */
   _upList: DisorderedArray<PointerButton> = new DisorderedArray();
-
   /** @internal */
   _currentPosition: Vector2 = new Vector2();
+
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;
 
