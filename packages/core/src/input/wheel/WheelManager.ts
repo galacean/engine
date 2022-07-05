@@ -27,7 +27,7 @@ export class WheelManager implements IInput {
    */
   _update(): void {
     const { _delta: delta } = this;
-    delta.setValue(0, 0, 0);
+    delta.set(0, 0, 0);
     const { _nativeEvents: nativeEvents } = this;
     if (nativeEvents.length > 0) {
       for (let i = nativeEvents.length - 1; i >= 0; i--) {
@@ -56,7 +56,7 @@ export class WheelManager implements IInput {
     if (this._hadListener) {
       this._canvas.removeEventListener("wheel", this._onWheelEvent);
       this._nativeEvents.length = 0;
-      this._delta.setValue(0, 0, 0);
+      this._delta.set(0, 0, 0);
       this._hadListener = false;
     }
   }
