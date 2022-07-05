@@ -198,6 +198,7 @@ export class InputManager {
    */
   _destroy(): void {
     window.removeEventListener("blur", this._onBlur);
+    window.removeEventListener("focus", this._onFocus);
     this._wheelManager._destroy();
     this._pointerManager._destroy();
     this._keyboardManager._destroy();
