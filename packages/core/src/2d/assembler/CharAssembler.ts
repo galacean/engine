@@ -5,6 +5,7 @@ import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "../text";
 import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
 import { TextUtils, TextMetrics, FontSizeInfo } from "../text/TextUtils";
+import { CharInfoWithTexture } from "./CharInfo";
 import { CharRenderDataPool } from "./CharRenderDataPool";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
