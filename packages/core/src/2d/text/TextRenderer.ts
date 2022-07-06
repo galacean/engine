@@ -342,6 +342,11 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _onDestroy(): void {
+    if (this._useCharCache) {
+      CharAssembler.clearData(this);
+    } else {
+      TextAssembler.clearData(this);
+    }
     this.engine._dynamicTextAtlasManager.removeSprite(this._sprite);
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();

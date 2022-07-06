@@ -26,8 +26,9 @@ export class CharAssembler {
   static updateData(renderer: TextRenderer): void {
     const isTextureDirty = renderer._isContainDirtyFlag(DirtyFlag.Property);
     if (isTextureDirty) {
-      renderer._charFont = Font.createFromOS(renderer.engine, TextUtils.getNativeFontHash(renderer.font.name, renderer.fontSize, renderer.fontStyle));
       CharAssembler.clearData(renderer);
+      renderer._charFont = Font.createFromOS(renderer.engine, TextUtils.getNativeFontHash(renderer.font.name, renderer.fontSize, renderer.fontStyle));
+      renderer._charFont._addRefCount(1);
       CharAssembler._updateText(renderer);
       renderer._setDirtyFlagFalse(DirtyFlag.Property);
     }
@@ -38,16 +39,19 @@ export class CharAssembler {
     }
   }
 
-  static clear(): void {
-    
-  }
-
   static clearData(renderer: TextRenderer): void {
     const { _charRenderDatas } = renderer;
     for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
       CharAssembler._charRenderDataPool.putData(_charRenderDatas[i]);
     }
     _charRenderDatas.length = 0;
+
+    const { _charFont } = renderer;
+    if (_charFont) {
+      _charFont._addRefCount(-1);
+      _charFont.destroy();
+      renderer._charFont = null;
+    }
   }
 
   private static _updatePosition(renderer: TextRenderer): void {

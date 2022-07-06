@@ -105,7 +105,12 @@ export class Font extends RefObject {
    * @override
    */
   _onDestroy(): void {
-
+    const { _fontAtlasArray } = this;
+    for (let i = 0, l = _fontAtlasArray.length; i < l; ++i) {
+      _fontAtlasArray[i].destroy(true);
+    }
+    _fontAtlasArray.length = 0;
+    delete Font._fontMap[this._name];
   }
 
   private constructor(engine: Engine, name: string = "") {
