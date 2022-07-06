@@ -27,7 +27,10 @@ export class CharAssembler {
     const isTextureDirty = renderer._isContainDirtyFlag(DirtyFlag.Property);
     if (isTextureDirty) {
       CharAssembler.clearData(renderer);
-      renderer._charFont = Font.createFromOS(renderer.engine, TextUtils.getNativeFontHash(renderer.font.name, renderer.fontSize, renderer.fontStyle));
+      renderer._charFont = Font.createFromOS(
+        renderer.engine,
+        TextUtils.getNativeFontHash(renderer.font.name, renderer.fontSize, renderer.fontStyle)
+      );
       renderer._charFont._addRefCount(1);
       CharAssembler._updateText(renderer);
       renderer._setDirtyFlagFalse(DirtyFlag.Property);
@@ -150,6 +153,11 @@ export class CharAssembler {
 
       startY -= lineHeight;
     }
+
+    charFont._getLastIndex() > 0 &&
+      _charRenderDatas.sort((a, b) => {
+        return a.texture.instanceId - b.texture.instanceId;
+      });
   }
 
   private static _measureTextWithWrap(renderer: TextRenderer): TextMetrics {
