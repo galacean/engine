@@ -50,6 +50,7 @@ export class FontAtlas extends RefObject {
     xAdvance: number,
     ascent: number,
     descent: number,
+    index: number = 0,
   ): CharInfo {
     const { _space: space, texture } = this;
     const textureSize = texture.width;
@@ -86,7 +87,7 @@ export class FontAtlas extends RefObject {
     const u1 = (x + w) * textureSizeReciprocal;
     const v0 = y * textureSizeReciprocal;
     const v1 = (y + h) * textureSizeReciprocal;
-    const charInfo = { x, y, w, h, offsetX, offsetY, xAdvance, u0, v0, u1, v1, ascent, descent };
+    const charInfo = { x, y, w, h, offsetX, offsetY, xAdvance, u0, v0, u1, v1, ascent, descent, index };
     this._charInfoMap[id] = charInfo;
     this._curX += offsetWidth + space;
     return charInfo;
