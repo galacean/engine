@@ -115,7 +115,7 @@ export class CharAssembler {
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const char = line[j];
-        const charInfo = charFont._getCharInfo(char.charCodeAt(0));
+        const charInfo = charFont._getCharInfo(char);
 
         if (charInfo.h > 0) {
           const charRenderData = _charRenderDataPool.getData();
@@ -293,24 +293,11 @@ export class CharAssembler {
   }
 
   private static _getCharInfo(char: string, fontString: string, font: Font): CharInfo {
-    const id = char.charCodeAt(0);
-    let charInfo = font._getCharInfo(id);
+    let charInfo = font._getCharInfo(char);
     if (!charInfo) {
-      const charMetrics = TextUtils.measureChar(char, fontString);
-      const { width, sizeInfo } = charMetrics;
-      const { ascent, descent } = sizeInfo;
-      const offsetY = (ascent - descent) * 0.5;
-      charInfo = font._addCharInfo(
-        id,
-        TextUtils.textContext().canvas,
-        width,
-        sizeInfo.size,
-        0,
-        offsetY,
-        width,
-        ascent,
-        descent
-      );
+      charInfo = TextUtils.measureChar(char, fontString);
+      font._uploadCharTexture(charInfo, TextUtils.textContext().canvas);
+      font._addCharInfo(char, charInfo);
     }
 
     return charInfo;

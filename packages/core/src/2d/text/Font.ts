@@ -28,7 +28,8 @@ export class Font extends RefObject {
   }
 
   private _name: string = "";
-  private _fontAtlasArray: Array<FontAtlas> = [];
+  private _fontAtlases: Array<FontAtlas> = [];
+  private _lastIndex: number = -1;
 
   /**
    * The name of the font object.
@@ -45,40 +46,37 @@ export class Font extends RefObject {
   /**
    * @internal
    */
-  _addCharInfo(
-    id: number,
-    imageSource: TexImageSource | OffscreenCanvas,
-    width: number,
-    height: number,
-    offsetX: number,
-    offsetY: number,
-    xAdvance: number,
-    ascent: number,
-    descent: number,
-  ): CharInfo {
-    const { _fontAtlasArray: fontAtlasArray } = this;
-    if (fontAtlasArray.length === 0) {
+  _uploadCharTexture(charInfo: CharInfo, imageSource: TexImageSource | OffscreenCanvas): void {
+    const { _fontAtlases: fontAtlasArray } = this;
+    if (this._lastIndex === -1) {
       this._createFontAtlas();
     }
-
-    const lastIndex = fontAtlasArray.length - 1;
-    let lastFontAtlas = fontAtlasArray[lastIndex];
-    let charInfo = lastFontAtlas.addCharInfo(id, imageSource, width, height, offsetX, offsetY, xAdvance, ascent, descent, lastIndex);
-    if (!charInfo) {
-      lastFontAtlas = this._createFontAtlas();
-      charInfo = lastFontAtlas.addCharInfo(id, imageSource, width, height, offsetX, offsetY, xAdvance, ascent, descent, lastIndex + 1);
+    this._lastIndex = fontAtlasArray.length - 1;
+    let fontAtlas = fontAtlasArray[this._lastIndex];
+    if (!fontAtlas.uploadCharTexture(charInfo, imageSource)) {
+      fontAtlas = this._createFontAtlas();
+      fontAtlas.uploadCharTexture(charInfo, imageSource);
+      this._lastIndex++;
     }
-    return charInfo;
   }
 
   /**
    * @internal
    */
-  _getCharInfo(id: number): CharInfo {
-    const { _fontAtlasArray: fontAtlasArray } = this;
+  _addCharInfo(char: string, charInfo: CharInfo) {
+    const { _lastIndex } = this;
+    charInfo.index = _lastIndex;
+    this._fontAtlases[_lastIndex].addCharInfo(char, charInfo);
+  }
+
+  /**
+   * @internal
+   */
+  _getCharInfo(char: string): CharInfo {
+    const { _fontAtlases: fontAtlasArray } = this;
     for (let i = 0, l = fontAtlasArray.length; i < l; ++i) {
       const fontAtlas = fontAtlasArray[i];
-      const charInfo = fontAtlas.getCharInfo(id);
+      const charInfo = fontAtlas.getCharInfo(char);
       if (charInfo) {
         return charInfo;
       }
@@ -90,7 +88,7 @@ export class Font extends RefObject {
    * @internal
    */
   _getTextureByIndex(index: number): Texture2D {
-    const fontAtlas = this._fontAtlasArray[index];
+    const fontAtlas = this._fontAtlases[index];
     if (fontAtlas) {
       return fontAtlas.texture;
     }
@@ -101,7 +99,7 @@ export class Font extends RefObject {
    * @override
    */
   _onDestroy(): void {
-    const { _fontAtlasArray } = this;
+    const { _fontAtlases: _fontAtlasArray } = this;
     for (let i = 0, l = _fontAtlasArray.length; i < l; ++i) {
       _fontAtlasArray[i].destroy(true);
     }
@@ -114,7 +112,7 @@ export class Font extends RefObject {
     const fontAtlas = new FontAtlas(engine);
     const texture = new Texture2D(engine, 512, 512);
     fontAtlas.texture = texture;
-    this._fontAtlasArray.push(fontAtlas);
+    this._fontAtlases.push(fontAtlas);
     return fontAtlas;
   }
 }

@@ -1,3 +1,4 @@
+import { CharInfo } from "../assembler/CharInfo";
 import { FontStyle } from "../enums/FontStyle";
 
 /**
@@ -103,7 +104,7 @@ export class TextUtils {
     return info;
   }
 
-  static measureChar(char: string, fontString: string): CharMetrics {
+  static measureChar(char: string, fontString: string): CharInfo {
     return <CharMetrics>TextUtils._measureFontOrChar(fontString, char);
   }
 
@@ -205,7 +206,7 @@ export class TextUtils {
     return canvas;
   }
 
-  private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharMetrics {
+  private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
     const measureString = char || TextUtils._measureString;
@@ -263,8 +264,20 @@ export class TextUtils {
         TextUtils.updateCanvas(width, size, data);
       }
       return {
-        width,
-        sizeInfo
+        x: 0,
+        y: 0,
+        w: width,
+        h: size,
+        offsetX: 0,
+        offsetY: (ascent - descent) * 0.5,
+        xAdvance: width,
+        u0: 0,
+        v0: 0,
+        u1: 0,
+        v1: 0,
+        ascent,
+        descent,
+        index: 0
       }
     } else {
       return sizeInfo;

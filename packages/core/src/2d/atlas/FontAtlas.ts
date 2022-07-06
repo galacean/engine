@@ -40,18 +40,8 @@ export class FontAtlas extends RefObject {
     this._charInfoMap = {};
   }
 
-  addCharInfo(
-    id: number,
-    imageSource: TexImageSource | OffscreenCanvas,
-    width: number,
-    height: number,
-    offsetX: number,
-    offsetY: number,
-    xAdvance: number,
-    ascent: number,
-    descent: number,
-    index: number = 0,
-  ): CharInfo {
+  uploadCharTexture(charInfo: CharInfo, imageSource: TexImageSource | OffscreenCanvas): boolean {
+    const { w: width, h: height } = charInfo;
     const { _space: space, texture } = this;
     const textureSize = texture.width;
     const offsetWidth = width + space;
@@ -70,7 +60,7 @@ export class FontAtlas extends RefObject {
       this._nextY = endY;
     }
     if (endY >= textureSize) {
-      return null;
+      return false;
     }
 
     if (width > 0 && height > 0) {
@@ -83,17 +73,21 @@ export class FontAtlas extends RefObject {
     const y = this._curY;
     const w = width;
     const h = height;
-    const u0 = x * textureSizeReciprocal;
-    const u1 = (x + w) * textureSizeReciprocal;
-    const v0 = y * textureSizeReciprocal;
-    const v1 = (y + h) * textureSizeReciprocal;
-    const charInfo = { x, y, w, h, offsetX, offsetY, xAdvance, u0, v0, u1, v1, ascent, descent, index };
-    this._charInfoMap[id] = charInfo;
+    charInfo.x = x;
+    charInfo.y = y;
+    charInfo.u0 = x * textureSizeReciprocal;
+    charInfo.u1 = (x + w) * textureSizeReciprocal;
+    charInfo.v0 = y * textureSizeReciprocal;
+    charInfo.v1 = (y + h) * textureSizeReciprocal;
     this._curX += offsetWidth + space;
-    return charInfo;
+    return true;
   }
 
-  getCharInfo(id: number): CharInfo {
-    return this._charInfoMap[id];
+  addCharInfo(char: string, charInfo: CharInfo) {
+    this._charInfoMap[char.charCodeAt(0)] = charInfo;
+  }
+
+  getCharInfo(char: string): CharInfo {
+    return this._charInfoMap[char.charCodeAt(0)];
   }
 }
