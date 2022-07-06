@@ -13,18 +13,18 @@ export class SpringJoint extends Joint {
   private _tolerance: number = 0.25;
   private _stiffness: number = 0;
   private _damping: number = 0;
-  private _swingOffset: Vector3 = new Vector3();
 
   /**
    * The swing offset.
    */
   get swingOffset(): Vector3 {
-    return this._swingOffset;
+    return this._collider.localPosition;
   }
 
   set swingOffset(value: Vector3) {
-    if (value !== this._swingOffset) {
-      this._swingOffset.copyFrom(value);
+    const swingOffset = this._collider.localPosition;
+    if (value !== swingOffset) {
+      swingOffset.copyFrom(value);
     }
     (<ISpringJoint>this._nativeJoint).setSwingOffset(value);
   }
@@ -107,10 +107,11 @@ export class SpringJoint extends Joint {
    * @internal
    */
   _onAwake() {
-    const jointCollider0 = this._connectedCollider;
-    const jointCollider1 = this._collider;
-    jointCollider0.collider = null;
-    jointCollider1.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(jointCollider1.collider._nativeCollider);
+    const { _connectedCollider: connectedCollider, _collider: collider } = this;
+    connectedCollider.localPosition = new Vector3();
+    connectedCollider.collider = null;
+    collider.localPosition = new Vector3();
+    collider.collider = this.entity.getComponent(Collider);
+    this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(collider.collider._nativeCollider);
   }
 }

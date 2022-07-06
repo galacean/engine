@@ -11,7 +11,6 @@ import { JointLimits } from "./JointLimits";
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class HingeJoint extends Joint {
-  private _swingOffset: Vector3 = new Vector3();
   private _axis: Vector3 = new Vector3(1, 0, 0);
   private _hingeFlags: number = 0;
   private _useSpring: boolean = false;
@@ -37,11 +36,11 @@ export class HingeJoint extends Joint {
    * The swing offset.
    */
   get swingOffset(): Vector3 {
-    return this._swingOffset;
+    return this._collider.localPosition;
   }
 
   set swingOffset(value: Vector3) {
-    const swingOffset = this._swingOffset;
+    const swingOffset = this._collider.localPosition;
     if (value !== swingOffset) {
       swingOffset.copyFrom(value);
     }
@@ -151,10 +150,11 @@ export class HingeJoint extends Joint {
    * @internal
    */
   _onAwake() {
-    const jointCollider0 = this._connectedCollider;
-    const jointCollider1 = this._collider;
-    jointCollider0.collider = null;
-    jointCollider1.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(jointCollider1.collider._nativeCollider);
+    const { _connectedCollider: connectedCollider, _collider: collider } = this;
+    connectedCollider.localPosition = new Vector3();
+    connectedCollider.collider = null;
+    collider.localPosition = new Vector3();
+    collider.collider = this.entity.getComponent(Collider);
+    this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(collider.collider._nativeCollider);
   }
 }

@@ -102,10 +102,13 @@ export class Joint extends Component {
   }
 }
 
+/**
+ * @internal
+ */
 class JointCollider {
   collider: Collider = null;
-  localPosition = new Vector3();
-  localRotation = new Quaternion();
+  localPosition: Vector3;
+  localRotation: Quaternion;
   massScale: number = 0;
   inertiaScale: number = 0;
 }

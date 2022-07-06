@@ -26,10 +26,9 @@ export class FixedJoint extends Joint {
    * @internal
    */
   _onAwake() {
-    const jointCollider0 = this._connectedCollider;
-    const jointCollider1 = this._collider;
-    jointCollider0.collider = null;
-    jointCollider1.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsManager._nativePhysics.createFixedJoint(jointCollider1.collider._nativeCollider);
+    const { _connectedCollider: connectedCollider, _collider: collider } = this;
+    connectedCollider.collider = null;
+    collider.collider = this.entity.getComponent(Collider);
+    this._nativeJoint = PhysicsManager._nativePhysics.createFixedJoint(collider.collider._nativeCollider);
   }
 }
