@@ -2,7 +2,7 @@ import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
 import { ISpringJoint } from "@oasis-engine/design";
 import { PhysXCollider } from "../PhysXCollider";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { Vector3 } from "oasis-engine";
 
 /**
  * a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects

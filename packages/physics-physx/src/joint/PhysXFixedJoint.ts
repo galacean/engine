@@ -1,7 +1,6 @@
 import { PhysXJoint } from "./PhysXJoint";
 import { IFixedJoint } from "@oasis-engine/design";
 import { PhysXCollider } from "../PhysXCollider";
-import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 
 /**

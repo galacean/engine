@@ -1,4 +1,4 @@
-import { IFixedJoint, IJoint } from "@oasis-engine/design";
+import { IJoint } from "@oasis-engine/design";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 import { Component } from "../../Component";
 import { Collider } from "../Collider";
