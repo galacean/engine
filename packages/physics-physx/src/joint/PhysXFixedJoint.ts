@@ -8,25 +8,16 @@ import { PhysXPhysics } from "../PhysXPhysics";
  * A fixed joint permits no relative movement between two bodies. ie the bodies are glued together.
  */
 export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
-  private static _tempQuat = new Quaternion();
-
-  constructor(
-    actor0: PhysXCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: PhysXCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ) {
+  constructor(collider: PhysXCollider) {
     super();
-    this._collider = actor1;
+    this._collider = collider;
     this._pxJoint = PhysXPhysics._pxPhysics.createFixedJoint(
-      actor0?._pxActor || null,
-      position0,
-      rotation0,
-      actor1?._pxActor || null,
-      position1,
-      rotation1
+      null,
+      PhysXJoint._tempVector,
+      PhysXJoint._tempQuat,
+      collider._pxActor,
+      PhysXJoint._tempVector,
+      PhysXJoint._tempQuat
     );
   }
 

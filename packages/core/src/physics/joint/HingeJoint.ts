@@ -87,7 +87,7 @@ export class HingeJoint extends Joint {
     if (value !== this.useLimits) {
       this._hingeFlags |= HingeJointFlag.LimitEnabled;
     }
-    (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(HingeJointFlag.LimitEnabled, value);
+    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.LimitEnabled, value);
   }
 
   /**
@@ -101,7 +101,7 @@ export class HingeJoint extends Joint {
     if (value !== this.useMotor) {
       this._hingeFlags |= HingeJointFlag.DriveEnabled;
     }
-    (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(HingeJointFlag.DriveEnabled, value);
+    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveEnabled, value);
   }
 
   /**
@@ -127,7 +127,7 @@ export class HingeJoint extends Joint {
     (<IHingeJoint>this._nativeJoint).setDriveVelocity(value.targetVelocity);
     (<IHingeJoint>this._nativeJoint).setDriveForceLimit(value.forceLimit);
     (<IHingeJoint>this._nativeJoint).setDriveGearRatio(value.gearRation);
-    (<IHingeJoint>this._nativeJoint).setRevoluteJointFlag(HingeJointFlag.DriveFreeSpin, value.freeSpin);
+    (<IHingeJoint>this._nativeJoint).setHingeJointFlag(HingeJointFlag.DriveFreeSpin, value.freeSpin);
   }
 
   /**
@@ -155,13 +155,6 @@ export class HingeJoint extends Joint {
     const jointCollider1 = this._collider;
     jointCollider0.collider = null;
     jointCollider1.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(
-      null,
-      jointCollider0.localPosition,
-      jointCollider0.localRotation,
-      jointCollider1.collider._nativeCollider,
-      jointCollider1.localPosition,
-      jointCollider1.localRotation
-    );
+    this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(jointCollider1.collider._nativeCollider);
   }
 }

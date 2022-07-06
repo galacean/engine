@@ -6,8 +6,12 @@ import { Quaternion, Vector3 } from "oasis-engine";
  * a base interface providing common functionality for PhysX joints
  */
 export class PhysXJoint implements IJoint {
+  protected static _tempVector = new Vector3(1, 0, 0);
+  protected static _tempQuat = new Quaternion();
+
   /** @internal */
   _pxJoint: any;
+
   private _breakForce: number = Number.MAX_VALUE;
   private _breakTorque: number = Number.MAX_VALUE;
   protected _collider: PhysXCollider;

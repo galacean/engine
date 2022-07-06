@@ -102,31 +102,21 @@ export interface IPhysics {
     material: IPhysicsMaterial
   ): ICapsuleColliderShape;
 
-  //MARK: - Joint
-  createFixedJoint(
-    actor0: ICollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: ICollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): IFixedJoint;
+  /**
+   * Create fixed joint.
+   * @param collider - Affector of joint
+   */
+  createFixedJoint(collider: ICollider): IFixedJoint;
 
-  createHingeJoint(
-    actor0: ICollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: ICollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): IHingeJoint;
+  /**
+   * Create hinge joint.
+   * @param collider - Affector of joint
+   */
+  createHingeJoint(collider: ICollider): IHingeJoint;
 
-  createSpringJoint(
-    actor0: ICollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: ICollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): ISpringJoint;
+  /**
+   * Create spring joint
+   * @param collider - Affector of joint
+   */
+  createSpringJoint(collider: ICollider): ISpringJoint;
 }

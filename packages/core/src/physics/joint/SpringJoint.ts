@@ -112,13 +112,6 @@ export class SpringJoint extends Joint {
     const jointCollider1 = this._collider;
     jointCollider0.collider = null;
     jointCollider1.collider = this.entity.getComponent(Collider);
-    this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(
-      null,
-      jointCollider0.localPosition,
-      jointCollider0.localRotation,
-      jointCollider1.collider._nativeCollider,
-      jointCollider1.localPosition,
-      jointCollider1.localRotation
-    );
+    this._nativeJoint = PhysicsManager._nativePhysics.createSpringJoint(jointCollider1.collider._nativeCollider);
   }
 }

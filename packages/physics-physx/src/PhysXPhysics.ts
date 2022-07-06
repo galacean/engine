@@ -25,10 +25,10 @@ import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
 import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
-import { PhysXCollider } from "./PhysXCollider";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
+import { PhysXCollider } from "./PhysXCollider";
 
 /**
  * PhysX object creation.
@@ -196,43 +196,22 @@ export class PhysXPhysics {
   /**
    * {@inheritDoc IPhysics.createFixedJoint }
    */
-  static createFixedJoint(
-    actor0: PhysXCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: PhysXCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): IFixedJoint {
-    return new PhysXFixedJoint(actor0, position0, rotation0, actor1, position1, rotation1);
+  static createFixedJoint(collider: PhysXCollider): IFixedJoint {
+    return new PhysXFixedJoint(collider);
   }
 
   /**
    * {@inheritDoc IPhysics.createHingeJoint }
    */
-  static createHingeJoint(
-    actor0: PhysXCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: PhysXCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): IHingeJoint {
-    return new PhysXHingeJoint(actor0, position0, rotation0, actor1, position1, rotation1);
+  static createHingeJoint(collider: PhysXCollider): IHingeJoint {
+    return new PhysXHingeJoint(collider);
   }
 
   /**
    * {@inheritDoc IPhysics.createSpringJoint }
    */
-  static createSpringJoint(
-    actor0: PhysXCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: PhysXCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): ISpringJoint {
-    return new PhysXSpringJoint(actor0, position0, rotation0, actor1, position1, rotation1);
+  static createSpringJoint(collider: PhysXCollider): ISpringJoint {
+    return new PhysXSpringJoint(collider);
   }
 
   private static _init(PHYSX: any): void {

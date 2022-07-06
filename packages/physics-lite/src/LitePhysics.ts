@@ -120,42 +120,21 @@ export class LitePhysics {
   /**
    * {@inheritDoc IPhysics.createFixedJoint }
    */
-  static createFixedJoint(
-    actor0: LiteCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: LiteCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): IFixedJoint {
+  static createFixedJoint(collider: LiteCollider): IFixedJoint {
     throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
   }
 
   /**
    * {@inheritDoc IPhysics.createHingeJoint }
    */
-  static createHingeJoint(
-    actor0: LiteCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: LiteCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): IHingeJoint {
+  static createHingeJoint(collider: LiteCollider): IHingeJoint {
     throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
   }
 
   /**
    * {@inheritDoc IPhysics.createSpringJoint }
    */
-  static createSpringJoint(
-    actor0: LiteCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: LiteCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ): ISpringJoint {
+  static createSpringJoint(collider: LiteCollider): ISpringJoint {
     throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
   }
 }

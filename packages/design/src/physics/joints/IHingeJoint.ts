@@ -68,9 +68,9 @@ export interface IHingeJoint extends IJoint {
   setDriveGearRatio(ratio: number): void;
 
   /**
-   * sets a single flag specific to a Revolute Joint.
+   * sets a single flag specific to a Hinge Joint.
    * @param flag The flag to set or clear.
    * @param value the value to which to set the flag
    */
-  setRevoluteJointFlag(flag: number, value: boolean): void;
+  setHingeJointFlag(flag: number, value: boolean): void;
 }

@@ -8,29 +8,21 @@ import { Quaternion, Vector3 } from "oasis-engine";
  * A joint which behaves in a similar way to a hinge or axle.
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
-  private static _tempVector = new Vector3(1, 0, 0);
-  private static _tempQuat = new Quaternion();
   private _axisRotationQuaternion = new Quaternion();
   private _connectedAnchor = new Vector3();
   private _swingOffset = new Vector3();
   private _velocity = new Vector3();
 
-  constructor(
-    actor0: PhysXCollider,
-    position0: Vector3,
-    rotation0: Quaternion,
-    actor1: PhysXCollider,
-    position1: Vector3,
-    rotation1: Quaternion
-  ) {
+  constructor(collider: PhysXCollider) {
     super();
+    this._collider = collider;
     this._pxJoint = PhysXPhysics._pxPhysics.createRevoluteJoint(
-      actor0?._pxActor || null,
-      position0,
-      rotation0,
-      actor1?._pxActor || null,
-      position1,
-      rotation1
+      null,
+      PhysXJoint._tempVector,
+      PhysXJoint._tempQuat,
+      collider._pxActor,
+      PhysXJoint._tempVector,
+      PhysXJoint._tempQuat
     );
   }
 
@@ -39,14 +31,14 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    */
   setConnectedAnchor(value: Vector3): void {
     this._connectedAnchor.copyFrom(value);
-    this._setLocalPose(0, value, PhysXHingeJoint._tempQuat);
+    this._setLocalPose(0, value, PhysXJoint._tempQuat);
   }
 
   /**
    * {@inheritDoc IHingeJoint.setAxis }
    */
   setAxis(value: Vector3): void {
-    const tempVector = PhysXHingeJoint._tempVector;
+    const tempVector = PhysXJoint._tempVector;
     const axisRotationQuaternion = this._axisRotationQuaternion;
     tempVector.set(1, 0, 0);
     value.normalize();
@@ -117,9 +109,9 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   }
 
   /**
-   * {@inheritDoc IHingeJoint.setRevoluteJointFlag }
+   * {@inheritDoc IHingeJoint.setHingeJointFlag }
    */
-  setRevoluteJointFlag(flag: number, value: boolean): void {
+  setHingeJointFlag(flag: number, value: boolean): void {
     this._pxJoint.setRevoluteJointFlag(flag, value);
   }
 }
