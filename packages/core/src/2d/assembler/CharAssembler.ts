@@ -2,10 +2,10 @@ import { Vector3 } from "@oasis-engine/math";
 import { Engine } from "../../Engine";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
+import { Font } from "../text";
 import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
 import { TextUtils, TextMetrics, FontSizeInfo } from "../text/TextUtils";
 import { CharRenderDataPool } from "./CharRenderDataPool";
-import { CharInfoWithTexture, CharUtils } from "./CharUtils";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
@@ -14,12 +14,10 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
  */
 @StaticInterfaceImplement<IAssembler>()
 export class CharAssembler {
-  private static _charUtils: CharUtils;
   private static _charRenderDataPool: CharRenderDataPool;
 
   static resetData(renderer: TextRenderer): void {
-    if (!CharAssembler._charUtils) {
-      CharAssembler._charUtils = new CharUtils(renderer.engine);
+    if (!CharAssembler._charRenderDataPool) {
       CharAssembler._charRenderDataPool = new CharRenderDataPool();
     }
   }
@@ -27,6 +25,7 @@ export class CharAssembler {
   static updateData(renderer: TextRenderer): void {
     const isTextureDirty = renderer._isContainDirtyFlag(DirtyFlag.Property);
     if (isTextureDirty) {
+      renderer._charFont = Font.createFromOS(renderer.engine, TextUtils.getNativeFontHash(renderer.font.name, renderer.fontSize, renderer.fontStyle));
       CharAssembler.clearData(renderer);
       CharAssembler._updateText(renderer);
       renderer._setDirtyFlagFalse(DirtyFlag.Property);
@@ -39,10 +38,7 @@ export class CharAssembler {
   }
 
   static clear(): void {
-    if (CharAssembler._charUtils) {
-      CharAssembler._charUtils.clear();
-      CharAssembler._charUtils = null;
-    }
+    
   }
 
   static clearData(renderer: TextRenderer): void {
@@ -69,7 +65,7 @@ export class CharAssembler {
     const { name } = renderer.font;
     const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-    const fontHash = TextUtils.getNativeFontHash(name, fontSize, fontStyle);
+    const charFont = renderer._charFont;
     const rendererWidth = renderer.width * _pixelsPerUnit;
     const rendererHeight = renderer.height * _pixelsPerUnit;
 
@@ -77,7 +73,7 @@ export class CharAssembler {
       ? CharAssembler._measureTextWithWrap(renderer)
       : CharAssembler._measureTextWithoutWrap(renderer);
     const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
-    const { _charUtils, _charRenderDataPool } = CharAssembler;
+    const { _charRenderDataPool } = CharAssembler;
     const halfLineHeight = lineHeight * 0.5;
     const linesLen = lines.length;
 
@@ -115,7 +111,7 @@ export class CharAssembler {
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const char = line[j];
-        const charInfoWithTexture = _charUtils.getCharInfo(fontHash, char.charCodeAt(0));
+        const charInfoWithTexture = charFont.getCharInfo(char.charCodeAt(0));
         const { charInfo } = charInfoWithTexture;
 
         if (charInfo.h > 0) {
@@ -157,7 +153,7 @@ export class CharAssembler {
     const { fontSize, fontStyle } = renderer;
     const { name } = renderer.font;
     const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
-    const fontHash = TextUtils.getNativeFontHash(name, fontSize, fontStyle);
+    const charFont = renderer._charFont;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lines = new Array<string>();
@@ -177,7 +173,7 @@ export class CharAssembler {
 
       for (let j = 0, m = subText.length; j < m; ++j) {
         const char = subText[j];
-        const charInfoWithTexture = CharAssembler._getCharInfoWithTexture(char, fontString, fontHash);
+        const charInfoWithTexture = CharAssembler._getCharInfoWithTexture(char, fontString, charFont);
         const { charInfo } = charInfoWithTexture;
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
@@ -243,7 +239,7 @@ export class CharAssembler {
     const { fontSize, fontStyle } = renderer;
     const { name } = renderer.font;
     const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
-    const fontHash = TextUtils.getNativeFontHash(name, fontSize, fontStyle);
+    const charFont = renderer._charFont;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lineCount = lines.length;
@@ -264,7 +260,7 @@ export class CharAssembler {
       let maxDescent = -1;
 
       for (let j = 0, m = line.length; j < m; ++j) {
-        const charInfoWithTexture = CharAssembler._getCharInfoWithTexture(line[j], fontString, fontHash);
+        const charInfoWithTexture = CharAssembler._getCharInfoWithTexture(line[j], fontString, charFont);
         const { charInfo } = charInfoWithTexture;
         curWidth += charInfo.xAdvance;
         const { offsetY } = charInfo;
@@ -295,17 +291,15 @@ export class CharAssembler {
     };
   }
 
-  private static _getCharInfoWithTexture(char: string, fontString: string, fontHash: string): CharInfoWithTexture {
-    const { _charUtils } = CharAssembler;
+  private static _getCharInfoWithTexture(char: string, fontString: string, font: Font): CharInfoWithTexture {
     const id = char.charCodeAt(0);
-    let charInfoWithTexture = _charUtils.getCharInfo(fontHash, id);
+    let charInfoWithTexture = font.getCharInfo(id);
     if (!charInfoWithTexture) {
       const charMetrics = TextUtils.measureChar(char, fontString);
       const { width, sizeInfo } = charMetrics;
       const { ascent, descent } = sizeInfo;
       const offsetY = (ascent - descent) * 0.5;
-      charInfoWithTexture = _charUtils.addCharInfo(
-        fontHash,
+      charInfoWithTexture = font.addCharInfo(
         id,
         TextUtils.textContext().canvas,
         width,

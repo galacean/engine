@@ -33,6 +33,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _renderData: RenderData2D;
   /** @internal */
+  @assignmentClone
+  _charFont: Font = null;
+  /** @internal */
   @ignoreClone
   _charRenderDatas: Array<CharRenderData> = [];
 

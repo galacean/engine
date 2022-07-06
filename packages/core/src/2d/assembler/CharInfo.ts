@@ -1,3 +1,5 @@
+import { Texture2D } from "../../texture";
+
 /**
  * @internal
  */
@@ -15,4 +17,12 @@ export interface CharInfo {
   v1: number;
   ascent: number;
   descent: number;
+}
+
+/**
+ * @internal
+ */
+export interface CharInfoWithTexture {
+  texture: Texture2D;
+  charInfo: CharInfo;
 }
