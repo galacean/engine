@@ -9,7 +9,6 @@ import { Quaternion, Vector3 } from "oasis-engine";
  */
 export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   private _axisRotationQuaternion = new Quaternion();
-  private _connectedAnchor = new Vector3();
   private _swingOffset = new Vector3();
   private _velocity = new Vector3();
 
@@ -24,14 +23,6 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
       PhysXJoint._tempVector,
       PhysXJoint._tempQuat
     );
-  }
-
-  /**
-   * {@inheritDoc IHingeJoint.setConnectedAnchor }
-   */
-  setConnectedAnchor(value: Vector3): void {
-    this._connectedAnchor.copyFrom(value);
-    this._setLocalPose(0, value, PhysXJoint._tempQuat);
   }
 
   /**

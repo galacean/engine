@@ -20,11 +20,4 @@ export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
       PhysXJoint._tempQuat
     );
   }
-
-  /**
-   * {@inheritDoc IFixedJoint.setConnectedAnchor }
-   */
-  setConnectedAnchor(value: Vector3): void {
-    this._setLocalPose(0, value, PhysXJoint._tempQuat);
-  }
 }

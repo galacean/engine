@@ -6,13 +6,6 @@ import { Vector3 } from "@oasis-engine/math";
  */
 export interface IHingeJoint extends IJoint {
   /**
-   * The connected anchor position.
-   * @remarks If connectedCollider is set, this anchor is relative offset.
-   * Or the anchor is world anchor position.
-   */
-  setConnectedAnchor(value: Vector3): void;
-
-  /**
    * The anchor rotation.
    */
   setAxis(value: Vector3): void;

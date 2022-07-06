@@ -1,4 +1,4 @@
-import { IJoint } from "@oasis-engine/design";
+import { IFixedJoint, IJoint } from "@oasis-engine/design";
 import { Vector3, Quaternion } from "@oasis-engine/math";
 import { Component } from "../../Component";
 import { Collider } from "../Collider";
@@ -15,7 +15,6 @@ export class Joint extends Component {
   protected _nativeJoint: IJoint;
   private _force: number = 0;
   private _torque: number = 0;
-  private _flags: number = 0;
 
   /**
    * The connected collider.
@@ -25,11 +24,26 @@ export class Joint extends Component {
   }
 
   set connectedCollider(value: Collider) {
-    const collider = this._connectedCollider.collider;
-    if (collider !== value) {
+    if (this._connectedCollider.collider !== value) {
       this._connectedCollider.collider = value;
       this._nativeJoint.setConnectedCollider(value._nativeCollider);
     }
+  }
+
+  /**
+   * The connected anchor position.
+   * @remarks If connectedCollider is set, this anchor is relative offset, or the anchor is world position.
+   */
+  get connectedAnchor(): Vector3 {
+    return this._connectedCollider.localPosition;
+  }
+
+  set connectedAnchor(value: Vector3) {
+    const connectedAnchor = this._connectedCollider.localPosition;
+    if (value !== connectedAnchor) {
+      connectedAnchor.copyFrom(value);
+    }
+    this._nativeJoint.setConnectedAnchor(value);
   }
 
   /**
@@ -40,8 +54,10 @@ export class Joint extends Component {
   }
 
   set connectedMassScale(value: number) {
-    this._connectedCollider.massScale = value;
-    this._nativeJoint.setConnectedMassScale(value);
+    if (value !== this._connectedCollider.massScale) {
+      this._connectedCollider.massScale = value;
+      this._nativeJoint.setConnectedMassScale(value);
+    }
   }
 
   /**
@@ -52,8 +68,10 @@ export class Joint extends Component {
   }
 
   set connectedInertiaScale(value: number) {
-    this._connectedCollider.inertiaScale = value;
-    this._nativeJoint.setConnectedInertiaScale(value);
+    if (value !== this._connectedCollider.inertiaScale) {
+      this._connectedCollider.inertiaScale = value;
+      this._nativeJoint.setConnectedInertiaScale(value);
+    }
   }
 
   /**
@@ -64,8 +82,10 @@ export class Joint extends Component {
   }
 
   set massScale(value: number) {
-    this._collider.massScale = value;
-    this._nativeJoint.setMassScale(value);
+    if (value !== this._collider.massScale) {
+      this._collider.massScale = value;
+      this._nativeJoint.setMassScale(value);
+    }
   }
 
   /**
@@ -76,8 +96,10 @@ export class Joint extends Component {
   }
 
   set inertiaScale(value: number) {
-    this._collider.inertiaScale = value;
-    this._nativeJoint.setInertiaScale(value);
+    if (value !== this._collider.inertiaScale) {
+      this._collider.inertiaScale = value;
+      this._nativeJoint.setInertiaScale(value);
+    }
   }
 
   /**
@@ -88,8 +110,10 @@ export class Joint extends Component {
   }
 
   set breakForce(value: number) {
-    this._force = value;
-    this._nativeJoint.setBreakForce(value);
+    if (value !== this._force) {
+      this._force = value;
+      this._nativeJoint.setBreakForce(value);
+    }
   }
 
   /**
@@ -100,8 +124,10 @@ export class Joint extends Component {
   }
 
   set breakTorque(value: number) {
-    this._torque = value;
-    this._nativeJoint.setBreakTorque(value);
+    if (value !== this._torque) {
+      this._torque = value;
+      this._nativeJoint.setBreakTorque(value);
+    }
   }
 }
 

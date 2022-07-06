@@ -48,23 +48,6 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * The connected anchor position.
-   * @remarks If connectedCollider is set, this anchor is relative offset.
-   * Or the anchor is world anchor position.
-   */
-  get connectedAnchor(): Vector3 {
-    return this._connectedCollider.localPosition;
-  }
-
-  set connectedAnchor(value: Vector3) {
-    const connectedAnchor = this._connectedCollider.localPosition;
-    if (value !== connectedAnchor) {
-      connectedAnchor.copyFrom(value);
-    }
-    (<IHingeJoint>this._nativeJoint).setConnectedAnchor(value);
-  }
-
-  /**
    * The current angle in degrees of the joint relative to its rest position.
    */
   get angle(): number {

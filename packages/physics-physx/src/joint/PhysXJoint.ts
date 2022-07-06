@@ -11,6 +11,7 @@ export class PhysXJoint implements IJoint {
 
   protected _pxJoint: any;
   protected _collider: PhysXCollider;
+  private _connectedAnchor = new Vector3();
   private _breakForce: number = Number.MAX_VALUE;
   private _breakTorque: number = Number.MAX_VALUE;
 
@@ -19,6 +20,14 @@ export class PhysXJoint implements IJoint {
    */
   setConnectedCollider(value: PhysXCollider): void {
     this._pxJoint.setActors(value?._pxActor || null, this._collider?._pxActor || null);
+  }
+
+  /**
+   * {@inheritDoc IJoint.setConnectedAnchor }
+   */
+  setConnectedAnchor(value: Vector3): void {
+    this._connectedAnchor.copyFrom(value);
+    this._setLocalPose(0, value, PhysXJoint._tempQuat);
   }
 
   /**

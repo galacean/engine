@@ -6,13 +6,6 @@ import { Vector3 } from "@oasis-engine/math";
  */
 export interface ISpringJoint extends IJoint {
   /**
-   * The connected anchor position.
-   * @remarks If connectedCollider is set, this anchor is relative offset.
-   * Or the anchor is world anchor position.
-   */
-  setConnectedAnchor(value: Vector3): void;
-
-  /**
    * The swing offset.
    */
   setSwingOffset(value: Vector3): void;
