@@ -7,7 +7,7 @@ import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
- * A manager is a collection of bodies and constraints which can interact.
+ * A manager is a collection of colliders and constraints which can interact.
  */
 export class PhysXPhysicsManager implements IPhysicsManager {
   /** @internal */

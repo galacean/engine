@@ -1,10 +1,9 @@
 import { Joint } from "./Joint";
 import { IHingeJoint } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
-import { HingeJointFlag } from "../enums";
+import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Collider } from "../Collider";
-import { dependentComponents } from "../../ComponentsDependencies";
-import { Vector3, Quaternion } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { JointMotor } from "./JointMotor";
 import { JointLimits } from "./JointLimits";
 
@@ -51,7 +50,7 @@ export class HingeJoint extends Joint {
 
   /**
    * The connected anchor position.
-   * @remark If connectedCollider is set, this anchor is relative offset.
+   * @remarks If connectedCollider is set, this anchor is relative offset.
    * Or the anchor is world anchor position.
    */
   get connectedAnchor(): Vector3 {
@@ -113,6 +112,7 @@ export class HingeJoint extends Joint {
 
   set useSpring(value: boolean) {
     this._useSpring = value;
+    this.limits = this._limits;
   }
 
   /**

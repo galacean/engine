@@ -1,12 +1,11 @@
 import { Joint } from "./Joint";
 import { IFixedJoint } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
-import { dependentComponents } from "../../ComponentsDependencies";
 import { Collider } from "../Collider";
 import { Vector3 } from "@oasis-engine/math";
 
 /*
- * A fixed joint permits no relative movement between two bodies. ie the bodies are glued together.
+ * A fixed joint permits no relative movement between two colliders. ie the colliders are glued together.
  */
 export class FixedJoint extends Joint {
   private static _offsetVector = new Vector3(1, 0, 0);

@@ -1,5 +1,6 @@
 /**
  * Flags specific to the Hinge Joint.
+ * @internal
  */
 export enum HingeJointFlag {
   /** enable the limit */

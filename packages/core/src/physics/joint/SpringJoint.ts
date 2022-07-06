@@ -2,7 +2,6 @@ import { Joint } from "./Joint";
 import { ISpringJoint } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 import { Collider } from "../Collider";
-import { dependentComponents } from "../../ComponentsDependencies";
 import { Vector3 } from "@oasis-engine/math";
 
 /**
@@ -32,7 +31,7 @@ export class SpringJoint extends Joint {
 
   /**
    * The connected anchor position.
-   * @remark If connectedCollider is set, this anchor is relative offset.
+   * @remarks If connectedCollider is set, this anchor is relative offset.
    * Or the anchor is world anchor position.
    */
   get connectedAnchor(): Vector3 {
