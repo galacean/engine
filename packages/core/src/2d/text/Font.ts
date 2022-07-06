@@ -48,16 +48,18 @@ export class Font extends RefObject {
    */
   _uploadCharTexture(charInfo: CharInfo, imageSource: TexImageSource | OffscreenCanvas): void {
     const { _fontAtlases: fontAtlasArray } = this;
-    if (this._lastIndex === -1) {
+    let lastIndex = this._lastIndex;
+    if (lastIndex === -1) {
       this._createFontAtlas();
+      lastIndex++
     }
-    this._lastIndex = fontAtlasArray.length - 1;
-    let fontAtlas = fontAtlasArray[this._lastIndex];
+    let fontAtlas = fontAtlasArray[lastIndex];
     if (!fontAtlas.uploadCharTexture(charInfo, imageSource)) {
       fontAtlas = this._createFontAtlas();
       fontAtlas.uploadCharTexture(charInfo, imageSource);
-      this._lastIndex++;
+      lastIndex++;
     }
+    this._lastIndex = lastIndex;
   }
 
   /**
