@@ -40,7 +40,7 @@ export class Font extends RefObject {
   /**
    * @internal
    */
-  addCharInfo(
+  _addCharInfo(
     id: number,
     imageSource: TexImageSource | OffscreenCanvas,
     width: number,
@@ -69,7 +69,7 @@ export class Font extends RefObject {
   /**
    * @internal
    */
-  getCharInfo(id: number): CharInfo {
+  _getCharInfo(id: number): CharInfo {
     const { _fontAtlasArray: fontAtlasArray } = this;
     for (let i = 0, l = fontAtlasArray.length; i < l; ++i) {
       const fontAtlas = fontAtlasArray[i];
@@ -84,7 +84,7 @@ export class Font extends RefObject {
   /**
    * @internal
    */
-  getTextureByIndex(index: number): Texture2D {
+  _getTextureByIndex(index: number): Texture2D {
     const fontAtlas = this._fontAtlasArray[index];
     if (fontAtlas) {
       return fontAtlas.texture;
