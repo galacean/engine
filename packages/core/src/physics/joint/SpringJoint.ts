@@ -39,6 +39,10 @@ export class SpringJoint extends Joint {
   }
 
   set connectedAnchor(value: Vector3) {
+    const connectedAnchor = this._connectedCollider.localPosition;
+    if (value !== connectedAnchor) {
+      connectedAnchor.copyFrom(value);
+    }
     (<ISpringJoint>this._nativeJoint).setConnectedAnchor(value);
   }
 

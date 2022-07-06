@@ -22,9 +22,9 @@ export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
   }
 
   /**
-   * {@inheritDoc IFixedJoint.setOffset }
+   * {@inheritDoc IFixedJoint.setConnectedAnchor }
    */
-  setOffset(value: Vector3): void {
-    this._setLocalPose(0, value, PhysXFixedJoint._tempQuat);
+  setConnectedAnchor(value: Vector3): void {
+    this._setLocalPose(0, value, PhysXJoint._tempQuat);
   }
 }

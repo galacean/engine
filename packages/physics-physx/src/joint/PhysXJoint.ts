@@ -9,12 +9,10 @@ export class PhysXJoint implements IJoint {
   protected static _tempVector = new Vector3(1, 0, 0);
   protected static _tempQuat = new Quaternion();
 
-  /** @internal */
-  _pxJoint: any;
-
+  protected _pxJoint: any;
+  protected _collider: PhysXCollider;
   private _breakForce: number = Number.MAX_VALUE;
   private _breakTorque: number = Number.MAX_VALUE;
-  protected _collider: PhysXCollider;
 
   /**
    * {@inheritDoc IJoint.setConnectedCollider }

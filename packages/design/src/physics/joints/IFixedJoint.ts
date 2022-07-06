@@ -6,8 +6,9 @@ import { Vector3 } from "@oasis-engine/math";
  */
 export interface IFixedJoint extends IJoint {
   /**
-   * Set fixed offset.
-   * @param value - The offset
+   * The connected anchor position.
+   * @remarks If connectedCollider is set, this anchor is relative offset.
+   * Or the anchor is world anchor position.
    */
-  setOffset(value: Vector3): void;
+  setConnectedAnchor(value: Vector3): void;
 }

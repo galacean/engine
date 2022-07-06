@@ -10,12 +10,12 @@ import { dependentComponents } from "../../ComponentsDependencies";
  */
 @dependentComponents(Collider)
 export class Joint extends Component {
-  private _force: number = 0;
-  private _torque: number = 0;
-  private _flags: number = 0;
   protected _connectedCollider = new JointCollider();
   protected _collider = new JointCollider();
   protected _nativeJoint: IJoint;
+  private _force: number = 0;
+  private _torque: number = 0;
+  private _flags: number = 0;
 
   /**
    * The connected collider.
@@ -25,8 +25,11 @@ export class Joint extends Component {
   }
 
   set connectedCollider(value: Collider) {
-    this._connectedCollider.collider = value;
-    this._nativeJoint.setConnectedCollider(value._nativeCollider);
+    const collider = this._connectedCollider.collider;
+    if (collider !== value) {
+      this._connectedCollider.collider = value;
+      this._nativeJoint.setConnectedCollider(value._nativeCollider);
+    }
   }
 
   /**

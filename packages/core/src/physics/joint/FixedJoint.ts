@@ -1,24 +1,28 @@
 import { Joint } from "./Joint";
-import { IFixedJoint } from "@oasis-engine/design";
 import { PhysicsManager } from "../PhysicsManager";
 import { Collider } from "../Collider";
 import { Vector3 } from "@oasis-engine/math";
+import { IFixedJoint } from "@oasis-engine/design";
 
 /*
  * A fixed joint permits no relative movement between two colliders. ie the colliders are glued together.
  */
 export class FixedJoint extends Joint {
-  private static _offsetVector = new Vector3(1, 0, 0);
-
   /**
-   * @override
+   * The connected anchor position.
+   * @remarks If connectedCollider is set, this anchor is relative offset.
+   * Or the anchor is world anchor position.
    */
-  set connectedCollider(value: Collider) {
-    this._connectedCollider.collider = value;
-    this._nativeJoint.setConnectedCollider(value._nativeCollider);
-    const offsetVector = FixedJoint._offsetVector;
-    Vector3.subtract(this.entity.transform.worldPosition, value.entity.transform.worldPosition, offsetVector);
-    (<IFixedJoint>this._nativeJoint).setOffset(offsetVector);
+  get connectedAnchor(): Vector3 {
+    return this._connectedCollider.localPosition;
+  }
+
+  set connectedAnchor(value: Vector3) {
+    const connectedAnchor = this._connectedCollider.localPosition;
+    if (value !== connectedAnchor) {
+      connectedAnchor.copyFrom(value);
+    }
+    (<IFixedJoint>this._nativeJoint).setConnectedAnchor(value);
   }
 
   /**

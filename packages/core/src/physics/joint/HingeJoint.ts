@@ -57,6 +57,10 @@ export class HingeJoint extends Joint {
   }
 
   set connectedAnchor(value: Vector3) {
+    const connectedAnchor = this._connectedCollider.localPosition;
+    if (value !== connectedAnchor) {
+      connectedAnchor.copyFrom(value);
+    }
     (<IHingeJoint>this._nativeJoint).setConnectedAnchor(value);
   }
 
