@@ -1,12 +1,14 @@
 import { IJoint } from "@oasis-engine/design";
 import { Vector3, Quaternion } from "@oasis-engine/math";
-import { ConstraintFlag } from "../enums";
 import { Component } from "../../Component";
 import { Collider } from "../Collider";
+import { dependentComponents } from "../../ComponentsDependencies";
 
 /**
  * A base class providing common functionality for joints.
+ * @decorator `@dependentComponents(Collider)`
  */
+@dependentComponents(Collider)
 export class Joint extends Component {
   private _force: number = 0;
   private _torque: number = 0;
@@ -97,18 +99,6 @@ export class Joint extends Component {
   set breakTorque(value: number) {
     this._torque = value;
     this._nativeJoint.setBreakTorque(value);
-  }
-
-  /**
-   * Constraint flags for this joint.
-   */
-  get constraints(): number {
-    return this._flags;
-  }
-
-  set constraints(value: number) {
-    this._flags = value;
-    this._nativeJoint.setConstraintFlags(value);
   }
 }
 

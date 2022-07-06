@@ -1,7 +1,6 @@
 import { IJoint } from "@oasis-engine/design";
 import { PhysXCollider } from "../PhysXCollider";
 import { Quaternion, Vector3 } from "oasis-engine";
-import { ICollider } from "@oasis-engine/design/src";
 
 /**
  * a base interface providing common functionality for PhysX joints
@@ -62,13 +61,6 @@ export class PhysXJoint implements IJoint {
   setBreakTorque(value: number): void {
     this._breakTorque = value;
     this._pxJoint.setBreakForce(this._breakForce, this._breakTorque);
-  }
-
-  /**
-   * {@inheritDoc IJoint.setConstraintFlags }
-   */
-  setConstraintFlags(flags: number): void {
-    this._pxJoint.setConstraintFlags(flags);
   }
 
   /**

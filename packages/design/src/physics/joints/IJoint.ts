@@ -39,9 +39,4 @@ export interface IJoint {
    * The maximum torque the joint can apply before breaking.
    */
   setBreakTorque(value: number): void;
-
-  /**
-   * set a constraint flags for this joint.
-   */
-  setConstraintFlags(flags: number): void;
 }

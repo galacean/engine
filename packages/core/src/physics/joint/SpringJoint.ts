@@ -7,9 +7,7 @@ import { Vector3 } from "@oasis-engine/math";
 
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.
- * @decorator `@dependentComponents(Collider)`
  */
-@dependentComponents(Collider)
 export class SpringJoint extends Joint {
   private _minDistance: number = 0;
   private _maxDistance: number = 0;
@@ -34,7 +32,7 @@ export class SpringJoint extends Joint {
 
   /**
    * The connected anchor position.
-   * @note If connectedCollider is set, this anchor is relative offset.
+   * @remark If connectedCollider is set, this anchor is relative offset.
    * Or the anchor is world anchor position.
    */
   get connectedAnchor(): Vector3 {

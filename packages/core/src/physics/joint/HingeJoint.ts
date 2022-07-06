@@ -10,9 +10,7 @@ import { JointLimits } from "./JointLimits";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
- * @decorator `@dependentComponents(Collider)`
  */
-@dependentComponents(Collider)
 export class HingeJoint extends Joint {
   private _swingOffset: Vector3 = new Vector3();
   private _axis: Vector3 = new Vector3(1, 0, 0);
@@ -53,7 +51,7 @@ export class HingeJoint extends Joint {
 
   /**
    * The connected anchor position.
-   * @note If connectedCollider is set, this anchor is relative offset.
+   * @remark If connectedCollider is set, this anchor is relative offset.
    * Or the anchor is world anchor position.
    */
   get connectedAnchor(): Vector3 {
