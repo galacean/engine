@@ -37,6 +37,11 @@ export class Font extends RefObject {
     return this._name;
   }
 
+  private constructor(engine: Engine, name: string = "") {
+    super(engine);
+    this._name = name;
+  }
+
   /**
    * @internal
    */
@@ -102,11 +107,6 @@ export class Font extends RefObject {
     }
     _fontAtlasArray.length = 0;
     delete Font._fontMap[this._name];
-  }
-
-  private constructor(engine: Engine, name: string = "") {
-    super(engine);
-    this._name = name;
   }
 
   private _createFontAtlas(): FontAtlas {
