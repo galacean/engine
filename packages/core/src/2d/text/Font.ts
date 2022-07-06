@@ -38,17 +38,7 @@ export class Font extends RefObject {
   }
 
   /**
-   * Add char into font atlas.
-   * @param id - The unique id for char
-   * @param imageSource - The source of texture
-   * @param width - The width of char
-   * @param height - The height of char
-   * @param offsetX - The char offset in X axis
-   * @param offsetY - The char offset in Y axis
-   * @param xAdvance - The next char start position in X axis
-   * @param ascent - The ascent of char
-   * @param descent - The descent of char
-   * @returns - The char's char info and texture
+   * @internal
    */
   addCharInfo(
     id: number,
@@ -77,9 +67,7 @@ export class Font extends RefObject {
   }
 
   /**
-   * Get char info.
-   * @param id - The unique id for char
-   * @returns - The char's char info and texture
+   * @internal
    */
   getCharInfo(id: number): CharInfo {
     const { _fontAtlasArray: fontAtlasArray } = this;
@@ -93,6 +81,9 @@ export class Font extends RefObject {
     return null;
   }
 
+  /**
+   * @internal
+   */
   getTextureByIndex(index: number): Texture2D {
     const fontAtlas = this._fontAtlasArray[index];
     if (fontAtlas) {
