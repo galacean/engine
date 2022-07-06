@@ -5,7 +5,7 @@ import { OverflowMode } from "../enums/TextOverflow";
 import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
 import { TextUtils, TextMetrics, FontSizeInfo } from "../text/TextUtils";
 import { CharRenderDataPool } from "./CharRenderDataPool";
-import { CharDefWithTexture, CharUtils } from "./CharUtils";
+import { CharInfoWithTexture, CharUtils } from "./CharUtils";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
@@ -115,17 +115,17 @@ export class CharAssembler {
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const char = line[j];
-        const charDefWithTexture = _charUtils.getCharDef(fontHash, char.charCodeAt(0));
-        const { charDef } = charDefWithTexture;
+        const charInfoWithTexture = _charUtils.getCharInfo(fontHash, char.charCodeAt(0));
+        const { charInfo } = charInfoWithTexture;
 
-        if (charDef.h > 0) {
+        if (charInfo.h > 0) {
           const charRenderData = _charRenderDataPool.getData();
           const { renderData, localPositions } = charRenderData;
-          charRenderData.texture = charDefWithTexture.texture;
+          charRenderData.texture = charInfoWithTexture.texture;
           renderData.color = color;
 
           const { uvs } = renderData;
-          const { w, u0, v0, u1, v1, ascent, descent } = charDef;
+          const { w, u0, v0, u1, v1, ascent, descent } = charInfo;
 
           const left = startX * pixelsPerUnitReciprocal;
           const right = (startX + w) * pixelsPerUnitReciprocal;
@@ -146,7 +146,7 @@ export class CharAssembler {
 
           _charRenderDatas.push(charRenderData);
         }
-        startX += charDef.xAdvance;
+        startX += charInfo.xAdvance;
       }
 
       startY -= lineHeight;
@@ -177,10 +177,10 @@ export class CharAssembler {
 
       for (let j = 0, m = subText.length; j < m; ++j) {
         const char = subText[j];
-        const charDefWithTexture = CharAssembler._getCharDefWithTexture(char, fontString, fontHash);
-        const { charDef } = charDefWithTexture;
-        const { w, offsetY } = charDef;
-        const halfH = charDef.h * 0.5;
+        const charInfoWithTexture = CharAssembler._getCharInfoWithTexture(char, fontString, fontHash);
+        const { charInfo } = charInfoWithTexture;
+        const { w, offsetY } = charInfo;
+        const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
         const descent = halfH - offsetY;
         if (charsWidth + w > wrapWidth) {
@@ -201,13 +201,13 @@ export class CharAssembler {
               size: maxAscent + maxDescent
             });
             chars = char;
-            charsWidth = charDef.xAdvance;
+            charsWidth = charInfo.xAdvance;
             maxAscent = ascent;
             maxDescent = descent;
           }
         } else {
           chars += char;
-          charsWidth += charDef.xAdvance;
+          charsWidth += charInfo.xAdvance;
           maxAscent < ascent && (maxAscent = ascent);
           maxDescent < descent && (maxDescent = descent);
         }
@@ -264,11 +264,11 @@ export class CharAssembler {
       let maxDescent = -1;
 
       for (let j = 0, m = line.length; j < m; ++j) {
-        const charDefWithTexture = CharAssembler._getCharDefWithTexture(line[j], fontString, fontHash);
-        const { charDef } = charDefWithTexture;
-        curWidth += charDef.xAdvance;
-        const { offsetY } = charDef;
-        const halfH = charDef.h * 0.5;
+        const charInfoWithTexture = CharAssembler._getCharInfoWithTexture(line[j], fontString, fontHash);
+        const { charInfo } = charInfoWithTexture;
+        curWidth += charInfo.xAdvance;
+        const { offsetY } = charInfo;
+        const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
         const descent = halfH - offsetY;
         maxAscent < ascent && (maxAscent = ascent);
@@ -295,16 +295,16 @@ export class CharAssembler {
     };
   }
 
-  private static _getCharDefWithTexture(char: string, fontString: string, fontHash: string): CharDefWithTexture {
+  private static _getCharInfoWithTexture(char: string, fontString: string, fontHash: string): CharInfoWithTexture {
     const { _charUtils } = CharAssembler;
     const id = char.charCodeAt(0);
-    let charDefWithTexture = _charUtils.getCharDef(fontHash, id);
-    if (!charDefWithTexture) {
+    let charInfoWithTexture = _charUtils.getCharInfo(fontHash, id);
+    if (!charInfoWithTexture) {
       const charMetrics = TextUtils.measureChar(char, fontString);
       const { width, sizeInfo } = charMetrics;
       const { ascent, descent } = sizeInfo;
       const offsetY = (ascent - descent) * 0.5;
-      charDefWithTexture = _charUtils.addCharDef(
+      charInfoWithTexture = _charUtils.addCharInfo(
         fontHash,
         id,
         TextUtils.textContext().canvas,
@@ -318,6 +318,6 @@ export class CharAssembler {
       );
     }
 
-    return charDefWithTexture;
+    return charInfoWithTexture;
   }
 }

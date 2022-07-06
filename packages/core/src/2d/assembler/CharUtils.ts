@@ -1,14 +1,14 @@
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 import { DynamicFontAtlas } from "../atlas/DynamicFontAtlas";
-import { CharDef } from "../atlas/FontAtlas";
+import { CharInfo } from "./CharInfo";
 
 /**
  * @internal
  */
-export interface CharDefWithTexture {
+export interface CharInfoWithTexture {
   texture: Texture2D;
-  charDef: CharDef;
+  charInfo: CharInfo;
 }
 
 /**
@@ -22,7 +22,7 @@ export class CharUtils {
    */
   constructor(public readonly engine: Engine) {}
 
-  addCharDef(
+  addCharInfo(
     fontHash: string,
     id: number,
     imageSource: TexImageSource | OffscreenCanvas,
@@ -33,7 +33,7 @@ export class CharUtils {
     xAdvance: number,
     ascent: number,
     descent: number,
-  ): CharDefWithTexture {
+  ): CharInfoWithTexture {
     const { _fontAtlasListMap } = this;
     let fontAtlasList = _fontAtlasListMap[fontHash];
     if (!fontAtlasList) {
@@ -42,24 +42,24 @@ export class CharUtils {
 
     const lastIndex = fontAtlasList.length - 1;
     let lastFontAtlas = fontAtlasList[lastIndex];
-    let charDef = lastFontAtlas.addCharDefDynamic(id, imageSource, width, height, offsetX, offsetY, xAdvance, ascent, descent);
-    if (!charDef) {
+    let charInfo = lastFontAtlas.addCharInfoDynamic(id, imageSource, width, height, offsetX, offsetY, xAdvance, ascent, descent);
+    if (!charInfo) {
       lastFontAtlas = new DynamicFontAtlas(this.engine);
       fontAtlasList.push(lastFontAtlas);
-      charDef = lastFontAtlas.addCharDefDynamic(id, imageSource, width, height, offsetX, offsetY, xAdvance, ascent, descent);
+      charInfo = lastFontAtlas.addCharInfoDynamic(id, imageSource, width, height, offsetX, offsetY, xAdvance, ascent, descent);
     }
-    return charDef ? { charDef, texture: lastFontAtlas.texture } : null;
+    return charInfo ? { charInfo: charInfo, texture: lastFontAtlas.texture } : null;
   }
 
-  getCharDef(fontHash: string, id: number): CharDefWithTexture {
+  getCharInfo(fontHash: string, id: number): CharInfoWithTexture {
     let fontAtlasList = this._fontAtlasListMap[fontHash];
     if (fontAtlasList) {
       for (let i = 0, l = fontAtlasList.length; i < l; ++i) {
         const fontAtlas = fontAtlasList[i];
-        const charDef = fontAtlas.getCharDef(id);
-        if (charDef) {
+        const charInfo = fontAtlas.getCharInfo(id);
+        if (charInfo) {
           return {
-            charDef,
+            charInfo: charInfo,
             texture: fontAtlas.texture
           }
         }

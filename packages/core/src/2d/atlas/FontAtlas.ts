@@ -1,32 +1,14 @@
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
-
-/**
- * @internal
- */
-export interface CharDef {
-  x: number;
-  y: number;
-  w: number;
-  h: number;
-  offsetX: number;
-  offsetY: number;
-  xAdvance: number;
-  u0: number;
-  v0: number;
-  u1: number;
-  v1: number;
-  ascent: number;
-  descent: number;
-}
+import { CharInfo } from "../assembler/CharInfo";
 
 /**
  * @internal
  * Font Atlas.
  */
 export class FontAtlas extends RefObject {
-  private _charDefMap: Record<number, CharDef> = {};
+  private _charInfoMap: Record<number, CharInfo> = {};
   private _texture: Texture2D;
 
   get texture(): Texture2D {
@@ -51,14 +33,14 @@ export class FontAtlas extends RefObject {
   _onDestroy(): void {
     this._texture.destroy();
     this._texture = null;
-    this._charDefMap = {};
+    this._charInfoMap = {};
   }
 
-  addCharDef(id: number, def: CharDef): void {
-    this._charDefMap[id] = def;
+  addCharInfo(id: number, def: CharInfo): void {
+    this._charInfoMap[id] = def;
   }
 
-  getCharDef(id: number): CharDef {
-    return this._charDefMap[id];
+  getCharInfo(id: number): CharInfo {
+    return this._charInfoMap[id];
   }
 }

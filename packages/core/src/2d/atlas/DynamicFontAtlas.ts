@@ -1,6 +1,7 @@
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
-import { CharDef, FontAtlas } from "./FontAtlas";
+import { CharInfo } from "../assembler/CharInfo";
+import { FontAtlas } from "./FontAtlas";
 
 /**
  * @internal
@@ -18,7 +19,7 @@ export class DynamicFontAtlas extends FontAtlas {
     this.texture = new Texture2D(engine, _textureSize, _textureSize);
   }
 
-  addCharDefDynamic(
+  addCharInfoDynamic(
     id: number,
     imageSource: TexImageSource | OffscreenCanvas,
     width: number,
@@ -28,7 +29,7 @@ export class DynamicFontAtlas extends FontAtlas {
     xAdvance: number,
     ascent: number,
     descent: number,
-  ): CharDef {
+  ): CharInfo {
     const { _space: space, _textureSize: textureSize } = this;
     const offsetWidth = width + space;
     const offsetHeight = height + space;
@@ -64,10 +65,10 @@ export class DynamicFontAtlas extends FontAtlas {
     const u1 = (x + w) * textureSizeReciprocal;
     const v0 = y * textureSizeReciprocal;
     const v1 = (y + h) * textureSizeReciprocal;
-    const charDef = { x, y, w, h, offsetX, offsetY, xAdvance, u0, v0, u1, v1, ascent, descent };
-    this.addCharDef(id, charDef);
+    const charInfo = { x, y, w, h, offsetX, offsetY, xAdvance, u0, v0, u1, v1, ascent, descent };
+    this.addCharInfo(id, charInfo);
     this._curX += offsetWidth + space;
-    return charDef;
+    return charInfo;
   }
 }
 
