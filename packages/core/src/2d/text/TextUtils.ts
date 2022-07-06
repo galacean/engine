@@ -35,15 +35,6 @@ export interface TextMetrics {
 
 /**
  * @internal
- * CharMetrics.
- */
-export interface CharMetrics {
-  width: number;
-  sizeInfo: FontSizeInfo;
-}
-
-/**
- * @internal
  * TextUtils includes some helper function for text.
  */
 export class TextUtils {
@@ -105,7 +96,7 @@ export class TextUtils {
   }
 
   static measureChar(char: string, fontString: string): CharInfo {
-    return <CharMetrics>TextUtils._measureFontOrChar(fontString, char);
+    return <CharInfo>TextUtils._measureFontOrChar(fontString, char);
   }
 
   /**
