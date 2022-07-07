@@ -103,55 +103,6 @@ export class TextUtils {
     return str;
   }
 
-  //--------------- only for text mode ---------------
-
-  /**
-   * Trim canvas.
-   * @returns the width and height after trim, and the image data
-   */
-   static trimCanvas(): { width: number; height: number; data?: ImageData } {
-    // https://gist.github.com/remy/784508
-
-    const { canvas, context } = TextUtils.textContext();
-    let { width, height } = canvas;
-
-    const imageData = context.getImageData(0, 0, width, height).data;
-    const len = imageData.length;
-
-    let top = -1;
-    let bottom = -1;
-    let data = null;
-    let y;
-
-    for (let i = 0; i < len; i += 4) {
-      if (imageData[i + 3] !== 0) {
-        const idx = i / 4;
-        y = ~~(idx / width);
-
-        if (top === -1) {
-          top = y;
-        }
-
-        if (y > bottom) {
-          bottom = y;
-        }
-      }
-    }
-
-    if (top !== -1) {
-      top = Math.max(0, top);
-      bottom = Math.min(height - 1, bottom);
-      height = bottom - top + 1;
-      data = context.getImageData(0, top, width, height);
-    }
-
-    return {
-      width,
-      height,
-      data
-    };
-  }
-
   /**
    * Update canvas with the data.
    * @param width - the new width of canvas
@@ -166,8 +117,6 @@ export class TextUtils {
     context.putImageData(data, 0, 0);
     return canvas;
   }
-
-  //--------------------------------------------------
 
   private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
