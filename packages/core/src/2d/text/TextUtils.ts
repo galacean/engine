@@ -3,38 +3,6 @@ import { FontStyle } from "../enums/FontStyle";
 
 /**
  * @internal
- * TextContext.
- */
-export interface TextContext {
-  canvas: HTMLCanvasElement | OffscreenCanvas;
-  context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
-}
-
-/**
- * @internal
- * FontSizeInfo.
- */
-export interface FontSizeInfo {
-  ascent: number;
-  descent: number;
-  size: number;
-}
-
-/**
- * @internal
- * TextMetrics.
- */
-export interface TextMetrics {
-  width: number;
-  height: number;
-  lines: Array<string>;
-  lineWidths: Array<number>;
-  lineHeight: number;
-  lineMaxSizes?: Array<FontSizeInfo>;
-}
-
-/**
- * @internal
  * TextUtils includes some helper function for text.
  */
 export class TextUtils {
@@ -95,15 +63,53 @@ export class TextUtils {
     return info;
   }
 
+  /**
+   * Get native font string.
+   * @param fontName - The font name
+   * @param fontSize - The font size
+   * @param style - The font style
+   * @returns The native font string
+   */
+  static getNativeFontString(fontName: string, fontSize: number, style: FontStyle): string {
+    let str = style & FontStyle.Bold ? "bold " : "";
+    style & FontStyle.Italic && (str += "italic ");
+    // Check if font already contains strings
+    if (!/([\"\'])[^\'\"]+\1/.test(fontName) && TextUtils._genericFontFamilies.indexOf(fontName) == -1) {
+      fontName = `"${fontName}"`;
+    }
+    str += `${fontSize}px ${fontName}`;
+    return str;
+  }
+
   static measureChar(char: string, fontString: string): CharInfo {
     return <CharInfo>TextUtils._measureFontOrChar(fontString, char);
   }
 
   /**
+   * Get native font hash.
+   * @param fontName - The font name
+   * @param fontSize - The font size
+   * @param style - The font style
+   * @returns The native font hash
+   */
+   static getNativeFontHash(fontName: string, fontSize: number, style: FontStyle): string {
+    let str = style & FontStyle.Bold ? "bold" : "";
+    style & FontStyle.Italic && (str += "italic");
+    // Check if font already contains strings
+    if (!/([\"\'])[^\'\"]+\1/.test(fontName) && TextUtils._genericFontFamilies.indexOf(fontName) == -1) {
+      fontName = `${fontName}`;
+    }
+    str += `${fontSize}px${fontName}`;
+    return str;
+  }
+
+  //--------------- only for text mode ---------------
+
+  /**
    * Trim canvas.
    * @returns the width and height after trim, and the image data
    */
-  static trimCanvas(): { width: number; height: number; data?: ImageData } {
+   static trimCanvas(): { width: number; height: number; data?: ImageData } {
     // https://gist.github.com/remy/784508
 
     const { canvas, context } = TextUtils.textContext();
@@ -147,55 +153,21 @@ export class TextUtils {
   }
 
   /**
-   * Get native font string.
-   * @param fontName - The font name
-   * @param fontSize - The font size
-   * @param style - The font style
-   * @returns The native font string
-   */
-  static getNativeFontString(fontName: string, fontSize: number, style: FontStyle): string {
-    let str = style & FontStyle.Bold ? "bold " : "";
-    style & FontStyle.Italic && (str += "italic ");
-    // Check if font already contains strings
-    if (!/([\"\'])[^\'\"]+\1/.test(fontName) && TextUtils._genericFontFamilies.indexOf(fontName) == -1) {
-      fontName = `"${fontName}"`;
-    }
-    str += `${fontSize}px ${fontName}`;
-    return str;
-  }
-
-  /**
-   * Get native font hash.
-   * @param fontName - The font name
-   * @param fontSize - The font size
-   * @param style - The font style
-   * @returns The native font hash
-   */
-  static getNativeFontHash(fontName: string, fontSize: number, style: FontStyle): string {
-    let str = style & FontStyle.Bold ? "bold" : "";
-    style & FontStyle.Italic && (str += "italic");
-    // Check if font already contains strings
-    if (!/([\"\'])[^\'\"]+\1/.test(fontName) && TextUtils._genericFontFamilies.indexOf(fontName) == -1) {
-      fontName = `${fontName}`;
-    }
-    str += `${fontSize}px${fontName}`;
-    return str;
-  }
-
-  /**
    * Update canvas with the data.
    * @param width - the new width of canvas
    * @param height - the new height of canvas
    * @param data - the new data of canvas
    * @returns the canvas after update
    */
-  static updateCanvas(width: number, height: number, data: ImageData): HTMLCanvasElement | OffscreenCanvas {
+   static updateCanvas(width: number, height: number, data: ImageData): HTMLCanvasElement | OffscreenCanvas {
     const { canvas, context } = TextUtils.textContext();
     canvas.width = width;
     canvas.height = height;
     context.putImageData(data, 0, 0);
     return canvas;
   }
+
+  //--------------------------------------------------
 
   private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
@@ -274,4 +246,36 @@ export class TextUtils {
       return sizeInfo;
     }
   }
+}
+
+/**
+ * @internal
+ * TextContext.
+ */
+ export interface TextContext {
+  canvas: HTMLCanvasElement | OffscreenCanvas;
+  context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
+}
+
+/**
+ * @internal
+ * FontSizeInfo.
+ */
+export interface FontSizeInfo {
+  ascent: number;
+  descent: number;
+  size: number;
+}
+
+/**
+ * @internal
+ * TextMetrics.
+ */
+export interface TextMetrics {
+  width: number;
+  height: number;
+  lines: Array<string>;
+  lineWidths: Array<number>;
+  lineHeight: number;
+  lineMaxSizes?: Array<FontSizeInfo>;
 }
