@@ -40,13 +40,14 @@ export class TextAssembler {
   }
 
   static updateData(renderer: TextRenderer): void {
-    const isTextureDirty = renderer._isContainDirtyFlag(DirtyFlag.Property);
-    if (isTextureDirty) {
+    const isRenderDirty = renderer._isContainDirtyFlag(DirtyFlag.RenderDirty);
+    if (isRenderDirty || renderer._isContainDirtyFlag(DirtyFlag.FontDirty)) {
       TextAssembler._updateText(renderer);
-      renderer._setDirtyFlagFalse(DirtyFlag.Property);
+      renderer._setDirtyFlagFalse(DirtyFlag.RenderDirty);
+      renderer._setDirtyFlagFalse(DirtyFlag.FontDirty);
     }
 
-    if (renderer._isWorldMatrixDirty.flag || isTextureDirty) {
+    if (renderer._isWorldMatrixDirty.flag || isRenderDirty) {
       TextAssembler._updatePosition(renderer);
       renderer._isWorldMatrixDirty.flag = false;
     }

@@ -19,6 +19,7 @@ import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ICustomClone } from "../../clone/ComponentCloner";
+import { TextUtils } from "./TextUtils";
 
 /**
  * Renders a text for 2D graphics.
@@ -40,7 +41,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   _charRenderDatas: Array<CharRenderData> = [];
 
   @ignoreClone
-  _dirtyFlag: number = DirtyFlag.Property;
+  _dirtyFlag: number = DirtyFlag.RenderDirty | DirtyFlag.FontDirty;
   /** @internal */
   @ignoreClone
   _isWorldMatrixDirty: BoolUpdateFlag;
@@ -100,7 +101,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
     }
   }
 
@@ -114,7 +115,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
     }
   }
 
@@ -128,7 +129,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
     }
   }
 
@@ -142,7 +143,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set font(value: Font) {
     if (this._font !== value) {
       this._font = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.FontDirty);
     }
   }
 
@@ -156,7 +157,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set fontSize(value: number) {
     if (this._fontSize !== value) {
       this._fontSize = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.FontDirty);
     }
   }
 
@@ -170,7 +171,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set fontStyle(value: FontStyle) {
     if (this.fontStyle !== value) {
       this._fontStyle = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.FontDirty);
     }
   }
 
@@ -184,7 +185,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
     }
   }
 
@@ -198,7 +199,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set useCharCache(value: boolean) {
     if (this._useCharCache !== value) {
       this._useCharCache = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.FontDirty);
 
       if (value) {
         if (this._sprite) {
@@ -226,7 +227,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
     }
   }
 
@@ -240,7 +241,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
     }
   }
 
@@ -254,7 +255,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set enableWrapping(value: boolean) {
     if (this._enableWrapping !== value) {
       this._enableWrapping = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
     }
   }
 
@@ -268,7 +269,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set overflowMode(value: OverflowMode) {
     if (this._overflowMode !== value) {
       this._overflowMode = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
     }
   }
 
@@ -325,7 +326,23 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
 
     if (this._useCharCache) {
-      CharAssembler.updateData(this);
+      const isFontDirty = this._isContainDirtyFlag(DirtyFlag.FontDirty);
+      if (isFontDirty) {
+        this._resetCharFont();
+        this._setDirtyFlagFalse(DirtyFlag.FontDirty);
+      }
+
+      const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty);
+      if (isRenderDirty || isFontDirty) {
+        CharAssembler.clearData(this);
+        CharAssembler.updateData(this);
+        this._setDirtyFlagFalse(DirtyFlag.RenderDirty);
+      }
+
+      if (this._isWorldMatrixDirty.flag || isRenderDirty) {
+        CharAssembler.updatePosition(this);
+        this._isWorldMatrixDirty.flag = false;
+      }
 
       const { _charRenderDatas } = this;
       for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
@@ -381,6 +398,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._dirtyFlag &= ~type;
   }
 
+  //--------------- only for text mode ---------------
+
   /**
    * @internal
    */
@@ -393,6 +412,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
       _sprite.atlasRegion = _sprite.region;
     }
   }
+
+  //--------------------------------------------------
 
   /**
    * @override
@@ -467,10 +488,24 @@ export class TextRenderer extends Renderer implements ICustomClone {
     spriteElement.setValue(this, renderData, this.getMaterial(), texture);
     camera._renderPipeline.pushPrimitive(spriteElement);
   }
+
+  private _resetCharFont(): void {
+    const lastCharFont = this._charFont;
+    if (lastCharFont) {
+      lastCharFont._addRefCount(-1);
+      lastCharFont.destroy();
+    }
+    this._charFont = Font.createFromOS(
+      this.engine,
+      TextUtils.getNativeFontHash(this.font.name, this.fontSize, this.fontStyle)
+    );
+    this._charFont._addRefCount(1);
+  }
 }
 
 export enum DirtyFlag {
-  Property = 0x1,
-  MaskInteraction = 0x2,
-  All = 0x3
+  RenderDirty = 0x1,
+  FontDirty = 0x2,
+  MaskInteraction = 0x4,
+  All = 0x7
 }

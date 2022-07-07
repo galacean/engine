@@ -23,52 +23,15 @@ export class CharAssembler {
     }
   }
 
-  static updateData(renderer: TextRenderer): void {
-    const isTextureDirty = renderer._isContainDirtyFlag(DirtyFlag.Property);
-    if (isTextureDirty) {
-      CharAssembler.clearData(renderer);
-      renderer._charFont = Font.createFromOS(
-        renderer.engine,
-        TextUtils.getNativeFontHash(renderer.font.name, renderer.fontSize, renderer.fontStyle)
-      );
-      renderer._charFont._addRefCount(1);
-      CharAssembler._updateText(renderer);
-      renderer._setDirtyFlagFalse(DirtyFlag.Property);
-    }
-
-    if (renderer._isWorldMatrixDirty.flag || isTextureDirty) {
-      CharAssembler._updatePosition(renderer);
-      renderer._isWorldMatrixDirty.flag = false;
-    }
-  }
-
   static clearData(renderer: TextRenderer): void {
     const { _charRenderDatas } = renderer;
     for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
       CharAssembler._charRenderDataPool.putData(_charRenderDatas[i]);
     }
     _charRenderDatas.length = 0;
-
-    const { _charFont } = renderer;
-    if (_charFont) {
-      _charFont._addRefCount(-1);
-      _charFont.destroy();
-      renderer._charFont = null;
-    }
   }
 
-  private static _updatePosition(renderer: TextRenderer): void {
-    const worldMatrix = renderer.entity.transform.worldMatrix;
-    const { _charRenderDatas } = renderer;
-    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
-      const { localPositions, renderData } = _charRenderDatas[i];
-      for (let j = 0; j < 4; ++j) {
-        Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
-      }
-    }
-  }
-
-  private static _updateText(renderer: TextRenderer): void {
+  static updateData(renderer: TextRenderer): void {
     const { color, horizontalAlignment, verticalAlignment, _charRenderDatas } = renderer;
     const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
@@ -158,6 +121,17 @@ export class CharAssembler {
       _charRenderDatas.sort((a, b) => {
         return a.texture.instanceId - b.texture.instanceId;
       });
+  }
+
+  static updatePosition(renderer: TextRenderer): void {
+    const worldMatrix = renderer.entity.transform.worldMatrix;
+    const { _charRenderDatas } = renderer;
+    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
+      const { localPositions, renderData } = _charRenderDatas[i];
+      for (let j = 0; j < 4; ++j) {
+        Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
+      }
+    }
   }
 
   private static _measureTextWithWrap(renderer: TextRenderer): TextMetrics {
