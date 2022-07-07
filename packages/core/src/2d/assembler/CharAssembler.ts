@@ -1,9 +1,8 @@
-import { Vector3 } from "@oasis-engine/math";
 import { Engine } from "../../Engine";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "../text";
-import { TextRenderer, DirtyFlag } from "../text/TextRenderer";
+import { TextRenderer } from "../text/TextRenderer";
 import { TextUtils, TextMetrics, FontSizeInfo } from "../text/TextUtils";
 import { CharInfo } from "./CharInfo";
 import { CharRenderDataPool } from "./CharRenderDataPool";
@@ -21,7 +20,7 @@ export class CharAssembler {
 
   static clearData(renderer: TextRenderer): void {
     const { _charRenderDatas } = renderer;
-    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
+    for (let i = 0, n = _charRenderDatas.length; i < n; ++i) {
       CharAssembler._charRenderDataPool.putData(_charRenderDatas[i]);
     }
     _charRenderDatas.length = 0;
