@@ -423,7 +423,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   private _updatePosition() {
     const worldMatrix = this.entity.transform.worldMatrix;
     const { _charRenderDatas } = this;
-    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
+    for (let i = 0, n = _charRenderDatas.length; i < n; ++i) {
       const { localPositions, renderData } = _charRenderDatas[i];
       for (let j = 0; j < 4; ++j) {
         Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
