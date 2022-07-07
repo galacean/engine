@@ -266,7 +266,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
     super(entity);
     const { engine } = this;
     this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    CharAssembler.resetData(this);
     this.font = Font.createFromOS(engine);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
@@ -294,9 +293,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.FontDirty);
     }
 
-    const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty);
-    if (isRenderDirty || isFontDirty) {
-      CharAssembler.clearData(this);
+    const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty) || isFontDirty;
+    if (isRenderDirty) {
       CharAssembler.updateData(this);
       this._setDirtyFlagFalse(DirtyFlag.RenderDirty);
     }

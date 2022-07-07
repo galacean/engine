@@ -15,13 +15,9 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
  */
 @StaticInterfaceImplement<IAssembler>()
 export class CharAssembler {
-  private static _charRenderDataPool: CharRenderDataPool;
+  private static _charRenderDataPool: CharRenderDataPool = new CharRenderDataPool();
 
-  static resetData(renderer: TextRenderer): void {
-    if (!CharAssembler._charRenderDataPool) {
-      CharAssembler._charRenderDataPool = new CharRenderDataPool();
-    }
-  }
+  static resetData(renderer: TextRenderer): void {}
 
   static clearData(renderer: TextRenderer): void {
     const { _charRenderDatas } = renderer;
@@ -62,6 +58,7 @@ export class CharAssembler {
         break;
     }
 
+    let renderDataCount = 0;
     for (let i = 0; i < linesLen; ++i) {
       const line = lines[i];
       const lineWidth = lineWidths[i];
@@ -84,7 +81,7 @@ export class CharAssembler {
         const charInfo = charFont._getCharInfo(char);
 
         if (charInfo.h > 0) {
-          const charRenderData = _charRenderDataPool.getData();
+          const charRenderData = _charRenderDatas[renderDataCount] || _charRenderDataPool.getData();
           const { renderData, localPositions } = charRenderData;
           charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
           renderData.color = color;
@@ -109,12 +106,22 @@ export class CharAssembler {
           localPositions[3].set(left, bottom, 0);
           uvs[3].set(u0, v1);
 
-          _charRenderDatas.push(charRenderData);
+          _charRenderDatas[renderDataCount] = charRenderData;
+          renderDataCount++;
         }
         startX += charInfo.xAdvance;
       }
 
       startY -= lineHeight;
+    }
+
+    // Revert excess render data to pool.
+    const lastRenderDataCount = _charRenderDatas.length;
+    if (lastRenderDataCount > renderDataCount) {
+      for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
+        CharAssembler._charRenderDataPool.putData(_charRenderDatas[i]);
+      }
+      _charRenderDatas.length = renderDataCount;
     }
 
     charFont._getLastIndex() > 0 &&
