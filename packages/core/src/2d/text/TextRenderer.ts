@@ -259,6 +259,23 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._maskLayer = value;
   }
 
+  /**
+   * The bounding volume of the TextRenderer.
+   */
+  get bounds(): BoundingBox {
+    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.FontDirty);
+    const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty);
+    if (this._transformChangeFlag.flag || isFontDirty || isRenderDirty) {
+      isFontDirty && this._resetCharFont();
+      isRenderDirty && CharAssembler.updateData(this);
+      this._updatePosition();
+      this._updateBounds(this._bounds);
+      this._setDirtyFlagFalse(DirtyFlag.FontDirty | DirtyFlag.RenderDirty);
+      this._transformChangeFlag.flag = false;
+    }
+    return this._bounds;
+  }
+
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
