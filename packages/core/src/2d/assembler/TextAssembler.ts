@@ -74,9 +74,9 @@ export class TextAssembler {
     const { positions: _positions } = renderer._renderData;
     for (let i = 0, n = _positions.length; i < n; i++) {
       const curVertexPos = localPositions[i];
-      curVertexPos.x = (curVertexPos.x - pivot.x) * width;
-      curVertexPos.y = (curVertexPos.y - pivot.y) * height;
-      localVertexPos.set(curVertexPos.x, curVertexPos.y, 0);
+      localVertexPos.x = (curVertexPos.x - pivot.x) * width;
+      localVertexPos.y = (curVertexPos.y - pivot.y) * height;
+      localVertexPos.z = 0;
       Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
     }
   }
