@@ -304,7 +304,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const { _charRenderDatas } = this;
     for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
       const charRenderData = _charRenderDatas[i];
-      this._drawPrimitive(camera, charRenderData.renderData, charRenderData.texture);
+      const spriteElement = this._engine._spriteElementPool.getFromPool();
+      spriteElement.setValue(this, charRenderData.renderData, this.getMaterial(), charRenderData.texture);
+      camera._renderPipeline.pushPrimitive(spriteElement);
     }
   }
 
@@ -403,13 +405,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
       stencilState.compareFunctionFront = compare;
       stencilState.compareFunctionBack = compare;
     }
-  }
-
-  private _drawPrimitive(camera: Camera, renderData: RenderData2D, texture: Texture2D): void {
-    const spriteElementPool = this._engine._spriteElementPool;
-    const spriteElement = spriteElementPool.getFromPool();
-    spriteElement.setValue(this, renderData, this.getMaterial(), texture);
-    camera._renderPipeline.pushPrimitive(spriteElement);
   }
 
   private _resetCharFont(): void {
