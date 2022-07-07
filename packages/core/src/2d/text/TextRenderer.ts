@@ -1,4 +1,4 @@
-import { BoundingBox, Color } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
@@ -340,7 +340,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       }
 
       if (this._isWorldMatrixDirty.flag || isRenderDirty) {
-        CharAssembler.updatePosition(this);
+        this._updatePosition();
         this._isWorldMatrixDirty.flag = false;
       }
 
@@ -500,6 +500,17 @@ export class TextRenderer extends Renderer implements ICustomClone {
       TextUtils.getNativeFontHash(this.font.name, this.fontSize, this.fontStyle)
     );
     this._charFont._addRefCount(1);
+  }
+
+  private _updatePosition() {
+    const worldMatrix = this.entity.transform.worldMatrix;
+    const { _charRenderDatas } = this;
+    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
+      const { localPositions, renderData } = _charRenderDatas[i];
+      for (let j = 0; j < 4; ++j) {
+        Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
+      }
+    }
   }
 }
 

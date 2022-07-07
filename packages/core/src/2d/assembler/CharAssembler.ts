@@ -123,17 +123,6 @@ export class CharAssembler {
       });
   }
 
-  static updatePosition(renderer: TextRenderer): void {
-    const worldMatrix = renderer.entity.transform.worldMatrix;
-    const { _charRenderDatas } = renderer;
-    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
-      const { localPositions, renderData } = _charRenderDatas[i];
-      for (let j = 0; j < 4; ++j) {
-        Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
-      }
-    }
-  }
-
   private static _measureTextWithWrap(renderer: TextRenderer): TextMetrics {
     const { fontSize, fontStyle } = renderer;
     const { name } = renderer.font;
