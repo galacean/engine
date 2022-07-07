@@ -25,9 +25,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   private static _tempBounds: BoundingBox = new BoundingBox();
 
   /** @internal */
-  @ignoreClone
-  _renderData: RenderData2D;
-  /** @internal */
   @assignmentClone
   _charFont: Font = null;
   /** @internal */
