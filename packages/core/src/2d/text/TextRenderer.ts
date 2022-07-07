@@ -5,7 +5,6 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { Entity } from "../../Entity";
 import { Texture2D } from "../../texture";
 import { CharAssembler } from "../assembler/CharAssembler";
-import { TextAssembler } from "../assembler/textAssembler";
 import { RenderData2D } from "../data/RenderData2D";
 import { CharRenderData } from "../assembler/CharRenderData";
 import { FontStyle } from "../enums/FontStyle";
@@ -13,10 +12,8 @@ import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAli
 import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
 import { Renderer } from "../../Renderer";
-import { Sprite } from "../sprite/Sprite";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
-import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { TextUtils } from "./TextUtils";
@@ -27,9 +24,6 @@ import { TextUtils } from "./TextUtils";
 export class TextRenderer extends Renderer implements ICustomClone {
   private static _tempBounds: BoundingBox = new BoundingBox();
 
-  /** @internal */
-  @ignoreClone
-  _sprite: Sprite = null;
   /** @internal */
   @ignoreClone
   _renderData: RenderData2D;
@@ -62,8 +56,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   private _fontStyle: FontStyle = FontStyle.None;
   @assignmentClone
   private _lineSpacing: number = 0;
-  @ignoreClone
-  private _useCharCache: boolean = true;
   @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
@@ -190,34 +182,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * Whether cache each character individually.
-   */
-  get useCharCache(): boolean {
-    return this._useCharCache;
-  }
-
-  set useCharCache(value: boolean) {
-    if (this._useCharCache !== value) {
-      this._useCharCache = value;
-      this._setDirtyFlagTrue(DirtyFlag.FontDirty);
-
-      if (value) {
-        if (this._sprite) {
-          this._clearTexture();
-          this._sprite.destroy();
-          this._sprite = null;
-        }
-        TextAssembler.clearData(this);
-        CharAssembler.resetData(this);
-      } else {
-        CharAssembler.clearData(this);
-        this._sprite = new Sprite(this.engine);
-        TextAssembler.resetData(this);
-      }
-    }
-  }
-
-  /**
    * The horizontal alignment.
    */
   get horizontalAlignment(): TextHorizontalAlignment {
@@ -316,7 +280,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
       (this.enableWrapping && this.width <= 0) ||
       (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
     ) {
-      this._clearTexture();
       return;
     }
 
@@ -325,33 +288,28 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    if (this._useCharCache) {
-      const isFontDirty = this._isContainDirtyFlag(DirtyFlag.FontDirty);
-      if (isFontDirty) {
-        this._resetCharFont();
-        this._setDirtyFlagFalse(DirtyFlag.FontDirty);
-      }
+    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.FontDirty);
+    if (isFontDirty) {
+      this._resetCharFont();
+      this._setDirtyFlagFalse(DirtyFlag.FontDirty);
+    }
 
-      const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty);
-      if (isRenderDirty || isFontDirty) {
-        CharAssembler.clearData(this);
-        CharAssembler.updateData(this);
-        this._setDirtyFlagFalse(DirtyFlag.RenderDirty);
-      }
+    const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty);
+    if (isRenderDirty || isFontDirty) {
+      CharAssembler.clearData(this);
+      CharAssembler.updateData(this);
+      this._setDirtyFlagFalse(DirtyFlag.RenderDirty);
+    }
 
-      if (this._isWorldMatrixDirty.flag || isRenderDirty) {
-        this._updatePosition();
-        this._isWorldMatrixDirty.flag = false;
-      }
+    if (this._isWorldMatrixDirty.flag || isRenderDirty) {
+      this._updatePosition();
+      this._isWorldMatrixDirty.flag = false;
+    }
 
-      const { _charRenderDatas } = this;
-      for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
-        const charRenderData = _charRenderDatas[i];
-        this._drawPrimitive(camera, charRenderData.renderData, charRenderData.texture);
-      }
-    } else {
-      TextAssembler.updateData(this);
-      this._drawPrimitive(camera, this._renderData, this._sprite.texture);
+    const { _charRenderDatas } = this;
+    for (let i = 0, l = _charRenderDatas.length; i < l; ++i) {
+      const charRenderData = _charRenderDatas[i];
+      this._drawPrimitive(camera, charRenderData.renderData, charRenderData.texture);
     }
   }
 
@@ -359,12 +317,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _onDestroy(): void {
-    if (this._useCharCache) {
-      CharAssembler.clearData(this);
-    } else {
-      TextAssembler.clearData(this);
-    }
-    this.engine._dynamicTextAtlasManager.removeSprite(this._sprite);
+    CharAssembler.clearData(this);
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
   }
@@ -374,7 +327,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
    */
   _cloneTo(target: TextRenderer): void {
     target.font = this._font;
-    target.useCharCache = this._useCharCache;
   }
 
   /**
@@ -398,23 +350,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._dirtyFlag &= ~type;
   }
 
-  //--------------- only for text mode ---------------
-
-  /**
-   * @internal
-   */
-  _clearTexture(): void {
-    const { _sprite } = this;
-    if (_sprite) {
-      // Remove sprite from dynamic atlas.
-      this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
-      this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
-      _sprite.atlasRegion = _sprite.region;
-    }
-  }
-
-  //--------------------------------------------------
-
   /**
    * @override
    */
@@ -424,38 +359,31 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const { min, max } = bounds;
     min.set(0, 0, 0);
     max.set(0, 0, 0);
-    if (this._useCharCache) {
-      const { _charRenderDatas } = this;
-      const dataLen = _charRenderDatas.length;
-      if (dataLen > 0) {
-        const charRenderData = _charRenderDatas[0];
-        const { localPositions } = charRenderData;
+    const { _charRenderDatas } = this;
+    const dataLen = _charRenderDatas.length;
+    if (dataLen > 0) {
+      const charRenderData = _charRenderDatas[0];
+      const { localPositions } = charRenderData;
+      let minPos = localPositions[3];
+      let maxPos = localPositions[1];
+      let minX = minPos.x;
+      let minY = minPos.y;
+      let maxX = maxPos.x;
+      let maxY = maxPos.y;
+
+      for (let i = 1; i < dataLen; ++i) {
+        const { localPositions } = _charRenderDatas[i];
         let minPos = localPositions[3];
         let maxPos = localPositions[1];
-        let minX = minPos.x;
-        let minY = minPos.y;
-        let maxX = maxPos.x;
-        let maxY = maxPos.y;
-
-        for (let i = 1; i < dataLen; ++i) {
-          const { localPositions } = _charRenderDatas[i];
-          let minPos = localPositions[3];
-          let maxPos = localPositions[1];
-          minX > minPos.x && (minX = minPos.x);
-          minY > minPos.y && (minY = minPos.y);
-          maxX < maxPos.x && (maxX = maxPos.x);
-          maxY < maxPos.y && (maxY = maxPos.y);
-        }
-        min.set(minX, minY, 0);
-        max.set(maxX, maxY, 0);
+        minX > minPos.x && (minX = minPos.x);
+        minY > minPos.y && (minY = minPos.y);
+        maxX < maxPos.x && (maxX = maxPos.x);
+        maxY < maxPos.y && (maxY = maxPos.y);
       }
-      BoundingBox.transform(bounds, worldMatrix, worldBounds);
-    } else {
-      if (this._sprite) {
-        bounds = this._sprite._getBounds();
-      }
-      BoundingBox.transform(bounds, worldMatrix, worldBounds);
+      min.set(minX, minY, 0);
+      max.set(maxX, maxY, 0);
     }
+    BoundingBox.transform(bounds, worldMatrix, worldBounds);
   }
 
   private _updateStencilState(): void {
