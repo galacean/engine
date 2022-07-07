@@ -92,7 +92,7 @@ export class TextUtils {
    * @param style - The font style
    * @returns The native font hash
    */
-   static getNativeFontHash(fontName: string, fontSize: number, style: FontStyle): string {
+  static getNativeFontHash(fontName: string, fontSize: number, style: FontStyle): string {
     let str = style & FontStyle.Bold ? "bold" : "";
     style & FontStyle.Italic && (str += "italic");
     // Check if font already contains strings
@@ -110,7 +110,7 @@ export class TextUtils {
    * @param data - the new data of canvas
    * @returns the canvas after update
    */
-   static updateCanvas(width: number, height: number, data: ImageData): HTMLCanvasElement | OffscreenCanvas {
+  static updateCanvas(width: number, height: number, data: ImageData): HTMLCanvasElement | OffscreenCanvas {
     const { canvas, context } = TextUtils.textContext();
     canvas.width = width;
     canvas.height = height;
@@ -190,7 +190,7 @@ export class TextUtils {
         ascent,
         descent,
         index: 0
-      }
+      };
     } else {
       return sizeInfo;
     }
@@ -201,7 +201,7 @@ export class TextUtils {
  * @internal
  * TextContext.
  */
- export interface TextContext {
+export interface TextContext {
   canvas: HTMLCanvasElement | OffscreenCanvas;
   context: CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D;
 }
