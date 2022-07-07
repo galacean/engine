@@ -5,6 +5,7 @@ import { Font } from "../text";
 import { TextRenderer } from "../text/TextRenderer";
 import { TextUtils, TextMetrics, FontSizeInfo } from "../text/TextUtils";
 import { CharInfo } from "./CharInfo";
+import { CharRenderData } from "./CharRenderData";
 import { CharRenderDataPool } from "./CharRenderDataPool";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
@@ -14,14 +15,14 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
  */
 @StaticInterfaceImplement<IAssembler>()
 export class CharAssembler {
-  private static _charRenderDataPool: CharRenderDataPool = new CharRenderDataPool();
+  private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
 
   static resetData(renderer: TextRenderer): void {}
 
   static clearData(renderer: TextRenderer): void {
     const { _charRenderDatas } = renderer;
     for (let i = 0, n = _charRenderDatas.length; i < n; ++i) {
-      CharAssembler._charRenderDataPool.putData(_charRenderDatas[i]);
+      CharAssembler._charRenderDataPool.put(_charRenderDatas[i]);
     }
     _charRenderDatas.length = 0;
   }
@@ -80,7 +81,7 @@ export class CharAssembler {
         const charInfo = charFont._getCharInfo(char);
 
         if (charInfo.h > 0) {
-          const charRenderData = _charRenderDatas[renderDataCount] || _charRenderDataPool.getData();
+          const charRenderData = _charRenderDatas[renderDataCount] || _charRenderDataPool.get();
           const { renderData, localPositions } = charRenderData;
           charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
           renderData.color = color;
@@ -118,7 +119,7 @@ export class CharAssembler {
     const lastRenderDataCount = _charRenderDatas.length;
     if (lastRenderDataCount > renderDataCount) {
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
-        CharAssembler._charRenderDataPool.putData(_charRenderDatas[i]);
+        CharAssembler._charRenderDataPool.put(_charRenderDatas[i]);
       }
       _charRenderDatas.length = renderDataCount;
     }
