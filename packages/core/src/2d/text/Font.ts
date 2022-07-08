@@ -47,7 +47,7 @@ export class Font extends RefObject {
    * @internal
    */
   _uploadCharTexture(charInfo: CharInfo, imageSource: TexImageSource | OffscreenCanvas): void {
-    const { _fontAtlases: fontAtlases } = this;
+    const fontAtlases = this._fontAtlases;
     let lastIndex = this._lastIndex;
     if (lastIndex === -1) {
       this._createFontAtlas();
@@ -66,17 +66,17 @@ export class Font extends RefObject {
    * @internal
    */
   _addCharInfo(char: string, charInfo: CharInfo) {
-    const { _lastIndex } = this;
-    charInfo.index = _lastIndex;
-    this._fontAtlases[_lastIndex].addCharInfo(char, charInfo);
+    const lastIndex = this._lastIndex;
+    charInfo.index = lastIndex;
+    this._fontAtlases[lastIndex].addCharInfo(char, charInfo);
   }
 
   /**
    * @internal
    */
   _getCharInfo(char: string): CharInfo {
-    const { _fontAtlases: fontAtlases } = this;
-    for (let i = 0, l = fontAtlases.length; i < l; ++i) {
+    const fontAtlases = this._fontAtlases;
+    for (let i = 0, n = fontAtlases.length; i < n; ++i) {
       const fontAtlas = fontAtlases[i];
       const charInfo = fontAtlas.getCharInfo(char);
       if (charInfo) {
@@ -108,11 +108,11 @@ export class Font extends RefObject {
    * @override
    */
   _onDestroy(): void {
-    const { _fontAtlases } = this;
-    for (let i = 0, l = _fontAtlases.length; i < l; ++i) {
-      _fontAtlases[i].destroy(true);
+    const fontAtlases = this._fontAtlases;
+    for (let i = 0, n = fontAtlases.length; i < n; ++i) {
+      fontAtlases[i].destroy(true);
     }
-    _fontAtlases.length = 0;
+    fontAtlases.length = 0;
     delete Font._fontMap[this._name];
   }
 
