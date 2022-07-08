@@ -269,7 +269,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const isWorldBoundsDirty = this._isContainDirtyFlag(DirtyFlag.WorldBounds);
     if (isFontDirty || isLocalPositionBoundsDirty || isWorldBoundsDirty) {
       isFontDirty && this._resetCharFont();
-      isLocalPositionBoundsDirty && this._updateData();
+      isLocalPositionBoundsDirty && this._updateLocalData();
       isWorldBoundsDirty && this._updateBounds(this._bounds);
       this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldBounds);
     }
@@ -311,7 +311,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) || isFontDirty) {
-      this._updateData();
+      this._updateLocalData();
       this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
@@ -427,7 +427,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _updateData(): void {
+  private _updateLocalData(): void {
     const { color, horizontalAlignment, verticalAlignment, _charRenderDatas: charRenderDatas } = this;
     const { min, max } = this._localBounds;
     min.set(0, 0, 0);
