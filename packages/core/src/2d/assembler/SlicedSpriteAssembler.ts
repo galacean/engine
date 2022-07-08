@@ -4,10 +4,10 @@ import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
-@StaticInterfaceImplement<IAssembler>()
 /**
  * @internal
  */
+@StaticInterfaceImplement<IAssembler>()
 export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer | SpriteMask): void {

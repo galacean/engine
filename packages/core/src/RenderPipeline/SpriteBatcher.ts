@@ -32,9 +32,8 @@ export class SpriteBatcher extends Basic2DBatcher {
       return false;
     }
 
-    // Compare renderer property
-    const textureProperty = SpriteBatcher._textureProperty;
-    if (preRenderer.shaderData.getTexture(textureProperty) !== curRenderer.shaderData.getTexture(textureProperty)) {
+    // Compare texture
+    if (preElement.texture !== curElement.texture) {
       return false;
     }
 
@@ -105,6 +104,8 @@ export class SpriteBatcher extends Basic2DBatcher {
       if (!program.isValid) {
         return;
       }
+
+      renderer.shaderData.setTexture(SpriteBatcher._textureProperty, spriteElement.texture);
 
       program.bind();
       program.groupingOtherUniformBlock();

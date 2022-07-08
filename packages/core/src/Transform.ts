@@ -3,6 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
+import { ListenerUpdateFlag } from "./ListenerUpdateFlag";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
 /**
@@ -543,6 +544,13 @@ export class Transform extends Component {
    */
   registerWorldChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
+   * @intenral
+   */
+  _registerWorldChangeListenser(): ListenerUpdateFlag {
+    return this._updateFlagManager.createFlag(ListenerUpdateFlag);
   }
 
   /**

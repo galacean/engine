@@ -10,9 +10,6 @@ import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
  * 2D sprite.
  */
 export class Sprite extends RefObject {
-  /** @internal Conversion of space units to pixel units. */
-  static _pixelPerUnit: number = 100;
-
   /** The name of sprite. */
   name: string;
 
@@ -259,13 +256,15 @@ export class Sprite extends RefObject {
   private _calDefaultSize(): void {
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
+      const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
       this.width =
-        (((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) * _region.width) /
-        Sprite._pixelPerUnit;
+        ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
+        _region.width *
+        pixelsPerUnitReciprocal;
       this.height =
-        (((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
-          _region.height) /
-        Sprite._pixelPerUnit;
+        ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
+        _region.height *
+        pixelsPerUnitReciprocal;
     }
   }
 
