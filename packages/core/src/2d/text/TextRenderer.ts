@@ -22,7 +22,6 @@ import { Engine } from "../../Engine";
  */
 export class TextRenderer extends Renderer implements ICustomClone {
   private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
-  private static _tempBounds: BoundingBox = new BoundingBox();
 
   /** @internal */
   @assignmentClone
@@ -45,6 +44,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
   private _width: number = 0;
   @assignmentClone
   private _height: number = 0;
+  @ignoreClone
+  private _localBounds: BoundingBox = new BoundingBox();
   @assignmentClone
   private _font: Font = null;
   @assignmentClone
@@ -374,36 +375,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const worldMatrix = this._entity.transform.worldMatrix;
-    let bounds = TextRenderer._tempBounds;
-    const { min, max } = bounds;
-    min.set(0, 0, 0);
-    max.set(0, 0, 0);
-    const { _charRenderDatas } = this;
-    const dataLen = _charRenderDatas.length;
-    if (dataLen > 0) {
-      const charRenderData = _charRenderDatas[0];
-      const { localPositions } = charRenderData;
-      let minPos = localPositions[3];
-      let maxPos = localPositions[1];
-      let minX = minPos.x;
-      let minY = minPos.y;
-      let maxX = maxPos.x;
-      let maxY = maxPos.y;
-
-      for (let i = 1; i < dataLen; ++i) {
-        const { localPositions } = _charRenderDatas[i];
-        let minPos = localPositions[3];
-        let maxPos = localPositions[1];
-        minX > minPos.x && (minX = minPos.x);
-        minY > minPos.y && (minY = minPos.y);
-        maxX < maxPos.x && (maxX = maxPos.x);
-        maxY < maxPos.y && (maxY = maxPos.y);
-      }
-      min.set(minX, minY, 0);
-      max.set(maxX, maxY, 0);
-    }
-    BoundingBox.transform(bounds, worldMatrix, worldBounds);
+    BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
 
   private _updateStencilState(): void {
@@ -445,9 +417,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   private _updatePosition(): void {
     const worldMatrix = this.entity.transform.worldMatrix;
-    const { _charRenderDatas } = this;
-    for (let i = 0, n = _charRenderDatas.length; i < n; ++i) {
-      const { localPositions, renderData } = _charRenderDatas[i];
+    const charRenderDatas = this._charRenderDatas;
+    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
+      const { localPositions, renderData } = charRenderDatas[i];
       for (let j = 0; j < 4; ++j) {
         Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
       }
@@ -455,7 +427,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _updateData(): void {
-    const { color, horizontalAlignment, verticalAlignment, _charRenderDatas } = this;
+    const { color, horizontalAlignment, verticalAlignment, _charRenderDatas: charRenderDatas } = this;
+    const { min, max } = this._localBounds;
+    min.set(0, 0, 0);
+    max.set(0, 0, 0);
     const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
     const charFont = this._charFont;
@@ -487,6 +462,11 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
 
     let renderDataCount = 0;
+    let minX = Number.MAX_SAFE_INTEGER;
+    let minY = Number.MAX_SAFE_INTEGER;
+    let maxX = Number.MIN_SAFE_INTEGER;
+    let maxY = Number.MIN_SAFE_INTEGER;
+    let lastLineIndex = linesLen - 1;
     for (let i = 0; i < linesLen; ++i) {
       const line = lines[i];
       const lineWidth = lineWidths[i];
@@ -509,7 +489,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
         const charInfo = charFont._getCharInfo(char);
 
         if (charInfo.h > 0) {
-          const charRenderData = _charRenderDatas[renderDataCount] || charRenderDataPool.get();
+          const charRenderData = charRenderDatas[renderDataCount] || charRenderDataPool.get();
           const { renderData, localPositions } = charRenderData;
           charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
           renderData.color = color;
@@ -534,8 +514,21 @@ export class TextRenderer extends Renderer implements ICustomClone {
           localPositions[3].set(left, bottom, 0);
           uvs[3].set(u0, v1);
 
-          _charRenderDatas[renderDataCount] = charRenderData;
+          charRenderDatas[renderDataCount] = charRenderData;
           renderDataCount++;
+
+          if (i === 0) {
+            maxY = Math.max(maxY, top);
+          }
+          if (i === lastLineIndex) {
+            minY = Math.min(minY, bottom);
+          }
+          if (j === 0) {
+            minX = Math.min(minX, left);
+          }
+          if (j === m - 1) {
+            maxX = Math.max(maxX, right);
+          }
         }
         startX += charInfo.xAdvance;
       }
@@ -543,17 +536,20 @@ export class TextRenderer extends Renderer implements ICustomClone {
       startY -= lineHeight;
     }
 
+    min.set(minX, minY, 0);
+    max.set(maxX, maxY, 0);
+
     // Revert excess render data to pool.
-    const lastRenderDataCount = _charRenderDatas.length;
+    const lastRenderDataCount = charRenderDatas.length;
     if (lastRenderDataCount > renderDataCount) {
       for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
-        charRenderDataPool.put(_charRenderDatas[i]);
+        charRenderDataPool.put(charRenderDatas[i]);
       }
-      _charRenderDatas.length = renderDataCount;
+      charRenderDatas.length = renderDataCount;
     }
 
     charFont._getLastIndex() > 0 &&
-      _charRenderDatas.sort((a, b) => {
+      charRenderDatas.sort((a, b) => {
         return a.texture.instanceId - b.texture.instanceId;
       });
   }
