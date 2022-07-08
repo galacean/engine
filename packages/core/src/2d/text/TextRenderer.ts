@@ -1,5 +1,4 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
-import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
@@ -16,6 +15,7 @@ import { ICustomClone } from "../../clone/ComponentCloner";
 import { TextUtils } from "./TextUtils";
 import { CharRenderDataPool } from "./CharRenderDataPool";
 import { Engine } from "../../Engine";
+import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 
 /**
  * Renders a text for 2D graphics.
@@ -31,10 +31,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
   _charRenderDatas: Array<CharRenderData> = [];
 
   @ignoreClone
-  _dirtyFlag: number = DirtyFlag.RenderDirty | DirtyFlag.FontDirty;
+  _dirtyFlag: number = DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition | DirtyFlag.WorldBounds;
   /** @internal */
   @ignoreClone
-  _isWorldMatrixDirty: BoolUpdateFlag;
+  _isWorldMatrixDirty: ListenerUpdateFlag;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -91,7 +91,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
   }
 
@@ -105,7 +105,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
   }
 
@@ -119,7 +119,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
   }
 
@@ -133,7 +133,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set font(value: Font) {
     if (this._font !== value) {
       this._font = value;
-      this._setDirtyFlagTrue(DirtyFlag.FontDirty);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -147,7 +147,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set fontSize(value: number) {
     if (this._fontSize !== value) {
       this._fontSize = value;
-      this._setDirtyFlagTrue(DirtyFlag.FontDirty);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -161,7 +161,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set fontStyle(value: FontStyle) {
     if (this.fontStyle !== value) {
       this._fontStyle = value;
-      this._setDirtyFlagTrue(DirtyFlag.FontDirty);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -175,7 +175,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
-      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
   }
 
@@ -189,7 +189,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
   }
 
@@ -203,7 +203,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
   }
 
@@ -217,7 +217,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set enableWrapping(value: boolean) {
     if (this._enableWrapping !== value) {
       this._enableWrapping = value;
-      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
   }
 
@@ -231,7 +231,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set overflowMode(value: OverflowMode) {
     if (this._overflowMode !== value) {
       this._overflowMode = value;
-      this._setDirtyFlagTrue(DirtyFlag.RenderDirty);
+      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
     }
   }
 
@@ -264,15 +264,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * The bounding volume of the TextRenderer.
    */
   get bounds(): BoundingBox {
-    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.FontDirty);
-    const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty);
-    if (this._transformChangeFlag.flag || isFontDirty || isRenderDirty) {
+    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.Font);
+    const isLocalPositionBoundsDirty = this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds);
+    const isWorldBoundsDirty = this._isContainDirtyFlag(DirtyFlag.WorldBounds);
+    if (isFontDirty || isLocalPositionBoundsDirty || isWorldBoundsDirty) {
       isFontDirty && this._resetCharFont();
-      isRenderDirty && this._updateData();
-      this._updatePosition();
-      this._updateBounds(this._bounds);
-      this._setDirtyFlagFalse(DirtyFlag.FontDirty | DirtyFlag.RenderDirty);
-      this._transformChangeFlag.flag = false;
+      isLocalPositionBoundsDirty && this._updateData();
+      isWorldBoundsDirty && this._updateBounds(this._bounds);
+      this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldBounds);
     }
     return this._bounds;
   }
@@ -280,7 +279,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
+    this._isWorldMatrixDirty = entity.transform._registerWorldChangeListenser();
+    this._isWorldMatrixDirty.listener = () => {
+      this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
+    };
     this.font = Font.createFromOS(engine);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
@@ -302,21 +304,22 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.FontDirty);
+    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.Font);
     if (isFontDirty) {
       this._resetCharFont();
-      this._setDirtyFlagFalse(DirtyFlag.FontDirty);
+      this._setDirtyFlagFalse(DirtyFlag.Font);
     }
 
-    const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty) || isFontDirty;
-    if (isRenderDirty) {
+    const isLocalDirty = this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) || isFontDirty;
+    if (isLocalDirty) {
       this._updateData();
-      this._setDirtyFlagFalse(DirtyFlag.RenderDirty);
+      this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
-    if (this._isWorldMatrixDirty.flag || isRenderDirty) {
+    const isWorldDirty = this._isContainDirtyFlag(DirtyFlag.WorldPosition) || isFontDirty;
+    if (isWorldDirty) {
       this._updatePosition();
-      this._isWorldMatrixDirty.flag = false;
+      this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
     const charRenderDatas = this._charRenderDatas;
@@ -556,8 +559,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
 }
 
 export enum DirtyFlag {
-  RenderDirty = 0x1,
-  FontDirty = 0x2,
-  MaskInteraction = 0x4,
-  All = 0x7
+  Font = 0x1,
+  LocalPositionBounds = 0x2,
+  WorldPosition = 0x4,
+  WorldBounds = 0x8,
+  MaskInteraction = 0x10
 }
