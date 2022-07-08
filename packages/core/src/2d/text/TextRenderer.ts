@@ -485,7 +485,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
           break;
       }
 
-      for (let j = 0, m = line.length; j < m; ++j) {
+      for (let j = 0, m = line.length - 1; j <= m; ++j) {
         const char = line[j];
         const charInfo = charFont._getCharInfo(char);
 
@@ -518,18 +518,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
           charRenderDatas[renderDataCount] = charRenderData;
           renderDataCount++;
 
-          if (i === 0) {
-            maxY = Math.max(maxY, top);
-          }
-          if (i === lastLineIndex) {
-            minY = Math.min(minY, bottom);
-          }
-          if (j === 0) {
-            minX = Math.min(minX, left);
-          }
-          if (j === m - 1) {
-            maxX = Math.max(maxX, right);
-          }
+          i === 0 && (maxY = Math.max(maxY, top));
+          i === lastLineIndex && (minY = Math.min(minY, bottom));
+          j === 0 && (minX = Math.min(minX, left));
+          j === m && (maxX = Math.max(maxX, right));
         }
         startX += charInfo.xAdvance;
       }
