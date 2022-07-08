@@ -310,14 +310,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.Font);
     }
 
-    const isLocalDirty = this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) || isFontDirty;
-    if (isLocalDirty) {
+    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) || isFontDirty) {
       this._updateData();
       this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
-    const isWorldDirty = this._isContainDirtyFlag(DirtyFlag.WorldPosition) || isFontDirty;
-    if (isWorldDirty) {
+    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition) || isFontDirty) {
       this._updatePosition();
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
