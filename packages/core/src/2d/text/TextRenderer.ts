@@ -3,10 +3,7 @@ import { BoolUpdateFlag } from "../../BoolUpdateFlag";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Entity } from "../../Entity";
-import { Texture2D } from "../../texture";
-import { CharAssembler } from "../assembler/CharAssembler";
-import { RenderData2D } from "../data/RenderData2D";
-import { CharRenderData } from "../assembler/CharRenderData";
+import { CharRenderData } from "./CharRenderData";
 import { FontStyle } from "../enums/FontStyle";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
@@ -17,11 +14,14 @@ import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { TextUtils } from "./TextUtils";
+import { CharRenderDataPool } from "./CharRenderDataPool";
+import { Engine } from "../../Engine";
 
 /**
  * Renders a text for 2D graphics.
  */
 export class TextRenderer extends Renderer implements ICustomClone {
+  private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
   private static _tempBounds: BoundingBox = new BoundingBox();
 
   /** @internal */
@@ -267,7 +267,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty);
     if (this._transformChangeFlag.flag || isFontDirty || isRenderDirty) {
       isFontDirty && this._resetCharFont();
-      isRenderDirty && CharAssembler.updateData(this);
+      isRenderDirty && this._updateData();
       this._updatePosition();
       this._updateBounds(this._bounds);
       this._setDirtyFlagFalse(DirtyFlag.FontDirty | DirtyFlag.RenderDirty);
@@ -309,7 +309,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
     const isRenderDirty = this._isContainDirtyFlag(DirtyFlag.RenderDirty) || isFontDirty;
     if (isRenderDirty) {
-      CharAssembler.updateData(this);
+      this._updateData();
       this._setDirtyFlagFalse(DirtyFlag.RenderDirty);
     }
 
@@ -331,7 +331,13 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _onDestroy(): void {
-    CharAssembler.clearData(this);
+    // Clear render data.
+    const charRenderDatas = this._charRenderDatas;
+    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
+      TextRenderer._charRenderDataPool.put(charRenderDatas[i]);
+    }
+    charRenderDatas.length = 0;
+
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
   }
@@ -437,7 +443,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._charFont._addRefCount(1);
   }
 
-  private _updatePosition() {
+  private _updatePosition(): void {
     const worldMatrix = this.entity.transform.worldMatrix;
     const { _charRenderDatas } = this;
     for (let i = 0, n = _charRenderDatas.length; i < n; ++i) {
@@ -446,6 +452,109 @@ export class TextRenderer extends Renderer implements ICustomClone {
         Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
       }
     }
+  }
+
+  private _updateData(): void {
+    const { color, horizontalAlignment, verticalAlignment, _charRenderDatas } = this;
+    const { _pixelsPerUnit } = Engine;
+    const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
+    const charFont = this._charFont;
+    const rendererWidth = this.width * _pixelsPerUnit;
+    const rendererHeight = this.height * _pixelsPerUnit;
+
+    const textMetrics = this.enableWrapping
+      ? TextUtils.measureTextWithWrap(this)
+      : TextUtils.measureTextWithoutWrap(this);
+    const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
+    const charRenderDataPool = TextRenderer._charRenderDataPool;
+    const halfLineHeight = lineHeight * 0.5;
+    const linesLen = lines.length;
+
+    let startY = 0;
+    const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
+    const bottomDiff = lineHeight * 0.5 - lineMaxSizes[linesLen - 1].descent - 1;
+    switch (verticalAlignment) {
+      case TextVerticalAlignment.Top:
+        startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
+        break;
+      case TextVerticalAlignment.Center:
+        startY = height * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
+        break;
+      case TextVerticalAlignment.Bottom:
+        startY = height - rendererHeight * 0.5 - halfLineHeight - bottomDiff;
+        break;
+    }
+
+    let renderDataCount = 0;
+    for (let i = 0; i < linesLen; ++i) {
+      const line = lines[i];
+      const lineWidth = lineWidths[i];
+
+      let startX = 0;
+      switch (horizontalAlignment) {
+        case TextHorizontalAlignment.Left:
+          startX = -rendererWidth * 0.5;
+          break;
+        case TextHorizontalAlignment.Center:
+          startX = -lineWidth * 0.5;
+          break;
+        case TextHorizontalAlignment.Right:
+          startX = rendererWidth * 0.5 - lineWidth;
+          break;
+      }
+
+      for (let j = 0, m = line.length; j < m; ++j) {
+        const char = line[j];
+        const charInfo = charFont._getCharInfo(char);
+
+        if (charInfo.h > 0) {
+          const charRenderData = _charRenderDatas[renderDataCount] || charRenderDataPool.get();
+          const { renderData, localPositions } = charRenderData;
+          charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
+          renderData.color = color;
+
+          const { uvs } = renderData;
+          const { w, u0, v0, u1, v1, ascent, descent } = charInfo;
+
+          const left = startX * pixelsPerUnitReciprocal;
+          const right = (startX + w) * pixelsPerUnitReciprocal;
+          const top = (startY + ascent) * pixelsPerUnitReciprocal;
+          const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
+          // Top-left.
+          localPositions[0].set(left, top, 0);
+          uvs[0].set(u0, v0);
+          // Top-right.
+          localPositions[1].set(right, top, 0);
+          uvs[1].set(u1, v0);
+          // Bottom-right.
+          localPositions[2].set(right, bottom, 0);
+          uvs[2].set(u1, v1);
+          // Bottom-left.
+          localPositions[3].set(left, bottom, 0);
+          uvs[3].set(u0, v1);
+
+          _charRenderDatas[renderDataCount] = charRenderData;
+          renderDataCount++;
+        }
+        startX += charInfo.xAdvance;
+      }
+
+      startY -= lineHeight;
+    }
+
+    // Revert excess render data to pool.
+    const lastRenderDataCount = _charRenderDatas.length;
+    if (lastRenderDataCount > renderDataCount) {
+      for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
+        charRenderDataPool.put(_charRenderDatas[i]);
+      }
+      _charRenderDatas.length = renderDataCount;
+    }
+
+    charFont._getLastIndex() > 0 &&
+      _charRenderDatas.sort((a, b) => {
+        return a.texture.instanceId - b.texture.instanceId;
+      });
   }
 }
 

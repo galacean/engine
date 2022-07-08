@@ -1,7 +1,7 @@
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
-import { CharInfo } from "../assembler/CharInfo";
+import { CharInfo } from "./CharInfo";
 import { FontAtlas } from "../atlas/FontAtlas";
 
 /**

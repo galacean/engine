@@ -1,5 +1,9 @@
-import { CharInfo } from "../assembler/CharInfo";
+import { Engine } from "../../Engine";
+import { CharInfo } from "./CharInfo";
 import { FontStyle } from "../enums/FontStyle";
+import { OverflowMode } from "../enums/TextOverflow";
+import { Font } from "./Font";
+import { TextRenderer } from "./TextRenderer";
 
 /**
  * @internal
@@ -83,6 +87,146 @@ export class TextUtils {
 
   static measureChar(char: string, fontString: string): CharInfo {
     return <CharInfo>TextUtils._measureFontOrChar(fontString, char);
+  }
+
+  static measureTextWithWrap(renderer: TextRenderer): TextMetrics {
+    const { fontSize, fontStyle } = renderer;
+    const { name } = renderer.font;
+    const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
+    const charFont = renderer._charFont;
+    const fontSizeInfo = TextUtils.measureFont(fontString);
+    const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
+    const lines = new Array<string>();
+    const lineWidths = new Array<number>();
+    const lineMaxSizes = new Array<FontSizeInfo>();
+    const { _pixelsPerUnit } = Engine;
+    const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
+    const wrapWidth = renderer.width * _pixelsPerUnit;
+    let width = 0;
+
+    for (let i = 0, n = subTexts.length; i < n; ++i) {
+      const subText = subTexts[i];
+      let chars = "";
+      let charsWidth = 0;
+      let maxAscent = -1;
+      let maxDescent = -1;
+
+      for (let j = 0, m = subText.length; j < m; ++j) {
+        const char = subText[j];
+        const charInfo = TextUtils._getCharInfo(char, fontString, charFont);
+        const { w, offsetY } = charInfo;
+        const halfH = charInfo.h * 0.5;
+        const ascent = halfH + offsetY;
+        const descent = halfH - offsetY;
+        if (charsWidth + w > wrapWidth) {
+          if (charsWidth === 0) {
+            lines.push(char);
+            lineWidths.push(w);
+            lineMaxSizes.push({
+              ascent,
+              descent,
+              size: ascent + descent
+            });
+          } else {
+            lines.push(chars);
+            lineWidths.push(charsWidth);
+            lineMaxSizes.push({
+              ascent: maxAscent,
+              descent: maxDescent,
+              size: maxAscent + maxDescent
+            });
+            chars = char;
+            charsWidth = charInfo.xAdvance;
+            maxAscent = ascent;
+            maxDescent = descent;
+          }
+        } else {
+          chars += char;
+          charsWidth += charInfo.xAdvance;
+          maxAscent < ascent && (maxAscent = ascent);
+          maxDescent < descent && (maxDescent = descent);
+        }
+      }
+
+      if (charsWidth > 0) {
+        lines.push(chars);
+        lineWidths.push(charsWidth);
+        lineMaxSizes.push({
+          ascent: maxAscent,
+          descent: maxDescent,
+          size: maxAscent + maxDescent
+        });
+      }
+    }
+
+    let height = renderer.height * _pixelsPerUnit;
+    if (renderer.overflowMode === OverflowMode.Overflow) {
+      height = lineHeight * lines.length;
+    }
+
+    return {
+      width,
+      height,
+      lines,
+      lineWidths,
+      lineHeight,
+      lineMaxSizes
+    };
+  }
+
+  static measureTextWithoutWrap(renderer: TextRenderer): TextMetrics {
+    const { fontSize, fontStyle } = renderer;
+    const { name } = renderer.font;
+    const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
+    const charFont = renderer._charFont;
+    const fontSizeInfo = TextUtils.measureFont(fontString);
+    const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
+    const lineCount = lines.length;
+    const lineWidths = new Array<number>();
+    const lineMaxSizes = new Array<FontSizeInfo>();
+    const { _pixelsPerUnit } = Engine;
+    const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
+    let width = 0;
+    let height = renderer.height * _pixelsPerUnit;
+    if (renderer.overflowMode === OverflowMode.Overflow) {
+      height = lineHeight * lineCount;
+    }
+
+    for (let i = 0; i < lineCount; ++i) {
+      const line = lines[i];
+      let curWidth = 0;
+      let maxAscent = -1;
+      let maxDescent = -1;
+
+      for (let j = 0, m = line.length; j < m; ++j) {
+        const charInfo = TextUtils._getCharInfo(line[j], fontString, charFont);
+        curWidth += charInfo.xAdvance;
+        const { offsetY } = charInfo;
+        const halfH = charInfo.h * 0.5;
+        const ascent = halfH + offsetY;
+        const descent = halfH - offsetY;
+        maxAscent < ascent && (maxAscent = ascent);
+        maxDescent < descent && (maxDescent = descent);
+      }
+      lineWidths[i] = curWidth;
+      lineMaxSizes[i] = {
+        ascent: maxAscent,
+        descent: maxDescent,
+        size: maxAscent + maxDescent
+      };
+      if (curWidth > width) {
+        width = curWidth;
+      }
+    }
+
+    return {
+      width,
+      height,
+      lines,
+      lineWidths,
+      lineHeight,
+      lineMaxSizes
+    };
   }
 
   /**
@@ -194,6 +338,17 @@ export class TextUtils {
     } else {
       return sizeInfo;
     }
+  }
+
+  private static _getCharInfo(char: string, fontString: string, font: Font): CharInfo {
+    let charInfo = font._getCharInfo(char);
+    if (!charInfo) {
+      charInfo = TextUtils.measureChar(char, fontString);
+      font._uploadCharTexture(charInfo, TextUtils.textContext().canvas);
+      font._addCharInfo(char, charInfo);
+    }
+
+    return charInfo;
   }
 }
 
