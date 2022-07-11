@@ -22,6 +22,8 @@ import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
  */
 export class TextRenderer extends Renderer implements ICustomClone {
   private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
+  private static _tempVec30: Vector3 = new Vector3();
+  private static _tempVec31: Vector3 = new Vector3();
 
   /** @internal */
   @assignmentClone
@@ -417,13 +419,49 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _updatePosition(): void {
-    const worldMatrix = this.entity.transform.worldMatrix;
+    const { transform } = this.entity;
+    const e = transform.worldMatrix.elements;
     const charRenderDatas = this._charRenderDatas;
+
+    // prettier-ignore
+    const e0 = e[0], e1 = e[1], e2 = e[2];
+    // prettier-ignore
+    const e4 = e[4], e5 = e[5], e6 = e[6];
+    // prettier-ignore
+    const e12 = e[12], e13 = e[13], e14 = e[14];
+
+    const up = TextRenderer._tempVec31.set(e4, e5, e6);
+    const right = TextRenderer._tempVec30.set(e0, e1, e2);
+
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
-      const { localPositions, renderData } = charRenderDatas[i];
-      for (let j = 0; j < 4; ++j) {
-        Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
-      }
+      const charRenderData = charRenderDatas[i];
+      const { localPositions } = charRenderData;
+      const { positions } = charRenderData.renderData;
+
+      const { x: topLeftX, y: topLeftY } = localPositions[0];
+      const bottomRight = localPositions[2];
+
+      // Top-Left
+      const worldPosition0 = positions[0];
+      worldPosition0.x = topLeftX * e0 + topLeftY * e4 + e12;
+      worldPosition0.y = topLeftX * e1 + topLeftY * e5 + e13;
+      worldPosition0.z = topLeftX * e2 + topLeftY * e6 + e14;
+
+      // Right offset
+      const worldPosition1 = positions[1];
+      Vector3.scale(right, bottomRight.x - topLeftX, worldPosition1);
+
+      // Top-Right
+      Vector3.add(worldPosition0, worldPosition1, worldPosition1);
+
+      // Up offset
+      const worldPosition2 = positions[2];
+      Vector3.scale(up, bottomRight.y - topLeftY, worldPosition2);
+
+      // Bottom-Left
+      Vector3.add(worldPosition0, worldPosition2, positions[3]);
+      // Bottom-Right
+      Vector3.add(worldPosition1, worldPosition2, worldPosition2);
     }
   }
 
