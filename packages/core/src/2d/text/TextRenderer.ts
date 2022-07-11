@@ -424,15 +424,21 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const { transform } = this.entity;
     const e = transform.worldMatrix.elements;
     const charRenderDatas = this._charRenderDatas;
-    const scale = transform.scale;
     const right = TextRenderer._tempVec30;
     const up = TextRenderer._tempVec31;
     const upDiff = TextRenderer._tempVec32;
     const rightDiff = TextRenderer._tempVec33;
-    transform.getWorldUp(up);
-    transform.getWorldRight(right);
-    Vector3.scale(up, scale.y, up);
-    Vector3.scale(right, scale.x, right);
+    const e0 = e[0],
+      e1 = e[1],
+      e2 = e[2];
+    const e4 = e[4],
+      e5 = e[5],
+      e6 = e[6];
+    const e12 = e[12],
+      e13 = e[13],
+      e14 = e[14];
+    up.set(e4, e5, e6);
+    right.set(e0, e1, e2);
 
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const { localPositions, renderData } = charRenderDatas[i];
@@ -445,9 +451,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
       let position = localPositions[0];
       let { x, y } = position;
       const worldPosition0 = positions[0];
-      worldPosition0.x = x * e[0] + y * e[4] + e[12];
-      worldPosition0.y = x * e[1] + y * e[5] + e[13];
-      worldPosition0.z = x * e[2] + y * e[6] + e[14];
+      worldPosition0.x = x * e0 + y * e4 + e12;
+      worldPosition0.y = x * e1 + y * e5 + e13;
+      worldPosition0.z = x * e2 + y * e6 + e14;
       const worldPosition1 = positions[1];
       Vector3.add(worldPosition0, rightDiff, worldPosition1);
       Vector3.add(worldPosition1, upDiff, positions[2]);
