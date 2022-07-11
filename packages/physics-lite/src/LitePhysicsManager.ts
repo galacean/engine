@@ -8,7 +8,7 @@ import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 
 /**
- * A manager is a collection of bodies and constraints which can interact.
+ * A manager is a collection of colliders and constraints which can interact.
  */
 export class LitePhysicsManager implements IPhysicsManager {
   private static _tempSphere: BoundingSphere = new BoundingSphere();

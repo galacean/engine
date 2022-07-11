@@ -216,3 +216,14 @@ interface ColorLike {
   /** {@inheritDoc Color.a} */
   a: number;
 }
+
+interface ColorLike {
+  /** {@inheritDoc Color.r} */
+  r: number;
+  /** {@inheritDoc Color.g} */
+  g: number;
+  /** {@inheritDoc Color.b} */
+  b: number;
+  /** {@inheritDoc Color.a} */
+  a: number;
+}
