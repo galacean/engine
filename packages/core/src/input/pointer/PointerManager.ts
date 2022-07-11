@@ -287,6 +287,7 @@ export class PointerManager implements IInput {
           }
           break;
       }
+      this._buttons = nativeEvents[nativeEventsLen - 1].buttons;
     }
     this._buttons = nativeEvents[nativeEventsLen - 1].buttons;
     const pointerCount = pointers.length;
@@ -328,7 +329,14 @@ export class PointerManager implements IInput {
         if (x >= vpX && y >= vpY && x - vpX <= vpW && y - vpY <= vpH) {
           point.set((x - vpX) / vpW, (y - vpY) / vpH);
           // TODO: Only check which colliders have listened to the input.
-          if (this._engine.physicsManager.raycast(camera.viewportPointToRay(point, ray), hitResult)) {
+          if (
+            this._engine.physicsManager.raycast(
+              camera.viewportPointToRay(point, ray),
+              Number.MAX_VALUE,
+              camera.cullingMask,
+              hitResult
+            )
+          ) {
             return hitResult.entity;
           } else if (camera.clearFlags & CameraClearFlags.Color) {
             return null;
