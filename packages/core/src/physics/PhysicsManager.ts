@@ -9,7 +9,7 @@ import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
 
 /**
- * A physics manager is a collection of bodies and constraints which can interact.
+ * A physics manager is a collection of colliders and constraints which can interact.
  */
 export class PhysicsManager {
   /** @internal */

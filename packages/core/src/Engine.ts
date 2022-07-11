@@ -279,9 +279,7 @@ export class Engine extends EventDispatcher {
       scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
 
       componentsManager.callScriptOnStart();
-      if (this.physicsManager._initialized) {
-        this.physicsManager._update(deltaTime / 1000.0);
-      }
+      this.physicsManager._initialized && this.physicsManager._update(deltaTime / 1000.0);
       this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
