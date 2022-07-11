@@ -22,6 +22,10 @@ import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
  */
 export class TextRenderer extends Renderer implements ICustomClone {
   private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
+  private static _tempVec30: Vector3 = new Vector3();
+  private static _tempVec31: Vector3 = new Vector3();
+  private static _tempVec32: Vector3 = new Vector3();
+  private static _tempVec33: Vector3 = new Vector3();
 
   /** @internal */
   @assignmentClone
@@ -417,13 +421,37 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _updatePosition(): void {
-    const worldMatrix = this.entity.transform.worldMatrix;
+    const { transform } = this.entity;
+    const e = transform.worldMatrix.elements;
     const charRenderDatas = this._charRenderDatas;
+    const scale = transform.scale;
+    const right = TextRenderer._tempVec30;
+    const up = TextRenderer._tempVec31;
+    const upDiff = TextRenderer._tempVec32;
+    const rightDiff = TextRenderer._tempVec33;
+    transform.getWorldUp(up);
+    transform.getWorldRight(right);
+    Vector3.scale(up, scale.y, up);
+    Vector3.scale(right, scale.x, right);
+
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const { localPositions, renderData } = charRenderDatas[i];
-      for (let j = 0; j < 4; ++j) {
-        Vector3.transformToVec3(localPositions[j], worldMatrix, renderData.positions[j]);
-      }
+      const { positions } = renderData;
+      const topLeftPosition = localPositions[0];
+      const bottomRightPosition = localPositions[2];
+      Vector3.scale(up, bottomRightPosition.y - topLeftPosition.y, upDiff);
+      Vector3.scale(right, bottomRightPosition.x - topLeftPosition.x, rightDiff);
+
+      let position = localPositions[0];
+      let { x, y } = position;
+      const worldPosition0 = positions[0];
+      worldPosition0.x = x * e[0] + y * e[4] + e[12];
+      worldPosition0.y = x * e[1] + y * e[5] + e[13];
+      worldPosition0.z = x * e[2] + y * e[6] + e[14];
+      const worldPosition1 = positions[1];
+      Vector3.add(worldPosition0, rightDiff, worldPosition1);
+      Vector3.add(worldPosition1, upDiff, positions[2]);
+      Vector3.add(worldPosition0, upDiff, positions[3]);
     }
   }
 
