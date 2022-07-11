@@ -28,7 +28,7 @@ export interface IRefEntity extends IBasicEntity {
   key?: string;
 }
 
-export type IComponent = { id: string } & IClassObject;
+export type IComponent = { id: string; scriptId?: string } & IClassObject;
 
 export type IMethodParams = Array<IBasicType>;
 
