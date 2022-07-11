@@ -1,6 +1,7 @@
 {
   "name": "@oasis-engine/tests",
-  "version": "0.7.0-beta.7",
+  "private": true,
+  "version": "0.8.0-alpha.3",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -14,11 +15,11 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/math": "0.7.0-beta.7",
-    "@oasis-engine/core": "0.7.0-beta.7",
-    "@oasis-engine/rhi-webgl": "0.7.0-beta.7"
+    "@oasis-engine/core": "0.7.0-beta.4",
+    "@oasis-engine/math": "0.7.0-beta.4",
+    "@oasis-engine/rhi-webgl": "0.7.0-beta.4"
   },
   "devDependencies": {
-    "@oasis-engine/design": "0.7.0-beta.7"
+    "@oasis-engine/design": "0.7.0-beta.4"
   }
 }
