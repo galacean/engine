@@ -3,6 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
+import { ListenerUpdateFlag } from "./ListenerUpdateFlag";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
 /**
@@ -429,7 +430,7 @@ export class Transform extends Component {
   /**
    * Translate in the direction and distance of the translation.
    * @param translation - Direction and distance of translation
-   * @param relativeToLocal - Is relative to the local coordinate system
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   translate(translation: Vector3, relativeToLocal?: boolean): void;
 
@@ -438,7 +439,7 @@ export class Transform extends Component {
    * @param x - Distance along the x axis
    * @param y - Distance along the y axis
    * @param z - Distance along the z axis
-   * @param relativeToLocal - Is relative to the local coordinate system
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   translate(x: number, y: number, z: number, relativeToLocal?: boolean): void;
 
@@ -460,7 +461,7 @@ export class Transform extends Component {
   /**
    * Rotate around the passed Vector3.
    * @param rotation - Euler angle in degrees
-   * @param relativeToLocal - Is relative to the local coordinate system
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   rotate(rotation: Vector3, relativeToLocal?: boolean): void;
 
@@ -469,7 +470,7 @@ export class Transform extends Component {
    * @param x - Rotation along x axis, in degrees
    * @param y - Rotation along y axis, in degrees
    * @param z - Rotation along z axis, in degrees
-   * @param relativeToLocal - Is relative to the local coordinate system
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   rotate(x: number, y: number, z: number, relativeToLocal?: boolean): void;
 
@@ -490,7 +491,7 @@ export class Transform extends Component {
    * Rotate around the specified axis according to the specified angle.
    * @param axis - Rotate axis
    * @param angle - Rotate angle in degrees
-   * @param relativeToLocal - Relative to local space
+   * @param relativeToLocal = `true` - Relative to local space
    */
   rotateByAxis(axis: Vector3, angle: number, relativeToLocal: boolean = true): void {
     const rad = angle * MathUtil.degreeToRadFactor;
@@ -543,6 +544,13 @@ export class Transform extends Component {
    */
   registerWorldChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
+   * @intenral
+   */
+  _registerWorldChangeListenser(): ListenerUpdateFlag {
+    return this._updateFlagManager.createFlag(ListenerUpdateFlag);
   }
 
   /**

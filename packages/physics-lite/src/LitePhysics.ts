@@ -8,7 +8,10 @@ import {
   IPhysicsMaterial,
   IPlaneColliderShape,
   ISphereColliderShape,
-  IStaticCollider
+  IStaticCollider,
+  IFixedJoint,
+  IHingeJoint,
+  ISpringJoint,
 } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
@@ -17,6 +20,7 @@ import { LitePhysicsMaterial } from "./LitePhysicsMaterial";
 import { LiteStaticCollider } from "./LiteStaticCollider";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
 import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
+import { LiteCollider } from "./LiteCollider";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 @StaticInterfaceImplement<IPhysics>()
@@ -110,6 +114,27 @@ export class LitePhysics {
     height: number,
     material: LitePhysicsMaterial
   ): ICapsuleColliderShape {
+    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createFixedJoint }
+   */
+  static createFixedJoint(collider: LiteCollider): IFixedJoint {
+    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createHingeJoint }
+   */
+  static createHingeJoint(collider: LiteCollider): IHingeJoint {
+    throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createSpringJoint }
+   */
+  static createSpringJoint(collider: LiteCollider): ISpringJoint {
     throw "Physics-lite don't support CapsuleColliderShape. Use Physics-PhysX instead!";
   }
 }

@@ -365,17 +365,6 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
     return this;
   }
 
-  toObject() {
-    return {
-      x: this.x,
-      y: this.y
-    };
-  }
-
-  setFromObject(obj: { x: number; y: number }) {
-    this.x = obj.x;
-    this.y = obj.y;
-  }
   /**
    * Copy the value of this vector to an array.
    * @param out - The array
@@ -384,6 +373,13 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
     out[outOffset] = this._x;
     out[outOffset + 1] = this._y;
+  }
+
+  toObject() {
+    return {
+      x: this.x,
+      y: this.y
+    };
   }
 }
 
