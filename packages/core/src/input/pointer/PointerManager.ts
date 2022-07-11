@@ -287,7 +287,6 @@ export class PointerManager implements IInput {
           }
           break;
       }
-      this._buttons = nativeEvents[nativeEventsLen - 1].buttons;
     }
     this._buttons = nativeEvents[nativeEventsLen - 1].buttons;
     const pointerCount = pointers.length;
