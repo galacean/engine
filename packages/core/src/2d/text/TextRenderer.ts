@@ -448,8 +448,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       Vector3.scale(up, bottomRightPosition.y - topLeftPosition.y, upDiff);
       Vector3.scale(right, bottomRightPosition.x - topLeftPosition.x, rightDiff);
 
-      let position = localPositions[0];
-      let { x, y } = position;
+      let { x, y } = localPositions[0];
       const worldPosition0 = positions[0];
       worldPosition0.x = x * e0 + y * e4 + e12;
       worldPosition0.y = x * e1 + y * e5 + e13;
