@@ -727,7 +727,7 @@ export class Transform extends Component {
     }
   }
 
-  private _translate(translation: Vector3, relativeToLocal: boolean): void {
+  private _translate(translation: Vector3, relativeToLocal: boolean = true): void {
     if (relativeToLocal) {
       const { _tempVec30 } = Transform;
       Vector3.transformByQuat(translation, this.worldRotationQuaternion, _tempVec30);
@@ -737,7 +737,7 @@ export class Transform extends Component {
     }
   }
 
-  private _rotateXYZ(x: number, y: number, z: number, relativeToLocal: boolean): void {
+  private _rotateXYZ(x: number, y: number, z: number, relativeToLocal: boolean = true): void {
     const radFactor = MathUtil.degreeToRadFactor;
     const rotQuat = Transform._tempQuat0;
     Quaternion.rotationEuler(x * radFactor, y * radFactor, z * radFactor, rotQuat);
