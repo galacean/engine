@@ -21,7 +21,6 @@ class SpriteLoader extends Loader<Sprite> {
           const sprite = new Sprite(resourceManager.engine, texture);
           sprite.region = data.region;
           sprite.pivot = data.pivot;
-          sprite.pixelsPerUnit = data.pixelsPerUnit;
           resolve(sprite);
         });
       });
