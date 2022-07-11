@@ -53,6 +53,7 @@ export class PointerManager implements IInput {
   private _keyEventCount: number = 0;
   private _needOverallPointers: boolean = false;
   private _hadListener: boolean = false;
+  private _lastPositionFrameCount: number = 0;
 
   /**
    * Create a PointerManager.
@@ -216,7 +217,6 @@ export class PointerManager implements IInput {
         pointer = pointerPool[i] = new Pointer(i);
       }
       pointer._uniqueID = pointerId;
-      pointer._needUpdate = true;
       pointer.position.set(x, y);
       pointer.phase = phase;
       pointers.splice(i, 0, pointer);
@@ -231,7 +231,6 @@ export class PointerManager implements IInput {
   private _updatePointer(pointerIndex: number, x: number, y: number, phase: PointerPhase): void {
     const updatedPointer = this._pointers[pointerIndex];
     updatedPointer.position.set(x, y);
-    updatedPointer._needUpdate = true;
     updatedPointer.phase = phase;
   }
 
@@ -245,79 +244,71 @@ export class PointerManager implements IInput {
       _downList: downList
     } = this;
     let activePointerCount = pointers.length;
+    const pixelRatioW = this._canvas.width / this._htmlCanvas.clientWidth;
+    const pixelRatioH = this._canvas.height / this._htmlCanvas.clientHeight;
     const nativeEventsLen = nativeEvents.length;
-    if (nativeEventsLen > 0) {
-      for (let i = 0; i < nativeEventsLen; i++) {
-        const evt = nativeEvents[i];
-        const pointerButton: PointerButton = evt.button | PointerButton.Primary;
-        const pointerIndex = this._getIndexByPointerID(evt.pointerId);
-        switch (evt.type) {
-          case "pointerdown":
-            if (pointerIndex === -1) {
-              this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Down);
-              activePointerCount++;
-            } else {
-              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down);
-            }
-            activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
-            downList.add(pointerButton);
-            downMap[pointerButton] = frameCount;
-            break;
-          case "pointerup":
-            if (pointerIndex >= 0) {
-              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Up);
-              activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
-            }
-            upList.add(pointerButton);
-            upMap[pointerButton] = frameCount;
-            break;
-          case "pointermove":
-            if (pointerIndex === -1) {
-              this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Move);
-              activePointerCount++;
-            } else {
-              this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Move);
-            }
-            break;
-          case "pointerout":
-            if (pointerIndex >= 0) {
-              this._removePointer(pointerIndex);
-              --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Leave);
-              this._needOverallPointers = true;
-            }
-            break;
-        }
+    for (let i = 0; i < nativeEventsLen; i++) {
+      const evt = nativeEvents[i];
+      const pointerButton: PointerButton = evt.button | PointerButton.Primary;
+      const pointerIndex = this._getIndexByPointerID(evt.pointerId);
+      switch (evt.type) {
+        case "pointerdown":
+          if (pointerIndex === -1) {
+            this._addPointer(evt.pointerId, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Down);
+            activePointerCount++;
+          } else {
+            this._updatePointer(pointerIndex, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Down);
+          }
+          activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
+          downList.add(pointerButton);
+          downMap[pointerButton] = frameCount;
+          break;
+        case "pointerup":
+          if (pointerIndex >= 0) {
+            this._updatePointer(pointerIndex, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Up);
+            activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
+          }
+          upList.add(pointerButton);
+          upMap[pointerButton] = frameCount;
+          break;
+        case "pointermove":
+          if (pointerIndex === -1) {
+            this._addPointer(evt.pointerId, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Move);
+            activePointerCount++;
+          } else {
+            this._updatePointer(pointerIndex, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Move);
+          }
+          break;
+        case "pointerout":
+          if (pointerIndex >= 0) {
+            this._removePointer(pointerIndex);
+            --activePointerCount === 0 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Leave);
+            this._needOverallPointers = true;
+          }
+          break;
       }
-      this._buttons = nativeEvents[nativeEventsLen - 1].buttons;
     }
+    this._buttons = nativeEvents[nativeEventsLen - 1].buttons;
     const pointerCount = pointers.length;
     if (pointerCount > 0) {
-      const { _canvas: canvas, _currentPosition: currentPosition, _htmlCanvas: htmlCanvas } = this;
+      const { _currentPosition: currentPosition } = this;
       const { x: lastX, y: lastY } = currentPosition;
-      const pixelRatioWidth = canvas.width / htmlCanvas.clientWidth;
-      const pixelRatioHeight = canvas.height / htmlCanvas.clientHeight;
       if (activePointerCount === 0) {
         // Get the pointer coordinates when leaving, and use it to correctly dispatch the click event.
         const lastNativeEvent = nativeEvents[nativeEventsLen - 1];
-        currentPosition.set(lastNativeEvent.offsetX * pixelRatioWidth, lastNativeEvent.offsetY * pixelRatioHeight);
+        currentPosition.set(lastNativeEvent.offsetX * pixelRatioW, lastNativeEvent.offsetY * pixelRatioH);
       } else {
         currentPosition.set(0, 0);
         for (let i = 0; i < pointerCount; i++) {
-          const pointer = pointers[i];
-          const { position } = pointer;
-          if (pointer._needUpdate) {
-            position.set(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
-            pointer._needUpdate = false;
-          }
-          currentPosition.add(position);
+          currentPosition.add(pointers[i].position);
         }
         currentPosition.scale(1 / pointerCount);
       }
       // Update pointer moving delta.
-      // Todo: Need to consider if the last coordinate is（0, 0）.
-      if (lastX !== 0 || lastY !== 0) {
+      if (this._lastPositionFrameCount === frameCount - 1) {
         this._movingDelta.set(currentPosition.x - lastX, currentPosition.y - lastY);
       }
+      this._lastPositionFrameCount = frameCount;
     }
     nativeEvents.length = 0;
   }
@@ -337,7 +328,14 @@ export class PointerManager implements IInput {
         if (x >= vpX && y >= vpY && x - vpX <= vpW && y - vpY <= vpH) {
           point.set((x - vpX) / vpW, (y - vpY) / vpH);
           // TODO: Only check which colliders have listened to the input.
-          if (this._engine.physicsManager.raycast(camera.viewportPointToRay(point, ray), hitResult)) {
+          if (
+            this._engine.physicsManager.raycast(
+              camera.viewportPointToRay(point, ray),
+              Number.MAX_VALUE,
+              camera.cullingMask,
+              hitResult
+            )
+          ) {
             return hitResult.entity;
           } else if (camera.clearFlags & CameraClearFlags.Color) {
             return null;
