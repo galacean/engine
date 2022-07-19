@@ -13,13 +13,16 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
   constructor(collider: PhysXCollider) {
     super();
     this._collider = collider;
+    const tempVector = PhysXJoint._tempVector;
+    const tempQuat = PhysXJoint._tempQuat;
+    tempVector.set(0, 0, 0);
     this._pxJoint = PhysXPhysics._pxPhysics.createDistanceJoint(
       null,
-      PhysXJoint._tempVector,
-      PhysXJoint._tempQuat,
+      tempVector,
+      tempQuat,
       collider._pxActor,
-      PhysXJoint._tempVector,
-      PhysXJoint._tempQuat
+      tempVector,
+      tempQuat
     );
     this._pxJoint.setDistanceJointFlag(1, true); // enable max distance;
     this._pxJoint.setDistanceJointFlag(2, true); // enable min distance;

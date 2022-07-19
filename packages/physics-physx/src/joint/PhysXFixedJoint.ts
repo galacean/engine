@@ -10,8 +10,8 @@ export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
   constructor(collider: PhysXCollider) {
     super();
     this._collider = collider;
-    const tempVector = PhysXFixedJoint._tempVector;
-    const tempQuat = PhysXFixedJoint._tempQuat;
+    const tempVector = PhysXJoint._tempVector;
+    const tempQuat = PhysXJoint._tempQuat;
     tempVector.set(0, 0, 0);
     this._pxJoint = PhysXPhysics._pxPhysics.createFixedJoint(
       null,
@@ -21,6 +21,5 @@ export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
       tempVector,
       tempQuat
     );
-    tempVector.set(1, 0, 0);
   }
 }
