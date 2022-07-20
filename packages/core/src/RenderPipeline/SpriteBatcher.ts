@@ -105,7 +105,7 @@ export class SpriteBatcher extends Basic2DBatcher {
         return;
       }
 
-      renderer.shaderData.setTexture(SpriteBatcher._textureProperty, spriteElement.texture);
+      spriteElement.texture && renderer.shaderData.setTexture(SpriteBatcher._textureProperty, spriteElement.texture);
 
       program.bind();
       program.groupingOtherUniformBlock();
