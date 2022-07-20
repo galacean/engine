@@ -1,7 +1,6 @@
 import { Joint } from "./Joint";
 import { PhysicsManager } from "../PhysicsManager";
 import { Collider } from "../Collider";
-import { Vector3 } from "@oasis-engine/math";
 
 /*
  * A fixed joint permits no relative movement between two colliders. ie the colliders are glued together.
