@@ -137,8 +137,7 @@ export class HingeJoint extends Joint {
    * @internal
    */
   _onAwake() {
-    const { _connectedCollider: connectedCollider, _collider: collider } = this;
-    connectedCollider.localPosition = new Vector3();
+    const collider = this._collider;
     collider.localPosition = new Vector3();
     collider.collider = this.entity.getComponent(Collider);
     this._nativeJoint = PhysicsManager._nativePhysics.createHingeJoint(collider.collider._nativeCollider);

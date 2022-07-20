@@ -12,11 +12,11 @@ export class PhysXFixedJoint extends PhysXJoint implements IFixedJoint {
     this._collider = collider;
     this._pxJoint = PhysXPhysics._pxPhysics.createFixedJoint(
       null,
-      PhysXJoint._tempVector,
-      PhysXJoint._tempQuat,
+      PhysXJoint._defaultVec,
+      PhysXJoint._defaultQuat,
       collider._pxActor,
-      PhysXJoint._tempVector,
-      PhysXJoint._tempQuat
+      PhysXJoint._defaultVec,
+      PhysXJoint._defaultQuat
     );
   }
 }
