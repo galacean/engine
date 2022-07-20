@@ -1,4 +1,4 @@
-import { BoundingFrustum, MathUtil, Matrix, Quaternion, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
@@ -36,52 +36,6 @@ export class Camera extends Component {
   private static _inverseProjectionMatrixProperty = Shader.getPropertyByName("u_projInvMat");
   private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
 
-  /**
-   * Compute the inverse of the rotation translation matrix.
-   * @param rotation - The rotation used to calculate matrix
-   * @param translation - The translation used to calculate matrix
-   * @param out - The calculated matrix
-   */
-  private static _rotationTranslationInv(rotation: Quaternion, translation: Vector3, out: Matrix) {
-    const oe = out.elements;
-    const { x, y, z, w } = rotation;
-    let x2 = x + x;
-    let y2 = y + y;
-    let z2 = z + z;
-
-    let xx = x * x2;
-    let xy = x * y2;
-    let xz = x * z2;
-    let yy = y * y2;
-    let yz = y * z2;
-    let zz = z * z2;
-    let wx = w * x2;
-    let wy = w * y2;
-    let wz = w * z2;
-
-    oe[0] = 1 - (yy + zz);
-    oe[1] = xy + wz;
-    oe[2] = xz - wy;
-    oe[3] = 0;
-
-    oe[4] = xy - wz;
-    oe[5] = 1 - (xx + zz);
-    oe[6] = yz + wx;
-    oe[7] = 0;
-
-    oe[8] = xz + wy;
-    oe[9] = yz - wx;
-    oe[10] = 1 - (xx + yy);
-    oe[11] = 0;
-
-    oe[12] = translation.x;
-    oe[13] = translation.y;
-    oe[14] = translation.z;
-    oe[15] = 1;
-
-    out.invert();
-  }
-
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
 
@@ -93,9 +47,9 @@ export class Camera extends Component {
 
   /**
    * Determining what to clear when rendering by a Camera.
-   * @defaultValue `CameraClearFlags.DepthColor`
+   * @defaultValue `CameraClearFlags.All`
    */
-  clearFlags: CameraClearFlags = CameraClearFlags.DepthColor;
+  clearFlags: CameraClearFlags = CameraClearFlags.All;
 
   /**
    * Culling mask - which layers the camera renders.
@@ -205,7 +159,7 @@ export class Camera extends Component {
 
   set viewport(value: Vector4) {
     if (value !== this._viewport) {
-      value.cloneTo(this._viewport);
+      this._viewport.copyFrom(value);
     }
     this._projMatChange();
   }
@@ -241,11 +195,12 @@ export class Camera extends Component {
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
       // Ignore scale.
-      Camera._rotationTranslationInv(
+      Matrix.rotationTranslation(
         this._transform.worldRotationQuaternion,
         this._transform.worldPosition,
         this._viewMatrix
       );
+      this._viewMatrix.invert();
     }
     return this._viewMatrix;
   }
@@ -358,7 +313,7 @@ export class Camera extends Component {
     Vector3.transformToVec4(cameraPoint, this.projectionMatrix, viewportPoint);
 
     const w = viewportPoint.w;
-    out.setValue((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, -cameraPoint.z);
+    out.set((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, -cameraPoint.z);
     return out;
   }
 
@@ -539,7 +494,7 @@ export class Camera extends Component {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
     // Transform to clipping space matrix
     const clipPoint = MathTemp.tempVec3;
-    clipPoint.setValue(x * 2 - 1, 1 - y * 2, z * 2 - 1);
+    clipPoint.set(x * 2 - 1, 1 - y * 2, z * 2 - 1);
     Vector3.transformCoordinate(clipPoint, invViewProjMat, out);
     return out;
   }

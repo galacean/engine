@@ -33,6 +33,8 @@ export enum AssetType {
   KTX = "ktx",
   /** Cube Compress Texture. */
   KTXCube = "ktx-cube",
+  /** Sprite. */
+  Sprite = "sprite",
   /** Sprite Atlas. */
   SpriteAtlas = "sprite-atlas",
   /** Oasis specific file. */

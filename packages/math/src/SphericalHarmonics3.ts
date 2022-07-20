@@ -1,5 +1,6 @@
-import { IClone } from "./IClone";
 import { Color } from "./Color";
+import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
 
 /**
@@ -9,7 +10,9 @@ import { Vector3 } from "./Vector3";
  * http://www.ppsloan.org/publications/StupidSH36.pdf
  * https://google.github.io/filament/Filament.md.html#annex/sphericalharmonics
  */
-export class SphericalHarmonics3 implements IClone {
+export class SphericalHarmonics3
+  implements IClone<SphericalHarmonics3>, ICopy<SphericalHarmonics3, SphericalHarmonics3>
+{
   /** The coefficients of SphericalHarmonics3. */
   coefficients: Float32Array = new Float32Array(27);
 
@@ -125,7 +128,7 @@ export class SphericalHarmonics3 implements IClone {
     g += coe[13] * bv4 + coe[16] * bv5 + coe[19] * bv6 + coe[22] * bv7 + coe[25] * bv8;
     b += coe[14] * bv4 + coe[17] * bv5 + coe[20] * bv6 + coe[23] * bv7 + coe[26] * bv8;
 
-    out.setValue(r, g, b, 1.0);
+    out.set(r, g, b, 1.0);
     return out;
   }
 
@@ -148,11 +151,31 @@ export class SphericalHarmonics3 implements IClone {
   }
 
   /**
-   * Set the value of this spherical harmonics by an array.
+   * Creates a clone of this SphericalHarmonics3.
+   * @returns A clone of this SphericalHarmonics3
+   */
+  clone(): SphericalHarmonics3 {
+    const sh = new SphericalHarmonics3();
+    sh.copyFrom(this);
+    return sh;
+  }
+
+  /**
+   * Copy this SphericalHarmonics3 from the specified SphericalHarmonics3.
+   * @param source - The specified SphericalHarmonics3
+   * @returns This SphericalHarmonics3
+   */
+  copyFrom(source: SphericalHarmonics3): SphericalHarmonics3 {
+    source.copyToArray(this.coefficients);
+    return this;
+  }
+
+  /**
+   * Copy the value of this spherical harmonics from an array.
    * @param array - The array
    * @param offset - The start offset of the array
    */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): void {
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): void {
     const s = this.coefficients;
 
     (s[0] = array[offset]), (s[1] = array[1 + offset]), (s[2] = array[2 + offset]);
@@ -167,11 +190,11 @@ export class SphericalHarmonics3 implements IClone {
   }
 
   /**
-   * Clone the value of this spherical harmonics to an array.
+   * Copy the value of this spherical harmonics to an array.
    * @param out - The array
    * @param outOffset - The start offset of the array
    */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0): void {
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0): void {
     const s = this.coefficients;
 
     (out[0 + outOffset] = s[0]), (out[1 + outOffset] = s[1]), (out[2 + outOffset] = s[2]);
@@ -185,26 +208,5 @@ export class SphericalHarmonics3 implements IClone {
     (out[18 + outOffset] = s[18]), (out[19 + outOffset] = s[19]), (out[20 + outOffset] = s[20]);
     (out[21 + outOffset] = s[21]), (out[22 + outOffset] = s[22]), (out[23 + outOffset] = s[23]);
     (out[24 + outOffset] = s[24]), (out[25 + outOffset] = s[25]), (out[26 + outOffset] = s[26]);
-  }
-
-  /**
-   * Creates a clone of this SphericalHarmonics3.
-   * @returns A clone of this SphericalHarmonics3
-   */
-  clone(): SphericalHarmonics3 {
-    const v = new SphericalHarmonics3();
-    this.cloneTo(v);
-
-    return v;
-  }
-
-  /**
-   * Clones this SphericalHarmonics3 to the specified SphericalHarmonics3.
-   * @param out - The specified SphericalHarmonics3
-   * @returns The specified SphericalHarmonics3
-   */
-  cloneTo(out: SphericalHarmonics3): SphericalHarmonics3 {
-    this.toArray(out.coefficients);
-    return out;
   }
 }

@@ -1,0 +1,25 @@
+{
+  "name": "@oasis-engine/tests",
+  "private": true,
+  "version": "0.8.0-alpha.5",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "types/index.d.ts",
+  "debug": "src/index.ts",
+  "scripts": {
+    "b:types": "echo hi"
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@oasis-engine/core": "0.7.0-beta.4",
+    "@oasis-engine/math": "0.7.0-beta.4",
+    "@oasis-engine/rhi-webgl": "0.7.0-beta.4"
+  },
+  "devDependencies": {
+    "@oasis-engine/design": "0.7.0-beta.4"
+  }
+}

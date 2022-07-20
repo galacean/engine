@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix3x3 } from "./Matrix3x3";
 import { Vector3 } from "./Vector3";
@@ -6,7 +7,7 @@ import { Vector3 } from "./Vector3";
 /**
  * Represents a four dimensional mathematical quaternion.
  */
-export class Quaternion implements IClone {
+export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Quaternion> {
   /** @internal */
   static readonly _tempVector3 = new Vector3();
   /** @internal */
@@ -522,26 +523,11 @@ export class Quaternion implements IClone {
    * @param w - The w component of the quaternion
    * @returns This quaternion
    */
-  setValue(x: number, y: number, z: number, w: number): Quaternion {
+  set(x: number, y: number, z: number, w: number): Quaternion {
     this._x = x;
     this._y = y;
     this._z = z;
     this._w = w;
-    this._onValueChanged && this._onValueChanged();
-    return this;
-  }
-
-  /**
-   * Set the value of this quaternion by an array.
-   * @param array - The array
-   * @param offset - The start offset of the array
-   * @returns This quaternion
-   */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): Quaternion {
-    this._x = array[offset];
-    this._y = array[offset + 1];
-    this._z = array[offset + 2];
-    this._w = array[offset + 3];
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -650,40 +636,6 @@ export class Quaternion implements IClone {
   }
 
   /**
-   * Clone the value of this quaternion to an array.
-   * @param out - The array
-   * @param outOffset - The start offset of the array
-   */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    out[outOffset] = this._x;
-    out[outOffset + 1] = this._y;
-    out[outOffset + 2] = this._z;
-    out[outOffset + 3] = this._w;
-  }
-
-  /**
-   * Creates a clone of this quaternion.
-   * @returns A clone of this quaternion
-   */
-  clone(): Quaternion {
-    return new Quaternion(this._x, this._y, this._z, this._w);
-  }
-
-  /**
-   * Clones this quaternion to the specified quaternion.
-   * @param out - The specified quaternion
-   * @returns The specified quaternion
-   */
-  cloneTo(out: Quaternion): Quaternion {
-    out._x = this._x;
-    out._y = this._y;
-    out._z = this._z;
-    out._w = this._w;
-    out._onValueChanged && out._onValueChanged();
-    return out;
-  }
-
-  /**
    * Calculate this quaternion rotate around X axis.
    * @param rad - The rotation angle in radians
    * @returns This quaternion
@@ -775,6 +727,55 @@ export class Quaternion implements IClone {
     return this;
   }
 
+  /**
+   * Creates a clone of this quaternion.
+   * @returns A clone of this quaternion
+   */
+  clone(): Quaternion {
+    return new Quaternion(this._x, this._y, this._z, this._w);
+  }
+
+  /**
+   * Copy this quaternion from the specified quaternion.
+   * @param source - The specified quaternion
+   * @returns This quaternion
+   */
+  copyFrom(source: QuaternionLike): Quaternion {
+    this._x = source.x;
+    this._y = source.y;
+    this._z = source.z;
+    this._w = source.w;
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this quaternion from an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
+   * @returns This quaternion
+   */
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): Quaternion {
+    this._x = array[offset];
+    this._y = array[offset + 1];
+    this._z = array[offset + 2];
+    this._w = array[offset + 3];
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this quaternion to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this._x;
+    out[outOffset + 1] = this._y;
+    out[outOffset + 2] = this._z;
+    out[outOffset + 3] = this._w;
+  }
+
   private _toYawPitchRoll(out: Vector3): Vector3 {
     const { _x, _y, _z, _w } = this;
     const xx = _x * _x;
@@ -797,4 +798,15 @@ export class Quaternion implements IClone {
     }
     return out;
   }
+}
+
+interface QuaternionLike {
+  /** {@inheritDoc Quaternion.x} */
+  x: number;
+  /** {@inheritDoc Quaternion.y} */
+  y: number;
+  /** {@inheritDoc Quaternion.z} */
+  z: number;
+  /** {@inheritDoc Quaternion.w} */
+  w: number;
 }

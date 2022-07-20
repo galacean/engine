@@ -44,20 +44,18 @@ export class Renderer extends Component {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-
-  /** @internal temp solution. */
+  /** @internal */
   @ignoreClone
-  _renderSortId: number = 0;
+  _transformChangeFlag: BoolUpdateFlag;
+  /** @internal */
+  @deepClone
+  _bounds: BoundingBox = new BoundingBox();
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @shallowClone
   protected _materials: Material[] = [];
 
-  @ignoreClone
-  private _transformChangeFlag: BoolUpdateFlag;
-  @deepClone
-  private _bounds: BoundingBox = new BoundingBox(new Vector3(), new Vector3());
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -68,6 +66,8 @@ export class Renderer extends Component {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
+  @ignoreClone
+  private _priority: number = 0;
 
   /**
    * Material count.
@@ -94,6 +94,17 @@ export class Renderer extends Component {
       changeFlag.flag = false;
     }
     return this._bounds;
+  }
+
+  /**
+   * The render priority of the renderer, lower values are rendered first and higher values are rendered last.
+   */
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    this._priority = value;
   }
 
   /**

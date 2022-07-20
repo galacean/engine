@@ -1,11 +1,12 @@
-import { IClone } from "./IClone";
 import { BoundingBox } from "./BoundingBox";
+import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
 
 /**
  * A bounding sphere.
  * */
-export class BoundingSphere implements IClone {
+export class BoundingSphere implements IClone<BoundingSphere>, ICopy<BoundingSphere, BoundingSphere> {
   private static _tempVec30: Vector3 = new Vector3();
 
   /**
@@ -66,7 +67,7 @@ export class BoundingSphere implements IClone {
    * @param radius - The radius of the sphere
    */
   constructor(center: Vector3 = null, radius: number = 0) {
-    center && center.cloneTo(this.center);
+    center && this.center.copyFrom(center);
     this.radius = radius;
   }
 
@@ -79,13 +80,13 @@ export class BoundingSphere implements IClone {
   }
 
   /**
-   * Clones this sphere to the specified sphere.
-   * @param out - The specified sphere
-   * @returns The specified sphere
+   * Copy this sphere from the specified sphere.
+   * @param source - The specified sphere
+   * @returns This sphere
    */
-  cloneTo(out: BoundingSphere): BoundingSphere {
-    this.center.cloneTo(out.center);
-    out.radius = this.radius;
-    return out;
+  copyFrom(source: BoundingSphere): BoundingSphere {
+    this.center.copyFrom(source.center);
+    this.radius = source.radius;
+    return this;
   }
 }

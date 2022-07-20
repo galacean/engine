@@ -1,7 +1,7 @@
 {
   "name": "@oasis-engine/resource-process",
   "license": "MIT",
-  "version": "0.7.0-beta.6",
+  "version": "0.7.0-beta.7",
   "scripts": {
     "b:types": "tsc",
     "watch:types": "tsc -w"
@@ -15,7 +15,7 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.7.0-beta.4",
-    "@oasis-engine/math": "0.7.0-beta.4"
+    "@oasis-engine/core": "0.8.0-alpha.5",
+    "@oasis-engine/math": "0.8.0-alpha.5"
   }
 }

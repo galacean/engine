@@ -299,7 +299,7 @@ export class CollisionUtil {
     const min = box.min;
 
     const closestPoint = CollisionUtil._tempVec30;
-    closestPoint.setValue(
+    closestPoint.set(
       Math.max(min.x, Math.min(center.x, max.x)),
       Math.max(min.y, Math.min(center.y, max.y)),
       Math.max(min.z, Math.min(center.z, max.z))
@@ -323,8 +323,8 @@ export class CollisionUtil {
       const plane = frustum.getPlane(i);
       const normal = plane.normal;
 
-      back.setValue(normal.x >= 0 ? min.x : max.x, normal.y >= 0 ? min.y : max.y, normal.z >= 0 ? min.z : max.z);
-      if (Vector3.dot(plane.normal, back) > -plane.distance) {
+      back.set(normal.x >= 0 ? min.x : max.x, normal.y >= 0 ? min.y : max.y, normal.z >= 0 ? min.z : max.z);
+      if (Vector3.dot(normal, back) > -plane.distance) {
         return false;
       }
     }

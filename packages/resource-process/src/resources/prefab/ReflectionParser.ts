@@ -22,7 +22,8 @@ export class ReflectionParser {
       const promises = [];
       for (let i = 0; i < entityConfig.components.length; i++) {
         const componentConfig = entityConfig.components[i];
-        const component = entity.addComponent(Loader.getClassObject(componentConfig.class));
+        const key = !componentConfig.scriptId ? componentConfig.class : componentConfig.scriptId;
+        const component = entity.addComponent(Loader.getClassObject(key));
         const promise = this.parsePropsAndMethods(component, componentConfig, engine);
         promises.push(promise);
       }
