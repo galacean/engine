@@ -13,16 +13,13 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
   constructor(collider: PhysXCollider) {
     super();
     this._collider = collider;
-    const tempVector = PhysXJoint._tempVector;
-    const tempQuat = PhysXJoint._tempQuat;
-    tempVector.set(0, 0, 0);
     this._pxJoint = PhysXPhysics._pxPhysics.createDistanceJoint(
       null,
-      tempVector,
-      tempQuat,
+      PhysXJoint._defaultVec,
+      PhysXJoint._defaultQuat,
       collider._pxActor,
-      tempVector,
-      tempQuat
+      PhysXJoint._defaultVec,
+      PhysXJoint._defaultQuat
     );
     this._pxJoint.setDistanceJointFlag(1, true); // enable max distance;
     this._pxJoint.setDistanceJointFlag(2, true); // enable min distance;
@@ -34,7 +31,7 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
    */
   setSwingOffset(value: Vector3): void {
     this._swingOffset.copyFrom(value);
-    this._setLocalPose(1, value, PhysXJoint._tempQuat);
+    this._setLocalPose(1, value, PhysXJoint._defaultQuat);
   }
 
   /**

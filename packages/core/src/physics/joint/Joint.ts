@@ -3,6 +3,7 @@ import { Vector3, Quaternion } from "@oasis-engine/math";
 import { Component } from "../../Component";
 import { Collider } from "../Collider";
 import { dependentComponents } from "../../ComponentsDependencies";
+import { Entity } from "../../Entity";
 
 /**
  * A base class providing common functionality for joints.
@@ -128,6 +129,11 @@ export class Joint extends Component {
       this._torque = value;
       this._nativeJoint.setBreakTorque(value);
     }
+  }
+
+  constructor(entity: Entity) {
+    super(entity);
+    this._connectedCollider.localPosition = new Vector3();
   }
 }
 

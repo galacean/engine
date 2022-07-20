@@ -6,8 +6,9 @@ import { Quaternion, Vector3 } from "oasis-engine";
  * a base interface providing common functionality for PhysX joints
  */
 export class PhysXJoint implements IJoint {
-  protected static _tempVector = new Vector3(1, 0, 0);
-  protected static _tempQuat = new Quaternion();
+  protected static _xAxis = new Vector3(1, 0, 0);
+  protected static _defaultVec = new Vector3();
+  protected static _defaultQuat = new Quaternion();
 
   protected _pxJoint: any;
   protected _collider: PhysXCollider;
@@ -27,7 +28,7 @@ export class PhysXJoint implements IJoint {
    */
   setConnectedAnchor(value: Vector3): void {
     this._connectedAnchor.copyFrom(value);
-    this._setLocalPose(0, value, PhysXJoint._tempQuat);
+    this._setLocalPose(0, value, PhysXJoint._defaultQuat);
   }
 
   /**

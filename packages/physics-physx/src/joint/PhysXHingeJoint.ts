@@ -15,16 +15,13 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   constructor(collider: PhysXCollider) {
     super();
     this._collider = collider;
-    const tempVector = PhysXJoint._tempVector;
-    const tempQuat = PhysXJoint._tempQuat;
-    tempVector.set(0, 0, 0);
     this._pxJoint = PhysXPhysics._pxPhysics.createRevoluteJoint(
       null,
-      tempVector,
-      tempQuat,
+      PhysXJoint._defaultVec,
+      PhysXJoint._defaultQuat,
       collider._pxActor,
-      tempVector,
-      tempQuat
+      PhysXJoint._defaultVec,
+      PhysXJoint._defaultQuat
     );
   }
 
@@ -32,13 +29,13 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
    * {@inheritDoc IHingeJoint.setAxis }
    */
   setAxis(value: Vector3): void {
-    const tempVector = PhysXJoint._tempVector;
+    const xAxis = PhysXJoint._xAxis;
     const axisRotationQuaternion = this._axisRotationQuaternion;
-    tempVector.set(1, 0, 0);
+    xAxis.set(1, 0, 0);
     value.normalize();
-    const angle = Math.acos(Vector3.dot(tempVector, value));
-    Vector3.cross(tempVector, value, tempVector);
-    Quaternion.rotationAxisAngle(tempVector, angle, axisRotationQuaternion);
+    const angle = Math.acos(Vector3.dot(xAxis, value));
+    Vector3.cross(xAxis, value, xAxis);
+    Quaternion.rotationAxisAngle(xAxis, angle, axisRotationQuaternion);
 
     this._setLocalPose(0, this._swingOffset, axisRotationQuaternion);
   }
