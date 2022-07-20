@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/draco",
-  "version": "0.8.0-alpha.3",
+  "version": "0.8.0-alpha.5",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,6 +18,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.8.0-alpha.3"
+    "@oasis-engine/core": "0.8.0-alpha.5"
   }
 }
