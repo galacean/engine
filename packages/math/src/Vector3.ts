@@ -585,10 +585,6 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
     out[outOffset + 1] = this._y;
     out[outOffset + 2] = this._z;
   }
-
-  toObject() {
-    return { x: this.x, y: this.y, z: this.z };
-  }
 }
 
 interface Vector3Like {

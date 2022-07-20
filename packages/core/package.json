@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/core",
-  "version": "0.8.0-alpha.3",
+  "version": "0.8.0-alpha.5",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -19,9 +19,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/math": "0.8.0-alpha.3"
+    "@oasis-engine/math": "0.8.0-alpha.5"
   },
   "devDependencies": {
-    "@oasis-engine/design": "0.8.0-alpha.3"
+    "@oasis-engine/design": "0.8.0-alpha.5"
   }
 }

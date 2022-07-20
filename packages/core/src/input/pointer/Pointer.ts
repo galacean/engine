@@ -17,8 +17,6 @@ export class Pointer {
 
   /** @internal */
   _uniqueID: number;
-  /** @internal */
-  _needUpdate: boolean = true;
 
   /**
    * @internal
