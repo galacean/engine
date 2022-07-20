@@ -252,16 +252,13 @@ export class Scene extends EngineObject {
    * @internal
    */
   _updateShaderData(): void {
+    this.findFeature(LightFeature)._updateShaderData(this.shaderData);
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
       this.engine._macroCollection,
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );
-
-    const lightMgr = this.findFeature(LightFeature);
-
-    lightMgr._updateShaderData(this.shaderData);
   }
 
   private _removeEntity(entity: Entity): void {
