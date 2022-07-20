@@ -28,11 +28,7 @@ export class SimpleSpriteAssembler {
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
-    const { width, height } = renderer;
-    if (width === 0 || height === 0) {
-      return;
-    }
-    const { sprite } = renderer;
+    const { width, height, sprite } = renderer;
     const { x: pivotX, y: pivotY } = sprite.pivot;
     // Renderer's worldMatrix;
     const { _worldMatrix: worldMatrix } = SimpleSpriteAssembler;

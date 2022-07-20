@@ -25,11 +25,7 @@ export class SlicedSpriteAssembler {
   static updateData(renderer: SpriteRenderer | SpriteMask): void {}
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
-    const { width, height } = renderer;
-    if (width === 0 || height === 0) {
-      return;
-    }
-    const { sprite } = renderer;
+    const { width, height, sprite } = renderer;
     const { positions, uvs, triangles } = renderer._renderData;
     const { border } = sprite;
     const spriteUVs = sprite._getUVs();
