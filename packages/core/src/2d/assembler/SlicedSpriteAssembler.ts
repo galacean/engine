@@ -10,7 +10,7 @@ import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 @StaticInterfaceImplement<IAssembler>()
 export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
-  static resetData(renderer: SpriteRenderer | SpriteMask): void {
+  static resetData(renderer: SpriteRenderer): void {
     const { _renderData: renderData } = renderer;
     const { positions, uvs } = renderData;
     if (positions.length < 16) {
@@ -22,14 +22,8 @@ export class SlicedSpriteAssembler {
     renderData.triangles = [];
   }
 
-  static updateData(renderer: SpriteRenderer | SpriteMask): void {}
-
-  static updatePositions(renderer: SpriteRenderer | SpriteMask): void {
-    const { width, height } = renderer;
-    if (width === 0 || height === 0) {
-      return;
-    }
-    const { sprite } = renderer;
+  static updatePositions(renderer: SpriteRenderer): void {
+    const { width, height, sprite } = renderer;
     const { positions, uvs, triangles } = renderer._renderData;
     const { border } = sprite;
     const spriteUVs = sprite._getUVs();
@@ -147,5 +141,5 @@ export class SlicedSpriteAssembler {
     renderer._bounds.transform(worldMatrix);
   }
 
-  static updateUVs(renderer: SpriteRenderer | SpriteMask): void {}
+  static updateUVs(renderer: SpriteRenderer): void {}
 }
