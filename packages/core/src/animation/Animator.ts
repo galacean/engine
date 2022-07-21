@@ -337,8 +337,8 @@ export class Animator extends Component {
     const crossCurveData = this._crossCurveDataCollection;
     const { srcPlayData, crossCurveMark } = animatorLayerData;
 
-    // Standby have two sub state, one is never play, one is finished, never play srcPlayData is null.
-    srcPlayData && this._prepareSrcCrossData(crossCurveData, srcPlayData, crossCurveMark, true);
+    // Standby have two sub state, one is never play, one is finished, never play srcPlayData.state is null.
+    srcPlayData.state && this._prepareSrcCrossData(crossCurveData, srcPlayData, crossCurveMark, true);
     // Add dest cross curve data.
     this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, crossCurveMark, true);
   }
@@ -482,7 +482,10 @@ export class Animator extends Component {
     const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = animLayerData;
     const layerAdditive = blendingMode === AnimatorLayerBlendingMode.Additive;
     const layerWeight = firstLayer ? 1.0 : weight;
-    this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
+    //TODO: 任意情况都应该检查，后面要优化
+    animLayerData.layerState !== LayerState.FixedCrossFading &&
+      this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
+
     switch (animLayerData.layerState) {
       case LayerState.Playing:
         this._updatePlayingState(srcPlayData, animLayerData, layerIndex, layerWeight, deltaTime, layerAdditive);
@@ -657,7 +660,7 @@ export class Animator extends Component {
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
 
     const { clipTime: destClipTime } = destPlayData;
-
+    //TODO: srcState 少了最新一段时间的判断
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
