@@ -46,7 +46,7 @@ export class Font extends RefObject {
   /**
    * @internal
    */
-  _uploadCharTexture(charInfo: CharInfo, imageSource: TexImageSource | OffscreenCanvas): void {
+  _uploadCharTexture(charInfo: CharInfo): void {
     const fontAtlases = this._fontAtlases;
     let lastIndex = this._lastIndex;
     if (lastIndex === -1) {
@@ -54,9 +54,9 @@ export class Font extends RefObject {
       lastIndex++
     }
     let fontAtlas = fontAtlases[lastIndex];
-    if (!fontAtlas.uploadCharTexture(charInfo, imageSource)) {
+    if (!fontAtlas.uploadCharTexture(charInfo)) {
       fontAtlas = this._createFontAtlas();
-      fontAtlas.uploadCharTexture(charInfo, imageSource);
+      fontAtlas.uploadCharTexture(charInfo);
       lastIndex++;
     }
     this._lastIndex = lastIndex;

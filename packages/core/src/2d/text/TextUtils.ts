@@ -247,21 +247,6 @@ export class TextUtils {
     return str;
   }
 
-  /**
-   * Update canvas with the data.
-   * @param width - the new width of canvas
-   * @param height - the new height of canvas
-   * @param data - the new data of canvas
-   * @returns the canvas after update
-   */
-  static updateCanvas(width: number, height: number, data: ImageData): HTMLCanvasElement | OffscreenCanvas {
-    const { canvas, context } = TextUtils.textContext();
-    canvas.width = width;
-    canvas.height = height;
-    context.putImageData(data, 0, 0);
-    return canvas;
-  }
-
   private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
@@ -315,11 +300,6 @@ export class TextUtils {
     const sizeInfo = { ascent, descent, size };
 
     if (char) {
-      if (size > 0) {
-        const trimData = colorData.slice(top * integerW * 4, (top + size) * integerW * 4);
-        const imageData = new ImageData(trimData, width, size);
-        TextUtils.updateCanvas(width, size, imageData);
-      }
       return {
         x: 0,
         y: 0,
@@ -334,7 +314,8 @@ export class TextUtils {
         v1: 0,
         ascent,
         descent,
-        index: 0
+        index: 0,
+        data: size > 0 ? Uint8Array.from(colorData.slice(top * integerW * 4, (top + size) * integerW * 4)) : null
       };
     } else {
       return sizeInfo;
@@ -345,7 +326,7 @@ export class TextUtils {
     let charInfo = font._getCharInfo(char);
     if (!charInfo) {
       charInfo = TextUtils.measureChar(char, fontString);
-      font._uploadCharTexture(charInfo, TextUtils.textContext().canvas);
+      font._uploadCharTexture(charInfo);
       font._addCharInfo(char, charInfo);
     }
 
