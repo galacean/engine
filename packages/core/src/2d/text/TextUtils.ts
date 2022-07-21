@@ -266,7 +266,7 @@ export class TextUtils {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
     const measureString = char || TextUtils._measureString;
-    const width = context.measureText(measureString).width;
+    const width = Math.round(context.measureText(measureString).width);
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     const height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
@@ -281,8 +281,8 @@ export class TextUtils {
     context.fillStyle = "#fff";
     context.fillText(measureString, 0, baseline);
 
-    const imageData = context.getImageData(0, 0, width, height).data;
-    const len = imageData.length;
+    const colorData = context.getImageData(0, 0, width, height).data;
+    const len = colorData.length;
 
     let top = -1;
     let bottom = -1;
@@ -293,7 +293,7 @@ export class TextUtils {
 
     const integerW = canvas.width;
     for (let i = 0; i < len; i += 4) {
-      if (imageData[i + 3] !== 0) {
+      if (colorData[i + 3] !== 0) {
         const idx = i / 4;
         y = ~~(idx / integerW);
 
@@ -316,8 +316,9 @@ export class TextUtils {
 
     if (char) {
       if (size > 0) {
-        const data = context.getImageData(0, top, width, size);
-        TextUtils.updateCanvas(width, size, data);
+        const trimData = colorData.slice(top * integerW * 4, (top + size) * integerW * 4);
+        const imageData = new ImageData(trimData, width, size);
+        TextUtils.updateCanvas(width, size, imageData);
       }
       return {
         x: 0,
