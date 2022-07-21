@@ -482,6 +482,7 @@ export class Animator extends Component {
     const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = animLayerData;
     const layerAdditive = blendingMode === AnimatorLayerBlendingMode.Additive;
     const layerWeight = firstLayer ? 1.0 : weight;
+    //TODO 任意情况都应该检查，后面要优化
     animLayerData.layerState !== LayerState.FixedCrossFading &&
       this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
 
@@ -659,7 +660,7 @@ export class Animator extends Component {
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
 
     const { clipTime: destClipTime } = destPlayData;
-
+    //TODO srcState 少了最新一段时间的判断
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
