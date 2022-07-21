@@ -23,10 +23,10 @@ class MaterialLoader extends Loader<string> {
         type: "json"
       }).then((json: { [key: string]: any }) => {
         const engine = resourceManager.engine;
-        let material;
+        const { shader, shaderData, macros, renderState } = json;
 
-        const shaderName = json.shader;
-        switch (shaderName) {
+        let material;
+        switch (shader) {
           case "pbr":
             material = new PBRMaterial(engine);
             break;
@@ -41,49 +41,48 @@ class MaterialLoader extends Loader<string> {
             break;
         }
 
-        const shaderData: ShaderData = material.shaderData;
-        for (let key in json) {
-          const value = json[key];
-          if (value == null) continue;
-          if (key === "shader") {
-            continue;
-          }
+        const materialShaderData: ShaderData = material.shaderData;
+        for (let key in shaderData) {
+          const { type, value } = shaderData[key];
 
-          if (key === "macros") {
-            const macros = json[key];
-            for (let i = 0, length = macros.length; i < length; i++) {
-              const { name, value } = macros[i];
-              if (value === undefined) {
-                shaderData.enableMacro(name);
-              } else {
-                shaderData.enableMacro(name, value);
-              }
-            }
-            continue;
+          switch (type) {
+            case "Vector2":
+              materialShaderData.setVector2(key, new Vector2(value.x, value.y));
+              break;
+            case "Vector3":
+              materialShaderData.setVector3(key, new Vector3(value.x, value.y, value.z));
+              break;
+            case "Vector4":
+              materialShaderData.setVector4(key, new Vector4(value.x, value.y, value.z, value.w));
+              break;
+            case "Color":
+              materialShaderData.setColor(key, new Color(value.r, value.g, value.b, value.a));
+              break;
+            case "Float":
+              materialShaderData.setFloat(key, value);
+              break;
+            case "Texture":
+              resourceManager.getResourceByRef<Texture2D>(value).then((texture) => {
+                materialShaderData.setTexture(key, texture);
+              });
+              break;
           }
-
-          if (value.refId) {
-            resourceManager.getResourceByRef<Texture2D>(value).then((texture) => {
-              shaderData.setTexture(key, texture);
-            });
-          } else if (/^u_/.test(key)) {
-            if (typeof value === "number") {
-              shaderData.setFloat(key, value);
-            } else if (value.r !== undefined) {
-              shaderData.setColor(key, new Color(value.r, value.g, value.b, value.a));
-            } else if (value.w !== undefined) {
-              shaderData.setVector4(key, new Vector4(value.x, value.y, value.z, value.w));
-            } else if (value.z !== undefined) {
-              shaderData.setVector3(key, new Vector3(value.x, value.y, value.z));
-            } else if (value.y !== undefined) {
-              shaderData.setVector2(key, new Vector2(value.x, value.y));
-            }
-          } else {
-            material[key] = value;
-          }
-
-          resolve(material);
         }
+
+        for (let i = 0, length = macros.length; i < length; i++) {
+          const { name, value } = macros[i];
+          if (value == undefined) {
+            materialShaderData.enableMacro(name);
+          } else {
+            materialShaderData.enableMacro(name, value);
+          }
+        }
+
+        for (let key in renderState) {
+          materialShaderData[key] = renderState[key];
+        }
+
+        resolve(material);
       });
     });
   }
