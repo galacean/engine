@@ -75,7 +75,7 @@ export class InputManager {
         return this._keyboardManager._curHeldDownKeyToIndexMap[key] != null;
       }
     } else {
-      return false;
+      return this._keyboardManager._curHeldDownKeyToIndexMap[key] != null;
     }
   }
 
