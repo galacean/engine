@@ -300,6 +300,11 @@ export class TextUtils {
     const sizeInfo = { ascent, descent, size };
 
     if (char) {
+      let data = null;
+      if (size > 0) {
+        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some device.
+        data = new Uint8Array(colorData.buffer, top * integerW * 4, size * integerW * 4);
+      }
       return {
         x: 0,
         y: 0,
@@ -315,7 +320,7 @@ export class TextUtils {
         ascent,
         descent,
         index: 0,
-        data: size > 0 ? Uint8Array.from(colorData.slice(top * integerW * 4, (top + size) * integerW * 4)) : null
+        data
       };
     } else {
       return sizeInfo;
