@@ -228,6 +228,8 @@ export class Entity extends EngineObject {
       child._isRoot = false;
 
       this._children.push(child);
+      child._parent = this;
+
       const newScene = this._scene;
       if (child._scene !== newScene) {
         Entity._traverseSetOwnerScene(child, newScene);
