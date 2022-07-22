@@ -10,7 +10,6 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
-import { UpdateFlag } from "./UpdateFlag";
 
 /**
  * Entity, be used as components container.
@@ -103,10 +102,10 @@ export class Entity extends EngineObject {
     return this._parent;
   }
 
-  set parent(entity: Entity) {
-    if (entity !== this._parent) {
+  set parent(value: Entity) {
+    if (value !== this._parent) {
       const oldParent = this._removeFromParent();
-      const newParent = (this._parent = entity);
+      const newParent = (this._parent = value);
       if (newParent) {
         newParent._children.push(this);
         const parentScene = newParent._scene;
@@ -224,7 +223,27 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be added.
    */
   addChild(child: Entity): void {
-    child.parent = this;
+    if (child._isRoot) {
+      child._scene._removeEntity(child);
+      child._isRoot = false;
+
+      this._children.push(child);
+
+      const parentScene = this._scene;
+      if (child._scene !== parentScene) {
+        Entity._traverseSetOwnerScene(child, parentScene);
+      }
+
+      if (this._isActiveInHierarchy) {
+        !child._isActiveInHierarchy && child._isActive && child._processActive();
+      } else {
+        child._isActiveInHierarchy && child._processInActive();
+      }
+
+      child._setTransformDirty();
+    } else {
+      child.parent = this;
+    }
   }
 
   /**
