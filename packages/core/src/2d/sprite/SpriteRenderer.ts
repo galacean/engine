@@ -17,6 +17,7 @@ import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
+import { Engine } from "../../Engine";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -98,6 +99,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
         this._dirtyFlag |= DirtyFlag.All;
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
+      } else {
+        this._spriteChangeFlag = null;
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
       this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
     }
@@ -182,7 +187,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * The bounding volume of the spriteRenderer.
    */
   get bounds(): BoundingBox {
-    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+    if (!this.sprite?.texture || !this.width || !this.height) {
+      return Engine._defaultBoundingBox;
+    } else if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       this._assembler.updatePositions(this);
       this._dirtyFlag &= ~DirtyFlag.Position;
       this._transformChangeFlag.flag = false;
@@ -230,7 +237,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _render(camera: Camera): void {
-    if (!this.sprite?.texture) {
+    if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
 
@@ -268,7 +275,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     this._sprite = null;
     this._assembler = null;
     this._renderData = null;
-    this._spriteChangeFlag && this._spriteChangeFlag.destroy();
+    if (this._spriteChangeFlag) {
+      this._spriteChangeFlag.destroy();
+      this._spriteChangeFlag = null;
+    }
     super._onDestroy();
   }
 
@@ -298,12 +308,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag): void {
     switch (dirtyFlag) {
       case SpritePropertyDirtyFlag.texture:
-        const { _sprite: sprite } = this;
-        if (this._width === undefined && this._height === undefined) {
-          this.width = sprite.width;
-          this.height = sprite.height;
-        }
-        this.shaderData.setTexture(SpriteRenderer._textureProperty, sprite.texture);
+        this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpritePropertyDirtyFlag.size:
         this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.Position);

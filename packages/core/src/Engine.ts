@@ -1,3 +1,4 @@
+import { BoundingBox, Vector3 } from "@oasis-engine/math";
 import { ColorSpace } from ".";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
@@ -45,6 +46,8 @@ export class Engine extends EventDispatcher {
   static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
+  /** @internal */
+  static _defaultBoundingBox: BoundingBox = new BoundingBox(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
 
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;

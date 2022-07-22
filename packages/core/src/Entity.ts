@@ -10,7 +10,6 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
-import { UpdateFlag } from "./UpdateFlag";
 
 /**
  * Entity, be used as components container.
@@ -103,10 +102,10 @@ export class Entity extends EngineObject {
     return this._parent;
   }
 
-  set parent(entity: Entity) {
-    if (entity !== this._parent) {
+  set parent(value: Entity) {
+    if (value !== this._parent) {
       const oldParent = this._removeFromParent();
-      const newParent = (this._parent = entity);
+      const newParent = (this._parent = value);
       if (newParent) {
         newParent._children.push(this);
         const parentScene = newParent._scene;
@@ -224,7 +223,28 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be added.
    */
   addChild(child: Entity): void {
-    child.parent = this;
+    if (child._isRoot) {
+      child._scene._removeEntity(child);
+      child._isRoot = false;
+
+      this._children.push(child);
+      child._parent = this;
+      
+      const newScene = this._scene;
+      if (child._scene !== newScene) {
+        Entity._traverseSetOwnerScene(child, newScene);
+      }
+
+      if (this._isActiveInHierarchy) {
+        !child._isActiveInHierarchy && child._isActive && child._processActive();
+      } else {
+        child._isActiveInHierarchy && child._processInActive();
+      }
+
+      child._setTransformDirty();
+    } else {
+      child.parent = this;
+    }
   }
 
   /**
@@ -451,7 +471,8 @@ export class Entity extends EngineObject {
     this._isActiveInHierarchy = true;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      activeChangedComponents.push(components[i]);
+      const component = components[i];
+      component.enabled && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -464,7 +485,8 @@ export class Entity extends EngineObject {
     this._isActiveInHierarchy = false;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      activeChangedComponents.push(components[i]);
+      const component = components[i];
+      component.enabled && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
