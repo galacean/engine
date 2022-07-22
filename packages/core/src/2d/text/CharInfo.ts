@@ -16,4 +16,5 @@ export interface CharInfo {
   ascent: number;
   descent: number;
   index: number;
+  data?: Uint8Array;
 }
