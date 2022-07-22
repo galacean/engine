@@ -251,6 +251,8 @@ export class TextUtils {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
     const measureString = char || TextUtils._measureString;
+    // Safari gets data confusion through getImageData when the canvas width is not an integer.
+    // @todo: Text layout may vary from standard.
     const width = Math.round(context.measureText(measureString).width);
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     const height = baseline * TextUtils._heightMultiplier;
@@ -302,7 +304,7 @@ export class TextUtils {
     if (char) {
       let data = null;
       if (size > 0) {
-        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices.
+        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices(eg: IphoneX IOS 13.6.1).
         data = new Uint8Array(colorData.buffer, top * integerW * 4, size * integerW * 4);
       }
       return {

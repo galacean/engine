@@ -60,6 +60,7 @@ export class Font extends RefObject {
       lastIndex++;
     }
     this._lastIndex = lastIndex;
+    charInfo.data = null;
   }
 
   /**
