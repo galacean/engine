@@ -19,7 +19,7 @@ class KHR_lights_punctual extends ExtensionParser {
     }
 
     if (color) {
-      light.color.setValue(color[0], color[1], color[2], 1);
+      light.color.set(color[0], color[1], color[2], 1);
     }
 
     light.intensity = intensity;

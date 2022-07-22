@@ -223,7 +223,7 @@ export class BlendShapeManager {
       } else {
         this._createVertexBuffers(vertexCount, noLongerAccessible);
       }
-      this._lastCreateHostInfo.setValue(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
+      this._lastCreateHostInfo.set(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
     }
     if (this._needUpdateData()) {
       if (useTexture) {
@@ -319,7 +319,7 @@ export class BlendShapeManager {
 
     this._vertices = new Float32Array(blendShapeCount * textureWidth * textureHeight * 4);
     this._vertexTexture = blendShapeDataTexture;
-    this._dataTextureInfo.setValue(vertexPixelStride, textureWidth, textureHeight);
+    this._dataTextureInfo.set(vertexPixelStride, textureWidth, textureHeight);
   }
 
   /**
@@ -353,7 +353,7 @@ export class BlendShapeManager {
 
         let storeInfo = storeInfos[i];
         storeInfo || (storeInfos[i] = storeInfo = new Vector2());
-        storeInfo.setValue(bufferIndex + 1, indexInBuffer * blendShapeByteStride); // BlendShape buffer is start from 1
+        storeInfo.set(bufferIndex + 1, indexInBuffer * blendShapeByteStride); // BlendShape buffer is start from 1
 
         const { deltaPositions } = endFrame;
         for (let j = 0; j < vertexCount; j++) {

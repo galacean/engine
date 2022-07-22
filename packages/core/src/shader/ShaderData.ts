@@ -586,7 +586,7 @@ export class ShaderData implements IRefObject, IClone {
         } else {
           const targetProperty = targetProperties[k];
           if (targetProperty) {
-            property.cloneTo(targetProperty);
+            targetProperty.copyFrom(property);
           } else {
             targetProperties[k] = property.clone();
           }

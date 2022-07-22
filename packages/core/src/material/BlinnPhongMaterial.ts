@@ -22,7 +22,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set baseColor(value: Color) {
     const baseColor = this.shaderData.getColor(BlinnPhongMaterial._baseColorProp);
     if (value !== baseColor) {
-      value.cloneTo(baseColor);
+      baseColor.copyFrom(value);
     }
   }
 
@@ -52,7 +52,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set specularColor(value: Color) {
     const specularColor = this.shaderData.getColor(BlinnPhongMaterial._specularColorProp);
     if (value !== specularColor) {
-      value.cloneTo(specularColor);
+      specularColor.copyFrom(value);
     }
   }
 
@@ -82,7 +82,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set emissiveColor(value: Color) {
     const emissiveColor = this.shaderData.getColor(BlinnPhongMaterial._emissiveColorProp);
     if (value !== emissiveColor) {
-      value.cloneTo(emissiveColor);
+      emissiveColor.copyFrom(value);
     }
   }
 
@@ -150,7 +150,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set tilingOffset(value: Vector4) {
     const tilingOffset = this.shaderData.getVector4(BlinnPhongMaterial._tilingOffsetProp);
     if (value !== tilingOffset) {
-      value.cloneTo(tilingOffset);
+      tilingOffset.copyFrom(value);
     }
   }
 

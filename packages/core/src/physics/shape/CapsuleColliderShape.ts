@@ -19,6 +19,7 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   set radius(value: number) {
+    this._radius = value;
     (<ICapsuleColliderShape>this._nativeShape).setRadius(value);
   }
 
@@ -30,6 +31,7 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   set height(value: number) {
+    this._height = value;
     (<ICapsuleColliderShape>this._nativeShape).setHeight(value);
   }
 

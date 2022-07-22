@@ -1,13 +1,15 @@
-import { IPhysics, IPhysicsManager } from "@oasis-engine/design";
+import { ICharacterController, ICollider, IPhysics, IPhysicsManager } from "@oasis-engine/design";
 import { Ray, Vector3 } from "@oasis-engine/math";
+import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
+import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
-import { ColliderShape } from "./shape/ColliderShape";
+import { ColliderShape } from "./shape";
 
 /**
- * A physics manager is a collection of bodies and constraints which can interact.
+ * A physics manager is a collection of colliders and constraints which can interact.
  */
 export class PhysicsManager {
   /** @internal */
@@ -17,6 +19,8 @@ export class PhysicsManager {
 
   private _engine: Engine;
   private _restTime: number = 0;
+
+  private _colliders: DisorderedArray<Collider> = new DisorderedArray();
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsManager: IPhysicsManager;
@@ -126,6 +130,9 @@ export class PhysicsManager {
   /** The max sum of time step in seconds one frame. */
   maxSumTimeStep: number = 1 / 3;
 
+  /**
+   * The gravity of physics scene.
+   */
   get gravity(): Vector3 {
     return this._gravity;
   }
@@ -133,7 +140,7 @@ export class PhysicsManager {
   set gravity(value: Vector3) {
     const gravity = this._gravity;
     if (gravity !== value) {
-      value.cloneTo(gravity);
+      gravity.copyFrom(value);
     }
     this._nativePhysicsManager.setGravity(gravity);
   }
@@ -243,8 +250,8 @@ export class PhysicsManager {
       const result = this._nativePhysicsManager.raycast(ray, distance, (idx, distance, position, normal) => {
         hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
         hitResult.distance = distance;
-        normal.cloneTo(hitResult.normal);
-        position.cloneTo(hitResult.point);
+        hitResult.normal.copyFrom(normal);
+        hitResult.point.copyFrom(position);
       });
 
       if (result) {
@@ -253,8 +260,8 @@ export class PhysicsManager {
         } else {
           hitResult.entity = null;
           hitResult.distance = 0;
-          hitResult.point.setValue(0, 0, 0);
-          hitResult.normal.setValue(0, 0, 0);
+          hitResult.point.set(0, 0, 0);
+          hitResult.normal.set(0, 0, 0);
           return false;
         }
       }
@@ -277,9 +284,9 @@ export class PhysicsManager {
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
-      componentsManager.callColliderOnUpdate();
+      this._callColliderOnUpdate();
       nativePhysicsManager.update(fixedTimeStep);
-      componentsManager.callColliderOnLateUpdate();
+      this._callColliderOnLateUpdate();
     }
   }
 
@@ -309,7 +316,24 @@ export class PhysicsManager {
    * @internal
    */
   _addCollider(collider: Collider): void {
-    this._nativePhysicsManager.addCollider(collider._nativeCollider);
+    if (collider._index === -1) {
+      collider._index = this._colliders.length;
+      this._colliders.add(collider);
+    }
+    this._nativePhysicsManager.addCollider(<ICollider>collider._nativeCollider);
+  }
+
+  /**
+   * Add character controller into the manager.
+   * @param controller - Character Controller.
+   * @internal
+   */
+  _addCharacterController(controller: CharacterController): void {
+    if (controller._index === -1) {
+      controller._index = this._colliders.length;
+      this._colliders.add(controller);
+    }
+    this._nativePhysicsManager.addCharacterController(<ICharacterController>controller._nativeCollider);
   }
 
   /**
@@ -318,6 +342,41 @@ export class PhysicsManager {
    * @internal
    */
   _removeCollider(collider: Collider): void {
-    this._nativePhysicsManager.removeCollider(collider._nativeCollider);
+    const replaced = this._colliders.deleteByIndex(collider._index);
+    replaced && (replaced._index = collider._index);
+    collider._index = -1;
+    this._nativePhysicsManager.removeCollider(<ICollider>collider._nativeCollider);
+  }
+
+  /**
+   * Remove collider.
+   * @param controller - Character Controller.
+   * @internal
+   */
+  _removeCharacterController(controller: CharacterController): void {
+    const replaced = this._colliders.deleteByIndex(controller._index);
+    replaced && (replaced._index = controller._index);
+    controller._index = -1;
+    this._nativePhysicsManager.removeCharacterController(<ICharacterController>controller._nativeCollider);
+  }
+
+  /**
+   * @internal
+   */
+  _callColliderOnUpdate(): void {
+    const elements = this._colliders._elements;
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
+      elements[i]._onUpdate();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _callColliderOnLateUpdate(): void {
+    const elements = this._colliders._elements;
+    for (let i = this._colliders.length - 1; i >= 0; --i) {
+      elements[i]._onLateUpdate();
+    }
   }
 }

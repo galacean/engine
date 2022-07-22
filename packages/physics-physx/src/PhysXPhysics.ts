@@ -1,25 +1,34 @@
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
+  ICharacterController,
   IDynamicCollider,
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterial,
   IPlaneColliderShape,
   ISphereColliderShape,
-  IStaticCollider
+  IStaticCollider,
+  IFixedJoint,
+  IHingeJoint,
+  ISpringJoint
 } from "@oasis-engine/design";
-import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
-import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
-import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
-import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
-import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
-import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
-import { PhysXStaticCollider } from "./PhysXStaticCollider";
-import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "oasis-engine";
-import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
+import { PhysXCharacterController } from "./PhysXCharacterController";
+import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
+import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
+import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
+import { PhysXStaticCollider } from "./PhysXStaticCollider";
+import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
+import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
+import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
+import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
+import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
+import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
+import { PhysXCollider } from "./PhysXCollider";
 
 /**
  * PhysX object creation.
@@ -128,6 +137,13 @@ export class PhysXPhysics {
   }
 
   /**
+   * {@inheritDoc IPhysics.createCharacterController }
+   */
+  static createCharacterController(): ICharacterController {
+    return new PhysXCharacterController();
+  }
+
+  /**
    * {@inheritDoc IPhysics.createPhysicsMaterial }
    */
   static createPhysicsMaterial(
@@ -175,6 +191,27 @@ export class PhysXPhysics {
     material: PhysXPhysicsMaterial
   ): ICapsuleColliderShape {
     return new PhysXCapsuleColliderShape(uniqueID, radius, height, material);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createFixedJoint }
+   */
+  static createFixedJoint(collider: PhysXCollider): IFixedJoint {
+    return new PhysXFixedJoint(collider);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createHingeJoint }
+   */
+  static createHingeJoint(collider: PhysXCollider): IHingeJoint {
+    return new PhysXHingeJoint(collider);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createSpringJoint }
+   */
+  static createSpringJoint(collider: PhysXCollider): ISpringJoint {
+    return new PhysXSpringJoint(collider);
   }
 
   private static _init(PHYSX: any): void {

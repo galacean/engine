@@ -1,5 +1,4 @@
 import { ColorSpace } from ".";
-import { DynamicTextAtlasManager } from "./2d/dynamic-atlas/DynamicTextAtlasManager";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
@@ -44,6 +43,8 @@ ShaderPool.init();
 export class Engine extends EventDispatcher {
   /** @internal */
   static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+  /** @internal Conversion of space units to pixel units for 2D. */
+  static _pixelsPerUnit: number = 100;
 
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
@@ -75,8 +76,6 @@ export class Engine extends EventDispatcher {
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
-  /** @internal */
-  _dynamicTextAtlasManager: DynamicTextAtlasManager = new DynamicTextAtlasManager(this);
 
   protected _canvas: Canvas;
 
@@ -280,9 +279,7 @@ export class Engine extends EventDispatcher {
       scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
 
       componentsManager.callScriptOnStart();
-      if (this.physicsManager._initialized) {
-        this.physicsManager._update(deltaTime / 1000.0);
-      }
+      this.physicsManager._initialized && this.physicsManager._update(deltaTime / 1000.0);
       this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
