@@ -469,7 +469,8 @@ export class Entity extends EngineObject {
     this._isActiveInHierarchy = true;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      activeChangedComponents.push(components[i]);
+      const component = components[i];
+      component.enabled && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -482,7 +483,8 @@ export class Entity extends EngineObject {
     this._isActiveInHierarchy = false;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      activeChangedComponents.push(components[i]);
+      const component = components[i];
+      component.enabled && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
