@@ -269,8 +269,8 @@ export class Scene extends EngineObject {
    * @internal
    */
   _removeEntity(entity: Entity): void {
-    const oldRootEntities = this._rootEntities;
-    oldRootEntities.splice(oldRootEntities.indexOf(entity), 1);
+    const rootEntities = this._rootEntities;
+    rootEntities.splice(rootEntities.indexOf(entity), 1);
   }
 
   //-----------------------------------------@deprecated-----------------------------------
