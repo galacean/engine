@@ -279,10 +279,11 @@ export class TextUtils {
     let size = 0;
 
     const integerW = canvas.width;
+    const integerWReciprocal = 1.0 / integerW;
     for (let i = 0; i < len; i += 4) {
       if (colorData[i + 3] !== 0) {
-        const idx = i / 4;
-        y = ~~(idx / integerW);
+        const idx = i * 0.25;
+        y = ~~(idx * integerWReciprocal);
 
         if (top === -1) {
           top = y;
@@ -304,8 +305,9 @@ export class TextUtils {
     if (char) {
       let data = null;
       if (size > 0) {
+        const lineIntegerW = integerW * 4;
         // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices(eg: IphoneX IOS 13.6.1).
-        data = new Uint8Array(colorData.buffer, top * integerW * 4, size * integerW * 4);
+        data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
       }
       return {
         x: 0,
