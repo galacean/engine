@@ -302,7 +302,7 @@ export class TextUtils {
     if (char) {
       let data = null;
       if (size > 0) {
-        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some device.
+        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices.
         data = new Uint8Array(colorData.buffer, top * integerW * 4, size * integerW * 4);
       }
       return {
