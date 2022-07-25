@@ -222,18 +222,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * The bounding volume of the spriteRenderer.
-   */
-  get bounds(): BoundingBox {
-    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
-      SimpleSpriteAssembler.updatePositions(this);
-      this._dirtyFlag &= ~DirtyFlag.Position;
-      this._transformChangeFlag.flag = false;
-    }
-    return this._bounds;
-  }
-
-  /**
    * @internal
    */
   _cloneTo(target: SpriteMask): void {
