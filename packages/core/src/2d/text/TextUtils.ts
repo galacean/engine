@@ -247,26 +247,13 @@ export class TextUtils {
     return str;
   }
 
-  /**
-   * Update canvas with the data.
-   * @param width - the new width of canvas
-   * @param height - the new height of canvas
-   * @param data - the new data of canvas
-   * @returns the canvas after update
-   */
-  static updateCanvas(width: number, height: number, data: ImageData): HTMLCanvasElement | OffscreenCanvas {
-    const { canvas, context } = TextUtils.textContext();
-    canvas.width = width;
-    canvas.height = height;
-    context.putImageData(data, 0, 0);
-    return canvas;
-  }
-
   private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
     const measureString = char || TextUtils._measureString;
-    const width = context.measureText(measureString).width;
+    // Safari gets data confusion through getImageData when the canvas width is not an integer.
+    // @todo: Text layout may vary from standard.
+    const width = Math.round(context.measureText(measureString).width);
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     const height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
@@ -281,8 +268,8 @@ export class TextUtils {
     context.fillStyle = "#fff";
     context.fillText(measureString, 0, baseline);
 
-    const imageData = context.getImageData(0, 0, width, height).data;
-    const len = imageData.length;
+    const colorData = context.getImageData(0, 0, width, height).data;
+    const len = colorData.length;
 
     let top = -1;
     let bottom = -1;
@@ -292,10 +279,11 @@ export class TextUtils {
     let size = 0;
 
     const integerW = canvas.width;
+    const integerWReciprocal = 1.0 / integerW;
     for (let i = 0; i < len; i += 4) {
-      if (imageData[i + 3] !== 0) {
-        const idx = i / 4;
-        y = ~~(idx / integerW);
+      if (colorData[i + 3] !== 0) {
+        const idx = i * 0.25;
+        y = ~~(idx * integerWReciprocal);
 
         if (top === -1) {
           top = y;
@@ -315,9 +303,11 @@ export class TextUtils {
     const sizeInfo = { ascent, descent, size };
 
     if (char) {
+      let data = null;
       if (size > 0) {
-        const data = context.getImageData(0, top, width, size);
-        TextUtils.updateCanvas(width, size, data);
+        const lineIntegerW = integerW * 4;
+        // gl.texSubImage2D uploading data of type Uint8ClampedArray is not supported in some devices(eg: IphoneX IOS 13.6.1).
+        data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
       }
       return {
         x: 0,
@@ -333,7 +323,8 @@ export class TextUtils {
         v1: 0,
         ascent,
         descent,
-        index: 0
+        index: 0,
+        data
       };
     } else {
       return sizeInfo;
@@ -344,7 +335,7 @@ export class TextUtils {
     let charInfo = font._getCharInfo(char);
     if (!charInfo) {
       charInfo = TextUtils.measureChar(char, fontString);
-      font._uploadCharTexture(charInfo, TextUtils.textContext().canvas);
+      font._uploadCharTexture(charInfo);
       font._addCharInfo(char, charInfo);
     }
 

@@ -337,8 +337,8 @@ export class Animator extends Component {
     const crossCurveData = this._crossCurveDataCollection;
     const { srcPlayData, crossCurveMark } = animatorLayerData;
 
-    // Standby have two sub state, one is never play, one is finished, never play srcPlayData is null.
-    srcPlayData && this._prepareSrcCrossData(crossCurveData, srcPlayData, crossCurveMark, true);
+    // Standby have two sub state, one is never play, one is finished, never play srcPlayData.state is null.
+    srcPlayData.state && this._prepareSrcCrossData(crossCurveData, srcPlayData, crossCurveMark, true);
     // Add dest cross curve data.
     this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, crossCurveMark, true);
   }
@@ -482,7 +482,10 @@ export class Animator extends Component {
     const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = animLayerData;
     const layerAdditive = blendingMode === AnimatorLayerBlendingMode.Additive;
     const layerWeight = firstLayer ? 1.0 : weight;
-    this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
+    //TODO: 任意情况都应该检查，后面要优化
+    animLayerData.layerState !== LayerState.FixedCrossFading &&
+      this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
+
     switch (animLayerData.layerState) {
       case LayerState.Playing:
         this._updatePlayingState(srcPlayData, animLayerData, layerIndex, layerWeight, deltaTime, layerAdditive);
@@ -657,7 +660,7 @@ export class Animator extends Component {
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
 
     const { clipTime: destClipTime } = destPlayData;
-
+    //TODO: srcState 少了最新一段时间的判断
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
@@ -729,7 +732,10 @@ export class Animator extends Component {
     } else if (owner.type === SkinnedMeshRenderer) {
       switch (owner.property) {
         case AnimationProperty.BlendShapeWeights:
-          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          value = Animator._baseTempValue.getFloatArray((<Float32Array>srcValue).length);
+          for (let i = 0, length = (<Float32Array>value).length; i < length; ++i) {
+            value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
+          }
           break;
       }
     }
@@ -773,7 +779,14 @@ export class Animator extends Component {
     } else if (owner.type === SkinnedMeshRenderer) {
       switch (owner.property) {
         case AnimationProperty.BlendShapeWeights:
-          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          if (weight === 1.0) {
+            (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          } else {
+            const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+            for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+              blendShapeWeights[i] += (blendShapeWeights[i] - value[i]) * weight;
+            }
+          }
           break;
       }
     }
@@ -802,6 +815,12 @@ export class Animator extends Component {
           AnimatorUtils.scaleWeight(scale, weight, scale);
           Vector3.multiply(scale, <Vector3>additiveValue, scale);
           transform.scale = scale;
+          break;
+        case AnimationProperty.BlendShapeWeights:
+          const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+          for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+            (<SkinnedMeshRenderer>owner.component).blendShapeWeights[i] += additiveValue[i] * weight;
+          }
           break;
       }
     }
