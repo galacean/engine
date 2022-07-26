@@ -40,8 +40,8 @@ export class FontAtlas extends RefObject {
     this._charInfoMap = {};
   }
 
-  uploadCharTexture(charInfo: CharInfo, imageSource: TexImageSource | OffscreenCanvas): boolean {
-    const { w: width, h: height } = charInfo;
+  uploadCharTexture(charInfo: CharInfo): boolean {
+    const { w: width, h: height, data } = charInfo;
     const { _space: space, texture } = this;
     const textureSize = texture.width;
     const offsetWidth = width + space;
@@ -63,8 +63,8 @@ export class FontAtlas extends RefObject {
       return false;
     }
 
-    if (width > 0 && height > 0) {
-      texture.setImageSource(imageSource, 0, false, false,  this._curX, this._curY);
+    if (width > 0 && height > 0 && data) {
+      texture.setPixelBuffer(data, 0, this._curX, this._curY, width, height);
       texture.generateMipmaps();
     }
 

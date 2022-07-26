@@ -2,6 +2,7 @@ import { BoundingBox } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
+import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
@@ -129,8 +130,11 @@ export class SpriteMask extends Renderer implements ICustomClone {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
         this._dirtyFlag |= DirtyFlag.All;
+        this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
+      } else {
+        this._spriteChangeFlag = null;
+        this.shaderData.setTexture(SpriteMask._textureProperty, null);
       }
-      this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
     }
   }
 
@@ -146,6 +150,20 @@ export class SpriteMask extends Renderer implements ICustomClone {
       this._alphaCutoff = value;
       this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, value);
     }
+  }
+
+  /**
+   * The bounding volume of the spriteRenderer.
+   */
+  get bounds(): Readonly<BoundingBox> {
+    if (!this.sprite?.texture || !this.width || !this.height) {
+      return Engine._defaultBoundingBox;
+    } else if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+      SimpleSpriteAssembler.updatePositions(this);
+      this._dirtyFlag &= ~DirtyFlag.Position;
+      this._transformChangeFlag.flag = false;
+    }
+    return this._bounds;
   }
 
   /**
@@ -167,7 +185,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
   _onDestroy(): void {
     this._sprite = null;
     this._renderData = null;
-    this._spriteChangeFlag && this._spriteChangeFlag.destroy();
+    if (this._spriteChangeFlag) {
+      this._spriteChangeFlag.destroy();
+      this._spriteChangeFlag = null;
+    }
     super._onDestroy();
   }
 
@@ -176,8 +197,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
    * @inheritdoc
    */
   _render(camera: Camera): void {
-    const { sprite } = this;
-    if (!sprite || !sprite.texture) {
+    if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
     // Update position.
@@ -198,18 +218,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
     maskElement.setValue(this, this._renderData, this.getMaterial());
     camera._renderPipeline._allSpriteMasks.add(this);
     this._maskElement = maskElement;
-  }
-
-  /**
-   * The bounding volume of the spriteRenderer.
-   */
-  get bounds(): BoundingBox {
-    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
-      SimpleSpriteAssembler.updatePositions(this);
-      this._dirtyFlag &= ~DirtyFlag.Position;
-      this._transformChangeFlag.flag = false;
-    }
-    return this._bounds;
   }
 
   /**

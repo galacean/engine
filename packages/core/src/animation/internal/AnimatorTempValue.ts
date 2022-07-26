@@ -9,7 +9,7 @@ export class AnimatorTempValue {
   quaternion = new Quaternion();
   private _floatArray = new Float32Array();
 
-  getFloatArray(length) {
+  getFloatArray(length: number) {
     if (length > this._floatArray.length) {
       this._floatArray = new Float32Array(length);
     }
