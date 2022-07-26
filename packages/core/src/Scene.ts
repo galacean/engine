@@ -137,6 +137,7 @@ export class Scene extends EngineObject {
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
       this._removeEntity(entity);
+      entity._isRoot = false;
       this._isActiveInEngine && entity._isActiveInHierarchy && entity._processInActive();
       Entity._traverseSetOwnerScene(entity, null);
     }
@@ -261,9 +262,12 @@ export class Scene extends EngineObject {
     );
   }
 
-  private _removeEntity(entity: Entity): void {
-    const oldRootEntities = this._rootEntities;
-    oldRootEntities.splice(oldRootEntities.indexOf(entity), 1);
+  /**
+   * @internal
+   */
+  _removeEntity(entity: Entity): void {
+    const rootEntities = this._rootEntities;
+    rootEntities.splice(rootEntities.indexOf(entity), 1);
   }
 
   //-----------------------------------------@deprecated-----------------------------------
