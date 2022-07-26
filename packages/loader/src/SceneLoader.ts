@@ -10,7 +10,6 @@ import {
   SkyBoxMaterial,
   PrimitiveMesh
 } from "@oasis-engine/core";
-import { Vector3 } from "@oasis-engine/math";
 import { SceneParser } from "@oasis-engine/resource-process";
 
 @resourceLoader(AssetType.Scene, ["prefab"], true)
@@ -21,7 +20,6 @@ class SceneLoader extends Loader<Scene> {
       return this.request<any>(item.url, { type: "json" }).then((data) => {
         engine.resourceManager.initVirtualResources(data.files);
         return SceneParser.parse(engine, data).then((scene) => {
-          const entity = scene.findEntityByName("Camera");
           const ambient = data.scene.ambient;
           if (ambient.ambientLight) {
             resourceManager.getResourceByRef<any>(data.scene.ambient.ambientLight).then((light) => {
@@ -57,7 +55,6 @@ class SceneLoader extends Loader<Scene> {
               }
               break;
           }
-
           resolve(scene);
         });
       });

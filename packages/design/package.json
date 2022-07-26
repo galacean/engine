@@ -9,8 +9,7 @@
   "main": "dist/main.js",
   "module": "dist/module.js",
   "scripts": {
-    "b:types": "tsc",
-    "watch:types": "tsc -w"
+    "b:types": "tsc"
   },
   "files": [
     "dist/**/*",

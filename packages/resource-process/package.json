@@ -3,8 +3,7 @@
   "license": "MIT",
   "version": "0.8.0-alpha.5",
   "scripts": {
-    "b:types": "tsc",
-    "watch:types": "tsc -w"
+    "b:types": "tsc"
   },
   "types": "types/index.d.ts",
   "main": "dist/browser.js",

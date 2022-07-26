@@ -7,8 +7,7 @@
   },
   "license": "MIT",
   "scripts": {
-    "b:types": "tsc",
-    "watch:types": "tsc -w"
+    "b:types": "tsc"
   },
   "types": "types/index.d.ts",
   "main": "dist/main.js",

@@ -11,8 +11,7 @@
   "types": "types/index.d.ts",
   "debug": "src/index.ts",
   "scripts": {
-    "b:types": "tsc",
-    "watch:types": "tsc -w"
+    "b:types": "tsc"
   },
   "files": [
     "dist/**/*",

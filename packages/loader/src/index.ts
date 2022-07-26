@@ -17,5 +17,4 @@ export * from "@oasis-engine/resource-process";
 export { GLTFResource } from "./gltf/GLTFResource";
 export * from "./SceneLoader";
 export { parseSingleKTX } from "./compressed-texture";
-export * from "./PrefabLoader";
 export type { IScene } from "@oasis-engine/resource-process";

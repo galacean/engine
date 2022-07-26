@@ -10,8 +10,7 @@
   "module": "dist/module.js",
   "debug": "src/index.ts",
   "scripts": {
-    "b:types": "tsc",
-    "watch:types": "tsc -w"
+    "b:types": "tsc"
   },
   "types": "types/index.d.ts",
   "files": [
