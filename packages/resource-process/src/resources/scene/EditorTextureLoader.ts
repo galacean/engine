@@ -2,13 +2,9 @@ import {
   AssetPromise,
   Loader,
   LoadItem,
-  Mesh,
-  ModelMesh,
   resourceLoader,
   ResourceManager,
-  Texture2D,
-  UnlitMaterial
-} from "@oasis-engine/core";
+  Texture2D} from "@oasis-engine/core";
 import { decode } from "../..";
 
 @resourceLoader("EditorTexture2D", ["prefab"], true)

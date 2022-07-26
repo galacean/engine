@@ -4,13 +4,6 @@ import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
 
-interface IColor {
-  r: number;
-  g: number;
-  b: number;
-  a: number;
-}
-
 /**
  * Unlit Material.
  */

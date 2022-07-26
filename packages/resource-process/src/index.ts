@@ -58,6 +58,5 @@ export function encode(
 
 export * from "./resources/prefab/PrefabDesign";
 export * from "./resources/scene/SceneParser";
-export * from "./resources/scene/UnlitMaterialLoader";
 export * from "./resources/scene/MeshLoader";
 export * from "./resources/scene/EditorTextureLoader";
