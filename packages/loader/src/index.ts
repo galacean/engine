@@ -10,7 +10,6 @@ import "./SpriteAtlasLoader";
 import "./EnvLoader";
 import "./HDRLoader";
 import "./gltf/extensions/index";
-import "./OasisAssetLoader";
 import "./MaterialLoader"
 
 export * from "@oasis-engine/resource-process";
