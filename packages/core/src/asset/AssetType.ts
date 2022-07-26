@@ -37,8 +37,6 @@ export enum AssetType {
   Sprite = "sprite",
   /** Sprite Atlas. */
   SpriteAtlas = "sprite-atlas",
-  /** Oasis specific file. */
-  Oasis = "oasis",
   /** ambient light */
   Env = "environment",
   /** scene */
