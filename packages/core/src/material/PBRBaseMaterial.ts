@@ -30,7 +30,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set baseColor(value: Color) {
     const baseColor = this.shaderData.getColor(PBRBaseMaterial._baseColorProp);
     if (value !== baseColor) {
-      value.cloneTo(baseColor);
+      baseColor.copyFrom(value);
     }
   }
 
@@ -87,7 +87,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set emissiveColor(value: Color) {
     const emissiveColor = this.shaderData.getColor(PBRBaseMaterial._emissiveColorProp);
     if (value !== emissiveColor) {
-      value.cloneTo(emissiveColor);
+      emissiveColor.copyFrom(value);
     }
   }
 
@@ -159,7 +159,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set tilingOffset(value: Vector4) {
     const tilingOffset = this.shaderData.getVector4(PBRBaseMaterial._tilingOffsetProp);
     if (value !== tilingOffset) {
-      value.cloneTo(tilingOffset);
+      tilingOffset.copyFrom(value);
     }
   }
 

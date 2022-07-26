@@ -76,7 +76,7 @@ export class TrailRenderer extends MeshRenderer {
         this._pointStates[newIdx] = this._pointStates[i];
 
         // Move point
-        this._points[i].cloneTo(this._points[newIdx]);
+        this._points[newIdx].copyFrom(this._points[i]);
       }
     }
     this._curPointNum -= mov;
@@ -95,7 +95,7 @@ export class TrailRenderer extends MeshRenderer {
 
     if (appendNewPoint) {
       this._pointStates[this._curPointNum] = this._lifetime;
-      this.entity.transform.worldPosition.cloneTo(this._points[this._curPointNum]);
+      this._points[this._curPointNum].copyFrom(this.entity.transform.worldPosition);
 
       this._curPointNum++;
     }

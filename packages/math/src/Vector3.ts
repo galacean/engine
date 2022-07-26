@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";
@@ -7,7 +8,7 @@ import { Vector4 } from "./Vector4";
 /**
  * Describes a 3D-vector.
  */
-export class Vector3 implements IClone {
+export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
   /** @internal */
   static readonly _zero = new Vector3(0.0, 0.0, 0.0);
   /** @internal */
@@ -89,7 +90,7 @@ export class Vector3 implements IClone {
     const by = right._y;
     const bz = right._z;
 
-    out.setValue(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx);
+    out.set(ay * bz - az * by, az * bx - ax * bz, ax * by - ay * bx);
   }
 
   /**
@@ -193,7 +194,7 @@ export class Vector3 implements IClone {
     let len = Math.sqrt(_x * _x + _y * _y + _z * _z);
     if (len > MathUtil.zeroTolerance) {
       len = 1 / len;
-      out.setValue(_x * len, _y * len, _z * len);
+      out.set(_x * len, _y * len, _z * len);
     }
   }
 
@@ -375,24 +376,10 @@ export class Vector3 implements IClone {
    * @param z - The z component of the vector
    * @returns This vector
    */
-  setValue(x: number, y: number, z: number): Vector3 {
+  set(x: number, y: number, z: number): Vector3 {
     this._x = x;
     this._y = y;
     this._z = z;
-    this._onValueChanged && this._onValueChanged();
-    return this;
-  }
-
-  /**
-   * Set the value of this vector by an array.
-   * @param array - The array
-   * @param offset - The start offset of the array
-   * @returns This vector
-   */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector3 {
-    this._x = array[offset];
-    this._y = array[offset + 1];
-    this._z = array[offset + 2];
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -502,38 +489,6 @@ export class Vector3 implements IClone {
   }
 
   /**
-   * Clone the value of this vector to an array.
-   * @param out - The array
-   * @param outOffset - The start offset of the array
-   */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    out[outOffset] = this._x;
-    out[outOffset + 1] = this._y;
-    out[outOffset + 2] = this._z;
-  }
-
-  /**
-   * Creates a clone of this vector.
-   * @returns A clone of this vector
-   */
-  clone(): Vector3 {
-    return new Vector3(this._x, this._y, this._z);
-  }
-
-  /**
-   * Clones this vector to the specified vector.
-   * @param out - The specified vector
-   * @returns The specified vector
-   */
-  cloneTo(out: Vector3): Vector3 {
-    out._x = this._x;
-    out._y = this._y;
-    out._z = this._z;
-    out._onValueChanged && out._onValueChanged();
-    return out;
-  }
-
-  /**
    * This vector performs a normal transformation using the given 4x4 matrix.
    * @remarks
    * A normal transform performs the transformation with the assumption that the w component
@@ -584,4 +539,59 @@ export class Vector3 implements IClone {
     Vector3.transformByQuat(this, quaternion, this);
     return this;
   }
+
+  /**
+   * Creates a clone of this vector.
+   * @returns A clone of this vector
+   */
+  clone(): Vector3 {
+    return new Vector3(this._x, this._y, this._z);
+  }
+
+  /**
+   * Copy from vector3 like object.
+   * @param source - Vector3 like object.
+   * @returns This vector
+   */
+  copyFrom(source: Vector3Like): Vector3 {
+    this._x = source.x;
+    this._y = source.y;
+    this._z = source.z;
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this vector from an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
+   * @returns This vector
+   */
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): Vector3 {
+    this._x = array[offset];
+    this._y = array[offset + 1];
+    this._z = array[offset + 2];
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this vector to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this._x;
+    out[outOffset + 1] = this._y;
+    out[outOffset + 2] = this._z;
+  }
+}
+
+interface Vector3Like {
+  /** {@inheritDoc Vector3.x} */
+  x: number;
+  /** {@inheritDoc Vector3.y} */
+  y: number;
+  /** {@inheritDoc Vector3.z} */
+  z: number;
 }

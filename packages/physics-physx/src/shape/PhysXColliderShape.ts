@@ -1,7 +1,9 @@
 import { IColliderShape } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "oasis-engine";
-import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { DisorderedArray } from "../DisorderedArray";
+import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
+import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 
 /**
  * Flags which affect the behavior of Shapes.
@@ -24,26 +26,33 @@ export abstract class PhysXColliderShape implements IColliderShape {
     translation: new Vector3(),
     rotation: null
   };
+
+  /** @internal */
+  _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
+
   protected _position: Vector3 = new Vector3();
   protected _rotation: Quaternion = new Quaternion();
   protected _scale: Vector3 = new Vector3(1, 1, 1);
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
-  private _pxMaterials: any[] = new Array(1);
 
+  /** @internal */
+  _pxMaterials: any[] = new Array(1);
   /** @internal */
   _pxShape: any;
   /** @internal */
   _pxGeometry: any;
   /** @internal */
   _id: number;
+  /** @internal */
+  _contactOffset: number = 0;
 
   /**
    * {@inheritDoc IColliderShape.setPosition }
    */
   setPosition(value: Vector3): void {
     if (value !== this._position) {
-      value.cloneTo(this._position);
+      this._position.copyFrom(value);
     }
     this._setLocalPose();
   }
@@ -54,19 +63,24 @@ export abstract class PhysXColliderShape implements IColliderShape {
   abstract setWorldScale(scale: Vector3): void;
 
   /**
+   * {@inheritDoc IColliderShape.setContactOffset }
+   */
+  setContactOffset(offset: number): void {
+    this._contactOffset = offset;
+    this._pxShape.setContactOffset(offset);
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController.setContactOffset(offset);
+    }
+  }
+
+  /**
    * {@inheritDoc IColliderShape.setMaterial }
    */
   setMaterial(value: PhysXPhysicsMaterial): void {
     this._pxMaterials[0] = value._pxMaterial;
     this._pxShape.setMaterials(this._pxMaterials);
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setUniqueID }
-   */
-  setUniqueID(index: number): void {
-    this._id = index;
-    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(index, 0, 0, 0));
   }
 
   /**
@@ -108,13 +122,16 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._pxShape.setLocalPose(transform);
   }
 
-  protected _allocShape(material: PhysXPhysicsMaterial): void {
+  protected _initialize(material: PhysXPhysicsMaterial, id: number): void {
+    this._id = id;
+    this._pxMaterials[0] = material._pxMaterial;
     this._pxShape = PhysXPhysics._pxPhysics.createShape(
       this._pxGeometry,
       material._pxMaterial,
       false,
       new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags)
     );
+    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(id, 0, 0, 0));
   }
 
   private _modifyFlag(flag: ShapeFlag, value: boolean): void {
