@@ -22,7 +22,7 @@ export enum AssetType {
   /** Cube Texture. */
   TextureCube = "texture-cube",
   /** Material. */
-  Material = "Material",
+  Material = "material",
   /** Mesh. */
   Mesh = "mesh",
   /** Animation Clip. */

@@ -1,13 +1,6 @@
 import {
   ModelMesh,
-  VertexElement,
-  Buffer,
-  BufferBindFlag,
-  VertexBufferBinding,
-  IndexBufferBinding,
-  BlendShape,
-  BlendShapeFrame
-} from "@oasis-engine/core";
+  BlendShape} from "@oasis-engine/core";
 import { decoder } from "../../utils/Decorator";
 import type { Engine } from "@oasis-engine/core";
 import type { BufferReader } from "../../utils/BufferReader";

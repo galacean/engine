@@ -11,6 +11,6 @@ export * from "@oasis-engine/math";
 export * from "@oasis-engine/rhi-webgl";
 
 for (let key in CoreObjects) {
-  Loader.register(key, CoreObjects[key]);
+  Loader.registerClass(key, CoreObjects[key]);
 }
 

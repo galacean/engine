@@ -144,6 +144,9 @@ export class ResourceManager {
     return this._assetPool[instanceId];
   }
 
+  /**
+   * @beta Just for internal editor, not recommended for developers.
+   */
   getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
     const { refId, key, isClone } = ref;
     const obj = this._objectPool[refId];
@@ -153,7 +156,10 @@ export class ResourceManager {
     return promise.then((res) => (key ? res[key] : res)).then((item) => (isClone ? item.clone() : item));
   }
 
-  /** @internal */
+  /** 
+   * @internal
+   * @beta Just for internal editor, not recommended for developers.
+   */
   initVirtualResources(config: EditorResourceItem[]): void {
     config.forEach((element) => {
       this._virtualPathMap[element.virtualPath] = element.path;

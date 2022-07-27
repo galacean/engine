@@ -6,12 +6,22 @@ import { ResourceManager } from "./ResourceManager";
  * Loader abstract class.
  */
 export abstract class Loader<T> {
-  public static register(key: string, obj: any) {
-    this._engineObjects[key] = obj;
+  /**
+   * Register a class with a string name for serialization and deserialization.
+   * @param key - class name
+   * @param obj - class object
+   */
+  public static registerClass(className: string, obj: any) {
+    this._engineObjects[className] = obj;
   }
 
-  public static getClassObject(key: string): any {
-    return this._engineObjects[key];
+  /**
+   * Get the class object by class name.
+   * @param key - class name
+   * @returns class object
+   */
+  public static getClassObject(className: string): any {
+    return this._engineObjects[className];
   }
 
   private static _engineObjects: { [key: string]: any } = {};
