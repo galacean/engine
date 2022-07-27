@@ -121,11 +121,4 @@ export class BlendShape {
       this._layoutChangeManager.dispatch(this);
     }
   }
-
-  toObject() {
-    return {
-      name: this.name,
-      frames: this._frames.map(frame => frame.toObject()),
-    };
-  }
 }

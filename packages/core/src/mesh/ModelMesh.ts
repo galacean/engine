@@ -804,7 +804,7 @@ export class ModelMesh extends Mesh {
     this._verticesUint8 = null;
     this._indices = null;
     this._verticesFloat32 = null;
-    this._positions = null;
+    this._positions.length = 0;
     this._tangents = null;
     this._normals = null;
     this._colors = null;
@@ -817,28 +817,6 @@ export class ModelMesh extends Mesh {
     this._uv6 = null;
     this._uv7 = null;
     this._blendShapeManager._releaseMemoryCache();
-  }
-
-  toObject() {
-    return {
-      // positions: this._positions.map((item) => item.toObject()),
-      // normals: this._normals?.map((item) => item.toObject()),
-      // uvs: this._uv?.map((item) => item.toObject()),
-      // uv1: this._uv1?.map((item) => item.toObject()),
-      // uv2: this._uv2?.map((item) => item.toObject()),
-      // uv3: this._uv3?.map((item) => item.toObject()),
-      // uv4: this._uv4?.map((item) => item.toObject()),
-      // uv5: this._uv5?.map((item) => item.toObject()),
-      // uv6: this._uv6?.map((item) => item.toObject()),
-      // uv7: this._uv7?.map((item) => item.toObject()),
-      // colors: this._colors?.map((item) => item.toObject()),
-      // tangents: this._tangents?.map((item) => item.toObject()),
-      // boneWeights: this._boneWeights?.map((item) => item.toObject()),
-      // boneIndices: this._boneIndices?.map((item) => item.toObject()),
-      blendShapes: this._blendShapeManager._blendShapes?.map((item) => item.toObject()),
-      indices: Array.from(this._indices),
-      subMeshes: this.subMeshes.map((item) => ({ start: item.start, topology: item.topology, count: item.count }))
-    };
   }
 }
 
