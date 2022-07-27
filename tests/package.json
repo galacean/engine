@@ -17,9 +17,7 @@
   "dependencies": {
     "@oasis-engine/core": "0.8.0-alpha.5",
     "@oasis-engine/math": "0.8.0-alpha.5",
-    "@oasis-engine/rhi-webgl": "0.8.0-alpha.5"
-  },
-  "devDependencies": {
+    "@oasis-engine/rhi-webgl": "0.8.0-alpha.5",
     "@oasis-engine/design": "0.8.0-alpha.5"
   }
 }
