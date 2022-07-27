@@ -146,14 +146,6 @@ export class ResourceManager {
     return this._assetPool[instanceId];
   }
 
-  /**
-   * Get resource from objectId.
-   * @param objectId - object id
-   */
-  getResourceFromObjectId<T>(objectId: string): T {
-    return this._objectPool[objectId];
-  }
-
   getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
     const { refId, key, isClone } = ref;
     const obj = this._objectPool[refId];
@@ -168,15 +160,6 @@ export class ResourceManager {
       this._virtualPathMap[element.virtualPath] = element.path;
       this._editorResourceConfig[element.id] = element;
     });
-  }
-
-  /**
-   * Add resource to object pool.
-   * @param objectId - object id
-   * @param resource - resource
-   */
-  addToResourceMap(objectId: string, resource: any): void {
-    this._objectPool[objectId] = resource;
   }
 
   /**
@@ -197,10 +180,6 @@ export class ResourceManager {
       delete this._assetPool[id];
       delete this._assetUrlPool[path];
     }
-  }
-
-  getEngineObjectByInstanceId(id: number) {
-    return this._refObjectPool[id];
   }
 
   /**

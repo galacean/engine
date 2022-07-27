@@ -28,8 +28,4 @@ export type LoadItem = {
    * Retry interval time.
    */
   retryInterval?: number;
-  /**
-   * Any other options.
-   */
-  [key: string]: any;
 };

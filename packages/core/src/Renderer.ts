@@ -23,7 +23,8 @@ export class Renderer extends Component {
   private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
   private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
   private static _mvpMatrixProperty = Shader.getPropertyByName("u_MVPMat");
-  private static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
+  private static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");
+  private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
 
   /** ShaderData related to renderer. */
   @deepClone
