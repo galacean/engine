@@ -18,6 +18,7 @@ class SceneLoader extends Loader<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
       return this.request<any>(item.url, { type: "json" }).then((data) => {
+        // @ts-ignore
         engine.resourceManager.initVirtualResources(data.files);
         return SceneParser.parse(engine, data).then((scene) => {
           const ambient = data.scene.ambient;
