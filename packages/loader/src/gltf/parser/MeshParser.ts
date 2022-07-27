@@ -7,12 +7,10 @@ import { Parser } from "./Parser";
 
 export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
-  private keepModelData = false;
   parse(context: GLTFResource): Promise<void> {
     const { engine, gltf, buffers } = context;
     if (!gltf.meshes) return;
 
-    this.keepModelData = context.keepModelData;
     const meshPromises: Promise<ModelMesh[]>[] = [];
 
     for (let i = 0; i < gltf.meshes.length; i++) {
@@ -222,7 +220,7 @@ export class MeshParser extends Parser {
     // BlendShapes
     targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
-    mesh.uploadData(!this.keepModelData);
+    mesh.uploadData(true);
     return Promise.resolve(mesh);
   }
 
