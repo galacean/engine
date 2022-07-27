@@ -1,0 +1,21 @@
+{
+  "name": "@oasis-engine/resource-process",
+  "license": "MIT",
+  "version": "0.8.0-alpha.5",
+  "scripts": {
+    "b:types": "tsc"
+  },
+  "types": "types/index.d.ts",
+  "debug": "src/index.ts",
+  "main": "dist/browser.js",
+  "module": "dist/module.js",
+  "browser": "dist/browser.js",
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@oasis-engine/core": "0.8.0-alpha.5",
+    "@oasis-engine/math": "0.8.0-alpha.5"
+  }
+}
