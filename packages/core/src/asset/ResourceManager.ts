@@ -144,7 +144,6 @@ export class ResourceManager {
     return this._assetPool[instanceId];
   }
 
-  /** @internal */
   getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
     const { refId, key, isClone } = ref;
     const obj = this._objectPool[refId];
