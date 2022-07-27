@@ -19,7 +19,7 @@ export class ReflectionParser {
       for (let i = 0; i < entityConfig.components.length; i++) {
         const componentConfig = entityConfig.components[i];
         const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
-        const component = entity.addComponent(Loader.getClassObject(key));
+        const component = entity.addComponent(Loader.getClass(key));
         const promise = this.parsePropsAndMethods(component, componentConfig, engine);
         promises.push(promise);
       }
@@ -46,7 +46,7 @@ export class ReflectionParser {
     engine: Engine,
     resourceManager: any = engine.resourceManager
   ): Promise<any> {
-    const Class = Loader.getClassObject(item.class);
+    const Class = Loader.getClass(item.class);
     const params = item.constructParams ?? [];
     const instance = new Class(...params);
     return this.parsePropsAndMethods(instance, item, engine, resourceManager);

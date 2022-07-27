@@ -11,8 +11,8 @@ export abstract class Loader<T> {
    * @param key - class name
    * @param obj - class object
    */
-  public static registerClass(className: string, obj: any) {
-    this._engineObjects[className] = obj;
+  public static registerClass(className: string, classDefine: { new (): Object }) {
+    this._engineObjects[className] = classDefine;
   }
 
   /**
@@ -20,7 +20,7 @@ export abstract class Loader<T> {
    * @param key - class name
    * @returns class object
    */
-  public static getClassObject(className: string): any {
+  public static getClass(className: string): { new (): Object } {
     return this._engineObjects[className];
   }
 
