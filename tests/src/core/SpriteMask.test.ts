@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Sprite, SpriteMask, Texture2D } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";

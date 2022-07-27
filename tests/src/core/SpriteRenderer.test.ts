@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { Color } from "@oasis-engine/math";
 import { Sprite, SpriteRenderer, Texture2D } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";

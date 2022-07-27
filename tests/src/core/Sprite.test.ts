@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { Sprite, Texture2D } from "@oasis-engine/core";
 import { Rect, Vector2, Vector4 } from "@oasis-engine/math";

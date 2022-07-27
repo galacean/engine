@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { TextRenderer } from "@oasis-engine/core";
 import { expect } from "chai";
