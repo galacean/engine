@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/physics-lite",
-  "version": "0.8.0-alpha.7",
+  "version": "0.8.0-alpha.8",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -19,7 +19,7 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/design": "0.8.0-alpha.7",
-    "oasis-engine": "0.8.0-alpha.7"
+    "@oasis-engine/design": "0.8.0-alpha.8",
+    "oasis-engine": "0.8.0-alpha.8"
   }
 }
