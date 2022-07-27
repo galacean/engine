@@ -10,7 +10,8 @@ import "./SpriteAtlasLoader";
 import "./EnvLoader";
 import "./HDRLoader";
 import "./gltf/extensions/index";
-import "./MaterialLoader"
+import "./MaterialLoader";
+import "./MeshLoader";
 
 export * from "./resource-deserialize";
 export { GLTFResource } from "./gltf/GLTFResource";
