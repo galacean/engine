@@ -320,7 +320,7 @@ export class Engine extends EventDispatcher {
 
       this._animate = null;
 
-      this._sceneManager._activeScene.destroy();
+      this._sceneManager._destroy();
       this._resourceManager._destroy();
       // If engine destroy, applyScriptsInvalid() maybe will not call anymore.
       this._componentsManager.handlingInvalidScripts();
