@@ -18,16 +18,3 @@ export function decoder(type: string): ClassDecorator {
     decoderMap[type] = target;
   };
 }
-
-export const encoderMap = {};
-
-/**
- * Encoder decorator generator.
- * @param type - resource file type.
- * @returns Encoder decorator
- */
-export function encoder(type: string): ClassDecorator {
-  return (target: any) => {
-    encoderMap[type] = target;
-  };
-}

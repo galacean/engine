@@ -195,15 +195,6 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out.b = Color.linearToGammaSpace(this.b);
     return out;
   }
-
-  toObject() {
-    return {
-      r: this.r,
-      g: this.g,
-      b: this.b,
-      a: this.a
-    };
-  }
 }
 
 interface ColorLike {
