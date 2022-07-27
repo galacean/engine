@@ -1,10 +1,6 @@
 import { AssetType, Engine, Entity, Loader } from "@oasis-engine/core";
 import { IBasicType, IClassObject, IEntity, IReferenceType } from "./PrefabDesign";
 
-interface IResourceManager {
-  getResourceByRef(ref: { refId: string; key?: string }): Promise<any>;
-}
-
 export class ReflectionParser {
   static parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
@@ -48,7 +44,7 @@ export class ReflectionParser {
   static parseClassObject(
     item: IClassObject,
     engine: Engine,
-    resourceManager: IResourceManager = engine.resourceManager
+    resourceManager: any = engine.resourceManager
   ): Promise<any> {
     const Class = Loader.getClassObject(item.class);
     const params = item.constructParams ?? [];
@@ -59,7 +55,7 @@ export class ReflectionParser {
   static parseBasicType(
     value: IBasicType,
     engine: Engine,
-    resourceManager: IResourceManager = engine.resourceManager
+    resourceManager: any = engine.resourceManager
   ): Promise<any> {
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.parseBasicType(item, engine, resourceManager)));
@@ -83,7 +79,7 @@ export class ReflectionParser {
     instance: any,
     item: Omit<IClassObject, "class">,
     engine: Engine,
-    resourceManager: IResourceManager = engine.resourceManager
+    resourceManager: any = engine.resourceManager
   ) {
     const promises = [];
     if (item.methods) {
@@ -117,7 +113,7 @@ export class ReflectionParser {
     methodName: string,
     methodParams: Array<IBasicType>,
     engine: Engine,
-    resourceManager: IResourceManager = engine.resourceManager
+    resourceManager: any = engine.resourceManager
   ) {
     return Promise.all(methodParams.map((param) => this.parseBasicType(param, engine, resourceManager))).then(
       (result) => {
