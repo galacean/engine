@@ -135,7 +135,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
         this._spriteChangeFlag = null;
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
       }
-      this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
     }
   }
 

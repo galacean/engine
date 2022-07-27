@@ -104,7 +104,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this._spriteChangeFlag = null;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
-      this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
     }
   }
 
