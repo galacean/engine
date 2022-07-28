@@ -788,7 +788,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     const yz = _y * _z;
     const xw = _x * _w;
 
-    out._y = Math.asin(2.0 * (xw - yz));
+    out._y = Math.asin(MathUtil.clamp(2.0 * (xw - yz), -1, 1));
     if (Math.cos(out.y) > MathUtil.zeroTolerance) {
       out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
       out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
