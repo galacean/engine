@@ -255,7 +255,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
     // Push primitive.
     const spriteElement = this._engine._spriteElementPool.getFromPool();
-    spriteElement.setValue(this, this._renderData, this.getMaterial());
+    spriteElement.setValue(this, this._renderData, this.getMaterial(), this.sprite.texture);
     camera._renderPipeline.pushPrimitive(spriteElement);
   }
 
