@@ -5,13 +5,15 @@ import "./KTXCubeLoader";
 import "./KTXLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
+import "./SpriteLoader";
 import "./SpriteAtlasLoader";
 import "./EnvLoader";
 import "./HDRLoader";
 import "./gltf/extensions/index";
+import "./MaterialLoader";
+import "./MeshLoader";
 
+export * from "./resource-deserialize";
 export { GLTFResource } from "./gltf/GLTFResource";
-export { GLTFModel } from "./scene-loader/GLTFModel";
-export { Model } from "./scene-loader/Model";
-export * from "./scene-loader/index";
+export * from "./SceneLoader";
 export { parseSingleKTX } from "./compressed-texture";
