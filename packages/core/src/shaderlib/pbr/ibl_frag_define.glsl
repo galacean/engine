@@ -2,6 +2,7 @@
 
 // sh need be pre-scaled in CPU.
 vec3 getLightProbeIrradiance(vec3 sh[9], vec3 normal){
+      normal.x = -normal.x;
       vec3 result = sh[0] +
 
             sh[1] * (normal.y) +
@@ -51,6 +52,7 @@ vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMI
     #else
 
         vec3 reflectVec = reflect( -viewDir, normal );
+        reflectVec.x = -reflectVec.x; // TextureCube is left-hand,so x need inverse
         
         float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );
 

@@ -3,7 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
-import { UpdateFlag } from "./UpdateFlag";
+import { ListenerUpdateFlag } from "./ListenerUpdateFlag";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
 /**
@@ -19,7 +19,6 @@ export class Transform extends Component {
   private static _tempMat32: Matrix3x3 = new Matrix3x3();
   private static _tempMat41: Matrix = new Matrix();
   private static _tempMat42: Matrix = new Matrix();
-  private static _tempMat43: Matrix = new Matrix();
 
   @deepClone
   private _position: Vector3 = new Vector3();
@@ -59,7 +58,7 @@ export class Transform extends Component {
 
   set position(value: Vector3) {
     if (this._position !== value) {
-      value.cloneTo(this._position);
+      this._position.copyFrom(value);
     }
   }
 
@@ -74,7 +73,7 @@ export class Transform extends Component {
       if (this._getParentTransform()) {
         this.worldMatrix.getTranslation(worldPosition);
       } else {
-        this._position.cloneTo(worldPosition);
+        worldPosition.copyFrom(this._position);
       }
       //@ts-ignore
       worldPosition._onValueChanged = this._onWorldPositionChanged;
@@ -86,7 +85,7 @@ export class Transform extends Component {
 
   set worldPosition(value: Vector3) {
     if (this._worldPosition !== value) {
-      value.cloneTo(this._worldPosition);
+      this._worldPosition.copyFrom(value);
     }
   }
 
@@ -111,7 +110,7 @@ export class Transform extends Component {
 
   set rotation(value: Vector3) {
     if (this._rotation !== value) {
-      value.cloneTo(this._rotation);
+      this._rotation.copyFrom(value);
     }
   }
 
@@ -135,7 +134,7 @@ export class Transform extends Component {
 
   set worldRotation(value: Vector3) {
     if (this._worldRotation !== value) {
-      value.cloneTo(this._worldRotation);
+      this._worldRotation.copyFrom(value);
     }
   }
 
@@ -163,7 +162,7 @@ export class Transform extends Component {
   set rotationQuaternion(value: Quaternion) {
     if (this._rotationQuaternion !== value) {
       if (value.normalized) {
-        value.cloneTo(this._rotationQuaternion);
+        this._rotationQuaternion.copyFrom(value);
       } else {
         Quaternion.normalize(value, this._rotationQuaternion);
       }
@@ -184,7 +183,7 @@ export class Transform extends Component {
       if (parent != null) {
         Quaternion.multiply(parent.worldRotationQuaternion, this.rotationQuaternion, worldRotationQuaternion);
       } else {
-        this.rotationQuaternion.cloneTo(worldRotationQuaternion);
+        worldRotationQuaternion.copyFrom(this.rotationQuaternion);
       }
       //@ts-ignore
       worldRotationQuaternion._onValueChanged = this._onWorldRotationQuaternionChanged;
@@ -196,7 +195,7 @@ export class Transform extends Component {
   set worldRotationQuaternion(value: Quaternion) {
     if (this._worldRotationQuaternion !== value) {
       if (value.normalized) {
-        value.cloneTo(this._worldRotationQuaternion);
+        this._worldRotationQuaternion.copyFrom(value);
       } else {
         Quaternion.normalize(value, this._worldRotationQuaternion);
       }
@@ -213,7 +212,7 @@ export class Transform extends Component {
 
   set scale(value: Vector3) {
     if (this._scale !== value) {
-      value.cloneTo(this._scale);
+      this._scale.copyFrom(value);
     }
   }
 
@@ -227,9 +226,9 @@ export class Transform extends Component {
       if (this._getParentTransform()) {
         const scaleMat = this._getScaleMatrix();
         const e = scaleMat.elements;
-        this._lossyWorldScale.setValue(e[0], e[4], e[8]);
+        this._lossyWorldScale.set(e[0], e[4], e[8]);
       } else {
-        this._scale.cloneTo(this._lossyWorldScale);
+        this._lossyWorldScale.copyFrom(this._scale);
       }
       this._setDirtyFlagFalse(TransformFlag.WorldScale);
     }
@@ -250,7 +249,7 @@ export class Transform extends Component {
 
   set localMatrix(value: Matrix) {
     if (this._localMatrix !== value) {
-      value.cloneTo(this._localMatrix);
+      this._localMatrix.copyFrom(value);
     }
 
     this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
@@ -270,7 +269,7 @@ export class Transform extends Component {
       if (parent) {
         Matrix.multiply(parent.worldMatrix, this.localMatrix, this._worldMatrix);
       } else {
-        this.localMatrix.cloneTo(this._worldMatrix);
+        this._worldMatrix.copyFrom(this.localMatrix);
       }
       this._setDirtyFlagFalse(TransformFlag.WorldMatrix);
     }
@@ -279,14 +278,14 @@ export class Transform extends Component {
 
   set worldMatrix(value: Matrix) {
     if (this._worldMatrix !== value) {
-      value.cloneTo(this._worldMatrix);
+      this._worldMatrix.copyFrom(value);
     }
     const parent = this._getParentTransform();
     if (parent) {
       Matrix.invert(parent.worldMatrix, Transform._tempMat42);
       Matrix.multiply(value, Transform._tempMat42, this._localMatrix);
     } else {
-      value.cloneTo(this._localMatrix);
+      this._localMatrix.copyFrom(value);
     }
     this.localMatrix = this._localMatrix;
     this._setDirtyFlagFalse(TransformFlag.WorldMatrix);
@@ -329,7 +328,7 @@ export class Transform extends Component {
    * @param z - Z coordinate
    */
   setPosition(x: number, y: number, z: number): void {
-    this._position.setValue(x, y, z);
+    this._position.set(x, y, z);
   }
 
   /**
@@ -340,7 +339,7 @@ export class Transform extends Component {
    * @param z - The angle of rotation around the Z axis
    */
   setRotation(x: number, y: number, z: number): void {
-    this._rotation.setValue(x, y, z);
+    this._rotation.set(x, y, z);
   }
 
   /**
@@ -351,7 +350,7 @@ export class Transform extends Component {
    * @param w - W component of quaternion
    */
   setRotationQuaternion(x: number, y: number, z: number, w: number): void {
-    this._rotationQuaternion.setValue(x, y, z, w);
+    this._rotationQuaternion.set(x, y, z, w);
   }
 
   /**
@@ -361,7 +360,7 @@ export class Transform extends Component {
    * @param z - Scaling along Z axis
    */
   setScale(x: number, y: number, z: number): void {
-    this._scale.setValue(x, y, z);
+    this._scale.set(x, y, z);
   }
 
   /**
@@ -371,7 +370,7 @@ export class Transform extends Component {
    * @param z - Z coordinate
    */
   setWorldPosition(x: number, y: number, z: number): void {
-    this._worldPosition.setValue(x, y, z);
+    this._worldPosition.set(x, y, z);
   }
 
   /**
@@ -381,7 +380,7 @@ export class Transform extends Component {
    * @param z - The angle of rotation around the Z axis
    */
   setWorldRotation(x: number, y: number, z: number): void {
-    this._worldRotation.setValue(x, y, z);
+    this._worldRotation.set(x, y, z);
   }
 
   /**
@@ -392,7 +391,7 @@ export class Transform extends Component {
    * @param w - W component of quaternion
    */
   setWorldRotationQuaternion(x: number, y: number, z: number, w: number): void {
-    this._worldRotationQuaternion.setValue(x, y, z, w);
+    this._worldRotationQuaternion.set(x, y, z, w);
   }
 
   /**
@@ -402,7 +401,7 @@ export class Transform extends Component {
    */
   getWorldForward(forward: Vector3): Vector3 {
     const e = this.worldMatrix.elements;
-    forward.setValue(-e[8], -e[9], -e[10]);
+    forward.set(-e[8], -e[9], -e[10]);
     return forward.normalize();
   }
 
@@ -413,7 +412,7 @@ export class Transform extends Component {
    */
   getWorldRight(right: Vector3): Vector3 {
     const e = this.worldMatrix.elements;
-    right.setValue(e[0], e[1], e[2]);
+    right.set(e[0], e[1], e[2]);
     return right.normalize();
   }
 
@@ -424,23 +423,23 @@ export class Transform extends Component {
    */
   getWorldUp(up: Vector3): Vector3 {
     const e = this.worldMatrix.elements;
-    up.setValue(e[4], e[5], e[6]);
+    up.set(e[4], e[5], e[6]);
     return up.normalize();
   }
 
   /**
-   * Translate along the passed Vector3.
+   * Translate in the direction and distance of the translation.
    * @param translation - Direction and distance of translation
-   * @param relativeToLocal - Relative to local space
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   translate(translation: Vector3, relativeToLocal?: boolean): void;
 
   /**
-   * Translate along the passed X, Y, Z value.
-   * @param x - Translate direction and distance along x axis
-   * @param y - Translate direction and distance along y axis
-   * @param z - Translate direction and distance along z axis
-   * @param relativeToLocal - Relative to local space
+   * Translate some distance by x along the x axis, y along the y axis, and z along the z axis.
+   * @param x - Distance along the x axis
+   * @param y - Distance along the y axis
+   * @param z - Distance along the z axis
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   translate(x: number, y: number, z: number, relativeToLocal?: boolean): void;
 
@@ -452,7 +451,7 @@ export class Transform extends Component {
   ): void {
     if (typeof translationOrX === "number") {
       const translate = Transform._tempVec30;
-      translate.setValue(translationOrX, <number>relativeToLocalOrY, z);
+      translate.set(translationOrX, <number>relativeToLocalOrY, z);
       this._translate(translate, relativeToLocal);
     } else {
       this._translate(translationOrX, <boolean>relativeToLocalOrY);
@@ -462,7 +461,7 @@ export class Transform extends Component {
   /**
    * Rotate around the passed Vector3.
    * @param rotation - Euler angle in degrees
-   * @param relativeToLocal - Relative to local space
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   rotate(rotation: Vector3, relativeToLocal?: boolean): void;
 
@@ -471,7 +470,7 @@ export class Transform extends Component {
    * @param x - Rotation along x axis, in degrees
    * @param y - Rotation along y axis, in degrees
    * @param z - Rotation along z axis, in degrees
-   * @param relativeToLocal - Relative to local space
+   * @param relativeToLocal = `true` - Is relative to the local coordinate system
    */
   rotate(x: number, y: number, z: number, relativeToLocal?: boolean): void;
 
@@ -492,7 +491,7 @@ export class Transform extends Component {
    * Rotate around the specified axis according to the specified angle.
    * @param axis - Rotate axis
    * @param angle - Rotate angle in degrees
-   * @param relativeToLocal - Relative to local space
+   * @param relativeToLocal = `true` - Relative to local space
    */
   rotateByAxis(axis: Vector3, angle: number, relativeToLocal: boolean = true): void {
     const rad = angle * MathUtil.degreeToRadFactor;
@@ -518,12 +517,12 @@ export class Transform extends Component {
     if (worldUp) {
       Vector3.cross(worldUp, zAxis, xAxis);
     } else {
-      xAxis.setValue(zAxis.z, 0, -zAxis.x);
+      xAxis.set(zAxis.z, 0, -zAxis.x);
     }
     axisLen = xAxis.length();
     if (axisLen <= MathUtil.zeroTolerance) {
       // @todo:
-      // 1.worldup is（0,0,0）
+      // 1.worldUp is（0,0,0）
       // 2.worldUp is parallel to zAxis
       return;
     }
@@ -545,6 +544,13 @@ export class Transform extends Component {
    */
   registerWorldChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
+   * @intenral
+   */
+  _registerWorldChangeListenser(): ListenerUpdateFlag {
+    return this._updateFlagManager.createFlag(ListenerUpdateFlag);
   }
 
   /**
@@ -685,7 +691,7 @@ export class Transform extends Component {
     const invRotationMat = Transform._tempMat30;
     const worldRotScaMat = Transform._tempMat31;
     const scaMat = Transform._tempMat32;
-    worldRotScaMat.setValueByMatrix(this.worldMatrix);
+    worldRotScaMat.copyFromMatrix(this.worldMatrix);
     Quaternion.invert(this.worldRotationQuaternion, invRotation);
     Matrix3x3.rotationQuaternion(invRotation, invRotationMat);
     Matrix3x3.multiply(invRotationMat, worldRotScaMat, scaMat);
@@ -713,7 +719,7 @@ export class Transform extends Component {
     this._updateFlagManager.dispatch();
   }
 
-  private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean) {
+  private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
     if (relativeToLocal) {
       Quaternion.multiply(this.rotationQuaternion, rotateQuat, this._rotationQuaternion);
     } else {
@@ -723,7 +729,9 @@ export class Transform extends Component {
 
   private _translate(translation: Vector3, relativeToLocal: boolean = true): void {
     if (relativeToLocal) {
-      this._position.add(translation);
+      const { _tempVec30 } = Transform;
+      Vector3.transformByQuat(translation, this.worldRotationQuaternion, _tempVec30);
+      this._worldPosition.add(_tempVec30);
     } else {
       this._worldPosition.add(translation);
     }
@@ -748,7 +756,7 @@ export class Transform extends Component {
       Matrix.invert(parent.worldMatrix, Transform._tempMat41);
       Vector3.transformCoordinate(worldPosition, Transform._tempMat41, this._position);
     } else {
-      worldPosition.cloneTo(this._position);
+      this._position.copyFrom(worldPosition);
     }
     this._setDirtyFlagFalse(TransformFlag.WorldPosition);
   }
@@ -784,7 +792,7 @@ export class Transform extends Component {
       Quaternion.invert(parent.worldRotationQuaternion, invParentQuaternion);
       Quaternion.multiply(invParentQuaternion, worldRotationQuaternion, this._rotationQuaternion);
     } else {
-      worldRotationQuaternion.cloneTo(this._rotationQuaternion);
+      this._rotationQuaternion.copyFrom(worldRotationQuaternion);
     }
     this._setDirtyFlagFalse(TransformFlag.WorldQuat);
   }

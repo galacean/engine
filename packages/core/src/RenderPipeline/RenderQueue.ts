@@ -19,9 +19,8 @@ export class RenderQueue {
    */
   static _compareFromNearToFar(a: Item, b: Item): number {
     return (
-      a.material.renderQueueType - b.material.renderQueueType ||
-      a.component._distanceForSort - b.component._distanceForSort ||
-      b.component._renderSortId - a.component._renderSortId
+      a.component.priority - b.component.priority ||
+      a.component._distanceForSort - b.component._distanceForSort
     );
   }
 
@@ -30,9 +29,8 @@ export class RenderQueue {
    */
   static _compareFromFarToNear(a: Item, b: Item): number {
     return (
-      a.material.renderQueueType - b.material.renderQueueType ||
-      b.component._distanceForSort - a.component._distanceForSort ||
-      b.component._renderSortId - a.component._renderSortId
+      a.component.priority - b.component.priority ||
+      b.component._distanceForSort - a.component._distanceForSort
     );
   }
 
@@ -71,7 +69,7 @@ export class RenderQueue {
       }
 
       if (!!(item as RenderElement).mesh) {
-        this._spriteBatcher.flush(engine);
+        this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
@@ -117,7 +115,7 @@ export class RenderQueue {
           } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
-
+          
           if (program._uploadRenderer !== renderer) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRenderer = renderer;
@@ -137,16 +135,16 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        material.renderState._apply(camera.engine, renderer.entity.transform._isFrontFaceInvert());
+        material.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spriteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spriteElement);
+        this._spriteBatcher.drawElement(spriteElement, camera);
       }
     }
 
-    this._spriteBatcher.flush(engine);
+    this._spriteBatcher.flush(camera);
   }
 
   /**
