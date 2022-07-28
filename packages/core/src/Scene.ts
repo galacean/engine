@@ -205,7 +205,7 @@ export class Scene extends EngineObject {
     }
 
     this._destroy();
-    
+
     const allScenes = this.engine.sceneManager._allScenes;
     allScenes.splice(allScenes.indexOf(this), 1);
   }

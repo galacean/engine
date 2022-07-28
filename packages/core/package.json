@@ -1,10 +1,14 @@
 {
   "name": "@oasis-engine/core",
+<<<<<<< HEAD
   "version": "0.8.0-alpha.8",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
   },
+=======
+  "version": "0.7.0-beta.8",
+>>>>>>> main
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -18,9 +22,16 @@
     "types/**/*"
   ],
   "dependencies": {
+<<<<<<< HEAD
     "@oasis-engine/math": "0.8.0-alpha.8"
   },
   "devDependencies": {
     "@oasis-engine/design": "0.8.0-alpha.8"
+=======
+    "@oasis-engine/math": "0.7.0-beta.8"
+  },
+  "devDependencies": {
+    "@oasis-engine/design": "0.7.0-beta.8"
+>>>>>>> main
   }
 }
