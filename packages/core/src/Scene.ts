@@ -4,8 +4,11 @@ import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
+import { DiffuseMode } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
+import { AmbientDirty } from "./lighting/enums/AmbientDirty";
 import { LightFeature } from "./lighting/LightFeature";
+import { ListenerUpdateFlag } from "./ListenerUpdateFlag";
 import { SceneFeature } from "./SceneFeature";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
@@ -35,6 +38,7 @@ export class Scene extends EngineObject {
 
   private _rootEntities: Entity[] = [];
   private _ambientLight: AmbientLight;
+  private _ambientChangeFlag: ListenerUpdateFlag = null;
 
   /**
    * Ambient light.
@@ -49,11 +53,38 @@ export class Scene extends EngineObject {
       return;
     }
 
-    const lastAmbientLight = this._ambientLight;
-    if (lastAmbientLight !== value) {
-      lastAmbientLight && lastAmbientLight._setScene(null);
-      value._setScene(this);
+    if (this._ambientLight !== value) {
       this._ambientLight = value;
+      this._ambientChangeFlag && this._ambientChangeFlag.destroy();
+      this._ambientChangeFlag = value._registerUpdateFlag();
+      this._ambientChangeFlag.listener = this._onAmbientChange;
+      // Reset shaderData.
+      const { shaderData } = this;
+      shaderData.setColor(AmbientLight._diffuseColorProperty, value.diffuseSolidColor);
+      if (value.diffuseMode === 1) {
+        shaderData.enableMacro(AmbientLight._shMacro);
+      } else {
+        shaderData.disableMacro(AmbientLight._shMacro);
+      }
+      const diffuseSphericalHarmonics = value.diffuseSphericalHarmonics;
+      if (diffuseSphericalHarmonics) {
+        shaderData.setFloatArray(AmbientLight._diffuseSHProperty, value._shArray);
+      }
+      const specularTexture = value.specularTexture;
+      if (specularTexture) {
+        shaderData.setTexture(AmbientLight._specularTextureProperty, specularTexture);
+        shaderData.setFloat(AmbientLight._mipLevelProperty, specularTexture.mipmapCount - 1);
+        shaderData.enableMacro(AmbientLight._specularMacro);
+      } else {
+        shaderData.disableMacro(AmbientLight._specularMacro);
+      }
+      shaderData.setFloat(AmbientLight._specularIntensityProperty, value.specularIntensity);
+      shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value.diffuseIntensity);
+      if (value.specularTextureDecodeRGBM) {
+        shaderData.enableMacro(AmbientLight._decodeRGBMMacro);
+      } else {
+        shaderData.disableMacro(AmbientLight._decodeRGBMMacro);
+      }
     }
   }
 
@@ -79,10 +110,10 @@ export class Scene extends EngineObject {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name || "";
-
     const shaderData = this.shaderData;
     Scene.sceneFeatureManager.addObject(this);
     shaderData._addRefCount(1);
+    this._onAmbientChange = this._onAmbientChange.bind(this);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
   }
@@ -280,6 +311,53 @@ export class Scene extends EngineObject {
     this._activeCameras.length = 0;
     (Scene.sceneFeatureManager as any)._objects = [];
     this.shaderData._addRefCount(-1);
+  }
+
+  private _onAmbientChange(dirtyFlag: AmbientDirty) {
+    const { ambientLight, shaderData } = this;
+    switch (dirtyFlag) {
+      case AmbientDirty.DiffuseSolidColor:
+        shaderData.setColor(AmbientLight._diffuseColorProperty, ambientLight.diffuseSolidColor);
+        break;
+      case AmbientDirty.DiffuseMode:
+        if (ambientLight.diffuseMode === 1) {
+          shaderData.enableMacro(AmbientLight._shMacro);
+        } else {
+          shaderData.disableMacro(AmbientLight._shMacro);
+        }
+        break;
+      case AmbientDirty.DiffuseSphericalHarmonics:
+        const diffuseSphericalHarmonics = ambientLight.diffuseSphericalHarmonics;
+        if (diffuseSphericalHarmonics) {
+          shaderData.setFloatArray(AmbientLight._diffuseSHProperty, ambientLight._shArray);
+        }
+        break;
+      case AmbientDirty.DiffuseIntensity:
+        shaderData.setFloat(AmbientLight._diffuseIntensityProperty, ambientLight.diffuseIntensity);
+        break;
+      case AmbientDirty.SpecularTexture:
+        const specularTexture = ambientLight.specularTexture;
+        if (specularTexture) {
+          shaderData.setTexture(AmbientLight._specularTextureProperty, specularTexture);
+          shaderData.setFloat(AmbientLight._mipLevelProperty, ambientLight.specularTexture.mipmapCount - 1);
+          shaderData.enableMacro(AmbientLight._specularMacro);
+        } else {
+          shaderData.disableMacro(AmbientLight._specularMacro);
+        }
+        break;
+      case AmbientDirty.SpecularIntensity:
+        this.shaderData.setFloat(AmbientLight._specularIntensityProperty, ambientLight.specularIntensity);
+        break;
+      case AmbientDirty.SpecularTextureDecodeRGBM:
+        if (ambientLight.specularTextureDecodeRGBM) {
+          shaderData.enableMacro(AmbientLight._decodeRGBMMacro);
+        } else {
+          shaderData.disableMacro(AmbientLight._decodeRGBMMacro);
+        }
+        break;
+      default:
+        break;
+    }
   }
 
   //-----------------------------------------@deprecated-----------------------------------

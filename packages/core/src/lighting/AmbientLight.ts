@@ -1,175 +1,29 @@
 import { Color, SphericalHarmonics3 } from "@oasis-engine/math";
-import { Scene } from "../Scene";
+import { ListenerUpdateFlag } from "../ListenerUpdateFlag";
 import { Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCube } from "../texture";
+import { UpdateFlagManager } from "../UpdateFlagManager";
+import { AmbientDirty } from "./enums/AmbientDirty";
 import { DiffuseMode } from "./enums/DiffuseMode";
 
 /**
  * Ambient light.
  */
 export class AmbientLight {
-  private static _shMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SH");
-  private static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
-  private static _decodeRGBMMacro: ShaderMacro = Shader.getMacroByName("O3_DECODE_ENV_RGBM");
+  static _shMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SH");
+  static _specularMacro: ShaderMacro = Shader.getMacroByName("O3_USE_SPECULAR_ENV");
+  static _decodeRGBMMacro: ShaderMacro = Shader.getMacroByName("O3_DECODE_ENV_RGBM");
 
-  private static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
-  private static _diffuseSHProperty: ShaderProperty = Shader.getPropertyByName("u_env_sh");
-  private static _diffuseIntensityProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuseIntensity");
-  private static _specularTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_specularSampler");
-  private static _specularIntensityProperty: ShaderProperty = Shader.getPropertyByName(
-    "u_envMapLight.specularIntensity"
-  );
-  private static _mipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.mipMapLevel");
+  static _diffuseColorProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuse");
+  static _diffuseSHProperty: ShaderProperty = Shader.getPropertyByName("u_env_sh");
+  static _diffuseIntensityProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.diffuseIntensity");
+  static _specularTextureProperty: ShaderProperty = Shader.getPropertyByName("u_env_specularSampler");
+  static _specularIntensityProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.specularIntensity");
+  static _mipLevelProperty: ShaderProperty = Shader.getPropertyByName("u_envMapLight.mipMapLevel");
 
-  private _diffuseSphericalHarmonics: SphericalHarmonics3;
-  private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
-  private _diffuseIntensity: number = 1.0;
-  private _specularReflection: TextureCube;
-  private _specularIntensity: number = 1.0;
-  private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
-  private _shArray: Float32Array = new Float32Array(27);
-  private _scene: Scene;
-  private _specularTextureDecodeRGBM: boolean = false;
-
-  /**
-   * Whether to decode from specularTexture with RGBM format.
-   */
-  get specularTextureDecodeRGBM(): boolean {
-    return this._specularTextureDecodeRGBM;
-  }
-
-  set specularTextureDecodeRGBM(value: boolean) {
-    this._specularTextureDecodeRGBM = value;
-    if (!this._scene) return;
-
-    if (value) {
-      this._scene.shaderData.enableMacro(AmbientLight._decodeRGBMMacro);
-    } else {
-      this._scene.shaderData.disableMacro(AmbientLight._decodeRGBMMacro);
-    }
-  }
-
-  /**
-   * Diffuse mode of ambient light.
-   */
-  get diffuseMode(): DiffuseMode {
-    return this._diffuseMode;
-  }
-
-  set diffuseMode(value: DiffuseMode) {
-    this._diffuseMode = value;
-    if (!this._scene) return;
-
-    if (value === DiffuseMode.SphericalHarmonics) {
-      this._scene.shaderData.enableMacro(AmbientLight._shMacro);
-    } else {
-      this._scene.shaderData.disableMacro(AmbientLight._shMacro);
-    }
-  }
-
-  /**
-   * Diffuse reflection solid color.
-   * @remarks Effective when diffuse reflection mode is `DiffuseMode.SolidColor`.
-   */
-  get diffuseSolidColor(): Color {
-    return this._diffuseSolidColor;
-  }
-
-  set diffuseSolidColor(value: Color) {
-    if (value !== this._diffuseSolidColor) {
-      this._diffuseSolidColor.copyFrom(value);
-    }
-  }
-
-  /**
-   * Diffuse reflection spherical harmonics 3.
-   * @remarks Effective when diffuse reflection mode is `DiffuseMode.SphericalHarmonics`.
-   */
-  get diffuseSphericalHarmonics(): SphericalHarmonics3 {
-    return this._diffuseSphericalHarmonics;
-  }
-
-  set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
-    this._diffuseSphericalHarmonics = value;
-    if (!this._scene) return;
-
-    if (value) {
-      this._scene.shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._preComputeSH(value, this._shArray));
-    }
-  }
-
-  /**
-   * Diffuse reflection intensity.
-   */
-  get diffuseIntensity(): number {
-    return this._diffuseIntensity;
-  }
-
-  set diffuseIntensity(value: number) {
-    this._diffuseIntensity = value;
-    if (!this._scene) return;
-
-    this._scene.shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value);
-  }
-
-  /**
-   * Specular reflection texture.
-   * @remarks This texture must be baked from @oasis-engine/baker
-   */
-  get specularTexture(): TextureCube {
-    return this._specularReflection;
-  }
-
-  set specularTexture(value: TextureCube) {
-    this._specularReflection = value;
-    if (!this._scene) return;
-
-    const shaderData = this._scene.shaderData;
-
-    if (value) {
-      shaderData.setTexture(AmbientLight._specularTextureProperty, value);
-      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount - 1);
-      shaderData.enableMacro(AmbientLight._specularMacro);
-    } else {
-      shaderData.disableMacro(AmbientLight._specularMacro);
-    }
-  }
-
-  /**
-   * Specular reflection intensity.
-   */
-  get specularIntensity(): number {
-    return this._specularIntensity;
-  }
-
-  set specularIntensity(value: number) {
-    this._specularIntensity = value;
-    if (!this._scene) return;
-
-    this._scene.shaderData.setFloat(AmbientLight._specularIntensityProperty, value);
-  }
-
-  /**
-   * @internal
-   */
-  _setScene(value: Scene) {
-    this._scene = value;
-    if (!value) return;
-
-    const { shaderData } = value;
-    shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
-
-    this.diffuseMode = this._diffuseMode;
-    this.diffuseSphericalHarmonics = this._diffuseSphericalHarmonics;
-    this.diffuseIntensity = this._diffuseIntensity;
-    this.specularTexture = this._specularReflection;
-    this.specularIntensity = this._specularIntensity;
-    this.specularTextureDecodeRGBM = this._specularTextureDecodeRGBM;
-  }
-
-  private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
+  private static _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
     /**
      * Basis constants
      *
@@ -230,5 +84,128 @@ export class AmbientLight {
     out[26] = src[26] * 0.429042;
 
     return out;
+  }
+
+  /** @internal */
+  _shArray: Float32Array = new Float32Array(27);
+
+  private _diffuseSphericalHarmonics: SphericalHarmonics3;
+  private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
+  private _diffuseIntensity: number = 1.0;
+  private _specularReflection: TextureCube;
+  private _specularIntensity: number = 1.0;
+  private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
+  private _specularTextureDecodeRGBM: boolean = false;
+  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+
+  /**
+   * Whether to decode from specularTexture with RGBM format.
+   */
+  get specularTextureDecodeRGBM(): boolean {
+    return this._specularTextureDecodeRGBM;
+  }
+
+  set specularTextureDecodeRGBM(value: boolean) {
+    if (this._specularTextureDecodeRGBM !== value) {
+      this._specularTextureDecodeRGBM = value;
+      this._dispatchAmbientChange(AmbientDirty.SpecularTextureDecodeRGBM);
+    }
+  }
+
+  /**
+   * Diffuse mode of ambient light.
+   */
+  get diffuseMode(): DiffuseMode {
+    return this._diffuseMode;
+  }
+
+  set diffuseMode(value: DiffuseMode) {
+    this._diffuseMode = value;
+    this._dispatchAmbientChange(AmbientDirty.DiffuseMode);
+  }
+
+  /**
+   * Diffuse reflection solid color.
+   * @remarks Effective when diffuse reflection mode is `DiffuseMode.SolidColor`.
+   */
+  get diffuseSolidColor(): Color {
+    return this._diffuseSolidColor;
+  }
+
+  set diffuseSolidColor(value: Color) {
+    if (value !== this._diffuseSolidColor) {
+      this._diffuseSolidColor.copyFrom(value);
+      this._dispatchAmbientChange(AmbientDirty.DiffuseSolidColor);
+    }
+  }
+
+  /**
+   * Diffuse reflection spherical harmonics 3.
+   * @remarks Effective when diffuse reflection mode is `DiffuseMode.SphericalHarmonics`.
+   */
+  get diffuseSphericalHarmonics(): SphericalHarmonics3 {
+    return this._diffuseSphericalHarmonics;
+  }
+
+  set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
+    if (value !== this._diffuseSphericalHarmonics) {
+      this._diffuseSphericalHarmonics = value;
+      AmbientLight._preComputeSH(value, this._shArray);
+      this._dispatchAmbientChange(AmbientDirty.DiffuseSphericalHarmonics);
+    }
+  }
+
+  /**
+   * Diffuse reflection intensity.
+   */
+  get diffuseIntensity(): number {
+    return this._diffuseIntensity;
+  }
+
+  set diffuseIntensity(value: number) {
+    if (value !== this._diffuseIntensity) {
+      this._diffuseIntensity = value;
+      this._dispatchAmbientChange(AmbientDirty.DiffuseIntensity);
+    }
+  }
+
+  /**
+   * Specular reflection texture.
+   * @remarks This texture must be baked from @oasis-engine/baker
+   */
+  get specularTexture(): TextureCube {
+    return this._specularReflection;
+  }
+
+  set specularTexture(value: TextureCube) {
+    if (value !== this._specularReflection) {
+      this._specularReflection = value;
+      this._dispatchAmbientChange(AmbientDirty.SpecularTexture);
+    }
+  }
+
+  /**
+   * Specular reflection intensity.
+   */
+  get specularIntensity(): number {
+    return this._specularIntensity;
+  }
+
+  set specularIntensity(value: number) {
+    if (value !== this._specularIntensity) {
+      this._specularIntensity = value;
+      this._dispatchAmbientChange(AmbientDirty.SpecularIntensity);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _registerUpdateFlag(): ListenerUpdateFlag {
+    return this._updateFlagManager.createFlag(ListenerUpdateFlag);
+  }
+
+  private _dispatchAmbientChange(type: AmbientDirty): void {
+    this._updateFlagManager.dispatch(type);
   }
 }
