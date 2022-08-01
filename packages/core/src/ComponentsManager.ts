@@ -1,4 +1,4 @@
-import { Vector3 } from "@oasis-engine/math";
+import { BoundingFrustum, Vector3 } from "@oasis-engine/math";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { DisorderedArray } from "./DisorderedArray";
@@ -6,6 +6,7 @@ import { Renderer } from "./Renderer";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Script } from "./Script";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { RenderQueue } from "./RenderPipeline/RenderQueue";
 
 /**
  * The manager of the components.
@@ -183,7 +184,12 @@ export class ComponentsManager {
     }
   }
 
-  callRender(context: RenderContext): void {
+  callRender(
+    context: RenderContext,
+    opaqueQueue: RenderQueue,
+    alphaTestQueue: RenderQueue,
+    transparentQueue: RenderQueue
+  ): void {
     const camera = context._camera;
     const elements = this._renderers._elements;
     for (let i = this._renderers.length - 1; i >= 0; --i) {
@@ -215,7 +221,7 @@ export class ComponentsManager {
 
       element._updateShaderData(context);
 
-      element._render(camera);
+      element._render(camera, opaqueQueue, alphaTestQueue, transparentQueue);
 
       // union camera global macro and renderer macro.
       ShaderMacroCollection.unionCollection(
@@ -223,6 +229,21 @@ export class ComponentsManager {
         element.shaderData._macroCollection,
         element._globalShaderMacro
       );
+    }
+  }
+
+  callShadowRender(
+    frustum: BoundingFrustum,
+    opaqueQueue: RenderQueue,
+    alphaTestQueue: RenderQueue,
+    transparentQueue: RenderQueue,
+    shadowReceiveRenderer: Renderer[]
+  ): void {
+    const elements = this._renderers._elements;
+    for (let i = this._renderers.length - 1; i >= 0; --i) {
+      const renderer = elements[i];
+      // filter by renderer castShadow and frustum cull
+      renderer._shadowRender(frustum, opaqueQueue, alphaTestQueue, transparentQueue, shadowReceiveRenderer);
     }
   }
 

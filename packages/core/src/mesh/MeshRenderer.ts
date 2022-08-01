@@ -1,13 +1,14 @@
-import { BoundingBox } from "@oasis-engine/math";
-import { Logger } from "../base/Logger";
+import { BoundingBox, BoundingFrustum } from "@oasis-engine/math";
+import { Logger } from "../base";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { Mesh } from "../graphic/Mesh";
+import { Mesh } from "../graphic";
 import { Renderer } from "../Renderer";
-import { Shader } from "../shader/Shader";
+import { Shader } from "../shader";
+import { RenderQueue } from "../RenderPipeline/RenderQueue";
 
 /**
  * MeshRenderer Component.
@@ -18,6 +19,12 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
   private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
   private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+
+  /** whether receive shadow */
+  receiveShadow: boolean = false;
+
+  /** whether cast shadow */
+  castShadow: boolean = false;
 
   @ignoreClone
   private _mesh: Mesh;
@@ -55,8 +62,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
 
   /**
    * @internal
+   * @override
    */
-  _render(camera: Camera): void {
+  _render(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue): void {
     const mesh = this._mesh;
     if (mesh) {
       if (this._meshUpdateFlag.flag) {
@@ -93,18 +101,37 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       }
 
       const subMeshes = mesh.subMeshes;
-      const renderPipeline = camera._renderPipeline;
       const renderElementPool = this._engine._renderElementPool;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = this._materials[i];
         if (material) {
           const element = renderElementPool.getFromPool();
           element.setValue(this, mesh, subMeshes[i], material);
-          renderPipeline.pushPrimitive(element);
+          this._pushPrimitive(element, opaqueQueue, alphaTestQueue, transparentQueue);
         }
       }
     } else {
       Logger.error("mesh is null.");
+    }
+  }
+
+  /**
+   * @internal
+   * @override
+   */
+  _shadowRender(
+    frustum: BoundingFrustum,
+    opaqueQueue: RenderQueue,
+    alphaTestQueue: RenderQueue,
+    transparentQueue: RenderQueue,
+    shadowReceiveRenderer: Renderer[]
+  ): void {
+    if (this.castShadow && frustum.intersectsBox(this.bounds)) {
+      this._render(null, opaqueQueue, alphaTestQueue, transparentQueue);
+    }
+
+    if (this.receiveShadow) {
+      shadowReceiveRenderer.push(this);
     }
   }
 

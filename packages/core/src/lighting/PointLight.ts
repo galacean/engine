@@ -1,6 +1,5 @@
-import { Color, Vector3 } from "@oasis-engine/math";
-import { Shader } from "../shader";
-import { ShaderData } from "../shader/ShaderData";
+import { Color, Matrix, Vector3 } from "@oasis-engine/math";
+import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -28,10 +27,7 @@ export class PointLight extends Light {
     shaderData.setFloatArray(PointLight._positionProperty, data.position);
     shaderData.setFloatArray(PointLight._distanceProperty, data.distance);
   }
-  /** Light color. */
-  color: Color = new Color(1, 1, 1, 1);
-  /** Light intensity. */
-  intensity: number = 1.0;
+
   /** Defines a distance cutoff at which the light's intensity must be considered zero. */
   distance: number = 100;
 
@@ -55,6 +51,10 @@ export class PointLight extends Light {
     return this._lightColor;
   }
 
+  get shadowProjectionMatrix(): Matrix {
+    throw "Unknown!";
+  }
+
   /**
    * @internal
    */
@@ -75,5 +75,23 @@ export class PointLight extends Light {
     data.position[positionStart + 1] = lightPosition.y;
     data.position[positionStart + 2] = lightPosition.z;
     data.distance[distanceStart] = this.distance;
+  }
+
+  /**
+   * Mount to the current Scene.
+   * @internal
+   * @override
+   */
+  _onEnable(): void {
+    this.engine._lightManager._attachPointLight(this);
+  }
+
+  /**
+   * Unmount from the current Scene.
+   * @internal
+   * @override
+   */
+  _onDisable(): void {
+    this.engine._lightManager._detachPointLight(this);
   }
 }

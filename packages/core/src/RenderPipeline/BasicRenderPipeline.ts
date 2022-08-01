@@ -1,7 +1,7 @@
 import { Matrix, Vector2 } from "@oasis-engine/math";
 import { Background } from "..";
-import { SpriteMask } from "../2d/sprite/SpriteMask";
-import { Logger } from "../base/Logger";
+import { SpriteMask } from "../2d";
+import { Logger } from "../base";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
@@ -9,18 +9,16 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { RenderQueueType } from "../material/enums/RenderQueueType";
-import { Material } from "../material/Material";
-import { Shader } from "../shader/Shader";
+import { Material } from "../material";
+import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { Sky } from "../sky/Sky";
-import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
-import { RenderTarget } from "../texture/RenderTarget";
+import { Sky } from "../sky";
+import { TextureCubeFace } from "../texture";
+import { RenderTarget } from "../texture";
 import { RenderContext } from "./RenderContext";
-import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { SpriteElement } from "./SpriteElement";
+import { ShadowManager } from "../shadow/ShadowManager";
 
 /**
  * Basic render pipeline.
@@ -39,6 +37,7 @@ export class BasicRenderPipeline {
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
+  private _shadowManager: ShadowManager;
 
   /**
    * Create a basic render pipeline.
@@ -47,6 +46,7 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
+    this._shadowManager = new ShadowManager(camera);
     this._opaqueQueue = new RenderQueue(engine);
     this._alphaTestQueue = new RenderQueue(engine);
     this._transparentQueue = new RenderQueue(engine);
@@ -143,13 +143,14 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
+    this._shadowManager.render();
 
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();
     this._allSpriteMasks.length = 0;
 
-    camera.engine._componentsManager.callRender(context);
+    camera.engine._componentsManager.callRender(context, opaqueQueue, alphaTestQueue, transparentQueue);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
@@ -195,24 +196,6 @@ export class BasicRenderPipeline {
     }
 
     pass.postRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
-  }
-
-  /**
-   * Push a render element to the render queue.
-   * @param element - Render element
-   */
-  pushPrimitive(element: RenderElement | SpriteElement) {
-    switch (element.material.renderQueueType) {
-      case RenderQueueType.Transparent:
-        this._transparentQueue.pushPrimitive(element);
-        break;
-      case RenderQueueType.AlphaTest:
-        this._alphaTestQueue.pushPrimitive(element);
-        break;
-      case RenderQueueType.Opaque:
-        this._opaqueQueue.pushPrimitive(element);
-        break;
-    }
   }
 
   private _drawBackgroundTexture(engine: Engine, background: Background) {

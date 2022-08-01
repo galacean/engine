@@ -10,6 +10,7 @@ import { BufferMesh } from "../mesh/BufferMesh";
 import { MeshRenderer } from "../mesh/MeshRenderer";
 import { Texture2D } from "../texture";
 import { TrailMaterial } from "./TrailMaterial";
+import { RenderQueue } from "../RenderPipeline/RenderQueue";
 
 const _tempVector3 = new Vector3();
 
@@ -104,12 +105,12 @@ export class TrailRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  _render(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue): void {
     this._updateStrapVertices(camera, this._points);
     this._updateStrapCoords();
     this._vertexBuffer.setData(this._vertices);
 
-    super._render(camera);
+    super._render(camera, opaqueQueue, alphaTestQueue, transparentQueue);
   }
 
   /**

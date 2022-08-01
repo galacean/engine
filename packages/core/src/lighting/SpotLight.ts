@@ -1,6 +1,5 @@
-import { Color, Vector3 } from "@oasis-engine/math";
-import { Shader } from "../shader";
-import { ShaderData } from "../shader/ShaderData";
+import { Color, Matrix, Vector3 } from "@oasis-engine/math";
+import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -38,10 +37,6 @@ export class SpotLight extends Light {
     shaderData.setFloatArray(SpotLight._penumbraCosProperty, data.penumbraCos);
   }
 
-  /** Light color. */
-  color: Color = new Color(1, 1, 1, 1);
-  /** Light intensity. */
-  intensity: number = 1.0;
   /** Defines a distance cutoff at which the light's intensity must be considered zero. */
   distance: number = 100;
   /** Angle, in radians, from centre of spotlight where falloff begins. */
@@ -52,6 +47,7 @@ export class SpotLight extends Light {
   private _forward: Vector3 = new Vector3();
   private _lightColor: Color = new Color(1, 1, 1, 1);
   private _inverseDirection: Vector3 = new Vector3();
+  private _projectMatrix: Matrix = new Matrix();
 
   /**
    * Get light position.
@@ -87,6 +83,13 @@ export class SpotLight extends Light {
     return this._lightColor;
   }
 
+  get shadowProjectionMatrix(): Matrix {
+    const matrix = this._projectMatrix;
+    const fov = Math.min(Math.PI / 2, this.angle * 2 * Math.sqrt(2));
+    Matrix.perspective(fov, 1, this.shadowNearPlane, this.distance + this.shadowNearPlane, matrix);
+    return matrix;
+  }
+
   /**
    * @internal
    */
@@ -116,5 +119,23 @@ export class SpotLight extends Light {
     data.distance[distanceStart] = this.distance;
     data.angleCos[angleCosStart] = Math.cos(this.angle);
     data.penumbraCos[penumbraCosStart] = Math.cos(this.angle + this.penumbra);
+  }
+
+  /**
+   * Mount to the current Scene.
+   * @internal
+   * @override
+   */
+  _onEnable(): void {
+    this.engine._lightManager._attachSpotLight(this);
+  }
+
+  /**
+   * Unmount from the current Scene.
+   * @internal
+   * @override
+   */
+  _onDisable(): void {
+    this.engine._lightManager._detachSpotLight(this);
   }
 }

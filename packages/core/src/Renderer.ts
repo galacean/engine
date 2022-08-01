@@ -1,17 +1,19 @@
-import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, BoundingFrustum, Matrix } from "@oasis-engine/math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Camera } from "./Camera";
 import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { Material } from "./material/Material";
+import { Material, RenderQueueType } from "./material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { Shader } from "./shader";
+import { Shader, ShaderData } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { Transform } from "./Transform";
+import { RenderElement } from "./RenderPipeline/RenderElement";
+import { SpriteElement } from "./RenderPipeline/SpriteElement";
+import { RenderQueue } from "./RenderPipeline/RenderQueue";
 
 /**
  * Basis for all renderers.
@@ -284,9 +286,20 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  _render(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue): void {
     throw "not implement";
   }
+
+  /**
+   * @internal
+   */
+  _shadowRender(
+    frustum: BoundingFrustum,
+    opaqueQueue: RenderQueue,
+    alphaTestQueue: RenderQueue,
+    transparentQueue: RenderQueue,
+    shadowReceiveRenderer: Renderer[]
+  ): void {}
 
   /**
    * @internal
@@ -303,6 +316,25 @@ export class Renderer extends Component {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       materials[i]?._addRefCount(-1);
+    }
+  }
+
+  protected _pushPrimitive(
+    element: RenderElement | SpriteElement,
+    opaqueQueue: RenderQueue,
+    alphaTestQueue: RenderQueue,
+    transparentQueue: RenderQueue
+  ) {
+    switch (element.material.renderQueueType) {
+      case RenderQueueType.Transparent:
+        transparentQueue.pushPrimitive(element);
+        break;
+      case RenderQueueType.AlphaTest:
+        alphaTestQueue.pushPrimitive(element);
+        break;
+      case RenderQueueType.Opaque:
+        opaqueQueue.pushPrimitive(element);
+        break;
     }
   }
 

@@ -1,0 +1,173 @@
+import { Camera } from "../Camera";
+import { Layer } from "../Layer";
+import { RenderQueue } from "../RenderPipeline/RenderQueue";
+import { ShadowMapMaterial } from "./ShadowMapMaterial";
+import { BoundingFrustum, Color, Matrix } from "@oasis-engine/math";
+import { Shader } from "../shader";
+import { RenderTarget, Texture2D } from "../texture";
+import { Light } from "../lighting";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
+import { Renderer } from "../Renderer";
+
+/**
+ * Shadow manager.
+ */
+export class ShadowManager {
+  private static _viewProjMatrix = new Matrix();
+  private static _viewMatFromLightProperty = Shader.getPropertyByName("u_viewMatFromLight");
+  private static _projMatFromLightProperty = Shader.getPropertyByName("u_projMatFromLight");
+  private static _shadowBiasProperty = Shader.getPropertyByName("u_shadowBias");
+  private static _shadowIntensityProperty = Shader.getPropertyByName("u_shadowIntensity");
+  private static _shadowRadiusProperty = Shader.getPropertyByName("u_shadowRadius");
+  private static _shadowMapsProperty = Shader.getPropertyByName("u_shadowMaps");
+
+  private readonly _mapSize: number = 512;
+  private readonly _maxLight: number = 3;
+  private readonly _shadowReceiveRenderer: Renderer[] = [];
+  private readonly _opaqueQueue: RenderQueue;
+  private readonly _transparentQueue: RenderQueue;
+  private readonly _alphaTestQueue: RenderQueue;
+  private readonly _camera: Camera;
+  private _shadowMapMaterial: ShadowMapMaterial;
+  private _frustums = new BoundingFrustum();
+  private _shadowMapCount = 0;
+  private _clearColor = new Color();
+
+  private _combinedData = {
+    viewMatrix: new Float32Array(16 * this._maxLight),
+    projectionMatrix: new Float32Array(16 * this._maxLight),
+    bias: new Float32Array(this._maxLight),
+    intensity: new Float32Array(this._maxLight),
+    radius: new Float32Array(this._maxLight),
+    map: new Array<Texture2D>(1) // todo
+  };
+  private _renderTargets = new Array<RenderTarget>(1); // todo
+
+  constructor(camera: Camera) {
+    this._camera = camera;
+    const engine = camera.engine;
+    this._opaqueQueue = new RenderQueue(engine);
+    this._alphaTestQueue = new RenderQueue(engine);
+    this._transparentQueue = new RenderQueue(engine);
+  }
+
+  /**
+   * Clear all shadow maps.
+   */
+  clearMap() {
+    this._combinedData.map.length = 0;
+  }
+
+  /**
+   * Render ShadowMap
+   */
+  render() {
+    // render shadowMap
+    this._shadowMapCount = 0;
+    this._renderSpotShadowMap();
+
+    // upload shadow data
+    const shadowMapCount = this._shadowMapCount;
+    const shadowReceiveRenderer = this._shadowReceiveRenderer;
+    if (shadowMapCount) {
+      this._updateShaderData();
+      for (let i = 0; i < shadowReceiveRenderer.length; i++) {
+        const renderer = shadowReceiveRenderer[i];
+        renderer.shaderData.enableMacro("O3_SHADOW_MAP_COUNT", shadowMapCount.toString());
+      }
+    } else {
+      for (let i = 0; i < shadowReceiveRenderer.length; i++) {
+        const renderer = shadowReceiveRenderer[i];
+        renderer.shaderData.disableMacro("O3_SHADOW_MAP_COUNT");
+      }
+    }
+  }
+
+  private _renderSpotShadowMap() {
+    const camera = this._camera;
+    const engine = camera.engine;
+    const mapSize = this._mapSize;
+    const rhi = engine._hardwareRenderer;
+    const frustums = this._frustums;
+    const opaqueQueue = this._opaqueQueue;
+    const alphaTestQueue = this._alphaTestQueue;
+    const transparentQueue = this._transparentQueue;
+    const shadowReceiveRenderer = this._shadowReceiveRenderer;
+    const lights = camera.engine._lightManager._spotLights;
+    if (lights.length > 0) {
+      for (let i = 0, len = lights.length; i < len; i++) {
+        const lgt = lights.get(i);
+        if (lgt.enableShadow) {
+          let renderTarget = this._renderTargets[this._shadowMapCount];
+          if (renderTarget == null) {
+            renderTarget = this._renderTargets[this._shadowMapCount] = new RenderTarget(
+              engine,
+              mapSize,
+              mapSize,
+              new Texture2D(engine, mapSize, mapSize)
+            );
+          }
+          rhi.activeRenderTarget(renderTarget, camera, null);
+          rhi.clearRenderTarget(camera.engine, CameraClearFlags.Depth, this._clearColor);
+
+          this._shadowMapMaterial = this._shadowMapMaterial || new ShadowMapMaterial(camera.engine);
+          const shadowMapMaterial = this._shadowMapMaterial;
+          shadowMapMaterial.light = lgt;
+
+          opaqueQueue.clear();
+          alphaTestQueue.clear();
+          transparentQueue.clear();
+          shadowReceiveRenderer.length = 0;
+          Matrix.multiply(lgt.shadowProjectionMatrix, lgt.viewMatrix, ShadowManager._viewProjMatrix);
+          frustums.calculateFromMatrix(ShadowManager._viewProjMatrix);
+          camera.engine._componentsManager.callShadowRender(
+            frustums,
+            opaqueQueue,
+            alphaTestQueue,
+            transparentQueue,
+            shadowReceiveRenderer
+          );
+          opaqueQueue.sort(RenderQueue._compareFromNearToFar);
+          alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
+          transparentQueue.sort(RenderQueue._compareFromFarToNear);
+
+          opaqueQueue.render(camera, shadowMapMaterial, Layer.Everything);
+          alphaTestQueue.render(camera, shadowMapMaterial, Layer.Everything);
+          transparentQueue.render(camera, shadowMapMaterial, Layer.Everything);
+          // shader data
+          this._appendData(this._shadowMapCount++, lgt);
+        }
+      }
+    }
+  }
+
+  private _appendData(lightIndex: number, light: Light): void {
+    const viewStart = lightIndex * 16;
+    const projectionStart = lightIndex * 16;
+    const biasStart = lightIndex;
+    const intensityStart = lightIndex;
+    const radiusStart = lightIndex;
+    const mapStart = lightIndex;
+
+    const data = this._combinedData;
+
+    data.viewMatrix.set(light.viewMatrix.elements, viewStart);
+    data.projectionMatrix.set(light.shadowProjectionMatrix.elements, projectionStart);
+    data.bias[biasStart] = light.shadowBias;
+    data.intensity[intensityStart] = light.shadowStrength;
+    data.radius[radiusStart] = light.shadowRadius;
+    data.map[mapStart] = <Texture2D>this._renderTargets[lightIndex].getColorTexture();
+  }
+
+  private _updateShaderData() {
+    const data = this._combinedData;
+    const shaderData = this._camera.scene.shaderData;
+
+    shaderData.setFloatArray(ShadowManager._viewMatFromLightProperty, data.viewMatrix);
+    shaderData.setFloatArray(ShadowManager._projMatFromLightProperty, data.projectionMatrix);
+    shaderData.setFloatArray(ShadowManager._shadowBiasProperty, data.bias);
+    shaderData.setFloatArray(ShadowManager._shadowIntensityProperty, data.intensity);
+    shaderData.setFloatArray(ShadowManager._shadowRadiusProperty, data.radius);
+    shaderData.setTextureArray(ShadowManager._shadowMapsProperty, data.map);
+  }
+}

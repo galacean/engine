@@ -18,6 +18,7 @@ import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { Engine } from "../../Engine";
+import { RenderQueue } from "../../RenderPipeline/RenderQueue";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -235,7 +236,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  _render(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
@@ -256,7 +257,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     // Push primitive.
     const spriteElement = this._engine._spriteElementPool.getFromPool();
     spriteElement.setValue(this, this._renderData, this.getMaterial(), this.sprite.texture);
-    camera._renderPipeline.pushPrimitive(spriteElement);
+    this._pushPrimitive(spriteElement, opaqueQueue, alphaTestQueue, transparentQueue);
   }
 
   /**

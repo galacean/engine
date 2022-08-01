@@ -1,6 +1,5 @@
-import { Color, Vector3 } from "@oasis-engine/math";
-import { Shader } from "../shader";
-import { ShaderData } from "../shader/ShaderData";
+import { Color, Matrix, Vector3 } from "@oasis-engine/math";
+import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -25,9 +24,6 @@ export class DirectLight extends Light {
     shaderData.setFloatArray(DirectLight._colorProperty, data.color);
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
-
-  color: Color = new Color(1, 1, 1, 1);
-  intensity: number = 1;
 
   private _forward: Vector3 = new Vector3();
   private _lightColor: Color = new Color(1, 1, 1, 1);
@@ -60,6 +56,10 @@ export class DirectLight extends Light {
     return this._reverseDirection;
   }
 
+  get shadowProjectionMatrix(): Matrix {
+    throw "Unknown!";
+  }
+
   /**
    * @internal
    */
@@ -77,5 +77,23 @@ export class DirectLight extends Light {
     data.direction[directionStart] = direction.x;
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
+  }
+
+  /**
+   * Mount to the current Scene.
+   * @internal
+   * @override
+   */
+  _onEnable(): void {
+    this.engine._lightManager._attachDirectLight(this);
+  }
+
+  /**
+   * Unmount from the current Scene.
+   * @internal
+   * @override
+   */
+  _onDisable(): void {
+    this.engine._lightManager._detachDirectLight(this);
   }
 }
