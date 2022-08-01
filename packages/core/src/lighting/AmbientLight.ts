@@ -26,7 +26,7 @@ export class AmbientLight {
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
   private _diffuseIntensity: number = 1.0;
-  private _specularReflection: TextureCube;
+  private _specularTexture: TextureCube;
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
@@ -119,11 +119,11 @@ export class AmbientLight {
    * @remarks This texture must be baked from @oasis-engine/baker
    */
   get specularTexture(): TextureCube {
-    return this._specularReflection;
+    return this._specularTexture;
   }
 
   set specularTexture(value: TextureCube) {
-    this._specularReflection = value;
+    this._specularTexture = value;
 
     const scenes = this._scenes;
     for (let i = 0, n = scenes.length; i < n; i++) {
@@ -181,9 +181,9 @@ export class AmbientLight {
   }
 
   private _setSpecularTexture(sceneShaderData: ShaderData): void {
-    if (this._specularReflection) {
-      sceneShaderData.setTexture(AmbientLight._specularTextureProperty, this._specularReflection);
-      sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount - 1);
+    if (this._specularTexture) {
+      sceneShaderData.setTexture(AmbientLight._specularTextureProperty, this._specularTexture);
+      sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularTexture.mipmapCount - 1);
       sceneShaderData.enableMacro(AmbientLight._specularMacro);
     } else {
       sceneShaderData.disableMacro(AmbientLight._specularMacro);
