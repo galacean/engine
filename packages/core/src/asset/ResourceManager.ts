@@ -253,7 +253,7 @@ export class ResourceManager {
         delete this._loadingPromises[url];
       })
       .catch((err: Error) => {
-        Promise.reject(err);
+        Promise.reject(err)
         delete this._loadingPromises[url];
       });
     return promise;
