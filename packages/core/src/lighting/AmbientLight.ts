@@ -150,7 +150,7 @@ export class AmbientLight {
   /**
    * @internal
    */
-  _addScene(scene: Scene): void {
+  _addToScene(scene: Scene): void {
     this._scenes.push(scene);
 
     const shaderData = scene.shaderData;
@@ -170,7 +170,7 @@ export class AmbientLight {
   /**
    * @internal
    */
-  _removeScene(scene: Scene): void {
+  _removeFromScene(scene: Scene): void {
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     scenes.splice(index, 1);
