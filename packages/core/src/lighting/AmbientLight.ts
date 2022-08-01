@@ -30,8 +30,14 @@ export class AmbientLight {
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
-  private _scene: Scene;
+  private _scenes = new Map<Scene, Scene>();
   private _specularTextureDecodeRGBM: boolean = false;
+
+  private _traverseScene(callback: (scene: Scene) => void) {
+    this._scenes.forEach((scene) => {
+      callback(scene);
+    });
+  }
 
   /**
    * Whether to decode from specularTexture with RGBM format.
@@ -42,13 +48,14 @@ export class AmbientLight {
 
   set specularTextureDecodeRGBM(value: boolean) {
     this._specularTextureDecodeRGBM = value;
-    if (!this._scene) return;
 
-    if (value) {
-      this._scene.shaderData.enableMacro(AmbientLight._decodeRGBMMacro);
-    } else {
-      this._scene.shaderData.disableMacro(AmbientLight._decodeRGBMMacro);
-    }
+    this._traverseScene((scene) => {
+      if (value) {
+        scene.shaderData.enableMacro(AmbientLight._decodeRGBMMacro);
+      } else {
+        scene.shaderData.disableMacro(AmbientLight._decodeRGBMMacro);
+      }
+    });
   }
 
   /**
@@ -60,13 +67,14 @@ export class AmbientLight {
 
   set diffuseMode(value: DiffuseMode) {
     this._diffuseMode = value;
-    if (!this._scene) return;
 
-    if (value === DiffuseMode.SphericalHarmonics) {
-      this._scene.shaderData.enableMacro(AmbientLight._shMacro);
-    } else {
-      this._scene.shaderData.disableMacro(AmbientLight._shMacro);
-    }
+    this._traverseScene((scene) => {
+      if (value === DiffuseMode.SphericalHarmonics) {
+        scene.shaderData.enableMacro(AmbientLight._shMacro);
+      } else {
+        scene.shaderData.disableMacro(AmbientLight._shMacro);
+      }
+    });
   }
 
   /**
@@ -93,11 +101,12 @@ export class AmbientLight {
 
   set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
     this._diffuseSphericalHarmonics = value;
-    if (!this._scene) return;
 
-    if (value) {
-      this._scene.shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._preComputeSH(value, this._shArray));
-    }
+    this._traverseScene((scene) => {
+      if (value) {
+        scene.shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._preComputeSH(value, this._shArray));
+      }
+    });
   }
 
   /**
@@ -109,9 +118,12 @@ export class AmbientLight {
 
   set diffuseIntensity(value: number) {
     this._diffuseIntensity = value;
-    if (!this._scene) return;
 
-    this._scene.shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value);
+    this._traverseScene((scene) => {
+      if (value) {
+        scene.shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value);
+      }
+    });
   }
 
   /**
@@ -124,17 +136,18 @@ export class AmbientLight {
 
   set specularTexture(value: TextureCube) {
     this._specularReflection = value;
-    if (!this._scene) return;
 
-    const shaderData = this._scene.shaderData;
+    this._traverseScene((scene) => {
+      const shaderData = scene.shaderData;
 
-    if (value) {
-      shaderData.setTexture(AmbientLight._specularTextureProperty, value);
-      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount - 1);
-      shaderData.enableMacro(AmbientLight._specularMacro);
-    } else {
-      shaderData.disableMacro(AmbientLight._specularMacro);
-    }
+      if (value) {
+        shaderData.setTexture(AmbientLight._specularTextureProperty, value);
+        shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount - 1);
+        shaderData.enableMacro(AmbientLight._specularMacro);
+      } else {
+        shaderData.disableMacro(AmbientLight._specularMacro);
+      }
+    });
   }
 
   /**
@@ -146,17 +159,21 @@ export class AmbientLight {
 
   set specularIntensity(value: number) {
     this._specularIntensity = value;
-    if (!this._scene) return;
 
-    this._scene.shaderData.setFloat(AmbientLight._specularIntensityProperty, value);
+    this._traverseScene((scene) => {
+      if (value) {
+        scene.shaderData.setFloat(AmbientLight._specularIntensityProperty, value);
+      }
+    });
   }
 
-  /**
-   * @internal
-   */
-  _setScene(value: Scene) {
-    this._scene = value;
-    if (!value) return;
+  /** @internal */
+  _addScene(value: Scene): void {
+    if (!value) {
+      return;
+    }
+
+    this._scenes.set(value, value);
 
     const { shaderData } = value;
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
@@ -167,6 +184,16 @@ export class AmbientLight {
     this.specularTexture = this._specularReflection;
     this.specularIntensity = this._specularIntensity;
     this.specularTextureDecodeRGBM = this._specularTextureDecodeRGBM;
+  }
+
+  /** @internal */
+  _removeScene(value: Scene): void {
+    this._scenes.delete(value);
+  }
+
+  /** @internal */
+  _getScene(value: Scene): Scene {
+    return this._scenes.get(value);
   }
 
   private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
