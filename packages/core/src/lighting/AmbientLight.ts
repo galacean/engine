@@ -89,12 +89,11 @@ export class AmbientLight {
 
   set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
     this._diffuseSphericalHarmonics = value;
-
     if (value) {
+      this._preComputeSH(value, this._shArray);
       const scenes = this._scenes;
-      const sh = this._preComputeSH(value, this._shArray);
       for (let i = 0, n = scenes.length; i < n; i++) {
-        scenes[i].shaderData.setFloatArray(AmbientLight._diffuseSHProperty, sh);
+        scenes[i].shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._shArray);
       }
     }
   }
@@ -157,10 +156,7 @@ export class AmbientLight {
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
     shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
     shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
-    shaderData.setFloatArray(
-      AmbientLight._diffuseSHProperty,
-      this._preComputeSH(this._diffuseSphericalHarmonics, this._shArray)
-    );
+    shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._shArray);
 
     this._setDiffuseMode(shaderData);
     this._setSpecularTextureDecodeRGBM(shaderData);
@@ -202,7 +198,7 @@ export class AmbientLight {
     }
   }
 
-  private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
+  private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): void {
     /**
      * Basis constants
      *
@@ -261,7 +257,5 @@ export class AmbientLight {
     out[24] = src[24] * 0.429042; // kernel2 * basis8 = 0.429042
     out[25] = src[25] * 0.429042;
     out[26] = src[26] * 0.429042;
-
-    return out;
   }
 }
