@@ -7,8 +7,8 @@ import {
   LoadItem,
   resourceLoader,
   ResourceManager,
+  TextureCube,
   TextureCubeFace,
-  TextureCubeMap,
   TextureFilterMode
 } from "@oasis-engine/core";
 import { SphericalHarmonics3 } from "@oasis-engine/math";
@@ -27,7 +27,7 @@ class EnvLoader extends Loader<AmbientLight> {
           const shByteLength = 27 * 4;
           const size = new Uint16Array(arraybuffer, shByteLength, 1)?.[0];
 
-          const texture = new TextureCubeMap(resourceManager.engine, size);
+          const texture = new TextureCube(resourceManager.engine, size);
           texture.filterMode = TextureFilterMode.Trilinear;
           const mipmapCount = texture.mipmapCount;
           let offset = shByteLength + 2;
@@ -47,7 +47,7 @@ class EnvLoader extends Loader<AmbientLight> {
           const sh = new SphericalHarmonics3();
 
           ambientLight.diffuseMode = DiffuseMode.SphericalHarmonics;
-          sh.setValueByArray(shArray);
+          sh.copyFromArray(shArray);
           ambientLight.diffuseSphericalHarmonics = sh;
           ambientLight.specularTexture = texture;
           ambientLight.specularTextureDecodeRGBM = true;

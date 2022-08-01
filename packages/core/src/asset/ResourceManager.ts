@@ -5,6 +5,8 @@ import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
 
+type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
+type EditorResourceConfig = Record<string, EditorResourceItem>;
 /**
  * ResourceManager
  */
@@ -34,6 +36,12 @@ export class ResourceManager {
   retryInterval: number = 0;
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = 20000;
+  /** @internal */
+  _objectPool: { [key: string]: any } = Object.create(null);
+  /** @internal */
+  _editorResourceConfig: EditorResourceConfig = Object.create(null);
+  /** @internal */
+  _virtualPathMap: Record<string, string> = Object.create(null);
 
   /** Asset path pool, key is asset ID, value is asset path */
   private _assetPool: { [key: number]: string } = Object.create(null);
@@ -137,6 +145,29 @@ export class ResourceManager {
   }
 
   /**
+   * @beta Just for internal editor, not recommended for developers.
+   */
+  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
+    const { refId, key, isClone } = ref;
+    const obj = this._objectPool[refId];
+    const promise = obj
+      ? Promise.resolve(obj)
+      : this.load<any>({ type: this._editorResourceConfig[refId].type, url: this._editorResourceConfig[refId].path });
+    return promise.then((res) => (key ? res[key] : res)).then((item) => (isClone ? item.clone() : item));
+  }
+
+  /** 
+   * @internal
+   * @beta Just for internal editor, not recommended for developers.
+   */
+  initVirtualResources(config: EditorResourceItem[]): void {
+    config.forEach((element) => {
+      this._virtualPathMap[element.virtualPath] = element.path;
+      this._editorResourceConfig[element.id] = element;
+    });
+  }
+
+  /**
    * @internal
    */
   _addAsset(path: string, asset: EngineObject): void {
@@ -196,7 +227,9 @@ export class ResourceManager {
 
   private _loadSingleItem<T>(item: LoadItem | string): AssetPromise<T> {
     const info = this._assignDefaultOptions(typeof item === "string" ? { url: item } : item);
-    const url = info.url;
+    const infoUrl = info.url;
+    // check url mapping
+    const url = this._virtualPathMap[infoUrl] ? this._virtualPathMap[infoUrl] : infoUrl;
     // has cache
     if (this._assetUrlPool[url]) {
       return new AssetPromise((resolve) => {
@@ -208,14 +241,19 @@ export class ResourceManager {
       return this._loadingPromises[info.url];
     }
     const loader = ResourceManager._loaders[info.type];
+    if (!loader) {
+      throw `loader not found: ${info.type}`;
+    }
+    info.url = url;
     const promise = loader.load(info, this);
     this._loadingPromises[url] = promise;
     promise
       .then((res: EngineObject) => {
         if (loader.useCache) this._addAsset(url, res);
+        delete this._loadingPromises[url];
       })
-      .catch((err: Error) => Promise.reject(err))
-      .finally(() => {
+      .catch((err: Error) => {
+        Promise.reject(err);
         delete this._loadingPromises[url];
       });
     return promise;

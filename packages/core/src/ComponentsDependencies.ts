@@ -14,11 +14,9 @@ export class ComponentsDependencies {
   private static _invDependenciesMap = new Map<ComponentConstructor, ComponentConstructor[]>();
 
   /**
-   * Register component dependencies.
-   * @param currentComponent - The component you want to be register.
-   * @param dependentComponent - The component's dependencies.
+   * @internal
    */
-  static register(currentComponent: ComponentConstructor, dependentComponent: ComponentConstructor) {
+  static _register(currentComponent: ComponentConstructor, dependentComponent: ComponentConstructor): void {
     this._addDependency(currentComponent, dependentComponent, this._dependenciesMap);
     this._addDependency(dependentComponent, currentComponent, this._invDependenciesMap);
   }
@@ -26,13 +24,14 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _addCheck(entity: Entity, type: ComponentConstructor) {
+  static _addCheck(entity: Entity, type: ComponentConstructor): void {
     // Check if there are dependent components.
-    const dependencies = ComponentsDependencies._dependenciesMap.get(type);
-    if (dependencies) {
-      for (let i = 0, len = dependencies.length; i < len; i++) {
-        if (!entity.getComponent(dependencies[i])) {
-          throw `you should add ${dependencies[i]} before adding ${type}`;
+    const dependentComponents = ComponentsDependencies._dependenciesMap.get(type);
+    if (dependentComponents) {
+      for (let i = 0, n = dependentComponents.length; i < n; i++) {
+        const dependentComponent = dependentComponents[i];
+        if (!entity.getComponent(dependentComponent)) {
+          entity.addComponent(dependentComponent);
         }
       }
     }
@@ -41,7 +40,7 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _removeCheck(entity: Entity, type: ComponentConstructor) {
+  static _removeCheck(entity: Entity, type: ComponentConstructor): void {
     const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
     if (invDependencies) {
       for (let i = 0, len = invDependencies.length; i < len; i++) {
@@ -55,8 +54,8 @@ export class ComponentsDependencies {
   private static _addDependency(
     currentComponent: ComponentConstructor,
     dependentComponent: ComponentConstructor,
-    map: Map<any, any>
-  ) {
+    map: Map<ComponentConstructor, ComponentConstructor[]>
+  ): void {
     let components = map.get(currentComponent);
     if (!components) {
       components = [];
@@ -70,8 +69,12 @@ export class ComponentsDependencies {
   private constructor() {}
 }
 
-export function dependencies(...abilityClass: ComponentConstructor[]) {
+/**
+ * Dependent components, automatically added if they do not exist.
+ * @param components -  Dependent components
+ */
+export function dependentComponents(...components: ComponentConstructor[]) {
   return function <T extends ComponentConstructor>(target: T): void {
-    abilityClass.forEach((ability) => ComponentsDependencies.register(target, ability));
+    components.forEach((component) => ComponentsDependencies._register(target, component));
   };
 }

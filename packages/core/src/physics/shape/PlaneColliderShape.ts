@@ -1,7 +1,7 @@
-import { ColliderShape } from "./ColliderShape";
-import { PhysicsManager } from "../PhysicsManager";
-import { Vector3 } from "@oasis-engine/math";
 import { IPlaneColliderShape } from "@oasis-engine/design";
+import { Vector3 } from "@oasis-engine/math";
+import { PhysicsManager } from "../PhysicsManager";
+import { ColliderShape } from "./ColliderShape";
 
 /**
  * Physical collider shape plane.
@@ -18,7 +18,7 @@ export class PlaneColliderShape extends ColliderShape {
 
   set rotation(value: Vector3) {
     if (this._rotation != value) {
-      value.cloneTo(this._rotation);
+      this._rotation.copyFrom(value);
     }
     (<IPlaneColliderShape>this._nativeShape).setRotation(value);
   }
@@ -38,7 +38,7 @@ export class PlaneColliderShape extends ColliderShape {
    * @param z - Radian of roll
    */
   setRotation(x: number, y: number, z: number): void {
-    this._rotation.setValue(x, y, z);
+    this._rotation.set(x, y, z);
     (<IPlaneColliderShape>this._nativeShape).setRotation(this._rotation);
   }
 }

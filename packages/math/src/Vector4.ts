@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";
@@ -6,7 +7,7 @@ import { Quaternion } from "./Quaternion";
 /**
  * Describes a 4D-vector.
  */
-export class Vector4 implements IClone {
+export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
   /** @internal */
   static readonly _zero = new Vector4(0.0, 0.0, 0.0, 0.0);
   /** @internal */
@@ -19,10 +20,11 @@ export class Vector4 implements IClone {
    * @param out - The sum of two vectors
    */
   static add(left: Vector4, right: Vector4, out: Vector4): void {
-    out.x = left.x + right.x;
-    out.y = left.y + right.y;
-    out.z = left.z + right.z;
-    out.w = left.w + right.w;
+    out._x = left._x + right._x;
+    out._y = left._y + right._y;
+    out._z = left._z + right._z;
+    out._w = left._w + right._w;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -32,10 +34,11 @@ export class Vector4 implements IClone {
    * @param out - The difference between two vectors
    */
   static subtract(left: Vector4, right: Vector4, out: Vector4): void {
-    out.x = left.x - right.x;
-    out.y = left.y - right.y;
-    out.z = left.z - right.z;
-    out.w = left.w - right.w;
+    out._x = left._x - right._x;
+    out._y = left._y - right._y;
+    out._z = left._z - right._z;
+    out._w = left._w - right._w;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -45,10 +48,11 @@ export class Vector4 implements IClone {
    * @param out - The product of two vectors
    */
   static multiply(left: Vector4, right: Vector4, out: Vector4): void {
-    out.x = left.x * right.x;
-    out.y = left.y * right.y;
-    out.z = left.z * right.z;
-    out.w = left.w * right.w;
+    out._x = left._x * right._x;
+    out._y = left._y * right._y;
+    out._z = left._z * right._z;
+    out._w = left._w * right._w;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -58,10 +62,11 @@ export class Vector4 implements IClone {
    * @param out - The divisor of two vectors
    */
   static divide(left: Vector4, right: Vector4, out: Vector4): void {
-    out.x = left.x / right.x;
-    out.y = left.y / right.y;
-    out.z = left.z / right.z;
-    out.w = left.w / right.w;
+    out._x = left._x / right._x;
+    out._y = left._y / right._y;
+    out._z = left._z / right._z;
+    out._w = left._w / right._w;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -71,7 +76,7 @@ export class Vector4 implements IClone {
    * @returns The dot product of two vectors
    */
   static dot(left: Vector4, right: Vector4): number {
-    return left.x * right.x + left.y * right.y + left.z * right.z + left.w * right.w;
+    return left._x * right._x + left._y * right._y + left._z * right._z + left._w * right._w;
   }
 
   /**
@@ -81,10 +86,10 @@ export class Vector4 implements IClone {
    * @returns The distance of two vectors
    */
   static distance(a: Vector4, b: Vector4): number {
-    const x = b.x - a.x;
-    const y = b.y - a.y;
-    const z = b.z - a.z;
-    const w = b.w - a.w;
+    const x = b._x - a._x;
+    const y = b._y - a._y;
+    const z = b._z - a._z;
+    const w = b._w - a._w;
     return Math.sqrt(x * x + y * y + z * z + w * w);
   }
 
@@ -95,10 +100,10 @@ export class Vector4 implements IClone {
    * @returns The squared distance of two vectors
    */
   static distanceSquared(a: Vector4, b: Vector4): number {
-    const x = b.x - a.x;
-    const y = b.y - a.y;
-    const z = b.z - a.z;
-    const w = b.w - a.w;
+    const x = b._x - a._x;
+    const y = b._y - a._y;
+    const z = b._z - a._z;
+    const w = b._w - a._w;
     return x * x + y * y + z * z + w * w;
   }
 
@@ -110,10 +115,10 @@ export class Vector4 implements IClone {
    */
   static equals(left: Vector4, right: Vector4): boolean {
     return (
-      MathUtil.equals(left.x, right.x) &&
-      MathUtil.equals(left.y, right.y) &&
-      MathUtil.equals(left.z, right.z) &&
-      MathUtil.equals(left.w, right.w)
+      MathUtil.equals(left._x, right._x) &&
+      MathUtil.equals(left._y, right._y) &&
+      MathUtil.equals(left._z, right._z) &&
+      MathUtil.equals(left._w, right._w)
     );
   }
 
@@ -125,11 +130,12 @@ export class Vector4 implements IClone {
    * @param out - The result of linear blending between two vectors
    */
   static lerp(start: Vector4, end: Vector4, t: number, out: Vector4): void {
-    const { x, y, z, w } = start;
-    out.x = x + (end.x - x) * t;
-    out.y = y + (end.y - y) * t;
-    out.z = z + (end.z - z) * t;
-    out.w = w + (end.w - w) * t;
+    const { _x, _y, _z, _w } = start;
+    out._x = _x + (end._x - _x) * t;
+    out._y = _y + (end._y - _y) * t;
+    out._z = _z + (end._z - _z) * t;
+    out._w = _w + (end._w - _w) * t;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -139,10 +145,11 @@ export class Vector4 implements IClone {
    * @param out - The vector containing the largest components of the specified vectors
    */
   static max(left: Vector4, right: Vector4, out: Vector4): void {
-    out.x = Math.max(left.x, right.x);
-    out.y = Math.max(left.y, right.y);
-    out.z = Math.max(left.z, right.z);
-    out.w = Math.max(left.w, right.w);
+    out._x = Math.max(left._x, right._x);
+    out._y = Math.max(left._y, right._y);
+    out._z = Math.max(left._z, right._z);
+    out._w = Math.max(left._w, right._w);
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -152,10 +159,11 @@ export class Vector4 implements IClone {
    * @param out - The vector containing the smallest components of the specified vectors
    */
   static min(left: Vector4, right: Vector4, out: Vector4): void {
-    out.x = Math.min(left.x, right.x);
-    out.y = Math.min(left.y, right.y);
-    out.z = Math.min(left.z, right.z);
-    out.w = Math.min(left.w, right.w);
+    out._x = Math.min(left._x, right._x);
+    out._y = Math.min(left._y, right._y);
+    out._z = Math.min(left._z, right._z);
+    out._w = Math.min(left._w, right._w);
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -164,10 +172,11 @@ export class Vector4 implements IClone {
    * @param out - The vector facing in the opposite direction
    */
   static negate(a: Vector4, out: Vector4): void {
-    out.x = -a.x;
-    out.y = -a.y;
-    out.z = -a.z;
-    out.w = -a.w;
+    out._x = -a._x;
+    out._y = -a._y;
+    out._z = -a._z;
+    out._w = -a._w;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -176,14 +185,15 @@ export class Vector4 implements IClone {
    * @param out - The normalized vector
    */
   static normalize(a: Vector4, out: Vector4): void {
-    const { x, y, z, w } = a;
-    let len: number = Math.sqrt(x * x + y * y + z * z + w * w);
+    const { _x, _y, _z, _w } = a;
+    let len = Math.sqrt(_x * _x + _y * _y + _z * _z + _w * _w);
     if (len > MathUtil.zeroTolerance) {
       len = 1 / len;
-      out.x = x * len;
-      out.y = y * len;
-      out.z = z * len;
-      out.w = w * len;
+      out._x = _x * len;
+      out._y = _y * len;
+      out._z = _z * len;
+      out._w = _w * len;
+      out._onValueChanged && out._onValueChanged();
     }
   }
 
@@ -194,10 +204,11 @@ export class Vector4 implements IClone {
    * @param out - The scaled vector
    */
   static scale(a: Vector4, s: number, out: Vector4): void {
-    out.x = a.x * s;
-    out.y = a.y * s;
-    out.z = a.z * s;
-    out.w = a.w * s;
+    out._x = a._x * s;
+    out._y = a._y * s;
+    out._z = a._z * s;
+    out._w = a._w * s;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -207,12 +218,13 @@ export class Vector4 implements IClone {
    * @param out - The transformed vector3
    */
   static transform(v: Vector4, m: Matrix, out: Vector4): void {
-    const { x, y, z, w } = v;
+    const { _x, _y, _z, _w } = v;
     const e = m.elements;
-    out.x = x * e[0] + y * e[4] + z * e[8] + w * e[12];
-    out.y = x * e[1] + y * e[5] + z * e[9] + w * e[13];
-    out.z = x * e[2] + y * e[6] + z * e[10] + w * e[14];
-    out.w = x * e[3] + y * e[7] + z * e[11] + w * e[15];
+    out._x = _x * e[0] + _y * e[4] + _z * e[8] + _w * e[12];
+    out._y = _x * e[1] + _y * e[5] + _z * e[9] + _w * e[13];
+    out._z = _x * e[2] + _y * e[6] + _z * e[10] + _w * e[14];
+    out._w = _x * e[3] + _y * e[7] + _z * e[11] + _w * e[15];
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -222,11 +234,11 @@ export class Vector4 implements IClone {
    * @param out - The transformed vector
    */
   static transformByQuat(v: Vector4, q: Quaternion, out: Vector4): void {
-    const { x, y, z, w } = v;
-    const qx = q.x;
-    const qy = q.y;
-    const qz = q.z;
-    const qw = q.w;
+    const { _x: x, _y: y, _z: z, _w: w } = v;
+    const qx = q._x;
+    const qy = q._y;
+    const qz = q._z;
+    const qw = q._w;
 
     // calculate quat * vec
     const ix = qw * x + qy * z - qz * y;
@@ -235,20 +247,71 @@ export class Vector4 implements IClone {
     const iw = -qx * x - qy * y - qz * z;
 
     // calculate result * inverse quat
-    out.x = ix * qw - iw * qx - iy * qz + iz * qy;
-    out.y = iy * qw - iw * qy - iz * qx + ix * qz;
-    out.z = iz * qw - iw * qz - ix * qy + iy * qx;
-    out.w = w;
+    out._x = ix * qw - iw * qx - iy * qz + iz * qy;
+    out._y = iy * qw - iw * qy - iz * qx + ix * qz;
+    out._z = iz * qw - iw * qz - ix * qy + iy * qx;
+    out._w = w;
+    out._onValueChanged && out._onValueChanged();
   }
 
-  /** The x component of the vector. */
-  x: number;
-  /** The y component of the vector. */
-  y: number;
-  /** The z component of the vector. */
-  z: number;
-  /** The w component of the vector. */
-  w: number;
+  /** @internal */
+  _x: number;
+  /** @internal */
+  _y: number;
+  /** @internal */
+  _z: number;
+  /** @internal */
+  _w: number;
+  /** @internal */
+  _onValueChanged: () => void = null;
+
+  /**
+   * The x component of the vector.
+   */
+  public get x(): number {
+    return this._x;
+  }
+
+  public set x(value: number) {
+    this._x = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The y component of the vector.
+   */
+  public get y(): number {
+    return this._y;
+  }
+
+  public set y(value: number) {
+    this._y = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The z component of the vector.
+   */
+  public get z(): number {
+    return this._z;
+  }
+
+  public set z(value: number) {
+    this._z = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The w component of the vector.
+   */
+  public get w(): number {
+    return this._w;
+  }
+
+  public set w(value: number) {
+    this._w = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * Constructor of Vector4.
@@ -258,10 +321,10 @@ export class Vector4 implements IClone {
    * @param w - The w component of the vector, default 0
    */
   constructor(x: number = 0, y: number = 0, z: number = 0, w: number = 0) {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.w = w;
+    this._x = x;
+    this._y = y;
+    this._z = z;
+    this._w = w;
   }
 
   /**
@@ -272,25 +335,12 @@ export class Vector4 implements IClone {
    * @param w - The w component of the vector
    * @returns This vector
    */
-  setValue(x: number, y: number, z: number, w: number): Vector4 {
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.w = w;
-    return this;
-  }
-
-  /**
-   * Set the value of this vector by an array.
-   * @param array - The array
-   * @param offset - The start offset of the array
-   * @returns This vector
-   */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector4 {
-    this.x = array[offset];
-    this.y = array[offset + 1];
-    this.z = array[offset + 2];
-    this.w = array[offset + 3];
+  set(x: number, y: number, z: number, w: number): Vector4 {
+    this._x = x;
+    this._y = y;
+    this._z = z;
+    this._w = w;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -300,10 +350,11 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   add(right: Vector4): Vector4 {
-    this.x += right.x;
-    this.y += right.y;
-    this.z += right.z;
-    this.w += right.w;
+    this._x += right._x;
+    this._y += right._y;
+    this._z += right._z;
+    this._w += right._w;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -313,10 +364,11 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   subtract(right: Vector4): Vector4 {
-    this.x -= right.x;
-    this.y -= right.y;
-    this.z -= right.z;
-    this.w -= right.w;
+    this._x -= right._x;
+    this._y -= right._y;
+    this._z -= right._z;
+    this._w -= right._w;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -326,10 +378,11 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   multiply(right: Vector4): Vector4 {
-    this.x *= right.x;
-    this.y *= right.y;
-    this.z *= right.z;
-    this.w *= right.w;
+    this._x *= right._x;
+    this._y *= right._y;
+    this._z *= right._z;
+    this._w *= right._w;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -339,10 +392,11 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   divide(right: Vector4): Vector4 {
-    this.x /= right.x;
-    this.y /= right.y;
-    this.z /= right.z;
-    this.w /= right.w;
+    this._x /= right._x;
+    this._y /= right._y;
+    this._z /= right._z;
+    this._w /= right._w;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -351,8 +405,8 @@ export class Vector4 implements IClone {
    * @returns The length of this vector
    */
   length(): number {
-    const { x, y, z, w } = this;
-    return Math.sqrt(x * x + y * y + z * z + w * w);
+    const { _x, _y, _z, _w } = this;
+    return Math.sqrt(_x * _x + _y * _y + _z * _z + _w * _w);
   }
 
   /**
@@ -360,8 +414,8 @@ export class Vector4 implements IClone {
    * @returns The squared length of this vector
    */
   lengthSquared(): number {
-    const { x, y, z, w } = this;
-    return x * x + y * y + z * z + w * w;
+    const { _x, _y, _z, _w } = this;
+    return _x * _x + _y * _y + _z * _z + _w * _w;
   }
 
   /**
@@ -369,10 +423,11 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   negate(): Vector4 {
-    this.x = -this.x;
-    this.y = -this.y;
-    this.z = -this.z;
-    this.w = -this.w;
+    this._x = -this._x;
+    this._y = -this._y;
+    this._z = -this._z;
+    this._w = -this._w;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -391,23 +446,12 @@ export class Vector4 implements IClone {
    * @returns This vector
    */
   scale(s: number): Vector4 {
-    this.x *= s;
-    this.y *= s;
-    this.z *= s;
-    this.w *= s;
+    this._x *= s;
+    this._y *= s;
+    this._z *= s;
+    this._w *= s;
+    this._onValueChanged && this._onValueChanged();
     return this;
-  }
-
-  /**
-   * Clone the value of this vector to an array.
-   * @param out - The array
-   * @param outOffset - The start offset of the array
-   */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    out[outOffset] = this.x;
-    out[outOffset + 1] = this.y;
-    out[outOffset + 2] = this.z;
-    out[outOffset + 3] = this.w;
   }
 
   /**
@@ -415,20 +459,59 @@ export class Vector4 implements IClone {
    * @returns A clone of this vector
    */
   clone(): Vector4 {
-    let ret = new Vector4(this.x, this.y, this.z, this.w);
+    let ret = new Vector4(this._x, this._y, this._z, this._w);
     return ret;
   }
 
   /**
-   * Clones this vector to the specified vector.
-   * @param out - The specified vector
-   * @returns The specified vector
+   * Copy from vector3 like object.
+   * @param source - Vector3 like object.
+   * @returns This vector
    */
-  cloneTo(out: Vector4): Vector4 {
-    out.x = this.x;
-    out.y = this.y;
-    out.z = this.z;
-    out.w = this.w;
-    return out;
+  copyFrom(source: Vector4Like): Vector4 {
+    this._x = source.x;
+    this._y = source.y;
+    this._z = source.z;
+    this._w = source.w;
+    this._onValueChanged && this._onValueChanged();
+    return this;
   }
+
+  /**
+   * Copy the value of this vector by an array.
+   * @param array - The arrayƒ
+   * @param offset - The start offset of the array
+   * @returns This vector
+   */
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): Vector4 {
+    this._x = array[offset];
+    this._y = array[offset + 1];
+    this._z = array[offset + 2];
+    this._w = array[offset + 3];
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this vector to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this._x;
+    out[outOffset + 1] = this._y;
+    out[outOffset + 2] = this._z;
+    out[outOffset + 3] = this._w;
+  }
+}
+
+interface Vector4Like {
+  /** {@inheritDoc Vector4.x} */
+  x: number;
+  /** {@inheritDoc Vector4.y} */
+  y: number;
+  /** {@inheritDoc Vector4.z} */
+  z: number;
+  /** {@inheritDoc Vector4.w} */
+  w: number;
 }

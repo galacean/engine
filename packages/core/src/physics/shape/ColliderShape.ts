@@ -19,6 +19,7 @@ export abstract class ColliderShape {
   protected _material: PhysicsMaterial;
   protected _isTrigger: boolean = false;
   protected _isSceneQuery: boolean = true;
+  private _contactOffset: number = 0;
 
   /**
    * Collider owner of this shape.
@@ -32,6 +33,18 @@ export abstract class ColliderShape {
    */
   get id(): number {
     return this._id;
+  }
+
+  /**
+   * Contact offset for this shape.
+   */
+  get contactOffset() {
+    return this._contactOffset;
+  }
+
+  set contactOffset(value: number) {
+    this._contactOffset = value;
+    this._nativeShape.setContactOffset(value);
   }
 
   /**
@@ -55,7 +68,7 @@ export abstract class ColliderShape {
 
   set position(value: Vector3) {
     if (this._position !== value) {
-      value.cloneTo(this._position);
+      this._position.copyFrom(value);
     }
     this._nativeShape.setPosition(value);
   }
@@ -84,7 +97,15 @@ export abstract class ColliderShape {
    * @param z - The z component of the vector, default 0
    */
   setPosition(x: number, y: number, z: number): void {
-    this._position.setValue(x, y, z);
+    this._position.set(x, y, z);
     this._nativeShape.setPosition(this._position);
+  }
+
+  /**
+   * @internal
+   */
+  _destroy() {
+    this._material._destroy();
+    this._nativeShape.destroy();
   }
 }

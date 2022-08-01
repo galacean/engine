@@ -121,19 +121,19 @@ export class MeshParser extends Parser {
     const { bounds } = mesh;
     vertexCount = accessor.count;
     if (accessor.min && accessor.max) {
-      bounds.min.setValueByArray(accessor.min);
-      bounds.max.setValueByArray(accessor.max);
+      bounds.min.copyFromArray(accessor.min);
+      bounds.max.copyFromArray(accessor.max);
     } else {
       const position = MeshParser._tempVector3;
       const { min, max } = bounds;
 
-      min.setValue(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
-      max.setValue(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+      min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+      max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
       const stride = positionBuffer.length / vertexCount;
       for (let j = 0; j < vertexCount; j++) {
         const offset = j * stride;
-        position.setValueByArray(positionBuffer, offset);
+        position.copyFromArray(positionBuffer, offset);
         Vector3.min(min, position, min);
         Vector3.max(max, position, max);
       }
@@ -164,15 +164,19 @@ export class MeshParser extends Parser {
         case "TEXCOORD_3":
           const texturecoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords3, 3);
+          break;
         case "TEXCOORD_4":
           const texturecoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords4, 4);
+          break;
         case "TEXCOORD_5":
           const texturecoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords5, 5);
+          break;
         case "TEXCOORD_6":
           const texturecoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords6, 6);
+          break;
         case "TEXCOORD_7":
           const texturecoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords7, 7);

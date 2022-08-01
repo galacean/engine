@@ -1,6 +1,10 @@
 {
   "name": "oasis-engine",
-  "version": "0.6.6",
+  "version": "0.8.0-beta.2",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "license": "MIT",
   "scripts": {
     "b:types": "tsc"
@@ -14,9 +18,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.6.6",
-    "@oasis-engine/loader": "0.6.6",
-    "@oasis-engine/math": "0.6.6",
-    "@oasis-engine/rhi-webgl": "0.6.6"
+    "@oasis-engine/core": "0.8.0-beta.2",
+    "@oasis-engine/loader": "0.8.0-beta.2",
+    "@oasis-engine/math": "0.8.0-beta.2",
+    "@oasis-engine/rhi-webgl": "0.8.0-beta.2"
   }
 }

@@ -1,6 +1,7 @@
 import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
@@ -9,7 +10,6 @@ import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { ShaderProgram } from "../shader/ShaderProgram";
-import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
@@ -34,6 +34,8 @@ export abstract class Mesh extends RefObject {
   _indexBufferBinding: IndexBufferBinding = null;
   /** @internal */
   _vertexElements: VertexElement[] = [];
+  /** @internal */
+  _enableVAO: boolean = true;
 
   private _subMeshes: SubMesh[] = [];
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
@@ -114,8 +116,41 @@ export abstract class Mesh extends RefObject {
    * Register update flag, update flag will be true if the vertex element changes.
    * @returns Update flag
    */
-  registerUpdateFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  registerUpdateFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
+  }
+
+  /**
+   * @internal
+   */
+  _clearVertexElements(): void {
+    this._vertexElements.length = 0;
+    const vertexElementMap = this._vertexElementMap;
+    for (const k in vertexElementMap) {
+      delete vertexElementMap[k];
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _addVertexElement(element: VertexElement): void {
+    const { semantic } = element;
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.push(element);
+    this._updateFlagManager.dispatch();
+  }
+
+  /**
+   * @internal
+   */
+  _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    if (this._getRefCount() > 0) {
+      const lastBinding = this._vertexBufferBindings[index];
+      lastBinding && lastBinding._buffer._addRefCount(-1);
+      binding._buffer._addRefCount(1);
+    }
+    this._vertexBufferBindings[index] = binding;
   }
 
   /**
@@ -155,15 +190,6 @@ export abstract class Mesh extends RefObject {
     }
   }
 
-  protected _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    if (this._getRefCount() > 0) {
-      const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addRefCount(-1);
-      binding._buffer._addRefCount(1);
-    }
-    this._vertexBufferBindings[index] = binding;
-  }
-
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
     if (binding) {
       this._indexBufferBinding = binding;
@@ -173,20 +199,5 @@ export abstract class Mesh extends RefObject {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
     }
-  }
-
-  private _clearVertexElements(): void {
-    this._vertexElements.length = 0;
-    const vertexElementMap = this._vertexElementMap;
-    for (const k in vertexElementMap) {
-      delete vertexElementMap[k];
-    }
-  }
-
-  private _addVertexElement(element: VertexElement): void {
-    const { semantic } = element;
-    this._vertexElementMap[semantic] = element;
-    this._vertexElements.push(element);
-    this._updateFlagManager.distribute();
   }
 }

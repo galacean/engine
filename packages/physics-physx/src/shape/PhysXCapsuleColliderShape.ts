@@ -1,15 +1,17 @@
-import { PhysXPhysics } from "../PhysXPhysics";
 import { ICapsuleColliderShape } from "@oasis-engine/design";
-import { PhysXColliderShape } from "./PhysXColliderShape";
-import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { Vector3 } from "oasis-engine";
+import { PhysXPhysics } from "../PhysXPhysics";
+import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
+import { PhysXColliderShape } from "./PhysXColliderShape";
 
 /**
  * Capsule collider shape in PhysX.
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
-  private _radius: number;
-  private _halfHeight: number;
+  /** @internal */
+  _radius: number;
+  /** @internal */
+  _halfHeight: number;
   private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
   /**
@@ -26,9 +28,8 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     this._halfHeight = height * 0.5;
 
     this._pxGeometry = new PhysXPhysics._physX.PxCapsuleGeometry(this._radius, this._halfHeight);
-    this._allocShape(material);
+    this._initialize(material, uniqueID);
     this._setLocalPose();
-    this.setUniqueID(uniqueID);
   }
 
   /**
@@ -48,6 +49,11 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
         break;
     }
     this._pxShape.setGeometry(this._pxGeometry);
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController.setRadius(value);
+    }
   }
 
   /**
@@ -67,6 +73,11 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
         break;
     }
     this._pxShape.setGeometry(this._pxGeometry);
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController.setHeight(value);
+    }
   }
 
   /**
@@ -76,13 +87,13 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     this._upAxis = upAxis;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        this._rotation.setValue(0, 0, 0, 1);
+        this._rotation.set(0, 0, 0, 1);
         break;
       case ColliderShapeUpAxis.Y:
-        this._rotation.setValue(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
+        this._rotation.set(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
         break;
       case ColliderShapeUpAxis.Z:
-        this._rotation.setValue(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
+        this._rotation.set(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
         break;
     }
     this._setLocalPose();
@@ -92,6 +103,9 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
+    this._scale.copyFrom(scale);
+    this._setLocalPose();
+
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
         this._pxGeometry.radius = this._radius * Math.max(scale.y, scale.z);

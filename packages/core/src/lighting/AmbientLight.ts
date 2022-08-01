@@ -3,7 +3,7 @@ import { Scene } from "../Scene";
 import { Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { TextureCubeMap } from "../texture";
+import { TextureCube } from "../texture";
 import { DiffuseMode } from "./enums/DiffuseMode";
 
 /**
@@ -26,7 +26,7 @@ export class AmbientLight {
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
   private _diffuseIntensity: number = 1.0;
-  private _specularReflection: TextureCubeMap;
+  private _specularReflection: TextureCube;
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
@@ -79,7 +79,7 @@ export class AmbientLight {
 
   set diffuseSolidColor(value: Color) {
     if (value !== this._diffuseSolidColor) {
-      value.cloneTo(this._diffuseSolidColor);
+      this._diffuseSolidColor.copyFrom(value);
     }
   }
 
@@ -118,11 +118,11 @@ export class AmbientLight {
    * Specular reflection texture.
    * @remarks This texture must be baked from @oasis-engine/baker
    */
-  get specularTexture(): TextureCubeMap {
+  get specularTexture(): TextureCube {
     return this._specularReflection;
   }
 
-  set specularTexture(value: TextureCubeMap) {
+  set specularTexture(value: TextureCube) {
     this._specularReflection = value;
     if (!this._scene) return;
 

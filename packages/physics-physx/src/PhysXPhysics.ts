@@ -1,25 +1,34 @@
 import {
   IBoxColliderShape,
   ICapsuleColliderShape,
+  ICharacterController,
   IDynamicCollider,
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterial,
   IPlaneColliderShape,
   ISphereColliderShape,
-  IStaticCollider
+  IStaticCollider,
+  IFixedJoint,
+  IHingeJoint,
+  ISpringJoint
 } from "@oasis-engine/design";
-import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
-import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
-import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
-import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
-import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
-import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
-import { PhysXStaticCollider } from "./PhysXStaticCollider";
-import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { Quaternion, Vector3 } from "oasis-engine";
-import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
+import { PhysXCharacterController } from "./PhysXCharacterController";
+import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
+import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
+import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
+import { PhysXStaticCollider } from "./PhysXStaticCollider";
+import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
+import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
+import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
+import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
+import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
+import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
+import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
+import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
+import { PhysXCollider } from "./PhysXCollider";
 
 /**
  * PhysX object creation.
@@ -28,6 +37,8 @@ import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 export class PhysXPhysics {
   /** @internal PhysX wasm object */
   static _physX: any;
+  /** @internal PhysX Foundation SDK singleton class */
+  static _pxFoundation: any;
   /** @internal Physx physics object */
   static _pxPhysics: any;
 
@@ -36,7 +47,7 @@ export class PhysXPhysics {
    * @param runtimeMode - Runtime mode
    * @returns Promise object
    */
-  public static init(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto): Promise<void> {
+  public static initialize(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto): Promise<void> {
     const scriptPromise = new Promise((resolve) => {
       const script = document.createElement("script");
       document.body.appendChild(script);
@@ -62,9 +73,11 @@ export class PhysXPhysics {
       }
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
-        script.src = "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
+        script.src =
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.8.0-alpha.6/libs/physx.release.js.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src = "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.6.0-alpha.1/dist/physx.release.js";
+        script.src =
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.8.0-alpha.6/libs/physx.release.js";
       }
     });
 
@@ -78,6 +91,14 @@ export class PhysXPhysics {
         });
       });
     });
+  }
+
+  /**
+   * Destroy PhysXPhysics.
+   */
+  public static destroy(): void {
+    this._pxFoundation.release();
+    this._pxPhysics.release();
   }
 
   /**
@@ -113,6 +134,13 @@ export class PhysXPhysics {
    */
   static createDynamicCollider(position: Vector3, rotation: Quaternion): IDynamicCollider {
     return new PhysXDynamicCollider(position, rotation);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createCharacterController }
+   */
+  static createCharacterController(): ICharacterController {
+    return new PhysXCharacterController();
   }
 
   /**
@@ -165,16 +193,37 @@ export class PhysXPhysics {
     return new PhysXCapsuleColliderShape(uniqueID, radius, height, material);
   }
 
+  /**
+   * {@inheritDoc IPhysics.createFixedJoint }
+   */
+  static createFixedJoint(collider: PhysXCollider): IFixedJoint {
+    return new PhysXFixedJoint(collider);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createHingeJoint }
+   */
+  static createHingeJoint(collider: PhysXCollider): IHingeJoint {
+    return new PhysXHingeJoint(collider);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createSpringJoint }
+   */
+  static createSpringJoint(collider: PhysXCollider): ISpringJoint {
+    return new PhysXSpringJoint(collider);
+  }
+
   private static _init(PHYSX: any): void {
     PhysXPhysics._physX = PHYSX;
     const version = PhysXPhysics._physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new PhysXPhysics._physX.PxDefaultErrorCallback();
     const allocator = new PhysXPhysics._physX.PxDefaultAllocator();
-    const foundation = PhysXPhysics._physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
+    PhysXPhysics._pxFoundation = PhysXPhysics._physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
 
     this._pxPhysics = PhysXPhysics._physX.PxCreatePhysics(
       version,
-      foundation,
+      PhysXPhysics._pxFoundation,
       new PhysXPhysics._physX.PxTolerancesScale(),
       false,
       null

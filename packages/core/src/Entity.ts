@@ -1,15 +1,15 @@
-import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
+import { Matrix } from "@oasis-engine/math";
 import { EngineObject } from "./base";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { ComponentCloner } from "./clone/ComponentCloner";
 import { Component } from "./Component";
-import { Script } from "./Script";
 import { ComponentsDependencies } from "./ComponentsDependencies";
+import { DisorderedArray } from "./DisorderedArray";
 import { Engine } from "./Engine";
 import { Layer } from "./Layer";
 import { Scene } from "./Scene";
+import { Script } from "./Script";
 import { Transform } from "./Transform";
-import { UpdateFlag } from "./UpdateFlag";
-import { DisorderedArray } from "./DisorderedArray";
 
 /**
  * Entity, be used as components container.
@@ -102,10 +102,10 @@ export class Entity extends EngineObject {
     return this._parent;
   }
 
-  set parent(entity: Entity) {
-    if (entity !== this._parent) {
+  set parent(value: Entity) {
+    if (value !== this._parent) {
       const oldParent = this._removeFromParent();
-      const newParent = (this._parent = entity);
+      const newParent = (this._parent = value);
       if (newParent) {
         newParent._children.push(this);
         const parentScene = newParent._scene;
@@ -223,7 +223,28 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be added.
    */
   addChild(child: Entity): void {
-    child.parent = this;
+    if (child._isRoot) {
+      child._scene._removeEntity(child);
+      child._isRoot = false;
+
+      this._children.push(child);
+      child._parent = this;
+      
+      const newScene = this._scene;
+      if (child._scene !== newScene) {
+        Entity._traverseSetOwnerScene(child, newScene);
+      }
+
+      if (this._isActiveInHierarchy) {
+        !child._isActiveInHierarchy && child._isActive && child._processActive();
+      } else {
+        child._isActiveInHierarchy && child._processInActive();
+      }
+
+      child._setTransformDirty();
+    } else {
+      child.parent = this;
+    }
   }
 
   /**
@@ -341,11 +362,11 @@ export class Entity extends EngineObject {
    */
   destroy(): void {
     if (this._destroyed) return;
-    
+
     super.destroy();
-    const abilityArray = this._components;
-    for (let i = abilityArray.length - 1; i >= 0; i--) {
-      abilityArray[i].destroy();
+    const components = this._components;
+    for (let i = components.length - 1; i >= 0; i--) {
+      components[i].destroy();
     }
     this._components.length = 0;
 
@@ -375,7 +396,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   _addScript(script: Script) {
-    script._entityCacheIndex = this._scripts.length;
+    script._entityScriptsIndex = this._scripts.length;
     this._scripts.add(script);
   }
 
@@ -383,9 +404,9 @@ export class Entity extends EngineObject {
    * @internal
    */
   _removeScript(script: Script): void {
-    const replaced = this._scripts.deleteByIndex(script._entityCacheIndex);
-    replaced && (replaced._entityCacheIndex = script._entityCacheIndex);
-    script._entityCacheIndex = -1;
+    const replaced = this._scripts.deleteByIndex(script._entityScriptsIndex);
+    replaced && (replaced._entityScriptsIndex = script._entityScriptsIndex);
+    script._entityScriptsIndex = -1;
   }
 
   /**
@@ -450,11 +471,12 @@ export class Entity extends EngineObject {
     this._isActiveInHierarchy = true;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      activeChangedComponents.push(components[i]);
+      const component = components[i];
+      component.enabled && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-      const child: Entity = children[i];
+      const child = children[i];
       child.isActive && child._setActiveInHierarchy(activeChangedComponents);
     }
   }
@@ -463,7 +485,8 @@ export class Entity extends EngineObject {
     this._isActiveInHierarchy = false;
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
-      activeChangedComponents.push(components[i]);
+      const component = components[i];
+      component.enabled && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -484,55 +507,7 @@ export class Entity extends EngineObject {
 
   //--------------------------------------------------------------deprecated----------------------------------------------------------------
   private _invModelMatrix: Matrix = new Matrix();
-  private _inverseWorldMatFlag: UpdateFlag;
-
-  /**
-   * @deprecated
-   * Use transform.position instead.
-   */
-  get position(): Vector3 {
-    return this.transform.position;
-  }
-
-  set position(val: Vector3) {
-    this.transform.position = val;
-  }
-
-  /**
-   * @deprecated
-   * Use transform.worldPosition instead.
-   */
-  get worldPosition(): Vector3 {
-    return this.transform.worldPosition;
-  }
-
-  set worldPosition(val: Vector3) {
-    this.transform.worldPosition = val;
-  }
-
-  /**
-   * @deprecated
-   * Use transform.rotationQuaternion instead.
-   */
-  get rotation(): Quaternion {
-    return this.transform.rotationQuaternion;
-  }
-
-  set rotation(val: Quaternion) {
-    this.transform.rotationQuaternion = val;
-  }
-
-  /**
-   * @deprecated
-   * Use transform.scale instead.
-   */
-  get scale(): Vector3 {
-    return this.transform.scale;
-  }
-
-  set scale(val: Vector3) {
-    this.transform.scale = val;
-  }
+  private _inverseWorldMatFlag: BoolUpdateFlag;
 
   /**
    * @deprecated

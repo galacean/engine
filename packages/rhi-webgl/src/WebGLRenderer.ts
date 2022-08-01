@@ -1,35 +1,33 @@
 import {
-  Camera, CameraClearFlags, Canvas,
+  Camera,
+  CameraClearFlags,
+  Canvas,
   ColorWriteMask,
   Engine,
   GLCapabilityType,
   IHardwareRenderer,
-  IPlatformRenderColorTexture,
-  IPlatformRenderDepthTexture,
   IPlatformRenderTarget,
   IPlatformTexture2D,
-  IPlatformTextureCubeMap,
+  IPlatformTextureCube,
   Logger,
   Mesh,
-  RenderColorTexture,
-  RenderDepthTexture,
   RenderTarget,
   SubMesh,
   Texture2D,
-  TextureCubeMap
+  Texture2DArray,
+  TextureCube
 } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { Color, Vector4 } from "@oasis-engine/math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
-import { GLRenderColorTexture } from "./GLRenderColorTexture";
-import { GLRenderDepthTexture } from "./GLRenderDepthTexture";
 import { GLRenderStates } from "./GLRenderStates";
 import { GLRenderTarget } from "./GLRenderTarget";
 import { GLTexture } from "./GLTexture";
 import { GLTexture2D } from "./GLTexture2D";
-import { GLTextureCubeMap } from "./GLTextureCubeMap";
+import { GLTexture2DArray } from "./GLTexture2DArray";
+import { GLTextureCube } from "./GLTextureCube";
 import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
 
@@ -57,6 +55,9 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
  * WebGL renderer, including WebGL1.0 and WebGL2.0.
  */
 export class WebGLRenderer implements IHardwareRenderer {
+  /** @internal */
+  _readFrameBuffer: WebGLFramebuffer;
+
   _currentBind: any;
 
   private _options: WebGLRendererOptions;
@@ -65,6 +66,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _extensions;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
+  private _webCanvas: WebCanvas;
 
   private _activeTextureID: number;
   private _activeTextures: GLTexture[] = new Array(32);
@@ -72,6 +74,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   // cache value
   private _lastViewport: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
+  private _scissorEnable: boolean = false;
 
   get isWebGL2() {
     return this._isWebGL2;
@@ -105,8 +108,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     const option = this._options;
     option.alpha === undefined && (option.alpha = false);
     option.stencil === undefined && (option.stencil = true);
-
-    const webCanvas = (canvas as WebCanvas)._webCanvas;
+    const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
@@ -156,16 +158,12 @@ export class WebGLRenderer implements IHardwareRenderer {
     return new GLTexture2D(this, texture2D);
   }
 
-  createPlatformTextureCubeMap(textureCube: TextureCubeMap): IPlatformTextureCubeMap {
-    return new GLTextureCubeMap(this, textureCube);
+  createPlatformTexture2DArray(texture2D: Texture2DArray): GLTexture2DArray {
+    return new GLTexture2DArray(this, texture2D);
   }
 
-  createPlatformRenderColorTexture(texture: RenderColorTexture): IPlatformRenderColorTexture {
-    return new GLRenderColorTexture(this, texture);
-  }
-
-  createPlatformRenderDepthTexture(texture: RenderDepthTexture): IPlatformRenderDepthTexture {
-    return new GLRenderDepthTexture(this, texture);
+  createPlatformTextureCube(textureCube: TextureCube): IPlatformTextureCube {
+    return new GLTextureCube(this, textureCube);
   }
 
   createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget {
@@ -185,14 +183,23 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   viewport(x: number, y: number, width: number, height: number): void {
-    // gl.enable(gl.SCISSOR_TEST);
-    // gl.scissor(x, transformY, width, height);
-    const gl = this._gl;
-    const lv = this._lastViewport;
-
+    const { _gl: gl, _lastViewport: lv } = this;
     if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
+      const { _webCanvas: webCanvas } = this;
+      if (x === 0 && y === 0 && width === webCanvas.width && height === webCanvas.height) {
+        if (this._scissorEnable) {
+          gl.disable(gl.SCISSOR_TEST);
+          this._scissorEnable = false;
+        }
+      } else {
+        if (!this._scissorEnable) {
+          gl.enable(gl.SCISSOR_TEST);
+          this._scissorEnable = true;
+        }
+        gl.scissor(x, y, width, height);
+      }
       gl.viewport(x, y, width, height);
-      lv.setValue(x, y, width, height);
+      lv.set(x, y, width, height);
     }
   }
 
@@ -200,29 +207,22 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._gl.colorMask(r, g, b, a);
   }
 
-  clearRenderTarget(
-    engine: Engine,
-    clearFlags: CameraClearFlags.Depth | CameraClearFlags.DepthColor,
-    clearColor: Color
-  ) {
+  clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor: Color) {
     const gl = this._gl;
     const {
       blendState: { targetBlendState },
       depthState,
       stencilState
     } = engine._lastRenderState;
-
-    let clearFlag = gl.DEPTH_BUFFER_BIT | gl.STENCIL_BUFFER_BIT;
-
-    if (clearFlags === CameraClearFlags.DepthColor) {
+    let clearFlag = 0;
+    if (clearFlags & CameraClearFlags.Color) {
       clearFlag |= gl.COLOR_BUFFER_BIT;
 
       const lc = this._lastClearColor;
       const { r, g, b, a } = clearColor;
-
       if (clearColor && (r !== lc.r || g !== lc.g || b !== lc.b || a !== lc.a)) {
         gl.clearColor(r, g, b, a);
-        lc.setValue(r, g, b, a);
+        lc.set(r, g, b, a);
       }
 
       if (targetBlendState.colorWriteMask !== ColorWriteMask.All) {
@@ -230,17 +230,20 @@ export class WebGLRenderer implements IHardwareRenderer {
         targetBlendState.colorWriteMask = ColorWriteMask.All;
       }
     }
-
-    if (depthState.writeEnabled !== true) {
-      gl.depthMask(true);
-      depthState.writeEnabled = true;
+    if (clearFlags & CameraClearFlags.Depth) {
+      clearFlag |= gl.DEPTH_BUFFER_BIT;
+      if (depthState.writeEnabled !== true) {
+        gl.depthMask(true);
+        depthState.writeEnabled = true;
+      }
     }
-
-    if (stencilState.writeMask !== 0xff) {
-      gl.stencilMask(0xff);
-      stencilState.writeMask = 0xff;
+    if (clearFlags & CameraClearFlags.Stencil) {
+      clearFlag |= gl.STENCIL_BUFFER_BIT;
+      if (stencilState.writeMask !== 0xff) {
+        gl.stencilMask(0xff);
+        stencilState.writeMask = 0xff;
+      }
     }
-
     gl.clear(clearFlag);
   }
 

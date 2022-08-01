@@ -77,8 +77,8 @@ export class PrimitiveMesh {
     }
 
     const { bounds } = mesh;
-    bounds.min.setValue(-radius, -radius, -radius);
-    bounds.max.setValue(radius, radius, radius);
+    bounds.min.set(-radius, -radius, -radius);
+    bounds.max.set(radius, radius, radius);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
@@ -206,8 +206,8 @@ export class PrimitiveMesh {
     indices[30] = 20, indices[31] = 22, indices[32] = 23, indices[33] = 22, indices[34] = 20, indices[35] = 21;
 
     const { bounds } = mesh;
-    bounds.min.setValue(-halfWidth, -halfHeight, -halfDepth);
-    bounds.max.setValue(halfWidth, halfHeight, halfDepth);
+    bounds.min.set(-halfWidth, -halfHeight, -halfDepth);
+    bounds.max.set(halfWidth, halfHeight, halfDepth);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
@@ -283,8 +283,8 @@ export class PrimitiveMesh {
     }
 
     const { bounds } = mesh;
-    bounds.min.setValue(-halfWidth, 0, -halfHeight);
-    bounds.max.setValue(halfWidth, 0, halfHeight);
+    bounds.min.set(-halfWidth, 0, -halfHeight);
+    bounds.max.set(halfWidth, 0, halfHeight);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
@@ -448,8 +448,8 @@ export class PrimitiveMesh {
 
     const { bounds } = mesh;
     const radiusMax = Math.max(radiusTop, radiusBottom);
-    bounds.min.setValue(-radiusMax, -halfHeight, -radiusMax);
-    bounds.max.setValue(radiusMax, halfHeight, radiusMax);
+    bounds.min.set(-radiusMax, -halfHeight, -radiusMax);
+    bounds.max.set(radiusMax, halfHeight, radiusMax);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
@@ -535,8 +535,8 @@ export class PrimitiveMesh {
 
     const { bounds } = mesh;
     const outerRadius = radius + tubeRadius;
-    bounds.min.setValue(-outerRadius, -outerRadius, -tubeRadius);
-    bounds.max.setValue(outerRadius, outerRadius, tubeRadius);
+    bounds.min.set(-outerRadius, -outerRadius, -tubeRadius);
+    bounds.max.set(outerRadius, outerRadius, tubeRadius);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
@@ -665,8 +665,8 @@ export class PrimitiveMesh {
     }
 
     const { bounds } = mesh;
-    bounds.min.setValue(-radius, -halfHeight, -radius);
-    bounds.max.setValue(radius, halfHeight, radius);
+    bounds.min.set(-radius, -halfHeight, -radius);
+    bounds.max.set(radius, halfHeight, radius);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
@@ -716,8 +716,8 @@ export class PrimitiveMesh {
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
 
-    const halfPI = Math.PI / 2;
-    const doublePI = Math.PI * 2;
+    const thetaStart = Math.PI;
+    const thetaRange = Math.PI * 2;
 
     const positions = new Array<Vector3>(totalVertexCount);
     const normals = new Array<Vector3>(totalVertexCount);
@@ -731,7 +731,7 @@ export class PrimitiveMesh {
       const y = (i * radialCountReciprocal) | 0;
       const u = x * radialSegmentsReciprocal;
       const v = y * heightSegmentsReciprocal;
-      const theta = -halfPI + u * doublePI;
+      const theta = thetaStart + u * thetaRange;
       const sinTheta = Math.sin(theta);
       const cosTheta = Math.cos(theta);
 
@@ -761,7 +761,7 @@ export class PrimitiveMesh {
       radius,
       height,
       radialSegments,
-      doublePI,
+      thetaRange,
       torsoVertexCount,
       1,
       positions,
@@ -775,7 +775,7 @@ export class PrimitiveMesh {
       radius,
       height,
       radialSegments,
-      -doublePI,
+      -thetaRange,
       torsoVertexCount + capVertexCount,
       -1,
       positions,
@@ -786,8 +786,8 @@ export class PrimitiveMesh {
     );
 
     const { bounds } = mesh;
-    bounds.min.setValue(-radius, -radius - halfHeight, -radius);
-    bounds.max.setValue(radius, radius + halfHeight, radius);
+    bounds.min.set(-radius, -radius - halfHeight, -radius);
+    bounds.max.set(radius, radius + halfHeight, radius);
 
     PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
@@ -838,7 +838,7 @@ export class PrimitiveMesh {
     indicesOffset: number
   ) {
     const radialCount = radialSegments + 1;
-    const halfHeight = height * 0.5;
+    const halfHeight = height * 0.5 * posIndex;
     const capVertexCount = radialCount * radialCount;
     const capRectangleCount = radialSegments * radialSegments;
     const radialCountReciprocal = 1.0 / radialCount;
@@ -854,12 +854,12 @@ export class PrimitiveMesh {
       const sinTheta = Math.sin(thetaDelta);
 
       const posX = -radius * Math.cos(alphaDelta) * sinTheta;
-      const posY = (radius * Math.cos(thetaDelta) + halfHeight) * posIndex;
+      const posY = radius * Math.cos(thetaDelta) * posIndex + halfHeight;
       const posZ = radius * Math.sin(alphaDelta) * sinTheta;
 
       const index = i + offset;
       positions[index] = new Vector3(posX, posY, posZ);
-      normals[index] = new Vector3(posX, posY, posZ);
+      normals[index] = new Vector3(posX, posY - halfHeight, posZ);
       uvs[index] = new Vector2(u, v);
     }
 

@@ -18,7 +18,7 @@ export class AnimationCurveOwner {
   readonly component: Component;
   readonly defaultValue: InterpolableValue;
   readonly fixedPoseValue: InterpolableValue;
-  
+
   /** @internal */
   _hasSavedDefaultValue: boolean = false;
 
@@ -43,9 +43,10 @@ export class AnimationCurveOwner {
         this.component = target.transform;
         break;
       case AnimationProperty.BlendShapeWeights:
-        this.defaultValue = new Float32Array(4);
-        this.fixedPoseValue = new Float32Array(4);
         this.component = target.getComponent(SkinnedMeshRenderer);
+        const weightLength = (<SkinnedMeshRenderer>this.component).blendShapeWeights.length;
+        this.defaultValue = new Float32Array(weightLength);
+        this.fixedPoseValue = new Float32Array(weightLength);
         break;
     }
   }
@@ -53,18 +54,18 @@ export class AnimationCurveOwner {
   saveDefaultValue(): void {
     switch (this.property) {
       case AnimationProperty.Position:
-        this.target.transform.position.cloneTo(<Vector3>this.defaultValue);
+        (<Vector3>this.defaultValue).copyFrom(this.target.transform.position);
         break;
       case AnimationProperty.Rotation:
-        this.target.transform.rotationQuaternion.cloneTo(<Quaternion>this.defaultValue);
+        (<Quaternion>this.defaultValue).copyFrom(this.target.transform.rotationQuaternion);
         break;
       case AnimationProperty.Scale:
-        this.target.transform.scale.cloneTo(<Vector3>this.defaultValue);
+        (<Vector3>this.defaultValue).copyFrom(this.target.transform.scale);
         break;
       case AnimationProperty.BlendShapeWeights:
         const { blendShapeWeights } = <SkinnedMeshRenderer>this.component;
         for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
-          this.defaultValue[i] = (<SkinnedMeshRenderer>this.component).blendShapeWeights[i];
+          this.defaultValue[i] = blendShapeWeights[i];
         }
         break;
     }
@@ -74,13 +75,13 @@ export class AnimationCurveOwner {
   saveFixedPoseValue(): void {
     switch (this.property) {
       case AnimationProperty.Position:
-        this.target.transform.position.cloneTo(<Vector3>this.fixedPoseValue);
+        (<Vector3>this.fixedPoseValue).copyFrom(this.target.transform.position);
         break;
       case AnimationProperty.Rotation:
-        this.target.transform.rotationQuaternion.cloneTo(<Quaternion>this.fixedPoseValue);
+        (<Quaternion>this.fixedPoseValue).copyFrom(this.target.transform.rotationQuaternion);
         break;
       case AnimationProperty.Scale:
-        this.target.transform.scale.cloneTo(<Vector3>this.fixedPoseValue);
+        (<Vector3>this.fixedPoseValue).copyFrom(this.target.transform.scale);
         break;
       case AnimationProperty.BlendShapeWeights:
         const { blendShapeWeights } = <SkinnedMeshRenderer>this.component;

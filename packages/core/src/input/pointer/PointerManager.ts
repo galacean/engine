@@ -1,17 +1,23 @@
 import { Ray, Vector2 } from "@oasis-engine/math";
 import { Canvas } from "../../Canvas";
+import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
 import { PointerPhase } from "../enums/PointerPhase";
+import { PointerButton } from "../enums/PointerButton";
+import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
 
 /**
  * Pointer Manager.
  * @internal
  */
-export class PointerManager {
+export class PointerManager implements IInput {
+  /** Refer to the W3C standards.(https://www.w3.org/TR/uievents/#dom-mouseevent-buttons) */
+  public static Buttons = [0x1, 0x4, 0x2, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400];
+
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
   private static _tempHitResult: HitResult = new HitResult();
@@ -19,47 +25,69 @@ export class PointerManager {
   /** @internal */
   _pointers: Pointer[] = [];
   /** @internal */
+  _movingDelta: Vector2 = new Vector2();
+  /** @internal */
   _multiPointerEnabled: boolean = true;
   /** @internal */
-  _enablePhysics: boolean = false;
+  _buttons: number = 0x0;
+  /** @internal */
+  _upMap: number[] = [];
+  /** @internal */
+  _downMap: number[] = [];
+  /** @internal */
+  _downList: DisorderedArray<PointerButton> = new DisorderedArray();
+  /** @internal */
+  _upList: DisorderedArray<PointerButton> = new DisorderedArray();
+  /** @internal */
+  _currentPosition: Vector2 = new Vector2();
+
+  private _currentPressedEntity: Entity;
+  private _currentEnteredEntity: Entity;
 
   private _engine: Engine;
   private _canvas: Canvas;
+  private _htmlCanvas: HTMLCanvasElement;
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _keyEventList: number[] = [];
   private _keyEventCount: number = 0;
   private _needOverallPointers: boolean = false;
-  private _currentPosition: Vector2 = new Vector2();
-  private _currentPressedEntity: Entity;
-  private _currentEnteredEntity: Entity;
+  private _hadListener: boolean = false;
+  private _lastPositionFrameCount: number = 0;
 
   /**
    * Create a PointerManager.
    * @param engine - The current engine instance
+   * @param htmlCanvas - HTMLCanvasElement
    */
-  constructor(engine: Engine) {
+  constructor(engine: Engine, htmlCanvas: HTMLCanvasElement) {
     this._engine = engine;
     this._canvas = engine.canvas;
-    // @ts-ignore
-    const htmlCanvas = this._canvas._webCanvas as HTMLCanvasElement;
+    this._htmlCanvas = htmlCanvas;
     htmlCanvas.style.touchAction = "none";
-    // prettier-ignore
-    htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = (evt:PointerEvent)=>{
-      this._nativeEvents.push(evt);
+    htmlCanvas.oncontextmenu = (event: UIEvent) => {
+      return false;
     };
+    const onPointerEvent = (this._onPointerEvent = this._onPointerEvent.bind(this));
+    htmlCanvas.addEventListener("pointerdown", onPointerEvent);
+    htmlCanvas.addEventListener("pointerup", onPointerEvent);
+    htmlCanvas.addEventListener("pointerout", onPointerEvent);
+    htmlCanvas.addEventListener("pointermove", onPointerEvent);
+    this._hadListener = true;
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
     this._pointerPool = new Array<Pointer>(11);
-    this._enablePhysics = engine.physicsManager ? true : false;
   }
 
   /**
    * @internal
    */
-  _update(): void {
+  _update(frameCount: number): void {
     this._needOverallPointers && this._overallPointers();
-    this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents);
-    if (this._enablePhysics) {
+    this._downList.length = 0;
+    this._upList.length = 0;
+    this._movingDelta.set(0, 0);
+    this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents, frameCount);
+    if (this._engine.physicsManager._initialized) {
       const rayCastEntity = this._pointerRayCast();
       const { _keyEventCount: keyEventCount } = this;
       if (keyEventCount > 0) {
@@ -87,10 +115,50 @@ export class PointerManager {
   /**
    * @internal
    */
+  _onFocus(): void {
+    if (!this._hadListener) {
+      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
+      htmlCanvas.addEventListener("pointerdown", onPointerEvent);
+      htmlCanvas.addEventListener("pointerup", onPointerEvent);
+      htmlCanvas.addEventListener("pointerout", onPointerEvent);
+      htmlCanvas.addEventListener("pointermove", onPointerEvent);
+      this._hadListener = true;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _onBlur(): void {
+    if (this._hadListener) {
+      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
+      htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
+      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      this._nativeEvents.length = 0;
+      this._pointerPool.length = 0;
+      this._currentEnteredEntity = null;
+      this._currentPressedEntity = null;
+      this._downList.length = 0;
+      this._upList.length = 0;
+      this._hadListener = false;
+    }
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     // @ts-ignore
-    const htmlCanvas = this._canvas._webCanvas as HTMLCanvasElement;
-    htmlCanvas.onpointerdown = htmlCanvas.onpointerup = htmlCanvas.onpointerout = htmlCanvas.onpointermove = null;
+    if (this._hadListener) {
+      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
+      htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
+      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      this._hadListener = false;
+    }
     this._nativeEvents.length = 0;
     this._pointerPool.length = 0;
     this._pointers.length = 0;
@@ -99,6 +167,10 @@ export class PointerManager {
     this._currentPressedEntity = null;
     this._engine = null;
     this._canvas = null;
+  }
+
+  private _onPointerEvent(evt: PointerEvent) {
+    this._nativeEvents.push(evt);
   }
 
   private _overallPointers(): void {
@@ -145,53 +217,66 @@ export class PointerManager {
         pointer = pointerPool[i] = new Pointer(i);
       }
       pointer._uniqueID = pointerId;
-      pointer._needUpdate = true;
-      pointer.position.setValue(x, y);
+      pointer.position.set(x, y);
       pointer.phase = phase;
       pointers.splice(i, 0, pointer);
     }
   }
 
   private _removePointer(pointerIndex: number): void {
-    this._pointers[pointerIndex].phase = PointerPhase.Leave;
+    const leavePointer = this._pointers[pointerIndex];
+    leavePointer.phase = PointerPhase.Leave;
   }
 
   private _updatePointer(pointerIndex: number, x: number, y: number, phase: PointerPhase): void {
     const updatedPointer = this._pointers[pointerIndex];
-    updatedPointer.position.setValue(x, y);
-    updatedPointer._needUpdate = true;
+    updatedPointer.position.set(x, y);
     updatedPointer.phase = phase;
   }
 
-  private _handlePointerEvent(nativeEvents: PointerEvent[]): void {
-    const { _pointers: pointers, _keyEventList: keyEventList } = this;
+  private _handlePointerEvent(nativeEvents: PointerEvent[], frameCount: number): void {
+    const {
+      _pointers: pointers,
+      _keyEventList: keyEventList,
+      _upMap: upMap,
+      _downMap: downMap,
+      _upList: upList,
+      _downList: downList
+    } = this;
     let activePointerCount = pointers.length;
+    const pixelRatioW = this._canvas.width / this._htmlCanvas.clientWidth;
+    const pixelRatioH = this._canvas.height / this._htmlCanvas.clientHeight;
     const nativeEventsLen = nativeEvents.length;
     for (let i = 0; i < nativeEventsLen; i++) {
       const evt = nativeEvents[i];
-      let pointerIndex = this._getIndexByPointerID(evt.pointerId);
+      const pointerButton: PointerButton = evt.button | PointerButton.Primary;
+      const pointerIndex = this._getIndexByPointerID(evt.pointerId);
       switch (evt.type) {
         case "pointerdown":
           if (pointerIndex === -1) {
-            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Down);
+            this._addPointer(evt.pointerId, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Down);
             activePointerCount++;
           } else {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Down);
+            this._updatePointer(pointerIndex, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Down);
           }
           activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Down);
+          downList.add(pointerButton);
+          downMap[pointerButton] = frameCount;
           break;
         case "pointerup":
           if (pointerIndex >= 0) {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Up);
+            this._updatePointer(pointerIndex, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Up);
             activePointerCount === 1 && (keyEventList[this._keyEventCount++] = PointerKeyEvent.Up);
           }
+          upList.add(pointerButton);
+          upMap[pointerButton] = frameCount;
           break;
         case "pointermove":
           if (pointerIndex === -1) {
-            this._addPointer(evt.pointerId, evt.offsetX, evt.offsetY, PointerPhase.Move);
+            this._addPointer(evt.pointerId, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Move);
             activePointerCount++;
           } else {
-            this._updatePointer(pointerIndex, evt.offsetX, evt.offsetY, PointerPhase.Move);
+            this._updatePointer(pointerIndex, evt.offsetX * pixelRatioW, evt.offsetY * pixelRatioH, PointerPhase.Move);
           }
           break;
         case "pointerout":
@@ -203,30 +288,27 @@ export class PointerManager {
           break;
       }
     }
+    this._buttons = nativeEvents[nativeEventsLen - 1].buttons;
     const pointerCount = pointers.length;
     if (pointerCount > 0) {
-      const { _canvas: canvas, _currentPosition: currentPosition } = this;
-      // @ts-ignore
-      const pixelRatioWidth = canvas.width / (canvas._webCanvas as HTMLCanvasElement).clientWidth;
-      // @ts-ignore
-      const pixelRatioHeight = canvas.height / (canvas._webCanvas as HTMLCanvasElement).clientHeight;
+      const { _currentPosition: currentPosition } = this;
+      const { x: lastX, y: lastY } = currentPosition;
       if (activePointerCount === 0) {
         // Get the pointer coordinates when leaving, and use it to correctly dispatch the click event.
         const lastNativeEvent = nativeEvents[nativeEventsLen - 1];
-        currentPosition.setValue(lastNativeEvent.offsetX * pixelRatioWidth, lastNativeEvent.offsetY * pixelRatioHeight);
+        currentPosition.set(lastNativeEvent.offsetX * pixelRatioW, lastNativeEvent.offsetY * pixelRatioH);
       } else {
-        currentPosition.setValue(0, 0);
+        currentPosition.set(0, 0);
         for (let i = 0; i < pointerCount; i++) {
-          const pointer = pointers[i];
-          const { position } = pointer;
-          if (pointer._needUpdate) {
-            position.setValue(position.x * pixelRatioWidth, position.y * pixelRatioHeight);
-            pointer._needUpdate = false;
-          }
-          currentPosition.add(position);
+          currentPosition.add(pointers[i].position);
         }
         currentPosition.scale(1 / pointerCount);
       }
+      // Update pointer moving delta.
+      if (this._lastPositionFrameCount === frameCount - 1) {
+        this._movingDelta.set(currentPosition.x - lastX, currentPosition.y - lastY);
+      }
+      this._lastPositionFrameCount = frameCount;
     }
     nativeEvents.length = 0;
   }
@@ -244,11 +326,18 @@ export class PointerManager {
         }
         const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
         if (x >= vpX && y >= vpY && x - vpX <= vpW && y - vpY <= vpH) {
-          point.setValue((x - vpX) / vpW, (y - vpY) / vpH);
+          point.set((x - vpX) / vpW, (y - vpY) / vpH);
           // TODO: Only check which colliders have listened to the input.
-          if (this._engine.physicsManager.raycast(camera.viewportPointToRay(point, ray), hitResult)) {
+          if (
+            this._engine.physicsManager.raycast(
+              camera.viewportPointToRay(point, ray),
+              Number.MAX_VALUE,
+              camera.cullingMask,
+              hitResult
+            )
+          ) {
             return hitResult.entity;
-          } else if (camera.clearFlags === CameraClearFlags.DepthColor) {
+          } else if (camera.clearFlags & CameraClearFlags.Color) {
             return null;
           }
         }
@@ -261,7 +350,8 @@ export class PointerManager {
     if (this._currentPressedEntity) {
       const scripts = this._currentPressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
-        scripts.get(i).onPointerDrag();
+        const script = scripts.get(i);
+        script._waitHandlingInValid || script.onPointerDrag();
       }
     }
   }
@@ -271,13 +361,15 @@ export class PointerManager {
       if (this._currentEnteredEntity) {
         const scripts = this._currentEnteredEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
-          scripts.get(i).onPointerExit();
+          const script = scripts.get(i);
+          script._waitHandlingInValid || script.onPointerExit();
         }
       }
       if (rayCastEntity) {
         const scripts = rayCastEntity._scripts;
         for (let i = scripts.length - 1; i >= 0; i--) {
-          scripts.get(i).onPointerEnter();
+          const script = scripts.get(i);
+          script._waitHandlingInValid || script.onPointerEnter();
         }
       }
       this._currentEnteredEntity = rayCastEntity;
@@ -288,7 +380,8 @@ export class PointerManager {
     if (rayCastEntity) {
       const scripts = rayCastEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
-        scripts.get(i).onPointerDown();
+        const script = scripts.get(i);
+        script._waitHandlingInValid || script.onPointerDown();
       }
     }
     this._currentPressedEntity = rayCastEntity;
@@ -301,8 +394,10 @@ export class PointerManager {
       const scripts = pressedEntity._scripts;
       for (let i = scripts.length - 1; i >= 0; i--) {
         const script = scripts.get(i);
-        sameTarget && script.onPointerClick();
-        script.onPointerUp();
+        if (!script._waitHandlingInValid) {
+          sameTarget && script.onPointerClick();
+          script.onPointerUp();
+        }
       }
       this._currentPressedEntity = null;
     }

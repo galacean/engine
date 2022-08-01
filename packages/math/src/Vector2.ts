@@ -1,10 +1,11 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 
 /**
  * Describes a 2D-vector.
  */
-export class Vector2 implements IClone {
+export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   /** @internal */
   static readonly _zero = new Vector2(0.0, 0.0);
   /** @internal */
@@ -17,8 +18,9 @@ export class Vector2 implements IClone {
    * @param out - The sum of two vectors
    */
   static add(left: Vector2, right: Vector2, out: Vector2): void {
-    out.x = left.x + right.x;
-    out.y = left.y + right.y;
+    out._x = left._x + right._x;
+    out._y = left._y + right._y;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -28,8 +30,9 @@ export class Vector2 implements IClone {
    * @param out - The difference between two vectors
    */
   static subtract(left: Vector2, right: Vector2, out: Vector2): void {
-    out.x = left.x - right.x;
-    out.y = left.y - right.y;
+    out._x = left._x - right._x;
+    out._y = left._y - right._y;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -39,8 +42,9 @@ export class Vector2 implements IClone {
    * @param out - The product of two vectors
    */
   static multiply(left: Vector2, right: Vector2, out: Vector2): void {
-    out.x = left.x * right.x;
-    out.y = left.y * right.y;
+    out._x = left._x * right._x;
+    out._y = left._y * right._y;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -50,8 +54,9 @@ export class Vector2 implements IClone {
    * @param out - The divisor of two vectors
    */
   static divide(left: Vector2, right: Vector2, out: Vector2): void {
-    out.x = left.x / right.x;
-    out.y = left.y / right.y;
+    out._x = left._x / right._x;
+    out._y = left._y / right._y;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -61,7 +66,7 @@ export class Vector2 implements IClone {
    * @returns The dot product of two vectors
    */
   static dot(left: Vector2, right: Vector2): number {
-    return left.x * right.x + left.y * right.y;
+    return left._x * right._x + left._y * right._y;
   }
 
   /**
@@ -71,8 +76,8 @@ export class Vector2 implements IClone {
    * @returns The distance of two vectors
    */
   static distance(left: Vector2, right: Vector2): number {
-    const x = right.x - left.x;
-    const y = right.y - left.y;
+    const x = right._x - left._x;
+    const y = right._y - left._y;
     return Math.sqrt(x * x + y * y);
   }
 
@@ -83,8 +88,8 @@ export class Vector2 implements IClone {
    * @returns The squared distance of two vectors
    */
   static distanceSquared(left: Vector2, right: Vector2): number {
-    const x = right.x - left.x;
-    const y = right.y - left.y;
+    const x = right._x - left._x;
+    const y = right._y - left._y;
     return x * x + y * y;
   }
 
@@ -95,7 +100,7 @@ export class Vector2 implements IClone {
    * @returns True if the specified vectors are equals, false otherwise
    */
   static equals(left: Vector2, right: Vector2): boolean {
-    return MathUtil.equals(left.x, right.x) && MathUtil.equals(left.y, right.y);
+    return MathUtil.equals(left._x, right._x) && MathUtil.equals(left._y, right._y);
   }
 
   /**
@@ -106,9 +111,10 @@ export class Vector2 implements IClone {
    * @param out - The result of linear blending between two vectors
    */
   static lerp(left: Vector2, right: Vector2, t: number, out: Vector2): void {
-    const { x, y } = left;
-    out.x = x + (right.x - x) * t;
-    out.y = y + (right.y - y) * t;
+    const { _x, _y } = left;
+    out._x = _x + (right._x - _x) * t;
+    out._y = _y + (right._y - _y) * t;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -118,8 +124,9 @@ export class Vector2 implements IClone {
    * @param out - The vector containing the largest components of the specified vectors
    */
   static max(left: Vector2, right: Vector2, out: Vector2): void {
-    out.x = Math.max(left.x, right.x);
-    out.y = Math.max(left.y, right.y);
+    out._x = Math.max(left._x, right._x);
+    out._y = Math.max(left._y, right._y);
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -129,8 +136,9 @@ export class Vector2 implements IClone {
    * @param out - The vector containing the smallest components of the specified vectors
    */
   static min(left: Vector2, right: Vector2, out: Vector2): void {
-    out.x = Math.min(left.x, right.x);
-    out.y = Math.min(left.y, right.y);
+    out._x = Math.min(left._x, right._x);
+    out._y = Math.min(left._y, right._y);
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -139,8 +147,9 @@ export class Vector2 implements IClone {
    * @param out - The vector facing in the opposite direction
    */
   static negate(left: Vector2, out: Vector2): void {
-    out.x = -left.x;
-    out.y = -left.y;
+    out._x = -left._x;
+    out._y = -left._y;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
@@ -149,12 +158,13 @@ export class Vector2 implements IClone {
    * @param out - The normalized vector
    */
   static normalize(left: Vector2, out: Vector2): void {
-    const { x, y } = left;
-    let len: number = Math.sqrt(x * x + y * y);
+    const { _x, _y } = left;
+    let len = Math.sqrt(_x * _x + _y * _y);
     if (len > MathUtil.zeroTolerance) {
       len = 1 / len;
-      out.x = x * len;
-      out.y = y * len;
+      out._x = _x * len;
+      out._y = _y * len;
+      out._onValueChanged && out._onValueChanged();
     }
   }
 
@@ -165,14 +175,41 @@ export class Vector2 implements IClone {
    * @param out - The scaled vector
    */
   static scale(left: Vector2, s: number, out: Vector2): void {
-    out.x = left.x * s;
-    out.y = left.y * s;
+    out._x = left._x * s;
+    out._y = left._y * s;
+    out._onValueChanged && out._onValueChanged();
   }
 
-  /** The x component of the vector. */
-  x: number;
-  /** The y component of the vector. */
-  y: number;
+  /** @internal */
+  _x: number;
+  /** @internal */
+  _y: number;
+  /** @internal */
+  _onValueChanged: () => void = null;
+
+  /**
+   * The x component of the vector.
+   */
+  public get x(): number {
+    return this._x;
+  }
+
+  public set x(value: number) {
+    this._x = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The y component of the vector.
+   */
+  public get y(): number {
+    return this._y;
+  }
+
+  public set y(value: number) {
+    this._y = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * Constructor of Vector2.
@@ -180,8 +217,8 @@ export class Vector2 implements IClone {
    * @param y - The y component of the vector, default 0
    */
   constructor(x: number = 0, y: number = 0) {
-    this.x = x;
-    this.y = y;
+    this._x = x;
+    this._y = y;
   }
 
   /**
@@ -190,21 +227,10 @@ export class Vector2 implements IClone {
    * @param y - The y component of the vector
    * @returns This vector
    */
-  setValue(x: number, y: number): Vector2 {
-    this.x = x;
-    this.y = y;
-    return this;
-  }
-
-  /**
-   * Set the value of this vector by an array.
-   * @param array - The array
-   * @param offset - The start offset of the array
-   * @returns This vector
-   */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): Vector2 {
-    this.x = array[offset];
-    this.y = array[offset + 1];
+  set(x: number, y: number): Vector2 {
+    this._x = x;
+    this._y = y;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -214,8 +240,9 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   add(right: Vector2): Vector2 {
-    this.x += right.x;
-    this.y += right.y;
+    this._x += right._x;
+    this._y += right._y;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -225,8 +252,9 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   subtract(right: Vector2): Vector2 {
-    this.x -= right.x;
-    this.y -= right.y;
+    this._x -= right._x;
+    this._y -= right._y;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -236,8 +264,9 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   multiply(right: Vector2): Vector2 {
-    this.x *= right.x;
-    this.y *= right.y;
+    this._x *= right._x;
+    this._y *= right._y;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -247,8 +276,9 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   divide(right: Vector2): Vector2 {
-    this.x /= right.x;
-    this.y /= right.y;
+    this._x /= right._x;
+    this._y /= right._y;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -257,8 +287,8 @@ export class Vector2 implements IClone {
    * @returns The length of this vector
    */
   length(): number {
-    const { x, y } = this;
-    return Math.sqrt(x * x + y * y);
+    const { _x, _y } = this;
+    return Math.sqrt(_x * _x + _y * _y);
   }
 
   /**
@@ -266,8 +296,8 @@ export class Vector2 implements IClone {
    * @returns The squared length of this vector
    */
   lengthSquared(): number {
-    const { x, y } = this;
-    return x * x + y * y;
+    const { _x, _y } = this;
+    return _x * _x + _y * _y;
   }
 
   /**
@@ -275,8 +305,9 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   negate(): Vector2 {
-    this.x = -this.x;
-    this.y = -this.y;
+    this._x = -this._x;
+    this._y = -this._y;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -295,19 +326,10 @@ export class Vector2 implements IClone {
    * @returns This vector
    */
   scale(s: number): Vector2 {
-    this.x *= s;
-    this.y *= s;
+    this._x *= s;
+    this._y *= s;
+    this._onValueChanged && this._onValueChanged();
     return this;
-  }
-
-  /**
-   * Clone the value of this vector to an array.
-   * @param out - The array
-   * @param outOffset - The start offset of the array
-   */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    out[outOffset] = this.x;
-    out[outOffset + 1] = this.y;
   }
 
   /**
@@ -315,17 +337,48 @@ export class Vector2 implements IClone {
    * @returns A clone of this vector
    */
   clone(): Vector2 {
-    return new Vector2(this.x, this.y);
+    return new Vector2(this._x, this._y);
   }
 
   /**
-   * Clones this vector to the specified vector.
-   * @param out - The specified vector
-   * @returns The specified vector
+   * Copy from vector2 like object.
+   * @param source - Vector2 like object
+   * @returns This vector
    */
-  cloneTo(out: Vector2): Vector2 {
-    out.x = this.x;
-    out.y = this.y;
-    return out;
+  copyFrom(source: Vector2Like): Vector2 {
+    this._x = source.x;
+    this._y = source.y;
+    this._onValueChanged && this._onValueChanged();
+    return this;
   }
+
+  /**
+   * Copy the value of this vector from an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
+   * @returns This vector
+   */
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): Vector2 {
+    this._x = array[offset];
+    this._y = array[offset + 1];
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this vector to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this._x;
+    out[outOffset + 1] = this._y;
+  }
+}
+
+interface Vector2Like {
+  /** {@inheritDoc Vector2.x} */
+  x: number;
+  /** {@inheritDoc Vector2.y} */
+  y: number;
 }

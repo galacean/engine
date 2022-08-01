@@ -180,10 +180,12 @@ export class BasicRenderPipeline {
       } else {
         this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
-        if (background.mode === BackgroundMode.Sky) {
-          this._drawSky(engine, camera, background.sky);
-        } else if (background.mode === BackgroundMode.Texture && background.texture) {
-          this._drawBackgroundTexture(engine, background);
+        if (camera.clearFlags & CameraClearFlags.Color) {
+          if (background.mode === BackgroundMode.Sky) {
+            this._drawSky(engine, camera, background.sky);
+          } else if (background.mode === BackgroundMode.Texture && background.texture) {
+            this._drawBackgroundTexture(engine, background);
+          }
         }
         this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
@@ -200,14 +202,16 @@ export class BasicRenderPipeline {
    * @param element - Render element
    */
   pushPrimitive(element: RenderElement | SpriteElement) {
-    const renderQueueType = element.material.renderQueueType;
-
-    if (renderQueueType > (RenderQueueType.Transparent + RenderQueueType.AlphaTest) >> 1) {
-      this._transparentQueue.pushPrimitive(element);
-    } else if (renderQueueType > (RenderQueueType.AlphaTest + RenderQueueType.Opaque) >> 1) {
-      this._alphaTestQueue.pushPrimitive(element);
-    } else {
-      this._opaqueQueue.pushPrimitive(element);
+    switch (element.material.renderQueueType) {
+      case RenderQueueType.Transparent:
+        this._transparentQueue.pushPrimitive(element);
+        break;
+      case RenderQueueType.AlphaTest:
+        this._alphaTestQueue.pushPrimitive(element);
+        break;
+      case RenderQueueType.Opaque:
+        this._opaqueQueue.pushPrimitive(element);
+        break;
     }
   }
 
@@ -220,7 +224,7 @@ export class BasicRenderPipeline {
       (this._lastCanvasSize.x !== canvas.width || this._lastCanvasSize.y !== canvas.height) &&
       background._textureFillMode !== BackgroundTextureFillMode.Fill
     ) {
-      this._lastCanvasSize.setValue(canvas.width, canvas.height);
+      this._lastCanvasSize.set(canvas.width, canvas.height);
       background._resizeBackgroundTexture();
     }
 
@@ -251,7 +255,7 @@ export class BasicRenderPipeline {
     ShaderMacroCollection.unionCollection(camera._globalShaderMacro, shaderData._macroCollection, compileMacros);
 
     const { viewMatrix, projectionMatrix } = camera;
-    viewMatrix.cloneTo(_matrix);
+    _matrix.copyFrom(viewMatrix);
     const e = _matrix.elements;
     e[12] = e[13] = e[14] = 0;
     Matrix.multiply(projectionMatrix, _matrix, _matrix);

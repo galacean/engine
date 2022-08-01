@@ -18,22 +18,14 @@ export class RenderQueue {
    * @internal
    */
   static _compareFromNearToFar(a: Item, b: Item): number {
-    return (
-      a.material.renderQueueType - b.material.renderQueueType ||
-      a.component._distanceForSort - b.component._distanceForSort ||
-      b.component._renderSortId - a.component._renderSortId
-    );
+    return a.component.priority - b.component.priority || a.component._distanceForSort - b.component._distanceForSort;
   }
 
   /**
    * @internal
    */
   static _compareFromFarToNear(a: Item, b: Item): number {
-    return (
-      a.material.renderQueueType - b.material.renderQueueType ||
-      b.component._distanceForSort - a.component._distanceForSort ||
-      b.component._renderSortId - a.component._renderSortId
-    );
+    return a.component.priority - b.component.priority || b.component._distanceForSort - a.component._distanceForSort;
   }
 
   readonly items: Item[] = [];
@@ -71,17 +63,17 @@ export class RenderQueue {
       }
 
       if (!!(item as RenderElement).mesh) {
-        this._spriteBatcher.flush(engine);
+        this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
         const renderer = element.component;
-        const material = replaceMaterial ? replaceMaterial : element.material;
+        const material = element.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
 
         // @todo: temporary solution
-        material._preRender(element);
+        (replaceMaterial || material)._preRender(element);
 
         // union render global macro and material self macro.
         ShaderMacroCollection.unionCollection(
@@ -90,7 +82,7 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = material.shader._getShaderProgram(engine, compileMacros);
+        const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
@@ -117,7 +109,7 @@ export class RenderQueue {
           } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
-
+          
           if (program._uploadRenderer !== renderer) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRenderer = renderer;
@@ -137,16 +129,16 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        material.renderState._apply(camera.engine, renderer.entity.transform._isFrontFaceInvert());
+        material.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spriteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spriteElement);
+        this._spriteBatcher.drawElement(spriteElement, camera);
       }
     }
 
-    this._spriteBatcher.flush(engine);
+    this._spriteBatcher.flush(camera);
   }
 
   /**

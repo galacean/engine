@@ -1,11 +1,12 @@
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { SkinnedMeshRenderer } from "../mesh";
 import { ClassPool } from "../RenderPipeline/ClassPool";
 import { Transform } from "../Transform";
-import { UpdateFlag } from "../UpdateFlag";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
@@ -22,21 +23,23 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
+import { AnimatorTempValue } from "./internal/AnimatorTempValue";
 import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
 
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  private static _tempVector3: Vector3 = new Vector3();
-  private static _tempQuaternion: Quaternion = new Quaternion();
+  private static _baseTempValue = new AnimatorTempValue();
+  private static _crossTempValue = new AnimatorTempValue();
+  private static _tempQuat = new Quaternion();
   private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
 
   protected _animatorController: AnimatorController;
   @assignmentClone
   protected _speed: number = 1.0;
   @ignoreClone
-  protected _controllerUpdateFlag: UpdateFlag;
+  protected _controllerUpdateFlag: BoolUpdateFlag;
 
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
@@ -334,8 +337,8 @@ export class Animator extends Component {
     const crossCurveData = this._crossCurveDataCollection;
     const { srcPlayData, crossCurveMark } = animatorLayerData;
 
-    // Standby have two sub state, one is never play, one is finished, never play srcPlayData is null.
-    srcPlayData && this._prepareSrcCrossData(crossCurveData, srcPlayData, crossCurveMark, true);
+    // Standby have two sub state, one is never play, one is finished, never play srcPlayData.state is null.
+    srcPlayData.state && this._prepareSrcCrossData(crossCurveData, srcPlayData, crossCurveMark, true);
     // Add dest cross curve data.
     this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, crossCurveMark, true);
   }
@@ -396,29 +399,75 @@ export class Animator extends Component {
     property: AnimationProperty,
     curve: AnimationCurve,
     time: number,
-    additive: boolean
+    additive: boolean,
+    tempValue: AnimatorTempValue
   ): InterpolableValue {
-    const value = curve.evaluate(time);
-
+    let baseValue: InterpolableValue;
     if (additive) {
-      const baseValue = (<UnionInterpolableKeyframe>curve.keys[0]).value;
-      switch (property) {
-        case AnimationProperty.Position:
-          const pos = Animator._tempVector3;
-          Vector3.subtract(<Vector3>value, <Vector3>baseValue, pos);
-          return pos;
-        case AnimationProperty.Rotation:
-          const rot = Animator._tempQuaternion;
-          Quaternion.conjugate(<Quaternion>baseValue, rot);
-          Quaternion.multiply(rot, <Quaternion>value, <Quaternion>rot);
-          return rot;
-        case AnimationProperty.Scale:
-          const scale = Animator._tempVector3;
-          Vector3.divide(<Vector3>value, <Vector3>baseValue, <Vector3>scale);
-          return scale;
+      baseValue = (<UnionInterpolableKeyframe>curve.keys[0]).value;
+    }
+
+    switch (curve._valueType) {
+      case InterpolableValueType.Float: {
+        const value = curve.evaluate(time);
+        if (additive) {
+          return <number>value - <number>baseValue;
+        }
+        return value;
+      }
+      case InterpolableValueType.FloatArray: {
+        const value = tempValue.getFloatArray(curve._valueSize);
+        curve._evaluate(time, value);
+        if (additive) {
+          for (let i = 0, n = value.length; i < n; i++) {
+            value[i] = value[i] - baseValue[i];
+          }
+        }
+        return value;
+      }
+      case InterpolableValueType.Vector2: {
+        const value = tempValue.vector2;
+        curve._evaluate(time, value);
+        if (additive) {
+          if (property === AnimationProperty.Scale) {
+            Vector2.divide(value, <Vector2>baseValue, value);
+          } else {
+            Vector2.subtract(value, <Vector2>baseValue, value);
+          }
+        }
+        return value;
+      }
+      case InterpolableValueType.Vector3: {
+        const value = tempValue.vector3;
+        curve._evaluate(time, value);
+        if (additive) {
+          if (property === AnimationProperty.Scale) {
+            Vector3.divide(value, <Vector3>baseValue, value);
+          } else {
+            Vector3.subtract(value, <Vector3>baseValue, value);
+          }
+        }
+        return value;
+      }
+      case InterpolableValueType.Vector4: {
+        const value = tempValue.vector4;
+        curve._evaluate(time, value);
+        if (additive) {
+          Vector4.subtract(value, <Vector4>baseValue, value);
+        }
+        return value;
+      }
+      case InterpolableValueType.Quaternion: {
+        const value = tempValue.quaternion;
+        curve._evaluate(time, value);
+        if (additive) {
+          const tempQuat = Animator._tempQuat;
+          Quaternion.conjugate(<Quaternion>baseValue, tempQuat);
+          Quaternion.multiply(tempQuat, value, value);
+        }
+        return value;
       }
     }
-    return value;
   }
 
   private _getAnimatorLayerData(layerIndex: number): AnimatorLayerData {
@@ -433,7 +482,10 @@ export class Animator extends Component {
     const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = animLayerData;
     const layerAdditive = blendingMode === AnimatorLayerBlendingMode.Additive;
     const layerWeight = firstLayer ? 1.0 : weight;
-    this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
+    //TODO: 任意情况都应该检查，后面要优化
+    animLayerData.layerState !== LayerState.FixedCrossFading &&
+      this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
+
     switch (animLayerData.layerState) {
       case LayerState.Playing:
         this._updatePlayingState(srcPlayData, animLayerData, layerIndex, layerWeight, deltaTime, layerAdditive);
@@ -467,24 +519,15 @@ export class Animator extends Component {
     const { state, playState: lastPlayState, clipTime: lastClipTime } = playData;
     const { _curveBindings: curves } = state.clip;
 
-    playData.update();
+    playData.update(this.speed < 0);
 
     const { clipTime, playState } = playData;
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
-    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(state, layerIndex);
-    }
-    if (playState === AnimatorStatePlayState.Finished) {
-      this._callAnimatorScriptOnExit(state, layerIndex);
-    } else {
-      this._callAnimatorScriptOnUpdate(state, layerIndex);
-    }
-
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive);
+      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive, Animator._baseTempValue);
       if (additive) {
         this._applyClipValueAdditive(owner, value, weight);
       } else {
@@ -495,6 +538,15 @@ export class Animator extends Component {
 
     if (playState === AnimatorStatePlayState.Finished) {
       layerData.layerState = LayerState.Standby;
+    }
+
+    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
+      this._callAnimatorScriptOnEnter(state, layerIndex);
+    }
+    if (playState === AnimatorStatePlayState.Finished) {
+      this._callAnimatorScriptOnExit(state, layerIndex);
+    } else {
+      this._callAnimatorScriptOnUpdate(state, layerIndex);
     }
   }
 
@@ -517,11 +569,12 @@ export class Animator extends Component {
     const { clipTime: lastSrcClipTime } = srcPlayData;
     const { clipTime: lastDestClipTime } = destPlayData;
 
-    let crossWeight = destPlayData.frameTime / (destState._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight =
+      Math.abs(destPlayData.frameTime) / (destState._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
-    srcPlayData.update();
-    destPlayData.update();
+    srcPlayData.update(this.speed < 0);
+    destPlayData.update(this.speed < 0);
 
     const { playState: srcPlayState } = srcPlayData;
     const { playState: destPlayState } = destPlayData;
@@ -559,11 +612,23 @@ export class Animator extends Component {
 
       const srcValue =
         srcCurveIndex >= 0
-          ? this._evaluateCurve(property, srcCurves[srcCurveIndex].curve, srcClipTime, additive)
+          ? this._evaluateCurve(
+              property,
+              srcCurves[srcCurveIndex].curve,
+              srcClipTime,
+              additive,
+              Animator._baseTempValue
+            )
           : defaultValue;
       const destValue =
         destCurveIndex >= 0
-          ? this._evaluateCurve(property, destCurves[destCurveIndex].curve, destClipTime, additive)
+          ? this._evaluateCurve(
+              property,
+              destCurves[destCurveIndex].curve,
+              destClipTime,
+              additive,
+              Animator._crossTempValue
+            )
           : defaultValue;
 
       this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
@@ -584,17 +649,18 @@ export class Animator extends Component {
     const { _curveBindings: curves } = state.clip;
     const { clipTime: lastDestClipTime } = destPlayData;
 
-    let crossWeight = destPlayData.frameTime / (state._getDuration() * layerData.crossFadeTransition.duration);
+    let crossWeight =
+      Math.abs(destPlayData.frameTime) / (state._getDuration() * layerData.crossFadeTransition.duration);
     crossWeight >= 1.0 && (crossWeight = 1.0);
 
-    destPlayData.update();
+    destPlayData.update(this.speed < 0);
 
     const { playState } = destPlayData;
 
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
 
     const { clipTime: destClipTime } = destPlayData;
-
+    //TODO: srcState 少了最新一段时间的判断
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
@@ -610,7 +676,13 @@ export class Animator extends Component {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
       const destValue =
         destCurveIndex >= 0
-          ? this._evaluateCurve(curveOwner.property, curves[destCurveIndex].curve, destClipTime, additive)
+          ? this._evaluateCurve(
+              curveOwner.property,
+              curves[destCurveIndex].curve,
+              destClipTime,
+              additive,
+              Animator._crossTempValue
+            )
           : curveOwner.defaultValue;
 
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
@@ -642,28 +714,28 @@ export class Animator extends Component {
   ): void {
     let value: InterpolableValue;
     if (owner.type === Transform) {
-      const transform = owner.target.transform;
       switch (owner.property) {
         case AnimationProperty.Position:
-          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
-          value = Animator._tempVector3;
+          value = Animator._baseTempValue.vector3;
+          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, value as Vector3);
           break;
         case AnimationProperty.Rotation:
-          Quaternion.slerp(srcValue as Quaternion, destValue as Quaternion, crossWeight, Animator._tempQuaternion);
-          value = Animator._tempQuaternion;
+          value = Animator._baseTempValue.quaternion;
+          Quaternion.slerp(srcValue as Quaternion, destValue as Quaternion, crossWeight, value as Quaternion);
           break;
         case AnimationProperty.Scale: {
-          const scale = transform.scale;
-          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, Animator._tempVector3);
-          transform.scale = scale;
-          value = Animator._tempVector3;
+          value = Animator._baseTempValue.vector3;
+          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, value as Vector3);
           break;
         }
       }
     } else if (owner.type === SkinnedMeshRenderer) {
       switch (owner.property) {
         case AnimationProperty.BlendShapeWeights:
-          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          value = Animator._baseTempValue.getFloatArray((<Float32Array>srcValue).length);
+          for (let i = 0, length = (<Float32Array>value).length; i < length; ++i) {
+            value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
+          }
           break;
       }
     }
@@ -685,7 +757,6 @@ export class Animator extends Component {
           } else {
             const position = transform.position;
             Vector3.lerp(position, <Vector3>value, weight, position);
-            transform.position = position;
           }
           break;
         case AnimationProperty.Rotation:
@@ -694,7 +765,6 @@ export class Animator extends Component {
           } else {
             const rotationQuaternion = transform.rotationQuaternion;
             Quaternion.slerp(rotationQuaternion, <Quaternion>value, weight, rotationQuaternion);
-            transform.rotationQuaternion = rotationQuaternion;
           }
           break;
         case AnimationProperty.Scale:
@@ -703,14 +773,20 @@ export class Animator extends Component {
           } else {
             const scale = transform.scale;
             Vector3.lerp(scale, <Vector3>value, weight, scale);
-            transform.scale = scale;
           }
           break;
       }
     } else if (owner.type === SkinnedMeshRenderer) {
       switch (owner.property) {
         case AnimationProperty.BlendShapeWeights:
-          (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          if (weight === 1.0) {
+            (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
+          } else {
+            const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+            for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+              blendShapeWeights[i] += (blendShapeWeights[i] - value[i]) * weight;
+            }
+          }
           break;
       }
     }
@@ -739,6 +815,12 @@ export class Animator extends Component {
           AnimatorUtils.scaleWeight(scale, weight, scale);
           Vector3.multiply(scale, <Vector3>additiveValue, scale);
           transform.scale = scale;
+          break;
+        case AnimationProperty.BlendShapeWeights:
+          const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+          for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+            (<SkinnedMeshRenderer>owner.component).blendShapeWeights[i] += additiveValue[i] * weight;
+          }
           break;
       }
     }
@@ -843,13 +925,27 @@ export class Animator extends Component {
   ): void {
     const { state } = playState;
     const clipDuration = state.clip.length;
-    // TODO: If play backward, not work.
-    if (clipTime < lastClipTime) {
-      this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
-      playState.currentEventIndex = 0;
-      this._fireSubAnimationEvents(playState, eventHandlers, state.clipStartTime * clipDuration, clipTime);
+    if (this.speed >= 0) {
+      if (clipTime < lastClipTime) {
+        this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, state.clipEndTime * clipDuration);
+        playState.currentEventIndex = 0;
+        this._fireSubAnimationEvents(playState, eventHandlers, state.clipStartTime * clipDuration, clipTime);
+      } else {
+        this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      }
     } else {
-      this._fireSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      if (clipTime > lastClipTime) {
+        this._fireBackwardSubAnimationEvents(
+          playState,
+          eventHandlers,
+          lastClipTime,
+          state.clipStartTime * clipDuration
+        );
+        playState.currentEventIndex = eventHandlers.length - 1;
+        this._fireBackwardSubAnimationEvents(playState, eventHandlers, state.clipEndTime * clipDuration, clipTime);
+      } else {
+        this._fireBackwardSubAnimationEvents(playState, eventHandlers, lastClipTime, clipTime);
+      }
     }
   }
 
@@ -859,8 +955,9 @@ export class Animator extends Component {
     lastClipTime: number,
     curClipTime: number
   ): void {
-    for (let i = playState.currentEventIndex, n = eventHandlers.length; i < n; i++) {
-      const eventHandler = eventHandlers[i];
+    let eventIndex = playState.currentEventIndex;
+    for (let n = eventHandlers.length; eventIndex < n; eventIndex++) {
+      const eventHandler = eventHandlers[eventIndex];
       const { time, parameter } = eventHandler.event;
 
       if (time > curClipTime) {
@@ -872,7 +969,32 @@ export class Animator extends Component {
         for (let j = handlers.length - 1; j >= 0; j--) {
           handlers[j](parameter);
         }
-        playState.currentEventIndex = i + 1;
+        playState.currentEventIndex = Math.min(eventIndex + 1, n - 1);
+      }
+    }
+  }
+
+  private _fireBackwardSubAnimationEvents(
+    playState: AnimatorStatePlayData,
+    eventHandlers: AnimationEventHandler[],
+    lastClipTime: number,
+    curClipTime: number
+  ): void {
+    let eventIndex = playState.currentEventIndex;
+    for (; eventIndex >= 0; eventIndex--) {
+      const eventHandler = eventHandlers[eventIndex];
+      const { time, parameter } = eventHandler.event;
+
+      if (time < curClipTime) {
+        break;
+      }
+
+      const { handlers } = eventHandler;
+      if (time <= lastClipTime) {
+        for (let j = handlers.length - 1; j >= 0; j--) {
+          handlers[j](parameter);
+        }
+        playState.currentEventIndex = Math.max(eventIndex - 1, 0);
       }
     }
   }

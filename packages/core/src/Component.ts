@@ -1,6 +1,5 @@
 import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
-import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
 
@@ -75,7 +74,6 @@ export abstract class Component extends EngineObject {
     this._entity._removeComponent(this);
     if (this._entity.isActiveInHierarchy) {
       this._enabled && this._onDisable();
-      this._onInActive();
     }
     this._destroyed = true;
     this._onDestroy();
@@ -104,16 +102,6 @@ export abstract class Component extends EngineObject {
   /**
    * @internal
    */
-  _onActive(): void {}
-
-  /**
-   * @internal
-   */
-  _onInActive(): void {}
-
-  /**
-   * @internal
-   */
   _setActive(value: boolean): void {
     if (value) {
       if (!this._awoken) {
@@ -122,12 +110,10 @@ export abstract class Component extends EngineObject {
       }
       // You can do isActive = false in onAwake function.
       if (this._entity._isActiveInHierarchy) {
-        this._onActive();
-        this._enabled && this._onEnable();
+        this._onEnable();
       }
     } else {
-      this._enabled && this._onDisable();
-      this._onInActive();
+      this._onDisable();
     }
   }
 }

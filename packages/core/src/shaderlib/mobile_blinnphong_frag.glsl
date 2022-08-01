@@ -1,4 +1,10 @@
-    vec3 N = getNormal();
+    #ifdef NORMALTEXTURE
+        mat3 tbn = getTBN();
+        vec3 N = getNormalByNormalTexture(tbn, u_normalTexture, u_normalIntensity, v_uv);
+    #else
+        vec3 N = getNormal();
+    #endif
+
     vec3 lightDiffuse = vec3( 0.0, 0.0, 0.0 );
     vec3 lightSpecular = vec3( 0.0, 0.0, 0.0 );
 

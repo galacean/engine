@@ -1,31 +1,23 @@
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { Mesh } from "../graphic/Mesh";
-import { Buffer } from "../graphic/Buffer";
 import { Engine } from "../Engine";
+import { IndexBufferBinding } from "../graphic";
+import { Buffer } from "../graphic/Buffer";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexElement } from "../graphic/VertexElement";
-import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { Mesh } from "../graphic/Mesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { IndexBufferBinding } from "../graphic";
+import { VertexElement } from "../graphic/VertexElement";
 import { BlendShape } from "./BlendShape";
-import { UpdateFlag } from "../UpdateFlag";
-import { Texture2D } from "../texture/Texture2D";
-import { TextureFilterMode, TextureFormat } from "../texture";
+import { BlendShapeManager } from "./BlendShapeManager";
 
 /**
  * Mesh containing common vertex elements of the model.
  */
 export class ModelMesh extends Mesh {
   /** @internal */
-  _hasBlendShape: boolean = false;
-  /** @internal */
-  _useBlendShapeNormal: boolean = false;
-  /** @internal */
-  _useBlendShapeTangent: boolean = false;
-  /** @internal */
-  _blendShapeTexture: Texture2D;
+  _blendShapeManager: BlendShapeManager;
 
   private _vertexCount: number = 0;
   private _accessible: boolean = true;
@@ -36,8 +28,8 @@ export class ModelMesh extends Mesh {
   private _vertexSlotChanged: boolean = true;
   private _vertexChangeFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
-  private _elementCount: number = 0;
-  private _vertexElementsCache: VertexElement[] = [];
+  private _vertexStrideFloat: number = 0;
+  private _lastUploadVertexCount: number = -1;
 
   private _positions: Vector3[] = [];
   private _normals: Vector3[] | null = null;
@@ -53,8 +45,6 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
-  private _blendShapes: BlendShape[] = [];
-  private _blendShapeUpdateFlags: UpdateFlag[] = [];
 
   /**
    * Whether to access data of the mesh.
@@ -71,13 +61,20 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * BlendShape count of this ModelMesh.
+   * BlendShapes of this ModelMesh.
    */
   get blendShapes(): Readonly<BlendShape[]> {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._blendShapes;
+    return this._blendShapeManager._blendShapes;
+  }
+
+  /**
+   * BlendShape count of this ModelMesh.
+   */
+  get blendShapeCount(): number {
+    return this._blendShapeManager._blendShapeCount;
   }
 
   /**
@@ -88,6 +85,7 @@ export class ModelMesh extends Mesh {
   constructor(engine: Engine, name?: string) {
     super(engine);
     this.name = name;
+    this._blendShapeManager = new BlendShapeManager(engine, this);
   }
 
   /**
@@ -99,13 +97,9 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    const count = positions.length;
     this._positions = positions;
+    this._vertexCount = positions.length;
     this._vertexChangeFlag |= ValueChanged.Position;
-
-    if (this._vertexCount !== count) {
-      this._vertexCount = count;
-    }
   }
 
   /**
@@ -411,12 +405,7 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    this._vertexChangeFlag |= ValueChanged.BlendShape;
-    this._useBlendShapeNormal = this._useBlendShapeNormal || blendShape._useBlendShapeNormal;
-    this._useBlendShapeTangent = this._useBlendShapeTangent || blendShape._useBlendShapeTangent;
-    this._blendShapes.push(blendShape);
-    this._blendShapeUpdateFlags.push(blendShape._registerChangeFlag());
-    this._hasBlendShape = true;
+    this._blendShapeManager._addBlendShape(blendShape);
   }
 
   /**
@@ -426,20 +415,25 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    this._vertexChangeFlag |= ValueChanged.BlendShape;
-    this._useBlendShapeNormal = false;
-    this._useBlendShapeTangent = false;
-    this._blendShapes.length = 0;
-    const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
-    for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
-      blendShapeUpdateFlags[i].destroy();
-    }
-    blendShapeUpdateFlags.length = 0;
-    this._hasBlendShape = false;
+    this._blendShapeManager._clearBlendShapes();
   }
 
   /**
-   * Upload Mesh Data to the graphics API.
+   * Get name of BlendShape by given index.
+   * @param index - The index of BlendShape
+   * @returns The name of BlendShape
+   */
+  getBlendShapeName(index: number): string {
+    if (this._accessible) {
+      const blendShapes = this._blendShapeManager._blendShapes;
+      return blendShapes[index].name;
+    } else {
+      return this._blendShapeManager._blendShapeNames[index];
+    }
+  }
+
+  /**
+   * Upload Mesh Data to GPU.
    * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
    */
   uploadData(noLongerAccessible: boolean): void {
@@ -447,29 +441,20 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    const { _indices } = this;
+    const { _vertexCount: vertexCount } = this;
+    const vertexElementChanged = this._updateVertexElements();
+    const vertexCountChange = this._lastUploadVertexCount !== vertexCount;
 
-    // Vertex element change.
-    if (this._vertexSlotChanged) {
-      const vertexElements = this._updateVertexElements();
-      this._setVertexElements(vertexElements);
-      this._vertexChangeFlag = ValueChanged.All;
-      this._vertexSlotChanged = false;
-    }
-
-    // Vertex value change.
-    const vertexBufferBindings = this._vertexBufferBindings;
-    const elementCount = this._elementCount;
-    const vertexBuffer = vertexBufferBindings[0]?._buffer;
-    const vertexFloatCount = elementCount * this._vertexCount;
-    if (!vertexBuffer || this._verticesFloat32.length !== vertexFloatCount) {
+    // Vertex count change
+    const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
+    if (vertexCountChange) {
       vertexBuffer?.destroy();
+      const elementCount = this._vertexStrideFloat;
+      const vertexFloatCount = elementCount * vertexCount;
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
-
-      this._vertexChangeFlag = ValueChanged.All;
-      this._updateVertices(vertices);
+      this._updateVertices(vertices, true);
 
       const newVertexBuffer = new Buffer(
         this._engine,
@@ -479,29 +464,37 @@ export class ModelMesh extends Mesh {
       );
 
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
-    } else if (this._vertexChangeFlag & ValueChanged.All) {
-      const vertices = this._verticesFloat32;
-      this._updateVertices(vertices);
-      vertexBuffer.setData(vertices);
+      this._lastUploadVertexCount = vertexCount;
+    } else {
+      if (this._vertexChangeFlag & ValueChanged.All) {
+        const vertices = this._verticesFloat32;
+        this._updateVertices(vertices, vertexElementChanged);
+        vertexBuffer.setData(vertices);
+      }
     }
 
+    const { _indices: indices } = this;
     const indexBuffer = this._indexBufferBinding?._buffer;
-    if (_indices) {
-      if (!indexBuffer || _indices.byteLength != indexBuffer.byteLength) {
+    if (indices) {
+      if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
         indexBuffer?.destroy();
-        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, _indices);
+        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
         this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
-      } else if (this._indicesChangeFlag) {
         this._indicesChangeFlag = false;
-        indexBuffer.setData(_indices);
+      } else if (this._indicesChangeFlag) {
+        indexBuffer.setData(indices);
         if (this._indexBufferBinding._format !== this._indicesFormat) {
           this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
         }
+        this._indicesChangeFlag = false;
       }
     } else if (indexBuffer) {
       indexBuffer.destroy();
       this._setIndexBufferBinding(null);
     }
+
+    const { _blendShapeManager: blendShapeManager } = this;
+    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(vertexCountChange, noLongerAccessible);
 
     if (noLongerAccessible) {
       this._accessible = false;
@@ -518,107 +511,100 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
-  private _updateVertexElements(): VertexElement[] {
-    const vertexElements = this._vertexElementsCache;
-    vertexElements.length = 1;
-    vertexElements[0] = POSITION_VERTEX_ELEMENT;
+  private _updateVertexElements(): boolean {
+    const blendShapeManager = this._blendShapeManager;
+    const attributeMode = !blendShapeManager._useTextureMode();
 
-    let offset = 12;
-    let elementCount = 3;
-    if (this._normals) {
-      vertexElements.push(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
-      offset += 12;
-      elementCount += 3;
-    }
-    if (this._colors) {
-      vertexElements.push(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
-      offset += 16;
-      elementCount += 4;
-    }
-    if (this._boneWeights) {
-      vertexElements.push(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
-      offset += 16;
-      elementCount += 4;
-    }
-    if (this._boneIndices) {
-      vertexElements.push(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
-      offset += 4;
-      elementCount += 1;
-    }
-    if (this._tangents) {
-      vertexElements.push(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
-      offset += 16;
-      elementCount += 4;
-    }
-    if (this._uv) {
-      vertexElements.push(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv1) {
-      vertexElements.push(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv2) {
-      vertexElements.push(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv3) {
-      vertexElements.push(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv4) {
-      vertexElements.push(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv5) {
-      vertexElements.push(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv6) {
-      vertexElements.push(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
-    if (this._uv7) {
-      vertexElements.push(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
-      offset += 8;
-      elementCount += 2;
-    }
+    if (this._vertexSlotChanged || (attributeMode && blendShapeManager._vertexElementsNeedUpdate())) {
+      let offset = 12;
+      let elementCount = 3;
+      this._clearVertexElements();
+      this._addVertexElement(POSITION_VERTEX_ELEMENT);
 
-    const blendShapeCount = Math.min(this._blendShapes.length, 4);
-    for (let i = 0, n = blendShapeCount; i < n; i++) {
-      vertexElements.push(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 0));
-      offset += 12;
-      elementCount += 3;
-      if (this._useBlendShapeNormal) {
-        vertexElements.push(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 0));
+      if (this._normals) {
+        this._addVertexElement(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
         offset += 12;
         elementCount += 3;
       }
-      if (this._useBlendShapeTangent) {
-        vertexElements.push(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 0));
-        offset += 12;
-        elementCount += 3;
+      if (this._colors) {
+        this._addVertexElement(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
+        offset += 16;
+        elementCount += 4;
       }
+      if (this._boneWeights) {
+        this._addVertexElement(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
+        offset += 16;
+        elementCount += 4;
+      }
+      if (this._boneIndices) {
+        this._addVertexElement(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
+        offset += 4;
+        elementCount += 1;
+      }
+      if (this._tangents) {
+        this._addVertexElement(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
+        offset += 16;
+        elementCount += 4;
+      }
+      if (this._uv) {
+        this._addVertexElement(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv1) {
+        this._addVertexElement(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv2) {
+        this._addVertexElement(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv3) {
+        this._addVertexElement(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv4) {
+        this._addVertexElement(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv5) {
+        this._addVertexElement(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv6) {
+        this._addVertexElement(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (this._uv7) {
+        this._addVertexElement(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
+        offset += 8;
+        elementCount += 2;
+      }
+      if (attributeMode) {
+        blendShapeManager._blendShapeCount > 0 && blendShapeManager._addVertexElements(this);
+      }
+      this._vertexSlotChanged = false;
+      this._vertexStrideFloat = elementCount;
+      return true;
     }
-
-    this._elementCount = elementCount;
-    return vertexElements;
+    return false;
   }
 
-  private _updateVertices(vertices: Float32Array): void {
+  private _updateVertices(vertices: Float32Array, force: boolean): void {
     // prettier-ignore
-    const { _elementCount,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const { _vertexStrideFloat,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+
+    force && (this._vertexChangeFlag = ValueChanged.All);
 
     if (_vertexChangeFlag & ValueChanged.Position) {
       for (let i = 0; i < _vertexCount; i++) {
-        const start = _elementCount * i;
+        const start = _vertexStrideFloat * i;
         const position = _positions[i];
         vertices[start] = position.x;
         vertices[start + 1] = position.y;
@@ -631,7 +617,7 @@ export class ModelMesh extends Mesh {
     if (_normals) {
       if (_vertexChangeFlag & ValueChanged.Normal) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const normal = _normals[i];
           if (normal) {
             vertices[start] = normal.x;
@@ -646,7 +632,7 @@ export class ModelMesh extends Mesh {
     if (_colors) {
       if (_vertexChangeFlag & ValueChanged.Color) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const color = _colors[i];
           if (color) {
             vertices[start] = color.r;
@@ -662,7 +648,7 @@ export class ModelMesh extends Mesh {
     if (_boneWeights) {
       if (_vertexChangeFlag & ValueChanged.BoneWeight) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const weight = _boneWeights[i];
           if (weight) {
             vertices[start] = weight.x;
@@ -679,7 +665,7 @@ export class ModelMesh extends Mesh {
       if (_vertexChangeFlag & ValueChanged.BoneIndex) {
         const { _verticesUint8 } = this;
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const joint = _boneIndices[i];
           if (joint) {
             const internalStart = start * 4;
@@ -696,7 +682,7 @@ export class ModelMesh extends Mesh {
     if (_tangents) {
       if (_vertexChangeFlag & ValueChanged.Tangent) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const tangent = _tangents[i];
           if (tangent) {
             vertices[start] = tangent.x;
@@ -710,7 +696,7 @@ export class ModelMesh extends Mesh {
     if (_uv) {
       if (_vertexChangeFlag & ValueChanged.UV) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const uv = _uv[i];
           if (uv) {
             vertices[start] = uv.x;
@@ -723,7 +709,7 @@ export class ModelMesh extends Mesh {
     if (_uv1) {
       if (_vertexChangeFlag & ValueChanged.UV1) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const uv = _uv1[i];
           if (uv) {
             vertices[start] = uv.x;
@@ -736,7 +722,7 @@ export class ModelMesh extends Mesh {
     if (_uv2) {
       if (_vertexChangeFlag & ValueChanged.UV2) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const uv = _uv2[i];
           if (uv) {
             vertices[start] = uv.x;
@@ -749,7 +735,7 @@ export class ModelMesh extends Mesh {
     if (_uv3) {
       if (_vertexChangeFlag & ValueChanged.UV3) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const uv = _uv3[i];
           if (uv) {
             vertices[start] = uv.x;
@@ -762,7 +748,7 @@ export class ModelMesh extends Mesh {
     if (_uv4) {
       if (_vertexChangeFlag & ValueChanged.UV4) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const uv = _uv4[i];
           if (uv) {
             vertices[start] = uv.x;
@@ -775,7 +761,7 @@ export class ModelMesh extends Mesh {
     if (_uv5) {
       if (_vertexChangeFlag & ValueChanged.UV5) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const uv = _uv5[i];
           if (uv) {
             vertices[start] = uv.x;
@@ -788,7 +774,7 @@ export class ModelMesh extends Mesh {
     if (_uv6) {
       if (_vertexChangeFlag & ValueChanged.UV6) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const uv = _uv6[i];
           if (uv) {
             vertices[start] = uv.x;
@@ -801,7 +787,7 @@ export class ModelMesh extends Mesh {
     if (_uv7) {
       if (_vertexChangeFlag & ValueChanged.UV7) {
         for (let i = 0; i < _vertexCount; i++) {
-          const start = _elementCount * i + offset;
+          const start = _vertexStrideFloat * i + offset;
           const uv = _uv7[i];
           if (uv) {
             vertices[start] = uv.x;
@@ -811,96 +797,10 @@ export class ModelMesh extends Mesh {
       }
       offset += 2;
     }
-
-    // BlendShape.
-    if (_vertexChangeFlag & ValueChanged.BlendShape) {
-      const blendShapes = this._blendShapes;
-      const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
-      const blendShapeCount = Math.min(blendShapes.length, 4);
-
-      const rhi = this.engine._hardwareRenderer;
-      if (/*rhi.canUseFloatTextureBlendShape*/ false) {
-        let stride = 1;
-        this._useBlendShapeNormal && stride++;
-        this._useBlendShapeTangent && stride++;
-
-        const maxTextureSize = rhi.renderStates.getParameter(rhi.gl.MAX_TEXTURE_SIZE);
-        const pixelCount = this._vertexCount * stride;
-        const height = Math.ceil(pixelCount / maxTextureSize);
-        const width = height > 1 ? maxTextureSize : pixelCount;
-
-        this._blendShapeTexture = new Texture2D(this.engine, 0, 0, TextureFormat.R32G32B32A32, false);
-        this._blendShapeTexture.filterMode = TextureFilterMode.Point;
-      } else {
-        for (let i = 0; i < blendShapeCount; i++) {
-          const blendShapeUpdateFlag = blendShapeUpdateFlags[i];
-          if (blendShapeUpdateFlag.flag) {
-            const blendShape = blendShapes[i];
-            const { frames } = blendShape;
-            const frameCount = frames.length;
-            const endFrame = frames[frameCount - 1];
-            if (frameCount > 0 && endFrame.deltaPositions.length !== this._vertexCount) {
-              throw "BlendShape frame deltaPositions length must same with mesh vertexCount.";
-            }
-
-            const { deltaPositions } = endFrame;
-            for (let j = 0; j < _vertexCount; j++) {
-              const start = _elementCount * j + offset;
-              const deltaPosition = deltaPositions[j];
-              if (deltaPosition) {
-                vertices[start] = deltaPosition.x;
-                vertices[start + 1] = deltaPosition.y;
-                vertices[start + 2] = deltaPosition.z;
-              }
-            }
-            offset += 3;
-
-            if (this._useBlendShapeNormal) {
-              const { deltaNormals } = endFrame;
-              if (deltaNormals) {
-                for (let j = 0; j < _vertexCount; j++) {
-                  const start = _elementCount * j + offset;
-                  const deltaNormal = deltaNormals[j];
-                  if (deltaNormal) {
-                    vertices[start] = deltaNormal.x;
-                    vertices[start + 1] = deltaNormal.y;
-                    vertices[start + 2] = deltaNormal.z;
-                  }
-                }
-              }
-              offset += 3;
-            }
-
-            if (this._useBlendShapeTangent) {
-              const { deltaTangents } = endFrame;
-              if (deltaTangents) {
-                for (let j = 0; j < _vertexCount; j++) {
-                  const start = _elementCount * j + offset;
-                  const deltaTangent = deltaTangents[j];
-                  if (deltaTangent) {
-                    vertices[start] = deltaTangent.x;
-                    vertices[start + 1] = deltaTangent.y;
-                    vertices[start + 2] = deltaTangent.z;
-                  }
-                }
-              }
-              offset += 3;
-            }
-            blendShapeUpdateFlag.flag = false;
-          }
-        }
-      }
-    }
-
     this._vertexChangeFlag = 0;
   }
 
   private _releaseCache(): void {
-    const blendShapeUpdateFlags = this._blendShapeUpdateFlags;
-    for (let i = 0, n = blendShapeUpdateFlags.length; i < n; i++) {
-      blendShapeUpdateFlags[i].destroy();
-    }
-
     this._verticesUint8 = null;
     this._indices = null;
     this._verticesFloat32 = null;
@@ -916,8 +816,7 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
-    this._blendShapes = null;
-    this._blendShapeUpdateFlags = null;
+    this._blendShapeManager._releaseMemoryCache();
   }
 }
 
@@ -938,6 +837,5 @@ enum ValueChanged {
   UV5 = 0x800,
   UV6 = 0x1000,
   UV7 = 0x2000,
-  BlendShape = 0x4000,
   All = 0xffff
 }

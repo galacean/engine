@@ -1,8 +1,9 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Logger } from "./base";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependencies } from "./ComponentsDependencies";
+import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
@@ -15,7 +16,6 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
-import { UpdateFlag } from "./UpdateFlag";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -25,8 +25,9 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
+ * @decorator `@dependentComponents(Transform)`
  */
-@dependencies(Transform)
+@dependentComponents(Transform)
 export class Camera extends Component {
   private static _viewMatrixProperty = Shader.getPropertyByName("u_viewMat");
   private static _projectionMatrixProperty = Shader.getPropertyByName("u_projMat");
@@ -46,9 +47,9 @@ export class Camera extends Component {
 
   /**
    * Determining what to clear when rendering by a Camera.
-   * @defaultValue `CameraClearFlags.DepthColor`
+   * @defaultValue `CameraClearFlags.All`
    */
-  clearFlags: CameraClearFlags = CameraClearFlags.DepthColor;
+  clearFlags: CameraClearFlags = CameraClearFlags.All;
 
   /**
    * Culling mask - which layers the camera renders.
@@ -78,13 +79,13 @@ export class Camera extends Component {
   private _renderTarget: RenderTarget = null;
 
   @ignoreClone
-  private _frustumViewChangeFlag: UpdateFlag;
+  private _frustumViewChangeFlag: BoolUpdateFlag;
   @ignoreClone
   private _transform: Transform;
   @ignoreClone
-  private _isViewMatrixDirty: UpdateFlag;
+  private _isViewMatrixDirty: BoolUpdateFlag;
   @ignoreClone
-  private _isInvViewProjDirty: UpdateFlag;
+  private _isInvViewProjDirty: BoolUpdateFlag;
   @deepClone
   private _projectionMatrix: Matrix = new Matrix();
   @deepClone
@@ -158,7 +159,7 @@ export class Camera extends Component {
 
   set viewport(value: Vector4) {
     if (value !== this._viewport) {
-      value.cloneTo(this._viewport);
+      this._viewport.copyFrom(value);
     }
     this._projMatChange();
   }
@@ -191,10 +192,15 @@ export class Camera extends Component {
    * View matrix.
    */
   get viewMatrix(): Readonly<Matrix> {
-    // Remove scale
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
-      Matrix.invert(this._transform.worldMatrix, this._viewMatrix);
+      // Ignore scale.
+      Matrix.rotationTranslation(
+        this._transform.worldRotationQuaternion,
+        this._transform.worldPosition,
+        this._viewMatrix
+      );
+      this._viewMatrix.invert();
     }
     return this._viewMatrix;
   }
@@ -263,8 +269,7 @@ export class Camera extends Component {
   }
 
   /**
-   * Create the Camera component.
-   * @param entity - Entity
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
@@ -308,7 +313,7 @@ export class Camera extends Component {
     Vector3.transformToVec4(cameraPoint, this.projectionMatrix, viewportPoint);
 
     const w = viewportPoint.w;
-    out.setValue((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, -cameraPoint.z);
+    out.set((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, -cameraPoint.z);
     return out;
   }
 
@@ -455,7 +460,7 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onActive() {
+  _onEnable(): void {
     this.entity.scene._attachRenderCamera(this);
   }
 
@@ -463,7 +468,7 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onInActive() {
+  _onDisable(): void {
     this.entity.scene._detachRenderCamera(this);
   }
 
@@ -471,14 +476,14 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onDestroy() {
+  _onDestroy(): void {
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
     this.shaderData._addRefCount(-1);
   }
 
-  private _projMatChange() {
+  private _projMatChange(): void {
     this._isFrustumProjectDirty = true;
     this._isProjectionDirty = true;
     this._isInvProjMatDirty = true;
@@ -489,7 +494,7 @@ export class Camera extends Component {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
     // Transform to clipping space matrix
     const clipPoint = MathTemp.tempVec3;
-    clipPoint.setValue(x * 2 - 1, 1 - y * 2, z * 2 - 1);
+    clipPoint.set(x * 2 - 1, 1 - y * 2, z * 2 - 1);
     Vector3.transformCoordinate(clipPoint, invViewProjMat, out);
     return out;
   }

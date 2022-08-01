@@ -15,14 +15,9 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _blendShapeMacro = Shader.getMacroByName("OASIS_BLENDSHAPE");
-  private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
-  private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
-
   private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
-  private static _blendShapeWeightsProperty = Shader.getPropertyByName("u_blendShapeWeights");
 
   private static _maxJoints: number = 0;
 
@@ -41,7 +36,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
-  private _blendShapeWeights: Float32Array;
+  _blendShapeWeights: Float32Array;
+  _condensedBlendShapeWeights: Float32Array;
 
   /**
    * The weights of the BlendShapes.
@@ -77,23 +73,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
 
     const mesh = <ModelMesh>this.mesh;
-    if (mesh._hasBlendShape) {
-      shaderData.setFloatArray(SkinnedMeshRenderer._blendShapeWeightsProperty, this._blendShapeWeights);
-      shaderData.enableMacro(SkinnedMeshRenderer._blendShapeMacro);
-
-      if (mesh._useBlendShapeNormal) {
-        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
-      } else {
-        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeNormalMacro);
-      }
-      if (mesh._useBlendShapeTangent) {
-        shaderData.enableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
-      } else {
-        shaderData.disableMacro(SkinnedMeshRenderer._blendShapeTangentMacro);
-      }
-    } else {
-      shaderData.disableMacro(SkinnedMeshRenderer._blendShapeMacro);
-    }
+    mesh._blendShapeManager._updateShaderData(shaderData, this);
   }
 
   /**
@@ -123,23 +103,24 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const rhi = this.entity.engine._hardwareRenderer;
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    const maxJoints = Math.floor((maxAttribUniformVec4 - 20) / 4);
+    const maxJoints = Math.floor((maxAttribUniformVec4 - 30) / 4);
     const shaderData = this.shaderData;
-    const jointCount = this.jointNodes?.length;
+    const jointCount = jointNodes.length;
+
     if (jointCount) {
       shaderData.enableMacro("O3_HAS_SKIN");
       shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
-      if (joints.length > maxJoints) {
+      if (jointCount > maxJoints) {
         if (rhi.canIUseMoreJoints) {
           this._useJointTexture = true;
         } else {
           Logger.error(
-            `component's joints count(${joints}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
+            `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
             this
           );
         }
       } else {
-        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, joints.length);
+        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, jointCount);
         SkinnedMeshRenderer._maxJoints = maxJoints;
         shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
         shaderData.enableMacro("O3_JOINTS_NUM", maxJoints.toString());
@@ -179,7 +160,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         if (joints[i]) {
           Matrix.multiply(joints[i].transform.worldMatrix, ibms[i], mat);
         } else {
-          ibms[i].cloneTo(mat);
+          mat.copyFrom(ibms[i]);
         }
         Matrix.multiply(worldToLocal, mat, mat);
         matrixPalette.set(mat.elements, i * 16);

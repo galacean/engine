@@ -1,14 +1,14 @@
-import { IPhysicsManager } from "@oasis-engine/design";
-import { BoundingBox, BoundingSphere, Ray, Vector3, CollisionUtil } from "oasis-engine";
+import { ICharacterController, IPhysicsManager } from "@oasis-engine/design";
+import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "oasis-engine";
+import { DisorderedArray } from "./DisorderedArray";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteBoxColliderShape } from "./shape/LiteBoxColliderShape";
-import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
-import { DisorderedArray } from "./DisorderedArray";
+import { LiteSphereColliderShape } from "./shape/LiteSphereColliderShape";
 
 /**
- * A manager is a collection of bodies and constraints which can interact.
+ * A manager is a collection of colliders and constraints which can interact.
  */
 export class LitePhysicsManager implements IPhysicsManager {
   private static _tempSphere: BoundingSphere = new BoundingSphere();
@@ -65,7 +65,16 @@ export class LitePhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeColliderShape }
    */
   removeColliderShape(colliderShape: LiteColliderShape): void {
-    delete this._eventMap[colliderShape._id];
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    const { _id: shapeID } = colliderShape;
+    for (let i = currentEvents.length - 1; i >= 0; i--) {
+      const event = currentEvents.get(i);
+      if (event.index1 == shapeID || event.index2 == shapeID) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+      }
+    }
+    delete this._eventMap[shapeID];
   }
 
   /**
@@ -120,8 +129,8 @@ export class LitePhysicsManager implements IPhysicsManager {
         isHit = true;
         if (curHit.distance < distance) {
           if (hitResult) {
-            curHit.normal.cloneTo(hitResult.normal);
-            curHit.point.cloneTo(hitResult.point);
+            hitResult.normal.copyFrom(curHit.normal);
+            hitResult.point.copyFrom(curHit.point);
             hitResult.distance = curHit.distance;
             hitResult.shapeID = curHit.shapeID;
           } else {
@@ -135,8 +144,8 @@ export class LitePhysicsManager implements IPhysicsManager {
     if (!isHit && hitResult) {
       hitResult.shapeID = -1;
       hitResult.distance = 0;
-      hitResult.point.setValue(0, 0, 0);
-      hitResult.normal.setValue(0, 0, 0);
+      hitResult.point.set(0, 0, 0);
+      hitResult.normal.set(0, 0, 0);
     } else if (isHit && hitResult) {
       hit(hitResult.shapeID, hitResult.distance, hitResult.point, hitResult.normal);
     }
@@ -144,14 +153,28 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   /**
-   * Calculate the boundingbox in world space from boxCollider.
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
+  addCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support addCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
+  removeCharacterController(characterController: ICharacterController): void {
+    throw "Physics-lite don't support removeCharacterController. Use Physics-PhysX instead!";
+  }
+
+  /**
+   * Calculate the bounding box in world space from boxCollider.
    * @param boxCollider - The boxCollider to calculate
    * @param out - The calculated boundingBox
    */
   private static _updateWorldBox(boxCollider: LiteBoxColliderShape, out: BoundingBox): void {
     const mat = boxCollider._transform.worldMatrix;
-    boxCollider._boxMax.cloneTo(out.max);
-    boxCollider._boxMin.cloneTo(out.min);
+    out.min.copyFrom(boxCollider._boxMin);
+    out.max.copyFrom(boxCollider._boxMax);
     BoundingBox.transform(out, mat, out);
   }
 
@@ -166,7 +189,14 @@ export class LitePhysicsManager implements IPhysicsManager {
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
-    const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    let event: TriggerEvent;
+    if (this._eventPool.length) {
+      event = this._eventPool.pop();
+      event.index1 = index1;
+      event.index2 = index2;
+    } else {
+      event = new TriggerEvent(index1, index2);
+    }
     this._eventMap[index1][index2] = event;
     return event;
   }
@@ -186,20 +216,20 @@ export class LitePhysicsManager implements IPhysicsManager {
             const index1 = shape._id;
             const index2 = myShape._id;
             const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
-            if (event !== undefined && !event.needUpdate) {
+            if (event !== undefined && !event.alreadyInvoked) {
               continue;
             }
             if (shape != myShape && this._boxCollision(shape)) {
               if (event === undefined) {
                 const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
                 event.state = TriggerEventState.Enter;
-                event.needUpdate = false;
+                event.alreadyInvoked = false;
                 this._currentEvents.add(event);
               } else if (event.state === TriggerEventState.Enter) {
                 event.state = TriggerEventState.Stay;
-                event.needUpdate = false;
+                event.alreadyInvoked = false;
               } else if (event.state === TriggerEventState.Stay) {
-                event.needUpdate = false;
+                event.alreadyInvoked = false;
               }
             }
           }
@@ -213,20 +243,20 @@ export class LitePhysicsManager implements IPhysicsManager {
             const index1 = shape._id;
             const index2 = myShape._id;
             const event = index1 < index2 ? this._eventMap[index1][index2] : this._eventMap[index2][index1];
-            if (event !== undefined && !event.needUpdate) {
+            if (event !== undefined && !event.alreadyInvoked) {
               continue;
             }
             if (shape != myShape && this._sphereCollision(shape)) {
               if (event === undefined) {
                 const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
                 event.state = TriggerEventState.Enter;
-                event.needUpdate = false;
+                event.alreadyInvoked = false;
                 this._currentEvents.add(event);
               } else if (event.state === TriggerEventState.Enter) {
                 event.state = TriggerEventState.Stay;
-                event.needUpdate = false;
+                event.alreadyInvoked = false;
               } else if (event.state === TriggerEventState.Stay) {
-                event.needUpdate = false;
+                event.alreadyInvoked = false;
               }
             }
           }
@@ -237,17 +267,15 @@ export class LitePhysicsManager implements IPhysicsManager {
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = currentEvents.length - 1; i >= 0; i--) {
       const event = currentEvents.get(i);
-      if (!event.needUpdate) {
+      if (!event.alreadyInvoked) {
         if (event.state == TriggerEventState.Enter) {
           this._onTriggerEnter(event.index1, event.index2);
-          event.needUpdate = true;
-          i++;
+          event.alreadyInvoked = true;
         } else if (event.state == TriggerEventState.Stay) {
           this._onTriggerStay(event.index1, event.index2);
-          event.needUpdate = true;
-          i++;
+          event.alreadyInvoked = true;
         }
       } else {
         event.state = TriggerEventState.Exit;
@@ -257,7 +285,6 @@ export class LitePhysicsManager implements IPhysicsManager {
 
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
-        n--;
       }
     }
   }
@@ -305,7 +332,7 @@ class TriggerEvent {
   state: TriggerEventState;
   index1: number;
   index2: number;
-  needUpdate: boolean = false;
+  alreadyInvoked: boolean = false;
 
   constructor(index1: number, index2: number) {
     this.index1 = index1;

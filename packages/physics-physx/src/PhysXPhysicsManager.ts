@@ -1,14 +1,18 @@
-import { PhysXPhysics } from "./PhysXPhysics";
-import { Ray, Vector3 } from "oasis-engine";
 import { IPhysicsManager } from "@oasis-engine/design";
-import { PhysXCollider } from "./PhysXCollider";
+import { Ray, Vector3 } from "oasis-engine";
 import { DisorderedArray } from "./DisorderedArray";
+import { PhysXCharacterController } from "./PhysXCharacterController";
+import { PhysXCollider } from "./PhysXCollider";
+import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
- * A manager is a collection of bodies and constraints which can interact.
+ * A manager is a collection of colliders and constraints which can interact.
  */
 export class PhysXPhysicsManager implements IPhysicsManager {
+  /** @internal */
+  _pxControllerManager: any = null;
+
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
   private static _pxRaycastHit: any;
@@ -51,9 +55,21 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
-      onContactBegin: (obj1, obj2) => {},
-      onContactEnd: (obj1, obj2) => {},
-      onContactPersist: (obj1, obj2) => {},
+      onContactBegin: (obj1, obj2) => {
+        const index1 = obj1.getQueryFilterData().word0;
+        const index2 = obj2.getQueryFilterData().word0;
+        this._onContactEnter(index1, index2);
+      },
+      onContactEnd: (obj1, obj2) => {
+        const index1 = obj1.getQueryFilterData().word0;
+        const index2 = obj2.getQueryFilterData().word0;
+        this._onContactExit(index1, index2);
+      },
+      onContactPersist: (obj1, obj2) => {
+        const index1 = obj1.getQueryFilterData().word0;
+        const index2 = obj2.getQueryFilterData().word0;
+        this._onContactStay(index1, index2);
+      },
       onTriggerBegin: (obj1, obj2) => {
         const index1 = obj1.getQueryFilterData().word0;
         const index2 = obj2.getQueryFilterData().word0;
@@ -105,7 +121,16 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeColliderShape }
    */
   removeColliderShape(colliderShape: PhysXColliderShape) {
-    delete this._eventMap[colliderShape._id];
+    const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
+    const { _id: shapeID } = colliderShape;
+    for (let i = currentEvents.length - 1; i >= 0; i--) {
+      const event = currentEvents.get(i);
+      if (event.index1 == shapeID || event.index2 == shapeID) {
+        currentEvents.deleteByIndex(i);
+        eventPool.push(event);
+      }
+    }
+    delete this._eventMap[shapeID];
   }
 
   /**
@@ -120,6 +145,32 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    */
   removeCollider(collider: PhysXCollider): void {
     this._pxScene.removeActor(collider._pxActor, true);
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.addCharacterController }
+   */
+  addCharacterController(characterController: PhysXCharacterController): void {
+    const lastPXManager = characterController._pxManager;
+    const shape = characterController._shape;
+    if (shape) {
+      if (lastPXManager !== this) {
+        lastPXManager && characterController._destroyPXController();
+        characterController._createPXController(this, shape);
+      }
+      this._pxScene.addController(characterController._pxController);
+    }
+    characterController._pxManager = this;
+  }
+
+  /**
+   * {@inheritDoc IPhysicsManager.removeCharacterController }
+   */
+  removeCharacterController(characterController: PhysXCharacterController): void {
+    if (characterController._shape) {
+      this._pxScene.removeController(characterController._pxController);
+    }
+    characterController._pxManager = null;
   }
 
   /**
@@ -152,12 +203,23 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     if (result && hit != undefined) {
       const { _tempPosition: position, _tempNormal: normal } = PhysXPhysicsManager;
       const { position: pxPosition, normal: pxNormal } = pxHitResult;
-      position.setValue(pxPosition.x, pxPosition.y, pxPosition.z);
-      normal.setValue(pxNormal.x, pxNormal.y, pxNormal.z);
+      position.set(pxPosition.x, pxPosition.y, pxPosition.z);
+      normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
 
       hit(pxHitResult.getShape().getQueryFilterData().word0, pxHitResult.distance, position, normal);
     }
     return result;
+  }
+
+  /**
+   * @internal
+   */
+  _getControllerManager(): any {
+    let pxControllerManager = this._pxControllerManager;
+    if (pxControllerManager === null) {
+      this._pxControllerManager = pxControllerManager = this._pxScene.createControllerManager();
+    }
+    return pxControllerManager;
   }
 
   private _simulate(elapsedTime: number): void {
@@ -169,27 +231,31 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   }
 
   private _getTrigger(index1: number, index2: number): TriggerEvent {
-    const event = this._eventPool.length ? this._eventPool.pop() : new TriggerEvent(index1, index2);
+    let event: TriggerEvent;
+    if (this._eventPool.length) {
+      event = this._eventPool.pop();
+      event.index1 = index1;
+      event.index2 = index2;
+    } else {
+      event = new TriggerEvent(index1, index2);
+    }
     this._eventMap[index1][index2] = event;
     return event;
   }
 
   private _fireEvent(): void {
     const { _eventPool: eventPool, _currentEvents: currentEvents } = this;
-    for (let i = 0, n = currentEvents.length; i < n; ) {
+    for (let i = currentEvents.length - 1; i >= 0; i--) {
       const event = currentEvents.get(i);
       if (event.state == TriggerEventState.Enter) {
         this._onTriggerEnter(event.index1, event.index2);
         event.state = TriggerEventState.Stay;
-        i++;
       } else if (event.state == TriggerEventState.Stay) {
         this._onTriggerStay(event.index1, event.index2);
-        i++;
       } else if (event.state == TriggerEventState.Exit) {
         this._onTriggerExit(event.index1, event.index2);
         currentEvents.deleteByIndex(i);
         eventPool.push(event);
-        n--;
       }
     }
   }
