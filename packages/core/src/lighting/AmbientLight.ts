@@ -92,8 +92,9 @@ export class AmbientLight {
 
     if (value) {
       const scenes = this._scenes;
+      const sh = this._preComputeSH(value, this._shArray);
       for (let i = 0, n = scenes.length; i < n; i++) {
-        scenes[i].shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._preComputeSH(value, this._shArray));
+        scenes[i].shaderData.setFloatArray(AmbientLight._diffuseSHProperty, sh);
       }
     }
   }
