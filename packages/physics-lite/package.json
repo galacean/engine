@@ -18,7 +18,7 @@
     "dist/**/*",
     "types/**/*"
   ],
-  "dependencies": {
+  "peerDependencies": {
     "@oasis-engine/design": "0.8.0-beta.3",
     "oasis-engine": "0.8.0-beta.3"
   }
