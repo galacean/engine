@@ -47,7 +47,7 @@ export class WebCanvas implements Canvas {
    */
   get scale(): Vector2 {
     const webCanvas = this._webCanvas;
-    if (webCanvas instanceof HTMLCanvasElement) {
+    if (!(webCanvas instanceof OffscreenCanvas)) {
       this._scale.set(
         (webCanvas.clientWidth * devicePixelRatio) / webCanvas.width,
         (webCanvas.clientHeight * devicePixelRatio) / webCanvas.height
@@ -58,7 +58,7 @@ export class WebCanvas implements Canvas {
 
   set scale(value: Vector2) {
     const webCanvas = this._webCanvas;
-    if (webCanvas instanceof HTMLCanvasElement) {
+    if (!(webCanvas instanceof OffscreenCanvas)) {
       webCanvas.style.transformOrigin = `left top`;
       webCanvas.style.transform = `scale(${value.x}, ${value.y})`;
     }
@@ -70,7 +70,7 @@ export class WebCanvas implements Canvas {
    */
   resizeByClientSize(pixelRatio: number = window.devicePixelRatio): void {
     const webCanvas = this._webCanvas;
-    if (webCanvas instanceof HTMLCanvasElement) {
+    if (!(webCanvas instanceof OffscreenCanvas)) {
       this.width = webCanvas.clientWidth * pixelRatio;
       this.height = webCanvas.clientHeight * pixelRatio;
     }
