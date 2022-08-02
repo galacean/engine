@@ -51,8 +51,8 @@ export class Scene extends EngineObject {
 
     const lastAmbientLight = this._ambientLight;
     if (lastAmbientLight !== value) {
-      lastAmbientLight && lastAmbientLight._setScene(null);
-      value._setScene(this);
+      lastAmbientLight && lastAmbientLight._removeFromScene(this);
+      value._addToScene(this);
       this._ambientLight = value;
     }
   }
