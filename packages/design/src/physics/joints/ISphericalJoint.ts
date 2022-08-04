@@ -4,20 +4,21 @@ import { IJoint } from "./IJoint";
  * A joint which behaves in a similar way to a ball and socket.
  */
 export interface ISphericalJoint extends IJoint {
-  /**
-   * Set a cone hard limit.
-   * @param yLimitAngle The limit angle from the Y-axis of the constraint frame
-   * @param zLimitAngle The limit angle from the Z-axis of the constraint frame
-   * @param contactDist The distance from the limit at which it becomes active. Default is the lesser of 0.1 radians, and 0.49 * the lower of the limit angles
-   */
-  setHardLimitCone(yLimitAngle: number, zLimitAngle: number, contactDist: number): void;
+  /** Whether enable spring limit */
+  enableSpring(value: boolean);
 
-  /**
-   * Set a cone soft limit.
-   * @param yLimitAngle The limit angle from the Y-axis of the constraint frame
-   * @param zLimitAngle The limit angle from the Z-axis of the constraint frame
-   * @param stiffness the spring strength of the drive
-   * @param damping the damping strength of the drive
-   */
-  setSoftLimitCone(yLimitAngle: number, zLimitAngle: number, stiffness: number, damping: number): void;
+  /** The limit angle from the Y-axis of the constraint frame. */
+  setYLimit(value: number);
+
+  /** The limit angle from the Z-axis of the constraint frame. */
+  setZLimit(value: number);
+
+  /** Distance inside the limit value at which the limit will be considered to be active by the solver. */
+  setContactDistance(value: number);
+
+  /** The spring forces used to reach the target position. */
+  setStiffness(value: number);
+
+  /** The damper force uses to dampen the spring. */
+  setDamping(value: number);
 }
