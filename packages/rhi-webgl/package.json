@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/rhi-webgl",
-  "version": "0.8.0-beta.6",
+  "version": "0.8.0-beta.7",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,10 +18,10 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.8.0-beta.6",
-    "@oasis-engine/math": "0.8.0-beta.6"
+    "@oasis-engine/core": "0.8.0-beta.7",
+    "@oasis-engine/math": "0.8.0-beta.7"
   },
   "devDependencies": {
-    "@oasis-engine/design": "0.8.0-beta.6"
+    "@oasis-engine/design": "0.8.0-beta.7"
   }
 }
