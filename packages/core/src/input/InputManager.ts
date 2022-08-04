@@ -173,7 +173,7 @@ export class InputManager {
     if (typeof OffscreenCanvas === "undefined" || !(canvas instanceof OffscreenCanvas)) {
       this._wheelManager = new WheelManager(canvas);
       this._pointerManager = new PointerManager(engine, canvas);
-      this._keyboardManager = new KeyboardManager();
+      this._keyboardManager = new KeyboardManager(canvas);
       this._onBlur = this._onBlur.bind(this);
       window.addEventListener("blur", this._onBlur);
       this._onFocus = this._onFocus.bind(this);
