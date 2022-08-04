@@ -19,8 +19,10 @@
     "libs/**/*",
     "types/**/*"
   ],
+  "devDependencies": {
+    "@oasis-engine/design": "0.8.0-beta.5"
+  },
   "peerDependencies": {
-    "@oasis-engine/design": "0.8.0-beta.3",
-    "oasis-engine": "0.8.0-beta.3"
+    "oasis-engine": "0.8.0-beta.5"
   }
 }
