@@ -1,11 +1,10 @@
+import { GLTFUtil } from "../../gltf/GLTFUtil";
 import { ab2str } from "./Utils";
 
 class ImageData {
   type: "image/png" | "image/jpg" | "image/webp" | "ktx";
   buffer: ArrayBuffer;
 }
-
-const textDecode = new TextDecoder();
 
 export class BufferReader {
   private _dataView: DataView;
@@ -96,7 +95,7 @@ export class BufferReader {
     const strByteLength = this.nextUint16();
     const uint8Array = new Uint8Array(this.buffer, this._offset, strByteLength);
     this._offset += strByteLength;
-    return textDecode.decode(uint8Array);
+    return GLTFUtil.decodeText(uint8Array);
   }
 
   /**
