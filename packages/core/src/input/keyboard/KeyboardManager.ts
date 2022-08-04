@@ -30,6 +30,7 @@ export class KeyboardManager implements IInput {
    */
   constructor(htmlCanvas: HTMLCanvasElement) {
     this._htmlCanvas = htmlCanvas;
+    // Need to set tabIndex to make the canvas focus.
     htmlCanvas.tabIndex = htmlCanvas.tabIndex;
     this._onKeyEvent = this._onKeyEvent.bind(this);
     htmlCanvas.addEventListener("keydown", this._onKeyEvent);
