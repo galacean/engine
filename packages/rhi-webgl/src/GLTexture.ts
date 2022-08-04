@@ -368,8 +368,6 @@ export class GLTexture implements IPlatformTexture {
   _target: GLenum; // gl.TEXTURE_2D | gl.TEXTURE_CUBE_MAP
   /** @internal */
   _formatDetail: TextureFormatDetail;
-  /** @internal */
-  _isMipmapGenerated: boolean = false;
 
   /**
    * Wrapping mode for texture coordinate S.
