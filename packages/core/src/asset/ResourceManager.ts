@@ -156,7 +156,7 @@ export class ResourceManager {
     return promise.then((res) => (key ? res[key] : res)).then((item) => (isClone ? item.clone() : item));
   }
 
-  /** 
+  /**
    * @internal
    * @beta Just for internal editor, not recommended for developers.
    */
@@ -250,11 +250,15 @@ export class ResourceManager {
     promise
       .then((res: EngineObject) => {
         if (loader.useCache) this._addAsset(url, res);
-        delete this._loadingPromises[url];
+        if (this._loadingPromises) {
+          delete this._loadingPromises[url];
+        }
       })
       .catch((err: Error) => {
         Promise.reject(err);
-        delete this._loadingPromises[url];
+        if (this._loadingPromises) {
+          delete this._loadingPromises[url];
+        }
       });
     return promise;
   }
