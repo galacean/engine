@@ -213,11 +213,15 @@ export class ResourceManager {
     promise
       .then((res: EngineObject) => {
         if (loader.useCache) this._addAsset(url, res);
-        delete this._loadingPromises[url];
+        if (this._loadingPromises) {
+          delete this._loadingPromises[url];
+        }
       })
       .catch((err: Error) => {
-        Promise.reject(err)
-        delete this._loadingPromises[url];
+        Promise.reject(err);
+        if (this._loadingPromises) {
+          delete this._loadingPromises[url];
+        }
       });
     return promise;
   }
