@@ -14,6 +14,16 @@ export class SphericalJoint extends Joint {
   private _damping = 0;
   private _enableSpring = false;
 
+  /** Whether enable spring limit */
+  get enableSpring(): boolean {
+    return this._enableSpring;
+  }
+
+  set enableSpring(value: boolean) {
+    this._enableSpring = value;
+    (<ISphericalJoint>this._nativeJoint).enableSpring(value);
+  }
+
   /** The limit angle from the Y-axis of the constraint frame. */
   get yLimit(): number {
     return this._yLimit;
