@@ -451,14 +451,9 @@ export class GLTexture implements IPlatformTexture {
   generateMipmaps(): void {
     this._bind();
     this._gl.generateMipmap(this._target);
-    this._isMipmapGenerated = true;
   }
 
   protected _bind() {
-    // @ts-ignore
-    if (this._texture._mipmap > 0 && !this._isMipmapGenerated) {
-      Logger.warn(`Texture ${this._texture.name} is not generated mipmap, please call generateMipmaps() first.`);
-    }
     this._rhi.bindTexture(this);
   }
 
