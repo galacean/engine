@@ -11,11 +11,11 @@ export class TextureParser extends Parser {
     10497: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFResource): void | Promise<void> {
+  parse(context: GLTFResource): void | Promise<any> {
     const { gltf, buffers, engine, url } = context;
 
     if (gltf.textures) {
-      return Promise.all(
+      Promise.all(
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
 
@@ -33,20 +33,23 @@ export class TextureParser extends Parser {
                   this._parseSampler(texture, gltf.samplers[sampler]);
                 }
                 return texture;
-              });
+              })
+              .catch((e) => e);
           } else {
             const bufferView = gltf.bufferViews[bufferViewIndex];
             const bufferViewData = GLTFUtil.getBufferViewData(bufferView, buffers);
-            return GLTFUtil.loadImageBuffer(bufferViewData, mimeType).then((image) => {
-              const texture = new Texture2D(engine, image.width, image.height);
-              texture.setImageSource(image);
-              texture.generateMipmaps();
-              texture.name = textureName || imageName || `texture_${index}`;
-              if (sampler !== undefined) {
-                this._parseSampler(texture, gltf.samplers[sampler]);
-              }
-              return texture;
-            });
+            return GLTFUtil.loadImageBuffer(bufferViewData, mimeType)
+              .then((image) => {
+                const texture = new Texture2D(engine, image.width, image.height);
+                texture.setImageSource(image);
+                texture.generateMipmaps();
+                texture.name = textureName || imageName || `texture_${index}`;
+                if (sampler !== undefined) {
+                  this._parseSampler(texture, gltf.samplers[sampler]);
+                }
+                return texture;
+              })
+              .catch((e) => e);
           }
         })
       ).then((textures: Texture2D[]) => {
