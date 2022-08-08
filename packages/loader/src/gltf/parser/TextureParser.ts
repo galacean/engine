@@ -15,7 +15,7 @@ export class TextureParser extends Parser {
     const { gltf, buffers, engine, url } = context;
 
     if (gltf.textures) {
-      Promise.all(
+      return Promise.all(
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
 
