@@ -33,20 +33,23 @@ export class TextureParser extends Parser {
                   this._parseSampler(texture, gltf.samplers[sampler]);
                 }
                 return texture;
-              });
+              })
+              .catch((e) => e);
           } else {
             const bufferView = gltf.bufferViews[bufferViewIndex];
             const bufferViewData = GLTFUtil.getBufferViewData(bufferView, buffers);
-            return GLTFUtil.loadImageBuffer(bufferViewData, mimeType).then((image) => {
-              const texture = new Texture2D(engine, image.width, image.height);
-              texture.setImageSource(image);
-              texture.generateMipmaps();
-              texture.name = textureName || imageName || `texture_${index}`;
-              if (sampler !== undefined) {
-                this._parseSampler(texture, gltf.samplers[sampler]);
-              }
-              return texture;
-            });
+            return GLTFUtil.loadImageBuffer(bufferViewData, mimeType)
+              .then((image) => {
+                const texture = new Texture2D(engine, image.width, image.height);
+                texture.setImageSource(image);
+                texture.generateMipmaps();
+                texture.name = textureName || imageName || `texture_${index}`;
+                if (sampler !== undefined) {
+                  this._parseSampler(texture, gltf.samplers[sampler]);
+                }
+                return texture;
+              })
+              .catch((e) => e);
           }
         })
       ).then((textures: Texture2D[]) => {

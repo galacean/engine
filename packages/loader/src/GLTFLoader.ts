@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@oasis-engine/core";
+import { AssetPromise, AssetType, Loader, LoadItem, Logger, resourceLoader, ResourceManager } from "@oasis-engine/core";
 import { GLTFParser } from "./gltf/GLTFParser";
 import { GLTFResource } from "./gltf/GLTFResource";
 
@@ -14,7 +14,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
         .parse(resource)
         .then(resolve)
         .catch((e) => {
-          console.error(e);
+          Logger.error(e);
           reject(`Error loading glTF model from ${url} .`);
         });
     });
