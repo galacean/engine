@@ -11,7 +11,7 @@ export class TextureParser extends Parser {
     10497: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFResource): void | Promise<any> {
+  parse(context: GLTFResource): void | Promise<void> {
     const { gltf, buffers, engine, url } = context;
 
     if (gltf.textures) {
