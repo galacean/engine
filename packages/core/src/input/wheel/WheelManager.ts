@@ -75,7 +75,6 @@ export class WheelManager implements IInput {
   }
 
   private _onWheelEvent(evt: WheelEvent): void {
-    evt.stopPropagation();
     evt.cancelable && evt.preventDefault();
     this._nativeEvents.push(evt);
   }

@@ -169,7 +169,6 @@ export class PointerManager implements IInput {
   }
 
   private _onPointerEvent(evt: PointerEvent) {
-    evt.stopPropagation();
     evt.cancelable && evt.preventDefault();
     this._nativeEvents.push(evt);
   }
