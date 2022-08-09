@@ -1,5 +1,5 @@
 {
-  "name": "oasis-engine",
+  "name": "oasis-engine-root",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
