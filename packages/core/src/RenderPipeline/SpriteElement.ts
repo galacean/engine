@@ -9,7 +9,7 @@ export class SpriteElement {
   material: Material;
   texture: Texture2D;
 
-  setValue(component: Renderer, renderDate: RenderData2D, material: Material, texture: Texture2D = null): void {
+  setValue(component: Renderer, renderDate: RenderData2D, material: Material, texture: Texture2D): void {
     this.component = component;
     this.renderData = renderDate;
     this.material = material;

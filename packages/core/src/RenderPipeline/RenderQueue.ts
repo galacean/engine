@@ -18,20 +18,14 @@ export class RenderQueue {
    * @internal
    */
   static _compareFromNearToFar(a: Item, b: Item): number {
-    return (
-      a.component.priority - b.component.priority ||
-      a.component._distanceForSort - b.component._distanceForSort
-    );
+    return a.component.priority - b.component.priority || a.component._distanceForSort - b.component._distanceForSort;
   }
 
   /**
    * @internal
    */
   static _compareFromFarToNear(a: Item, b: Item): number {
-    return (
-      a.component.priority - b.component.priority ||
-      b.component._distanceForSort - a.component._distanceForSort
-    );
+    return a.component.priority - b.component.priority || b.component._distanceForSort - a.component._distanceForSort;
   }
 
   readonly items: Item[] = [];
@@ -74,12 +68,12 @@ export class RenderQueue {
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
         const renderer = element.component;
-        const material = replaceMaterial ? replaceMaterial : element.material;
+        const material = element.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
 
         // @todo: temporary solution
-        material._preRender(element);
+        (replaceMaterial || material)._preRender(element);
 
         // union render global macro and material self macro.
         ShaderMacroCollection.unionCollection(
@@ -88,7 +82,7 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = material.shader._getShaderProgram(engine, compileMacros);
+        const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
@@ -115,7 +109,7 @@ export class RenderQueue {
           } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
-
+          
           if (program._uploadRenderer !== renderer) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRenderer = renderer;

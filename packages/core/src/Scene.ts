@@ -51,8 +51,8 @@ export class Scene extends EngineObject {
 
     const lastAmbientLight = this._ambientLight;
     if (lastAmbientLight !== value) {
-      lastAmbientLight && lastAmbientLight._setScene(null);
-      value._setScene(this);
+      lastAmbientLight && lastAmbientLight._removeFromScene(this);
+      value._addToScene(this);
       this._ambientLight = value;
     }
   }
@@ -84,6 +84,7 @@ export class Scene extends EngineObject {
     Scene.sceneFeatureManager.addObject(this);
     shaderData._addRefCount(1);
     this.ambientLight = new AmbientLight();
+    engine.sceneManager._allScenes.push(this);
   }
 
   /**
@@ -202,15 +203,11 @@ export class Scene extends EngineObject {
     if (this._destroyed) {
       return;
     }
-    this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
-    Scene.sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
-    for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
-      this._rootEntities[i].destroy();
-    }
-    this._rootEntities.length = 0;
-    this._activeCameras.length = 0;
-    (Scene.sceneFeatureManager as any)._objects = [];
-    this.shaderData._addRefCount(-1);
+
+    this._destroy();
+
+    const allScenes = this.engine.sceneManager._allScenes;
+    allScenes.splice(allScenes.indexOf(this), 1);
   }
 
   /**
@@ -268,6 +265,21 @@ export class Scene extends EngineObject {
   _removeEntity(entity: Entity): void {
     const rootEntities = this._rootEntities;
     rootEntities.splice(rootEntities.indexOf(entity), 1);
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
+    Scene.sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
+    for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
+      this._rootEntities[i].destroy();
+    }
+    this._rootEntities.length = 0;
+    this._activeCameras.length = 0;
+    (Scene.sceneFeatureManager as any)._objects = [];
+    this.shaderData._addRefCount(-1);
   }
 
   //-----------------------------------------@deprecated-----------------------------------
