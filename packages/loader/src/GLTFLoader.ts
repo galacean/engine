@@ -9,6 +9,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       const resource = new GLTFResource(resourceManager.engine);
       resource.url = url;
+      resource.keepMeshData = item.params?.keepMeshData ?? false;
 
       GLTFParser.instance
         .parse(resource)
