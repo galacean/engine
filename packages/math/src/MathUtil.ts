@@ -3,7 +3,7 @@
  */
 export class MathUtil {
   /** The value for which all absolute numbers smaller than are considered equal to zero. */
-  static readonly zeroTolerance: number = 1e-6;
+  static readonly zeroTolerance: number = 1e-15;
   /** The conversion factor that radian to degree. */
   static readonly radToDegreeFactor: number = 180 / Math.PI;
   /** The conversion factor that degree to radian. */
@@ -28,7 +28,7 @@ export class MathUtil {
    * @returns True if a almost equal to b, false otherwise
    */
   static equals(a: number, b: number): boolean {
-    return Math.abs(a - b) <= MathUtil.zeroTolerance;
+    return Math.abs(a - b) < MathUtil.zeroTolerance;
   }
 
   /**

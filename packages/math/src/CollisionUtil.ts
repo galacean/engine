@@ -123,16 +123,13 @@ export class CollisionUtil {
 
     const position = Vector3.dot(normal, ray.origin);
     let distance = (-plane.distance - position) / dir;
-
-    if (distance < 0) {
-      if (distance < -zeroTolerance) {
-        return -1;
-      }
-
-      distance = 0;
+    if (distance >= 0) {
+      return distance;
+    } else if (distance > -zeroTolerance) {
+      return 0;
+    } else {
+      return -1;
     }
-
-    return distance;
   }
 
   /**

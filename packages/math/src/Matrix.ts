@@ -1012,7 +1012,7 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     const e = this.elements;
     let trace = e[0] + e[5] + e[10];
 
-    if (trace > MathUtil.zeroTolerance) {
+    if (trace >= MathUtil.zeroTolerance) {
       let s = Math.sqrt(trace + 1.0) * 2;
       out._w = 0.25 * s;
       out._x = (e[6] - e[9]) / s;

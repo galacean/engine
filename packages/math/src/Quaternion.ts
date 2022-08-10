@@ -209,7 +209,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   static invert(a: Quaternion, out: Quaternion): void {
     const { _x: x, _y: y, _z: z, _w: w } = a;
     const dot = x * x + y * y + z * z + w * w;
-    if (dot > MathUtil.zeroTolerance) {
+    if (dot >= MathUtil.zeroTolerance) {
       const invDot = 1.0 / dot;
       out._x = -x * invDot;
       out._y = -y * invDot;
@@ -300,7 +300,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   static normalize(a: Quaternion, out: Quaternion): void {
     const { _x, _y, _z, _w } = a;
     let len = Math.sqrt(_x * _x + _y * _y + _z * _z + _w * _w);
-    if (len > MathUtil.zeroTolerance) {
+    if (len >= MathUtil.zeroTolerance) {
       len = 1 / len;
       out._x = _x * len;
       out._y = _y * len;
@@ -557,14 +557,14 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
       out._x = 1;
       out._y = 0;
       out._z = 0;
-
+      out._onValueChanged && out._onValueChanged();
       return 0;
     } else {
       const inv = 1.0 / length;
-      out._x = this._x * inv;
-      out._y = this._y * inv;
-      out._z = this._z * inv;
-
+      out._x = _x * inv;
+      out._y = _y * inv;
+      out._z = _z * inv;
+      out._onValueChanged && out._onValueChanged();
       return Math.acos(this._w) * 2.0;
     }
   }
@@ -789,7 +789,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     const xw = _x * _w;
 
     out._y = Math.asin(2.0 * (xw - yz));
-    if (Math.cos(out.y) > MathUtil.zeroTolerance) {
+    if (Math.cos(out.y) >= MathUtil.zeroTolerance) {
       out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
       out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
     } else {
