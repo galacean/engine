@@ -99,10 +99,9 @@ export class BlendShapeManager {
    * @internal
    */
   _updateShaderData(shaderData: ShaderData, skinnedMeshRenderer: SkinnedMeshRenderer): void {
-    const blendShapeCount = this._blendShapeCount;
+    let blendShapeCount = this._blendShapeCount;
     if (blendShapeCount > 0) {
       shaderData.enableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
       if (this._useTextureMode()) {
         shaderData.enableMacro(BlendShapeManager._blendShapeTextureMacro);
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
@@ -119,6 +118,7 @@ export class BlendShapeManager {
           this._filterCondensedBlendShapeWeights(skinnedMeshRenderer._blendShapeWeights, condensedBlendShapeWeights);
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
           this._modelMesh._enableVAO = false;
+          blendShapeCount = maxBlendCount;
         } else {
           shaderData.setFloatArray(
             BlendShapeManager._blendShapeWeightsProperty,
@@ -128,6 +128,7 @@ export class BlendShapeManager {
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
       }
+      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
 
       if (this._useBlendNormal) {
         shaderData.enableMacro(BlendShapeManager._blendShapeNormalMacro);
@@ -520,7 +521,6 @@ export class BlendShapeManager {
     const vertexBufferStoreInfo = this._storeInVertexBufferInfo;
     let thresholdWeight = Number.POSITIVE_INFINITY;
     let thresholdIndex: number;
-    if (!blendShapeWeights) return ;
     for (let i = 0, n = Math.min(blendShapeWeights.length, this._blendShapeCount); i < n; i++) {
       const weight = blendShapeWeights[i];
       if (i < condensedWeightsCount) {
