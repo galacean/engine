@@ -28,7 +28,7 @@ export class MathUtil {
    * @returns True if a almost equal to b, false otherwise
    */
   static equals(a: number, b: number): boolean {
-    return Math.abs(a - b) < MathUtil.zeroTolerance;
+    return Math.abs(a - b) < Math.max(a, b) * MathUtil.zeroTolerance;
   }
 
   /**
