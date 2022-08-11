@@ -521,7 +521,6 @@ export class BlendShapeManager {
     const vertexBufferStoreInfo = this._storeInVertexBufferInfo;
     let thresholdWeight = Number.POSITIVE_INFINITY;
     let thresholdIndex: number;
-    if (!blendShapeWeights) return ;
     for (let i = 0, n = Math.min(blendShapeWeights.length, this._blendShapeCount); i < n; i++) {
       const weight = blendShapeWeights[i];
       if (i < condensedWeightsCount) {
