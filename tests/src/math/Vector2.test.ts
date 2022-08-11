@@ -65,9 +65,17 @@ describe("Vector2 test", () => {
 
   it("static equals", () => {
     const a = new Vector2(1, 2);
-    const b = new Vector2(1 + MathUtil.zeroTolerance * 0.9, 2);
+    const b = new Vector2(-1, -2);
+    expect(a.x === b.x).to.eq(false);
+    expect(a.y === b.y).to.eq(false);
+    expect(Vector2.equals(a, b)).to.eq(false);
+    expect(Vector2.equals(b, a)).to.eq(false);
 
+    a.copyFrom(b);
+    expect(a.x === b.x).to.eq(true);
+    expect(a.y === b.y).to.eq(true);
     expect(Vector2.equals(a, b)).to.eq(true);
+    expect(Vector2.equals(b, a)).to.eq(true);
   });
 
   it("static lerp", () => {
@@ -108,9 +116,15 @@ describe("Vector2 test", () => {
   it("static normalize", () => {
     const a = new Vector2(3, 4);
     const out = new Vector2();
-
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
     Vector2.normalize(a, out);
-    expect(Vector2.equals(out, new Vector2(0.6, 0.8))).to.eq(true);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    expect(MathUtil.equals(out.length(), 1)).to.eq(true);
+
+    a.set(0, 0);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
   });
 
   it("static scale", () => {
@@ -194,8 +208,14 @@ describe("Vector2 test", () => {
 
   it("normalize", () => {
     const a = new Vector2(3, 4);
-    expect(toString(a.normalize())).to.eq(toString(a));
-    expect(Vector2.equals(a, new Vector2(0.6, 0.8))).to.eq(true);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(true);
+
+    a.set(0, 0);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
   });
 
   it("scale", () => {

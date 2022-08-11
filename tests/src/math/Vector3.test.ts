@@ -68,9 +68,19 @@ describe("Vector3 test", () => {
 
   it("static equals", () => {
     const a = new Vector3(1, 2, 3);
-    const b = new Vector3(1 + MathUtil.zeroTolerance * 0.9, 2, 3);
+    const b = new Vector3(-1, -2, -3);
+    expect(a.x === b.x).to.eq(false);
+    expect(a.y === b.y).to.eq(false);
+    expect(a.z === b.z).to.eq(false);
+    expect(Vector3.equals(a, b)).to.eq(false);
+    expect(Vector3.equals(b, a)).to.eq(false);
 
+    a.copyFrom(b);
+    expect(a.x === b.x).to.eq(true);
+    expect(a.y === b.y).to.eq(true);
+    expect(a.z === b.z).to.eq(true);
     expect(Vector3.equals(a, b)).to.eq(true);
+    expect(Vector3.equals(b, a)).to.eq(true);
   });
 
   it("static lerp", () => {
@@ -109,11 +119,17 @@ describe("Vector3 test", () => {
   });
 
   it("static normalize", () => {
-    const a = new Vector3(3, 4, 0);
+    const a = new Vector3(3, 4);
     const out = new Vector3();
-
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
     Vector3.normalize(a, out);
-    expect(Vector3.equals(out, new Vector3(0.6, 0.8, 0))).to.eq(true);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    expect(MathUtil.equals(out.length(), 1)).to.eq(true);
+
+    a.set(0, 0, 0);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
   });
 
   it("static scale", () => {
@@ -206,7 +222,7 @@ describe("Vector3 test", () => {
 
   it("length", () => {
     const a = new Vector3(3, 4, 5);
-    expect(MathUtil.equals(Math.sqrt(50), a.length())).to.eq(true);
+    expect(a.length()).to.eq(Math.sqrt(50));
     expect(a.lengthSquared()).to.eq(50);
   });
 
@@ -217,9 +233,15 @@ describe("Vector3 test", () => {
   });
 
   it("normalize", () => {
-    const a = new Vector3(3, 4, 0);
-    expect(toString(a.normalize())).to.eq(toString(a));
-    expect(Vector3.equals(a, new Vector3(0.6, 0.8, 0))).to.eq(true);
+    const a = new Vector3(3, 4);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(true);
+
+    a.set(0, 0, 0);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
   });
 
   it("scale", () => {

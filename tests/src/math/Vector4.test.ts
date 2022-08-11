@@ -59,9 +59,21 @@ describe("Vector4 test", () => {
 
   it("static equals", () => {
     const a = new Vector4(1, 2, 3, 4);
-    const b = new Vector4(1 + MathUtil.zeroTolerance * 0.9, 2, 3, 4);
+    const b = new Vector4(-1, -2, -3, -4);
+    expect(a.x === b.x).to.eq(false);
+    expect(a.y === b.y).to.eq(false);
+    expect(a.z === b.z).to.eq(false);
+    expect(a.w === b.w).to.eq(false);
+    expect(Vector4.equals(a, b)).to.eq(false);
+    expect(Vector4.equals(b, a)).to.eq(false);
 
+    a.copyFrom(b);
+    expect(a.x === b.x).to.eq(true);
+    expect(a.y === b.y).to.eq(true);
+    expect(a.z === b.z).to.eq(true);
+    expect(a.w === b.w).to.eq(true);
     expect(Vector4.equals(a, b)).to.eq(true);
+    expect(Vector4.equals(b, a)).to.eq(true);
   });
 
   it("static lerp", () => {
@@ -100,11 +112,17 @@ describe("Vector4 test", () => {
   });
 
   it("static normalize", () => {
-    const a = new Vector4(3, 4, 0, 0);
+    const a = new Vector4(3, 4);
     const out = new Vector4();
-
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
     Vector4.normalize(a, out);
-    expect(Vector4.equals(out, new Vector4(0.6, 0.8, 0, 0))).to.eq(true);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    expect(MathUtil.equals(out.length(), 1)).to.eq(true);
+
+    a.set(0, 0, 0, 0);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
   });
 
   it("static scale", () => {
@@ -188,7 +206,7 @@ describe("Vector4 test", () => {
 
   it("length", () => {
     const a = new Vector4(3, 4, 5, 0);
-    expect(MathUtil.equals(Math.sqrt(50), a.length())).to.eq(true);
+    expect(a.length()).to.eq(Math.sqrt(50));
     expect(a.lengthSquared()).to.eq(50);
   });
 
@@ -199,9 +217,15 @@ describe("Vector4 test", () => {
   });
 
   it("normalize", () => {
-    const a = new Vector4(3, 4, 0, 0);
-    expect(toString(a.normalize())).to.eq(toString(a));
-    expect(Vector4.equals(a, new Vector4(0.6, 0.8, 0, 0))).to.eq(true);
+    const a = new Vector4(3, 4);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(true);
+
+    a.set(0, 0, 0, 0);
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
+    a.normalize();
+    expect(MathUtil.equals(a.length(), 1)).to.eq(false);
   });
 
   it("scale", () => {

@@ -159,8 +159,11 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
    */
   static normalize(left: Vector2, out: Vector2): void {
     const { _x, _y } = left;
-    const len = Math.sqrt(_x * _x + _y * _y);
-    len >= MathUtil.zeroTolerance && out.scale(1 / len);
+    let len = Math.sqrt(_x * _x + _y * _y);
+    if (len >= MathUtil.epsilon) {
+      len = 1 / len;
+      out.set(_x * len, _y * len);
+    }
   }
 
   /**

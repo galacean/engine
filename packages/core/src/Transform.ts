@@ -508,7 +508,7 @@ export class Transform extends Component {
     const zAxis = Transform._tempVec30;
     Vector3.subtract(this.worldPosition, targetPosition, zAxis);
     let axisLen = zAxis.length();
-    if (axisLen < MathUtil.zeroTolerance) {
+    if (axisLen < MathUtil.epsilon) {
       // The current position and the target position are almost the same.
       return;
     }
@@ -520,7 +520,7 @@ export class Transform extends Component {
       xAxis.set(zAxis.z, 0, -zAxis.x);
     }
     axisLen = xAxis.length();
-    if (axisLen < MathUtil.zeroTolerance) {
+    if (axisLen < MathUtil.epsilon) {
       // @todo:
       // 1.worldUp is（0,0,0）
       // 2.worldUp is parallel to zAxis

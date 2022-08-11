@@ -219,7 +219,7 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     let len = Math.sqrt(x * x + y * y + z * z);
     let s, c, t;
 
-    if (Math.abs(len) < MathUtil.zeroTolerance) {
+    if (Math.abs(len) < MathUtil.epsilon) {
       return;
     }
 
@@ -561,7 +561,7 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     let { _x: x, _y: y, _z: z } = axis;
     let len = Math.sqrt(x * x + y * y + z * z);
 
-    if (Math.abs(len) < MathUtil.zeroTolerance) {
+    if (Math.abs(len) < MathUtil.epsilon) {
       return;
     }
 
@@ -978,9 +978,9 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     scale.set(sx, sy, sz);
 
     if (
-      Math.abs(sx) < MathUtil.zeroTolerance ||
-      Math.abs(sy) < MathUtil.zeroTolerance ||
-      Math.abs(sz) < MathUtil.zeroTolerance
+      Math.abs(sx) < MathUtil.epsilon ||
+      Math.abs(sy) < MathUtil.epsilon ||
+      Math.abs(sz) < MathUtil.epsilon
     ) {
       rotation.identity();
       return false;
@@ -1012,7 +1012,7 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     const e = this.elements;
     let trace = e[0] + e[5] + e[10];
 
-    if (trace >= MathUtil.zeroTolerance) {
+    if (trace >= MathUtil.epsilon) {
       let s = Math.sqrt(trace + 1.0) * 2;
       out._w = 0.25 * s;
       out._x = (e[6] - e[9]) / s;

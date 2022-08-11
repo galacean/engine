@@ -209,7 +209,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   static invert(a: Quaternion, out: Quaternion): void {
     const { _x: x, _y: y, _z: z, _w: w } = a;
     const dot = x * x + y * y + z * z + w * w;
-    if (dot >= MathUtil.zeroTolerance) {
+    if (dot >= MathUtil.epsilon) {
       const invDot = 1.0 / dot;
       out._x = -x * invDot;
       out._y = -y * invDot;
@@ -272,7 +272,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
       bw = -bw;
     }
     // calculate coefficients
-    if (1.0 - cosom > MathUtil.zeroTolerance) {
+    if (1.0 - cosom > MathUtil.epsilon) {
       // standard case (slerp)
       const omega = Math.acos(cosom);
       const sinom = Math.sin(omega);
@@ -300,7 +300,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   static normalize(a: Quaternion, out: Quaternion): void {
     const { _x, _y, _z, _w } = a;
     let len = Math.sqrt(_x * _x + _y * _y + _z * _z + _w * _w);
-    if (len >= MathUtil.zeroTolerance) {
+    if (len >= MathUtil.epsilon) {
       len = 1 / len;
       out.set(_x * len, _y * len, _z * len, _w * len);
     }
@@ -481,7 +481,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   public get normalized(): boolean {
     return (
       Math.abs(this._x * this._x + this._y * this._y + this._z * this._z + this._w * this._w - 1) <
-      MathUtil.zeroTolerance
+      MathUtil.epsilon
     );
   }
 
@@ -549,7 +549,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     const { _x, _y, _z } = this;
     const length = _x * _x + _y * _y + _z * _z;
 
-    if (length < MathUtil.zeroTolerance) {
+    if (length < MathUtil.epsilon) {
       out._x = 1;
       out._y = 0;
       out._z = 0;
@@ -785,7 +785,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     const xw = _x * _w;
 
     out._y = Math.asin(2.0 * (xw - yz));
-    if (Math.cos(out.y) >= MathUtil.zeroTolerance) {
+    if (Math.cos(out.y) >= MathUtil.epsilon) {
       out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
       out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
     } else {

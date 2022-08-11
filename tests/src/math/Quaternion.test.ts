@@ -42,9 +42,21 @@ describe("Quaternion test", () => {
 
   it("static equals", () => {
     const a = new Quaternion(1, 2, 3, 4);
-    const b = new Quaternion(1 + MathUtil.zeroTolerance * 0.9, 2, 3, 4);
+    const b = new Quaternion(-1, -2, -3, -4);
+    expect(a.x === b.x).to.eq(false);
+    expect(a.y === b.y).to.eq(false);
+    expect(a.z === b.z).to.eq(false);
+    expect(a.w === b.w).to.eq(false);
+    expect(Quaternion.equals(a, b)).to.eq(false);
+    expect(Quaternion.equals(b, a)).to.eq(false);
 
+    b.copyFrom(a);
+    expect(a.x === b.x).to.eq(true);
+    expect(a.y === b.y).to.eq(true);
+    expect(a.z === b.z).to.eq(true);
+    expect(a.w === b.w).to.eq(true);
     expect(Quaternion.equals(a, b)).to.eq(true);
+    expect(Quaternion.equals(b, a)).to.eq(true);
   });
 
   it("static rotationAxisAngle", () => {
@@ -52,10 +64,10 @@ describe("Quaternion test", () => {
     const b = new Vector3();
     const out = new Quaternion();
     Quaternion.rotationAxisAngle(a, Math.PI / 3, out);
-    const rad = out.getAxisAngle(b);
-
-    expect(MathUtil.equals(rad, Math.PI / 3)).to.eq(true);
-    expect(Vector3.equals(b.normalize(), a.normalize())).to.eq(true);
+    expect(MathUtil.equals(out.getAxisAngle(b), Math.PI / 3)).to.eq(true);
+    a.normalize();
+    b.normalize();
+    expect(Vector3.equals(a, b)).to.eq(true);
   });
 
   it("static rotationEuler | rotationYawPitchRoll", () => {
@@ -133,10 +145,16 @@ describe("Quaternion test", () => {
 
   it("static normalize", () => {
     const a = new Quaternion(3, 4, 0, 0);
-    const out = new Quaternion();
+    const b = new Quaternion();
 
-    Quaternion.normalize(a, out);
-    expect(Quaternion.equals(out, new Quaternion(0.6, 0.8, 0, 0))).to.eq(true);
+    expect(a.length() === 1).to.eq(false);
+    Quaternion.normalize(a, b);
+
+    expect(b.length() === 1).to.eq(true);
+    expect(Quaternion.equals(b, new Quaternion(0.6, 0.8, 0, 0))).to.eq(true);
+
+    b.set(0, 0, 0, 0).normalize();
+    expect(b.length() === 0).to.eq(true);
   });
 
   it("static rotation", () => {
@@ -241,7 +259,7 @@ describe("Quaternion test", () => {
 
   it("length", () => {
     const a = new Quaternion(3, 4, 5, 0);
-    expect(MathUtil.equals(Math.sqrt(50), a.length())).to.eq(true);
+    expect(a.length()).to.eq(Math.sqrt(50));
     expect(a.lengthSquared()).to.eq(50);
   });
 });

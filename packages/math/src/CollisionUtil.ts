@@ -113,11 +113,11 @@ export class CollisionUtil {
    */
   static intersectsRayAndPlane(ray: Ray, plane: Plane): number {
     const { normal } = plane;
-    const { zeroTolerance } = MathUtil;
+    const { epsilon } = MathUtil;
 
     const dir = Vector3.dot(normal, ray.direction);
     // Parallel
-    if (Math.abs(dir) < zeroTolerance) {
+    if (Math.abs(dir) < epsilon) {
       return -1;
     }
 
@@ -125,7 +125,7 @@ export class CollisionUtil {
     let distance = (-plane.distance - position) / dir;
     if (distance >= 0) {
       return distance;
-    } else if (distance > -zeroTolerance) {
+    } else if (distance > -epsilon) {
       return 0;
     } else {
       return -1;
@@ -139,7 +139,7 @@ export class CollisionUtil {
    * @returns The distance from ray to box if intersecting, -1 otherwise
    */
   static intersectsRayAndBox(ray: Ray, box: BoundingBox): number {
-    const { zeroTolerance } = MathUtil;
+    const { epsilon } = MathUtil;
     const { origin, direction } = ray;
     const { min, max } = box;
     const dirX = direction.x;
@@ -151,7 +151,7 @@ export class CollisionUtil {
     let distance = 0;
     let tmax = Number.MAX_VALUE;
 
-    if (Math.abs(dirX) < zeroTolerance) {
+    if (Math.abs(dirX) < epsilon) {
       if (oriX < min.x || oriX > max.x) {
         return -1;
       }
@@ -174,7 +174,7 @@ export class CollisionUtil {
       }
     }
 
-    if (Math.abs(dirY) < zeroTolerance) {
+    if (Math.abs(dirY) < epsilon) {
       if (oriY < min.y || oriY > max.y) {
         return -1;
       }
@@ -197,7 +197,7 @@ export class CollisionUtil {
       }
     }
 
-    if (Math.abs(dirZ) < zeroTolerance) {
+    if (Math.abs(dirZ) < epsilon) {
       if (oriZ < min.z || oriZ > max.z) {
         return -1;
       }
