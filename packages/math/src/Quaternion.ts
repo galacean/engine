@@ -302,11 +302,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     let len = Math.sqrt(_x * _x + _y * _y + _z * _z + _w * _w);
     if (len >= MathUtil.zeroTolerance) {
       len = 1 / len;
-      out._x = _x * len;
-      out._y = _y * len;
-      out._z = _z * len;
-      out._w = _w * len;
-      out._onValueChanged && out._onValueChanged();
+      out.set(_x * len, _y * len, _z * len, _w * len);
     }
   }
 

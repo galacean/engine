@@ -191,14 +191,8 @@ export class Vector3 implements IClone<Vector3>, ICopy<Vector3Like, Vector3> {
    */
   static normalize(a: Vector3, out: Vector3): void {
     const { _x, _y, _z } = a;
-    let len = Math.sqrt(_x * _x + _y * _y + _z * _z);
-    if (len >= MathUtil.zeroTolerance) {
-      len = 1 / len;
-      out._x = _x * len;
-      out._y = _y * len;
-      out._z = _z * len;
-      out._onValueChanged && out._onValueChanged();
-    }
+    const len = Math.sqrt(_x * _x + _y * _y + _z * _z);
+    len >= MathUtil.zeroTolerance && out.scale(1 / len);
   }
 
   /**
