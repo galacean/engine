@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/math",
-  "version": "0.7.4",
+  "version": "0.7.5",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
