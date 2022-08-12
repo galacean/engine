@@ -76,7 +76,7 @@ export class InputManager {
   constructor(engine: Engine) {
     // @ts-ignore
     const canvas = engine._canvas._webCanvas;
-    if (canvas instanceof HTMLCanvasElement) {
+    if (typeof OffscreenCanvas === "undefined" || !(canvas instanceof OffscreenCanvas)) {
       this._enabled = true;
       this._pointerManager = new PointerManager(engine, canvas);
       this._keyboardManager = new KeyboardManager();
