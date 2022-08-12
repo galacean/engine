@@ -29,6 +29,7 @@ import { CullMode } from "./shader/enums/CullMode";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
@@ -344,8 +345,8 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramPool(shader: Shader): ShaderProgramPool {
-    const index = shader._shaderId;
+  _getShaderProgramPool(shader: ShaderPass): ShaderProgramPool {
+    const index = shader._shaderPassId;
     const shaderProgramPools = this._shaderProgramPools;
     let pool = shaderProgramPools[index];
     if (!pool) {

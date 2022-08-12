@@ -82,56 +82,59 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
-        if (!program.isValid) {
-          continue;
-        }
+        const shaderPasses = (replaceMaterial || material).shader._shaderPasses;
+        for (let j = 0, m = shaderPasses.length; j < m; j++) {
+          const program = shaderPasses[i]._getShaderProgram(engine, compileMacros);
+          if (!program.isValid) {
+            continue;
+          }
 
-        const switchProgram = program.bind();
-        const switchRenderCount = renderCount !== program._uploadRenderCount;
+          const switchProgram = program.bind();
+          const switchRenderCount = renderCount !== program._uploadRenderCount;
 
-        if (switchRenderCount) {
-          program.groupingOtherUniformBlock();
-          program.uploadAll(program.sceneUniformBlock, sceneData);
-          program.uploadAll(program.cameraUniformBlock, cameraData);
-          program.uploadAll(program.rendererUniformBlock, rendererData);
-          program.uploadAll(program.materialUniformBlock, materialData);
-          // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
-          program.uploadUnGroupTextures();
-          program._uploadCamera = camera;
-          program._uploadRenderer = renderer;
-          program._uploadMaterial = material;
-          program._uploadRenderCount = renderCount;
-        } else {
-          if (program._uploadCamera !== camera) {
+          if (switchRenderCount) {
+            program.groupingOtherUniformBlock();
+            program.uploadAll(program.sceneUniformBlock, sceneData);
             program.uploadAll(program.cameraUniformBlock, cameraData);
-            program._uploadCamera = camera;
-          } else if (switchProgram) {
-            program.uploadTextures(program.cameraUniformBlock, cameraData);
-          }
-          
-          if (program._uploadRenderer !== renderer) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
-            program._uploadRenderer = renderer;
-          } else if (switchProgram) {
-            program.uploadTextures(program.rendererUniformBlock, rendererData);
-          }
-
-          if (program._uploadMaterial !== material) {
             program.uploadAll(program.materialUniformBlock, materialData);
-            program._uploadMaterial = material;
-          } else if (switchProgram) {
-            program.uploadTextures(program.materialUniformBlock, materialData);
-          }
-
-          // We only consider switchProgram case, because UnGroup texture's value is always default.
-          if (switchProgram) {
+            // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
             program.uploadUnGroupTextures();
-          }
-        }
-        material.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+            program._uploadCamera = camera;
+            program._uploadRenderer = renderer;
+            program._uploadMaterial = material;
+            program._uploadRenderCount = renderCount;
+          } else {
+            if (program._uploadCamera !== camera) {
+              program.uploadAll(program.cameraUniformBlock, cameraData);
+              program._uploadCamera = camera;
+            } else if (switchProgram) {
+              program.uploadTextures(program.cameraUniformBlock, cameraData);
+            }
 
-        rhi.drawPrimitive(element.mesh, element.subMesh, program);
+            if (program._uploadRenderer !== renderer) {
+              program.uploadAll(program.rendererUniformBlock, rendererData);
+              program._uploadRenderer = renderer;
+            } else if (switchProgram) {
+              program.uploadTextures(program.rendererUniformBlock, rendererData);
+            }
+
+            if (program._uploadMaterial !== material) {
+              program.uploadAll(program.materialUniformBlock, materialData);
+              program._uploadMaterial = material;
+            } else if (switchProgram) {
+              program.uploadTextures(program.materialUniformBlock, materialData);
+            }
+
+            // We only consider switchProgram case, because UnGroup texture's value is always default.
+            if (switchProgram) {
+              program.uploadUnGroupTextures();
+            }
+          }
+          material.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+
+          rhi.drawPrimitive(element.mesh, element.subMesh, program);
+        }
       } else {
         const spriteElement = <SpriteElement>item;
         this._spriteBatcher.drawElement(spriteElement, camera);
