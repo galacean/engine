@@ -5,4 +5,5 @@ export { CompareFunction } from "./enums/CompareFunction";
 export { CullMode } from "./enums/CullMode";
 export { StencilOperation } from "./enums/StencilOperation";
 export { Shader } from "./Shader";
+export { ShaderPass } from "./ShaderPass";
 export { ShaderData } from "./ShaderData";

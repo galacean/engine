@@ -11,9 +11,6 @@ import { ShaderProgram } from "./ShaderProgram";
 export class ShaderPass {
   private static _shaderPassCounter: number = 0;
 
-  /** Render state. */
-  readonly renderState: RenderState = new RenderState(); // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
-
   /** @internal */
   _shaderPassId: number = 0;
 

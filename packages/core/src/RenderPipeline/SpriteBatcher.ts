@@ -100,23 +100,25 @@ export class SpriteBatcher extends Basic2DBatcher {
         compileMacros
       );
 
-      const program = material.shader._getShaderProgram(engine, compileMacros);
-      if (!program.isValid) {
-        return;
-      }
-
       renderer.shaderData.setTexture(SpriteBatcher._textureProperty, spriteElement.texture);
 
-      program.bind();
-      program.groupingOtherUniformBlock();
-      program.uploadAll(program.sceneUniformBlock, sceneData);
-      program.uploadAll(program.cameraUniformBlock, cameraData);
-      program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
-      program.uploadAll(program.materialUniformBlock, material.shaderData);
+      const shaderPasses = material.shader.shaderPasses;
+      for (let j = 0, m = shaderPasses.length; j < m; j++) {
+        const program = shaderPasses[i]._getShaderProgram(engine, compileMacros);
+        if (!program.isValid) {
+          continue;
+        }
 
-      material.renderState._apply(engine, false);
+        program.bind();
+        program.groupingOtherUniformBlock();
+        program.uploadAll(program.sceneUniformBlock, sceneData);
+        program.uploadAll(program.cameraUniformBlock, cameraData);
+        program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
+        program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+        material.renderStates[i]._apply(engine, false);
+        engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+      }
 
       maskManager.postRender(renderer);
     }

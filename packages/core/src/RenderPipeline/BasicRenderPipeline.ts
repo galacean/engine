@@ -233,7 +233,7 @@ export class BasicRenderPipeline {
     program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
     program.uploadUnGroupTextures();
 
-    _backgroundTextureMaterial.renderState._apply(engine, false);
+    _backgroundTextureMaterial.renderStates._apply(engine, false);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 
@@ -249,7 +249,7 @@ export class BasicRenderPipeline {
     }
 
     const rhi = engine._hardwareRenderer;
-    const { shaderData, shader, renderState } = material;
+    const { shaderData, shader, renderStates: renderState } = material;
 
     const compileMacros = Shader._compileMacros;
     ShaderMacroCollection.unionCollection(camera._globalShaderMacro, shaderData._macroCollection, compileMacros);

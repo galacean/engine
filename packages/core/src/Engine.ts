@@ -228,7 +228,7 @@ export class Engine extends EventDispatcher {
 
     this._backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
     this._backgroundTextureMaterial.isGCIgnored = true;
-    this._backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    this._backgroundTextureMaterial.renderStates.depthState.compareFunction = CompareFunction.LessEqual;
 
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
@@ -383,7 +383,7 @@ export class Engine extends EventDispatcher {
 
   private _createSpriteMaterial(): Material {
     const material = new Material(this, Shader.find("Sprite"));
-    const renderState = material.renderState;
+    const renderState = material.renderStates;
     const target = renderState.blendState.targetBlendState;
     target.enabled = true;
     target.sourceColorBlendFactor = BlendFactor.SourceAlpha;
@@ -400,7 +400,7 @@ export class Engine extends EventDispatcher {
 
   private _createSpriteMaskMaterial(): Material {
     const material = new Material(this, Shader.find("SpriteMask"));
-    const renderState = material.renderState;
+    const renderState = material.renderStates;
     renderState.blendState.targetBlendState.colorWriteMask = ColorWriteMask.None;
     renderState.rasterState.cullMode = CullMode.Off;
     renderState.stencilState.enabled = true;

@@ -137,8 +137,14 @@ export class Shader {
   /** The name of shader. */
   readonly name: string;
 
-  /** @internal */
-  _shaderPasses: ShaderPass[] = [];
+  /**
+   *  Shader passes.
+   */
+  get shaderPasses(): ReadonlyArray<ShaderPass> {
+    return this._shaderPasses;
+  }
+
+  private _shaderPasses: ShaderPass[] = [];
 
   private constructor(name: string, vertexSourceOrShaderPasses: string | ShaderPass[], fragmentSource?: string) {
     this.name = name;

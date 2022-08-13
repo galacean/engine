@@ -1,6 +1,5 @@
 import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { StencilOperation } from "../shader/enums/StencilOperation";
@@ -80,21 +79,24 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       stencilState.passOperationFront = op;
       stencilState.passOperationBack = op;
 
-      const program = material.shader._getShaderProgram(engine, compileMacros);
-      if (!program.isValid) {
-        return;
+      const shaderPasses = material.shader.shaderPasses;
+      for (let j = 0, m = shaderPasses.length; j < m; j++) {
+        const program = shaderPasses[i]._getShaderProgram(engine, compileMacros);
+        if (!program.isValid) {
+          continue;
+        }
+
+        program.bind();
+        program.groupingOtherUniformBlock();
+        program.uploadAll(program.sceneUniformBlock, sceneData);
+        program.uploadAll(program.cameraUniformBlock, cameraData);
+        program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
+        program.uploadAll(program.materialUniformBlock, material.shaderData);
+
+        material.renderStates[i]._apply(engine, false);
+
+        engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
       }
-
-      program.bind();
-      program.groupingOtherUniformBlock();
-      program.uploadAll(program.sceneUniformBlock, sceneData);
-      program.uploadAll(program.cameraUniformBlock, cameraData);
-      program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
-      program.uploadAll(program.materialUniformBlock, material.shaderData);
-
-      material.renderState._apply(engine, false);
-
-      engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
     }
   }
 }

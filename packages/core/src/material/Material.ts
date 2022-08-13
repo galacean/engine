@@ -21,8 +21,22 @@ export class Material extends RefObject implements IClone {
   renderQueueType: RenderQueueType = RenderQueueType.Opaque;
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
-  /** Render state. */
-  readonly renderState: RenderState = new RenderState(); // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+
+  private _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+
+  /**
+   * First Render state.
+   */
+  get renderState(): RenderState {
+    return this._renderStates[0];
+  }
+
+  /**
+   * Render states.
+   */
+  get renderStates(): Readonly<RenderState[]> {
+    return this._renderStates;
+  }
 
   /**
    * Create a material instance.
@@ -32,6 +46,9 @@ export class Material extends RefObject implements IClone {
   constructor(engine: Engine, shader: Shader) {
     super(engine);
     this.shader = shader;
+    for (let i = 0, n = this.shader.shaderPasses.length; i < n; i++) {
+      this._renderStates.push(new RenderState());
+    }
   }
 
   /**
@@ -51,7 +68,7 @@ export class Material extends RefObject implements IClone {
     target.shader = this.shader;
     target.renderQueueType = this.renderQueueType;
     this.shaderData.cloneTo(target.shaderData);
-    CloneManager.deepCloneObject(this.renderState, target.renderState);
+    CloneManager.deepCloneObject(this.renderStates, target.renderStates);
   }
 
   /**
