@@ -15,14 +15,35 @@ import { RenderQueueType } from "./enums/RenderQueueType";
 export class Material extends RefObject implements IClone {
   /** Name. */
   name: string;
-  /** Shader used by the material. */
-  shader: Shader;
   /** Render queue type. */
   renderQueueType: RenderQueueType = RenderQueueType.Opaque;
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
 
+  private _shader: Shader;
   private _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+
+  /**
+   * Shader used by the material.
+   */
+  get shader(): Shader {
+    return this._shader;
+  }
+
+  set shader(value: Shader) {
+    this._shader = value;
+
+    const lastStatesCount = this._renderStates.length;
+    const passCount = value.shaderPasses.length;
+
+    if (lastStatesCount < passCount) {
+      for (let i = lastStatesCount; i < passCount; i++) {
+        this._renderStates.push(new RenderState());
+      }
+    } else {
+      this._renderStates.length = passCount;
+    }
+  }
 
   /**
    * First Render state.
@@ -46,9 +67,6 @@ export class Material extends RefObject implements IClone {
   constructor(engine: Engine, shader: Shader) {
     super(engine);
     this.shader = shader;
-    for (let i = 0, n = this.shader.shaderPasses.length; i < n; i++) {
-      this._renderStates.push(new RenderState());
-    }
   }
 
   /**
