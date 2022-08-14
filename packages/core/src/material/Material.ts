@@ -15,8 +15,6 @@ import { RenderQueueType } from "./enums/RenderQueueType";
 export class Material extends RefObject implements IClone {
   /** Name. */
   name: string;
-  /** Render queue type. */
-  renderQueueType: RenderQueueType = RenderQueueType.Opaque;
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
 
@@ -84,7 +82,6 @@ export class Material extends RefObject implements IClone {
    */
   cloneTo(target: Material): void {
     target.shader = this.shader;
-    target.renderQueueType = this.renderQueueType;
     this.shaderData.cloneTo(target.shaderData);
     CloneManager.deepCloneObject(this.renderStates, target.renderStates);
   }

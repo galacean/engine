@@ -18,6 +18,6 @@ export class ShadowMaterial extends Material {
     targetBlendState.destinationColorBlendFactor = targetBlendState.destinationAlphaBlendFactor = BlendFactor.Zero;
     this.renderState.depthState.compareFunction = CompareFunction.LessEqual;
 
-    this.renderQueueType = RenderQueueType.Transparent;
+    this.renderState.renderQueueType = RenderQueueType.Transparent;
   }
 }

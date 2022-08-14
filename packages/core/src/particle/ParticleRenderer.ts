@@ -600,7 +600,7 @@ export class ParticleRenderer extends MeshRenderer {
 
     renderState.depthState.writeEnabled = false;
 
-    material.renderQueueType = RenderQueueType.Transparent;
+    material.renderState.renderQueueType = RenderQueueType.Transparent;
 
     this.isUseOriginColor = true;
     this.is2d = true;

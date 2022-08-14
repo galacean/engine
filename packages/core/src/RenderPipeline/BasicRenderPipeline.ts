@@ -202,7 +202,7 @@ export class BasicRenderPipeline {
    * @param element - Render element
    */
   pushPrimitive(element: RenderElement | SpriteElement) {
-    switch (element.material.renderQueueType) {
+    switch (element.material.renderState.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);
         break;

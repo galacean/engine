@@ -393,7 +393,7 @@ export class Engine extends EventDispatcher {
     target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
     renderState.depthState.writeEnabled = false;
     renderState.rasterState.cullMode = CullMode.Off;
-    material.renderQueueType = RenderQueueType.Transparent;
+    material.renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }
