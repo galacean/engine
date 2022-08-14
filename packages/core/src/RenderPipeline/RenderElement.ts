@@ -15,11 +15,14 @@ export class RenderElement {
   subMesh: SubMesh;
   /** Material. */
   material: Material;
+  /** Shader pass index. */
+  passIndex: number;
 
-  setValue(component: Renderer, mesh: Mesh, subMesh: SubMesh, material: Material): void {
+  setValue(component: Renderer, mesh: Mesh, subMesh: SubMesh, material: Material, passIndex: number): void {
     this.component = component;
     this.mesh = mesh;
     this.subMesh = subMesh;
     this.material = material;
+    this.passIndex = passIndex;
   }
 }

@@ -98,9 +98,12 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = this._materials[i];
         if (material) {
-          const element = renderElementPool.getFromPool();
-          element.setValue(this, mesh, subMeshes[i], material);
-          renderPipeline.pushPrimitive(element);
+          const shaderPasses = material.shader.shaderPasses;
+          for (let j = 0, m = shaderPasses.length; j < m; j++) {
+            const element = renderElementPool.getFromPool();
+            element.setValue(this, mesh, subMeshes[i], material, j);
+            renderPipeline.pushPrimitive(element);
+          }
         }
       }
     } else {

@@ -8,11 +8,19 @@ export class SpriteElement {
   renderData: RenderData2D;
   material: Material;
   texture: Texture2D;
+  passIndex: number;
 
-  setValue(component: Renderer, renderDate: RenderData2D, material: Material, texture: Texture2D): void {
+  setValue(
+    component: Renderer,
+    renderDate: RenderData2D,
+    material: Material,
+    texture: Texture2D,
+    passIndex: number
+  ): void {
     this.component = component;
     this.renderData = renderDate;
     this.material = material;
     this.texture = texture;
+    this.passIndex = passIndex;
   }
 }
