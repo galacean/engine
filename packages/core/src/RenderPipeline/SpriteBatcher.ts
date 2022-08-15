@@ -99,11 +99,9 @@ export class SpriteBatcher extends Basic2DBatcher {
         compileMacros
       );
 
-      renderer.shaderData.setTexture(SpriteBatcher._textureProperty, spriteElement.texture);
-
       const program = spriteElement.shaderPass._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
-        continue;
+        return;
       }
 
       program.bind();
