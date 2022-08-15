@@ -79,24 +79,21 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       stencilState.passOperationFront = op;
       stencilState.passOperationBack = op;
 
-      const shaderPasses = material.shader.passes;
-      for (let j = 0, m = shaderPasses.length; j < m; j++) {
-        const program = shaderPasses[i]._getShaderProgram(engine, compileMacros);
-        if (!program.isValid) {
-          continue;
-        }
-
-        program.bind();
-        program.groupingOtherUniformBlock();
-        program.uploadAll(program.sceneUniformBlock, sceneData);
-        program.uploadAll(program.cameraUniformBlock, cameraData);
-        program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
-        program.uploadAll(program.materialUniformBlock, material.shaderData);
-
-        material.renderStates[i]._apply(engine, false);
-
-        engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
+      const program = material.shader.passes[0]._getShaderProgram(engine, compileMacros);
+      if (!program.isValid) {
+        return;
       }
+
+      program.bind();
+      program.groupingOtherUniformBlock();
+      program.uploadAll(program.sceneUniformBlock, sceneData);
+      program.uploadAll(program.cameraUniformBlock, cameraData);
+      program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
+      program.uploadAll(program.materialUniformBlock, material.shaderData);
+
+      material.renderState._apply(engine, false);
+
+      engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
     }
   }
 }
