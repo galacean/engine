@@ -83,7 +83,7 @@ export class RenderQueue {
         );
 
         // @todo: temporary solution
-        const program = (replaceMaterial.shader.passes[0] || element.shaderPass)._getShaderProgram(
+        const program = (replaceMaterial?.shader.passes[0] || element.shaderPass)._getShaderProgram(
           engine,
           compileMacros
         );
