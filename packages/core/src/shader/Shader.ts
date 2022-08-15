@@ -140,20 +140,20 @@ export class Shader {
   /**
    *  Shader passes.
    */
-  get shaderPasses(): ReadonlyArray<ShaderPass> {
-    return this._shaderPasses;
+  get passes(): ReadonlyArray<ShaderPass> {
+    return this._passes;
   }
 
-  private _shaderPasses: ShaderPass[] = [];
+  private _passes: ShaderPass[] = [];
 
   private constructor(name: string, vertexSourceOrShaderPasses: string | ShaderPass[], fragmentSource?: string) {
     this.name = name;
 
     if (typeof vertexSourceOrShaderPasses === "string") {
-      this._shaderPasses.push(new ShaderPass(vertexSourceOrShaderPasses, fragmentSource));
+      this._passes.push(new ShaderPass(vertexSourceOrShaderPasses, fragmentSource));
     } else {
       for (let i = 0, n = vertexSourceOrShaderPasses.length; i < n; i++) {
-        this._shaderPasses.push(vertexSourceOrShaderPasses[i]);
+        this._passes.push(vertexSourceOrShaderPasses[i]);
       }
     }
   }
@@ -176,9 +176,9 @@ export class Shader {
     }
 
     let isValid = true;
-    const shaderPasses = this._shaderPasses;
-    for (let i = 0, n = shaderPasses.length; i < n; i++) {
-      isValid &&= shaderPasses[i]._getShaderProgram(engine, compileMacros).isValid;
+    const passes = this._passes;
+    for (let i = 0, n = passes.length; i < n; i++) {
+      isValid &&= passes[i]._getShaderProgram(engine, compileMacros).isValid;
     }
     return isValid;
   }

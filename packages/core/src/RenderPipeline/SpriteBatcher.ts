@@ -102,7 +102,7 @@ export class SpriteBatcher extends Basic2DBatcher {
 
       renderer.shaderData.setTexture(SpriteBatcher._textureProperty, spriteElement.texture);
 
-      const shaderPasses = material.shader.shaderPasses;
+      const shaderPasses = material.shader.passes;
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const program = shaderPasses[i]._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {

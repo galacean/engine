@@ -79,7 +79,7 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       stencilState.passOperationFront = op;
       stencilState.passOperationBack = op;
 
-      const shaderPasses = material.shader.shaderPasses;
+      const shaderPasses = material.shader.passes;
       for (let j = 0, m = shaderPasses.length; j < m; j++) {
         const program = shaderPasses[i]._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {

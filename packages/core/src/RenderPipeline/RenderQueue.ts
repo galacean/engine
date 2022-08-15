@@ -82,7 +82,7 @@ export class RenderQueue {
           compileMacros
         );
 
-        const shaderPasses = (replaceMaterial || material).shader.shaderPasses;
+        const shaderPasses = (replaceMaterial || material).shader.passes;
         const passIndex = element.passIndex;
         const program = shaderPasses[passIndex]._getShaderProgram(engine, compileMacros);
 

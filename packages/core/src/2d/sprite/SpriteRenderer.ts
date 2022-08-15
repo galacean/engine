@@ -255,7 +255,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
     // Push primitive.
     const material = this.getMaterial();
-    const shaderPasses = material.shader.shaderPasses;
+    const shaderPasses = material.shader.passes;
     for (let j = 0, m = shaderPasses.length; j < m; j++) {
       const spriteElement = this._engine._spriteElementPool.getFromPool();
       spriteElement.setValue(this, this._renderData, material, this.sprite.texture, j);

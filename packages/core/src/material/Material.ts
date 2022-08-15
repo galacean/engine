@@ -32,7 +32,7 @@ export class Material extends RefObject implements IClone {
     this._shader = value;
 
     const lastStatesCount = this._renderStates.length;
-    const passCount = value.shaderPasses.length;
+    const passCount = value.passes.length;
 
     if (lastStatesCount < passCount) {
       for (let i = lastStatesCount; i < passCount; i++) {

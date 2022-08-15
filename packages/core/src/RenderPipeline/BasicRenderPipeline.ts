@@ -228,7 +228,7 @@ export class BasicRenderPipeline {
       background._resizeBackgroundTexture();
     }
 
-    const program = _backgroundTextureMaterial.shader.shaderPasses[0]._getShaderProgram(engine, Shader._compileMacros);
+    const program = _backgroundTextureMaterial.shader.passes[0]._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
     program.uploadUnGroupTextures();
@@ -261,7 +261,7 @@ export class BasicRenderPipeline {
     Matrix.multiply(projectionMatrix, _matrix, _matrix);
     shaderData.setMatrix("u_mvpNoscale", _matrix);
 
-    const program = shader.shaderPasses[0]._getShaderProgram(engine, compileMacros);
+    const program = shader.passes[0]._getShaderProgram(engine, compileMacros);
     program.bind();
     program.groupingOtherUniformBlock();
     program.uploadAll(program.materialUniformBlock, shaderData);
