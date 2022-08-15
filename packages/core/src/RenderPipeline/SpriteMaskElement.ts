@@ -7,8 +7,6 @@ export class SpriteMaskElement {
   renderData: RenderData2D;
   material: Material;
   isAdd: boolean = true;
-  renderState: RenderState;
-  shaderPass: ShaderPass;
 
   setValue(component: Component, renderData: RenderData2D, material: Material): void {
     this.component = component;
