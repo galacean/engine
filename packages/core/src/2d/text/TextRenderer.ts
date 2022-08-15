@@ -322,11 +322,21 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
+    const material = this.getMaterial();
+    const passes = material.shader.passes;
+    const renderStates = material.renderStates;
     const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const charRenderData = charRenderDatas[i];
       const spriteElement = this._engine._spriteElementPool.getFromPool();
-      spriteElement.setValue(this, charRenderData.renderData, this.getMaterial(), charRenderData.texture, 0);
+      spriteElement.setValue(
+        this,
+        charRenderData.renderData,
+        this.getMaterial(),
+        charRenderData.texture,
+        renderStates[0],
+        passes[0]
+      );
       camera._renderPipeline.pushPrimitive(spriteElement);
     }
   }

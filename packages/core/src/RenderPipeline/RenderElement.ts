@@ -2,27 +2,33 @@ import { Mesh } from "../graphic/Mesh";
 import { SubMesh } from "../graphic/SubMesh";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
+import { ShaderPass } from "../shader";
+import { RenderState } from "../shader/state/RenderState";
 
 /**
- * Render element.
+ * @internal
  */
 export class RenderElement {
-  /** Render component. */
   component: Renderer;
-  /** Mesh. */
   mesh: Mesh;
-  /** Sub mesh. */
   subMesh: SubMesh;
-  /** Material. */
   material: Material;
-  /** Shader pass index. */
-  passIndex: number;
+  renderState: RenderState;
+  shaderPass: ShaderPass;
 
-  setValue(component: Renderer, mesh: Mesh, subMesh: SubMesh, material: Material, passIndex: number): void {
+  setValue(
+    component: Renderer,
+    mesh: Mesh,
+    subMesh: SubMesh,
+    material: Material,
+    renderState: RenderState,
+    shaderPass: ShaderPass
+  ): void {
     this.component = component;
     this.mesh = mesh;
     this.subMesh = subMesh;
     this.material = material;
-    this.passIndex = passIndex;
+    this.renderState = renderState;
+    this.shaderPass = shaderPass;
   }
 }
