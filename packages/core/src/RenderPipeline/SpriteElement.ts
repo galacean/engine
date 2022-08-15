@@ -5,6 +5,9 @@ import { ShaderPass } from "../shader";
 import { RenderState } from "../shader/state/RenderState";
 import { Texture2D } from "../texture";
 
+/**
+ * @internal
+ */
 export class SpriteElement {
   component: Renderer;
   renderData: RenderData2D;
