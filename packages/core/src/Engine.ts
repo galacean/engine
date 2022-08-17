@@ -79,7 +79,7 @@ export class Engine extends EventDispatcher {
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _canSpriteBatch: boolean = true;
-  /** @internal */
+  /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   protected _canvas: Canvas;
