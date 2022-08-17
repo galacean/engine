@@ -65,14 +65,14 @@ export class SpriteMaskManager {
         if (influenceLayers & addLayer) {
           const maskRenderElement = mask._maskElement;
           maskRenderElement.isAdd = true;
-          this._batcher.drawElement(maskRenderElement, camera);
+          this._batcher.drawElement(maskRenderElement, camera, null);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
           const maskRenderElement = mask._maskElement;
           maskRenderElement.isAdd = false;
-          this._batcher.drawElement(maskRenderElement, camera);
+          this._batcher.drawElement(maskRenderElement, camera, null);
         }
       }
     }
