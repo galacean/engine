@@ -24,6 +24,10 @@ export class SpriteBatcher extends Basic2DBatcher {
   }
 
   canBatch(preElement: SpriteElement, curElement: SpriteElement): boolean {
+    if (!this._engine._canSpriteBatch) {
+      return false;
+    }
+
     const preRenderer = <SpriteRenderer>preElement.component;
     const curRenderer = <SpriteRenderer>curElement.component;
 
@@ -105,6 +109,7 @@ export class SpriteBatcher extends Basic2DBatcher {
         return;
       }
 
+      material._preRender(spriteElement);
       renderer.shaderData.setTexture(SpriteBatcher._textureProperty, spriteElement.texture);
 
       program.bind();

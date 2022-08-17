@@ -134,6 +134,7 @@ export class RenderQueue {
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spriteElement = <SpriteElement>item;
+        replaceMaterial && (spriteElement.material = replaceMaterial);
         this._spriteBatcher.drawElement(spriteElement, camera);
       }
     }
