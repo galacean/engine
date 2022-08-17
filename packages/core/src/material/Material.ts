@@ -3,6 +3,7 @@ import { RefObject } from "../asset/RefObject";
 import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";
 import { RenderElement } from "../RenderPipeline/RenderElement";
+import { SpriteElement } from "../RenderPipeline/SpriteElement";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -66,7 +67,7 @@ export class Material extends RefObject implements IClone {
    * @internal
    * @todo:temporary solution
    */
-  _preRender(renderElement: RenderElement) {}
+  _preRender(renderElement: RenderElement | SpriteElement) {}
 
   /**
    * @override
