@@ -63,7 +63,7 @@ export abstract class Basic2DBatcher {
     this._batchedQueue[this._elementCount++] = element;
   }
 
-  flush(camera: Camera, replaceMaterial: Material = null): void {
+  flush(camera: Camera, replaceMaterial: Material): void {
     const batchedQueue = this._batchedQueue;
 
     if (batchedQueue.length === 0) {

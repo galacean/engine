@@ -77,7 +77,7 @@ export class SpriteBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  drawBatches(camera: Camera, replaceMaterial: Material = null): void {
+  drawBatches(camera: Camera, replaceMaterial: Material): void {
     const { _engine: engine, _batchedQueue: batchedQueue } = this;
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;

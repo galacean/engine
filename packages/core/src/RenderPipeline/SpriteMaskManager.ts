@@ -28,7 +28,7 @@ export class SpriteMaskManager {
 
     this._batcher.clear();
     this._processMasksDiff(camera, renderer);
-    this._batcher.flush(camera);
+    this._batcher.flush(camera, null);
   }
 
   postRender(renderer: SpriteRenderer): void {
