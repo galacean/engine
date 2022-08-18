@@ -63,6 +63,7 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
 
   private _parent: Entity = null;
+  private _siblingIndex: number = -1;
   private _activeChangedComponents: Component[];
 
   /**
@@ -103,29 +104,7 @@ export class Entity extends EngineObject {
   }
 
   set parent(value: Entity) {
-    if (value !== this._parent) {
-      const oldParent = this._removeFromParent();
-      const newParent = (this._parent = value);
-      if (newParent) {
-        newParent._children.push(this);
-        const parentScene = newParent._scene;
-        if (this._scene !== parentScene) {
-          Entity._traverseSetOwnerScene(this, parentScene);
-        }
-
-        if (newParent._isActiveInHierarchy) {
-          !this._isActiveInHierarchy && this._isActive && this._processActive();
-        } else {
-          this._isActiveInHierarchy && this._processInActive();
-        }
-      } else {
-        this._isActiveInHierarchy && this._processInActive();
-        if (oldParent) {
-          Entity._traverseSetOwnerScene(this, null);
-        }
-      }
-      this._setTransformDirty();
-    }
+    this._setParent(undefined, value);
   }
 
   /**
@@ -147,6 +126,17 @@ export class Entity extends EngineObject {
    */
   get scene(): Scene {
     return this._scene;
+  }
+
+  /**
+   * The sibling index.
+   */
+  get siblingIndex(): number {
+    return this._siblingIndex;
+  }
+
+  set siblingIndex(value: number) {
+    this._siblingIndex = value;
   }
 
   /**
@@ -208,9 +198,9 @@ export class Entity extends EngineObject {
 
   /**
    * Get the components which match the type of the entity and it's children.
-   * @param type - The component type.
-   * @param results - The components collection.
-   * @returns	The components collection which match the type.
+   * @param type - The component type
+   * @param results - The components collection
+   * @returns	The components collection which match the type
    */
   getComponentsIncludeChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
     results.length = 0;
@@ -220,16 +210,25 @@ export class Entity extends EngineObject {
 
   /**
    * Add child entity.
-   * @param child - The child entity which want to be added.
+   * @param child - The child entity which want to be added
    */
-  addChild(child: Entity): void {
+  addChild(child: Entity): void;
+
+  /**
+   * Add child entity at specified index.
+   * @param index - specified index
+   * @param child - The child entity which want to be added
+   */
+  addChild(index: number, child: Entity): void;
+
+  addChild(indexOrChild: number | Entity, child?: Entity): void {
     if (child._isRoot) {
       child._scene._removeEntity(child);
       child._isRoot = false;
 
-      this._children.push(child);
+      this._addToChildrenList(typeof indexOrChild === "number" ? indexOrChild : undefined, child);
       child._parent = this;
-      
+
       const newScene = this._scene;
       if (child._scene !== newScene) {
         Entity._traverseSetOwnerScene(child, newScene);
@@ -243,7 +242,7 @@ export class Entity extends EngineObject {
 
       child._setTransformDirty();
     } else {
-      child.parent = this;
+      child._setParent(typeof indexOrChild === "number" ? indexOrChild : undefined, this);
     }
   }
 
@@ -252,7 +251,7 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be removed.
    */
   removeChild(child: Entity): void {
-    child.parent = null;
+    child._setParent(undefined, null);
   }
 
   /**
@@ -444,6 +443,48 @@ export class Entity extends EngineObject {
     this._activeChangedComponents = this._engine._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(false);
+  }
+
+  private _addToChildrenList(index: number, child: Entity): void {
+    const children = this._children;
+    if (index === undefined) {
+      child.siblingIndex = children.length;
+      children.push(this);
+    } else {
+      if (index < 0 || index > children.length) {
+        throw `The index ${index} is out of child list bounds ${children.length}`;
+      }
+      child.siblingIndex = index;
+      children.splice(index, 0, child);
+    }
+  }
+
+  private _setParent(siblingIndex: number, parent: Entity): void {
+    if (parent !== this._parent) {
+      const oldParent = this._removeFromParent();
+      this._parent = parent;
+      if (parent) {
+        parent._addToChildrenList(siblingIndex, this);
+
+        const parentScene = parent._scene;
+        if (this._scene !== parentScene) {
+          Entity._traverseSetOwnerScene(this, parentScene);
+        }
+
+        if (parent._isActiveInHierarchy) {
+          !this._isActiveInHierarchy && this._isActive && this._processActive();
+        } else {
+          this._isActiveInHierarchy && this._processInActive();
+        }
+      } else {
+        this._siblingIndex = -1;
+        this._isActiveInHierarchy && this._processInActive();
+        if (oldParent) {
+          Entity._traverseSetOwnerScene(this, null);
+        }
+      }
+      this._setTransformDirty();
+    }
   }
 
   private _getComponentsInChildren<T extends Component>(type: new (entity: Entity) => T, results: T[]): void {
