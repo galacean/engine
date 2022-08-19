@@ -541,13 +541,13 @@ export class TextRenderer extends Renderer implements ICustomClone {
           const top = (startY + ascent) * pixelsPerUnitReciprocal;
           const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
           // Top-left.
-          localPositions[0].set(left, top, 0);
+          localPositions[0].set(left, top);
           // Top-right.
-          localPositions[1].set(right, top, 0);
+          localPositions[1].set(right, top);
           // Bottom-right.
-          localPositions[2].set(right, bottom, 0);
+          localPositions[2].set(right, bottom);
           // Bottom-left.
-          localPositions[3].set(left, bottom, 0);
+          localPositions[3].set(left, bottom);
 
           charRenderDatas[renderDataCount] = charRenderData;
           renderDataCount++;
