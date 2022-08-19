@@ -533,8 +533,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
           charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
           renderData.color = color;
 
-          const { uvs } = renderData;
-          const { w, u0, v0, u1, v1, ascent, descent } = charInfo;
+          renderData.uvs = charInfo.uvs;
+          const { w, ascent, descent } = charInfo;
 
           const left = startX * pixelsPerUnitReciprocal;
           const right = (startX + w) * pixelsPerUnitReciprocal;
@@ -542,16 +542,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
           const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
           // Top-left.
           localPositions[0].set(left, top, 0);
-          uvs[0].set(u0, v0);
           // Top-right.
           localPositions[1].set(right, top, 0);
-          uvs[1].set(u1, v0);
           // Bottom-right.
           localPositions[2].set(right, bottom, 0);
-          uvs[2].set(u1, v1);
           // Bottom-left.
           localPositions[3].set(left, bottom, 0);
-          uvs[3].set(u0, v1);
 
           charRenderDatas[renderDataCount] = charRenderData;
           renderDataCount++;

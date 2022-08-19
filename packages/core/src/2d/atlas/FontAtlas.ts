@@ -1,3 +1,4 @@
+import { Vector2 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
@@ -46,7 +47,7 @@ export class FontAtlas extends RefObject {
     const textureSize = texture.width;
     const offsetWidth = width + space;
     const offsetHeight = height + space;
-    if ((1 + offsetWidth) >= textureSize || (1 + offsetHeight) >= textureSize) {
+    if (1 + offsetWidth >= textureSize || 1 + offsetHeight >= textureSize) {
       throw Error("The char fontSize is too large.");
     }
 
@@ -73,12 +74,15 @@ export class FontAtlas extends RefObject {
     const y = this._curY;
     const w = width;
     const h = height;
+    const u0 = x * textureSizeReciprocal;
+    const u1 = (x + w) * textureSizeReciprocal;
+    const v0 = y * textureSizeReciprocal;
+    const v1 = (y + h) * textureSizeReciprocal;
+
     charInfo.x = x;
     charInfo.y = y;
-    charInfo.u0 = x * textureSizeReciprocal;
-    charInfo.u1 = (x + w) * textureSizeReciprocal;
-    charInfo.v0 = y * textureSizeReciprocal;
-    charInfo.v1 = (y + h) * textureSizeReciprocal;
+    charInfo.uvs = [new Vector2(u0, v0), new Vector2(u1, v0), new Vector2(u1, v1), new Vector2(u0, v1)];
+
     this._curX += offsetWidth + space;
     return true;
   }

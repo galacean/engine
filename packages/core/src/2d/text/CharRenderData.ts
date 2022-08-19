@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { Texture2D } from "../../texture";
 import { RenderData2D } from "../data/RenderData2D";
 
@@ -14,8 +14,7 @@ export class CharRenderData {
 
   constructor() {
     const positions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-    const uvs = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
     this.localPositions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-    this.renderData = new RenderData2D(4, positions, uvs, CharRenderData.triangles, null);
+    this.renderData = new RenderData2D(4, positions, null, CharRenderData.triangles, null);
   }
 }
