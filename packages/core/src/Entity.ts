@@ -259,7 +259,7 @@ export class Entity extends EngineObject {
 
       child._setTransformDirty();
     } else {
-      child._setParent(this, typeof indexOrChild === "number" ? indexOrChild : undefined);
+      child._setParent(this, index);
     }
   }
 
