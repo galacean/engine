@@ -4,6 +4,7 @@ import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
 import { TextRenderer } from "./TextRenderer";
+import { Vector2 } from "@oasis-engine/math";
 
 /**
  * @internal
@@ -317,10 +318,7 @@ export class TextUtils {
         offsetX: 0,
         offsetY: (ascent - descent) * 0.5,
         xAdvance: width,
-        u0: 0,
-        v0: 0,
-        u1: 0,
-        v1: 0,
+        uvs: [new Vector2(), new Vector2(), new Vector2(), new Vector2()],
         ascent,
         descent,
         index: 0,
