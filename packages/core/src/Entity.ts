@@ -436,7 +436,7 @@ export class Entity extends EngineObject {
       let index = oldSilbing.indexOf(this);
       oldSilbing.splice(index, 1);
       for (let n = oldSilbing.length; index < n; index++) {
-        oldSilbing[index]._siblingIndex++;
+        oldSilbing[index]._siblingIndex--;
       }
       this._parent = null;
       this._siblingIndex = -1;

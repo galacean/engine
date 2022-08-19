@@ -283,7 +283,7 @@ export class Scene extends EngineObject {
     let index = rootEntities.indexOf(entity);
     rootEntities.splice(index, 1);
     for (let n = rootEntities.length; index < n; index++) {
-      rootEntities[index]._siblingIndex++;
+      rootEntities[index]._siblingIndex--;
     }
     entity._siblingIndex = -1;
   }
