@@ -1,4 +1,3 @@
-import { Vector2 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
@@ -81,7 +80,11 @@ export class FontAtlas extends RefObject {
 
     charInfo.x = x;
     charInfo.y = y;
-    charInfo.uvs = [new Vector2(u0, v0), new Vector2(u1, v0), new Vector2(u1, v1), new Vector2(u0, v1)];
+    const uvs = charInfo.uvs;
+    uvs[0].set(u0, v0);
+    uvs[1].set(u1, v0);
+    uvs[2].set(u1, v1);
+    uvs[3].set(u0, v1);
 
     this._curX += offsetWidth + space;
     return true;
