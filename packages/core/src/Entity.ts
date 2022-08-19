@@ -116,6 +116,7 @@ export class Entity extends EngineObject {
   }
 
   /**
+   * @deprecated Please use `children.length` property instead.
    * Number of the children entities
    */
   get childCount(): number {
@@ -149,7 +150,7 @@ export class Entity extends EngineObject {
 
   /**
    * Create a entity.
-   * @param engine - The engine the entity belongs to.
+   * @param engine - The engine the entity belongs to
    */
   constructor(engine: Engine, name?: string) {
     super(engine);
@@ -160,8 +161,8 @@ export class Entity extends EngineObject {
 
   /**
    * Add component based on the component type.
-   * @param type - The type of the component.
-   * @returns	The component which has been added.
+   * @param type - The type of the component
+   * @returns	The component which has been added
    */
   addComponent<T extends Component>(type: new (entity: Entity) => T): T {
     ComponentsDependencies._addCheck(this, type);
@@ -175,8 +176,8 @@ export class Entity extends EngineObject {
 
   /**
    * Get component which match the type.
-   * @param type - The type of the component.
-   * @returns	The first component which match type.
+   * @param type - The type of the component
+   * @returns	The first component which match type
    */
   getComponent<T extends Component>(type: new (entity: Entity) => T): T {
     for (let i = this._components.length - 1; i >= 0; i--) {
@@ -189,9 +190,9 @@ export class Entity extends EngineObject {
 
   /**
    * Get components which match the type.
-   * @param type - The type of the component.
-   * @param results - The components which match type.
-   * @returns	The components which match type.
+   * @param type - The type of the component
+   * @param results - The components which match type
+   * @returns	The components which match type
    */
   getComponents<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
     results.length = 0;
@@ -264,16 +265,17 @@ export class Entity extends EngineObject {
 
   /**
    * Remove child entity.
-   * @param child - The child entity which want to be removed.
+   * @param child - The child entity which want to be removed
    */
   removeChild(child: Entity): void {
     child._setParent(undefined, null);
   }
 
   /**
+   * @deprecated Please use `children` property instead.
    * Find child entity by index.
-   * @param index - The index of the child entity.
-   * @returns	The component which be found.
+   * @param index - The index of the child entity
+   * @returns	The component which be found
    */
   getChild(index: number): Entity {
     return this._children[index];
@@ -281,8 +283,8 @@ export class Entity extends EngineObject {
 
   /**
    * Find child entity by name.
-   * @param name - The name of the entity which want to be found.
-   * @returns The component which be found.
+   * @param name - The name of the entity which want to be found
+   * @returns The component which be found
    */
   findByName(name: string): Entity {
     const children = this._children;
@@ -300,8 +302,8 @@ export class Entity extends EngineObject {
 
   /**
    * Find the entity by path.
-   * @param path - The path fo the entity eg: /entity.
-   * @returns The component which be found.
+   * @param path - The path fo the entity eg: /entity
+   * @returns The component which be found
    */
   findByPath(path: string): Entity {
     const splits = path.split("/");
@@ -320,8 +322,8 @@ export class Entity extends EngineObject {
 
   /**
    * Create child entity.
-   * @param name - The child entity's name.
-   * @returns The child entity.
+   * @param name - The child entity's name
+   * @returns The child entity
    */
   createChild(name?: string): Entity {
     const child = new Entity(this.engine, name);
@@ -345,8 +347,8 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Clone
-   * @returns Cloned entity.
+   * Clone.
+   * @returns Cloned entity
    */
   clone(): Entity {
     const cloneEntity = new Entity(this._engine, this.name);
