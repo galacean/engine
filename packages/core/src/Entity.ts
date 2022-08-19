@@ -61,9 +61,10 @@ export class Entity extends EngineObject {
   _isRoot: boolean = false;
   /** @internal */
   _isActive: boolean = true;
+  /** @internal */
+  _siblingIndex: number = -1;
 
   private _parent: Entity = null;
-  private _siblingIndex: number = -1;
   private _activeChangedComponents: Component[];
 
   /**
@@ -136,7 +137,14 @@ export class Entity extends EngineObject {
   }
 
   set siblingIndex(value: number) {
-    this._siblingIndex = value;
+    if (this._siblingIndex !== value) {
+      const children = this._children;
+      if (value < 0 || value > children.length) {
+        throw `The index ${value} is out of child list bounds ${children.length}`;
+      }
+      children.splice(this._siblingIndex, 1, this);
+      this._siblingIndex = value;
+    }
   }
 
   /**
@@ -222,11 +230,19 @@ export class Entity extends EngineObject {
   addChild(index: number, child: Entity): void;
 
   addChild(indexOrChild: number | Entity, child?: Entity): void {
+    let index: number;
+    if (typeof indexOrChild === "number") {
+      index = indexOrChild;
+    } else {
+      index = undefined;
+      child = indexOrChild;
+    }
+
     if (child._isRoot) {
       child._scene._removeEntity(child);
       child._isRoot = false;
 
-      this._addToChildrenList(typeof indexOrChild === "number" ? indexOrChild : undefined, child);
+      this._addToChildrenList(index, child);
       child._parent = this;
 
       const newScene = this._scene;
@@ -448,13 +464,13 @@ export class Entity extends EngineObject {
   private _addToChildrenList(index: number, child: Entity): void {
     const children = this._children;
     if (index === undefined) {
-      child.siblingIndex = children.length;
-      children.push(this);
+      child._siblingIndex = children.length;
+      children.push(child);
     } else {
       if (index < 0 || index > children.length) {
         throw `The index ${index} is out of child list bounds ${children.length}`;
       }
-      child.siblingIndex = index;
+      child._siblingIndex = index;
       children.splice(index, 0, child);
     }
   }

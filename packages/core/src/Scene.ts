@@ -102,9 +102,25 @@ export class Scene extends EngineObject {
    * Append an entity.
    * @param entity - The root entity to add
    */
-  addRootEntity(entity: Entity): void {
-    const isRoot = entity._isRoot;
+  addRootEntity(entity: Entity): void;
 
+  /**
+   * Append an entity.
+   * @param index - specified index
+   * @param entity - The root entity to add
+   */
+  addRootEntity(index: number, entity: Entity): void;
+
+  addRootEntity(indexOrChild: number | Entity, entity?: Entity): void {
+    let index: number;
+    if (typeof indexOrChild === "number") {
+      index = indexOrChild;
+    } else {
+      index = undefined;
+      entity = indexOrChild;
+    }
+
+    const isRoot = entity._isRoot;
     // let entity become root
     if (!isRoot) {
       entity._isRoot = true;
@@ -117,10 +133,10 @@ export class Scene extends EngineObject {
       if (oldScene && isRoot) {
         oldScene._removeEntity(entity);
       }
-      this._rootEntities.push(entity);
+      this._addToRootEntityList(index, entity);
       Entity._traverseSetOwnerScene(entity, this);
     } else if (!isRoot) {
-      this._rootEntities.push(entity);
+      this._addToRootEntityList(index, entity);
     }
 
     // process entity active/inActive
@@ -265,6 +281,7 @@ export class Scene extends EngineObject {
   _removeEntity(entity: Entity): void {
     const rootEntities = this._rootEntities;
     rootEntities.splice(rootEntities.indexOf(entity), 1);
+    entity._siblingIndex = -1;
   }
 
   /**
@@ -280,6 +297,20 @@ export class Scene extends EngineObject {
     this._activeCameras.length = 0;
     (Scene.sceneFeatureManager as any)._objects = [];
     this.shaderData._addRefCount(-1);
+  }
+
+  private _addToRootEntityList(index: number, rootEntity: Entity): void {
+    const rootEntities = this._rootEntities;
+    if (index === undefined) {
+      rootEntity._siblingIndex = rootEntities.length;
+      rootEntities.push(rootEntity);
+    } else {
+      if (index < 0 || index > rootEntities.length) {
+        throw `The index ${index} is out of child list bounds ${rootEntities.length}`;
+      }
+      rootEntity._siblingIndex = index;
+      rootEntities.splice(index, 0, rootEntity);
+    }
   }
 
   //-----------------------------------------@deprecated-----------------------------------
