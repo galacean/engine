@@ -138,13 +138,12 @@ export class Entity extends EngineObject {
   }
 
   set siblingIndex(value: number) {
+    if (this._siblingIndex === -1) {
+      throw `The entity ${this.name} is not in the hierarchy`;
+    }
+
     if (this._siblingIndex !== value) {
-      const children = this._children;
-      if (value < 0 || value > children.length) {
-        throw `The index ${value} is out of child list bounds ${children.length}`;
-      }
-      children.splice(this._siblingIndex, 1, this);
-      this._siblingIndex = value;
+      this._setSiblingIndex(this._isRoot ? this._scene._rootEntities : this._parent._children, value);
     }
   }
 
@@ -564,6 +563,27 @@ export class Entity extends EngineObject {
     } else {
       for (let i = 0, len = this._children.length; i < len; i++) {
         this._children[i]._setTransformDirty();
+      }
+    }
+  }
+
+  private _setSiblingIndex(sibling: Entity[], target: number): void {
+    if (target < 0 || target > sibling.length) {
+      throw `The index ${target} is out of child list bounds ${sibling.length}`;
+    }
+
+    const oldIndex = this._siblingIndex;
+    if (target < oldIndex) {
+      for (let i = oldIndex; i >= target; i--) {
+        const child = i == target ? this : sibling[i - 1];
+        sibling[i] = child;
+        child._siblingIndex = i;
+      }
+    } else {
+      for (let i = oldIndex; i <= target; i++) {
+        const child = i == target ? this : sibling[i + 1];
+        sibling[i] = child;
+        child._siblingIndex = i;
       }
     }
   }

@@ -32,8 +32,9 @@ export class Scene extends EngineObject {
   _isActiveInEngine: boolean = false;
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _rootEntities: Entity[] = [];
 
-  private _rootEntities: Entity[] = [];
   private _ambientLight: AmbientLight;
 
   /**
