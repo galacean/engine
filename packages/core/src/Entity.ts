@@ -429,14 +429,18 @@ export class Entity extends EngineObject {
   /**
    * @internal
    */
-  _removeFromParent(): Entity {
+  _removeFromParent(): void {
     const oldParent = this._parent;
     if (oldParent != null) {
-      const oldParentChildren = oldParent._children;
-      oldParentChildren.splice(oldParentChildren.indexOf(this), 1);
+      const oldSilbing = oldParent._children;
+      let index = oldSilbing.indexOf(this);
+      oldSilbing.splice(index, 1);
+      for (let n = oldSilbing.length; index < n; index++) {
+        oldSilbing[index]._siblingIndex++;
+      }
       this._parent = null;
+      this._siblingIndex = -1;
     }
-    return oldParent;
   }
 
   /**
@@ -478,8 +482,9 @@ export class Entity extends EngineObject {
   }
 
   private _setParent(parent: Entity, siblingIndex: number): void {
-    if (parent !== this._parent) {
-      const oldParent = this._removeFromParent();
+    const oldParent = this._parent;
+    if (parent !== oldParent) {
+      this._removeFromParent();
       this._parent = parent;
       if (parent) {
         parent._addToChildrenList(siblingIndex, this);
@@ -495,7 +500,6 @@ export class Entity extends EngineObject {
           this._isActiveInHierarchy && this._processInActive();
         }
       } else {
-        this._siblingIndex = -1;
         this._isActiveInHierarchy && this._processInActive();
         if (oldParent) {
           Entity._traverseSetOwnerScene(this, null);
