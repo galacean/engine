@@ -14,7 +14,7 @@ export class CharRenderData {
 
   constructor() {
     const positions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-    this.localPositions = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+    this.localPositions = [new Vector2(), new Vector2()];
     this.renderData = new RenderData2D(4, positions, null, CharRenderData.triangles, null);
   }
 }

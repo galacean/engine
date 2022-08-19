@@ -439,7 +439,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       const { positions } = charRenderData.renderData;
 
       const { x: topLeftX, y: topLeftY } = localPositions[0];
-      const bottomRight = localPositions[2];
+      const bottomRight = localPositions[1];
 
       // Top-Left
       const worldPosition0 = positions[0];
@@ -542,12 +542,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
           const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
           // Top-left.
           localPositions[0].set(left, top);
-          // Top-right.
-          localPositions[1].set(right, top);
           // Bottom-right.
-          localPositions[2].set(right, bottom);
-          // Bottom-left.
-          localPositions[3].set(left, bottom);
+          localPositions[1].set(right, bottom);
 
           charRenderDatas[renderDataCount] = charRenderData;
           renderDataCount++;
