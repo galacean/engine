@@ -131,7 +131,7 @@ export class Scene extends EngineObject {
     const oldScene = entity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
-        oldScene._removeEntity(entity);
+        oldScene._removeFromEntityList(entity);
       }
       this._addToRootEntityList(index, entity);
       Entity._traverseSetOwnerScene(entity, this);
@@ -153,7 +153,7 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
-      this._removeEntity(entity);
+      this._removeFromEntityList(entity);
       entity._isRoot = false;
       this._isActiveInEngine && entity._isActiveInHierarchy && entity._processInActive();
       Entity._traverseSetOwnerScene(entity, null);
@@ -278,7 +278,7 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _removeEntity(entity: Entity): void {
+  _removeFromEntityList(entity: Entity): void {
     const rootEntities = this._rootEntities;
     let index = rootEntities.indexOf(entity);
     rootEntities.splice(index, 1);

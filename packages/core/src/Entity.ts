@@ -240,7 +240,7 @@ export class Entity extends EngineObject {
     }
 
     if (child._isRoot) {
-      child._scene._removeEntity(child);
+      child._scene._removeFromEntityList(child);
       child._isRoot = false;
 
       this._addToChildrenList(index, child);
