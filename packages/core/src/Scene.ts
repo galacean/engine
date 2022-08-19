@@ -280,7 +280,11 @@ export class Scene extends EngineObject {
    */
   _removeEntity(entity: Entity): void {
     const rootEntities = this._rootEntities;
-    rootEntities.splice(rootEntities.indexOf(entity), 1);
+    let index = rootEntities.indexOf(entity);
+    rootEntities.splice(index, 1);
+    for (let n = rootEntities.length; index < n; index++) {
+      rootEntities[index]._siblingIndex++;
+    }
     entity._siblingIndex = -1;
   }
 
