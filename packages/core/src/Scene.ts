@@ -280,7 +280,7 @@ export class Scene extends EngineObject {
    */
   _removeFromEntityList(entity: Entity): void {
     const rootEntities = this._rootEntities;
-    let index = rootEntities.indexOf(entity);
+    let index = entity._siblingIndex;
     rootEntities.splice(index, 1);
     for (let n = rootEntities.length; index < n; index++) {
       rootEntities[index]._siblingIndex--;
@@ -305,15 +305,19 @@ export class Scene extends EngineObject {
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {
     const rootEntities = this._rootEntities;
+    const rootEntityCount = rootEntities.length;
     if (index === undefined) {
-      rootEntity._siblingIndex = rootEntities.length;
+      rootEntity._siblingIndex = rootEntityCount;
       rootEntities.push(rootEntity);
     } else {
-      if (index < 0 || index > rootEntities.length) {
-        throw `The index ${index} is out of child list bounds ${rootEntities.length}`;
+      if (index < 0 || index > rootEntityCount) {
+        throw `The index ${index} is out of child list bounds ${rootEntityCount}`;
       }
       rootEntity._siblingIndex = index;
       rootEntities.splice(index, 0, rootEntity);
+      for (let i = index + 1, n = rootEntityCount + 1; i < n; i++) {
+        rootEntities[i]._siblingIndex++;
+      }
     }
   }
 

@@ -393,11 +393,7 @@ export class Entity extends EngineObject {
     }
     this._children.length = 0;
 
-    if (this._parent != null) {
-      const parentChildren = this._parent._children;
-      parentChildren.splice(parentChildren.indexOf(this), 1);
-    }
-    this._parent = null;
+    this._removeFromParent();
   }
 
   /**
@@ -433,7 +429,7 @@ export class Entity extends EngineObject {
     const oldParent = this._parent;
     if (oldParent != null) {
       const oldSilbing = oldParent._children;
-      let index = oldSilbing.indexOf(this);
+      let index = this._siblingIndex;
       oldSilbing.splice(index, 1);
       for (let n = oldSilbing.length; index < n; index++) {
         oldSilbing[index]._siblingIndex--;
@@ -469,15 +465,19 @@ export class Entity extends EngineObject {
 
   private _addToChildrenList(index: number, child: Entity): void {
     const children = this._children;
+    const childCount = children.length;
     if (index === undefined) {
-      child._siblingIndex = children.length;
+      child._siblingIndex = childCount;
       children.push(child);
     } else {
-      if (index < 0 || index > children.length) {
-        throw `The index ${index} is out of child list bounds ${children.length}`;
+      if (index < 0 || index > childCount) {
+        throw `The index ${index} is out of child list bounds ${childCount}`;
       }
       child._siblingIndex = index;
       children.splice(index, 0, child);
+      for (let i = index + 1, n = childCount + 1; i < n; i++) {
+        children[i]._siblingIndex++;
+      }
     }
   }
 
