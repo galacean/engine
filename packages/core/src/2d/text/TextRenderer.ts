@@ -325,17 +325,18 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const textElement = this._engine._textElementPool.getFromPool();
     const charElements = textElement.charElements;
     const material = this.getMaterial();
+    const charRenderDatas = this._charRenderDatas;
+    const charCount = charRenderDatas.length;
 
     textElement.component = this;
     textElement.material = material;
-    charElements.length = 0;
+    charElements.length = charCount;
 
-    const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const charRenderData = charRenderDatas[i];
       const spriteElement = this._engine._spriteElementPool.getFromPool();
       spriteElement.setValue(this, charRenderData.renderData, material, charRenderData.texture);
-      charElements.push(spriteElement);
+      charElements[i] = spriteElement;
     }
     camera._renderPipeline.pushPrimitive(textElement);
   }
