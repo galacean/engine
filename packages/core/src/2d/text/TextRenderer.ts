@@ -322,6 +322,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
+    const spriteElementPool = this._engine._spriteElementPool;
     const textElement = this._engine._textElementPool.getFromPool();
     const charElements = textElement.charElements;
     const material = this.getMaterial();
@@ -334,7 +335,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const charRenderData = charRenderDatas[i];
-      const spriteElement = this._engine._spriteElementPool.getFromPool();
+      const spriteElement = spriteElementPool.getFromPool();
       spriteElement.setValue(this, charRenderData.renderData, material, charRenderData.texture);
       charElements[i] = spriteElement;
     }

@@ -5,11 +5,9 @@ import { Material } from "../material/Material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { MeshRenderElement } from "./MeshRenderElement";
+import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
 import { SpriteElement } from "./SpriteElement";
-import { TextRenderElement } from "./TextRenderElement";
-
-type Item = MeshRenderElement | SpriteElement | TextRenderElement;
 
 /**
  * Render queue.
@@ -18,18 +16,18 @@ export class RenderQueue {
   /**
    * @internal
    */
-  static _compareFromNearToFar(a: Item, b: Item): number {
+  static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
     return a.component.priority - b.component.priority || a.component._distanceForSort - b.component._distanceForSort;
   }
 
   /**
    * @internal
    */
-  static _compareFromFarToNear(a: Item, b: Item): number {
+  static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
     return a.component.priority - b.component.priority || b.component._distanceForSort - a.component._distanceForSort;
   }
 
-  readonly items: Item[] = [];
+  readonly items: RenderElement[] = [];
   private _spriteBatcher: SpriteBatcher;
 
   constructor(engine: Engine) {
@@ -39,7 +37,7 @@ export class RenderQueue {
   /**
    * Push a render element.
    */
-  pushPrimitive(element: MeshRenderElement | SpriteElement | TextRenderElement): void {
+  pushPrimitive(element: RenderElement): void {
     this.items.push(element);
   }
 
