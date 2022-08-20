@@ -328,6 +328,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
     textElement.component = this;
     textElement.material = material;
+    charElements.length = 0;
 
     const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
