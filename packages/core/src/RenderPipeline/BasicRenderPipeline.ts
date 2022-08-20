@@ -17,10 +17,11 @@ import { Sky } from "../sky/Sky";
 import { TextureCubeFace } from "../texture/enums/TextureCubeFace";
 import { RenderTarget } from "../texture/RenderTarget";
 import { RenderContext } from "./RenderContext";
-import { RenderElement } from "./RenderElement";
+import { MeshRenderElement } from "./MeshRenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { SpriteElement } from "./SpriteElement";
+import { TextRenderElement } from "./TextRenderElement";
 
 /**
  * Basic render pipeline.
@@ -201,7 +202,7 @@ export class BasicRenderPipeline {
    * Push a render element to the render queue.
    * @param element - Render element
    */
-  pushPrimitive(element: RenderElement | SpriteElement) {
+  pushPrimitive(element: MeshRenderElement | SpriteElement | TextRenderElement) {
     switch (element.material.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);

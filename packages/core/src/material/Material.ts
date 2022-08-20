@@ -2,7 +2,7 @@ import { IClone } from "@oasis-engine/design";
 import { RefObject } from "../asset/RefObject";
 import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";
-import { RenderElement } from "../RenderPipeline/RenderElement";
+import { MeshRenderElement } from "../RenderPipeline/MeshRenderElement";
 import { SpriteElement } from "../RenderPipeline/SpriteElement";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
@@ -67,7 +67,7 @@ export class Material extends RefObject implements IClone {
    * @internal
    * @todo:temporary solution
    */
-  _preRender(renderElement: RenderElement | SpriteElement) {}
+  _preRender(renderElement: MeshRenderElement | SpriteElement) {}
 
   /**
    * @override

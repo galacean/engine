@@ -1,21 +1,21 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
+import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { CharRenderData } from "./CharRenderData";
-import { FontStyle } from "../enums/FontStyle";
-import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
-import { OverflowMode } from "../enums/TextOverflow";
-import { Font } from "./Font";
+import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
-import { ICustomClone } from "../../clone/ComponentCloner";
-import { TextUtils } from "./TextUtils";
+import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
+import { OverflowMode } from "../enums/TextOverflow";
+import { CharRenderData } from "./CharRenderData";
 import { CharRenderDataPool } from "./CharRenderDataPool";
-import { Engine } from "../../Engine";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
+import { Font } from "./Font";
+import { TextUtils } from "./TextUtils";
 
 /**
  * Renders a text for 2D graphics.
@@ -322,13 +322,21 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
+    const textElement = this._engine._textElementPool.getFromPool();
+    const charElements = textElement.charElements;
+    const material = this.getMaterial();
+
+    textElement.component = this;
+    textElement.material = material;
+
     const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const charRenderData = charRenderDatas[i];
       const spriteElement = this._engine._spriteElementPool.getFromPool();
-      spriteElement.setValue(this, charRenderData.renderData, this.getMaterial(), charRenderData.texture);
-      camera._renderPipeline.pushPrimitive(spriteElement);
+      spriteElement.setValue(this, charRenderData.renderData, material, charRenderData.texture);
+      charElements.push(spriteElement);
     }
+    camera._renderPipeline.pushPrimitive(textElement);
   }
 
   /**
