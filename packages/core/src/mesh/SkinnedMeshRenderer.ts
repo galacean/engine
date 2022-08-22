@@ -38,7 +38,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _skin: Skin;
 
   /** @internal */
-  @deepClone
+  @ignoreClone
   _blendShapeWeights: Float32Array = new Float32Array(0);
 
   /** @internal */
@@ -192,5 +192,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: SkinnedMeshRenderer): void {
+    super._cloneTo(target);
+    target.blendShapeWeights = this._blendShapeWeights.slice();
   }
 }
