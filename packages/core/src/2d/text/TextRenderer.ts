@@ -333,7 +333,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     textElement.material = material;
     charElements.length = charCount;
 
-    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
+    for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
       const spriteElement = spriteElementPool.getFromPool();
       spriteElement.setValue(this, charRenderData.renderData, material, charRenderData.texture);
