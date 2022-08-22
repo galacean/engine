@@ -3,10 +3,10 @@ import { Engine } from "../Engine";
 import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../graphic";
 import { Material } from "../material";
 import { BufferMesh } from "../mesh";
-import { SystemInfo } from "../SystemInfo";
 import { ClassPool } from "./ClassPool";
 import { SpriteElement } from "./SpriteElement";
 import { SpriteMaskElement } from "./SpriteMaskElement";
+import { TextRenderElement } from "./TextRenderElement";
 
 type Element = SpriteElement | SpriteMaskElement;
 
@@ -53,7 +53,22 @@ export abstract class Basic2DBatcher {
     }
   }
 
-  drawElement(element: Element, camera: Camera, replaceMaterial: Material): void {
+  drawElement(
+    element: SpriteMaskElement | SpriteElement | TextRenderElement,
+    camera: Camera,
+    replaceMaterial: Material
+  ): void {
+    if (element.multiRenderData) {
+      const elements = (<TextRenderElement>element).charElements;
+      for (let i = 0, n = elements.length; i < n; ++i) {
+        this._drawSubElement(elements[i], camera, replaceMaterial);
+      }
+    } else {
+      this._drawSubElement(<SpriteMaskElement | SpriteElement>element, camera, replaceMaterial);
+    }
+  }
+
+  private _drawSubElement(element: SpriteMaskElement | SpriteElement, camera: Camera, replaceMaterial: Material) {
     const len = element.renderData.vertexCount;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
       this.flush(camera, replaceMaterial);
