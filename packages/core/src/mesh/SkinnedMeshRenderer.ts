@@ -1,6 +1,6 @@
 import { Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone, deepClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
@@ -38,8 +38,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _skin: Skin;
 
   /** @internal */
+  @deepClone
   _blendShapeWeights: Float32Array = new Float32Array(0);
+
   /** @internal */
+  @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
   /**
