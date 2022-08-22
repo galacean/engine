@@ -298,29 +298,60 @@ describe("Entity", () => {
       expect(parent.children.length).eq(0);
     });
     it("sibling index", () => {
-      const root = scene.getRootEntity();
-      root.addChild(new Entity(engine, "child0"));
-      root.addChild(new Entity(engine, "child2"));
-      root.addChild(new Entity(engine, "child3"));
-      root.addChild(1, new Entity(engine, "child1"));
+      const root = scene.createRootEntity();
+      const child0 = new Entity(engine, "child0");
+      const child1 = new Entity(engine, "child1");
+      const child2 = new Entity(engine, "child2");
+      const child3 = new Entity(engine, "child3");
 
-      expect(root.children[0].siblingIndex).eq(0);
-      expect(root.children[1].siblingIndex).eq(1);
-      expect(root.children[2].siblingIndex).eq(2);
-      expect(root.children[3].siblingIndex).eq(3);
+      // insert index
+      root.addChild(child0);
+      root.addChild(child2);
+      root.addChild(child3);
+      root.addChild(1, child1);
 
-      root.children[2].siblingIndex = 0;
-      expect(root.children[0].siblingIndex).eq(0);
-      expect(root.children[1].siblingIndex).eq(1);
-      expect(root.children[2].siblingIndex).eq(2);
-      expect(root.children[3].siblingIndex).eq(3);
+      expect(child0).eq(root.children[0]);
+      expect(child1).eq(root.children[1]);
+      expect(child2).eq(root.children[2]);
+      expect(child3).eq(root.children[3]);
+      expect(child0.siblingIndex).eq(0);
+      expect(child1.siblingIndex).eq(1);
+      expect(child2.siblingIndex).eq(2);
+      expect(child3.siblingIndex).eq(3);
 
+      // high index to low index
+      child2.siblingIndex = 0;
+      expect(child2).eq(root.children[0]);
+      expect(child0).eq(root.children[1]);
+      expect(child1).eq(root.children[2]);
+      expect(child3).eq(root.children[3]);
+      expect(child2.siblingIndex).eq(0);
+      expect(child0.siblingIndex).eq(1);
+      expect(child1.siblingIndex).eq(2);
+      expect(child3.siblingIndex).eq(3);
 
-      root.children[1].siblingIndex = 3;
-      expect(root.children[0].siblingIndex).eq(0);
-      expect(root.children[1].siblingIndex).eq(1);
-      expect(root.children[2].siblingIndex).eq(2);
-      expect(root.children[3].siblingIndex).eq(3);
+      // low index to high index
+      child2.siblingIndex = 3;
+      expect(child0).eq(root.children[0]);
+      expect(child1).eq(root.children[1]);
+      expect(child3).eq(root.children[2]);
+      expect(child2).eq(root.children[3]);
+      expect(child0.siblingIndex).eq(0);
+      expect(child1.siblingIndex).eq(1);
+      expect(child3.siblingIndex).eq(2);
+      expect(child2.siblingIndex).eq(3);
+
+      // out of range
+      var siblingIndexBadFn = function () {
+        child2.siblingIndex = 5;
+      };
+      expect(siblingIndexBadFn).to.throw();
+
+      const entityX = new Entity(engine, "entityX");
+      var lonelyBadFn = function () {
+        entityX.siblingIndex = 1;
+      };
+      expect(lonelyBadFn).to.throw();
     });
   });
 
