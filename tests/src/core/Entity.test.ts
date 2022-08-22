@@ -341,6 +341,16 @@ describe("Entity", () => {
       expect(child3.siblingIndex).eq(2);
       expect(child2.siblingIndex).eq(3);
 
+      // remove entity
+      child1.parent = null;
+      expect(child0).eq(root.children[0]);
+      expect(child3).eq(root.children[1]);
+      expect(child2).eq(root.children[2]);
+      expect(child0.siblingIndex).eq(0);
+      expect(child3.siblingIndex).eq(1);
+      expect(child2.siblingIndex).eq(2);
+      expect(child1.siblingIndex).eq(-1);
+
       // out of range
       var siblingIndexBadFn = function () {
         child2.siblingIndex = 5;

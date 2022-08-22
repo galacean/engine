@@ -56,6 +56,16 @@ describe("Scene", () => {
       expect(child1.siblingIndex).eq(1);
       expect(child3.siblingIndex).eq(2);
       expect(child2.siblingIndex).eq(3);
+
+      // remove entity
+      scene.removeRootEntity(child1);
+      expect(child0).eq(scene.rootEntities[0]);
+      expect(child3).eq(scene.rootEntities[1]);
+      expect(child2).eq(scene.rootEntities[2]);
+      expect(child0.siblingIndex).eq(0);
+      expect(child3.siblingIndex).eq(1);
+      expect(child2.siblingIndex).eq(2);
+      expect(child1.siblingIndex).eq(-1);
     });
   });
 });
