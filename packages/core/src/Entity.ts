@@ -568,8 +568,9 @@ export class Entity extends EngineObject {
   }
 
   private _setSiblingIndex(sibling: Entity[], target: number): void {
-    if (target < 0 || target > sibling.length) {
-      throw `The index ${target} is out of child list bounds ${sibling.length}`;
+    target = Math.min(target, sibling.length - 1);
+    if (target < 0) {
+      throw `The index ${target} is out of child list bounds ${sibling.length - 1}`;
     }
 
     const oldIndex = this._siblingIndex;
