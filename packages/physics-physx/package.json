@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/physics-physx",
-  "version": "0.8.0-beta.2",
+  "version": "0.8.0-beta.9",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -19,8 +19,10 @@
     "libs/**/*",
     "types/**/*"
   ],
-  "dependencies": {
-    "@oasis-engine/design": "0.8.0-beta.2",
-    "oasis-engine": "0.8.0-beta.2"
+  "devDependencies": {
+    "@oasis-engine/design": "0.8.0-beta.9"
+  },
+  "peerDependencies": {
+    "oasis-engine": "0.8.0-beta.9"
   }
 }

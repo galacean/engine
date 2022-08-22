@@ -22,9 +22,9 @@ describe("PBRBaseMaterial", () => {
     expect(material.normalTexture).to.be.undefined;
     expect(material.occlusionTexture).to.be.undefined;
 
-    material.baseColor.setValue(1, 0, 0, 1);
-    material.emissiveColor.setValue(1, 0, 0, 1);
-    material.tilingOffset.setValue(1, 1, 1, 1);
+    material.baseColor.set(1, 0, 0, 1);
+    material.emissiveColor.set(1, 0, 0, 1);
+    material.tilingOffset.set(1, 1, 1, 1);
     material.normalTextureIntensity = 2;
     material.occlusionTextureIntensity = 2;
     material.baseTexture = texture;

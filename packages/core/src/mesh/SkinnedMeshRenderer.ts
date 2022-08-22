@@ -36,7 +36,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
-  _blendShapeWeights: Float32Array;
+
+  /** @internal */
+  _blendShapeWeights: Float32Array = new Float32Array(0);
+  /** @internal */
   _condensedBlendShapeWeights: Float32Array;
 
   /**
