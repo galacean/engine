@@ -105,7 +105,7 @@ export class Entity extends EngineObject {
   }
 
   set parent(value: Entity) {
-    this._setParent(value, undefined);
+    this._setParent(value);
   }
 
   /**
@@ -267,7 +267,7 @@ export class Entity extends EngineObject {
    * @param child - The child entity which want to be removed
    */
   removeChild(child: Entity): void {
-    child._setParent(null, undefined);
+    child._setParent(null);
   }
 
   /**
@@ -480,7 +480,7 @@ export class Entity extends EngineObject {
     }
   }
 
-  private _setParent(parent: Entity, siblingIndex: number): void {
+  private _setParent(parent: Entity, siblingIndex?: number): void {
     const oldParent = this._parent;
     if (parent !== oldParent) {
       this._removeFromParent();
