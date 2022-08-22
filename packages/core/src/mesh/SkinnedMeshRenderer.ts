@@ -42,7 +42,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   _blendShapeWeights: Float32Array = new Float32Array(0);
 
   /** @internal */
-  @deepClone
+  @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
   /**
