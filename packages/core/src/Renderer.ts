@@ -1,14 +1,15 @@
-import { BoundingBox, BoundingFrustum, Matrix } from "@oasis-engine/math";
+import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Camera } from "./Camera";
 import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { Material } from "./material";
+import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { Shader, ShaderData } from "./shader";
+import { Shader } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { Transform } from "./Transform";
 

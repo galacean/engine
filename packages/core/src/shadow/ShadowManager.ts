@@ -7,7 +7,6 @@ import { Shader } from "../shader";
 import { RenderTarget, Texture2D } from "../texture";
 import { Light } from "../lighting";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { Renderer } from "../Renderer";
 
 /**
  * Shadow manager.

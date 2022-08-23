@@ -1,13 +1,13 @@
-import { BoundingBox, BoundingFrustum } from "@oasis-engine/math";
-import { Logger } from "../base";
+import { BoundingBox } from "@oasis-engine/math";
+import { Logger } from "../base/Logger";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { Mesh } from "../graphic";
+import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
-import { Shader } from "../shader";
+import { Shader } from "../shader/Shader";
 
 /**
  * MeshRenderer Component.
