@@ -12,6 +12,9 @@ import { CameraClearFlags } from "../enums/CameraClearFlags";
  * Shadow manager.
  */
 export class ShadowManager {
+  private static _lightViewMatProperty = Shader.getPropertyByName("u_lightViewMat");
+  private static _lightProjMatProperty = Shader.getPropertyByName("u_lightProjMat");
+
   private static _viewProjMatrix = new Matrix();
   private static _viewMatFromLightProperty = Shader.getPropertyByName("u_viewMatFromLight");
   private static _projMatFromLightProperty = Shader.getPropertyByName("u_projMatFromLight");
@@ -82,8 +85,8 @@ export class ShadowManager {
       _alphaTestQueue: alphaTestQueue,
       _transparentQueue: transparentQueue
     } = this;
-    const lights = camera.engine._lightManager._spotLights;
-    const engine = camera.engine;
+    const { engine, scene } = camera;
+    const lights = engine._lightManager._spotLights;
     const componentsManager = engine._componentsManager;
     const rhi = engine._hardwareRenderer;
 
@@ -103,10 +106,6 @@ export class ShadowManager {
           rhi.activeRenderTarget(renderTarget, camera, null);
           rhi.clearRenderTarget(camera.engine, CameraClearFlags.Depth, this._clearColor);
 
-          this._shadowMapMaterial = this._shadowMapMaterial || new ShadowMapMaterial(camera.engine);
-          const shadowMapMaterial = this._shadowMapMaterial;
-          shadowMapMaterial.light = lgt;
-
           opaqueQueue.clear();
           alphaTestQueue.clear();
           transparentQueue.clear();
@@ -125,6 +124,11 @@ export class ShadowManager {
           alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
           transparentQueue.sort(RenderQueue._compareFromFarToNear);
 
+          scene.shaderData.setMatrix(ShadowManager._lightViewMatProperty, lgt.viewMatrix);
+          scene.shaderData.setMatrix(ShadowManager._lightProjMatProperty, lgt.shadowProjectionMatrix);
+
+          this._shadowMapMaterial = this._shadowMapMaterial || new ShadowMapMaterial(camera.engine);
+          const shadowMapMaterial = this._shadowMapMaterial;
           opaqueQueue.render(camera, shadowMapMaterial, Layer.Everything);
           alphaTestQueue.render(camera, shadowMapMaterial, Layer.Everything);
           transparentQueue.render(camera, shadowMapMaterial, Layer.Everything);
