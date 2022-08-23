@@ -10,12 +10,13 @@
 #include <worldpos_share>
 
 #include <light_frag_define>
-
+#include <shadow_frag_share>
 
 #include <pbr_frag_define>
 #include <pbr_helper>
 
 void main() {
     #include <pbr_frag>
+    #include <shadow_frag>
     #include <fog_frag>
 }

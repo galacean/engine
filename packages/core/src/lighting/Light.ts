@@ -1,41 +1,43 @@
-import { Matrix } from "@oasis-engine/math";
+import { Color, Matrix } from "@oasis-engine/math";
 import { Component } from "../Component";
-import { LightFeature } from "./LightFeature";
+import { ignoreClone } from "../clone/CloneManager";
 
 /**
  * Light base class.
  */
-export class Light extends Component {
+export abstract class Light extends Component {
   /**
    * Each type of light source is at most 10, beyond which it will not take effect.
    * */
   protected static _maxLight: number = 10;
 
+  /** Light Color */
+  color: Color = new Color(1, 1, 1, 1);
+  /** Light Intensity */
+  intensity: number = 1;
+
+  /** whether enable shadow */
+  enableShadow: boolean = false;
+  /** Shadow bias.*/
+  shadowBias: number = 0.005;
+  /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
+  shadowStrength: number = 0.2;
+  /** Pixel range used for shadow PCF interpolation. */
+  shadowRadius: number = 1;
+  /** Near plane value to use for shadow frustums. */
+  shadowNearPlane: number = 0.1;
+
+  /** @internal */
+  @ignoreClone
+  _lightIndex: number = -1;
+
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
 
   /**
-   * Mount to the current Scene.
-   * @internal
-   * @override
-   */
-  _onEnable() {
-    this.scene.findFeature(LightFeature).attachRenderLight(this);
-  }
-
-  /**
-   * Unmount from the current Scene.
-   * @internal
-   * @override
-   */
-  _onDisable() {
-    this.scene.findFeature(LightFeature).detachRenderLight(this);
-  }
-
-  /**
    * View matrix.
    */
-  get viewMatrix() {
+  get viewMatrix(): Matrix {
     if (!this._viewMat) this._viewMat = new Matrix();
     Matrix.invert(this.entity.transform.worldMatrix, this._viewMat);
     return this._viewMat;
@@ -44,9 +46,14 @@ export class Light extends Component {
   /**
    * Inverse view matrix.
    */
-  get inverseViewMatrix() {
+  get inverseViewMatrix(): Matrix {
     if (!this._inverseViewMat) this._inverseViewMat = new Matrix();
     Matrix.invert(this.viewMatrix, this._inverseViewMat);
     return this._inverseViewMat;
   }
+
+  /**
+   * @internal
+   */
+  abstract get _shadowProjectionMatrix(): Matrix;
 }
