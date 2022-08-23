@@ -1,5 +1,5 @@
 import { Matrix, Vector2 } from "@oasis-engine/math";
-import { Background } from "..";
+import { Background, RenderElement, RenderQueueType, SpriteElement } from "..";
 import { SpriteMask } from "../2d";
 import { Logger } from "../base";
 import { Camera } from "../Camera";
@@ -46,10 +46,10 @@ export class BasicRenderPipeline {
   constructor(camera: Camera) {
     this._camera = camera;
     const { engine } = camera;
-    this._shadowManager = new ShadowManager(camera);
     this._opaqueQueue = new RenderQueue(engine);
     this._alphaTestQueue = new RenderQueue(engine);
     this._transparentQueue = new RenderQueue(engine);
+    this._shadowManager = new ShadowManager(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -150,7 +150,7 @@ export class BasicRenderPipeline {
     transparentQueue.clear();
     this._allSpriteMasks.length = 0;
 
-    camera.engine._componentsManager.callRender(context, opaqueQueue, alphaTestQueue, transparentQueue);
+    camera.engine._componentsManager.callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
@@ -196,6 +196,24 @@ export class BasicRenderPipeline {
     }
 
     pass.postRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
+  }
+
+  /**
+   * Push a render element to the render queue.
+   * @param element - Render element
+   */
+  pushPrimitive(element: RenderElement | SpriteElement) {
+    switch (element.material.renderQueueType) {
+      case RenderQueueType.Transparent:
+        this._transparentQueue.pushPrimitive(element);
+        break;
+      case RenderQueueType.AlphaTest:
+        this._alphaTestQueue.pushPrimitive(element);
+        break;
+      case RenderQueueType.Opaque:
+        this._opaqueQueue.pushPrimitive(element);
+        break;
+    }
   }
 
   private _drawBackgroundTexture(engine: Engine, background: Background) {

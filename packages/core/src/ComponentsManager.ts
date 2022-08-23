@@ -184,12 +184,7 @@ export class ComponentsManager {
     }
   }
 
-  callRender(
-    context: RenderContext,
-    opaqueQueue: RenderQueue,
-    alphaTestQueue: RenderQueue,
-    transparentQueue: RenderQueue
-  ): void {
+  callRender(context: RenderContext): void {
     const camera = context._camera;
     const elements = this._renderers._elements;
     for (let i = this._renderers.length - 1; i >= 0; --i) {
@@ -221,7 +216,7 @@ export class ComponentsManager {
 
       element._updateShaderData(context);
 
-      element._render(camera, opaqueQueue, alphaTestQueue, transparentQueue);
+      element._render(camera);
 
       // union camera global macro and renderer macro.
       ShaderMacroCollection.unionCollection(
@@ -232,18 +227,12 @@ export class ComponentsManager {
     }
   }
 
-  callShadowRender(
-    frustum: BoundingFrustum,
-    opaqueQueue: RenderQueue,
-    alphaTestQueue: RenderQueue,
-    transparentQueue: RenderQueue,
-    shadowReceiveRenderer: Renderer[]
-  ): void {
+  callShadowRender(frustum: BoundingFrustum, shadowReceiveRenderer: Renderer[]): void {
     const elements = this._renderers._elements;
     for (let i = this._renderers.length - 1; i >= 0; --i) {
       const renderer = elements[i];
       // filter by renderer castShadow and frustum cull
-      renderer._shadowRender(frustum, opaqueQueue, alphaTestQueue, transparentQueue, shadowReceiveRenderer);
+      renderer._shadowRender(frustum, shadowReceiveRenderer);
     }
   }
 

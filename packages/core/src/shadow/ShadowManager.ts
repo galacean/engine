@@ -43,12 +43,12 @@ export class ShadowManager {
   };
   private _renderTargets = new Array<RenderTarget>(1); // todo
 
-  constructor(camera: Camera) {
+  constructor(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue) {
     this._camera = camera;
     const engine = camera.engine;
-    this._opaqueQueue = new RenderQueue(engine);
-    this._alphaTestQueue = new RenderQueue(engine);
-    this._transparentQueue = new RenderQueue(engine);
+    this._opaqueQueue = opaqueQueue;
+    this._alphaTestQueue = alphaTestQueue;
+    this._transparentQueue = transparentQueue;
   }
 
   /**
@@ -84,16 +84,19 @@ export class ShadowManager {
   }
 
   private _renderSpotShadowMap() {
-    const camera = this._camera;
-    const engine = camera.engine;
-    const mapSize = this._mapSize;
-    const rhi = engine._hardwareRenderer;
-    const frustums = this._frustums;
-    const opaqueQueue = this._opaqueQueue;
-    const alphaTestQueue = this._alphaTestQueue;
-    const transparentQueue = this._transparentQueue;
-    const shadowReceiveRenderer = this._shadowReceiveRenderer;
+    const {
+      _camera: camera,
+      _mapSize: mapSize,
+      _frustums: frustums,
+      _opaqueQueue: opaqueQueue,
+      _alphaTestQueue: alphaTestQueue,
+      _transparentQueue: transparentQueue,
+      _shadowReceiveRenderer: shadowReceiveRenderer
+    } = this;
     const lights = camera.engine._lightManager._spotLights;
+    const engine = camera.engine;
+    const rhi = engine._hardwareRenderer;
+
     if (lights.length > 0) {
       for (let i = 0, len = lights.length; i < len; i++) {
         const lgt = lights.get(i);
@@ -120,13 +123,7 @@ export class ShadowManager {
           shadowReceiveRenderer.length = 0;
           Matrix.multiply(lgt.shadowProjectionMatrix, lgt.viewMatrix, ShadowManager._viewProjMatrix);
           frustums.calculateFromMatrix(ShadowManager._viewProjMatrix);
-          camera.engine._componentsManager.callShadowRender(
-            frustums,
-            opaqueQueue,
-            alphaTestQueue,
-            transparentQueue,
-            shadowReceiveRenderer
-          );
+          camera.engine._componentsManager.callShadowRender(frustums, shadowReceiveRenderer);
           opaqueQueue.sort(RenderQueue._compareFromNearToFar);
           alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
           transparentQueue.sort(RenderQueue._compareFromFarToNear);

@@ -16,7 +16,6 @@ import { TextUtils } from "./TextUtils";
 import { CharRenderDataPool } from "./CharRenderDataPool";
 import { Engine } from "../../Engine";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
-import { RenderQueue } from "../../RenderPipeline/RenderQueue";
 
 /**
  * Renders a text for 2D graphics.
@@ -293,7 +292,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _render(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue): void {
+  _render(camera: Camera): void {
     if (
       this._text === "" ||
       (this.enableWrapping && this.width <= 0) ||
@@ -328,7 +327,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       const charRenderData = charRenderDatas[i];
       const spriteElement = this._engine._spriteElementPool.getFromPool();
       spriteElement.setValue(this, charRenderData.renderData, this.getMaterial(), charRenderData.texture);
-      this._pushPrimitive(spriteElement, opaqueQueue, alphaTestQueue, transparentQueue);
+      camera._renderPipeline.pushPrimitive(spriteElement);
     }
   }
 

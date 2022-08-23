@@ -79,6 +79,7 @@ export class Scene extends EngineObject {
     const shaderData = this.shaderData;
     shaderData._addRefCount(1);
     this.ambientLight = new AmbientLight();
+    engine.sceneManager._allScenes.push(this);
   }
 
   /**

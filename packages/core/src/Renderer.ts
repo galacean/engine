@@ -286,7 +286,7 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _render(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue): void {
+  _render(camera: Camera): void {
     throw "not implement";
   }
 
@@ -295,9 +295,6 @@ export class Renderer extends Component {
    */
   _shadowRender(
     frustum: BoundingFrustum,
-    opaqueQueue: RenderQueue,
-    alphaTestQueue: RenderQueue,
-    transparentQueue: RenderQueue,
     shadowReceiveRenderer: Renderer[]
   ): void {}
 
@@ -316,25 +313,6 @@ export class Renderer extends Component {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
       materials[i]?._addRefCount(-1);
-    }
-  }
-
-  protected _pushPrimitive(
-    element: RenderElement | SpriteElement,
-    opaqueQueue: RenderQueue,
-    alphaTestQueue: RenderQueue,
-    transparentQueue: RenderQueue
-  ) {
-    switch (element.material.renderQueueType) {
-      case RenderQueueType.Transparent:
-        transparentQueue.pushPrimitive(element);
-        break;
-      case RenderQueueType.AlphaTest:
-        alphaTestQueue.pushPrimitive(element);
-        break;
-      case RenderQueueType.Opaque:
-        opaqueQueue.pushPrimitive(element);
-        break;
     }
   }
 

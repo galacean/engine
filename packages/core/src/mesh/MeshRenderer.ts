@@ -64,7 +64,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    * @override
    */
-  _render(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue): void {
+  _render(camera: Camera): void {
     const mesh = this._mesh;
     if (mesh) {
       if (this._meshUpdateFlag.flag) {
@@ -101,13 +101,14 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       }
 
       const subMeshes = mesh.subMeshes;
+      const renderPipeline = camera._renderPipeline;
       const renderElementPool = this._engine._renderElementPool;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = this._materials[i];
         if (material) {
           const element = renderElementPool.getFromPool();
           element.setValue(this, mesh, subMeshes[i], material);
-          this._pushPrimitive(element, opaqueQueue, alphaTestQueue, transparentQueue);
+          renderPipeline.pushPrimitive(element);
         }
       }
     } else {
@@ -121,13 +122,10 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    */
   _shadowRender(
     frustum: BoundingFrustum,
-    opaqueQueue: RenderQueue,
-    alphaTestQueue: RenderQueue,
-    transparentQueue: RenderQueue,
     shadowReceiveRenderer: Renderer[]
   ): void {
     if (this.castShadow && frustum.intersectsBox(this.bounds)) {
-      this._render(null, opaqueQueue, alphaTestQueue, transparentQueue);
+      this._render(null);
     }
 
     if (this.receiveShadow) {
