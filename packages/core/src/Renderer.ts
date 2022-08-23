@@ -5,15 +5,12 @@ import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { Material, RenderQueueType } from "./material";
+import { Material } from "./material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Shader, ShaderData } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { Transform } from "./Transform";
-import { RenderElement } from "./RenderPipeline/RenderElement";
-import { SpriteElement } from "./RenderPipeline/SpriteElement";
-import { RenderQueue } from "./RenderPipeline/RenderQueue";
 
 /**
  * Basis for all renderers.
