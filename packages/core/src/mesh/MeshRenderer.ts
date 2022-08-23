@@ -20,12 +20,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
   private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
 
-  /** whether receive shadow */
-  receiveShadow: boolean = false;
-
-  /** whether cast shadow */
-  castShadow: boolean = false;
-
   @ignoreClone
   private _mesh: Mesh;
   @ignoreClone
@@ -120,15 +114,12 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    * @override
    */
-  _shadowRender(
-    frustum: BoundingFrustum,
-    shadowReceiveRenderer: Renderer[]
-  ): void {
-    if (this.castShadow && frustum.intersectsBox(this.bounds)) {
+  _shadowRender(frustum: BoundingFrustum, shadowReceiveRenderer: Renderer[]): void {
+    if (this.castShadows && frustum.intersectsBox(this.bounds)) {
       this._render(null);
     }
 
-    if (this.receiveShadow) {
+    if (this.receiveShadows) {
       shadowReceiveRenderer.push(this);
     }
   }

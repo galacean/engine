@@ -72,6 +72,12 @@ export class Renderer extends Component {
   @ignoreClone
   private _priority: number = 0;
 
+  /** whether receive shadow */
+  receiveShadows: boolean = false;
+
+  /** whether cast shadow */
+  castShadows: boolean = false;
+
   /**
    * Material count.
    */
@@ -293,10 +299,7 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _shadowRender(
-    frustum: BoundingFrustum,
-    shadowReceiveRenderer: Renderer[]
-  ): void {}
+  _shadowRender(frustum: BoundingFrustum, shadowReceiveRenderer: Renderer[]): void {}
 
   /**
    * @internal
