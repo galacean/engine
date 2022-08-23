@@ -113,20 +113,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    * @override
    */
-  _shadowRender(frustum: BoundingFrustum, shadowReceiveRenderer: Renderer[]): void {
-    if (this.castShadows && frustum.intersectsBox(this.bounds)) {
-      this._render(null);
-    }
-
-    if (this.receiveShadows) {
-      shadowReceiveRenderer.push(this);
-    }
-  }
-
-  /**
-   * @internal
-   * @override
-   */
   _onDestroy() {
     super._onDestroy();
     const mesh = this._mesh;

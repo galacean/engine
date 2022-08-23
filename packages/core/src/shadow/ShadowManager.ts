@@ -23,7 +23,6 @@ export class ShadowManager {
 
   private readonly _mapSize: number = 512;
   private readonly _maxLight: number = 3;
-  private readonly _shadowReceiveRenderer: Renderer[] = [];
   private readonly _opaqueQueue: RenderQueue;
   private readonly _transparentQueue: RenderQueue;
   private readonly _alphaTestQueue: RenderQueue;
@@ -45,7 +44,6 @@ export class ShadowManager {
 
   constructor(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue) {
     this._camera = camera;
-    const engine = camera.engine;
     this._opaqueQueue = opaqueQueue;
     this._alphaTestQueue = alphaTestQueue;
     this._transparentQueue = transparentQueue;
@@ -68,18 +66,11 @@ export class ShadowManager {
 
     // upload shadow data
     const shadowMapCount = this._shadowMapCount;
-    const shadowReceiveRenderer = this._shadowReceiveRenderer;
     if (shadowMapCount) {
       this._updateShaderData();
-      for (let i = 0; i < shadowReceiveRenderer.length; i++) {
-        const renderer = shadowReceiveRenderer[i];
-        renderer.shaderData.enableMacro("O3_SHADOW_MAP_COUNT", shadowMapCount.toString());
-      }
+      this._camera.scene.shaderData.enableMacro("O3_SHADOW_MAP_COUNT", shadowMapCount.toString());
     } else {
-      for (let i = 0; i < shadowReceiveRenderer.length; i++) {
-        const renderer = shadowReceiveRenderer[i];
-        renderer.shaderData.disableMacro("O3_SHADOW_MAP_COUNT");
-      }
+      this._camera.scene.shaderData.disableMacro("O3_SHADOW_MAP_COUNT");
     }
   }
 
@@ -90,11 +81,11 @@ export class ShadowManager {
       _frustums: frustums,
       _opaqueQueue: opaqueQueue,
       _alphaTestQueue: alphaTestQueue,
-      _transparentQueue: transparentQueue,
-      _shadowReceiveRenderer: shadowReceiveRenderer
+      _transparentQueue: transparentQueue
     } = this;
     const lights = camera.engine._lightManager._spotLights;
     const engine = camera.engine;
+    const componentsManager = engine._componentsManager;
     const rhi = engine._hardwareRenderer;
 
     if (lights.length > 0) {
@@ -120,10 +111,17 @@ export class ShadowManager {
           opaqueQueue.clear();
           alphaTestQueue.clear();
           transparentQueue.clear();
-          shadowReceiveRenderer.length = 0;
           Matrix.multiply(lgt.shadowProjectionMatrix, lgt.viewMatrix, ShadowManager._viewProjMatrix);
           frustums.calculateFromMatrix(ShadowManager._viewProjMatrix);
-          camera.engine._componentsManager.callShadowRender(frustums, shadowReceiveRenderer);
+          const renderers = componentsManager._renderers;
+          const elements = renderers._elements;
+          for (let i = renderers.length - 1; i >= 0; --i) {
+            const renderer = elements[i];
+            // filter by renderer castShadow and frustum cull
+            if (renderer.castShadows && frustums.intersectsBox(renderer.bounds)) {
+              renderer._render(null);
+            }
+          }
           opaqueQueue.sort(RenderQueue._compareFromNearToFar);
           alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
           transparentQueue.sort(RenderQueue._compareFromFarToNear);

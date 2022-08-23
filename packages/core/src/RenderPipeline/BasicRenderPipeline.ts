@@ -1,4 +1,4 @@
-import { Matrix, Vector2 } from "@oasis-engine/math";
+import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
 import { Background, RenderElement, RenderQueueType, SpriteElement } from "..";
 import { SpriteMask } from "../2d";
 import { Logger } from "../base";
@@ -24,6 +24,9 @@ import { ShadowManager } from "../shadow/ShadowManager";
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
+  private static _tempVector0 = new Vector3();
+  private static _tempVector1 = new Vector3();
+
   /** @internal */
   _opaqueQueue: RenderQueue;
   /** @internal */
@@ -85,7 +88,7 @@ export class BasicRenderPipeline {
       this._renderPassArray.push(nameOrPass);
     }
 
-    this._renderPassArray.sort(function (p1, p2) {
+    this._renderPassArray.sort(function(p1, p2) {
       return p1.priority - p2.priority;
     });
   }
@@ -150,7 +153,7 @@ export class BasicRenderPipeline {
     transparentQueue.clear();
     this._allSpriteMasks.length = 0;
 
-    camera.engine._componentsManager.callRender(context);
+    this._callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
@@ -270,5 +273,49 @@ export class BasicRenderPipeline {
 
     renderState._apply(engine, false);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
+  }
+
+  private _callRender(context: RenderContext): void {
+    const renderers = this._camera.engine._componentsManager._renderers;
+    const camera = context._camera;
+    const elements = renderers._elements;
+    for (let i = renderers.length - 1; i >= 0; --i) {
+      const element = elements[i];
+
+      // filter by camera culling mask.
+      if (!(camera.cullingMask & element._entity.layer)) {
+        continue;
+      }
+
+      // filter by camera frustum.
+      if (camera.enableFrustumCulling) {
+        element.isCulled = !camera._frustum.intersectsBox(element.bounds);
+        if (element.isCulled) {
+          continue;
+        }
+      }
+
+      const transform = camera.entity.transform;
+      const position = transform.worldPosition;
+      const center = element.bounds.getCenter(BasicRenderPipeline._tempVector0);
+      if (camera.isOrthographic) {
+        const forward = transform.getWorldForward(BasicRenderPipeline._tempVector1);
+        Vector3.subtract(center, position, center);
+        element._distanceForSort = Vector3.dot(center, forward);
+      } else {
+        element._distanceForSort = Vector3.distanceSquared(center, position);
+      }
+
+      element._updateShaderData(context);
+
+      element._render(camera);
+
+      // union camera global macro and renderer macro.
+      ShaderMacroCollection.unionCollection(
+        camera._globalShaderMacro,
+        element.shaderData._macroCollection,
+        element._globalShaderMacro
+      );
+    }
   }
 }

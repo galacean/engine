@@ -296,11 +296,6 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _shadowRender(frustum: BoundingFrustum, shadowReceiveRenderer: Renderer[]): void {}
-
-  /**
-   * @internal
-   */
   _onDestroy(): void {
     const flag = this._transformChangeFlag;
     if (flag) {
