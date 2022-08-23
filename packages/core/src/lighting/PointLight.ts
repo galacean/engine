@@ -51,7 +51,11 @@ export class PointLight extends Light {
     return this._lightColor;
   }
 
-  get shadowProjectionMatrix(): Matrix {
+  /**
+   * @internal
+   * @override
+   */
+  get _shadowProjectionMatrix(): Matrix {
     throw "Unknown!";
   }
 

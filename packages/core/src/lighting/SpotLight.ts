@@ -83,7 +83,11 @@ export class SpotLight extends Light {
     return this._lightColor;
   }
 
-  get shadowProjectionMatrix(): Matrix {
+  /**
+   * @internal
+   * @override
+   */
+  get _shadowProjectionMatrix(): Matrix {
     const matrix = this._projectMatrix;
     const fov = Math.min(Math.PI / 2, this.angle * 2 * Math.sqrt(2));
     Matrix.perspective(fov, 1, this.shadowNearPlane, this.distance + this.shadowNearPlane, matrix);

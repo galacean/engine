@@ -56,7 +56,11 @@ export class DirectLight extends Light {
     return this._reverseDirection;
   }
 
-  get shadowProjectionMatrix(): Matrix {
+  /**
+   * @internal
+   * @override
+   */
+  get _shadowProjectionMatrix(): Matrix {
     throw "Unknown!";
   }
 

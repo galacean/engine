@@ -53,7 +53,7 @@ export abstract class Light extends Component {
   }
 
   /**
-   * ShadowMap projection matrix.
+   * @internal
    */
-  abstract get shadowProjectionMatrix(): Matrix;
+  abstract get _shadowProjectionMatrix(): Matrix;
 }
