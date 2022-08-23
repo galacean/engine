@@ -109,7 +109,7 @@ export class ShadowManager {
           opaqueQueue.clear();
           alphaTestQueue.clear();
           transparentQueue.clear();
-          Matrix.multiply(lgt.shadowProjectionMatrix, lgt.viewMatrix, ShadowManager._viewProjMatrix);
+          Matrix.multiply(lgt._shadowProjectionMatrix, lgt.viewMatrix, ShadowManager._viewProjMatrix);
           frustums.calculateFromMatrix(ShadowManager._viewProjMatrix);
           const renderers = componentsManager._renderers;
           const elements = renderers._elements;
@@ -125,7 +125,7 @@ export class ShadowManager {
           transparentQueue.sort(RenderQueue._compareFromFarToNear);
 
           scene.shaderData.setMatrix(ShadowManager._lightViewMatProperty, lgt.viewMatrix);
-          scene.shaderData.setMatrix(ShadowManager._lightProjMatProperty, lgt.shadowProjectionMatrix);
+          scene.shaderData.setMatrix(ShadowManager._lightProjMatProperty, lgt._shadowProjectionMatrix);
 
           this._shadowMapMaterial = this._shadowMapMaterial || new ShadowMapMaterial(camera.engine);
           const shadowMapMaterial = this._shadowMapMaterial;
@@ -150,7 +150,7 @@ export class ShadowManager {
     const data = this._combinedData;
 
     data.viewMatrix.set(light.viewMatrix.elements, viewStart);
-    data.projectionMatrix.set(light.shadowProjectionMatrix.elements, projectionStart);
+    data.projectionMatrix.set(light._shadowProjectionMatrix.elements, projectionStart);
     data.bias[biasStart] = light.shadowBias;
     data.intensity[intensityStart] = light.shadowStrength;
     data.radius[radiusStart] = light.shadowRadius;
