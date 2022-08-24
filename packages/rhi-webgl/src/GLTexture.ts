@@ -180,7 +180,7 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
           baseFormat: gl.DEPTH_COMPONENT,
-          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_INT,
+          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
@@ -196,7 +196,7 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT,
           baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_INT,
+          dataType: gl.UNSIGNED_SHORT,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
@@ -251,7 +251,7 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
           baseFormat: gl.DEPTH_COMPONENT,
-          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_INT,
+          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
@@ -275,7 +275,7 @@ export class GLTexture implements IPlatformTexture {
         return {
           internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT,
           baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_INT,
+          dataType: gl.UNSIGNED_SHORT,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
