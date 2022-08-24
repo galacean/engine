@@ -16,7 +16,8 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     const { format, _mipmap, width, height } = texture2D;
     const isWebGL2 = this._isWebGL2;
 
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
+    /** @ts-ignore */
+    if (!GLTexture._supportTextureFormat(texture2D._isDepthTexture, format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
 

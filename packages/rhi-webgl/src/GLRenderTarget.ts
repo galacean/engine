@@ -51,7 +51,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
 
-    if (!GLTexture._supportRenderBufferDepthFormat(isDepthTexture ? _depth.format : _depth, rhi, isDepthTexture)) {
+    if (!isDepthTexture && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
       throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
     }
 
@@ -121,8 +121,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     if (depthTexture) {
       const isCube = depthTexture instanceof TextureCube;
       if (mipChanged || isCube) {
-        /** @ts-ignore */
-        const { _platformTexture: platformTexture } = depthTexture;
+        const platformTexture = <GLTexture>depthTexture._platformTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
           platformTexture._formatDetail.attachment,

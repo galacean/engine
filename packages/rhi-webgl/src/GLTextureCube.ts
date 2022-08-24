@@ -16,7 +16,8 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     const { format, _mipmap, width: size } = textureCube;
     const isWebGL2 = this._isWebGL2;
 
-    if (!GLTexture._supportTextureFormat(format, rhi)) {
+     /** @ts-ignore */
+    if (!GLTexture._supportTextureFormat(textureCube._isDepthTexture,format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
 

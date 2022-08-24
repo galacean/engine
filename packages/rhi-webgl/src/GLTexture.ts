@@ -320,29 +320,34 @@ export class GLTexture implements IPlatformTexture {
    * Check whether the corresponding texture format is supported.
    * @internal
    */
-  static _supportTextureFormat(format: TextureFormat, rhi: WebGLRenderer): boolean {
-    let isSupported = true;
+  static _supportTextureFormat(isDepthTexture: boolean, format: TextureFormat, rhi: WebGLRenderer): boolean {
+    if (isDepthTexture) {
+      if (!rhi.isWebGL2) {
+        if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
+          return false;
+        }
 
-    switch (format) {
-      case TextureFormat.R16G16B16A16:
-        {
+        switch (format) {
+          case TextureFormat.Depth24:
+          case TextureFormat.Depth32:
+          case TextureFormat.Depth32Stencil8:
+            return false;
+        }
+      }
+    } else {
+      switch (format) {
+        case TextureFormat.R16G16B16A16:
           if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
-            isSupported = false;
+            return false;
           }
-        }
-        break;
-      case TextureFormat.R32G32B32A32:
-        {
+        case TextureFormat.R32G32B32A32:
           if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
-            isSupported = false;
+            return false;
           }
-        }
-        break;
+      }
     }
-
-    return isSupported;
+    return true;
   }
-
   /**
    * @internal
    */
@@ -372,32 +377,17 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferDepthFormat(
-    format: TextureFormat | RenderBufferDepthFormat,
-    rhi: WebGLRenderer,
-    isTexture: boolean
-  ): boolean {
-    const isWebGL2 = rhi.isWebGL2;
-
-    if (isTexture && !rhi.canIUse(GLCapabilityType.depthTexture)) {
-      return false;
+  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi: WebGLRenderer): boolean {
+    if (!rhi.isWebGL2) {
+      switch (format) {
+        case RenderBufferDepthFormat.Depth24:
+        case RenderBufferDepthFormat.Depth32:
+        case RenderBufferDepthFormat.Depth32Stencil8:
+          return false;
+      }
     }
 
-    let isSupported = true;
-    switch (format) {
-      case TextureFormat.Depth24:
-      case TextureFormat.Depth32:
-      case TextureFormat.Depth32Stencil8:
-      case RenderBufferDepthFormat.Depth24:
-      case RenderBufferDepthFormat.Depth32:
-      case RenderBufferDepthFormat.Depth32Stencil8:
-        if (!isWebGL2) {
-          isSupported = false;
-        }
-        break;
-    }
-
-    return isSupported;
+    return true;
   }
 
   /** @internal */
@@ -518,7 +508,7 @@ export class GLTexture implements IPlatformTexture {
     } else {
       // In WebGL 1, internalformat must be the same as baseFormat
       if (baseFormat !== internalFormat) {
-        internalFormat = baseFormat;
+        throw "xxx";
       }
 
       if (!isCube) {
