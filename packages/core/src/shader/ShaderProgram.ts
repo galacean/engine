@@ -460,9 +460,9 @@ export class ShaderProgram {
   private _getUniformInfos(): WebGLActiveInfo[] {
     const gl = this._gl;
     const program = this._glProgram;
-    const uniformInfos = new Array<WebGLActiveInfo>();
-
     const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+
+    const uniformInfos = new Array<WebGLActiveInfo>(uniformCount);
     for (let i = 0; i < uniformCount; ++i) {
       const info = gl.getActiveUniform(program, i);
       uniformInfos[i] = info;
