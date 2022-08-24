@@ -657,11 +657,13 @@ export class Animator extends Component {
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
 
-      const curve = curves[destCurveIndex].curve;
-      const destValue =
-        destCurveIndex >= 0
-          ? this._evaluateCurve(curveOwner.property, curve, destClipTime, additive, curve._crossOutValue)
-          : curveOwner.defaultValue;
+      let destValue: InterpolableValue;
+      if (destCurveIndex >= 0) {
+        const curve = curves[destCurveIndex].curve;
+        destValue = this._evaluateCurve(curveOwner.property, curve, destClipTime, additive, curve._crossOutValue);
+      } else {
+        destValue = curveOwner.defaultValue;
+      }
 
       this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
     }
