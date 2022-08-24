@@ -517,12 +517,9 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  useCompareMode(value: boolean) {
-    this._gl.texParameteri(
-      this._target,
-      this._gl.TEXTURE_COMPARE_MODE,
-      value ? this._gl.COMPARE_REF_TO_TEXTURE : this._gl.NONE
-    );
+  setUseDepthCompareMode(value: boolean): void {
+    const gl = this._gl;
+    gl.texParameteri(this._target, gl.TEXTURE_COMPARE_MODE, value ? gl.COMPARE_REF_TO_TEXTURE : gl.NONE);
   }
 
   /**

@@ -280,7 +280,7 @@ export class ShaderUniform {
     rhi.activeTexture(shaderUniform.textureIndex as GLenum);
     rhi.bindTexture(value._platformTexture);
 
-    value._setUseCompareMode(shaderUniform.textureUseComporeMode);
+    value._setUseDepthCompareMode(shaderUniform.textureUseComporeMode);
   }
 
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {

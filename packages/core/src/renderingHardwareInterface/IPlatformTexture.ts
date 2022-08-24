@@ -40,5 +40,5 @@ export interface IPlatformTexture {
    */
   generateMipmaps(): void;
 
-  useCompareMode(value: boolean);
+  setUseDepthCompareMode(value: boolean);
 }

@@ -28,7 +28,7 @@ export abstract class Texture extends RefObject {
   private _filterMode: TextureFilterMode;
   private _anisoLevel: number = 1;
   private _depthCompareFunction: TextureDepthCompareFunction;
-  private _useCompareMode: boolean = false;
+  private _useDepthCompareMode: boolean = false;
 
   /**
    * Texture format.
@@ -153,10 +153,10 @@ export abstract class Texture extends RefObject {
   /**
    * @internal
    */
-  _setUseCompareMode(value: boolean) {
-    if (this._useCompareMode !== value) {
-      this._platformTexture.useCompareMode(value);
-      this._useCompareMode = value;
+  _setUseDepthCompareMode(value: boolean): void {
+    if (this._useDepthCompareMode !== value) {
+      this._platformTexture.setUseDepthCompareMode(value);
+      this._useDepthCompareMode = value;
     }
   }
 
