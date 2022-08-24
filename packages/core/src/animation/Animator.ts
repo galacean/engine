@@ -406,7 +406,7 @@ export class Animator extends Component {
 
     switch (curve._valueType) {
       case InterpolableValueType.Float:
-        const value = curve.evaluate(time);
+        const value = curve._evaluate(time);
         if (additive) {
           return <number>value - <number>baseValue;
         }

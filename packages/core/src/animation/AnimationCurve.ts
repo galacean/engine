@@ -26,9 +26,9 @@ export class AnimationCurve {
   /** @internal */
   _valueType: InterpolableValueType;
   /** @internal */
-  _baseOutValue: InterpolableValue;
+  _baseOutValue: Exclude<InterpolableValue, number>;
   /** @internal */
-  _crossOutValue: InterpolableValue;
+  _crossOutValue: Exclude<InterpolableValue, number>;
 
   private _length: number = 0;
   private _currentIndex: number = 0;
@@ -55,7 +55,6 @@ export class AnimationCurve {
       if (typeof key.value == "number") {
         this._valueSize = 1;
         this._valueType = InterpolableValueType.Float;
-        this._baseOutValue = this._crossOutValue = 0;
       }
       if (key.value instanceof Vector2) {
         this._valueSize = 2;
@@ -128,8 +127,8 @@ export class AnimationCurve {
    * @param time - The time to sample an animation
    * @param out - The value calculated
    */
-  _evaluate(time: number, out: Exclude<InterpolableValue, number>) {
-    const { keys, interpolation, _valueType } = this;
+  _evaluate(time: number, out?: Exclude<InterpolableValue, number>) {
+    const { keys, interpolation } = this;
     const { length } = this.keys;
 
     // Compute curIndex and nextIndex.
