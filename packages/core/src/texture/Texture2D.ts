@@ -31,6 +31,7 @@ export class Texture2D extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
+    debugger;
     this._isDepthTexture =
       format == TextureFormat.Depth ||
       format == TextureFormat.DepthStencil ||

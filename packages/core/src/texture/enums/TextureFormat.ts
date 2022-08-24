@@ -67,7 +67,5 @@ export enum TextureFormat {
   /** Force 16-bit depth + 8-bit stencil buffer. */
   Depth24Stencil8,
   /** Force 32-bit depth + 8-bit stencil buffer. */
-  Depth32Stencil8,
-  /** Shadowmap . */
-  ShadowMap = 32
+  Depth32Stencil8
 }

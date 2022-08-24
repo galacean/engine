@@ -5,6 +5,7 @@ import {
   RenderBufferDepthFormat,
   Texture,
   TextureCubeFace,
+  TextureDepthCompareFunction,
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode
@@ -331,7 +332,6 @@ export class GLTexture implements IPlatformTexture {
           case TextureFormat.Depth24:
           case TextureFormat.Depth32:
           case TextureFormat.Depth32Stencil8:
-          case TextureFormat.ShadowMap:
             return false;
         }
       }
@@ -458,6 +458,40 @@ export class GLTexture implements IPlatformTexture {
     gl.texParameterf(this._target, gl.TEXTURE_MAX_ANISOTROPY_EXT, value);
   }
 
+  set depthCompareFunction(value: TextureDepthCompareFunction) {
+    this._bind();
+
+    const gl = this._gl;
+    const target = this._target;
+
+    this._bind();
+    switch (value) {
+      case TextureDepthCompareFunction.Never:
+        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.NEVER);
+        break;
+      case TextureDepthCompareFunction.Less:
+        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.LESS);
+        break;
+      case TextureDepthCompareFunction.Equal:
+        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.EQUAL);
+        break;
+      case TextureDepthCompareFunction.LessEqual:
+        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+        break;
+      case TextureDepthCompareFunction.Greater:
+        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.GREATER);
+        break;
+      case TextureDepthCompareFunction.NotEqual:
+        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.NOTEQUAL);
+        break;
+      case TextureDepthCompareFunction.GreaterEqual:
+        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.GEQUAL);
+        break;
+      case TextureDepthCompareFunction.Always:
+        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.ALWAYS);
+        break;
+    }
+  }
   /**
    * Create texture in WebGL platform.
    */
@@ -481,6 +515,17 @@ export class GLTexture implements IPlatformTexture {
   }
 
   /**
+   * @internal
+   */
+  useCompareMode(value: boolean) {
+    this._gl.texParameteri(
+      this._target,
+      this._gl.TEXTURE_COMPARE_MODE,
+      value ? this._gl.COMPARE_REF_TO_TEXTURE : this._gl.NONE
+    );
+  }
+
+  /**
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
@@ -500,7 +545,7 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
-    const { mipmapCount, width, height, _isDepthTexture, format } = this._texture;
+    const { mipmapCount, width, height, _isDepthTexture, depthCompareFunction } = this._texture;
 
     this._bind();
 
@@ -540,10 +585,6 @@ export class GLTexture implements IPlatformTexture {
           }
         }
       }
-    }
-
-    if (format == TextureFormat.ShadowMap) {
-      gl.texParameteri(this._target, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
     }
   }
 

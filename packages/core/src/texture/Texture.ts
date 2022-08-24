@@ -1,6 +1,7 @@
 import { RefObject } from "../asset/RefObject";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
+import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
@@ -26,6 +27,8 @@ export abstract class Texture extends RefObject {
   private _wrapModeV: TextureWrapMode;
   private _filterMode: TextureFilterMode;
   private _anisoLevel: number = 1;
+  private _depthCompareFunction: TextureDepthCompareFunction;
+  private _useCompareMode: boolean = false;
 
   /**
    * Texture format.
@@ -125,12 +128,36 @@ export abstract class Texture extends RefObject {
   }
 
   /**
+   * Filter mode when texture as depth Texture.
+   */
+  get depthCompareFunction(): TextureDepthCompareFunction {
+    return this._depthCompareFunction;
+  }
+
+  set depthCompareFunction(value: TextureDepthCompareFunction) {
+    if (value !== this._depthCompareFunction) {
+      this._depthCompareFunction = value;
+      this._platformTexture.depthCompareFunction = value;
+    }
+  }
+
+  /**
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
     if (!this._mipmap) return;
 
     this._platformTexture.generateMipmaps();
+  }
+
+  /**
+   * @internal
+   */
+  _setUseCompareMode(value: boolean) {
+    if (this._useCompareMode !== value) {
+      this._platformTexture.useCompareMode(value);
+      this._useCompareMode = value;
+    }
   }
 
   /**
