@@ -11,10 +11,11 @@ import { TextureWrapMode } from "./enums/TextureWrapMode";
 export abstract class Texture extends RefObject {
   name: string;
 
-  /** @internal */
   _platformTexture: IPlatformTexture;
   /** @internal */
   _mipmap: boolean;
+  /** @internal */
+  _isDepthTexture: boolean = false;
 
   protected _format: TextureFormat;
   protected _width: number;

@@ -248,18 +248,16 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     /** depth render buffer */
     if (_depth !== null) {
-      if (_depth instanceof Texture) {
-        if (!(_depth instanceof TextureCube)) {
-          gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,
-            /** @ts-ignore */
-            (_depth._platformTexture as GLTexture)._formatDetail.attachment,
-            gl.TEXTURE_2D,
-            /** @ts-ignore */
-            (_depth._platformTexture as GLTexture)._glTexture,
-            0
-          );
-        }
+      if (_depth instanceof Texture && !(_depth instanceof TextureCube)) {
+        /** @ts-ignore */
+        const platformTexture = _depth._platformTexture as GLTexture;
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          platformTexture._formatDetail.attachment,
+          gl.TEXTURE_2D,
+          platformTexture._glTexture,
+          0
+        );
       } else if (this._target.antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
         const depthRenderBuffer = gl.createRenderbuffer();

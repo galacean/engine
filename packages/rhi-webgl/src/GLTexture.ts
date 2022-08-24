@@ -177,45 +177,27 @@ export class GLTexture implements IPlatformTexture {
 
       case TextureFormat.Depth:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16,
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_INT,
-          isCompressed: false
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
         };
       case TextureFormat.DepthStencil:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
           baseFormat: gl.DEPTH_STENCIL,
           dataType: gl.UNSIGNED_INT_24_8,
-          isCompressed: false
-        };
-      case TextureFormat.Stencil:
-        return {
-          internalFormat: gl.STENCIL_INDEX8,
-          baseFormat: gl.STENCIL_ATTACHMENT,
-          dataType: gl.UNSIGNED_BYTE,
-          isCompressed: false
+          isCompressed: false,
+          attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       case TextureFormat.Depth16:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT16,
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: gl.UNSIGNED_INT,
-          isCompressed: false
-        };
-      case TextureFormat.Depth24:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT24,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_INT,
-          isCompressed: false
-        };
-      case TextureFormat.Depth32:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT32F,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.FLOAT,
-          isCompressed: false
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
         };
       case TextureFormat.Depth24Stencil8:
         return {
@@ -224,6 +206,22 @@ export class GLTexture implements IPlatformTexture {
           dataType: gl.UNSIGNED_INT_24_8,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
+        };
+      case TextureFormat.Depth24:
+        return {
+          internalFormat: gl.DEPTH_COMPONENT24,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.UNSIGNED_INT,
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
+        };
+      case TextureFormat.Depth32:
+        return {
+          internalFormat: gl.DEPTH_COMPONENT32F,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.FLOAT,
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
         };
       case TextureFormat.Depth32Stencil8:
         return {
@@ -247,18 +245,15 @@ export class GLTexture implements IPlatformTexture {
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
   ): TextureFormatDetail {
-    debugger;
     switch (format) {
-      case TextureFormat.Depth:
       case RenderBufferDepthFormat.Depth:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16,
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_INT,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      case TextureFormat.DepthStencil:
       case RenderBufferDepthFormat.DepthStencil:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
@@ -267,7 +262,6 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
-      case TextureFormat.Stencil:
       case RenderBufferDepthFormat.Stencil:
         return {
           internalFormat: gl.STENCIL_INDEX8,
@@ -276,34 +270,14 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.STENCIL_ATTACHMENT
         };
-      case TextureFormat.Depth16:
       case RenderBufferDepthFormat.Depth16:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT16,
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: gl.UNSIGNED_INT,
           isCompressed: false,
           attachment: gl.DEPTH_ATTACHMENT
         };
-      case TextureFormat.Depth24:
-      case RenderBufferDepthFormat.Depth24:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT24,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.UNSIGNED_INT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-      case TextureFormat.Depth32:
-      case RenderBufferDepthFormat.Depth32:
-        return {
-          internalFormat: gl.DEPTH_COMPONENT32F,
-          baseFormat: gl.DEPTH_COMPONENT,
-          dataType: gl.FLOAT,
-          isCompressed: false,
-          attachment: gl.DEPTH_ATTACHMENT
-        };
-      case TextureFormat.Depth24Stencil8:
       case RenderBufferDepthFormat.Depth24Stencil8:
         return {
           internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
@@ -312,7 +286,23 @@ export class GLTexture implements IPlatformTexture {
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
-      case TextureFormat.Depth32Stencil8:
+      case RenderBufferDepthFormat.Depth24:
+        return {
+          internalFormat: gl.DEPTH_COMPONENT24,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.UNSIGNED_INT,
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
+        };
+      case RenderBufferDepthFormat.Depth32:
+        return {
+          internalFormat: gl.DEPTH_COMPONENT32F,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.FLOAT,
+          isCompressed: false,
+          attachment: gl.DEPTH_ATTACHMENT
+        };
+
       case RenderBufferDepthFormat.Depth32Stencil8:
         return {
           internalFormat: gl.DEPTH32F_STENCIL8,
@@ -387,18 +377,14 @@ export class GLTexture implements IPlatformTexture {
     rhi: WebGLRenderer,
     isTexture: boolean
   ): boolean {
-    const isWebGL2: boolean = rhi.isWebGL2;
-    let isSupported = true;
+    const isWebGL2 = rhi.isWebGL2;
 
     if (isTexture && !rhi.canIUse(GLCapabilityType.depthTexture)) {
       return false;
     }
 
+    let isSupported = true;
     switch (format) {
-      case RenderBufferDepthFormat.Stencil:
-      case TextureFormat.Stencil:
-        isSupported = false;
-        break;
       case TextureFormat.Depth24:
       case TextureFormat.Depth32:
       case TextureFormat.Depth32Stencil8:
@@ -522,7 +508,8 @@ export class GLTexture implements IPlatformTexture {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
-    const { mipmapCount, width, height } = this._texture;
+    // @ts-ignore
+    const { mipmapCount, width, height, _isDepthTexture } = this._texture;
 
     this._bind();
 
@@ -535,11 +522,14 @@ export class GLTexture implements IPlatformTexture {
       }
 
       if (!isCube) {
-        for (let i = 0; i < mipmapCount; i++) {
-          const mipWidth = Math.max(1, width >> i);
-          const mipHeight = Math.max(1, height >> i);
-
-          gl.texImage2D(this._target, i, internalFormat, mipWidth, mipHeight, 0, baseFormat, dataType, null);
+        if (_isDepthTexture) {
+          gl.texImage2D(this._target, 0, internalFormat, width, height, 0, baseFormat, dataType, null);
+        } else {
+          for (let i = 0; i < mipmapCount; i++) {
+            const mipWidth = Math.max(1, width >> i);
+            const mipHeight = Math.max(1, height >> i);
+            gl.texImage2D(this._target, i, internalFormat, mipWidth, mipHeight, 0, baseFormat, dataType, null);
+          }
         }
       } else {
         for (let i = 0; i < mipmapCount; i++) {
