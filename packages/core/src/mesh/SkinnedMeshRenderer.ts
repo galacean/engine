@@ -54,6 +54,25 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   set blendShapeWeights(value: Float32Array) {
+    // if (this.entity.name === "hei.001" ) {
+    //   debugger;
+    //   return;
+    // }
+    // if (this.entity.name === "pifu.001" || this.entity.name === "bai.001" || this.entity.name === "hei.001") {
+    //   return;
+    // }
+    console.log(this.entity.name+" "+value);
+    // console.log(value[0]);
+    // value[0] = 0.45;
+    // value[1] = 0;
+    // value[2] = 0;
+    // value[3] = 0;
+    // value[4] = 0;
+    // value[5] = 0;
+    // value[6] = 0;
+    // value[7] = 0;
+    // value[8] = 0;
+    // value[9] = 0;
     this._blendShapeWeights = value;
   }
 

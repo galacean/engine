@@ -25,8 +25,11 @@ export class AnimationCurve {
   _valueSize: number;
   /** @internal */
   _valueType: InterpolableValueType;
+  /** @internal */
+  _baseOutValue: InterpolableValue;
+  /** @internal */
+  _crossOutValue: InterpolableValue;
 
-  private _tempValue: InterpolableValue;
   private _length: number = 0;
   private _currentIndex: number = 0;
 
@@ -52,34 +55,34 @@ export class AnimationCurve {
       if (typeof key.value == "number") {
         this._valueSize = 1;
         this._valueType = InterpolableValueType.Float;
-        this._tempValue = 0;
+        this._baseOutValue = this._crossOutValue = 0;
       }
       if (key.value instanceof Vector2) {
         this._valueSize = 2;
         this._valueType = InterpolableValueType.Vector2;
-        this._tempValue = new Vector2();
+        this._baseOutValue = this._crossOutValue = new Vector2();
       }
       if (key.value instanceof Vector3) {
         this._valueSize = 3;
         this._valueType = InterpolableValueType.Vector3;
-        this._tempValue = new Vector3();
+        this._baseOutValue = this._crossOutValue = new Vector3();
       }
       if (key.value instanceof Vector4) {
         this._valueSize = 4;
         this._valueType = InterpolableValueType.Vector4;
-        this._tempValue = new Vector4();
+        this._baseOutValue = this._crossOutValue = new Vector4();
       }
       if (key.value instanceof Quaternion) {
         this._valueSize = 4;
         this._valueType = InterpolableValueType.Quaternion;
-        this._tempValue = new Quaternion();
+        this._baseOutValue = this._crossOutValue = new Quaternion();
       }
 
       if (key.value instanceof Float32Array) {
         const size = key.value.length;
         this._valueSize = size;
         this._valueType = InterpolableValueType.FloatArray;
-        this._tempValue = new Float32Array(size);
+        this._baseOutValue = this._crossOutValue = new Float32Array(size);
       }
     }
     this.keys.sort((a, b) => a.time - b.time);
@@ -90,7 +93,7 @@ export class AnimationCurve {
    * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): InterpolableValue {
-    return this._evaluate(time, this._tempValue);
+    return this._evaluate(time, this._baseOutValue);
   }
 
   /**

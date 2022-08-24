@@ -115,6 +115,10 @@ export class AnimationParser extends Parser {
         }
 
         const curve = this._addCurve(interpolableValueType, gltfChannel, sampleDataCollection);
+        if (compType === SkinnedMeshRenderer) {
+          console.log(relativePath + "    " + propertyName);
+          debugger;
+        }
         animationClip.addCurveBinding(relativePath, compType, propertyName, curve);
       }
 
