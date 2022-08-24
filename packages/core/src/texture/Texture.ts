@@ -129,6 +129,7 @@ export abstract class Texture extends RefObject {
 
   /**
    * Filter mode when texture as depth Texture.
+   * @remarks Only depth-related formats take effect.
    */
   get depthCompareFunction(): TextureDepthCompareFunction {
     return this._depthCompareFunction;
