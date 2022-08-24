@@ -2,11 +2,11 @@ import {
   GLCapabilityType,
   IPlatformTexture,
   Logger,
+  RenderBufferDepthFormat,
   Texture,
   TextureCubeFace,
   TextureFilterMode,
   TextureFormat,
-  RenderBufferDepthFormat,
   TextureWrapMode
 } from "@oasis-engine/core";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
@@ -174,6 +174,65 @@ export class GLTexture implements IPlatformTexture {
           internalFormat: GLCompressedTextureInternalFormat.RGBA_ASTC_12X12_KHR,
           isCompressed: true
         };
+
+      case TextureFormat.Depth:
+        return {
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_INT,
+          isCompressed: false
+        };
+      case TextureFormat.DepthStencil:
+        return {
+          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
+          baseFormat: gl.DEPTH_STENCIL,
+          dataType: gl.UNSIGNED_INT_24_8,
+          isCompressed: false
+        };
+      case TextureFormat.Stencil:
+        return {
+          internalFormat: gl.STENCIL_INDEX8,
+          baseFormat: gl.STENCIL_ATTACHMENT,
+          dataType: gl.UNSIGNED_BYTE,
+          isCompressed: false
+        };
+      case TextureFormat.Depth16:
+        return {
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT16,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.UNSIGNED_INT,
+          isCompressed: false
+        };
+      case TextureFormat.Depth24:
+        return {
+          internalFormat: gl.DEPTH_COMPONENT24,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.UNSIGNED_INT,
+          isCompressed: false
+        };
+      case TextureFormat.Depth32:
+        return {
+          internalFormat: gl.DEPTH_COMPONENT32F,
+          baseFormat: gl.DEPTH_COMPONENT,
+          dataType: gl.FLOAT,
+          isCompressed: false
+        };
+      case TextureFormat.Depth24Stencil8:
+        return {
+          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
+          baseFormat: gl.DEPTH_STENCIL,
+          dataType: gl.UNSIGNED_INT_24_8,
+          isCompressed: false,
+          attachment: gl.DEPTH_STENCIL_ATTACHMENT
+        };
+      case TextureFormat.Depth32Stencil8:
+        return {
+          internalFormat: gl.DEPTH32F_STENCIL8,
+          baseFormat: gl.DEPTH_STENCIL,
+          dataType: gl.FLOAT_32_UNSIGNED_INT_24_8_REV,
+          isCompressed: false,
+          attachment: gl.DEPTH_STENCIL_ATTACHMENT
+        };
       default:
         throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
     }
@@ -188,6 +247,7 @@ export class GLTexture implements IPlatformTexture {
     gl: WebGLRenderingContext & WebGL2RenderingContext,
     isWebGL2: boolean
   ): TextureFormatDetail {
+    debugger;
     switch (format) {
       case TextureFormat.Depth:
       case RenderBufferDepthFormat.Depth:
