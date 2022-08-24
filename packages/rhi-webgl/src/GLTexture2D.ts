@@ -33,7 +33,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     }
 
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);
-    (this._formatDetail.isCompressed && !isWebGL2) || this._initMipmap(false);
+    (this._formatDetail.isCompressed && !isWebGL2) || this._init(false);
   }
 
   /**

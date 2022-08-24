@@ -331,6 +331,7 @@ export class GLTexture implements IPlatformTexture {
           case TextureFormat.Depth24:
           case TextureFormat.Depth32:
           case TextureFormat.Depth32Stencil8:
+          case TextureFormat.ShadowMap:
             return false;
         }
       }
@@ -494,12 +495,12 @@ export class GLTexture implements IPlatformTexture {
   /**
    * Pre-development mipmapping GPU memory.
    */
-  protected _initMipmap(isCube: boolean): void {
+  protected _init(isCube: boolean): void {
     const gl = this._gl;
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
-    const { mipmapCount, width, height, _isDepthTexture } = this._texture;
+    const { mipmapCount, width, height, _isDepthTexture, format } = this._texture;
 
     this._bind();
 
@@ -508,7 +509,7 @@ export class GLTexture implements IPlatformTexture {
     } else {
       // In WebGL 1, internalformat must be the same as baseFormat
       if (baseFormat !== internalFormat) {
-        throw "xxx";
+        throw "error";
       }
 
       if (!isCube) {
@@ -539,6 +540,10 @@ export class GLTexture implements IPlatformTexture {
           }
         }
       }
+    }
+
+    if (format == TextureFormat.ShadowMap) {
+      gl.texParameteri(this._target, gl.TEXTURE_COMPARE_MODE, gl.COMPARE_REF_TO_TEXTURE);
     }
   }
 

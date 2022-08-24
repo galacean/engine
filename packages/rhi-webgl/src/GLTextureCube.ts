@@ -33,7 +33,7 @@ export class GLTextureCube extends GLTexture implements IPlatformTextureCube {
     }
 
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);
-    (this._formatDetail.isCompressed && !isWebGL2) || this._initMipmap(true);
+    (this._formatDetail.isCompressed && !isWebGL2) || this._init(true);
   }
 
   /**
