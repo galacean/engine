@@ -321,32 +321,29 @@ export class GLTexture implements IPlatformTexture {
    * Check whether the corresponding texture format is supported.
    * @internal
    */
-  static _supportTextureFormat(isDepthTexture: boolean, format: TextureFormat, rhi: WebGLRenderer): boolean {
-    if (isDepthTexture) {
-      if (!rhi.isWebGL2) {
+  static _supportTextureFormat(format: TextureFormat, rhi: WebGLRenderer): boolean {
+    switch (format) {
+      case TextureFormat.R16G16B16A16:
+        if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
+          return false;
+        }
+      case TextureFormat.R32G32B32A32:
+        if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
+          return false;
+        }
+      case TextureFormat.Depth16:
+      case TextureFormat.Depth24Stencil8:
+      case TextureFormat.Depth:
+      case TextureFormat.DepthStencil:
         if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
           return false;
         }
-
-        switch (format) {
-          case TextureFormat.Depth24:
-          case TextureFormat.Depth32:
-          case TextureFormat.Depth32Stencil8:
-            return false;
-        }
-      }
-    } else {
-      switch (format) {
-        case TextureFormat.R16G16B16A16:
-          if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
-            return false;
-          }
-        case TextureFormat.R32G32B32A32:
-          if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
-            return false;
-          }
-      }
+      case TextureFormat.Depth24:
+      case TextureFormat.Depth32:
+      case TextureFormat.Depth32Stencil8:
+        return rhi.isWebGL2;
     }
+
     return true;
   }
   /**
