@@ -1,6 +1,6 @@
 import { Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
-import { ignoreClone } from "../clone/CloneManager";
+import { ignoreClone, deepClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
@@ -36,7 +36,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
-  _blendShapeWeights: Float32Array;
+
+  /** @internal */
+  @ignoreClone
+  _blendShapeWeights: Float32Array = new Float32Array(0);
+
+  /** @internal */
+  @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
   /**
@@ -186,5 +192,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: SkinnedMeshRenderer): void {
+    super._cloneTo(target);
+    target.blendShapeWeights = this._blendShapeWeights.slice();
   }
 }

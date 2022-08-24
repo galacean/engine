@@ -10,7 +10,7 @@ import {
   SkyBoxMaterial,
   PrimitiveMesh
 } from "@oasis-engine/core";
-import { SceneParser } from "@oasis-engine/resource-process";
+import { SceneParser } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["prefab"], true)
 class SceneLoader extends Loader<Scene> {
@@ -25,10 +25,10 @@ class SceneLoader extends Loader<Scene> {
           if (ambient.ambientLight) {
             resourceManager.getResourceByRef<any>(data.scene.ambient.ambientLight).then((light) => {
               scene.ambientLight = light;
+              scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
+              scene.ambientLight.specularIntensity = ambient.specularIntensity;
             });
           }
-          scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
-          scene.ambientLight.specularIntensity = ambient.specularIntensity;
 
           const background = data.scene.background;
           scene.background.mode = background.mode;

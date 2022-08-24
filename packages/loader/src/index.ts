@@ -10,10 +10,10 @@ import "./SpriteAtlasLoader";
 import "./EnvLoader";
 import "./HDRLoader";
 import "./gltf/extensions/index";
-import "./MaterialLoader"
+import "./MaterialLoader";
+import "./MeshLoader";
 
-export * from "@oasis-engine/resource-process";
+export * from "./resource-deserialize";
 export { GLTFResource } from "./gltf/GLTFResource";
 export * from "./SceneLoader";
 export { parseSingleKTX } from "./compressed-texture";
-export type { IScene } from "@oasis-engine/resource-process";

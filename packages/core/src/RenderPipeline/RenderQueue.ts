@@ -4,11 +4,10 @@ import { Layer } from "../Layer";
 import { Material } from "../material/Material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { MeshRenderElement } from "./MeshRenderElement";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
 import { SpriteElement } from "./SpriteElement";
-
-type Item = RenderElement | SpriteElement;
 
 /**
  * Render queue.
@@ -17,24 +16,18 @@ export class RenderQueue {
   /**
    * @internal
    */
-  static _compareFromNearToFar(a: Item, b: Item): number {
-    return (
-      a.component.priority - b.component.priority ||
-      a.component._distanceForSort - b.component._distanceForSort
-    );
+  static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
+    return a.component.priority - b.component.priority || a.component._distanceForSort - b.component._distanceForSort;
   }
 
   /**
    * @internal
    */
-  static _compareFromFarToNear(a: Item, b: Item): number {
-    return (
-      a.component.priority - b.component.priority ||
-      b.component._distanceForSort - a.component._distanceForSort
-    );
+  static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
+    return a.component.priority - b.component.priority || b.component._distanceForSort - a.component._distanceForSort;
   }
 
-  readonly items: Item[] = [];
+  readonly items: RenderElement[] = [];
   private _spriteBatcher: SpriteBatcher;
 
   constructor(engine: Engine) {
@@ -44,7 +37,7 @@ export class RenderQueue {
   /**
    * Push a render element.
    */
-  pushPrimitive(element: RenderElement | SpriteElement): void {
+  pushPrimitive(element: RenderElement): void {
     this.items.push(element);
   }
 
@@ -68,18 +61,18 @@ export class RenderQueue {
         continue;
       }
 
-      if (!!(item as RenderElement).mesh) {
-        this._spriteBatcher.flush(camera);
+      if (!!(item as MeshRenderElement).mesh) {
+        this._spriteBatcher.flush(camera, replaceMaterial);
 
         const compileMacros = Shader._compileMacros;
-        const element = <RenderElement>item;
+        const element = <MeshRenderElement>item;
         const renderer = element.component;
-        const material = replaceMaterial ? replaceMaterial : element.material;
+        const material = element.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
 
         // @todo: temporary solution
-        material._preRender(element);
+        (replaceMaterial || material)._preRender(element);
 
         // union render global macro and material self macro.
         ShaderMacroCollection.unionCollection(
@@ -88,7 +81,7 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = material.shader._getShaderProgram(engine, compileMacros);
+        const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
@@ -115,7 +108,7 @@ export class RenderQueue {
           } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
-          
+
           if (program._uploadRenderer !== renderer) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRenderer = renderer;
@@ -140,11 +133,11 @@ export class RenderQueue {
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spriteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spriteElement, camera);
+        this._spriteBatcher.drawElement(spriteElement, camera, replaceMaterial);
       }
     }
 
-    this._spriteBatcher.flush(camera);
+    this._spriteBatcher.flush(camera, replaceMaterial);
   }
 
   /**
