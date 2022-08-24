@@ -248,7 +248,6 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     /** depth render buffer */
     if (_depth !== null) {
       if (_depth instanceof Texture && !(_depth instanceof TextureCube)) {
-        /** @ts-ignore */
         const platformTexture = _depth._platformTexture as GLTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
