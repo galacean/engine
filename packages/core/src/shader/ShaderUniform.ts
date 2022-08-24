@@ -17,7 +17,7 @@ export class ShaderUniform {
   cacheValue: number | Vector2 | Vector3 | Vector4;
   textureIndex: GLenum | GLenum[];
   textureDefault: Texture | Texture[];
-  textureUseComporeMode: boolean;
+  textureUseComporeMode: boolean = false;
 
   private _rhi: IHardwareRenderer;
   private _gl: WebGLRenderingContext;
