@@ -186,9 +186,9 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.DepthStencil:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
+          internalFormat: isWebGL2 ? gl.DEPTH32F_STENCIL8 : gl.DEPTH_STENCIL,
           baseFormat: gl.DEPTH_STENCIL,
-          dataType: gl.UNSIGNED_INT_24_8,
+          dataType: isWebGL2 ? gl.FLOAT_32_UNSIGNED_INT_24_8_REV : gl.UNSIGNED_INT_24_8,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
@@ -257,9 +257,9 @@ export class GLTexture implements IPlatformTexture {
         };
       case RenderBufferDepthFormat.DepthStencil:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH24_STENCIL8 : gl.DEPTH_STENCIL,
+          internalFormat: isWebGL2 ? gl.DEPTH32F_STENCIL8 : gl.DEPTH_STENCIL,
           baseFormat: gl.DEPTH_STENCIL,
-          dataType: gl.UNSIGNED_INT_24_8,
+          dataType: isWebGL2 ? gl.FLOAT_32_UNSIGNED_INT_24_8_REV : gl.UNSIGNED_INT_24_8,
           isCompressed: false,
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
