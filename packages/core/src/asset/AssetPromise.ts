@@ -16,7 +16,16 @@ enum PromiseState {
   Canceled = "canceled"
 }
 
+/**
+ * Asset Loading Promise.
+ */
 export class AssetPromise<T = any> implements PromiseLike<T> {
+  /**
+   * Return a new resource Promise through the provided asset promise collection.
+   * The resolved of the new AssetPromise will be triggered when all the Promises in the provided set are completed.
+   * @param - Promise Collection
+   * @returns AssetPromise
+   */
   static all<T = any>(promises: PromiseLike<T>[]) {
     return new AssetPromise<T[]>((resolve, reject, setProgress) => {
       const count = promises.length;
@@ -46,6 +55,13 @@ export class AssetPromise<T = any> implements PromiseLike<T> {
   private _onCancelHandler: () => void;
   private _reject: (reason: any) => void;
 
+  /**
+   * Create an asset loading Promise.
+   * @param executor - A callback used to initialize the promise. This callback is passed two arguments:
+   * a resolve callback used to resolve the promise with a value or the result of another promise,
+   * and a reject callback used to reject the promise with a provided reason or error.
+   * and a setProgress callback used to set promise progress with a percent.
+   */
   constructor(executor: AssetPromiseExecutor<T>) {
     this._promise = new Promise((resolve, reject) => {
       this._reject = reject;
@@ -80,6 +96,11 @@ export class AssetPromise<T = any> implements PromiseLike<T> {
     });
   }
 
+  /**
+   * Progress callback.
+   * @param callback
+   * @returns AssetPromise
+   */
   onProgress(callback: (progress: number) => void): AssetPromise<T> {
     this._onProgressCallback.push(callback);
     return this;
@@ -92,21 +113,37 @@ export class AssetPromise<T = any> implements PromiseLike<T> {
     return this._promise.then(onfulfilled, onrejected);
   }
 
+  /**
+   * Attaches a callback for only the rejection of the Promise.
+   * @param onRejected - The callback to execute when the Promise is rejected.
+   * @returns A Promise for the completion of the callback.
+   */
   catch(onRejected: (reason: any) => any): Promise<T> {
     return this._promise.catch(onRejected);
   }
 
+  /**
+   * Attaches a callback that is invoked when the Promise is settled (fulfilled or rejected). The
+   * resolved value cannot be modified from the callback.
+   * @param onfinally The callback to execute when the Promise is settled (fulfilled or rejected).
+   * @returns A Promise for the completion of the callback.
+   */
   finally(onFinally?: () => void): Promise<T> {
     return this._promise.finally(onFinally);
   }
 
-  cancel() {
+  /**
+   * Cancel promise request.
+   * @returns Asset promise
+   */
+  cancel(): AssetPromise<T> {
     if (this._state !== PromiseState.Pending) {
       return;
     }
     this._state = PromiseState.Canceled;
-    console.log('canceled')
+    console.log("canceled");
     this._reject("canceled");
     this._onCancelHandler && this._onCancelHandler();
+    return this;
   }
 }
