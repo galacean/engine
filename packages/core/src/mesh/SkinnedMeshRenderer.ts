@@ -53,13 +53,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   get blendShapeWeights(): Float32Array {
     if (this._blendShapeCountChangeFlag.flag) {
-      const modelMesh = <ModelMesh>this._mesh;
-      const blendShapeCount = modelMesh ? modelMesh.blendShapeCount : 0;
-      if (this._blendShapeWeights && this._blendShapeWeights.length !== blendShapeCount) {
-        this._blendShapeWeights = new Float32Array(blendShapeCount);
-      } else {
-        this._blendShapeWeights.fill(0);
-      }
+      this._resetBlendShapeWeights(<ModelMesh>this._mesh);
       this._blendShapeCountChangeFlag.flag = false;
     }
 
@@ -228,6 +222,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (mesh) {
       mesh._blendShapeManager._blendShapeCountChangeManager.addFlag(this._blendShapeCountChangeFlag);
     }
+    this._resetBlendShapeWeights(mesh);
   }
 
   /**
@@ -236,5 +231,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
     target.blendShapeWeights = this._blendShapeWeights.slice();
+  }
+
+  private _resetBlendShapeWeights(mesh: ModelMesh): void {
+    const blendShapeCount = mesh ? mesh.blendShapeCount : 0;
+    if (this._blendShapeWeights && this._blendShapeWeights.length !== blendShapeCount) {
+      this._blendShapeWeights = new Float32Array(blendShapeCount);
+    } else {
+      this._blendShapeWeights.fill(0);
+    }
   }
 }
