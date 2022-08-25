@@ -59,29 +59,34 @@ export class AnimationCurve {
       if (key.value instanceof Vector2) {
         this._valueSize = 2;
         this._valueType = InterpolableValueType.Vector2;
-        this._baseOutValue = this._crossOutValue = new Vector2();
+        this._baseOutValue = new Vector2();
+        this._crossOutValue = new Vector2();
       }
       if (key.value instanceof Vector3) {
         this._valueSize = 3;
         this._valueType = InterpolableValueType.Vector3;
-        this._baseOutValue = this._crossOutValue = new Vector3();
+        this._baseOutValue = new Vector3();
+        this._crossOutValue = new Vector3();
       }
       if (key.value instanceof Vector4) {
         this._valueSize = 4;
         this._valueType = InterpolableValueType.Vector4;
-        this._baseOutValue = this._crossOutValue = new Vector4();
+        this._baseOutValue = new Vector4();
+        this._crossOutValue = new Vector4();
       }
       if (key.value instanceof Quaternion) {
         this._valueSize = 4;
         this._valueType = InterpolableValueType.Quaternion;
-        this._baseOutValue = this._crossOutValue = new Quaternion();
+        this._baseOutValue = new Quaternion();
+        this._crossOutValue = new Quaternion();
       }
 
       if (key.value instanceof Float32Array) {
         const size = key.value.length;
         this._valueSize = size;
         this._valueType = InterpolableValueType.FloatArray;
-        this._baseOutValue = this._crossOutValue = new Float32Array(size);
+        this._baseOutValue == new Float32Array(size);
+        this._crossOutValue = new Float32Array(size);
       }
     }
     this.keys.sort((a, b) => a.time - b.time);
