@@ -25,7 +25,6 @@ import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
 import { AnimatorTempValue } from "./internal/AnimatorTempValue";
 import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
-
 /**
  * The controller of the animation system.
  */
