@@ -608,7 +608,7 @@ export class Animator extends Component {
       let destValue: InterpolableValue;
       if (destCurveIndex >= 0) {
         const destCurve = destCurves[destCurveIndex].curve;
-        this._evaluateCurve(property, destCurve, destClipTime, additive, destCurve._crossOutValue);
+        destValue = this._evaluateCurve(property, destCurve, destClipTime, additive, destCurve._crossOutValue);
       } else {
         destValue = defaultValue;
       }
