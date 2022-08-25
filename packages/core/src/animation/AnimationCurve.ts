@@ -85,7 +85,7 @@ export class AnimationCurve {
         const size = key.value.length;
         this._valueSize = size;
         this._valueType = InterpolableValueType.FloatArray;
-        this._baseOutValue == new Float32Array(size);
+        this._baseOutValue = new Float32Array(size);
         this._crossOutValue = new Float32Array(size);
       }
     }
