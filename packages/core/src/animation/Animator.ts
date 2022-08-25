@@ -779,13 +779,9 @@ export class Animator extends Component {
     } else if (owner.type === SkinnedMeshRenderer) {
       switch (owner.property) {
         case AnimationProperty.BlendShapeWeights:
-          if (weight === 1.0) {
-            (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
-          } else {
-            const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
-            for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
-              blendShapeWeights[i] += (blendShapeWeights[i] - value[i]) * weight;
-            }
+          const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
+          for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+            blendShapeWeights[i] += (value[i] - blendShapeWeights[i]) * weight;
           }
           break;
       }
