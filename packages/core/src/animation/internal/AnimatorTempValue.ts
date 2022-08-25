@@ -7,12 +7,13 @@ export class AnimatorTempValue {
   vector3 = new Vector3();
   vector4 = new Vector4();
   quaternion = new Quaternion();
-  private _floatArray = new Float32Array();
+  private _floatArrayPool: Float32Array[] = [];
 
-  getFloatArray(length: number) {
-    if (length > this._floatArray.length) {
-      this._floatArray = new Float32Array(length);
+  getFloatArray(length: number): Float32Array {
+    let floatArray = this._floatArrayPool[length];
+    if (!floatArray) {
+      this._floatArrayPool[length] = floatArray = new Float32Array(length);
     }
-    return this._floatArray;
+    return floatArray;
   }
 }
