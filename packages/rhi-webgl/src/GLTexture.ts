@@ -542,7 +542,7 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
-    const { mipmapCount, width, height, _isDepthTexture, depthCompareFunction } = this._texture;
+    const { mipmapCount, width, height, _isDepthTexture } = this._texture;
 
     this._bind();
 
