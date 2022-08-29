@@ -51,7 +51,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
       }
     }
 
-    if (!GLTexture._supportRenderBufferDepthFormat(isDepthTexture ? _depth.format : _depth, rhi, isDepthTexture)) {
+    if (!isDepthTexture && !GLTexture._supportRenderBufferDepthFormat(_depth, rhi)) {
       throw new Error(`TextureFormat is not supported:${TextureFormat[_depth]} in RenderTarget`);
     }
 
@@ -112,7 +112,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           gl.FRAMEBUFFER,
           gl.COLOR_ATTACHMENT0,
           isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
-          /** @ts-ignore */
+          // @ts-ignore
           (colorTexture._platformTexture as GLTexture)._glTexture,
           mipLevel
         );
@@ -121,8 +121,8 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     if (depthTexture) {
       const isCube = depthTexture instanceof TextureCube;
       if (mipChanged || isCube) {
-        /** @ts-ignore */
-        const { _platformTexture: platformTexture } = depthTexture;
+        // @ts-ignore
+        const platformTexture = <GLTexture>depthTexture._platformTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
           platformTexture._formatDetail.attachment,
@@ -248,18 +248,16 @@ export class GLRenderTarget implements IPlatformRenderTarget {
 
     /** depth render buffer */
     if (_depth !== null) {
-      if (_depth instanceof Texture) {
-        if (!(_depth instanceof TextureCube)) {
-          gl.framebufferTexture2D(
-            gl.FRAMEBUFFER,
-            /** @ts-ignore */
-            (_depth._platformTexture as GLTexture)._formatDetail.attachment,
-            gl.TEXTURE_2D,
-            /** @ts-ignore */
-            (_depth._platformTexture as GLTexture)._glTexture,
-            0
-          );
-        }
+      if (_depth instanceof Texture && !(_depth instanceof TextureCube)) {
+        // @ts-ignore
+        const platformTexture = _depth._platformTexture as GLTexture;
+        gl.framebufferTexture2D(
+          gl.FRAMEBUFFER,
+          platformTexture._formatDetail.attachment,
+          gl.TEXTURE_2D,
+          platformTexture._glTexture,
+          0
+        );
       } else if (this._target.antiAliasing <= 1) {
         const { internalFormat, attachment } = GLTexture._getRenderBufferDepthFormatDetail(_depth, gl, isWebGL2);
         const depthRenderBuffer = gl.createRenderbuffer();
