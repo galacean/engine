@@ -16,7 +16,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
     }
 
     /** @ts-ignore */
-    if (!GLTexture._supportTextureFormat(texture2DArray._isDepthTexture, format, rhi)) {
+    if (!GLTexture._supportTextureFormat(format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
 
