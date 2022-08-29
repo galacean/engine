@@ -162,7 +162,7 @@ export class RenderTarget extends EngineObject {
     this._depth = depth;
 
     if (renderTexture) {
-      const colorTextures = Array.isArray(renderTexture) ? renderTexture.slice() : [renderTexture];
+      const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
       for (let i = 0, n = colorTextures.length; i < n; i++) {
         if (colorTextures[i]._isDepthTexture) {
           throw "Render texture can't use depth format.";
