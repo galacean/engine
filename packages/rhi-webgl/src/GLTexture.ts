@@ -462,34 +462,34 @@ export class GLTexture implements IPlatformTexture {
     if (!this._isWebGL2) {
       return;
     }
+
     this._bind();
 
     const gl = this._gl;
-    const target = this._target;
     switch (value) {
       case TextureDepthCompareFunction.Never:
-        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.NEVER);
+        gl.texParameteri(this._target, gl.TEXTURE_COMPARE_FUNC, gl.NEVER);
         break;
       case TextureDepthCompareFunction.Less:
-        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.LESS);
+        gl.texParameteri(this._target, gl.TEXTURE_COMPARE_FUNC, gl.LESS);
         break;
       case TextureDepthCompareFunction.Equal:
-        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.EQUAL);
+        gl.texParameteri(this._target, gl.TEXTURE_COMPARE_FUNC, gl.EQUAL);
         break;
       case TextureDepthCompareFunction.LessEqual:
-        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
+        gl.texParameteri(this._target, gl.TEXTURE_COMPARE_FUNC, gl.LEQUAL);
         break;
       case TextureDepthCompareFunction.Greater:
-        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.GREATER);
+        gl.texParameteri(this._target, gl.TEXTURE_COMPARE_FUNC, gl.GREATER);
         break;
       case TextureDepthCompareFunction.NotEqual:
-        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.NOTEQUAL);
+        gl.texParameteri(this._target, gl.TEXTURE_COMPARE_FUNC, gl.NOTEQUAL);
         break;
       case TextureDepthCompareFunction.GreaterEqual:
-        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.GEQUAL);
+        gl.texParameteri(this._target, gl.TEXTURE_COMPARE_FUNC, gl.GEQUAL);
         break;
       case TextureDepthCompareFunction.Always:
-        gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.ALWAYS);
+        gl.texParameteri(this._target, gl.TEXTURE_COMPARE_FUNC, gl.ALWAYS);
         break;
     }
   }
