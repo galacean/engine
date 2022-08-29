@@ -137,6 +137,11 @@ export abstract class Texture extends RefObject {
   }
 
   set depthCompareFunction(value: TextureDepthCompareFunction) {
+    if (!this._engine._hardwareRenderer._isWebGL2) {
+      console.warn("depthCompareFunction only support WebGL2");
+      return;
+    }
+
     if (value !== this._depthCompareFunction) {
       this._depthCompareFunction = value;
       this._platformTexture.depthCompareFunction = value;
