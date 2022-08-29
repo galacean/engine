@@ -459,12 +459,13 @@ export class GLTexture implements IPlatformTexture {
   }
 
   set depthCompareFunction(value: TextureDepthCompareFunction) {
+    if (!this._isWebGL2) {
+      return;
+    }
     this._bind();
 
     const gl = this._gl;
     const target = this._target;
-
-    this._bind();
     switch (value) {
       case TextureDepthCompareFunction.Never:
         gl.texParameteri(target, gl.TEXTURE_COMPARE_FUNC, gl.NEVER);
