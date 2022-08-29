@@ -112,7 +112,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
           gl.FRAMEBUFFER,
           gl.COLOR_ATTACHMENT0,
           isCube ? gl.TEXTURE_CUBE_MAP_POSITIVE_X + faceIndex : gl.TEXTURE_2D,
-          /** @ts-ignore */
+          // @ts-ignore
           (colorTexture._platformTexture as GLTexture)._glTexture,
           mipLevel
         );
@@ -121,6 +121,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     if (depthTexture) {
       const isCube = depthTexture instanceof TextureCube;
       if (mipChanged || isCube) {
+        // @ts-ignore
         const platformTexture = <GLTexture>depthTexture._platformTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
@@ -248,6 +249,7 @@ export class GLRenderTarget implements IPlatformRenderTarget {
     /** depth render buffer */
     if (_depth !== null) {
       if (_depth instanceof Texture && !(_depth instanceof TextureCube)) {
+        // @ts-ignore
         const platformTexture = _depth._platformTexture as GLTexture;
         gl.framebufferTexture2D(
           gl.FRAMEBUFFER,
