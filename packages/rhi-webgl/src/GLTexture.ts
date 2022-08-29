@@ -327,10 +327,12 @@ export class GLTexture implements IPlatformTexture {
         if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
           return false;
         }
+        break;
       case TextureFormat.R32G32B32A32:
         if (!rhi.canIUse(GLCapabilityType.textureFloat)) {
           return false;
         }
+        break;
       case TextureFormat.Depth16:
       case TextureFormat.Depth24Stencil8:
       case TextureFormat.Depth:
@@ -338,6 +340,7 @@ export class GLTexture implements IPlatformTexture {
         if (!rhi.canIUse(GLCapabilityType.depthTexture)) {
           return false;
         }
+        break;
       case TextureFormat.Depth24:
       case TextureFormat.Depth32:
       case TextureFormat.Depth32Stencil8:
