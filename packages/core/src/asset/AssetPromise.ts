@@ -1,25 +1,7 @@
-/** @internal */
-interface AssetPromiseExecutor<T> {
-  (
-    resolve: (value?: T | PromiseLike<T>) => void,
-    reject?: (reason?: any) => void,
-    setProgress?: (progress: number) => void,
-    onCancel?: (callback: () => void) => void
-  ): void;
-}
-
-/** @internal */
-enum PromiseState {
-  Pending = "pending",
-  Fulfilled = "fulfilled",
-  Rejected = "rejected",
-  Canceled = "canceled"
-}
-
 /**
  * Asset Loading Promise.
  */
-export class AssetPromise<T = any> implements PromiseLike<T> {
+export class AssetPromise<T> implements PromiseLike<T> {
   /**
    * Return a new resource Promise through the provided asset promise collection.
    * The resolved of the new AssetPromise will be triggered when all the Promises in the provided set are completed.
@@ -141,9 +123,26 @@ export class AssetPromise<T = any> implements PromiseLike<T> {
       return;
     }
     this._state = PromiseState.Canceled;
-    console.log("canceled");
     this._reject("canceled");
     this._onCancelHandler && this._onCancelHandler();
     return this;
   }
+}
+
+/** @internal */
+interface AssetPromiseExecutor<T> {
+  (
+    resolve: (value?: T | PromiseLike<T>) => void,
+    reject?: (reason?: any) => void,
+    setProgress?: (progress: number) => void,
+    onCancel?: (callback: () => void) => void
+  ): void;
+}
+
+/** @internal */
+enum PromiseState {
+  Pending = "pending",
+  Fulfilled = "fulfilled",
+  Rejected = "rejected",
+  Canceled = "canceled"
 }
