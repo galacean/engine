@@ -59,7 +59,7 @@ export class CascadedShadowCaster {
   // 4 viewProj matrix for cascade shadow
   private _vpMatrix = new Float32Array(64 * CascadedShadowCaster.MAX_SHADOW);
   // bias, strength, radius
-  private _shadowInfos = new Float32Array(4 * CascadedShadowCaster.MAX_SHADOW);
+  private _shadowInfos = new Float32Array(2 * CascadedShadowCaster.MAX_SHADOW);
   private _depthMap: Texture2D[] = [];
   private _renderTargets = new Array<RenderTarget>(CascadedShadowCaster.MAX_SHADOW);
   private _viewport: Vector4[] = [new Vector4(), new Vector4(), new Vector4(), new Vector4()];
@@ -172,9 +172,8 @@ export class CascadedShadowCaster {
     const worldPos = CascadedShadowCaster._tempWorldPos;
     worldPos.copyFrom(light.entity.transform.worldPosition);
 
-    this._shadowInfos[shadowIndex * 4] = light.shadowBias;
-    this._shadowInfos[shadowIndex * 4 + 1] = light.shadowStrength;
-    this._shadowInfos[shadowIndex * 4 + 2] = light.shadowRadius / this._shadowMapResolution;
+    this._shadowInfos[shadowIndex * 2] = light.shadowStrength;
+    this._shadowInfos[shadowIndex * 2 + 1] = light.shadowRadius / this._shadowMapResolution;
     this._depthMap.push(<Texture2D>this._renderTargets[shadowIndex].depthTexture);
 
     const frustumCorners = [

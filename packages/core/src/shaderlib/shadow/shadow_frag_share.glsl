@@ -1,7 +1,7 @@
 #ifdef CASCADED_SHADOW_MAP_COUNT
 
-// bias, intensity, radius
-uniform vec4 u_shadowInfos[CASCADED_SHADOW_MAP_COUNT];
+// intensity, radius
+uniform vec2 u_shadowInfos[CASCADED_SHADOW_MAP_COUNT];
 uniform mat4 u_viewProjMatFromLight[4 * CASCADED_SHADOW_MAP_COUNT];
 uniform vec4 u_cascade;
 
