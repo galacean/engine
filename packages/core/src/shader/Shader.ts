@@ -170,7 +170,7 @@ export class Shader {
     Shader._getNamesByMacros(macroCollection, macroNameList);
     const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
-    const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_GLES3" : "#define GRAPHICS_API_GLES2";
+    const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_WEBGL2" : "#define GRAPHICS_API_WEBGL1";
     let precisionStr = `
     #ifdef GL_FRAGMENT_PRECISION_HIGH
       precision highp float;
