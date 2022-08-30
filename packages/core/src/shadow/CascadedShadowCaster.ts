@@ -16,6 +16,9 @@ import { ShadowMode } from "./enum/ShadowMode";
  */
 export class CascadedShadowCaster {
   private static _lightViewProjMatProperty = Shader.getPropertyByName("u_lightViewProjMat");
+  private static _lightShadowBiasProperty = Shader.getPropertyByName("u_shadowBias");
+  private static _lightShadowNormalBiasProperty = Shader.getPropertyByName("u_shadowNormalBias");
+  private static _lightDirectionProperty = Shader.getPropertyByName("u_lightDirection");
 
   private static _viewProjMatFromLightProperty = Shader.getPropertyByName("u_viewProjMatFromLight");
   private static _shadowInfosProperty = Shader.getPropertyByName("u_shadowInfos");
@@ -112,6 +115,7 @@ export class CascadedShadowCaster {
       _viewport: viewport
     } = this;
     const { engine, scene } = camera;
+    const sceneShaderData = scene.shaderData;
     const lights = engine._lightManager._directLights;
     const componentsManager = engine._componentsManager;
     const rhi = engine._hardwareRenderer;
@@ -127,12 +131,16 @@ export class CascadedShadowCaster {
           rhi.activeRenderTarget(renderTarget, null, 0);
           rhi.clearRenderTarget(camera.engine, CameraClearFlags.Depth, null);
 
+          sceneShaderData.setFloat(CascadedShadowCaster._lightShadowBiasProperty, lgt.shadowBias);
+          sceneShaderData.setFloat(CascadedShadowCaster._lightShadowNormalBiasProperty, lgt.shadowNormalBias);
+          sceneShaderData.setVector3(CascadedShadowCaster._lightDirectionProperty, lgt.direction);
+
           this._updateCascadesShadow(shadowMapCount, lgt);
           for (let j = 0; j < shadowCascades; j++) {
             const vpMatrixBegin = shadowMapCount * 64 + 16 * j;
             viewProjMatrix.copyFromArray(this._vpMatrix.subarray(vpMatrixBegin, vpMatrixBegin + 16));
             frustums.calculateFromMatrix(viewProjMatrix);
-            scene.shaderData.setMatrix(CascadedShadowCaster._lightViewProjMatProperty, viewProjMatrix);
+            sceneShaderData.setMatrix(CascadedShadowCaster._lightViewProjMatProperty, viewProjMatrix);
 
             opaqueQueue.clear();
             alphaTestQueue.clear();
