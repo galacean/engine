@@ -5,7 +5,6 @@
 #include <color_share>
 #include <normal_share>
 #include <worldpos_share>
-#include <shadow_share>
 
 #include <fog_share>
 #include <shadow_vert_share>

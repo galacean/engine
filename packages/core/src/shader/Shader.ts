@@ -189,8 +189,8 @@ export class Shader {
     }
 
     let vertexSource = ShaderFactory.parseIncludes(
-      `${graphicAPI}
-       ${versionStr}
+      `${versionStr}
+       ${graphicAPI}
        ${precisionStr}
        ${macroNameStr}
       ` + this._vertexSource
