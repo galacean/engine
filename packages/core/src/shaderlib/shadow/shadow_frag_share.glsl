@@ -14,7 +14,7 @@ varying vec3 view_pos;
         vec2(0, 0.5),
         vec2(0.5, 0.5)
     );
-    uniform sampler2DShadow u_shadowMaps[CASCADED_SHADOW_MAP_COUNT];
+    uniform mediump sampler2DShadow u_shadowMaps[CASCADED_SHADOW_MAP_COUNT];
     #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureLod(textureName, coord3 , 0.0)
     #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
 #else

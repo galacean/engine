@@ -4,7 +4,14 @@ import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { ShadowMapMaterial } from "./ShadowMapMaterial";
 import { BoundingFrustum, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
 import { Shader } from "../shader";
-import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
+import {
+  RenderTarget,
+  Texture2D,
+  TextureDepthCompareFunction,
+  TextureFilterMode,
+  TextureFormat,
+  TextureWrapMode
+} from "../texture";
 import { DirectLight } from "../lighting";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { ShadowUtils } from "./ShadowUtils";
@@ -344,6 +351,10 @@ export class CascadedShadowCaster {
       const depthTexture = new Texture2D(engine, width, height, format, false);
       depthTexture.wrapModeV = depthTexture.wrapModeU = TextureWrapMode.Clamp;
       depthTexture.filterMode = TextureFilterMode.Point;
+      if (engine._hardwareRenderer._isWebGL2) {
+        depthTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
+      }
+
       renderTarget = this._renderTargets[this._shadowMapCount] = new RenderTarget(
         engine,
         width,
@@ -356,6 +367,7 @@ export class CascadedShadowCaster {
   }
 
   private _updateShadowSettings() {
+    const renderTargets = this._renderTargets;
     const sceneShaderData = this._camera.scene.shaderData;
     const settings = this._camera.engine.settings;
     const shadowFormat = ShadowUtils.shadowDepthFormat(settings.shadowResolution);
@@ -380,7 +392,7 @@ export class CascadedShadowCaster {
       this._shadowMapFormat = shadowFormat;
       this._shadowMapResolution = shadowResolution;
       this._shadowCascadeMode = shadowCascades;
-      this._renderTargets.length = 0;
+      this._renderTargets.fill(null);
 
       const viewport = this._viewport;
       switch (shadowCascades) {

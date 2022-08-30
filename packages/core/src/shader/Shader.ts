@@ -198,6 +198,7 @@ export class Shader {
 
     let fragmentSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
+        ${graphicAPI}
         ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}
         ${precisionStr}
         ${macroNameStr}
