@@ -79,12 +79,12 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
             shadowAttenuation = 1.0;
 #ifdef CASCADED_SHADOW_MAP_COUNT
 #if CASCADED_SHADOW_MAP_COUNT == 1
-    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].y);
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].y, u_shadowInfos[0].z);
 #endif
 
 #if CASCADED_SHADOW_MAP_COUNT == 2
-    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].y);
-    shadowAttenuation *= sampleShadowMap(u_shadowMaps[1], u_shadowInfos[1].y);
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].y, u_shadowInfos[0].z);
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[1], u_shadowInfos[1].y, u_shadowInfos[1].z);
 #endif
 #endif
 

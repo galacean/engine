@@ -174,7 +174,7 @@ export class CascadedShadowCaster {
 
     this._shadowInfos[shadowIndex * 4] = light.shadowBias;
     this._shadowInfos[shadowIndex * 4 + 1] = light.shadowStrength;
-    this._shadowInfos[shadowIndex * 4 + 2] = light.shadowRadius;
+    this._shadowInfos[shadowIndex * 4 + 2] = light.shadowRadius / this._shadowMapResolution;
     this._depthMap.push(<Texture2D>this._renderTargets[shadowIndex].depthTexture);
 
     const frustumCorners = [
