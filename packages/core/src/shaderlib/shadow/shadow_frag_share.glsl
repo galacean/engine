@@ -2,25 +2,28 @@
 
 // bias, intensity, radius
 uniform vec4 u_shadowInfos[CASCADED_SHADOW_MAP_COUNT];
-uniform sampler2D u_shadowMaps[CASCADED_SHADOW_MAP_COUNT];
 uniform mat4 u_viewProjMatFromLight[4 * CASCADED_SHADOW_MAP_COUNT];
 uniform vec4 u_cascade;
 
 varying vec3 view_pos;
 
 #ifdef GRAPHICS_API_WEBGL2
-const vec2 offsets[4] = vec2[](
-    vec2(0, 0),
-    vec2(0.5, 0),
-    vec2(0, 0.5),
-    vec2(0.5, 0.5)
-);
+	const vec2 offsets[4] = vec2[](
+        vec2(0, 0),
+        vec2(0.5, 0),
+        vec2(0, 0.5),
+        vec2(0.5, 0.5)
+    );
+    uniform sampler2DShadow u_shadowMaps[CASCADED_SHADOW_MAP_COUNT];
+    #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureLod(textureName, coord3 , 0.0)
+    #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
+#else
+    uniform sampler2D u_shadowMaps[CASCADED_SHADOW_MAP_COUNT];
+	#define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) (texture2D(textureName, coord3.xy).r < coord3.z ? 0.0 : 1.0)
+	#define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap
 #endif
 
-/**
-* Degree of shadow.
-*/
-float getVisibility(const in sampler2D shadowMap, float bias, float intensity, float radius) {
+vec3 getShadowCoord() {
     // Get cascade index for the current fragment's view position
     int cascadeIndex = 0;
     for (int i = 0; i < 4 - 1; ++i) {
@@ -69,16 +72,31 @@ float getVisibility(const in sampler2D shadowMap, float bias, float intensity, f
     vec4 positionFromLight = viewProjMatFromLight * vec4(v_pos, 1.0);
     vec3 shadowCoord = positionFromLight.xyz / positionFromLight.w;
     shadowCoord = shadowCoord * 0.5 + 0.5;
-    vec2 xy = shadowCoord.xy;
-    xy.x *= scaleX;
-    xy.y *= scaleY;
-    xy += offsets;
-    float depth = texture2D(shadowMap, xy).x;
-    if (depth <= shadowCoord.z ) {
-        return 0.0;
-    } else {
-        return 1.0;
+    vec3 coord = shadowCoord.xyz;
+    coord.x *= scaleX;
+    coord.y *= scaleY;
+    coord.xy += offsets;
+    return coord;
+}
+
+float sampleShadowMap(TEXTURE2D_SHADOW_PARAM(shadowMap), float strength) {
+    vec3 shadowCoord = getShadowCoord();
+    float attenuation = 1.0;
+    if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
+#if SHADOW_FILTER_COUNT == 1
+        attenuation = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord);
+#endif
+
+#if SHADOW_FILTER_COUNT == 4
+        attenuation = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord);
+#endif
+
+#if SHADOW_FILTER_COUNT == 9
+        attenuation = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord);
+#endif
+	    attenuation = mix(1.0, attenuation, strength);
     }
+    return attenuation;
 }
 
 #endif

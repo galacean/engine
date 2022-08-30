@@ -11,7 +11,6 @@
 
 #include <fog_share>
 #include <normal_get>
-#include <shadow_frag_share>
 
 void main() {
 
@@ -21,8 +20,6 @@ void main() {
 
     gl_FragColor = emission + ambient + diffuse + specular;
     gl_FragColor.a = diffuse.a;
-
-    #include <shadow_frag>
 
     #ifndef OASIS_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);
