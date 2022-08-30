@@ -56,7 +56,7 @@ export class CascadedShadowCaster {
 
   // 4 viewProj matrix for cascade shadow
   private _vpMatrix = new Float32Array(64 * CascadedShadowCaster.MAX_SHADOW);
-  // bias, strength, radius, whether cascade
+  // bias, strength, radius
   private _shadowInfos = new Float32Array(4 * CascadedShadowCaster.MAX_SHADOW);
   private _depthMap: Texture2D[] = [];
   private _renderTargets = new Array<RenderTarget>(CascadedShadowCaster.MAX_SHADOW);
@@ -173,7 +173,6 @@ export class CascadedShadowCaster {
     this._shadowInfos[shadowIndex * 4] = light.shadowBias;
     this._shadowInfos[shadowIndex * 4 + 1] = light.shadowStrength;
     this._shadowInfos[shadowIndex * 4 + 2] = light.shadowRadius;
-    this._shadowInfos[shadowIndex * 4 + 3] = 1;
     this._depthMap.push(<Texture2D>this._renderTargets[shadowIndex].depthTexture);
 
     const frustumCorners = [
@@ -348,10 +347,16 @@ export class CascadedShadowCaster {
   }
 
   private _updateShadowSettings() {
+    const sceneShaderData = this._camera.scene.shaderData;
     const settings = this._camera.engine.settings;
     const shadowFormat = ShadowUtils.shadowDepthFormat(settings.shadowResolution);
     const shadowResolution = ShadowUtils.shadowResolution(settings.shadowResolution);
     const shadowCascades = settings.shadowCascades;
+    if (shadowCascades !== this._shadowCascadeMode) {
+      sceneShaderData.disableMacro("CASCADED_COUNT");
+      sceneShaderData.enableMacro("CASCADED_COUNT", shadowCascades.toString());
+    }
+
     if (
       shadowFormat !== this._shadowMapFormat ||
       shadowResolution !== this._shadowMapResolution ||
