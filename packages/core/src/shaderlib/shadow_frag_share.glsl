@@ -51,13 +51,17 @@ float getVisibility(const in sampler2D shadowMap, float bias, float intensity, f
     }
 #endif
 
-#if (CASCADED_COUNT == 1)
+#if CASCADED_COUNT == 1
     float scaleX = 1.0;
     float scaleY = 1.0;
-#elseif (CASCADED_COUNT == 2)
+#endif
+
+#if CASCADED_COUNT == 2
     float scaleX = 0.5;
     float scaleY = 1.0;
-#elseif (CASCADED_COUNT == 4)
+#endif
+
+#if CASCADED_COUNT == 4
     float scaleX = 0.5;
     float scaleY = 0.5;
 #endif
