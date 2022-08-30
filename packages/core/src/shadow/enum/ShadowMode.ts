@@ -7,7 +7,7 @@ export enum ShadowMode {
   /** Hard Shadows Only. */
   Hard,
   /** Cast "soft" shadows (with 4x PCF filtering). */
-  SoftLow,
+  SoftLow = 4,
   /** Cast "soft" shadows (with 9x PCF filtering). */
-  SoftHigh
+  SoftHigh = 9
 }

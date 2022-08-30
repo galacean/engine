@@ -1,5 +1,5 @@
 import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { Background, RenderElement, RenderQueueType, SpriteElement } from "..";
+import { Background, RenderElement, RenderQueueType, ShadowMode, SpriteElement } from "..";
 import { SpriteMask } from "../2d";
 import { Logger } from "../base";
 import { Camera } from "../Camera";
@@ -13,8 +13,7 @@ import { Material } from "../material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { Sky } from "../sky";
-import { TextureCubeFace } from "../texture";
-import { RenderTarget } from "../texture";
+import { RenderTarget, TextureCubeFace } from "../texture";
 import { RenderContext } from "./RenderContext";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
@@ -151,7 +150,9 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
-    this._cascadedShadowCaster._render();
+    if (camera.engine.settings.shadowMode !== ShadowMode.None) {
+      this._cascadedShadowCaster._render();
+    }
 
     opaqueQueue.clear();
     alphaTestQueue.clear();

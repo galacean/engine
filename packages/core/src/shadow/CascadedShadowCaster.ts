@@ -9,6 +9,7 @@ import { DirectLight } from "../lighting";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { ShadowUtils } from "./ShadowUtils";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
+import { ShadowMode } from "./enum/ShadowMode";
 
 /**
  * Cascade shadow caster.
@@ -46,6 +47,7 @@ export class CascadedShadowCaster {
   private readonly _camera: Camera;
   private readonly _shadowMapMaterial: ShadowMapMaterial;
 
+  private _shadowMode: ShadowMode;
   private _shadowMapResolution: number;
   private _shadowMapFormat: TextureFormat;
   private _shadowCascadeMode: ShadowCascadesMode;
@@ -355,6 +357,12 @@ export class CascadedShadowCaster {
     if (shadowCascades !== this._shadowCascadeMode) {
       sceneShaderData.disableMacro("CASCADED_COUNT");
       sceneShaderData.enableMacro("CASCADED_COUNT", shadowCascades.toString());
+    }
+    const shadowMode = settings.shadowMode;
+    if (shadowMode !== this._shadowMode) {
+      sceneShaderData.disableMacro("SHADOW_FILTER_COUNT");
+      sceneShaderData.enableMacro("SHADOW_FILTER_COUNT", shadowMode.toString());
+      this._shadowMode = shadowMode;
     }
 
     if (
