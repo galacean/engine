@@ -76,11 +76,16 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
 	    float shadowAttenuation = 1.0;
 
 	    #ifdef O3_DIRECT_LIGHT_COUNT
-#ifdef CASCADED_SHADOW_MAP_COUNT
             shadowAttenuation = 1.0;
-            for ( int i = 0; i < CASCADED_SHADOW_MAP_COUNT; i ++ ) {
-                shadowAttenuation *= sampleShadowMap(u_shadowMaps[i], u_shadowInfos[i].y);
-            }
+#ifdef CASCADED_SHADOW_MAP_COUNT
+#if CASCADED_SHADOW_MAP_COUNT == 1
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].y);
+#endif
+
+#if CASCADED_SHADOW_MAP_COUNT == 2
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].y);
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[1], u_shadowInfos[1].y);
+#endif
 #endif
 
             DirectLight directionalLight;

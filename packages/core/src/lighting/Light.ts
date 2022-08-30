@@ -21,7 +21,7 @@ export abstract class Light extends Component {
   /** Shadow bias.*/
   shadowBias: number = 0.005;
   /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
-  shadowStrength: number = 0.2;
+  shadowStrength: number = 1.0;
   /** Pixel range used for shadow PCF interpolation. */
   shadowRadius: number = 1;
   /** Near plane value to use for shadow frustums. */
