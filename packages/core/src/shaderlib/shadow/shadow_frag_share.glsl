@@ -79,6 +79,7 @@ vec3 getShadowCoord() {
     return coord;
 }
 
+#if SHADOW_FILTER_COUNT == 4
 float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, float offset) {
     float attenuation;
     vec4 attenuation4;
@@ -93,6 +94,7 @@ float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoo
     attenuation = dot(attenuation4, vec4(0.25));
     return attenuation;
 }
+#endif
 
 float sampleShadowMap(TEXTURE2D_SHADOW_PARAM(shadowMap), float strength, float offset) {
     vec3 shadowCoord = getShadowCoord();
@@ -104,10 +106,6 @@ float sampleShadowMap(TEXTURE2D_SHADOW_PARAM(shadowMap), float strength, float o
 
 #if SHADOW_FILTER_COUNT == 4
         attenuation = sampleShadowMapFiltered4(shadowMap, shadowCoord, offset);
-#endif
-
-#if SHADOW_FILTER_COUNT == 9
-        attenuation = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord);
 #endif
 	    attenuation = mix(1.0, attenuation, strength);
     }
