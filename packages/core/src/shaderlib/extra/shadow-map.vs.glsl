@@ -1,8 +1,7 @@
 #include <common_vert>
 #include <blendShape_input>
 #include <normal_share>
-uniform mat4 u_lightViewMat;
-uniform mat4 u_lightProjMat;
+uniform mat4 u_lightViewProjMat;
 
 void main() {
 
@@ -10,6 +9,6 @@ void main() {
     #include <begin_normal_vert>
     #include <blendShape_vert>
     #include <skinning_vert>
-    gl_Position = u_lightProjMat * u_lightViewMat * u_modelMat * position;
+    gl_Position = u_lightViewProjMat * u_modelMat * position;
 
 }

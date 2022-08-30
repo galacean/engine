@@ -38,6 +38,7 @@ export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export * from "./input/index";
 export * from "./lighting/index";
+export * from "./shadow/index";
 export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";

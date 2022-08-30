@@ -18,7 +18,7 @@ import { RenderTarget } from "../texture";
 import { RenderContext } from "./RenderContext";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { ShadowManager } from "../shadow/ShadowManager";
+import { CascadedShadowCaster } from "../shadow/CascadedShadowCaster";
 
 /**
  * Basic render pipeline.
@@ -40,7 +40,7 @@ export class BasicRenderPipeline {
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
-  private _shadowManager: ShadowManager;
+  private _cascadedShadowCaster: CascadedShadowCaster;
 
   /**
    * Create a basic render pipeline.
@@ -52,7 +52,12 @@ export class BasicRenderPipeline {
     this._opaqueQueue = new RenderQueue(engine);
     this._alphaTestQueue = new RenderQueue(engine);
     this._transparentQueue = new RenderQueue(engine);
-    this._shadowManager = new ShadowManager(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
+    this._cascadedShadowCaster = new CascadedShadowCaster(
+      camera,
+      this._opaqueQueue,
+      this._alphaTestQueue,
+      this._transparentQueue
+    );
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -88,7 +93,7 @@ export class BasicRenderPipeline {
       this._renderPassArray.push(nameOrPass);
     }
 
-    this._renderPassArray.sort(function(p1, p2) {
+    this._renderPassArray.sort(function (p1, p2) {
       return p1.priority - p2.priority;
     });
   }
@@ -146,7 +151,7 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
-    this._shadowManager.render();
+    this._cascadedShadowCaster._render();
 
     opaqueQueue.clear();
     alphaTestQueue.clear();
@@ -171,7 +176,7 @@ export class BasicRenderPipeline {
       const { background } = scene;
       const rhi = engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
-      rhi.activeRenderTarget(renderTarget, camera, mipLevel); // change viewport with mip level
+      rhi.activeRenderTarget(renderTarget, camera.viewport, mipLevel);
       renderTarget?._setRenderTargetInfo(cubeFace, mipLevel);
       const clearFlags = pass.clearFlags ?? camera.clearFlags;
       const color = pass.clearColor ?? background.solidColor;

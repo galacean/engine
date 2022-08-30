@@ -1,47 +1,65 @@
-#ifdef O3_SHADOW_MAP_COUNT
+#ifdef CASCADED_SHADOW_MAP_COUNT
 
-uniform float u_shadowBias[O3_SHADOW_MAP_COUNT];
-uniform float u_shadowIntensity[O3_SHADOW_MAP_COUNT];
-uniform float u_shadowRadius[O3_SHADOW_MAP_COUNT];
-uniform vec2 u_shadowMapSize[O3_SHADOW_MAP_COUNT];
-uniform sampler2D u_shadowMaps[O3_SHADOW_MAP_COUNT];
+// bias, intensity, radius, whether cascade
+uniform vec4 u_shadowInfos[CASCADED_SHADOW_MAP_COUNT];
+uniform sampler2D u_shadowMaps[CASCADED_SHADOW_MAP_COUNT];
+uniform mat4 u_viewProjMatFromLight[4 * CASCADED_SHADOW_MAP_COUNT];
+uniform vec4 u_cascade;
 
-varying vec4 v_PositionFromLight[O3_SHADOW_MAP_COUNT];
+varying vec3 view_pos;
 
-const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
-
-/**
-* Unpack depth value.
-*/
-float unpack(const in vec4 rgbaDepth) {
-  return dot(rgbaDepth, bitShift);
-}
+//const vec2 offsets[4] = vec2[](
+//    vec2(0, 0),
+//    vec2(0.5, 0),
+//    vec2(0, 0.5),
+//    vec2(0.5, 0.5)
+//);
 
 /**
 * Degree of shadow.
 */
-float getVisibility(vec4 positionFromLight, const in sampler2D shadowMap, vec2 mapSize, float intensity, float bias, float radius) {
+float getVisibility(const in sampler2D shadowMap, float bias, float intensity, float radius) {
+    // Get cascade index for the current fragment's view position
+    int cascadeIndex = 0;
+    float scale = 1.0;
+    vec2 offsets = vec2(0.0);
+    mat4 viewProjMatFromLight;
 
-    vec3 shadowCoord = (positionFromLight.xyz/positionFromLight.w)/2.0 + 0.5;
-    float filterX = step(0.0, shadowCoord.x) * (1.0 - step(1.0, shadowCoord.x));
-    float filterY = step(0.0, shadowCoord.y) * (1.0 - step(1.0, shadowCoord.y));
+    if (u_shadowInfos[0].w != 0.0) {
+        scale = 0.5;
+        for (int i = 0; i < 4 - 1; ++i) {
+            if (view_pos.z < u_cascade[i]) {
+                cascadeIndex = i + 1;
+            }
+        }
 
-    shadowCoord.z -= bias;
-    vec2 texelSize = vec2( 1.0 ) / mapSize;
-
-    float visibility = 0.0;
-    for (float y = -1.0 ; y <=1.0 ; y+=1.0) {
-      for (float x = -1.0 ; x <=1.0 ; x+=1.0) {
-        vec2 uv = shadowCoord.xy + texelSize * vec2(x, y) * radius;
-        vec4 rgbaDepth = texture2D(shadowMap, uv);
-        float depth = unpack(rgbaDepth);
-        visibility += step(depth, shadowCoord.z) * intensity;
-      }
+        if (cascadeIndex == 0) {
+            viewProjMatFromLight = u_viewProjMatFromLight[0];
+            offsets = vec2(0.0, 0.0);
+        } else if (cascadeIndex == 1) {
+            viewProjMatFromLight = u_viewProjMatFromLight[1];
+            offsets = vec2(0.5, 0.0);
+        } else if (cascadeIndex == 2) {
+            viewProjMatFromLight = u_viewProjMatFromLight[2];
+            offsets = vec2(0.0, 0.5);
+        } else {
+            viewProjMatFromLight = u_viewProjMatFromLight[3];
+            offsets = vec2(0.5, 0.5);
+        }
     }
 
-    visibility *= ( 1.0 / 9.0 );
-    return visibility * filterX * filterY;
-
+    vec4 positionFromLight = viewProjMatFromLight * vec4(v_pos, 1.0);
+    vec3 shadowCoord = positionFromLight.xyz / positionFromLight.w;
+    shadowCoord = shadowCoord * 0.5 + 0.5;
+    vec2 xy = shadowCoord.xy;
+    xy *= scale;
+    xy += offsets;
+    float depth = texture2D(shadowMap, xy).x;
+    if (depth <= shadowCoord.z - bias ) {
+        return 0.0;
+    } else {
+        return 1.0;
+    }
 }
 
 #endif

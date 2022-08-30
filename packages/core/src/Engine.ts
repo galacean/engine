@@ -1,5 +1,5 @@
 import { BoundingBox, Vector3 } from "@oasis-engine/math";
-import { ColorSpace } from ".";
+import { ColorSpace, ShadowCascadesMode, ShadowMode, ShadowResolution } from ".";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
@@ -104,6 +104,34 @@ export class Engine extends EventDispatcher {
    */
   get settings(): Readonly<EngineSettings> {
     return this._settings;
+  }
+
+  /**
+   * How this light casts shadows.
+   */
+  set shadowMode(value: ShadowMode) {
+    this._settings.shadowMode = value;
+  }
+
+  /**
+   * The default resolution of the shadow maps.
+   */
+  set shadowResolution(value: ShadowResolution) {
+    this._settings.shadowResolution = value;
+  }
+
+  /**
+   * Mode of cascades to use for directional light shadows.
+   */
+  set shadowCascades(value: ShadowCascadesMode) {
+    this._settings.shadowCascades = value;
+  }
+
+  /**
+   * The ratio of cascade distribution.
+   */
+  set shadowCascadeSplitRatio(value: number) {
+    this._settings.shadowCascadeSplitRatio = value;
   }
 
   /**
@@ -220,9 +248,14 @@ export class Engine extends EventDispatcher {
     this._backgroundTextureMaterial.isGCIgnored = true;
     this._backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
 
+    const innerSettings = this._settings;
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
-    this._settings.colorSpace = colorSpace;
+    innerSettings.colorSpace = colorSpace;
+    innerSettings.shadowMode = settings?.shadowMode || ShadowMode.SoftLow;
+    innerSettings.shadowResolution = settings?.shadowResolution || ShadowResolution.Medium;
+    innerSettings.shadowCascades = settings?.shadowCascades || ShadowCascadesMode.NoCascades;
+    innerSettings.shadowCascadeSplitRatio = settings?.shadowCascadeSplitRatio || 0.95;
   }
 
   /**

@@ -1,9 +1,4 @@
-    #ifdef O3_SHADOW_MAP_COUNT
-
-    for (int i = 0; i < O3_SHADOW_MAP_COUNT; i++) {
-
-        v_PositionFromLight[i] = u_projMatFromLight[i] * u_viewMatFromLight[i] * u_modelMat * vec4( POSITION, 1.0 );
-
-    }
-
-    #endif
+#ifdef CASCADED_SHADOW_MAP_COUNT
+    vec4 view_pos4 = u_viewMat * u_modelMat * position;
+    view_pos = view_pos4.xyz / view_pos4.w;
+#endif
