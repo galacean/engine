@@ -7,7 +7,8 @@ import { ComponentsManager } from "./ComponentsManager";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { InputManager } from "./input";
-import { RenderQueueType, Material } from "./material";
+import { LightManager } from "./lighting/LightManager";
+import { Material, RenderQueueType } from "./material";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
@@ -18,14 +19,13 @@ import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { CompareFunction, BlendFactor, BlendOperation, ColorWriteMask, CullMode, Shader } from "./shader";
+import { BlendFactor, BlendOperation, ColorWriteMask, CompareFunction, CullMode, Shader } from "./shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
-import { LightManager } from "./lighting/LightManager";
 
 ShaderPool.init();
 
