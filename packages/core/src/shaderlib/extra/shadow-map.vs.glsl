@@ -28,7 +28,7 @@ void main() {
     vec4 temp_pos = u_modelMat * position;
     vec3 v_pos = temp_pos.xyz / temp_pos.w;
 
-    v_pos = applyShadowNormalBias(v_pos);
+    v_pos = applyShadowBias(v_pos);
     #ifndef OMIT_NORMAL
         #ifdef O3_HAS_NORMAL
             v_pos = applyShadowNormalBias(v_pos, v_normal);
