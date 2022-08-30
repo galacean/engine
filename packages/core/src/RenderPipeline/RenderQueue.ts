@@ -90,7 +90,7 @@ export class RenderQueue {
         const switchProgram = program.bind();
         const switchRenderCount = renderCount !== program._uploadRenderCount;
 
-        if (switchRenderCount) {
+        if (true) {
           program.groupingOtherUniformBlock();
           program.uploadAll(program.sceneUniformBlock, sceneData);
           program.uploadAll(program.cameraUniformBlock, cameraData);
@@ -109,7 +109,7 @@ export class RenderQueue {
           } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
-          
+
           if (program._uploadRenderer !== renderer) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRenderer = renderer;

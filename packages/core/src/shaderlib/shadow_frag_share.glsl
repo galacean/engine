@@ -55,7 +55,7 @@ float getVisibility(const in sampler2D shadowMap, float bias, float intensity, f
     xy *= scale;
     xy += offsets;
     float depth = texture2D(shadowMap, xy).x;
-    if (depth <= shadowCoord.z - bias ) {
+    if (depth <= shadowCoord.z ) {
         return 0.0;
     } else {
         return 1.0;

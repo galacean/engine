@@ -4,7 +4,7 @@ import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { ShadowMapMaterial } from "./ShadowMapMaterial";
 import { BoundingFrustum, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
 import { Shader } from "../shader";
-import { RenderTarget, Texture2D, TextureFormat, TextureWrapMode } from "../texture";
+import { RenderTarget, Texture2D, TextureFilterMode, TextureFormat, TextureWrapMode } from "../texture";
 import { DirectLight } from "../lighting";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { ShadowUtils } from "./ShadowUtils";
@@ -335,7 +335,7 @@ export class CascadedShadowCaster {
     ) {
       const depthTexture = new Texture2D(engine, width, height, format, false);
       depthTexture.wrapModeV = depthTexture.wrapModeU = TextureWrapMode.Clamp;
-
+      depthTexture.filterMode = TextureFilterMode.Point;
       renderTarget = this._renderTargets[this._shadowMapCount] = new RenderTarget(
         engine,
         width,
