@@ -8,27 +8,18 @@ export class ShadowUtils {
   static shadowResolution(value: ShadowResolution): number {
     switch (value) {
       case ShadowResolution.Low:
-        return 256;
-      case ShadowResolution.Medium:
         return 512;
-      case ShadowResolution.High:
+      case ShadowResolution.Medium:
         return 1024;
-      case ShadowResolution.VeryHigh:
+      case ShadowResolution.High:
         return 2048;
+      case ShadowResolution.VeryHigh:
+        return 4096;
     }
   }
 
   static shadowDepthFormat(value: ShadowResolution): TextureFormat {
-    switch (value) {
-      case ShadowResolution.Low:
-        return TextureFormat.Depth16;
-      case ShadowResolution.Medium:
-        return TextureFormat.Depth16;
-      case ShadowResolution.High:
-        return TextureFormat.Depth16;
-      case ShadowResolution.VeryHigh:
-        return TextureFormat.Depth16;
-    }
+    return TextureFormat.Depth16;
   }
 
   static shadowCullFrustum(camera: Camera, renderer: Renderer, frustum: BoundingFrustum) {
