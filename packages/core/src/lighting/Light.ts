@@ -19,7 +19,7 @@ export abstract class Light extends Component {
   /** whether enable shadow */
   enableShadow: boolean = false;
   /** Shadow bias.*/
-  shadowBias: number = 0.005;
+  shadowBias: number = 0.1;
   /** Shadow mapping normal-based bias. */
   shadowNormalBias: number = 0;
   /** Near plane value to use for shadow frustums. */

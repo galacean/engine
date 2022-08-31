@@ -38,14 +38,25 @@ export class CascadedShadowCaster {
   private static _tempWorldPos = new Vector3();
 
   private static _frustumCorners = [
-    new Vector3(-1.0, 1.0, -1.0),
-    new Vector3(1.0, 1.0, -1.0),
-    new Vector3(1.0, -1.0, -1.0),
-    new Vector3(-1.0, -1.0, -1.0),
-    new Vector3(-1.0, 1.0, 1.0),
-    new Vector3(1.0, 1.0, 1.0),
-    new Vector3(1.0, -1.0, 1.0),
-    new Vector3(-1.0, -1.0, 1.0)
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3()
+  ];
+
+  private static _NDC = [
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3(),
+    new Vector3()
   ];
 
   /** Max shadowMap count */
@@ -194,22 +205,21 @@ export class CascadedShadowCaster {
     this._shadowInfos[shadowIndex * 2 + 1] = light.shadowRadius / this._shadowMapResolution;
     this._depthMap.push(<Texture2D>this._renderTargets[shadowIndex].depthTexture);
 
-    const frustumCorners = [
-      new Vector3(-1.0, 1.0, -1.0),
-      new Vector3(1.0, 1.0, -1.0),
-      new Vector3(1.0, -1.0, -1.0),
-      new Vector3(-1.0, -1.0, -1.0),
-      new Vector3(-1.0, 1.0, 1.0),
-      new Vector3(1.0, 1.0, 1.0),
-      new Vector3(1.0, -1.0, 1.0),
-      new Vector3(-1.0, -1.0, 1.0)
-    ];
+    const NDC = CascadedShadowCaster._NDC;
+    NDC[0].set(-1.0, 1.0, -1.0);
+    NDC[1].set(1.0, 1.0, -1.0);
+    NDC[2].set(1.0, -1.0, -1.0);
+    NDC[3].set(-1.0, -1.0, -1.0);
+    NDC[4].set(-1.0, 1.0, 1.0);
+    NDC[5].set(1.0, 1.0, 1.0);
+    NDC[6].set(1.0, -1.0, 1.0);
+    NDC[7].set(-1.0, -1.0, 1.0);
 
     // Project frustum corners into world space
     Matrix.multiply(camera.projectionMatrix, camera.viewMatrix, viewMatrix);
     const invCam = viewMatrix.invert();
     for (let i = 0; i < 8; i++) {
-      Vector3.transformCoordinate(frustumCorners[i], invCam, frustumCorners[i]);
+      Vector3.transformCoordinate(NDC[i], invCam, NDC[i]);
     }
 
     // Calculate orthographic projection matrix for each cascade
@@ -218,11 +228,11 @@ export class CascadedShadowCaster {
       const splitDist = cascadeSplitRatio[i];
       const _frustumCorners = CascadedShadowCaster._frustumCorners;
       for (let j = 0; j < 4; j++) {
-        Vector3.subtract(frustumCorners[j + 4], frustumCorners[j], vector);
-        _frustumCorners[j + 4].copyFrom(frustumCorners[j]);
+        Vector3.subtract(NDC[j + 4], NDC[j], vector);
+        _frustumCorners[j + 4].copyFrom(NDC[j]);
         _frustumCorners[j + 4].add(vector.scale(splitDist));
 
-        _frustumCorners[j].copyFrom(frustumCorners[j]);
+        _frustumCorners[j].copyFrom(NDC[j]);
         _frustumCorners[j].add(vector.scale(lastSplitDist / splitDist));
       }
 

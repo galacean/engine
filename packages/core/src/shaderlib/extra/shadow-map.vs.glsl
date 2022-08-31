@@ -7,12 +7,12 @@ uniform float u_shadowNormalBias;
 uniform vec3 u_lightDirection;
 
 vec3 applyShadowBias(vec3 positionWS) {
-    positionWS -= u_lightDirection * u_shadowBias;
+    positionWS += u_lightDirection * u_shadowBias;
     return positionWS;
 }
 
 vec3 applyShadowNormalBias(vec3 positionWS, vec3 normalWS) {
-    float invNdotL = 1.0 - clamp(dot(-u_lightDirection, normalWS), 0.0, 1.0);
+    float invNdotL = 1.0 - clamp(dot(u_lightDirection, normalWS), 0.0, 1.0);
     float scale = invNdotL * u_shadowNormalBias;
     positionWS += normalWS * vec3(scale);
     return positionWS;
