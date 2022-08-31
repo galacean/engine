@@ -79,7 +79,7 @@ export class CascadedShadowCaster {
 
   // 4 viewProj matrix for cascade shadow
   private _vpMatrix = new Float32Array(64 * CascadedShadowCaster.MAX_SHADOW);
-  // bias, strength, radius
+  // strength, resolution
   private _shadowInfos = new Float32Array(2 * CascadedShadowCaster.MAX_SHADOW);
   private _depthMap: Texture2D[] = [];
   private _renderTargets = new Array<RenderTarget>(CascadedShadowCaster.MAX_SHADOW);
@@ -202,7 +202,7 @@ export class CascadedShadowCaster {
     worldPos.copyFrom(light.entity.transform.worldPosition);
 
     this._shadowInfos[shadowIndex * 2] = light.shadowStrength;
-    this._shadowInfos[shadowIndex * 2 + 1] = light.shadowRadius / this._shadowMapResolution;
+    this._shadowInfos[shadowIndex * 2 + 1] = this._shadowMapResolution;
     this._depthMap.push(<Texture2D>this._renderTargets[shadowIndex].depthTexture);
 
     const NDC = CascadedShadowCaster._NDC;
@@ -392,8 +392,8 @@ export class CascadedShadowCaster {
     }
     const shadowMode = settings.shadowMode;
     if (shadowMode !== this._shadowMode) {
-      sceneShaderData.disableMacro("SHADOW_FILTER_COUNT");
-      sceneShaderData.enableMacro("SHADOW_FILTER_COUNT", shadowMode.toString());
+      sceneShaderData.disableMacro("SHADOW_MODE");
+      sceneShaderData.enableMacro("SHADOW_MODE", shadowMode.toString());
       this._shadowMode = shadowMode;
     }
 

@@ -23,7 +23,7 @@ export class ShadowUtils {
   }
 
   static shadowCullFrustum(camera: Camera, renderer: Renderer, frustum: BoundingFrustum) {
-    if (renderer.castShadows && frustum.intersectsBox(renderer.bounds)) {
+    if (renderer.castShadows) {
       renderer._render(camera);
     }
   }

@@ -27,8 +27,6 @@ export abstract class Light extends Component {
 
   /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
   shadowStrength: number = 1.0;
-  /** Pixel range used for shadow PCF interpolation from 0 to 1 */
-  shadowRadius: number = 0.1;
 
   /** @internal */
   @ignoreClone
