@@ -81,7 +81,10 @@ export class CascadedShadowCaster {
     this._transparentQueue = transparentQueue;
 
     this._shadowMapMaterial = new ShadowMapMaterial(camera.engine);
-    this._updateShadowSettings();
+    const scene = camera.scene;
+    if (scene !== undefined && scene !== null) {
+      this._updateShadowSettings();
+    }
   }
 
   /**

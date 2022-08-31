@@ -7,13 +7,24 @@
 
     vec3 lightDiffuse = vec3( 0.0, 0.0, 0.0 );
     vec3 lightSpecular = vec3( 0.0, 0.0, 0.0 );
+    float shadowAttenuation = 1.0;
 
     #ifdef O3_DIRECT_LIGHT_COUNT
-    
-    DirectLight directionalLight;
+    shadowAttenuation = 1.0;
+#ifdef CASCADED_SHADOW_MAP_COUNT
+#if CASCADED_SHADOW_MAP_COUNT == 1
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].x, u_shadowInfos[0].y);
+#endif
 
+#if CASCADED_SHADOW_MAP_COUNT == 2
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].x, u_shadowInfos[0].y);
+    shadowAttenuation *= sampleShadowMap(u_shadowMaps[1], u_shadowInfos[1].x, u_shadowInfos[1].y);
+#endif
+#endif
+
+    DirectLight directionalLight;
     for( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i++ ) {
-        directionalLight.color = u_directLightColor[i];
+        directionalLight.color = u_directLightColor[i] * shadowAttenuation;
         directionalLight.direction = u_directLightDirection[i];
 
         float d = max(dot(N, -directionalLight.direction), 0.0);
