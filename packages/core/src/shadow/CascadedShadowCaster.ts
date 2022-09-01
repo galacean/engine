@@ -17,6 +17,7 @@ import { ShadowUtils } from "./ShadowUtils";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
 import { ShadowMode } from "./enum/ShadowMode";
 import { ShadowSliceData } from "./ShadowSliceData";
+import { DirectLight, Light } from "../lighting";
 
 /**
  * Cascade shadow caster.
@@ -118,16 +119,16 @@ export class CascadedShadowCaster {
       _shadowMapCount: shadowMapCount,
       _viewport: viewport,
       _shadowSliceData: shadowSliceData,
-      _splitBoundSpheres: splitBoundSpheres
+      _splitBoundSpheres: splitBoundSpheres,
+      _vpMatrix: vpMatrix
     } = this;
     const { engine, scene } = camera;
-    const sceneShaderData = scene.shaderData;
     const lights = engine._lightManager._directLights;
     const componentsManager = engine._componentsManager;
     const rhi = engine._hardwareRenderer;
     const shadowCascades = engine.settings.shadowCascades;
     const splitDistance = CascadedShadowCaster._cascadesSplitDistance;
-
+    const boundSphere = shadowSliceData.splitBoundSphere;
     const lightWorld = CascadedShadowCaster._tempMatrix0;
     const lightWorldE = lightWorld.elements;
     const lightUp = this._lightUp;
@@ -139,24 +140,20 @@ export class CascadedShadowCaster {
       for (let i = 0, len = lights.length; i < len; i++) {
         const lgt = lights.get(i);
         if (lgt.enableShadow && shadowMapCount < CascadedShadowCaster.MAX_SHADOW) {
+          // prepare render target
           const renderTarget = this._getAvailableRenderTarget(shadowCascades);
           rhi.activeRenderTarget(renderTarget, null, 0);
           rhi.clearRenderTarget(camera.engine, CameraClearFlags.Depth, null);
+          this._shadowInfos[shadowMapCount * 2] = lgt.shadowStrength;
+          this._shadowInfos[shadowMapCount * 2 + 1] = this._shadowMapResolution;
+          this._depthMap.push(<Texture2D>this._renderTargets[shadowMapCount].depthTexture);
 
+          // prepare light and camera direction
           Matrix.rotationQuaternion(lgt.entity.transform.worldRotationQuaternion, lightWorld);
           lightSide.set(lightWorldE[0], lightWorldE[1], lightWorldE[2]);
           lightUp.set(lightWorldE[4], lightWorldE[5], lightWorldE[6]);
           lightForward.set(-lightWorldE[8], -lightWorldE[9], -lightWorldE[10]);
           camera.entity.transform.getWorldForward(CascadedShadowCaster._tempVector);
-
-          sceneShaderData.setFloat(CascadedShadowCaster._lightShadowBiasProperty, lgt.shadowBias);
-          sceneShaderData.setFloat(CascadedShadowCaster._lightShadowNormalBiasProperty, lgt.shadowNormalBias);
-          sceneShaderData.setVector3(CascadedShadowCaster._lightDirectionProperty, lgt.direction);
-
-          const shadowIndex = this._shadowMapCount;
-          this._shadowInfos[shadowIndex * 2] = lgt.shadowStrength;
-          this._shadowInfos[shadowIndex * 2 + 1] = this._shadowMapResolution;
-          this._depthMap.push(<Texture2D>this._renderTargets[shadowIndex].depthTexture);
 
           for (let j = 0; j < shadowCascades; j++) {
             ShadowUtils.getBoundSphereByFrustum(
@@ -183,21 +180,17 @@ export class CascadedShadowCaster {
               this._shadowMapResolution,
               shadowSliceData
             );
-            frustums.calculateFromMatrix(shadowSliceData.viewProjectMatrix);
-            sceneShaderData.setMatrix(
-              CascadedShadowCaster._lightViewProjMatProperty,
-              shadowSliceData.viewProjectMatrix
-            );
-            this._vpMatrix.set(shadowSliceData.viewProjectMatrix.elements, shadowIndex * 64 + 16 * j);
+            this._updateSingleShadowCasterShaderData(<DirectLight>lgt, shadowSliceData);
 
-            const boundSphere = shadowSliceData.splitBoundSphere;
-            const center: Vector3 = boundSphere.center;
-            const radius: number = boundSphere.radius;
-            const offset: number = j * 4;
+            // upload pre-cascade infos.
+            const center = boundSphere.center;
+            const radius = boundSphere.radius;
+            const offset = j * 4;
             splitBoundSpheres[offset] = center.x;
             splitBoundSpheres[offset + 1] = center.y;
             splitBoundSpheres[offset + 2] = center.z;
             splitBoundSpheres[offset + 3] = radius * radius;
+            vpMatrix.set(shadowSliceData.viewProjectMatrix.elements, shadowMapCount * 64 + 16 * j);
 
             opaqueQueue.clear();
             alphaTestQueue.clear();
@@ -215,14 +208,16 @@ export class CascadedShadowCaster {
             alphaTestQueue.render(camera, shadowMapMaterial, Layer.Everything);
           }
           this._shadowMapCount++;
-          //set Matrix4x4.ZERO to project the cascade index is 4
-          for (let j = shadowCascades * 4, n = 4 * 4; j < n; j++) splitBoundSpheres[j] = 0.0;
         }
       }
     }
   }
 
   private _updateShaderData() {
+    const splitBoundSpheres = this._splitBoundSpheres;
+    const shadowCascades = this._camera.engine.settings.shadowCascades;
+    for (let j = shadowCascades * 4, n = 4 * 4; j < n; j++) splitBoundSpheres[j] = 0.0;
+
     const shaderData = this._camera.scene.shaderData;
     shaderData.setFloatArray(CascadedShadowCaster._viewProjMatFromLightProperty, this._vpMatrix);
     shaderData.setFloatArray(CascadedShadowCaster._shadowInfosProperty, this._shadowInfos);
@@ -385,5 +380,21 @@ export class CascadedShadowCaster {
           viewport[3].set(shadowResolution, shadowResolution, shadowResolution, shadowResolution);
       }
     }
+  }
+
+  private _updateSingleShadowCasterShaderData(light: DirectLight, shadowSliceData: ShadowSliceData): void {
+    // Frustum size is guaranteed to be a cube as we wrap shadow frustum around a sphere
+    // elements[0] = 2.0 / (right - left)
+    const frustumSize = 2.0 / shadowSliceData.projectionMatrix.elements[0];
+    // depth and normal bias scale is in shadowMap texel size in world space
+    const texelSize = frustumSize / this._shadowMapResolution;
+    const depthBias = -light.shadowBias * texelSize;
+    const normalBias = -light.shadowNormalBias * texelSize;
+
+    const sceneShaderData = this._camera.scene.shaderData;
+    sceneShaderData.setFloat(CascadedShadowCaster._lightShadowBiasProperty, depthBias);
+    sceneShaderData.setFloat(CascadedShadowCaster._lightShadowNormalBiasProperty, normalBias);
+    sceneShaderData.setVector3(CascadedShadowCaster._lightDirectionProperty, light.direction);
+    sceneShaderData.setMatrix(CascadedShadowCaster._lightViewProjMatProperty, shadowSliceData.viewProjectMatrix);
   }
 }
