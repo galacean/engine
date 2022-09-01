@@ -7,7 +7,6 @@
 #include <worldpos_share>
 
 #include <fog_share>
-#include <shadow_vert_share>
 
 void main() {
 
@@ -20,7 +19,6 @@ void main() {
     #include <normal_vert>
     #include <worldpos_vert>
     #include <position_vert>
-    #include <shadow_vert>
 
     #include <fog_vert>
 }
