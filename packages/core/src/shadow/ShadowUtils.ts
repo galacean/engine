@@ -177,9 +177,9 @@ export class ShadowUtils {
       const normal = plane.normal;
       if (
         plane.distance +
-          normal.x * (normal.x < 0.0 ? minX : maxX) +
-          normal.y * (normal.y < 0.0 ? minY : maxY) +
-          normal.z * (normal.z < 0.0 ? minZ : maxZ) <
+          normal.x * (normal.x > 0.0 ? minX : maxX) +
+          normal.y * (normal.y > 0.0 ? minY : maxY) +
+          normal.z * (normal.z > 0.0 ? minZ : maxZ) >
         0.0
       ) {
         pass = false;
@@ -235,8 +235,7 @@ export class ShadowUtils {
 
   static getDirectionLightShadowCullPlanes(
     cameraFrustum: BoundingFrustum,
-    cascadeIndex: number,
-    splitDistance: number[],
+    splitDistance: number,
     cameraNear: number,
     direction: Vector3,
     shadowSliceData: ShadowSliceData
@@ -258,15 +257,15 @@ export class ShadowUtils {
     const top = cameraFrustum.getPlane(FrustumFace.Top);
 
     // adjustment the near/far plane
-    const splitNearDistance: number = splitDistance[cascadeIndex] - cameraNear;
+    const splitNearDistance: number = splitDistance - cameraNear;
     const splitNear: Plane = ShadowUtils._adjustNearPlane;
     const splitFar: Plane = ShadowUtils._adjustFarPlane;
     splitNear.normal.copyFrom(near.normal);
     splitFar.normal.copyFrom(far.normal);
-    splitNear.distance = near.distance - splitNearDistance;
+    splitNear.distance = near.distance + splitNearDistance;
     //do a clamp is the sphere is out of range the far plane
-    splitFar.distance = Math.min(
-      -near.distance + shadowSliceData.sphereCenterZ + shadowSliceData.splitBoundSphere.radius,
+    splitFar.distance = Math.max(
+      -near.distance - shadowSliceData.sphereCenterZ - shadowSliceData.splitBoundSphere.radius,
       far.distance
     );
 

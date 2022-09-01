@@ -43,13 +43,13 @@ export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
     Vector3.cross(p3Nor, p1Nor, Plane._tempV31);
     Vector3.cross(p1Nor, p2Nor, Plane._tempV32);
 
-    const a = Vector3.dot(p1Nor, Plane._tempV30);
-    const b = Vector3.dot(p2Nor, Plane._tempV31);
-    const c = Vector3.dot(p3Nor, Plane._tempV32);
+    const a = -Vector3.dot(p1Nor, Plane._tempV30);
+    const b = -Vector3.dot(p2Nor, Plane._tempV31);
+    const c = -Vector3.dot(p3Nor, Plane._tempV32);
 
-    Vector3.scale(Plane._tempV30, -p1.distance / a, Plane._tempV33);
-    Vector3.scale(Plane._tempV31, -p2.distance / b, Plane._tempV34);
-    Vector3.scale(Plane._tempV32, -p3.distance / c, Plane._tempV35);
+    Vector3.scale(Plane._tempV30, p1.distance / a, Plane._tempV33);
+    Vector3.scale(Plane._tempV31, p2.distance / b, Plane._tempV34);
+    Vector3.scale(Plane._tempV32, p3.distance / c, Plane._tempV35);
 
     Vector3.add(Plane._tempV33, Plane._tempV34, Plane._tempV36);
     Vector3.add(Plane._tempV35, Plane._tempV36, out);

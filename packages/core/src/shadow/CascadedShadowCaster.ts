@@ -2,7 +2,7 @@ import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { ShadowMapMaterial } from "./ShadowMapMaterial";
-import { BoundingFrustum, MathUtil, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
+import { MathUtil, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
 import { Shader } from "../shader";
 import {
   RenderTarget,
@@ -17,7 +17,8 @@ import { ShadowUtils } from "./ShadowUtils";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
 import { ShadowMode } from "./enum/ShadowMode";
 import { ShadowSliceData } from "./ShadowSliceData";
-import { DirectLight, Light } from "../lighting";
+import { DirectLight } from "../lighting";
+import { Engine } from "../Engine";
 
 /**
  * Cascade shadow caster.
@@ -46,6 +47,7 @@ export class CascadedShadowCaster {
   private readonly _transparentQueue: RenderQueue;
   private readonly _alphaTestQueue: RenderQueue;
   private readonly _camera: Camera;
+  private readonly _engine: Engine;
   private readonly _shadowMapMaterial: ShadowMapMaterial;
 
   private _shadowMode: ShadowMode;
@@ -58,7 +60,6 @@ export class CascadedShadowCaster {
   private _lightSide: Vector3 = new Vector3();
   private _lightForward: Vector3 = new Vector3();
   private _shadowMapCount = 0;
-  private _frustums = new BoundingFrustum();
 
   private _splitBoundSpheres = new Float32Array(4 * CascadedShadowCaster._maxCascades);
   // 4 viewProj matrix for cascade shadow
@@ -71,6 +72,7 @@ export class CascadedShadowCaster {
 
   constructor(camera: Camera, opaqueQueue: RenderQueue, alphaTestQueue: RenderQueue, transparentQueue: RenderQueue) {
     this._camera = camera;
+    this._engine = camera.engine;
     this._opaqueQueue = opaqueQueue;
     this._alphaTestQueue = alphaTestQueue;
     this._transparentQueue = transparentQueue;
@@ -96,7 +98,7 @@ export class CascadedShadowCaster {
       this._updateShaderData();
     }
 
-    const renderers = this._camera.engine._componentsManager._renderers;
+    const renderers = this._engine._componentsManager._renderers;
     const elements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
       const renderer = elements[i];
@@ -110,8 +112,8 @@ export class CascadedShadowCaster {
 
   private _renderDirectShadowMap() {
     const {
+      _engine: engine,
       _camera: camera,
-      _frustums: frustums,
       _opaqueQueue: opaqueQueue,
       _alphaTestQueue: alphaTestQueue,
       _transparentQueue: transparentQueue,
@@ -122,7 +124,6 @@ export class CascadedShadowCaster {
       _splitBoundSpheres: splitBoundSpheres,
       _vpMatrix: vpMatrix
     } = this;
-    const { engine, scene } = camera;
     const lights = engine._lightManager._directLights;
     const componentsManager = engine._componentsManager;
     const rhi = engine._hardwareRenderer;
@@ -143,7 +144,7 @@ export class CascadedShadowCaster {
           // prepare render target
           const renderTarget = this._getAvailableRenderTarget(shadowCascades);
           rhi.activeRenderTarget(renderTarget, null, 0);
-          rhi.clearRenderTarget(camera.engine, CameraClearFlags.Depth, null);
+          rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
           this._shadowInfos[shadowMapCount * 2] = lgt.shadowStrength;
           this._shadowInfos[shadowMapCount * 2 + 1] = this._shadowMapResolution;
           this._depthMap.push(<Texture2D>this._renderTargets[shadowMapCount].depthTexture);
@@ -165,8 +166,7 @@ export class CascadedShadowCaster {
             );
             ShadowUtils.getDirectionLightShadowCullPlanes(
               camera._frustum,
-              j,
-              splitDistance,
+              splitDistance[j],
               camera.nearClipPlane,
               lightForward,
               shadowSliceData
@@ -215,7 +215,7 @@ export class CascadedShadowCaster {
 
   private _updateShaderData() {
     const splitBoundSpheres = this._splitBoundSpheres;
-    const shadowCascades = this._camera.engine.settings.shadowCascades;
+    const shadowCascades = this._engine.settings.shadowCascades;
     for (let j = shadowCascades * 4, n = 4 * 4; j < n; j++) splitBoundSpheres[j] = 0.0;
 
     const shaderData = this._camera.scene.shaderData;
@@ -227,7 +227,7 @@ export class CascadedShadowCaster {
 
   private _updateCascadeSplitLambda() {
     const camera = this._camera;
-    const { shadowCascades, shadowCascadeSplitRatio } = camera.engine.settings;
+    const { shadowCascades, shadowCascadeSplitRatio } = this._engine.settings;
 
     const nearClip = camera.nearClipPlane;
     const farClip = camera.farClipPlane;
@@ -297,7 +297,7 @@ export class CascadedShadowCaster {
   }
 
   private _getAvailableRenderTarget(cascadeMode: ShadowCascadesMode): RenderTarget {
-    const engine = this._camera.engine;
+    const engine = this._engine;
     const format = this._shadowMapFormat;
     let width = this._shadowMapResolution;
     let height = this._shadowMapResolution;
@@ -339,7 +339,7 @@ export class CascadedShadowCaster {
   private _updateShadowSettings() {
     const renderTargets = this._renderTargets;
     const sceneShaderData = this._camera.scene.shaderData;
-    const settings = this._camera.engine.settings;
+    const settings = this._engine.settings;
     const shadowFormat = ShadowUtils.shadowDepthFormat(settings.shadowResolution);
     const shadowResolution = ShadowUtils.shadowResolution(settings.shadowResolution);
     const shadowCascades = settings.shadowCascades;

@@ -19,10 +19,10 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
   public left: Plane;
   /** The right plane of this frustum. */
   public right: Plane;
-  /** The top plane of this frustum. */
-  public top: Plane;
   /** The bottom plane of this frustum. */
   public bottom: Plane;
+  /** The top plane of this frustum. */
+  public top: Plane;
 
   /**
    * Constructor of BoundingFrustum.
@@ -54,10 +54,10 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
         return this.left;
       case FrustumFace.Right:
         return this.right;
-      case FrustumFace.Top:
-        return this.top;
       case FrustumFace.Bottom:
         return this.bottom;
+      case FrustumFace.Top:
+        return this.top;
       default:
         return null;
     }
@@ -111,17 +111,17 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
     this.right.distance = m41 - m44;
     this.right.normalize();
 
-    // top
-    const topNormal = this.top.normal;
-    topNormal.set(m12 - m14, m22 - m24, m32 - m34);
-    this.top.distance = m42 - m44;
-    this.top.normalize();
-
     // bottom
     const bottomNormal = this.bottom.normal;
     bottomNormal.set(-m14 - m12, -m24 - m22, -m34 - m32);
     this.bottom.distance = -m44 - m42;
     this.bottom.normalize();
+
+    // top
+    const topNormal = this.top.normal;
+    topNormal.set(m12 - m14, m22 - m24, m32 - m34);
+    this.top.distance = m42 - m44;
+    this.top.normalize();
   }
 
   /**
@@ -162,8 +162,8 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
     this.far.copyFrom(source.far);
     this.left.copyFrom(source.left);
     this.right.copyFrom(source.right);
-    this.top.copyFrom(source.top);
     this.bottom.copyFrom(source.bottom);
+    this.top.copyFrom(source.top);
     return this;
   }
 }
@@ -176,6 +176,6 @@ export enum FrustumFace {
   Far,
   Left,
   Right,
-  Top,
-  Bottom
+  Bottom,
+  Top
 }
