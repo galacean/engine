@@ -41,28 +41,22 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
 
   /**
    * Get the plane by the given index.
-   * 0: near
-   * 1: far
-   * 2: left
-   * 3: right
-   * 4: top
-   * 5: bottom
    * @param index - The index
    * @returns The plane get
    */
-  getPlane(index: number): Plane {
+  getPlane(index: FrustumFace): Plane {
     switch (index) {
-      case 0:
+      case FrustumFace.Near:
         return this.near;
-      case 1:
+      case FrustumFace.Far:
         return this.far;
-      case 2:
+      case FrustumFace.Left:
         return this.left;
-      case 3:
+      case FrustumFace.Right:
         return this.right;
-      case 4:
+      case FrustumFace.Top:
         return this.top;
-      case 5:
+      case FrustumFace.Bottom:
         return this.bottom;
       default:
         return null;
@@ -172,4 +166,16 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
     this.bottom.copyFrom(source.bottom);
     return this;
   }
+}
+
+/**
+ * Frustum face
+ */
+export enum FrustumFace {
+  Near,
+  Far,
+  Left,
+  Right,
+  Top,
+  Bottom
 }

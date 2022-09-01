@@ -3,7 +3,7 @@
 // intensity, resolution
 uniform vec2 u_shadowInfos[CASCADED_SHADOW_MAP_COUNT];
 uniform mat4 u_viewProjMatFromLight[4 * CASCADED_SHADOW_MAP_COUNT];
-uniform vec4 u_cascade;
+uniform vec4 u_shadowSplitSpheres[4];
 
 varying vec3 view_pos;
 
@@ -23,14 +23,25 @@ varying vec3 view_pos;
 	#define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap
 #endif
 
+mediump int computeCascadeIndex(vec3 positionWS) {
+    vec3 fromCenter0 = positionWS - u_shadowSplitSpheres[0].xyz;
+    vec3 fromCenter1 = positionWS - u_shadowSplitSpheres[1].xyz;
+    vec3 fromCenter2 = positionWS - u_shadowSplitSpheres[2].xyz;
+    vec3 fromCenter3 = positionWS - u_shadowSplitSpheres[3].xyz;
+
+    mediump vec4 comparison = vec4(
+        dot(fromCenter0, fromCenter0) < u_shadowSplitSpheres[0].w,
+        dot(fromCenter1, fromCenter1) < u_shadowSplitSpheres[1].w,
+        dot(fromCenter2, fromCenter2) < u_shadowSplitSpheres[2].w,
+        dot(fromCenter3, fromCenter3) < u_shadowSplitSpheres[3].w);
+    comparison.yzw = clamp(comparison.yzw - comparison.xyz,0.0,1.0);//keep the nearest
+    mediump vec4 indexCoefficient = vec4(4.0,3.0,2.0,1.0);
+    mediump int index = 4 - int(dot(comparison, indexCoefficient));
+    return index;
+}
+
 vec3 getShadowCoord() {
-    // Get cascade index for the current fragment's view position
-    int cascadeIndex = 0;
-    for (int i = 0; i < 4 - 1; ++i) {
-        if (view_pos.z < u_cascade[i]) {
-            cascadeIndex = i + 1;
-        }
-    }
+    int cascadeIndex = computeCascadeIndex(v_pos);
 
 #ifdef GRAPHICS_API_WEBGL2
     vec2 offsets = offsets[cascadeIndex];
@@ -94,8 +105,21 @@ float texture2DShadowLerp(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, f
 
 #if SHADOW_MODE == 2
 float sampleShadowMapLerp(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, float size) {
-    vec2 texelSize = vec2(1.0) / vec2(size, size);
-    return texture2DShadowLerp(shadowMap, shadowCoord, size, texelSize);
+    vec2 shadowMapSize = vec2(0.5) / vec2(size, size);
+
+    float attenuation;
+    vec4 attenuation4;
+    vec2 offset=shadowMapSize.xy/2.0;
+    vec3 shadowCoord0=shadowCoord + vec3(-offset,0.0);
+    vec3 shadowCoord1=shadowCoord + vec3(offset.x,-offset.y,0.0);
+    vec3 shadowCoord2=shadowCoord + vec3(-offset.x,offset.y,0.0);
+    vec3 shadowCoord3=shadowCoord + vec3(offset,0.0);
+    attenuation4.x = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord0);
+    attenuation4.y = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord1);
+    attenuation4.z = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord2);
+    attenuation4.w = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord3);
+    attenuation = dot(attenuation4, vec4(0.25));
+    return attenuation;
 }
 #endif
 

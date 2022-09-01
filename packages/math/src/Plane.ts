@@ -3,9 +3,17 @@ import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
 
 /**
- * Represents a plane in three dimensional space.
+ * Represents a plane in three-dimensional space.
  */
 export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
+  private static _tempV30: Vector3 = new Vector3();
+  private static _tempV31: Vector3 = new Vector3();
+  private static _tempV32: Vector3 = new Vector3();
+  private static _tempV33: Vector3 = new Vector3();
+  private static _tempV34: Vector3 = new Vector3();
+  private static _tempV35: Vector3 = new Vector3();
+  private static _tempV36: Vector3 = new Vector3();
+
   /**
    * Normalize the normal vector of the specified plane.
    * @param p - The specified plane
@@ -17,6 +25,34 @@ export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
     const factor = 1.0 / normal.length();
     Vector3.scale(normal, factor, out.normal);
     out.distance = p.distance * factor;
+  }
+
+  /**
+   * Calculate the intersection point of three plane.
+   * @param  p1 - Plane 1
+   * @param  p2 - Plane 2
+   * @param  p3 - Plane 3
+   * @param out - intersection point
+   */
+  static get3PlaneInterPoint(p1: Plane, p2: Plane, p3: Plane, out: Vector3): void {
+    const p1Nor = p1.normal;
+    const p2Nor = p2.normal;
+    const p3Nor = p3.normal;
+
+    Vector3.cross(p2Nor, p3Nor, Plane._tempV30);
+    Vector3.cross(p3Nor, p1Nor, Plane._tempV31);
+    Vector3.cross(p1Nor, p2Nor, Plane._tempV32);
+
+    const a = Vector3.dot(p1Nor, Plane._tempV30);
+    const b = Vector3.dot(p2Nor, Plane._tempV31);
+    const c = Vector3.dot(p3Nor, Plane._tempV32);
+
+    Vector3.scale(Plane._tempV30, -p1.distance / a, Plane._tempV33);
+    Vector3.scale(Plane._tempV31, -p2.distance / b, Plane._tempV34);
+    Vector3.scale(Plane._tempV32, -p3.distance / c, Plane._tempV35);
+
+    Vector3.add(Plane._tempV33, Plane._tempV34, Plane._tempV36);
+    Vector3.add(Plane._tempV35, Plane._tempV36, out);
   }
 
   /**

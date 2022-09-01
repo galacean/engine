@@ -2,7 +2,7 @@ export { ContainmentType } from "./enums/ContainmentType";
 export { PlaneIntersectionType } from "./enums/PlaneIntersectionType";
 export { BoundingSphere } from "./BoundingSphere";
 export { BoundingBox } from "./BoundingBox";
-export { BoundingFrustum } from "./BoundingFrustum";
+export { BoundingFrustum, FrustumFace } from "./BoundingFrustum";
 export { MathUtil } from "./MathUtil";
 export { CollisionUtil } from "./CollisionUtil";
 export { Matrix } from "./Matrix";
