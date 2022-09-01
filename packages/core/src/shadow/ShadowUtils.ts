@@ -1,11 +1,14 @@
 import { ShadowResolution } from "./enum/ShadowResolution";
 import { TextureFormat } from "../texture";
 import { Renderer } from "../Renderer";
-import { BoundingFrustum, BoundingSphere, MathUtil, Matrix, Plane, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, BoundingFrustum, MathUtil, Matrix, Plane, Vector3 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { FrustumFace } from "@oasis-engine/math/src";
 import { ShadowSliceData } from "./ShadowSliceData";
 
+/**
+ * @internal
+ */
 enum FrustumCorner {
   FarBottomLeft = 0,
   FarTopLeft = 1,
@@ -18,6 +21,9 @@ enum FrustumCorner {
   unknown = 8
 }
 
+/**
+ * @internal
+ */
 export class ShadowUtils {
   private static _frustumCorners: Vector3[] = [
     new Vector3(),
@@ -155,8 +161,42 @@ export class ShadowUtils {
     return TextureFormat.Depth16;
   }
 
-  static shadowCullFrustum(camera: Camera, renderer: Renderer, frustum: BoundingFrustum) {
-    if (renderer.castShadows) {
+  static cullingRenderBounds(bounds: BoundingBox, cullPlaneCount: number, cullPlanes: Plane[]): boolean {
+    const min = bounds.min;
+    const max = bounds.max;
+    const minX = min.x;
+    const minY = min.y;
+    const minZ = min.z;
+    const maxX = max.x;
+    const maxY = max.y;
+    const maxZ = max.z;
+
+    let pass = true;
+    for (let j: number = 0; j < cullPlaneCount; j++) {
+      const plane = cullPlanes[j];
+      const normal = plane.normal;
+      if (
+        plane.distance +
+          normal.x * (normal.x < 0.0 ? minX : maxX) +
+          normal.y * (normal.y < 0.0 ? minY : maxY) +
+          normal.z * (normal.z < 0.0 ? minZ : maxZ) <
+        0.0
+      ) {
+        pass = false;
+        break;
+      }
+    }
+    return pass;
+  }
+
+  static shadowCullFrustum(camera: Camera, renderer: Renderer, shadowSliceData: ShadowSliceData) {
+    const center = ShadowUtils._edgePlanePoint2;
+    if (
+      renderer.castShadows &&
+      ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
+    ) {
+      renderer.bounds.getCenter(center);
+      renderer._distanceForSort = Vector3.distance(center, shadowSliceData.position);
       renderer._render(camera);
     }
   }
@@ -241,7 +281,7 @@ export class ShadowUtils {
 
     let backIndex: number = 0;
     for (let i: FrustumFace = 0; i < 6; i++) {
-      // maybe 3、4、5(light eye is at far, forward is near, or orth camera is any axis)
+      // maybe 3、4、5(light eye is at far, forward is near, or orthographic camera is any axis)
       let plane: Plane;
       switch (i) {
         case FrustumFace.Near:
@@ -295,12 +335,13 @@ export class ShadowUtils {
     shadowSliceData: ShadowSliceData
   ): void {
     const boundSphere = shadowSliceData.splitBoundSphere;
+    shadowSliceData.resolution = shadowResolution;
 
     // To solve shadow swimming problem.
     const center: Vector3 = boundSphere.center;
     const radius: number = boundSphere.radius;
     const halfShadowResolution: number = shadowResolution / 2;
-    // Add border to prject edge pixel PCF.
+    // Add border to project edge pixel PCF.
     // Improve:the clip planes not consider the border,but I think is OK,because the object can clip is not continuous.
     const borderRadius: number = (radius * halfShadowResolution) / (halfShadowResolution - ShadowUtils.atlasBorderSize);
     const borderDiam: number = borderRadius * 2.0;
@@ -314,14 +355,10 @@ export class ShadowUtils {
     center.z = lightUp.z * upLen + lightSide.z * sideLen + lightForward.z * forwardLen;
 
     // Direction light use shadow pancaking tech,do special dispose with nearPlane.
-    const origin: Vector3 = shadowSliceData.position;
+    const origin = shadowSliceData.position;
     const viewMatrix = shadowSliceData.viewMatrix;
     const projectMatrix = shadowSliceData.projectionMatrix;
     const viewProjectMatrix = shadowSliceData.viewProjectMatrix;
-
-    shadowSliceData.resolution = shadowResolution;
-    shadowSliceData.offsetX = (cascadeIndex % 2) * shadowResolution;
-    shadowSliceData.offsetY = Math.floor(cascadeIndex / 2) * shadowResolution;
 
     Vector3.scale(lightForward, radius + nearPlane, origin);
     Vector3.subtract(center, origin, origin);
