@@ -8,9 +8,10 @@ import {
   RenderTarget,
   SpriteElement,
   SpriteRenderer,
+  TextRenderer,
   Texture2D
 } from "@oasis-engine/core";
-import { Color, Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
+import { Color, Quaternion, Vector3 } from "@oasis-engine/math";
 import { Canvas2dCanvas } from "./Canvas2dCanvas";
 import { CanvasCapability } from "./CanvasCapability";
 import { CanvasTexture2D } from "./CanvasTexture2D";
@@ -66,12 +67,24 @@ export class CanvasRenderer implements IHardwareRenderer {
   }
 
   drawElement(element: SpriteElement, camera: Camera) {
-    const spriteRenderer = <SpriteRenderer>element.component;
-    const { sprite } = spriteRenderer;
+    const { component } = element;
+    if (component instanceof SpriteRenderer) {
+      this._drawImage(component, camera);
+    } else if (component instanceof TextRenderer) {
+      this._drawText(component, camera);
+    }
+  }
+
+  createPlatformTexture2D(texture2D: Texture2D): IPlatformTexture2D {
+    return new CanvasTexture2D(this, texture2D);
+  }
+
+  private _drawImage(renderer: SpriteRenderer, camera: Camera) {
+    const { sprite } = renderer;
     // @ts-ignore
     const image = sprite.texture._platformTexture._canvasTexture;
 
-    const transform = spriteRenderer.entity.transform;
+    const transform = renderer.entity.transform;
     const worldMatrix = transform.worldMatrix;
     const translate = CanvasRenderer._tempVec30;
     const quat = CanvasRenderer._tempQuat;
@@ -89,7 +102,9 @@ export class CanvasRenderer implements IHardwareRenderer {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.translate(x, y);
     ctx.rotate(-euler.z);
-    ctx.scale(scale.x, scale.y);
+    const scaleX = renderer.flipX ? -scale.x : scale.x;
+    const scaleY = renderer.flipY ? -scale.y : scale.y;
+    ctx.scale(scaleX, scaleY);
 
     const { region } = sprite;
     const { width, height } = image;
@@ -99,20 +114,20 @@ export class CanvasRenderer implements IHardwareRenderer {
     const sWidth = region.width * width;
     const sHeight = regionHeight * height;
 
-    const halfWidth = spriteRenderer.width * 0.5;
-    const halfHeight = spriteRenderer.height * 0.5;
+    const { pivot } = sprite;
+    const { width: renderWidth, height: renderHeight } = renderer;
+    const pivotWidth = pivot.x * renderWidth;
+    const pivotHeight = pivot.y * renderHeight;
     const ltVec3 = CanvasRenderer._tempVec33;
-    ltVec3.set(-halfWidth, halfHeight, 0);
+    ltVec3.set(-pivotWidth, renderHeight - pivotHeight, 0);
     camera.worldToScreenPoint(ltVec3, ltVec3);
     const rbVec3 = CanvasRenderer._tempVec34;
-    rbVec3.set(halfWidth, -halfHeight, 0);
+    rbVec3.set(renderWidth - pivotWidth, -pivotHeight, 0);
     camera.worldToScreenPoint(rbVec3, rbVec3);
     const { x: ltX, y: ltY } = ltVec3;
 
     ctx.drawImage(image, sx, sy, sWidth, sHeight, ltX - x + offsetX, ltY - y - offsetY, rbVec3.x - ltX, rbVec3.y - ltY);
   }
 
-  createPlatformTexture2D(texture2D: Texture2D): IPlatformTexture2D {
-    return new CanvasTexture2D(this, texture2D);
-  }
+  private _drawText(renderer: TextRenderer, camera: Camera) {}
 }
