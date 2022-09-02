@@ -75,14 +75,16 @@ export class Background {
    * @param _engine Engine Which the background belongs to.
    */
   constructor(private _engine: Engine) {
-    this._mesh = this._createPlane(_engine);
+    if (_engine.canSupportPrimitive) {
+      this._mesh = this._createPlane(_engine);
+    }
   }
 
   /**
    * @internal
    */
   _resizeBackgroundTexture(): void {
-    if (!this._texture) {
+    if (!this._texture || !this._mesh) {
       return;
     }
     const { canvas } = this._engine;

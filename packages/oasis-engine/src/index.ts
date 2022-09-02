@@ -9,6 +9,7 @@ export * from "@oasis-engine/core";
 export * from "@oasis-engine/loader";
 export * from "@oasis-engine/math";
 export * from "@oasis-engine/rhi-webgl";
+export * from "@oasis-engine/rhi-canvas";
 
 for (let key in CoreObjects) {
   Loader.registerClass(key, CoreObjects[key]);

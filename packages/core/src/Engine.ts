@@ -75,6 +75,7 @@ export class Engine extends EventDispatcher {
   protected _canvas: Canvas;
 
   private _settings: EngineSettings = {};
+  private _canBatch2D: boolean = true;
   private _resourceManager: ResourceManager = new ResourceManager(this);
   private _sceneManager: SceneManager = new SceneManager(this);
   private _vSyncCount: number = 1;
@@ -154,6 +155,24 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * Whether batch 2D.
+   */
+  get canBatch2D(): boolean {
+    return this._canBatch2D;
+  }
+
+  set canBatch2D(value: boolean) {
+    this._canBatch2D = value;
+  }
+
+  /**
+   * Whether support primitive.
+   */
+  get canSupportPrimitive(): boolean {
+    return true;
+  }
+
+  /**
    * Set the target frame rate you want to achieve.
    * @remarks
    * It only takes effect when vSyncCount = 0 (ie, vertical synchronization is turned off).
@@ -192,22 +211,23 @@ export class Engine extends EventDispatcher {
     this.inputManager = new InputManager(this);
 
     const whitePixel = new Uint8Array([255, 255, 255, 255]);
+    if (this.canSupportPrimitive) {
+      const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+      whiteTexture2D.setPixelBuffer(whitePixel);
+      whiteTexture2D.isGCIgnored = true;
 
-    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    whiteTexture2D.setPixelBuffer(whitePixel);
-    whiteTexture2D.isGCIgnored = true;
+      const whiteTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
+      whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
+      whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
+      whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
+      whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
+      whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
+      whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
+      whiteTextureCube.isGCIgnored = true;
 
-    const whiteTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
-    whiteTextureCube.isGCIgnored = true;
-
-    this._whiteTexture2D = whiteTexture2D;
-    this._whiteTextureCube = whiteTextureCube;
+      this._whiteTexture2D = whiteTexture2D;
+      this._whiteTextureCube = whiteTextureCube;
+    }
 
     if (hardwareRenderer.isWebGL2) {
       const whiteTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
@@ -294,8 +314,8 @@ export class Engine extends EventDispatcher {
    */
   destroy(): void {
     if (this._sceneManager) {
-      this._whiteTexture2D.destroy(true);
-      this._whiteTextureCube.destroy(true);
+      this._whiteTexture2D && this._whiteTexture2D.destroy(true);
+      this._whiteTextureCube && this._whiteTextureCube.destroy(true);
       this.inputManager._destroy();
       this.trigger(new Event("shutdown", this));
 
