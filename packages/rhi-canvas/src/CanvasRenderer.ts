@@ -53,9 +53,16 @@ export class CanvasRenderer implements IHardwareRenderer {
   activeRenderTarget(renderTarget: RenderTarget, camera: Camera, mipLevel: number) {}
 
   clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor: Color) {
+    const { ctx } = this;
     const { width, height } = this._webCanvas;
-    // this.ctx.setTransform(1, 0, 0, 1, 0, 0);
-    this.ctx.clearRect(0, 0, width, height);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = `rgba(
+      ${Math.floor(255 * clearColor.r)},
+      ${Math.floor(255 * clearColor.g)},
+      ${Math.floor(255 * clearColor.b)},
+      ${Math.floor(255 * clearColor.a)})`;
+    ctx.clearRect(0, 0, width, height);
+    ctx.fillRect(0, 0, width, height);
   }
 
   drawElement(element: SpriteElement, camera: Camera) {
