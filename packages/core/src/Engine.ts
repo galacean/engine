@@ -231,7 +231,7 @@ export class Engine extends EventDispatcher {
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
-    innerSettings.shadowMode = settings?.shadowMode || ShadowMode.Soft;
+    innerSettings.shadowMode = settings?.shadowMode || ShadowMode.SoftLow;
     innerSettings.shadowResolution = settings?.shadowResolution || ShadowResolution.High;
     innerSettings.shadowCascades = settings?.shadowCascades || ShadowCascadesMode.FourCascades;
     innerSettings.shadowCascadeSplitRatio = settings?.shadowCascadeSplitRatio || 0.9;

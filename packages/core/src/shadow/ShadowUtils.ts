@@ -1,5 +1,13 @@
-import { BoundingBox, BoundingFrustum, MathUtil, Matrix, Plane, Vector3 } from "@oasis-engine/math";
-import { FrustumFace } from "@oasis-engine/math/src";
+import {
+  BoundingBox,
+  BoundingFrustum,
+  MathUtil,
+  Matrix,
+  Plane,
+  Vector3,
+  CollisionUtil,
+  FrustumFace
+} from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Renderer } from "../Renderer";
 import { TextureFormat } from "../texture";
@@ -269,14 +277,14 @@ export class ShadowUtils {
       far.distance
     );
 
-    Plane.intersectionPointThreePlanes(splitNear, bottom, right, frustumCorners[FrustumCorner.nearBottomRight]);
-    Plane.intersectionPointThreePlanes(splitNear, top, right, frustumCorners[FrustumCorner.nearTopRight]);
-    Plane.intersectionPointThreePlanes(splitNear, top, left, frustumCorners[FrustumCorner.nearTopLeft]);
-    Plane.intersectionPointThreePlanes(splitNear, bottom, left, frustumCorners[FrustumCorner.nearBottomLeft]);
-    Plane.intersectionPointThreePlanes(splitFar, bottom, right, frustumCorners[FrustumCorner.FarBottomRight]);
-    Plane.intersectionPointThreePlanes(splitFar, top, right, frustumCorners[FrustumCorner.FarTopRight]);
-    Plane.intersectionPointThreePlanes(splitFar, top, left, frustumCorners[FrustumCorner.FarTopLeft]);
-    Plane.intersectionPointThreePlanes(splitFar, bottom, left, frustumCorners[FrustumCorner.FarBottomLeft]);
+    CollisionUtil.intersectionPointThreePlanes(splitNear, bottom, right, frustumCorners[FrustumCorner.nearBottomRight]);
+    CollisionUtil.intersectionPointThreePlanes(splitNear, top, right, frustumCorners[FrustumCorner.nearTopRight]);
+    CollisionUtil.intersectionPointThreePlanes(splitNear, top, left, frustumCorners[FrustumCorner.nearTopLeft]);
+    CollisionUtil.intersectionPointThreePlanes(splitNear, bottom, left, frustumCorners[FrustumCorner.nearBottomLeft]);
+    CollisionUtil.intersectionPointThreePlanes(splitFar, bottom, right, frustumCorners[FrustumCorner.FarBottomRight]);
+    CollisionUtil.intersectionPointThreePlanes(splitFar, top, right, frustumCorners[FrustumCorner.FarTopRight]);
+    CollisionUtil.intersectionPointThreePlanes(splitFar, top, left, frustumCorners[FrustumCorner.FarTopLeft]);
+    CollisionUtil.intersectionPointThreePlanes(splitFar, bottom, left, frustumCorners[FrustumCorner.FarBottomLeft]);
 
     let backIndex = 0;
     for (let i = 0; i < 6; i++) {

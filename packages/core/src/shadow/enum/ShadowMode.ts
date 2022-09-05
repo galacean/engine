@@ -6,8 +6,8 @@ export enum ShadowMode {
   None,
   /** Hard Shadows Only. */
   Hard,
-  /** Cast "soft" shadows (with bi-linear interpolation). */
-  Soft,
-  /** Cast "soft" shadows (with bi-linear PCF filtering). */
-  VerySoft
+  /** Cast "soft" shadows with low range. */
+  SoftLow,
+  /** Cast "soft" shadows with large range. */
+  SoftHigh
 }
