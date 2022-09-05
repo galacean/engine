@@ -27,8 +27,8 @@ export class CascadedShadowCaster {
   private static _lightDirectionProperty = Shader.getPropertyByName("u_lightDirection");
 
   private static _viewProjMatFromLightProperty = Shader.getPropertyByName("u_viewProjMatFromLight");
-  private static _shadowInfosProperty = Shader.getPropertyByName("u_shadowInfos");
-  private static _shadowMapsProperty = Shader.getPropertyByName("u_shadowMaps");
+  private static _shadowInfosProperty = Shader.getPropertyByName("u_shadowInfo");
+  private static _shadowMapsProperty = Shader.getPropertyByName("u_shadowMap");
   private static _shadowSplitSpheresProperty = Shader.getPropertyByName("u_shadowSplitSpheres");
 
   private static _maxCascades: number = 4;
