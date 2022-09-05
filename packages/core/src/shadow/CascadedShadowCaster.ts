@@ -9,7 +9,6 @@ import { Material } from "../material";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { Shader } from "../shader";
 import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
-import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 import { RenderTarget } from "../texture/RenderTarget";
@@ -48,7 +47,7 @@ export class CascadedShadowCaster {
   private _shadowMode: ShadowMode;
   private _shadowMapResolution: number;
   private _shadowMapSize: Vector2 = new Vector2();
-  private _shadowTileResoulution: number;
+  private _shadowTileResolution: number;
   private _shadowBias: Vector2 = new Vector2();
   private _shadowMapFormat: TextureFormat;
   private _shadowCascadeMode: ShadowCascadesMode;
@@ -129,11 +128,11 @@ export class CascadedShadowCaster {
         const light = lights.get(i);
         if (light.enableShadow && shadowMapCount < CascadedShadowCaster.MAX_SHADOW) {
           // prepare render target
-          const renderTarget = this._getAvailableRenderTarget(shadowCascades);
+          const renderTarget = this._getAvailableRenderTarget();
           rhi.activeRenderTarget(renderTarget, null, 0);
           rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
           this._shadowInfos[shadowMapCount * 2] = light.shadowStrength;
-          this._shadowInfos[shadowMapCount * 2 + 1] = this._shadowTileResoulution;
+          this._shadowInfos[shadowMapCount * 2 + 1] = this._shadowTileResolution;
           this._depthMap.push(<Texture2D>this._renderTargets[shadowMapCount].depthTexture);
 
           // prepare light and camera direction
@@ -164,7 +163,7 @@ export class CascadedShadowCaster {
               lightForward,
               j,
               light.shadowNearPlane,
-              this._shadowTileResoulution,
+              this._shadowTileResolution,
               shadowSliceData
             );
             this._updateSingleShadowCasterShaderData(<DirectLight>light, shadowSliceData);
@@ -191,7 +190,7 @@ export class CascadedShadowCaster {
             alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
 
             const viewport = viewports[j];
-            rhi.viewport(viewport.x, viewport.y, this._shadowTileResoulution, this._shadowTileResoulution);
+            rhi.viewport(viewport.x, viewport.y, this._shadowTileResolution, this._shadowTileResolution);
             engine._renderCount++;
 
             opaqueQueue.render(camera, shadowMapMaterial, Layer.Everything);
@@ -288,7 +287,7 @@ export class CascadedShadowCaster {
     return Math.sqrt((radius * radius) / denominator);
   }
 
-  private _getAvailableRenderTarget(cascadeMode: ShadowCascadesMode): RenderTarget {
+  private _getAvailableRenderTarget(): RenderTarget {
     const engine = this._engine;
     const format = this._shadowMapFormat;
     const { x: width, y: height } = this._shadowMapSize;
@@ -302,7 +301,6 @@ export class CascadedShadowCaster {
     ) {
       const depthTexture = new Texture2D(engine, width, height, format, false);
       depthTexture.wrapModeV = depthTexture.wrapModeU = TextureWrapMode.Clamp;
-      depthTexture.filterMode = TextureFilterMode.Bilinear;
       if (engine._hardwareRenderer._isWebGL2) {
         depthTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
       }
@@ -344,7 +342,7 @@ export class CascadedShadowCaster {
       this._shadowCascadeMode = shadowCascades;
 
       if (shadowCascades == ShadowCascadesMode.NoCascades) {
-        this._shadowTileResoulution = shadowResolution;
+        this._shadowTileResolution = shadowResolution;
         this._shadowMapSize.set(shadowResolution, shadowResolution);
       } else {
         const shadowTileResolution = ShadowUtils.getMaxTileResolutionInAtlas(
@@ -352,7 +350,7 @@ export class CascadedShadowCaster {
           shadowResolution,
           shadowCascades
         );
-        this._shadowTileResoulution = shadowTileResolution;
+        this._shadowTileResolution = shadowTileResolution;
         this._shadowMapSize.set(
           shadowTileResolution * 2,
           shadowCascades == ShadowCascadesMode.TwoCascades ? shadowTileResolution : shadowTileResolution * 2
@@ -362,20 +360,20 @@ export class CascadedShadowCaster {
       renderTargets.fill(null);
 
       const viewportOffset = this._viewportOffsets;
-      const shadowTileResoulution = this._shadowTileResoulution;
+      const shadowTileResolution = this._shadowTileResolution;
       switch (shadowCascades) {
         case ShadowCascadesMode.NoCascades:
           viewportOffset[0].set(0, 0);
           break;
         case ShadowCascadesMode.TwoCascades:
           viewportOffset[0].set(0, 0);
-          viewportOffset[1].set(shadowTileResoulution, 0);
+          viewportOffset[1].set(shadowTileResolution, 0);
           break;
         case ShadowCascadesMode.FourCascades:
           viewportOffset[0].set(0, 0);
-          viewportOffset[1].set(shadowTileResoulution, 0);
-          viewportOffset[2].set(0, shadowTileResoulution);
-          viewportOffset[3].set(shadowTileResoulution, shadowTileResoulution);
+          viewportOffset[1].set(shadowTileResolution, 0);
+          viewportOffset[2].set(0, shadowTileResolution);
+          viewportOffset[3].set(shadowTileResolution, shadowTileResolution);
       }
     }
   }
@@ -385,7 +383,7 @@ export class CascadedShadowCaster {
     // elements[0] = 2.0 / (right - left)
     const frustumSize = 2.0 / shadowSliceData.projectionMatrix.elements[0];
     // depth and normal bias scale is in shadowMap texel size in world space
-    const texelSize = frustumSize / this._shadowTileResoulution;
+    const texelSize = frustumSize / this._shadowTileResolution;
     this._shadowBias.set(-light.shadowBias * texelSize, -light.shadowNormalBias * texelSize);
 
     const sceneShaderData = this._camera.scene.shaderData;

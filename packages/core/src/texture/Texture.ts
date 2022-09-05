@@ -28,7 +28,7 @@ export abstract class Texture extends RefObject {
   private _wrapModeV: TextureWrapMode;
   private _filterMode: TextureFilterMode;
   private _anisoLevel: number = 1;
-  private _depthCompareFunction: TextureDepthCompareFunction = TextureDepthCompareFunction.LessEqual;
+  private _depthCompareFunction: TextureDepthCompareFunction;
   private _useDepthCompareMode: boolean = false;
 
   /**

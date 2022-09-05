@@ -105,36 +105,8 @@ export class Engine extends EventDispatcher {
   /**
    * Settings of Engine.
    */
-  get settings(): Readonly<EngineSettings> {
+  get settings(): EngineSettings {
     return this._settings;
-  }
-
-  /**
-   * How this light casts shadows.
-   */
-  set shadowMode(value: ShadowMode) {
-    this._settings.shadowMode = value;
-  }
-
-  /**
-   * The default resolution of the shadow maps.
-   */
-  set shadowResolution(value: ShadowResolution) {
-    this._settings.shadowResolution = value;
-  }
-
-  /**
-   * Mode of cascades to use for directional light shadows.
-   */
-  set shadowCascades(value: ShadowCascadesMode) {
-    this._settings.shadowCascades = value;
-  }
-
-  /**
-   * The ratio of cascade distribution.
-   */
-  set shadowCascadeSplitRatio(value: number) {
-    this._settings.shadowCascadeSplitRatio = value;
   }
 
   /**
@@ -237,12 +209,12 @@ export class Engine extends EventDispatcher {
     whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
     whiteTextureCube.isGCIgnored = true;
 
-    const deopthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
-    deopthTexture2D.isGCIgnored = true;
+    const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+    depthTexture2D.isGCIgnored = true;
 
     this._whiteTexture2D = whiteTexture2D;
     this._whiteTextureCube = whiteTextureCube;
-    this._depthTexture2D = deopthTexture2D;
+    this._depthTexture2D = depthTexture2D;
 
     if (hardwareRenderer.isWebGL2) {
       const whiteTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
