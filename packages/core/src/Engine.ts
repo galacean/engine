@@ -62,6 +62,9 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _whiteTexture2DArray: Texture2DArray;
   /* @internal */
+  _depthTexture2D: Texture2D;
+
+  /* @internal */
   _backgroundTextureMaterial: Material;
   /* @internal */
   _renderCount: number = 0;
@@ -234,8 +237,12 @@ export class Engine extends EventDispatcher {
     whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
     whiteTextureCube.isGCIgnored = true;
 
+    const deopthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+    deopthTexture2D.isGCIgnored = true;
+
     this._whiteTexture2D = whiteTexture2D;
     this._whiteTextureCube = whiteTextureCube;
+    this._depthTexture2D = deopthTexture2D;
 
     if (hardwareRenderer.isWebGL2) {
       const whiteTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
