@@ -1,5 +1,5 @@
 {
-  "name": "oasis-root",
+  "name": "oasis-engine-root",
   "version": "1.0.0",
   "private": true,
   "workspaces": [
@@ -60,7 +60,7 @@
     "rollup-plugin-modify": "^3.0.0",
     "rollup-plugin-serve": "^1.1.0",
     "rollup-plugin-terser": "^7.0.2",
-    "ts-node": "^9.1.1",
+    "ts-node": "^10",
     "typescript": "^4.4.3"
   },
   "husky": {

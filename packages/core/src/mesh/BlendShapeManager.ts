@@ -11,6 +11,7 @@ import { ListenerUpdateFlag } from "../ListenerUpdateFlag";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { Texture2DArray, TextureFilterMode, TextureFormat } from "../texture";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 import { BlendShape } from "./BlendShape";
 import { ModelMesh } from "./ModelMesh";
 import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
@@ -35,7 +36,7 @@ export class BlendShapeManager {
   /** @internal */
   _blendShapeNames: string[];
   /** @internal */
-  _layoutDirtyFlag: ListenerUpdateFlag = new ListenerUpdateFlag();
+  _layoutDirtyListener: ListenerUpdateFlag = new ListenerUpdateFlag();
   /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
   /** @internal */
@@ -44,6 +45,8 @@ export class BlendShapeManager {
   _vertexBuffers: Buffer[] = [];
   /** @internal */
   _vertices: Float32Array;
+  /** @internal */
+  _blendShapeCountChangeManager: UpdateFlagManager = new UpdateFlagManager();
 
   private _useBlendNormal: boolean = false;
   private _useBlendTangent: boolean = false;
@@ -61,7 +64,7 @@ export class BlendShapeManager {
     this._engine = engine;
     this._modelMesh = modelMesh;
     this._canUseTextureStoreData = this._engine._hardwareRenderer.capability.canUseFloatTextureBlendShape;
-    this._layoutDirtyFlag.listener = this._updateLayoutChange.bind(this);
+    this._layoutDirtyListener.listener = this._updateLayoutChange.bind(this);
   }
 
   /**
@@ -71,10 +74,12 @@ export class BlendShapeManager {
     this._blendShapes.push(blendShape);
     this._blendShapeCount++;
 
-    blendShape._addLayoutChangeFlag(this._layoutDirtyFlag);
+    blendShape._addLayoutChangeFlag(this._layoutDirtyListener);
     this._updateLayoutChange(blendShape);
 
     this._subDataDirtyFlags.push(blendShape._createSubDataDirtyFlag());
+
+    this._blendShapeCountChangeManager.dispatch();
   }
 
   /**
@@ -87,22 +92,23 @@ export class BlendShapeManager {
     this._blendShapes.length = 0;
     this._blendShapeCount = 0;
 
-    this._layoutDirtyFlag.clearFromManagers();
+    this._layoutDirtyListener.clearFromManagers();
     const subDataDirtyFlags = this._subDataDirtyFlags;
     for (let i = 0, n = subDataDirtyFlags.length; i < n; i++) {
       subDataDirtyFlags[i].destroy();
     }
     subDataDirtyFlags.length = 0;
+
+    this._blendShapeCountChangeManager.dispatch();
   }
 
   /**
    * @internal
    */
   _updateShaderData(shaderData: ShaderData, skinnedMeshRenderer: SkinnedMeshRenderer): void {
-    const blendShapeCount = this._blendShapeCount;
+    let blendShapeCount = this._blendShapeCount;
     if (blendShapeCount > 0) {
       shaderData.enableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
       if (this._useTextureMode()) {
         shaderData.enableMacro(BlendShapeManager._blendShapeTextureMacro);
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
@@ -119,6 +125,7 @@ export class BlendShapeManager {
           this._filterCondensedBlendShapeWeights(skinnedMeshRenderer._blendShapeWeights, condensedBlendShapeWeights);
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
           this._modelMesh._enableVAO = false;
+          blendShapeCount = maxBlendCount;
         } else {
           shaderData.setFloatArray(
             BlendShapeManager._blendShapeWeightsProperty,
@@ -128,6 +135,7 @@ export class BlendShapeManager {
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
       }
+      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
 
       if (this._useBlendNormal) {
         shaderData.enableMacro(BlendShapeManager._blendShapeNormalMacro);
@@ -247,13 +255,13 @@ export class BlendShapeManager {
     }
     this._blendShapeNames = blendShapeNamesMap;
 
-    this._layoutDirtyFlag.destroy();
+    this._layoutDirtyListener.destroy();
     const dataChangedFlags = this._subDataDirtyFlags;
     for (let i = 0, n = dataChangedFlags.length; i < n; i++) {
       dataChangedFlags[i].destroy();
     }
 
-    this._layoutDirtyFlag = null;
+    this._layoutDirtyListener = null;
     this._subDataDirtyFlags = null;
     this._blendShapes = null;
     this._vertices = null;

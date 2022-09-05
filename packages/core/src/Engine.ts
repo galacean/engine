@@ -15,10 +15,11 @@ import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";
 import { ClassPool } from "./RenderPipeline/ClassPool";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderElement } from "./RenderPipeline/RenderElement";
+import { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
 import { SpriteElement } from "./RenderPipeline/SpriteElement";
 import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
+import { TextRenderElement } from "./RenderPipeline/TextRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { CompareFunction } from "./shader";
@@ -56,9 +57,10 @@ export class Engine extends EventDispatcher {
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
-  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderElementPool: ClassPool<MeshRenderElement> = new ClassPool(MeshRenderElement);
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
   _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
+  _textElementPool: ClassPool<TextRenderElement> = new ClassPool(TextRenderElement);
   _spriteDefaultMaterial: Material;
   _spriteMaskDefaultMaterial: Material;
   _renderContext: RenderContext = new RenderContext();
@@ -78,6 +80,8 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
+  _canSpriteBatch: boolean = true;
+  /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   protected _canvas: Canvas;
@@ -273,6 +277,7 @@ export class Engine extends EventDispatcher {
     this._renderElementPool.resetPool();
     this._spriteElementPool.resetPool();
     this._spriteMaskElementPool.resetPool();
+    this._textElementPool.resetPool();
 
     engineFeatureManager.callFeatureMethod(this, "preTick", [this, this._sceneManager._activeScene]);
 
@@ -320,7 +325,7 @@ export class Engine extends EventDispatcher {
 
       this._animate = null;
 
-      this._sceneManager._activeScene.destroy();
+      this._sceneManager._destroy();
       this._resourceManager._destroy();
       // If engine destroy, applyScriptsInvalid() maybe will not call anymore.
       this._componentsManager.handlingInvalidScripts();

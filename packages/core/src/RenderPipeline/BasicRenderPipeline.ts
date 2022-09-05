@@ -20,7 +20,6 @@ import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { SpriteElement } from "./SpriteElement";
 
 /**
  * Basic render pipeline.
@@ -201,7 +200,7 @@ export class BasicRenderPipeline {
    * Push a render element to the render queue.
    * @param element - Render element
    */
-  pushPrimitive(element: RenderElement | SpriteElement) {
+  pushPrimitive(element: RenderElement): void {
     switch (element.material.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);

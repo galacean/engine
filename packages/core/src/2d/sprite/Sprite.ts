@@ -194,9 +194,9 @@ export class Sprite extends RefObject {
   ) {
     super(engine);
     this._texture = texture;
-    region && region.copyFrom(this._region);
-    pivot && pivot.copyFrom(this._pivot);
-    border && border.copyFrom(this._border);
+    region && this._region.copyFrom(region);
+    pivot && this._pivot.copyFrom(pivot);
+    border && this._border.copyFrom(border);
     this.name = name;
   }
 

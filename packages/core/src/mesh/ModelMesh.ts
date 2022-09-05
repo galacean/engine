@@ -688,6 +688,7 @@ export class ModelMesh extends Mesh {
             vertices[start] = tangent.x;
             vertices[start + 1] = tangent.y;
             vertices[start + 2] = tangent.z;
+            vertices[start + 3] = tangent.w;
           }
         }
       }
