@@ -11,15 +11,15 @@
 
     #ifdef O3_DIRECT_LIGHT_COUNT
     shadowAttenuation = 1.0;
-#ifdef CASCADED_SHADOW_MAP_COUNT
-#if CASCADED_SHADOW_MAP_COUNT == 1
-    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].x, u_shadowInfos[0].y);
-#endif
+#ifdef OASIS_CALCULATE_SHADOWS
+    #if CASCADED_SHADOW_MAP_COUNT == 1
+        shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].x, u_shadowInfos[0].y);
+    #endif
 
-#if CASCADED_SHADOW_MAP_COUNT == 2
-    shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].x, u_shadowInfos[0].y);
-    shadowAttenuation *= sampleShadowMap(u_shadowMaps[1], u_shadowInfos[1].x, u_shadowInfos[1].y);
-#endif
+    #if CASCADED_SHADOW_MAP_COUNT == 2
+        shadowAttenuation *= sampleShadowMap(u_shadowMaps[0], u_shadowInfos[0].x, u_shadowInfos[0].y);
+        shadowAttenuation *= sampleShadowMap(u_shadowMaps[1], u_shadowInfos[1].x, u_shadowInfos[1].y);
+    #endif
 #endif
 
     DirectLight directionalLight;

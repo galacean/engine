@@ -10,7 +10,7 @@ export interface EngineSettings {
 
   /** How this light casts shadows */
   shadowMode?: ShadowMode;
-  /** The default resolution of the shadow maps. */
+  /** The resolution of the shadow maps. */
   shadowResolution?: ShadowResolution;
   /** Number of cascades to use for directional light shadows. */
   shadowCascades?: ShadowCascadesMode;

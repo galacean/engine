@@ -1,9 +1,9 @@
-import { ShadowResolution } from "./enum/ShadowResolution";
-import { TextureFormat } from "../texture";
-import { Renderer } from "../Renderer";
 import { BoundingBox, BoundingFrustum, MathUtil, Matrix, Plane, Vector3 } from "@oasis-engine/math";
-import { Camera } from "../Camera";
 import { FrustumFace } from "@oasis-engine/math/src";
+import { Camera } from "../Camera";
+import { Renderer } from "../Renderer";
+import { TextureFormat } from "../texture";
+import { ShadowResolution } from "./enum/ShadowResolution";
 import { ShadowSliceData } from "./ShadowSliceData";
 
 /**
@@ -213,10 +213,10 @@ export class ShadowUtils {
     // https://lxjk.github.io/2017/04/15/Calculate-Minimal-Bounding-Sphere-of-Frustum.html
     let centerZ: number;
     let radius: number;
-    const k: number = Math.sqrt(1.0 + aspectRatio * aspectRatio) * Math.tan(MathUtil.degreeToRadian(fieldOfView) / 2.0);
-    const k2: number = k * k;
-    const farSNear: number = far - near;
-    const farANear: number = far + near;
+    const k = Math.sqrt(1.0 + aspectRatio * aspectRatio) * Math.tan(MathUtil.degreeToRadian(fieldOfView) / 2.0);
+    const k2 = k * k;
+    const farSNear = far - near;
+    const farANear = far + near;
     if (k2 > farSNear / farANear) {
       centerZ = far;
       radius = far * k;
@@ -226,7 +226,7 @@ export class ShadowUtils {
         0.5 * Math.sqrt(farSNear * farSNear + 2.0 * (far * far + near * near) * k2 + farANear * farANear * k2 * k2);
     }
 
-    const center: Vector3 = shadowSliceData.splitBoundSphere.center;
+    const center = shadowSliceData.splitBoundSphere.center;
     shadowSliceData.splitBoundSphere.radius = radius;
     Vector3.scale(forward, centerZ, center);
     Vector3.add(camera.entity.transform.worldPosition, center, center);
@@ -241,12 +241,12 @@ export class ShadowUtils {
     shadowSliceData: ShadowSliceData
   ): void {
     // http://lspiroengine.com/?p=187
-    const frustumCorners: Vector3[] = ShadowUtils._frustumCorners;
-    const backPlaneFaces: FrustumFace[] = ShadowUtils._backPlaneFaces;
-    const planeNeighbors: FrustumFace[][] = ShadowUtils._frustumPlaneNeighbors;
-    const twoPlaneCorners: FrustumCorner[][][] = ShadowUtils._frustumTwoPlaneCorners;
-    const edgePlanePoint2: Vector3 = ShadowUtils._edgePlanePoint2;
-    const out: Plane[] = shadowSliceData.cullPlanes;
+    const frustumCorners = ShadowUtils._frustumCorners;
+    const backPlaneFaces = ShadowUtils._backPlaneFaces;
+    const planeNeighbors = ShadowUtils._frustumPlaneNeighbors;
+    const twoPlaneCorners = ShadowUtils._frustumTwoPlaneCorners;
+    const edgePlanePoint2 = ShadowUtils._edgePlanePoint2;
+    const out = shadowSliceData.cullPlanes;
 
     // cameraFrustumPlanes is share
     const near = cameraFrustum.getPlane(FrustumFace.Near);
@@ -257,9 +257,9 @@ export class ShadowUtils {
     const top = cameraFrustum.getPlane(FrustumFace.Top);
 
     // adjustment the near/far plane
-    const splitNearDistance: number = splitDistance - cameraNear;
-    const splitNear: Plane = ShadowUtils._adjustNearPlane;
-    const splitFar: Plane = ShadowUtils._adjustFarPlane;
+    const splitNearDistance = splitDistance - cameraNear;
+    const splitNear = ShadowUtils._adjustNearPlane;
+    const splitFar = ShadowUtils._adjustFarPlane;
     splitNear.normal.copyFrom(near.normal);
     splitFar.normal.copyFrom(far.normal);
     splitNear.distance = near.distance + splitNearDistance;
@@ -278,8 +278,8 @@ export class ShadowUtils {
     Plane.get3PlaneInterPoint(splitFar, top, left, frustumCorners[FrustumCorner.FarTopLeft]);
     Plane.get3PlaneInterPoint(splitFar, bottom, left, frustumCorners[FrustumCorner.FarBottomLeft]);
 
-    let backIndex: number = 0;
-    for (let i: FrustumFace = 0; i < 6; i++) {
+    let backIndex = 0;
+    for (let i = 0; i < 6; i++) {
       // maybe 3、4、5(light eye is at far, forward is near, or orthographic camera is any axis)
       let plane: Plane;
       switch (i) {
@@ -301,21 +301,21 @@ export class ShadowUtils {
     }
 
     let edgeIndex: number = backIndex;
-    for (let i: FrustumFace = 0; i < backIndex; i++) {
-      const backFace: FrustumFace = backPlaneFaces[i];
-      const neighborFaces: Array<FrustumFace> = planeNeighbors[backFace];
-      for (let j: number = 0; j < 4; j++) {
-        const neighborFace: FrustumFace = neighborFaces[j];
-        let notBackFace: boolean = true;
-        for (let k: number = 0; k < backIndex; k++)
+    for (let i = 0; i < backIndex; i++) {
+      const backFace = backPlaneFaces[i];
+      const neighborFaces = planeNeighbors[backFace];
+      for (let j = 0; j < 4; j++) {
+        const neighborFace = neighborFaces[j];
+        let notBackFace = true;
+        for (let k = 0; k < backIndex; k++)
           if (neighborFace == backPlaneFaces[k]) {
             notBackFace = false;
             break;
           }
         if (notBackFace) {
-          const corners: Array<FrustumCorner> = twoPlaneCorners[backFace][neighborFace];
-          const point0: Vector3 = frustumCorners[corners[0]];
-          const point1: Vector3 = frustumCorners[corners[1]];
+          const corners = twoPlaneCorners[backFace][neighborFace];
+          const point0 = frustumCorners[corners[0]];
+          const point1 = frustumCorners[corners[1]];
           Vector3.add(point0, direction, edgePlanePoint2);
           Plane.fromPoints(point0, point1, edgePlanePoint2, out[edgeIndex++]);
         }
@@ -337,18 +337,18 @@ export class ShadowUtils {
     shadowSliceData.resolution = shadowResolution;
 
     // To solve shadow swimming problem.
-    const center: Vector3 = boundSphere.center;
-    const radius: number = boundSphere.radius;
-    const halfShadowResolution: number = shadowResolution / 2;
+    const center = boundSphere.center;
+    const radius = boundSphere.radius;
+    const halfShadowResolution = shadowResolution / 2;
     // Add border to project edge pixel PCF.
     // Improve:the clip planes not consider the border,but I think is OK,because the object can clip is not continuous.
-    const borderRadius: number = (radius * halfShadowResolution) / (halfShadowResolution - ShadowUtils.atlasBorderSize);
-    const borderDiam: number = borderRadius * 2.0;
-    const sizeUnit: number = shadowResolution / borderDiam;
-    const radiusUnit: number = borderDiam / shadowResolution;
-    const upLen: number = Math.ceil(Vector3.dot(center, lightUp) * sizeUnit) * radiusUnit;
-    const sideLen: number = Math.ceil(Vector3.dot(center, lightSide) * sizeUnit) * radiusUnit;
-    const forwardLen: number = Vector3.dot(center, lightForward);
+    const borderRadius = (radius * halfShadowResolution) / (halfShadowResolution - ShadowUtils.atlasBorderSize);
+    const borderDiam = borderRadius * 2.0;
+    const sizeUnit = shadowResolution / borderDiam;
+    const radiusUnit = borderDiam / shadowResolution;
+    const upLen = Math.ceil(Vector3.dot(center, lightUp) * sizeUnit) * radiusUnit;
+    const sideLen = Math.ceil(Vector3.dot(center, lightSide) * sizeUnit) * radiusUnit;
+    const forwardLen = Vector3.dot(center, lightForward);
     center.x = lightUp.x * upLen + lightSide.x * sideLen + lightForward.x * forwardLen;
     center.y = lightUp.y * upLen + lightSide.y * sideLen + lightForward.y * forwardLen;
     center.z = lightUp.z * upLen + lightSide.z * sideLen + lightForward.z * forwardLen;
@@ -372,5 +372,17 @@ export class ShadowUtils {
       projectMatrix
     );
     Matrix.multiply(projectMatrix, viewMatrix, viewProjectMatrix);
+  }
+
+  static getMaxTileResolutionInAtlas(atlasWidth: number, atlasHeight: number, tileCount: number): number {
+    let resolution = Math.min(atlasWidth, atlasHeight);
+
+    let currentTileCount = Math.floor(atlasWidth / resolution) * Math.floor(atlasHeight / resolution);
+
+    while (currentTileCount < tileCount) {
+      resolution = Math.floor(resolution >> 1);
+      currentTileCount = Math.floor(atlasWidth / resolution) * Math.floor(atlasHeight / resolution);
+    }
+    return resolution;
   }
 }
