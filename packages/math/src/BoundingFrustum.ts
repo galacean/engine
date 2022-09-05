@@ -6,6 +6,7 @@ import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { Matrix } from "./Matrix";
 import { Plane } from "./Plane";
+import { FrustumFace } from "./enums/FrustumFace";
 
 /**
  * A bounding frustum.
@@ -40,12 +41,12 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
   }
 
   /**
-   * Get the plane by the given index.
-   * @param index - The index
+   * Get the plane by the given frustum face.
+   * @param face - The frustum face
    * @returns The plane get
    */
-  getPlane(index: FrustumFace): Plane {
-    switch (index) {
+  getPlane(face: FrustumFace): Plane {
+    switch (face) {
       case FrustumFace.Near:
         return this.near;
       case FrustumFace.Far:
@@ -166,16 +167,4 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
     this.top.copyFrom(source.top);
     return this;
   }
-}
-
-/**
- * Frustum face
- */
-export enum FrustumFace {
-  Near,
-  Far,
-  Left,
-  Right,
-  Bottom,
-  Top
 }

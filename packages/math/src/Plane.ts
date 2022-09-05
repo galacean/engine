@@ -34,7 +34,7 @@ export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
    * @param  p3 - Plane 3
    * @param out - intersection point
    */
-  static get3PlaneInterPoint(p1: Plane, p2: Plane, p3: Plane, out: Vector3): void {
+  static intersectionPointThreePlanes(p1: Plane, p2: Plane, p3: Plane, out: Vector3): void {
     const p1Nor = p1.normal;
     const p2Nor = p2.normal;
     const p3Nor = p3.normal;
