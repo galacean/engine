@@ -1,10 +1,10 @@
-#ifdef CASCADED_SHADOW_MAP_COUNT
+#ifdef CASCADED_SHADOW_MAP
     #ifdef OASIS_RECEIVE_SHADOWS
         #define OASIS_CALCULATE_SHADOWS
 
         // intensity, resolution
-        uniform vec2 u_shadowInfos[CASCADED_SHADOW_MAP_COUNT];
-        uniform mat4 u_viewProjMatFromLight[4 * CASCADED_SHADOW_MAP_COUNT];
+        uniform vec2 u_shadowInfo;
+        uniform mat4 u_viewProjMatFromLight[4];
         uniform vec4 u_shadowSplitSpheres[4];
 
 
@@ -17,11 +17,11 @@
                 vec2(0, 0.5),
                 vec2(0.5, 0.5)
             );
-            uniform mediump sampler2DShadow u_shadowMaps[CASCADED_SHADOW_MAP_COUNT];
+            uniform mediump sampler2DShadow u_shadowMap;
             #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureLod(textureName, coord3 , 0.0)
             #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
         #else
-            uniform sampler2D u_shadowMaps[CASCADED_SHADOW_MAP_COUNT];
+            uniform sampler2D u_shadowMap;
             #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) (texture2D(textureName, coord3.xy).r < coord3.z ? 0.0 : 1.0)
             #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap
         #endif
@@ -134,22 +134,22 @@
         }
         #endif
 
-        float sampleShadowMap(TEXTURE2D_SHADOW_PARAM(shadowMap), float strength, float size) {
+        float sampleShadowMap() {
             vec3 shadowCoord = getShadowCoord();
             float attenuation = 1.0;
             if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
         #if SHADOW_MODE == 1
-                attenuation = SAMPLE_TEXTURE2D_SHADOW(shadowMap, shadowCoord);
+                attenuation = SAMPLE_TEXTURE2D_SHADOW(u_shadowMap, shadowCoord);
         #endif
 
         #if SHADOW_MODE == 2
-                attenuation = sampleShadowMapFiltered4(shadowMap, shadowCoord, size);
+                attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_shadowInfo.y);
         #endif
 
         #if SHADOW_MODE == 3
-                attenuation = sampleShadowMapFiltered9(shadowMap, shadowCoord, size);
+                attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_shadowInfo.y);
         #endif
-                attenuation = mix(1.0, attenuation, strength);
+                attenuation = mix(1.0, attenuation, u_shadowInfo.x);
             }
             return attenuation;
         }
