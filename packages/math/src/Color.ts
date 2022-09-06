@@ -83,6 +83,21 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     return out;
   }
 
+  /**
+   * Performs a linear interpolation between two color.
+   * @param start - The first color
+   * @param end - The second color
+   * @param t - The blend amount where 0 returns start and 1 end
+   * @param out - The result of linear blending between two color
+   */
+  static lerp(start: Color, end: Color, t: number, out: Color): void {
+    const { r, g, b, a } = start;
+    out.r = r + (end.r - r) * t;
+    out.g = g + (end.g - g) * t;
+    out.b = b + (end.b - b) * t;
+    out.a = a + (end.a - a) * t;
+  }
+
   /** The red component of the color, 0~1. */
   public r: number;
   /** The green component of the color, 0~1. */
