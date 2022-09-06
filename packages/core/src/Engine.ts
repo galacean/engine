@@ -166,6 +166,13 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * Support tint color.
+   */
+  get supportTintColor(): boolean {
+    return true;
+  }
+
+  /**
    * Whether support primitive.
    */
   get canSupportPrimitive(): boolean {

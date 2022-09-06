@@ -38,4 +38,8 @@ export class CanvasEngine extends Engine {
   get canSupportPrimitive(): boolean {
     return false;
   }
+
+  get supportTintColor(): boolean {
+    return false;
+  }
 }

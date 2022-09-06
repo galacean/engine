@@ -17,7 +17,15 @@ export class CanvasTexture2D extends CanvasTexture implements IPlatformTexture2D
     y: number,
     width?: number,
     height?: number
-  ): void {}
+  ): void {
+    const imageData = new ImageData(width, height);
+    const { data } = imageData;
+    const len = colorBuffer.byteLength;
+    for (let i = 0; i < len; ++i) {
+      data[i] = colorBuffer[i];
+    }
+    this._ctx.putImageData(imageData, x, y);
+  }
 
   /**
    * {@inheritDoc IPlatformTexture2D.setImageSource}
@@ -30,7 +38,8 @@ export class CanvasTexture2D extends CanvasTexture implements IPlatformTexture2D
     x: number,
     y: number
   ): void {
-    this._canvasTexture = imageSource;
+    // @ts-ignore
+    this._ctx.drawImage(imageSource, x || 0, y || 0);
   }
 
   /**

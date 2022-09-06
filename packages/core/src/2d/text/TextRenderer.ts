@@ -326,7 +326,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
       const charRenderData = charRenderDatas[i];
       const spriteElement = this._engine._spriteElementPool.getFromPool();
-      spriteElement.setValue(this, charRenderData.renderData, this.getMaterial(), charRenderData.texture);
+      spriteElement.setValue(this, charRenderData.renderData, this.getMaterial(), charRenderData.texture, i);
       camera._renderPipeline.pushPrimitive(spriteElement);
     }
   }
@@ -413,7 +413,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
     this._charFont = Font.createFromOS(
       this.engine,
-      TextUtils.getNativeFontHash(this.font.name, this.fontSize, this.fontStyle)
+      TextUtils.getNativeFontHash(
+        this.font.name,
+        this.fontSize,
+        this.fontStyle,
+        this.engine.supportTintColor ? null : this.color
+      )
     );
     this._charFont._addRefCount(1);
   }

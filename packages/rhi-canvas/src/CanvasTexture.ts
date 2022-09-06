@@ -13,7 +13,9 @@ export class CanvasTexture implements IPlatformTexture {
   /** @internal */
   _texture: Texture;
   /** @internal */
-  _canvasTexture: TexImageSource;
+  _canvasTexture: HTMLCanvasElement;
+  /** @internal */
+  _ctx: CanvasRenderingContext2D;
 
   /**
    * Wrapping mode for texture coordinate S.
@@ -40,6 +42,10 @@ export class CanvasTexture implements IPlatformTexture {
   constructor(rhi: CanvasRenderer, texture: Texture) {
     this._rhi = rhi;
     this._texture = texture;
+    const canvas = this._canvasTexture = document.createElement("canvas");
+    this._ctx = canvas.getContext("2d");
+    canvas.width = texture.width;
+    canvas.height = texture.height;
   }
 
   /**
@@ -48,6 +54,7 @@ export class CanvasTexture implements IPlatformTexture {
   destroy() {
     this._texture && (this._texture = null);
     this._canvasTexture && (this._canvasTexture = null);
+    this._ctx && (this._ctx = null);
   }
 
   /**

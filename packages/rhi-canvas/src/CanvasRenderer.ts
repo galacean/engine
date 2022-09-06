@@ -71,7 +71,7 @@ export class CanvasRenderer implements IHardwareRenderer {
     if (component instanceof SpriteRenderer) {
       this._drawImage(component, camera);
     } else if (component instanceof TextRenderer) {
-      this._drawText(component, camera);
+      this._drawText(element, camera);
     }
   }
 
@@ -129,5 +129,51 @@ export class CanvasRenderer implements IHardwareRenderer {
     ctx.drawImage(image, sx, sy, sWidth, sHeight, ltX - x + offsetX, ltY - y - offsetY, rbVec3.x - ltX, rbVec3.y - ltY);
   }
 
-  private _drawText(renderer: TextRenderer, camera: Camera) {}
+  private _drawText(element: SpriteElement, camera: Camera) {
+    const { component } = element;
+    // @ts-ignore
+    const image = element.texture._platformTexture._canvasTexture;
+
+    const transform = component.entity.transform;
+    const worldMatrix = transform.worldMatrix;
+    const translate = CanvasRenderer._tempVec30;
+    const quat = CanvasRenderer._tempQuat;
+    const scale = CanvasRenderer._tempVec31;
+    worldMatrix.decompose(translate, quat, scale);
+    const euler = CanvasRenderer._tempVec32;
+    quat.toEuler(euler);
+    const ratio = (this._webCanvas.height * 0.5) / camera.orthographicSize;
+    const offsetX = translate.x * ratio;
+    const offsetY = translate.y * ratio;
+    camera.worldToScreenPoint(translate, translate);
+
+    const { ctx } = this;
+    const { x, y } = translate;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.translate(x, y);
+    ctx.rotate(-euler.z);
+    ctx.scale(scale.x, scale.y);
+
+    const { renderData } = element;
+    const { uvs } = renderData;
+    const { width, height } = image;
+    const ltUV = uvs[0];
+    const rbUV = uvs[2];
+    const sx = ltUV.x * width;
+    const sy = ltUV.y * height;
+    const sWidth = (rbUV.x - ltUV.x) * width;
+    const sHeight = (rbUV.y - ltUV.y) * height;
+
+    // @ts-ignore
+    const positions = component._charRenderDatas[element.dataIndex].localPositions;
+    const ltVec3 = CanvasRenderer._tempVec33;
+    ltVec3.set(positions[0].x, positions[0].y, 0);
+    camera.worldToScreenPoint(ltVec3, ltVec3);
+    const rbVec3 = CanvasRenderer._tempVec34;
+    rbVec3.set(positions[2].x, positions[2].y, 0);
+    camera.worldToScreenPoint(rbVec3, rbVec3);
+    const { x: ltX, y: ltY } = ltVec3;
+
+    ctx.drawImage(image, sx, sy, sWidth, sHeight, ltX - x + offsetX, ltY - y - offsetY, rbVec3.x - ltX, rbVec3.y - ltY);
+  }
 }
