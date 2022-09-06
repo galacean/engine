@@ -15,4 +15,4 @@ export { InterpolableValueType } from "./enums/InterpolableValueType";
 export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
 export { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
-export { AnimationProperty } from "./enums/AnimationProperty";
+export { AnimationPropertyInternal as AnimationProperty } from "./enums/AnimationProperty";

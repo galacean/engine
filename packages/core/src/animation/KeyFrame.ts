@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4, Quaternion } from "@oasis-engine/math";
+import { Vector2, Vector3, Vector4, Quaternion, Color } from "@oasis-engine/math";
 
 /**
  * Keyframe.
@@ -23,20 +23,31 @@ export class InterpolableKeyframe<T, V> extends Keyframe<V> {
   outTangent?: T;
 }
 
-export type ObjectKeyframe = Keyframe<Object>;
 export type FloatKeyframe = InterpolableKeyframe<number, number>;
+export type ArrayKeyframe = InterpolableKeyframe<Array<number>, Array<number>>;
 export type FloatArrayKeyframe = InterpolableKeyframe<Float32Array, Float32Array>;
 export type Vector2Keyframe = InterpolableKeyframe<Vector2, Vector2>;
 export type Vector3Keyframe = InterpolableKeyframe<Vector3, Vector3>;
 export type Vector4Keyframe = InterpolableKeyframe<Vector4, Vector4>;
 export type QuaternionKeyframe = InterpolableKeyframe<Vector4, Quaternion>;
+export type ColorKeyframe = InterpolableKeyframe<Vector4, Color>;
 
 export type UnionInterpolableKeyframe =
   | FloatKeyframe
+  | ArrayKeyframe
   | FloatArrayKeyframe
   | Vector2Keyframe
   | Vector3Keyframe
   | Vector4Keyframe
-  | QuaternionKeyframe;
+  | QuaternionKeyframe
+  | ColorKeyframe;
 
-export type InterpolableValue = number | Vector2 | Vector3 | Vector4 | Quaternion | Float32Array | Object;
+export type InterpolableValue =
+  | number
+  | Vector2
+  | Vector3
+  | Vector4
+  | Quaternion
+  | Color
+  | Float32Array
+  | Array<number>;
