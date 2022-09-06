@@ -1,4 +1,4 @@
-import { AnimationCurve } from ".";
+import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { ArrayKeyframe } from "../KeyFrame";
 
@@ -13,16 +13,6 @@ export class AnimationArrayCurve extends AnimationCurve {
   _valueType = InterpolableValueType.Array;
 
   protected _tempValue: number[] = [];
-
-  /**
-   * Add a new key to the curve.
-   * @param key - The keyframe
-   */
-  addKey(key: ArrayKeyframe): void {
-    super.addKey(key);
-    const size = key.value.length;
-    this._valueSize = size;
-  }
 
   /**
    * @internal

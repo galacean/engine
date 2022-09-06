@@ -1,4 +1,4 @@
-import { AnimationCurveOwner, PropertyReference } from ".";
+import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { SkinnedMeshRenderer } from "../../../mesh";
@@ -49,6 +49,21 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
     }
   }
 
+  revertDefaultValue() {
+    if (!this._hasSavedDefaultValue) return;
+
+    const { property } = this;
+    switch (property) {
+      case AnimationPropertyInternal.BlendShapeWeights:
+        (this.component as SkinnedMeshRenderer).blendShapeWeights = this._defaultValue;
+        break;
+      default:
+        const { mounted, propertyName } = this._propertyReference;
+        mounted[propertyName] = this._defaultValue;
+        break;
+    }
+  }
+
   protected _applyValue(value: Float32Array, weight: number) {
     const { component, property } = this;
     switch (property) {
@@ -79,10 +94,22 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
   }
 
   protected _applyAdditiveVale(value: Float32Array, weight: number) {
-    const { mounted, propertyName } = this._propertyReference;
-    const originValue = mounted[propertyName] as Float32Array;
-    for (let i = 0, length = originValue.length; i < length; ++i) {
-      originValue[i] += value[i] * weight;
+    const { component, property } = this;
+    switch (property) {
+      case AnimationPropertyInternal.BlendShapeWeights: {
+        const { blendShapeWeights } = <SkinnedMeshRenderer>component;
+        for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+          blendShapeWeights[i] += value[i] * weight;
+        }
+        break;
+      }
+      default:
+        const { mounted, propertyName } = this._propertyReference;
+        const originValue = mounted[propertyName] as Float32Array;
+        for (let i = 0, length = originValue.length; i < length; ++i) {
+          originValue[i] += value[i] * weight;
+        }
+        break;
     }
   }
 

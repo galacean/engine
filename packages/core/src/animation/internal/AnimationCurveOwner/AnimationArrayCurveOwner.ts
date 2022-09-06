@@ -1,4 +1,4 @@
-import { AnimationCurveOwner, PropertyReference } from ".";
+import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { AnimationProperty } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
@@ -35,6 +35,13 @@ export class AnimationArrayCurveOwner extends AnimationCurveOwner {
     for (let i = 0, length = arr.length; i < length; ++i) {
       this._defaultValue[i] = arr[i];
     }
+  }
+
+  revertDefaultValue() {
+    if (!this._hasSavedDefaultValue) return;
+
+    const { mounted, propertyName } = this._propertyReference;
+    mounted[propertyName] = this._defaultValue;
   }
 
   protected _applyValue(value: number[], weight: number) {

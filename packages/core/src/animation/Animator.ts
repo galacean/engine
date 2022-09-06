@@ -39,10 +39,6 @@ export class Animator extends Component {
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
-  @ignoreClone
-  private _baseTempValue = new AnimatorTempValue();
-  @ignoreClone
-  private _crossTempValue = new AnimatorTempValue();
 
   /**
    * The playback speed of the Animator, 1.0 is normal playback speed.

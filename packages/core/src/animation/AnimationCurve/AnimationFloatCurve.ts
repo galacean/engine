@@ -1,4 +1,4 @@
-import { AnimationCurve } from ".";
+import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { FloatKeyframe } from "../KeyFrame";
 

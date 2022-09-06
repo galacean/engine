@@ -1,4 +1,4 @@
-import { AnimationCurve } from ".";
+import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { FloatArrayKeyframe } from "../KeyFrame";
 
@@ -11,17 +11,6 @@ export class AnimationFloatArrayCurve extends AnimationCurve {
 
   /** @internal */
   _valueType = InterpolableValueType.FloatArray;
-
-  /**
-   * Add a new key to the curve.
-   * @param key - The keyframe
-   */
-  addKey(key: FloatArrayKeyframe): void {
-    super.addKey(key);
-    const size = key.value.length;
-    this._valueSize = size;
-    this._tempValue = this._tempValue || new Float32Array(size);
-  }
 
   /**
    * @internal

@@ -1,5 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
-import { AnimationCurveOwner, PropertyReference } from ".";
+import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationProperty, AnimationPropertyInternal } from "../../enums/AnimationProperty";
@@ -23,7 +23,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner {
         this._targetValue = target.transform.position;
         break;
       case AnimationPropertyInternal.Scale:
-        this._targetValue = target.transform.position;
+        this._targetValue = target.transform.scale;
         break;
       default:
         this._propertyReference = this._getPropertyReference();
@@ -33,13 +33,30 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner {
     }
   }
 
-  saveDefaultValue(): void {
+  saveDefaultValue() {
     this._defaultValue.copyFrom(this._targetValue);
     this._hasSavedDefaultValue = true;
   }
 
-  saveFixedPoseValue(): void {
+  saveFixedPoseValue() {
     this._fixedPoseValue.copyFrom(this._targetValue);
+  }
+
+  revertDefaultValue() {
+    if (!this._hasSavedDefaultValue) return;
+
+    const { target, property } = this;
+    switch (property) {
+      case AnimationPropertyInternal.Position:
+        target.transform.position = this._defaultValue;
+        break;
+      case AnimationPropertyInternal.Scale:
+        target.transform.scale = this._defaultValue;
+        break;
+      default:
+        const { mounted, propertyName } = this._propertyReference;
+        mounted[propertyName] = this._defaultValue;
+    }
   }
 
   protected _applyValue(value: Vector3, layerWeight: number) {

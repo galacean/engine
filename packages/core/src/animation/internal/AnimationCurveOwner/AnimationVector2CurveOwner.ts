@@ -1,5 +1,5 @@
 import { Vector2 } from "@oasis-engine/math";
-import { AnimationCurveOwner, PropertyReference } from ".";
+import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationProperty } from "../../enums/AnimationProperty";
@@ -29,6 +29,13 @@ export class AnimationVector2CurveOwner extends AnimationCurveOwner {
 
   saveFixedPoseValue() {
     this._fixedPoseValue.copyFrom(this._targetValue);
+  }
+
+  revertDefaultValue() {
+    if (!this._hasSavedDefaultValue) return;
+
+    const { mounted, propertyName } = this._propertyReference;
+    mounted[propertyName] = this._defaultValue;
   }
 
   protected _applyValue(value: Vector2, weight: number) {

@@ -1,5 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
-import { AnimationCurve } from ".";
+import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { Vector3Keyframe } from "../KeyFrame";
 

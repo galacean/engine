@@ -1,12 +1,12 @@
 import { Color } from "@oasis-engine/math";
-import { AnimationCurve } from ".";
+import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { ColorKeyframe } from "../KeyFrame";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationFloatCurve extends AnimationCurve {
+export class AnimationColorCurve extends AnimationCurve {
   /** All keys defined in the animation curve. */
   keys: ColorKeyframe[] = [];
 

@@ -1,4 +1,4 @@
-import { AnimationCurveOwner, PropertyReference } from ".";
+import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { AnimationProperty } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
@@ -29,6 +29,13 @@ export class AnimationFloatCurveOwner extends AnimationCurveOwner {
 
   saveFixedPoseValue() {
     this._fixedPoseValue = this._targetValue;
+  }
+
+  revertDefaultValue() {
+    if (!this._hasSavedDefaultValue) return;
+
+    const { mounted, propertyName } = this._propertyReference;
+    mounted[propertyName] = this._defaultValue;
   }
 
   protected _applyValue(value: number, weight: number) {

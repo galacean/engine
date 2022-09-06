@@ -1,5 +1,5 @@
 import { Quaternion } from "@oasis-engine/math";
-import { AnimationCurve } from ".";
+import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { QuaternionKeyframe } from "../KeyFrame";
 
