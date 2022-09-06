@@ -25,6 +25,8 @@ export class Pointer {
   position: Vector2 = new Vector2();
   /** The change of the pointer. */
   movingDelta: Vector2 = new Vector2();
+  /** The frameCount the pointer was generated */
+  frameCount: number = -1;
 
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;

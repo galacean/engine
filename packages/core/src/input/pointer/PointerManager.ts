@@ -39,6 +39,7 @@ export class PointerManager implements IInput {
   private _engine: Engine;
   private _canvas: Canvas;
   private _htmlCanvas: HTMLCanvasElement;
+  private _nativeEvents = [];
   private _pointerPool: Pointer[];
   private _hadListener: boolean = false;
   private _pointerIDMap = [];
@@ -65,21 +66,40 @@ export class PointerManager implements IInput {
    * @internal
    */
   _update(frameCount: number): void {
-    const { _pointers: pointers } = this;
+    const { _pointers: pointers, _nativeEvents: nativeEvents } = this;
+    /** Clean up the pointer released in the previous frame. */
     let length = pointers.length;
-    if (length >= 0) {
+    if (length > 0) {
+      for (let i = length - 1; i >= 0; i--) {
+        if (i !== length - 1) {
+          pointers[i] = pointers[length - 1];
+          --length;
+        }
+      }
+      pointers.length = length;
+    }
+
+    /** Generate the pointer received for this frame. */
+    length = nativeEvents.length;
+    if (length > 0) {
+      this._buttons = nativeEvents[length - 1].buttons;
+      for (let i = 0; i < length; i++) {
+        const evt = nativeEvents[i];
+        this._getPointer(evt.pointerId, frameCount)?._events.push(evt);
+      }
+      nativeEvents.length = 0;
+    }
+
+    /** Pointer handles its own events. */
+    length = pointers.length;
+    if (length > 0) {
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;
       const { clientWidth, clientHeight } = this._htmlCanvas;
       const { width, height } = this._canvas;
       for (let i = length - 1; i >= 0; i--) {
-        if (updatePointer(frameCount, pointers[i], clientWidth, clientHeight, width, height)) {
-          if (i !== length - 1) {
-            pointers[i] = pointers[length - 1];
-          }
-          pointers.length--;
-        }
+        updatePointer(frameCount, pointers[i], clientWidth, clientHeight, width, height);
       }
     }
   }
@@ -142,11 +162,10 @@ export class PointerManager implements IInput {
 
   private _onPointerEvent(evt: PointerEvent) {
     evt.cancelable && evt.preventDefault();
-    this._buttons = evt.buttons;
-    this._getPointer(evt.pointerId)?._events.push(evt);
+    this._nativeEvents.push(evt);
   }
 
-  private _getPointer(pointerId: number): Pointer {
+  private _getPointer(pointerId: number, frameCount: number): Pointer {
     const { _pointers: pointers } = this;
     const index = this._pointerIDMap.indexOf(pointerId);
     if (index >= 0) {
@@ -168,6 +187,7 @@ export class PointerManager implements IInput {
         }
         this._pointerIDMap[i] = pointerId;
         pointers.splice(i, 0, pointer);
+        pointer.frameCount = frameCount;
         return pointer;
       } else {
         return null;
@@ -209,7 +229,7 @@ export class PointerManager implements IInput {
     clientH: number,
     canvasW: number,
     canvasH: number
-  ): boolean {
+  ): void {
     const { _events: events } = pointer;
     const length = events.length;
     const { position } = pointer;
@@ -257,11 +277,6 @@ export class PointerManager implements IInput {
           case "pointerout":
             pointer.phase = PointerPhase.Leave;
             pointer._firePointerExitAndEnter(null);
-            if (i === length - 1) {
-              return true;
-            } else {
-              break;
-            }
           default:
             break;
         }
@@ -273,7 +288,6 @@ export class PointerManager implements IInput {
       const rayCastEntity = this._pointerRayCast(position.x / canvasW, position.y / canvasH);
       pointer._firePointerExitAndEnter(rayCastEntity);
     }
-    return false;
   }
 
   private _updatePointerWithoutPhysics(
@@ -283,7 +297,7 @@ export class PointerManager implements IInput {
     clientH: number,
     canvasW: number,
     canvasH: number
-  ): boolean {
+  ): void {
     const { _events: events } = pointer;
     const length = events.length;
     if (length > 0) {
@@ -318,11 +332,6 @@ export class PointerManager implements IInput {
             break;
           case "pointerout":
             pointer.phase = PointerPhase.Leave;
-            if (i === length - 1) {
-              return true;
-            } else {
-              break;
-            }
           default:
             break;
         }
@@ -332,6 +341,5 @@ export class PointerManager implements IInput {
       pointer.movingDelta.set(0, 0);
       pointer.phase = PointerPhase.Stationary;
     }
-    return false;
   }
 }
