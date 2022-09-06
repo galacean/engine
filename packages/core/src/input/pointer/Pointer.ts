@@ -1,6 +1,5 @@
 import { Vector2 } from "@oasis-engine/math";
 import { Entity } from "../../Entity";
-import { Script } from "../../Script";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 
