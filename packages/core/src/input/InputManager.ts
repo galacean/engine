@@ -19,10 +19,17 @@ export class InputManager {
   private _keyboardManager: KeyboardManager;
 
   /**
-   * Pointer List.
+   * Pointer list.
    */
   get pointers(): Readonly<Pointer[] | null> {
     return this._initialized ? this._pointerManager._pointers : null;
+  }
+
+  /**
+   * Pointer count.
+   */
+  get pointerCount(): number {
+    return this._initialized ? this._pointerManager._pointers.length : 0;
   }
 
   /**
@@ -42,24 +49,6 @@ export class InputManager {
    */
   get wheelDelta(): Readonly<Vector3 | null> {
     return this._initialized ? this._wheelManager._delta : null;
-  }
-
-  /**
-   * Get the change of the pointer.
-   * @returns Change value
-   */
-  get pointerMovingDelta(): Readonly<Vector2 | null> {
-    return this._initialized ? this._pointerManager._movingDelta : null;
-  }
-
-  /**
-   * Get the position of the pointer.
-   * @returns The position of the pointer
-   */
-  get pointerPosition(): Readonly<Vector2> {
-    return this._initialized && this._pointerManager._pointers.length > 0
-      ? this._pointerManager._currentPosition
-      : null;
   }
 
   /**

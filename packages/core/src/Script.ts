@@ -1,6 +1,7 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
+import { Pointer } from "./input";
 import { ColliderShape } from "./physics";
 
 /**
@@ -118,33 +119,33 @@ export class Script extends Component {
   /**
    * Called when the pointer is down while over the ColliderShape.
    */
-  onPointerDown(): void {}
+  onPointerDown(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is up while over the ColliderShape.
    */
-  onPointerUp(): void {}
+  onPointerUp(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is down and up with the same collider.
    */
-  onPointerClick(): void {}
+  onPointerClick(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is enters the ColliderShape.
    */
-  onPointerEnter(): void {}
+  onPointerEnter(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is no longer over the ColliderShape.
    */
-  onPointerExit(): void {}
+  onPointerExit(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is down while over the ColliderShape and is still holding down.
    * @remarks onPointerDrag is called every frame while the pointer is down.
    */
-  onPointerDrag(): void {}
+  onPointerDrag(pointer: Pointer): void {}
 
   /**
    * Called when be disabled.
