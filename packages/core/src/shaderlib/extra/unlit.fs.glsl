@@ -1,6 +1,7 @@
 #include <common>
 #include <uv_share>
 #include <fog_share>
+#include <shadow_frag_share>
 
 uniform vec4 u_baseColor;
 uniform float u_alphaCutoff;
@@ -32,6 +33,7 @@ void main() {
     #endif
 
     gl_FragColor = baseColor;
+    #include <shadow_frag>
 
     #include <fog_frag>
 }

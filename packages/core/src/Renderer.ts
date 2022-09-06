@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Camera } from "./Camera";
 import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
@@ -69,6 +69,12 @@ export class Renderer extends Component {
   private _materialsInstanced: boolean[] = [];
   @ignoreClone
   private _priority: number = 0;
+
+  /** whether receive shadow */
+  receiveShadows: boolean = false;
+
+  /** whether cast shadow */
+  castShadows: boolean = false;
 
   /**
    * Material count.

@@ -47,6 +47,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
 
   /**
    * @internal
+   * @override
    */
   _render(camera: Camera): void {
     const mesh = this._mesh;

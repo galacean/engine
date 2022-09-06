@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/loader",
-  "version": "0.8.0-beta.19",
+  "version": "0.9.0-alpha.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,9 +18,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.8.0-beta.19",
-    "@oasis-engine/draco": "0.8.0-beta.19",
-    "@oasis-engine/math": "0.8.0-beta.19",
-    "@oasis-engine/rhi-webgl": "0.8.0-beta.19"
+    "@oasis-engine/core": "0.9.0-alpha.1",
+    "@oasis-engine/draco": "0.9.0-alpha.1",
+    "@oasis-engine/math": "0.9.0-alpha.1",
+    "@oasis-engine/rhi-webgl": "0.9.0-alpha.1"
   }
 }
