@@ -69,7 +69,7 @@ export class CanvasRenderer implements IHardwareRenderer {
   drawElement(element: SpriteElement, camera: Camera) {
     const { component } = element;
     if (component instanceof SpriteRenderer) {
-      this._drawImage(component, camera);
+      this._drawImage(element, camera);
     } else if (component instanceof TextRenderer) {
       this._drawText(element, camera);
     }
@@ -79,7 +79,8 @@ export class CanvasRenderer implements IHardwareRenderer {
     return new CanvasTexture2D(this, texture2D);
   }
 
-  private _drawImage(renderer: SpriteRenderer, camera: Camera) {
+  private _drawImage(element: SpriteElement, camera: Camera) {
+    const renderer = <SpriteRenderer>element.component;
     const { sprite } = renderer;
     // @ts-ignore
     const image = sprite.texture._platformTexture._canvasTexture;
@@ -104,15 +105,36 @@ export class CanvasRenderer implements IHardwareRenderer {
     ctx.rotate(-euler.z);
     const scaleX = renderer.flipX ? -scale.x : scale.x;
     const scaleY = renderer.flipY ? -scale.y : scale.y;
-    ctx.scale(scaleX, scaleY);
+    // Handle rotation axis X and Y.
+    const percentX = Math.abs(euler.x % (Math.PI * 2));
+    let rotationScaleY = 1;
+    if (percentX <= Math.PI) {
+      const t = percentX / Math.PI;
+      rotationScaleY = 1 - 2 * t;
+    } else {
+      const t = (percentX - Math.PI) / Math.PI;
+      rotationScaleY = -1 + 2 * t;
+    }
+    const percentY = Math.abs(euler.y % (Math.PI * 2));
+    let rotationScaleX = 1;
+    if (percentY <= Math.PI) {
+      const t = percentY / Math.PI;
+      rotationScaleX = 1 - 2 * t;
+    } else {
+      const t = (percentY - Math.PI) / Math.PI;
+      rotationScaleX = -1 + 2 * t;
+    }
+    ctx.scale(scaleX * rotationScaleX, scaleY * rotationScaleY);
 
-    const { region } = sprite;
+    const { renderData } = element;
+    const { uvs } = renderData;
     const { width, height } = image;
-    const regionHeight = region.height;
-    const sx = region.x * width;
-    const sy = (1 - region.y - regionHeight) * height;
-    const sWidth = region.width * width;
-    const sHeight = regionHeight * height;
+    const ltUV = uvs[2];
+    const rbUV = uvs[1];
+    const sx = ltUV.x * width;
+    const sy = ltUV.y * height;
+    const sWidth = (rbUV.x - ltUV.x) * width;
+    const sHeight = (rbUV.y - ltUV.y) * height;
 
     const { pivot } = sprite;
     const { width: renderWidth, height: renderHeight } = renderer;
@@ -126,7 +148,9 @@ export class CanvasRenderer implements IHardwareRenderer {
     camera.worldToScreenPoint(rbVec3, rbVec3);
     const { x: ltX, y: ltY } = ltVec3;
 
+    ctx.globalAlpha = renderData.color.a;
     ctx.drawImage(image, sx, sy, sWidth, sHeight, ltX - x + offsetX, ltY - y - offsetY, rbVec3.x - ltX, rbVec3.y - ltY);
+    ctx.globalAlpha = 1.0;
   }
 
   private _drawText(element: SpriteElement, camera: Camera) {
@@ -152,6 +176,25 @@ export class CanvasRenderer implements IHardwareRenderer {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.translate(x, y);
     ctx.rotate(-euler.z);
+    // Handle rotation axis X and Y.
+    const percentX = Math.abs(euler.x % (Math.PI * 2));
+    let rotationScaleY = 1;
+    if (percentX <= Math.PI) {
+      const t = percentX / Math.PI;
+      rotationScaleY = 1 - 2 * t;
+    } else {
+      const t = (percentX - Math.PI) / Math.PI;
+      rotationScaleY = -1 + 2 * t;
+    }
+    const percentY = Math.abs(euler.y % (Math.PI * 2));
+    let rotationScaleX = 1;
+    if (percentY <= Math.PI) {
+      const t = percentY / Math.PI;
+      rotationScaleX = 1 - 2 * t;
+    } else {
+      const t = (percentY - Math.PI) / Math.PI;
+      rotationScaleX = -1 + 2 * t;
+    }
     ctx.scale(scale.x, scale.y);
 
     const { renderData } = element;
@@ -174,6 +217,8 @@ export class CanvasRenderer implements IHardwareRenderer {
     camera.worldToScreenPoint(rbVec3, rbVec3);
     const { x: ltX, y: ltY } = ltVec3;
 
+    ctx.globalAlpha = renderData.color.a;
     ctx.drawImage(image, sx, sy, sWidth, sHeight, ltX - x + offsetX, ltY - y - offsetY, rbVec3.x - ltX, rbVec3.y - ltY);
+    ctx.globalAlpha = 1.0;
   }
 }
