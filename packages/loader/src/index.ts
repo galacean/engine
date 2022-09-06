@@ -14,6 +14,6 @@ import "./MaterialLoader";
 import "./MeshLoader";
 
 export * from "./resource-deserialize";
-export { GLTFResource } from "./gltf/GLTFResource";
+export * from "./gltf";
 export * from "./SceneLoader";
 export { parseSingleKTX } from "./compressed-texture";
