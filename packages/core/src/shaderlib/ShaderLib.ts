@@ -6,7 +6,6 @@ import color_share from "./color_share.glsl";
 import normal_share from "./normal_share.glsl";
 import uv_share from "./uv_share.glsl";
 import worldpos_share from "./worldpos_share.glsl";
-import shadow_share from "./shadow_share.glsl";
 import fog_share from "./fog_share.glsl";
 
 import begin_normal_vert from "./begin_normal_vert.glsl";
@@ -20,8 +19,12 @@ import blendShape_input from "./blendShape_input.glsl";
 import blendShape_vert from "./blendShape_vert.glsl";
 import uv_vert from "./uv_vert.glsl";
 import worldpos_vert from "./worldpos_vert.glsl";
-import shadow_vert from "./shadow_vert.glsl";
 import fog_vert from "./fog_vert.glsl";
+
+import shadow_vert from "./shadow_vert.glsl";
+import shadow_vert_share from "./shadow_vert_share.glsl";
+import shadow_frag from "./shadow_frag.glsl";
+import shadow_frag_share from "./shadow_frag_share.glsl";
 
 import light_frag_define from "./light_frag_define.glsl";
 import mobile_material_frag from "./mobile_material_frag.glsl";
@@ -62,8 +65,12 @@ export const ShaderLib = {
   normal_share,
   uv_share,
   worldpos_share,
-  shadow_share,
   fog_share,
+
+  shadow_vert_share,
+  shadow_vert,
+  shadow_frag_share,
+  shadow_frag,
 
   begin_normal_vert,
   begin_position_vert,
@@ -76,7 +83,6 @@ export const ShaderLib = {
   blendShape_vert,
   uv_vert,
   worldpos_vert,
-  shadow_vert,
   fog_vert,
 
   light_frag_define,

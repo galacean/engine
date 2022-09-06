@@ -1,10 +1,8 @@
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export type { Canvas } from "./Canvas";
-export { EngineFeature } from "./EngineFeature";
 
 export { Scene } from "./Scene";
-export { SceneFeature } from "./SceneFeature";
 export { SceneManager } from "./SceneManager";
 
 export { Entity } from "./Entity";
@@ -21,7 +19,7 @@ export type { EngineSettings } from "./EngineSettings";
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
-export { AssetPromise, AssetPromiseStatus } from "./asset/AssetPromise";
+export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { RefObject } from "./asset/RefObject";
@@ -32,12 +30,6 @@ export { RenderPass } from "./RenderPipeline/RenderPass";
 export { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
 export { SpriteElement } from "./RenderPipeline/SpriteElement";
 export * from "./base";
-
-// Lighting
-import { LightFeature, hasLight } from "./lighting/LightFeature";
-import { Scene } from "./Scene";
-Scene.registerFeature(LightFeature);
-(Scene.prototype as any).hasLight = hasLight;
 
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
@@ -58,7 +50,6 @@ export * from "./particle/index";
 export * from "./trail/index";
 export * from "./fog/index";
 export * from "./env-probe/index";
-export * from "./shadow/index";
 export * from "./shader/index";
 export * from "./Layer";
 export * from "./clone/CloneManager";

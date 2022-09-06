@@ -165,11 +165,12 @@ export class Shader {
       return shaderProgram;
     }
 
-    const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
+    const isWebGL2 = <boolean>engine._hardwareRenderer.isWebGL2;
     const macroNameList = [];
     Shader._getNamesByMacros(macroCollection, macroNameList);
     const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
+    const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_WEBGL2" : "#define GRAPHICS_API_WEBGL1";
     let precisionStr = `
     #ifdef GL_FRAGMENT_PRECISION_HIGH
       precision highp float;
@@ -188,14 +189,16 @@ export class Shader {
     }
 
     let vertexSource = ShaderFactory.parseIncludes(
-      ` ${versionStr}
-        ${precisionStr}
-        ${macroNameStr}
-        ` + this._vertexSource
+      `${versionStr}
+       ${graphicAPI}
+       ${precisionStr}
+       ${macroNameStr}
+      ` + this._vertexSource
     );
 
     let fragmentSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
+        ${graphicAPI}
         ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}
         ${precisionStr}
         ${macroNameStr}
