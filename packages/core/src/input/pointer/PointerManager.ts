@@ -109,6 +109,13 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointerout", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       this._hadListener = false;
+      this._downList.length = 0;
+      this._upList.length = 0;
+      const { _pointers: pointers } = this;
+      for (let i = pointers.length - 1; i >= 0; i--) {
+        pointers[i].phase = PointerPhase.Leave;
+      }
+      pointers.length = 0;
     }
   }
 
@@ -127,6 +134,8 @@ export class PointerManager implements IInput {
     }
     this._pointerPool.length = 0;
     this._pointers.length = 0;
+    this._downList.length = 0;
+    this._upList.length = 0;
     this._htmlCanvas = null;
     this._engine = null;
   }
