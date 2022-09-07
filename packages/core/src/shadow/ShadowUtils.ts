@@ -1,12 +1,12 @@
 import {
   BoundingBox,
   BoundingFrustum,
+  CollisionUtil,
+  FrustumFace,
   MathUtil,
   Matrix,
   Plane,
-  Vector3,
-  CollisionUtil,
-  FrustumFace
+  Vector3
 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Renderer } from "../Renderer";
@@ -170,25 +170,17 @@ export class ShadowUtils {
   }
 
   static cullingRenderBounds(bounds: BoundingBox, cullPlaneCount: number, cullPlanes: Plane[]): boolean {
-    const min = bounds.min;
-    const max = bounds.max;
-    const minX = min.x;
-    const minY = min.y;
-    const minZ = min.z;
-    const maxX = max.x;
-    const maxY = max.y;
-    const maxZ = max.z;
+    const { min, max } = bounds;
 
     let pass = true;
-    for (let j: number = 0; j < cullPlaneCount; j++) {
-      const plane = cullPlanes[j];
+    for (let i = 0; i < cullPlaneCount; i++) {
+      const plane = cullPlanes[i];
       const normal = plane.normal;
       if (
-        plane.distance +
-          normal.x * (normal.x > 0.0 ? minX : maxX) +
-          normal.y * (normal.y > 0.0 ? minY : maxY) +
-          normal.z * (normal.z > 0.0 ? minZ : maxZ) >
-        0.0
+        normal.x * (normal.x > 0.0 ? min.x : max.x) +
+          normal.y * (normal.y > 0.0 ? min.y : max.y) +
+          normal.z * (normal.z > 0.0 ? min.z : max.z) >
+        -plane.distance
       ) {
         pass = false;
         break;

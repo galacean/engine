@@ -53,7 +53,7 @@ export class CascadedShadowCaster {
   private _lightUp: Vector3 = new Vector3();
   private _lightSide: Vector3 = new Vector3();
   private _lightForward: Vector3 = new Vector3();
-  private _existShadowMap = false;
+  private _existShadowMap: boolean = false;
 
   private _splitBoundSpheres = new Float32Array(4 * CascadedShadowCaster._maxCascades);
   // 4 viewProj matrix for cascade shadow
@@ -105,7 +105,6 @@ export class CascadedShadowCaster {
       _transparentQueue: transparentQueue
     } = camera._renderPipeline;
 
-    const lights = engine._lightManager._directLights;
     const componentsManager = engine._componentsManager;
     const rhi = engine._hardwareRenderer;
     const shadowCascades = engine.settings.shadowCascades;
@@ -117,82 +116,83 @@ export class CascadedShadowCaster {
     const lightSide = this._lightSide;
     const lightForward = this._lightForward;
 
+    const lights = engine._lightManager._directLights;
+    const sunLightIndex = engine._lightManager._getSunLightIndex();
+
     this._updateCascadeSplitLambda();
-    if (lights.length > 0) {
-      for (let i = 0, len = lights.length; i < len; i++) {
-        const light = lights.get(i);
-        if (light.enableShadow && !this._existShadowMap) {
-          // prepare render target
-          const renderTarget = this._getAvailableRenderTarget();
-          rhi.activeRenderTarget(renderTarget, null, 0);
-          rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
-          this._shadowInfos.x = light.shadowStrength;
-          this._shadowInfos.y = this._shadowTileResolution;
-          this._depthMap = <Texture2D>this._renderTargets.depthTexture;
+    if (sunLightIndex !== -1) {
+      const light = lights.get(sunLightIndex);
+      if (light.enableShadow) {
+        // prepare render target
+        const renderTarget = this._getAvailableRenderTarget();
+        rhi.activeRenderTarget(renderTarget, null, 0);
+        rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+        this._shadowInfos.x = light.shadowStrength;
+        this._shadowInfos.y = this._shadowTileResolution;
+        this._depthMap = <Texture2D>this._renderTargets.depthTexture;
 
-          // prepare light and camera direction
-          Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
-          lightSide.set(lightWorldE[0], lightWorldE[1], lightWorldE[2]);
-          lightUp.set(lightWorldE[4], lightWorldE[5], lightWorldE[6]);
-          lightForward.set(-lightWorldE[8], -lightWorldE[9], -lightWorldE[10]);
-          camera.entity.transform.getWorldForward(CascadedShadowCaster._tempVector);
+        // prepare light and camera direction
+        Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
+        lightSide.set(lightWorldE[0], lightWorldE[1], lightWorldE[2]);
+        lightUp.set(lightWorldE[4], lightWorldE[5], lightWorldE[6]);
+        lightForward.set(-lightWorldE[8], -lightWorldE[9], -lightWorldE[10]);
+        camera.entity.transform.getWorldForward(CascadedShadowCaster._tempVector);
 
-          for (let j = 0; j < shadowCascades; j++) {
-            ShadowUtils.getBoundSphereByFrustum(
-              splitDistance[j],
-              splitDistance[j + 1],
-              camera,
-              CascadedShadowCaster._tempVector.normalize(),
-              shadowSliceData
-            );
-            ShadowUtils.getDirectionLightShadowCullPlanes(
-              camera._frustum,
-              splitDistance[j],
-              camera.nearClipPlane,
-              lightForward,
-              shadowSliceData
-            );
-            ShadowUtils.getDirectionalLightMatrices(
-              lightUp,
-              lightSide,
-              lightForward,
-              j,
-              light.shadowNearPlane,
-              this._shadowTileResolution,
-              shadowSliceData
-            );
-            this._updateSingleShadowCasterShaderData(<DirectLight>light, shadowSliceData);
+        for (let j = 0; j < shadowCascades; j++) {
+          ShadowUtils.getBoundSphereByFrustum(
+            splitDistance[j],
+            splitDistance[j + 1],
+            camera,
+            CascadedShadowCaster._tempVector.normalize(),
+            shadowSliceData
+          );
+          ShadowUtils.getDirectionLightShadowCullPlanes(
+            camera._frustum,
+            splitDistance[j],
+            camera.nearClipPlane,
+            lightForward,
+            shadowSliceData
+          );
+          ShadowUtils.getDirectionalLightMatrices(
+            lightUp,
+            lightSide,
+            lightForward,
+            j,
+            light.shadowNearPlane,
+            this._shadowTileResolution,
+            shadowSliceData
+          );
+          this._updateSingleShadowCasterShaderData(<DirectLight>light, shadowSliceData);
 
-            // upload pre-cascade infos.
-            const center = boundSphere.center;
-            const radius = boundSphere.radius;
-            const offset = j * 4;
-            splitBoundSpheres[offset] = center.x;
-            splitBoundSpheres[offset + 1] = center.y;
-            splitBoundSpheres[offset + 2] = center.z;
-            splitBoundSpheres[offset + 3] = radius * radius;
-            vpMatrix.set(shadowSliceData.viewProjectMatrix.elements, 16 * j);
+          // upload pre-cascade infos.
+          const center = boundSphere.center;
+          const radius = boundSphere.radius;
+          const offset = j * 4;
+          splitBoundSpheres[offset] = center.x;
+          splitBoundSpheres[offset + 1] = center.y;
+          splitBoundSpheres[offset + 2] = center.z;
+          splitBoundSpheres[offset + 3] = radius * radius;
+          vpMatrix.set(shadowSliceData.viewProjectMatrix.elements, 16 * j);
 
-            opaqueQueue.clear();
-            alphaTestQueue.clear();
-            transparentQueue.clear();
-            const renderers = componentsManager._renderers;
-            const elements = renderers._elements;
-            for (let k = renderers.length - 1; k >= 0; --k) {
-              ShadowUtils.shadowCullFrustum(camera, elements[k], shadowSliceData);
-            }
-            opaqueQueue.sort(RenderQueue._compareFromNearToFar);
-            alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
-
-            const viewport = viewports[j];
-            rhi.viewport(viewport.x, viewport.y, this._shadowTileResolution, this._shadowTileResolution);
-            engine._renderCount++;
-
-            opaqueQueue.render(camera, shadowMapMaterial, Layer.Everything);
-            alphaTestQueue.render(camera, shadowMapMaterial, Layer.Everything);
+          opaqueQueue.clear();
+          alphaTestQueue.clear();
+          transparentQueue.clear();
+          const renderers = componentsManager._renderers;
+          const elements = renderers._elements;
+          for (let k = renderers.length - 1; k >= 0; --k) {
+            ShadowUtils.shadowCullFrustum(camera, elements[k], shadowSliceData);
           }
-          this._existShadowMap = true;
+          opaqueQueue.sort(RenderQueue._compareFromNearToFar);
+          alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
+
+          const viewport = viewports[j];
+          rhi.viewport(viewport.x, viewport.y, this._shadowTileResolution, this._shadowTileResolution);
+          engine._renderCount++;
+
+          opaqueQueue.render(camera, shadowMapMaterial, Layer.Everything);
+          alphaTestQueue.render(camera, shadowMapMaterial, Layer.Everything);
         }
+        this._existShadowMap = true;
       }
     }
   }

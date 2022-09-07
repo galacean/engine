@@ -14,7 +14,7 @@ export class ShadowSliceData {
   viewProjectMatrix: Matrix = new Matrix();
 
   // cull info
-  cullPlanes: Array<Plane> = [
+  cullPlanes: Plane[] = [
     new Plane(new Vector3()),
     new Plane(new Vector3()),
     new Plane(new Vector3()),

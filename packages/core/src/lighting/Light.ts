@@ -24,7 +24,6 @@ export abstract class Light extends Component {
   shadowNormalBias: number = 0;
   /** Near plane value to use for shadow frustums. */
   shadowNearPlane: number = 0.1;
-
   /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
   shadowStrength: number = 1.0;
 
