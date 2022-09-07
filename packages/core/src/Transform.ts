@@ -547,9 +547,9 @@ export class Transform extends Component {
   }
 
   /**
-   * @intenral
+   * @internal
    */
-  _registerWorldChangeListenser(): ListenerUpdateFlag {
+  _registerWorldChangeListener(): ListenerUpdateFlag {
     return this._updateFlagManager.createFlag(ListenerUpdateFlag);
   }
 
