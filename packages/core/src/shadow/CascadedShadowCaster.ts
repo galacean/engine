@@ -48,7 +48,6 @@ export class CascadedShadowCaster {
   private _shadowBias: Vector2 = new Vector2();
   private _shadowMapFormat: TextureFormat;
   private _shadowCascadeMode: ShadowCascadesMode;
-  private _cascadeSplitRatio = new Float32Array(CascadedShadowCaster._maxCascades);
   private _shadowSliceData: ShadowSliceData = new ShadowSliceData();
   private _lightUp: Vector3 = new Vector3();
   private _lightSide: Vector3 = new Vector3();
@@ -119,7 +118,7 @@ export class CascadedShadowCaster {
     const lights = engine._lightManager._directLights;
     const sunLightIndex = engine._lightManager._getSunLightIndex();
 
-    this._updateCascadeSplitLambda();
+    this._getCascadesSplitDistance();
     if (sunLightIndex !== -1) {
       const light = lights.get(sunLightIndex);
       if (light.enableShadow) {
@@ -211,33 +210,9 @@ export class CascadedShadowCaster {
     shaderData.setFloatArray(CascadedShadowCaster._shadowSplitSpheresProperty, this._splitBoundSpheres);
   }
 
-  private _updateCascadeSplitLambda(): void {
+  private _getCascadesSplitDistance(): void {
+    const { shadowTwoCascadeSplits, shadowFourCascadeSplits, shadowCascades } = this._engine.settings;
     const camera = this._camera;
-    const { shadowCascades, shadowCascadeSplitRatio } = this._engine.settings;
-
-    const nearClip = camera.nearClipPlane;
-    const farClip = camera.farClipPlane;
-    const clipRange = farClip - nearClip;
-
-    const minZ = nearClip;
-    const maxZ = nearClip + clipRange;
-
-    const range = maxZ - minZ;
-    const ratio = maxZ / minZ;
-    // Calculate split depths based on view camera frustum
-    // Based on method presented in https://developer.nvidia.com/gpugems/GPUGems3/gpugems3_ch10.html
-    for (let i = 0; i < shadowCascades; i++) {
-      const p = (i + 1) / shadowCascades;
-      const log = minZ * Math.pow(ratio, p);
-      const uniform = minZ + range * p;
-      const d = shadowCascadeSplitRatio * (log - uniform) + uniform;
-      this._cascadeSplitRatio[i] = (d - nearClip) / clipRange;
-    }
-    this._getCascadesSplitDistance(shadowCascades);
-  }
-
-  private _getCascadesSplitDistance(shadowCascades: number): void {
-    const { _cascadeSplitRatio: cascadeSplitRatio, _camera: camera } = this;
     const { nearClipPlane, farClipPlane, aspectRatio, fieldOfView } = camera;
 
     CascadedShadowCaster._cascadesSplitDistance[0] = nearClipPlane;
@@ -251,7 +226,7 @@ export class CascadedShadowCaster {
 
       case ShadowCascadesMode.TwoCascades:
         CascadedShadowCaster._cascadesSplitDistance[1] = this._getFarWithRadius(
-          nearClipPlane + range * cascadeSplitRatio[0],
+          nearClipPlane + range * shadowTwoCascadeSplits,
           denominator
         );
         CascadedShadowCaster._cascadesSplitDistance[2] = this._getFarWithRadius(farClipPlane, denominator);
@@ -259,15 +234,15 @@ export class CascadedShadowCaster {
 
       case ShadowCascadesMode.FourCascades:
         CascadedShadowCaster._cascadesSplitDistance[1] = this._getFarWithRadius(
-          nearClipPlane + range * cascadeSplitRatio[0],
+          nearClipPlane + range * shadowFourCascadeSplits.x,
           denominator
         );
         CascadedShadowCaster._cascadesSplitDistance[2] = this._getFarWithRadius(
-          nearClipPlane + range * cascadeSplitRatio[1],
+          nearClipPlane + range * shadowFourCascadeSplits.y,
           denominator
         );
         CascadedShadowCaster._cascadesSplitDistance[3] = this._getFarWithRadius(
-          nearClipPlane + range * cascadeSplitRatio[2],
+          nearClipPlane + range * shadowFourCascadeSplits.z,
           denominator
         );
         CascadedShadowCaster._cascadesSplitDistance[4] = this._getFarWithRadius(farClipPlane, denominator);

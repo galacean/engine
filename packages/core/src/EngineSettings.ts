@@ -1,5 +1,6 @@
 import { ColorSpace } from "./enums/ColorSpace";
 import { ShadowCascadesMode, ShadowMode, ShadowResolution } from "./shadow";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * Render settings.
@@ -14,6 +15,8 @@ export interface EngineSettings {
   shadowResolution?: ShadowResolution;
   /** Number of cascades to use for directional light shadows. */
   shadowCascades?: ShadowCascadesMode;
-  /** The ratio of cascade distribution. */
-  shadowCascadeSplitRatio?: number;
+  /** The splits of two cascade distribution. */
+  shadowTwoCascadeSplits?: number;
+  /** The splits of four cascade distribution. */
+  shadowFourCascadeSplits?: Vector3;
 }

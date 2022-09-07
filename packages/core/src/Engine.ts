@@ -234,7 +234,9 @@ export class Engine extends EventDispatcher {
     innerSettings.shadowMode = settings?.shadowMode || ShadowMode.SoftLow;
     innerSettings.shadowResolution = settings?.shadowResolution || ShadowResolution.High;
     innerSettings.shadowCascades = settings?.shadowCascades || ShadowCascadesMode.FourCascades;
-    innerSettings.shadowCascadeSplitRatio = settings?.shadowCascadeSplitRatio || 0.9;
+    innerSettings.shadowTwoCascadeSplits = settings?.shadowTwoCascadeSplits || 1.0 / 3.0;
+    innerSettings.shadowFourCascadeSplits =
+      settings?.shadowFourCascadeSplits || new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
   }
 
   /**
