@@ -1,4 +1,4 @@
-import { Engine, EngineObject, Utils } from "..";
+import { Engine, EngineObject } from "..";
 import { ObjectValues } from "../base/Util";
 import { Utils } from "../Utils";
 import { AssetPromise } from "./AssetPromise";
