@@ -101,7 +101,7 @@ export class AnimationParser extends Parser {
             break;
           case AnimationChannelTargetPath.ROTATION:
             compType = Transform;
-            propertyName = "rotation";
+            propertyName = "rotationQuaternion";
             interpolableValueType = InterpolableValueType.Quaternion;
             break;
           case AnimationChannelTargetPath.SCALE:

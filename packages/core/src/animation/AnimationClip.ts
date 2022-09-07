@@ -95,7 +95,7 @@ export class AnimationClip {
       case "position":
         property = AnimationPropertyInternal.Position;
         break;
-      case "rotation":
+      case "rotationQuaternion":
         property = AnimationPropertyInternal.Rotation;
         break;
       case "scale":

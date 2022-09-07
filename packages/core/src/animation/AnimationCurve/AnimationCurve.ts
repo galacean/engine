@@ -122,6 +122,10 @@ export abstract class AnimationCurve {
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
           value = this._evaluateHermite(curIndex, nextIndex, t, dur, out);
+          break;
+        default:
+          value = this._evaluateLinear(curIndex, nextIndex, t, out);
+          break;
       }
     }
     return value;
