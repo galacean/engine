@@ -135,7 +135,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set font(value: Font) {
     if (this._font !== value) {
       this._font = value;
-      this._setDirtyFlagTrue(DirtyFlag.Font);
+      this._setDirtyFlagTrue(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition);
     }
   }
 
@@ -149,7 +149,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set fontSize(value: number) {
     if (this._fontSize !== value) {
       this._fontSize = value;
-      this._setDirtyFlagTrue(DirtyFlag.Font);
+      this._setDirtyFlagTrue(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition);
     }
   }
 
@@ -163,7 +163,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set fontStyle(value: FontStyle) {
     if (this.fontStyle !== value) {
       this._fontStyle = value;
-      this._setDirtyFlagTrue(DirtyFlag.Font);
+      this._setDirtyFlagTrue(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition);
     }
   }
 
@@ -272,8 +272,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const isWorldBoundsDirty = this._isContainDirtyFlag(DirtyFlag.WorldBounds);
     if (isFontDirty || isLocalPositionBoundsDirty || isWorldPositionDirty || isWorldBoundsDirty) {
       isFontDirty && this._resetCharFont();
-      (isFontDirty || isLocalPositionBoundsDirty) && this._updateLocalData();
-      (isFontDirty || isWorldPositionDirty) && this._updatePosition();
+      isLocalPositionBoundsDirty && this._updateLocalData();
+      isWorldPositionDirty && this._updatePosition();
       isWorldBoundsDirty && this._updateBounds(this._bounds);
       this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
     }
@@ -292,7 +292,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     if (!engine.supportTintColor) {
       //@ts-ignore
       this._color._onValueChanged = () => {
-        this._setDirtyFlagTrue(DirtyFlag.Font);
+        this._setDirtyFlagTrue(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition);
       };
     }
   }
@@ -314,18 +314,17 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.Font);
-    if (isFontDirty) {
+    if (this._isContainDirtyFlag(DirtyFlag.Font)) {
       this._resetCharFont();
       this._setDirtyFlagFalse(DirtyFlag.Font);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) || isFontDirty) {
+    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
       this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition) || isFontDirty) {
+    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
       this._updatePosition();
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
