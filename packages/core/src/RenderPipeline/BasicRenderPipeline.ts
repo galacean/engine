@@ -12,7 +12,7 @@ import { Layer } from "../Layer";
 import { Material } from "../material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { CascadedShadowCaster } from "../shadow/CascadedShadowCaster";
+import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { Sky } from "../sky";
 import { RenderTarget, TextureCubeFace } from "../texture";
 import { RenderContext } from "./RenderContext";
@@ -39,7 +39,7 @@ export class BasicRenderPipeline {
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
-  private _cascadedShadowCaster: CascadedShadowCaster;
+  private _cascadedShadowCaster: CascadedShadowCasterPass;
 
   /**
    * Create a basic render pipeline.
@@ -51,7 +51,7 @@ export class BasicRenderPipeline {
     this._opaqueQueue = new RenderQueue(engine);
     this._alphaTestQueue = new RenderQueue(engine);
     this._transparentQueue = new RenderQueue(engine);
-    this._cascadedShadowCaster = new CascadedShadowCaster(camera);
+    this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
