@@ -57,8 +57,8 @@ export class CascadedShadowCasterPass {
   private _splitBoundSpheres = new Float32Array(4 * CascadedShadowCasterPass._maxCascades);
   // 4 viewProj matrix for cascade shadow
   private _vpMatrix = new Float32Array(64);
-  // strength, resolution
-  private _shadowInfos = new Vector2();
+  // strength, resolution, lightIndex
+  private _shadowInfos = new Vector3();
   private _depthMap: Texture2D;
   private _renderTargets: RenderTarget;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
@@ -128,6 +128,7 @@ export class CascadedShadowCasterPass {
         rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
         this._shadowInfos.x = light.shadowStrength;
         this._shadowInfos.y = this._shadowTileResolution;
+        this._shadowInfos.z = sunLightIndex;
         this._depthMap = <Texture2D>this._renderTargets.depthTexture;
 
         // prepare light and camera direction
@@ -205,7 +206,7 @@ export class CascadedShadowCasterPass {
 
     const shaderData = this._camera.scene.shaderData;
     shaderData.setFloatArray(CascadedShadowCasterPass._viewProjMatFromLightProperty, this._vpMatrix);
-    shaderData.setVector2(CascadedShadowCasterPass._shadowInfosProperty, this._shadowInfos);
+    shaderData.setVector3(CascadedShadowCasterPass._shadowInfosProperty, this._shadowInfos);
     shaderData.setTexture(CascadedShadowCasterPass._shadowMapsProperty, this._depthMap);
     shaderData.setFloatArray(CascadedShadowCasterPass._shadowSplitSpheresProperty, this._splitBoundSpheres);
   }

@@ -2,8 +2,8 @@
     #ifdef OASIS_RECEIVE_SHADOWS
         #define OASIS_CALCULATE_SHADOWS
 
-        // intensity, resolution
-        uniform vec2 u_shadowInfo;
+        // intensity, resolution, sunIndex
+        uniform vec3 u_shadowInfo;
         uniform mat4 u_viewProjMatFromLight[4];
         uniform vec4 u_shadowSplitSpheres[4];
 
