@@ -124,11 +124,13 @@ export class CanvasRenderer implements IHardwareRenderer {
     color: Color
   ) {
     const transform = renderer.entity.transform;
-    const worldMatrix = transform.worldMatrix;
     const translate = CanvasRenderer._tempVec30;
     const quat = CanvasRenderer._tempQuat;
     const scale = CanvasRenderer._tempVec31;
-    worldMatrix.decompose(translate, quat, scale);
+    translate.copyFrom(transform.worldPosition);
+    quat.copyFrom(transform.worldRotationQuaternion);
+    scale.copyFrom(transform.lossyWorldScale);
+
     const euler = CanvasRenderer._tempVec32;
     quat.toEuler(euler);
     const ratio = (this._webCanvas.height * 0.5) / camera.orthographicSize;

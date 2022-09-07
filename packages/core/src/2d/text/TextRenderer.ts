@@ -271,7 +271,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const isWorldBoundsDirty = this._isContainDirtyFlag(DirtyFlag.WorldBounds);
     if (isFontDirty || isLocalPositionBoundsDirty || isWorldBoundsDirty) {
       isFontDirty && this._resetCharFont();
-      isLocalPositionBoundsDirty && this._updateLocalData();
+      (isFontDirty || isLocalPositionBoundsDirty) && this._updateLocalData();
       isWorldBoundsDirty && this._updateBounds(this._bounds);
       this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldBounds);
     }
@@ -287,6 +287,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
     };
     this.font = Font.createFromOS(engine);
     this.setMaterial(engine._spriteDefaultMaterial);
+    if (!engine.supportTintColor) {
+      //@ts-ignore
+      this._color._onValueChanged = () => {
+        this._setDirtyFlagTrue(DirtyFlag.Font);
+      };
+    }
   }
 
   /**
