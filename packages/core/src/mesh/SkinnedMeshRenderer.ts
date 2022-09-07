@@ -1,5 +1,6 @@
 import { Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
@@ -36,7 +37,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
-  _blendShapeWeights: Float32Array;
+  private _blendShapeCountChangeFlag: BoolUpdateFlag = new BoolUpdateFlag();
+
+  /** @internal */
+  @ignoreClone
+  _blendShapeWeights: Float32Array = new Float32Array(0);
+
+  /** @internal */
+  @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
   /**
@@ -44,11 +52,23 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @remarks Array index is BlendShape index.
    */
   get blendShapeWeights(): Float32Array {
+    if (this._blendShapeCountChangeFlag.flag) {
+      this._resetBlendShapeWeights(<ModelMesh>this._mesh);
+      this._blendShapeCountChangeFlag.flag = false;
+    }
+
     return this._blendShapeWeights;
   }
 
   set blendShapeWeights(value: Float32Array) {
-    this._blendShapeWeights = value;
+    const blendShapeWeights = this._blendShapeWeights;
+    if (value.length <= blendShapeWeights.length) {
+      blendShapeWeights.set(value);
+    } else {
+      for (let i = 0, n = blendShapeWeights.length; i < n; i++) {
+        blendShapeWeights[i] = value[i];
+      }
+    }
   }
 
   /**
@@ -175,7 +195,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * Generate joint texture.
    * Format: (4 * RGBA) * jointCont
    */
-  createJointTexture() {
+  createJointTexture(): void {
     if (!this.jointTexture) {
       const engine = this.engine;
       const rhi = engine._hardwareRenderer;
@@ -186,5 +206,39 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _setMesh(mesh: ModelMesh): void {
+    const lastMesh = this._mesh;
+    super._setMesh(mesh);
+
+    if (lastMesh) {
+      this._blendShapeCountChangeFlag.clearFromManagers();
+    }
+    if (mesh) {
+      mesh._blendShapeManager._blendShapeCountChangeManager.addFlag(this._blendShapeCountChangeFlag);
+    }
+    this._resetBlendShapeWeights(mesh);
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: SkinnedMeshRenderer): void {
+    super._cloneTo(target);
+    target.blendShapeWeights = this._blendShapeWeights.slice();
+  }
+
+  private _resetBlendShapeWeights(mesh: ModelMesh): void {
+    const blendShapeCount = mesh ? mesh.blendShapeCount : 0;
+    if (this._blendShapeWeights && this._blendShapeWeights.length !== blendShapeCount) {
+      this._blendShapeWeights = new Float32Array(blendShapeCount);
+    } else {
+      this._blendShapeWeights.fill(0);
+    }
   }
 }
