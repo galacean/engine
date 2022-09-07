@@ -1,11 +1,12 @@
 export class Utils {
   /**
+   * @internal
    * Simplify lodash get: https://github.com/lodash/lodash/blob/master/get.js.
    * @param target - The object to query.
    * @param path - The path of the property to get.
    * @returns Returns the resolved value.
    */
-  public static reflectGet(target: Object, path: string) {
+  static _reflectGet(target: Object, path: string) {
     const pathArr = this._stringToPath(path);
 
     let object = target;
