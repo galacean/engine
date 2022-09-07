@@ -12,7 +12,7 @@ const mimeType = {
   jpg: "image"
 };
 
-const defaultRetryCount = 4;
+const defaultRetryCount = 1;
 const defaultTimeout = 15000;
 const defaultInterval = 500;
 
