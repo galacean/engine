@@ -290,6 +290,7 @@ export class ShaderUniform {
       const texture = value[i];
       rhi.activeTexture(textureIndices[i]);
       rhi.bindTexture(texture._platformTexture);
+      texture._setUseDepthCompareMode(shaderUniform.textureUseComporeMode);
     }
   }
 }

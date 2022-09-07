@@ -14,6 +14,35 @@ import { Vector3 } from "./Vector3";
 export class CollisionUtil {
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
+  private static _tempVec32: Vector3 = new Vector3();
+
+  /**
+   * Calculate the intersection point of three plane.
+   * @param  p1 - Plane 1
+   * @param  p2 - Plane 2
+   * @param  p3 - Plane 3
+   * @param out - intersection point
+   */
+  static intersectionPointThreePlanes(p1: Plane, p2: Plane, p3: Plane, out: Vector3): void {
+    const p1Nor = p1.normal;
+    const p2Nor = p2.normal;
+    const p3Nor = p3.normal;
+
+    Vector3.cross(p2Nor, p3Nor, CollisionUtil._tempVec30);
+    Vector3.cross(p3Nor, p1Nor, CollisionUtil._tempVec31);
+    Vector3.cross(p1Nor, p2Nor, CollisionUtil._tempVec32);
+
+    const a = -Vector3.dot(p1Nor, CollisionUtil._tempVec30);
+    const b = -Vector3.dot(p2Nor, CollisionUtil._tempVec31);
+    const c = -Vector3.dot(p3Nor, CollisionUtil._tempVec32);
+
+    Vector3.scale(CollisionUtil._tempVec30, p1.distance / a, CollisionUtil._tempVec30);
+    Vector3.scale(CollisionUtil._tempVec31, p2.distance / b, CollisionUtil._tempVec31);
+    Vector3.scale(CollisionUtil._tempVec32, p3.distance / c, CollisionUtil._tempVec32);
+
+    Vector3.add(CollisionUtil._tempVec30, CollisionUtil._tempVec31, out);
+    Vector3.add(out, CollisionUtil._tempVec32, out);
+  }
 
   /**
    * Calculate the distance from a point to a plane.

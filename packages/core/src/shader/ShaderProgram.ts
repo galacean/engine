@@ -5,6 +5,7 @@ import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
+import { Scene } from "../Scene";
 import { Texture } from "../texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { Shader } from "./Shader";
@@ -45,6 +46,8 @@ export class ShaderProgram {
 
   /** @internal */
   _uploadRenderCount: number = -1;
+  /** @internal */
+  _uploadScene: Scene;
   /** @internal */
   _uploadCamera: Camera;
   /** @internal */
@@ -415,7 +418,7 @@ export class ShaderProgram {
               defaultTexture = this._engine._whiteTexture2DArray;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
-              defaultTexture = this._engine._whiteTexture2D;
+              defaultTexture = this._engine._depthTexture2D;
               shaderUniform.textureUseComporeMode = true;
               break;
           }
@@ -436,16 +439,13 @@ export class ShaderProgram {
             shaderUniform.applyFunc = shaderUniform.uploadTextureArray;
             this.bind();
             gl.uniform1iv(location, textureIndices);
-            shaderUniform.uploadTextureArray(shaderUniform, defaultTextures);
           } else {
-            const textureIndex = gl.TEXTURE0 + this._activeTextureUint;
-
+            const glTextureIndex = gl.TEXTURE0 + this._activeTextureUint;
             shaderUniform.textureDefault = defaultTexture;
-            shaderUniform.textureIndex = textureIndex;
+            shaderUniform.textureIndex = glTextureIndex;
             shaderUniform.applyFunc = shaderUniform.uploadTexture;
             this.bind();
             gl.uniform1i(location, this._activeTextureUint++);
-            shaderUniform.uploadTexture(shaderUniform, defaultTexture);
           }
           break;
       }
