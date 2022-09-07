@@ -55,4 +55,3 @@ export * from "./Layer";
 export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
-export * from "./Utils";
