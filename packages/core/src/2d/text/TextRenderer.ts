@@ -268,12 +268,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
   get bounds(): BoundingBox {
     const isFontDirty = this._isContainDirtyFlag(DirtyFlag.Font);
     const isLocalPositionBoundsDirty = this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds);
+    const isWorldPositionDirty = this._isContainDirtyFlag(DirtyFlag.WorldPosition);
     const isWorldBoundsDirty = this._isContainDirtyFlag(DirtyFlag.WorldBounds);
-    if (isFontDirty || isLocalPositionBoundsDirty || isWorldBoundsDirty) {
+    if (isFontDirty || isLocalPositionBoundsDirty || isWorldPositionDirty || isWorldBoundsDirty) {
       isFontDirty && this._resetCharFont();
       (isFontDirty || isLocalPositionBoundsDirty) && this._updateLocalData();
+      (isFontDirty || isWorldPositionDirty) && this._updatePosition();
       isWorldBoundsDirty && this._updateBounds(this._bounds);
-      this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldBounds);
+      this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
     }
     return this._bounds;
   }
