@@ -4,6 +4,7 @@ import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
 import { TextRenderer } from "./TextRenderer";
+import { Color } from "@oasis-engine/math";
 
 /**
  * @internal
@@ -55,14 +56,14 @@ export class TextUtils {
    * @param fontString - the string of the font
    * @returns the font size info
    */
-  static measureFont(fontString: string): FontSizeInfo {
+  static measureFont(fontString: string, color?: Color): FontSizeInfo {
     const { _fontSizeInfoCache: fontSizeInfoCache } = TextUtils;
     let info = fontSizeInfoCache[fontString];
     if (info) {
       return info;
     }
 
-    info = <FontSizeInfo>TextUtils._measureFontOrChar(fontString);
+    info = <FontSizeInfo>TextUtils._measureFontOrChar(fontString, "", color);
     fontSizeInfoCache[fontString] = info;
     return info;
   }
@@ -85,16 +86,17 @@ export class TextUtils {
     return str;
   }
 
-  static measureChar(char: string, fontString: string): CharInfo {
-    return <CharInfo>TextUtils._measureFontOrChar(fontString, char);
+  static measureChar(char: string, fontString: string, color?: Color): CharInfo {
+    return <CharInfo>TextUtils._measureFontOrChar(fontString, char, color);
   }
 
   static measureTextWithWrap(renderer: TextRenderer): TextMetrics {
     const { fontSize, fontStyle } = renderer;
     const { name } = renderer.font;
+    const color = renderer.engine.supportTintColor ? null : renderer.color;
     const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
     const charFont = renderer._charFont;
-    const fontSizeInfo = TextUtils.measureFont(fontString);
+    const fontSizeInfo = TextUtils.measureFont(fontString, color);
     const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lines = new Array<string>();
     const lineWidths = new Array<number>();
@@ -113,7 +115,7 @@ export class TextUtils {
 
       for (let j = 0, m = subText.length; j < m; ++j) {
         const char = subText[j];
-        const charInfo = TextUtils._getCharInfo(char, fontString, charFont);
+        const charInfo = TextUtils._getCharInfo(char, fontString, charFont, color);
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
@@ -177,9 +179,10 @@ export class TextUtils {
   static measureTextWithoutWrap(renderer: TextRenderer): TextMetrics {
     const { fontSize, fontStyle } = renderer;
     const { name } = renderer.font;
+    const color = renderer.engine.supportTintColor ? null : renderer.color;
     const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
     const charFont = renderer._charFont;
-    const fontSizeInfo = TextUtils.measureFont(fontString);
+    const fontSizeInfo = TextUtils.measureFont(fontString, color);
     const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lineCount = lines.length;
     const lineWidths = new Array<number>();
@@ -199,7 +202,7 @@ export class TextUtils {
       let maxDescent = -1;
 
       for (let j = 0, m = line.length; j < m; ++j) {
-        const charInfo = TextUtils._getCharInfo(line[j], fontString, charFont);
+        const charInfo = TextUtils._getCharInfo(line[j], fontString, charFont, color);
         curWidth += charInfo.xAdvance;
         const { offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
@@ -236,7 +239,7 @@ export class TextUtils {
    * @param style - The font style
    * @returns The native font hash
    */
-  static getNativeFontHash(fontName: string, fontSize: number, style: FontStyle): string {
+  static getNativeFontHash(fontName: string, fontSize: number, style: FontStyle, color?: Color): string {
     let str = style & FontStyle.Bold ? "bold" : "";
     style & FontStyle.Italic && (str += "italic");
     // Check if font already contains strings
@@ -244,10 +247,13 @@ export class TextUtils {
       fontName = `${fontName}`;
     }
     str += `${fontSize}px${fontName}`;
+    if (color) {
+      str += `color-${color.r}-${color.g}-${color.b}-${color.a}`;
+    }
     return str;
   }
 
-  private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
+  private static _measureFontOrChar(fontString: string, char: string = "", color?: Color): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
     const measureString = char || TextUtils._measureString;
@@ -265,7 +271,16 @@ export class TextUtils {
     context.fillStyle = "#000";
     context.clearRect(0, 0, width, height);
     context.textBaseline = "middle";
-    context.fillStyle = "#fff";
+
+    if (color) {
+      context.fillStyle = `rgba(
+      ${Math.floor(255 * color.r)},
+      ${Math.floor(255 * color.g)},
+      ${Math.floor(255 * color.b)},
+      ${Math.floor(255 * color.a)})`;
+    } else {
+      context.fillStyle = "#fff";
+    }
     context.fillText(measureString, 0, baseline);
 
     const colorData = context.getImageData(0, 0, width, height).data;
@@ -331,10 +346,10 @@ export class TextUtils {
     }
   }
 
-  private static _getCharInfo(char: string, fontString: string, font: Font): CharInfo {
+  private static _getCharInfo(char: string, fontString: string, font: Font, color?: Color): CharInfo {
     let charInfo = font._getCharInfo(char);
     if (!charInfo) {
-      charInfo = TextUtils.measureChar(char, fontString);
+      charInfo = TextUtils.measureChar(char, fontString, color);
       font._uploadCharTexture(charInfo);
       font._addCharInfo(char, charInfo);
     }

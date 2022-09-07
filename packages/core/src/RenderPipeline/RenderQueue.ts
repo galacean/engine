@@ -32,7 +32,7 @@ export class RenderQueue {
   private _spriteBatcher: SpriteBatcher;
 
   constructor(engine: Engine) {
-    this._spriteBatcher = new SpriteBatcher(engine);
+    engine.canBatch2D && (this._spriteBatcher = new SpriteBatcher(engine));
   }
 
   /**
@@ -63,7 +63,7 @@ export class RenderQueue {
       }
 
       if (!!(item as RenderElement).mesh) {
-        this._spriteBatcher.flush(camera);
+        engine.canBatch2D && this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
         const element = <RenderElement>item;
@@ -134,11 +134,15 @@ export class RenderQueue {
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
         const spriteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spriteElement, camera);
+        if (engine.canBatch2D) {
+          this._spriteBatcher.drawElement(spriteElement, camera);
+        } else {
+          rhi.drawElement(spriteElement, camera);
+        }
       }
     }
 
-    this._spriteBatcher.flush(camera);
+    engine.canBatch2D && this._spriteBatcher.flush(camera);
   }
 
   /**
@@ -146,15 +150,17 @@ export class RenderQueue {
    */
   clear(): void {
     this.items.length = 0;
-    this._spriteBatcher.clear();
+    this._spriteBatcher && this._spriteBatcher.clear();
   }
 
   /**
    * Destroy internal resources.
    */
   destroy(): void {
-    this._spriteBatcher.destroy();
-    this._spriteBatcher = null;
+    if (this._spriteBatcher) {
+      this._spriteBatcher.destroy();
+      this._spriteBatcher = null;
+    }
   }
 
   /**
