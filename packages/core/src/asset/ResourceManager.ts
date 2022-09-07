@@ -1,4 +1,4 @@
-import { Engine, EngineObject } from "..";
+import { Engine, EngineObject, Utils } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
 import { Loader } from "./Loader";
@@ -153,7 +153,7 @@ export class ResourceManager {
     const promise = obj
       ? Promise.resolve(obj)
       : this.load<any>({ type: this._editorResourceConfig[refId].type, url: this._editorResourceConfig[refId].path });
-    return promise.then((res) => (key ? res[key] : res)).then((item) => (isClone ? item.clone() : item));
+    return promise.then((res) => (key ? Utils.reflectGet(res, key) : res)).then((item) => (isClone ? item.clone() : item));
   }
 
   /**
