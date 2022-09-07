@@ -27,6 +27,7 @@ export class AnimationCurveFactory {
   static create(type: InterpolableValueType.Color): AnimationColorCurve;
   static create(type: InterpolableValueType.FloatArray): AnimationFloatArrayCurve;
   static create(type: InterpolableValueType.Array): AnimationArrayCurve;
+  static create(type: InterpolableValueType): AnimationCurve;
 
   static create(type: InterpolableValueType): AnimationCurve {
     switch (type) {

@@ -13,4 +13,3 @@ export * from "@oasis-engine/rhi-webgl";
 for (let key in CoreObjects) {
   Loader.registerClass(key, CoreObjects[key]);
 }
-

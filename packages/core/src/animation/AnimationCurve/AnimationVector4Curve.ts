@@ -17,6 +17,10 @@ export class AnimationVector4Curve extends AnimationCurve {
 
   protected _tempValue: Vector4 = new Vector4();
 
+  addKey(key: Vector4Keyframe) {
+    super.addKey(key);
+  }
+
   /**
    * @internal
    */

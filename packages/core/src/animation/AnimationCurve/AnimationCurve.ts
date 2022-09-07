@@ -31,7 +31,7 @@ export abstract class AnimationCurve {
    * Add a new key to the curve.
    * @param key - The keyframe
    */
-  addKey<T extends UnionInterpolableKeyframe>(key: T): void {
+  addKey(key: UnionInterpolableKeyframe): void {
     const { time } = key;
     this.keys.push(key);
     if (time > this._length) {

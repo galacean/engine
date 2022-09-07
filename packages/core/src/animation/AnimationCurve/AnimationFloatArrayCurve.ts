@@ -12,6 +12,10 @@ export class AnimationFloatArrayCurve extends AnimationCurve {
   /** @internal */
   _valueType = InterpolableValueType.FloatArray;
 
+  addKey(key: FloatArrayKeyframe) {
+    super.addKey(key);
+  }
+
   /**
    * @internal
    */

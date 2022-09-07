@@ -18,6 +18,10 @@ export class AnimationQuatCurve extends AnimationCurve {
   protected _tempValue: Quaternion = new Quaternion();
   private _tempConjugateQuat = new Quaternion();
 
+  addKey(key: QuaternionKeyframe) {
+    super.addKey(key);
+  }
+
   /**
    * @internal
    */

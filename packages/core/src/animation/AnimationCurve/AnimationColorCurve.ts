@@ -17,6 +17,10 @@ export class AnimationColorCurve extends AnimationCurve {
 
   protected _tempValue: Color = new Color();
 
+  addKey(key: ColorKeyframe) {
+    super.addKey(key);
+  }
+
   /**
    * @internal
    */

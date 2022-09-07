@@ -1,5 +1,5 @@
 import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { Background, RenderElement, RenderQueueType, SpriteElement } from "..";
+import { Background, RenderQueueType, SpriteElement } from "..";
 import { SpriteMask } from "../2d";
 import { Logger } from "../base";
 import { Camera } from "../Camera";
@@ -19,6 +19,7 @@ import { RenderContext } from "./RenderContext";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 import { ShadowManager } from "../shadow/ShadowManager";
+import { RenderElement } from "./RenderElement";
 
 /**
  * Basic render pipeline.
@@ -88,7 +89,7 @@ export class BasicRenderPipeline {
       this._renderPassArray.push(nameOrPass);
     }
 
-    this._renderPassArray.sort(function(p1, p2) {
+    this._renderPassArray.sort(function (p1, p2) {
       return p1.priority - p2.priority;
     });
   }

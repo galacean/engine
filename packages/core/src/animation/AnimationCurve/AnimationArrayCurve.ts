@@ -14,6 +14,10 @@ export class AnimationArrayCurve extends AnimationCurve {
 
   protected _tempValue: number[] = [];
 
+  addKey(key: ArrayKeyframe) {
+    super.addKey(key);
+  }
+
   /**
    * @internal
    */
