@@ -149,7 +149,7 @@ export class CanvasRenderer implements IHardwareRenderer {
     // @ts-ignore
     const scaleY = renderer.flipY ? -scale.y : scale.y;
     // Handle rotation around axis X and Y.
-    ctx.scale(scaleX * this._calculateScaleByRadian(euler.y), scaleY * this._calculateScaleByRadian(euler.x));
+    ctx.scale(scaleX * Math.cos(euler.y), scaleY * Math.cos(euler.x));
 
     // Handle UV.
     const { width, height } = image;
@@ -169,19 +169,5 @@ export class CanvasRenderer implements IHardwareRenderer {
     ctx.globalAlpha = color.a;
     ctx.drawImage(image, sx, sy, sWidth, sHeight, ltX - x + offsetX, ltY - y - offsetY, rbVec3.x - ltX, rbVec3.y - ltY);
     ctx.globalAlpha = 1.0;
-  }
-
-  private _calculateScaleByRadian(radian: number): number {
-    const { _PI: PI } = CanvasRenderer;
-    radian = Math.abs(radian % CanvasRenderer._doublePI);
-    let scale = 1;
-    if (radian <= PI) {
-      const t = radian * CanvasRenderer._reciprocalPI;
-      scale = 1 - 2 * t;
-    } else {
-      const t = (radian - PI) * CanvasRenderer._reciprocalPI;
-      scale = -1 + 2 * t;
-    }
-    return scale;
   }
 }
