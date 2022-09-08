@@ -283,7 +283,7 @@ export class Transform extends Component {
     const parent = this._getParentTransform();
     if (parent) {
       Matrix.invert(parent.worldMatrix, Transform._tempMat42);
-      Matrix.multiply(value, Transform._tempMat42, this._localMatrix);
+      Matrix.multiply(Transform._tempMat42, value, this._localMatrix);
     } else {
       this._localMatrix.copyFrom(value);
     }
@@ -547,9 +547,9 @@ export class Transform extends Component {
   }
 
   /**
-   * @intenral
+   * @internal
    */
-  _registerWorldChangeListenser(): ListenerUpdateFlag {
+  _registerWorldChangeListener(): ListenerUpdateFlag {
     return this._updateFlagManager.createFlag(ListenerUpdateFlag);
   }
 

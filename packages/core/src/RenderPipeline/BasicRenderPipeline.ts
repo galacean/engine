@@ -206,7 +206,7 @@ export class BasicRenderPipeline {
    * Push a render element to the render queue.
    * @param element - Render element
    */
-  pushPrimitive(element: RenderElement | SpriteElement) {
+  pushPrimitive(element: RenderElement): void {
     switch (element.material.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);
