@@ -13,7 +13,7 @@ const mimeType = {
 };
 
 const defaultRetryCount = 1;
-const defaultTimeout = undefined;
+const defaultTimeout = Infinity;
 const defaultInterval = 500;
 
 export type RequestConfig = {
@@ -67,7 +67,7 @@ function requestImage<T>(url: string, config: RequestConfig): AssetPromise<T> {
     img.onabort = onerror;
 
     let timeoutId = -1;
-    if (timeout != undefined) {
+    if (timeout != Infinity) {
       timeoutId = window.setTimeout(() => {
         reject(new Error(`request ${url} timeout`));
       }, timeout);

@@ -36,7 +36,7 @@ export class ResourceManager {
   /** Retry delay time after failed to load assets, in milliseconds. */
   retryInterval: number = 0;
   /** The default timeout period for loading assets, in milliseconds. */
-  timeout: number = undefined;
+  timeout: number = Infinity;
   /** @internal */
   _objectPool: { [key: string]: any } = Object.create(null);
   /** @internal */
