@@ -1,5 +1,5 @@
 import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { Background, RenderElement, RenderQueueType, SpriteElement } from "..";
+import { Background, RenderElement, RenderQueueType, ShadowMode, SpriteElement } from "..";
 import { SpriteMask } from "../2d";
 import { Logger } from "../base";
 import { Camera } from "../Camera";
@@ -12,13 +12,12 @@ import { Layer } from "../Layer";
 import { Material } from "../material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
+import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { Sky } from "../sky";
-import { TextureCubeFace } from "../texture";
-import { RenderTarget } from "../texture";
+import { RenderTarget, TextureCubeFace } from "../texture";
 import { RenderContext } from "./RenderContext";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { ShadowManager } from "../shadow/ShadowManager";
 
 /**
  * Basic render pipeline.
@@ -40,7 +39,7 @@ export class BasicRenderPipeline {
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
-  private _shadowManager: ShadowManager;
+  private _cascadedShadowCaster: CascadedShadowCasterPass;
 
   /**
    * Create a basic render pipeline.
@@ -52,7 +51,7 @@ export class BasicRenderPipeline {
     this._opaqueQueue = new RenderQueue(engine);
     this._alphaTestQueue = new RenderQueue(engine);
     this._transparentQueue = new RenderQueue(engine);
-    this._shadowManager = new ShadowManager(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
+    this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -88,7 +87,7 @@ export class BasicRenderPipeline {
       this._renderPassArray.push(nameOrPass);
     }
 
-    this._renderPassArray.sort(function(p1, p2) {
+    this._renderPassArray.sort(function (p1, p2) {
       return p1.priority - p2.priority;
     });
   }
@@ -146,7 +145,9 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
-    this._shadowManager.render();
+    if (camera.engine.settings.shadowMode !== ShadowMode.None) {
+      this._cascadedShadowCaster._render();
+    }
 
     opaqueQueue.clear();
     alphaTestQueue.clear();
@@ -171,7 +172,7 @@ export class BasicRenderPipeline {
       const { background } = scene;
       const rhi = engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
-      rhi.activeRenderTarget(renderTarget, camera, mipLevel); // change viewport with mip level
+      rhi.activeRenderTarget(renderTarget, camera.viewport, mipLevel);
       renderTarget?._setRenderTargetInfo(cubeFace, mipLevel);
       const clearFlags = pass.clearFlags ?? camera.clearFlags;
       const color = pass.clearColor ?? background.solidColor;

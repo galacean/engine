@@ -1,8 +1,8 @@
+import { DisorderedArray } from "../DisorderedArray";
 import { ShaderData } from "../shader";
 import { DirectLight } from "./DirectLight";
 import { PointLight } from "./PointLight";
 import { SpotLight } from "./SpotLight";
-import { DisorderedArray } from "../DisorderedArray";
 
 /**
  * Light manager.
@@ -64,6 +64,38 @@ export class LightManager {
     const replaced = this._directLights.deleteByIndex(light._lightIndex);
     replaced && (replaced._lightIndex = light._lightIndex);
     light._lightIndex = -1;
+  }
+
+  /**
+   * @internal
+   */
+  _getSunLightIndex(): number {
+    const directLights = this._directLights;
+
+    let sunLightIndex = -1;
+    let maxIntensity = Number.NEGATIVE_INFINITY;
+    let hasShadowLight = false;
+    for (let i = 0, n = directLights.length; i < n; i++) {
+      const directLight = directLights.get(i);
+      if (directLight.enableShadow && !hasShadowLight) {
+        maxIntensity = Number.NEGATIVE_INFINITY;
+        hasShadowLight = true;
+      }
+
+      const intensity = directLight.intensity * directLight.color.getBrightness();
+      if (hasShadowLight) {
+        if (directLight.enableShadow && maxIntensity < intensity) {
+          maxIntensity = intensity;
+          sunLightIndex = i;
+        }
+      } else {
+        if (maxIntensity < intensity) {
+          maxIntensity = intensity;
+          sunLightIndex = i;
+        }
+      }
+    }
+    return sunLightIndex;
   }
 
   /**

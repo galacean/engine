@@ -1,5 +1,5 @@
 import { BoundingBox, Vector3 } from "@oasis-engine/math";
-import { ColorSpace } from ".";
+import { ColorSpace, ShadowCascadesMode, ShadowMode, ShadowResolution } from ".";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { Canvas } from "./Canvas";
@@ -62,6 +62,9 @@ export class Engine extends EventDispatcher {
   /* @internal */
   _whiteTexture2DArray: Texture2DArray;
   /* @internal */
+  _depthTexture2D: Texture2D;
+
+  /* @internal */
   _backgroundTextureMaterial: Material;
   /* @internal */
   _renderCount: number = 0;
@@ -102,7 +105,7 @@ export class Engine extends EventDispatcher {
   /**
    * Settings of Engine.
    */
-  get settings(): Readonly<EngineSettings> {
+  get settings(): EngineSettings {
     return this._settings;
   }
 
@@ -206,8 +209,12 @@ export class Engine extends EventDispatcher {
     whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
     whiteTextureCube.isGCIgnored = true;
 
+    const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+    depthTexture2D.isGCIgnored = true;
+
     this._whiteTexture2D = whiteTexture2D;
     this._whiteTextureCube = whiteTextureCube;
+    this._depthTexture2D = depthTexture2D;
 
     if (hardwareRenderer.isWebGL2) {
       const whiteTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
@@ -220,9 +227,16 @@ export class Engine extends EventDispatcher {
     this._backgroundTextureMaterial.isGCIgnored = true;
     this._backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
 
+    const innerSettings = this._settings;
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
-    this._settings.colorSpace = colorSpace;
+    innerSettings.colorSpace = colorSpace;
+    innerSettings.shadowMode = settings?.shadowMode || ShadowMode.SoftLow;
+    innerSettings.shadowResolution = settings?.shadowResolution || ShadowResolution.High;
+    innerSettings.shadowCascades = settings?.shadowCascades || ShadowCascadesMode.FourCascades;
+    innerSettings.shadowTwoCascadeSplits = settings?.shadowTwoCascadeSplits || 1.0 / 3.0;
+    innerSettings.shadowFourCascadeSplits =
+      settings?.shadowFourCascadeSplits || new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
   }
 
   /**
