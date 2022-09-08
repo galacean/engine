@@ -11,7 +11,6 @@
 
 #include <light_frag_define>
 
-
 #include <pbr_frag_define>
 #include <pbr_helper>
 

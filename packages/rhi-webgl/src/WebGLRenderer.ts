@@ -1,5 +1,4 @@
 import {
-  Camera,
   CameraClearFlags,
   Canvas,
   ColorWriteMask,
@@ -257,7 +256,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     }
   }
 
-  activeRenderTarget(renderTarget: RenderTarget, camera: Camera, mipLevel: number) {
+  activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number) {
     const gl = this._gl;
     if (renderTarget) {
       /** @ts-ignore */
@@ -266,7 +265,6 @@ export class WebGLRenderer implements IHardwareRenderer {
       this.viewport(0, 0, width >> mipLevel, height >> mipLevel);
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      const viewport = camera.viewport;
       const { drawingBufferWidth, drawingBufferHeight } = gl;
       const width = drawingBufferWidth * viewport.z;
       const height = drawingBufferHeight * viewport.w;

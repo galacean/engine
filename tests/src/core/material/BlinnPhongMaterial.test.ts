@@ -22,16 +22,16 @@ describe("BlinnPhongMaterial", () => {
     expect(material.shininess).to.eq(16);
     expect(material.tilingOffset).to.deep.eq(new Vector4(1, 1, 0, 0));
 
-    material.baseColor.setValue(1, 0, 0, 1);
-    material.specularColor.setValue(1, 0, 0, 1);
-    material.emissiveColor.setValue(1, 0, 0, 1);
+    material.baseColor.set(1, 0, 0, 1);
+    material.specularColor.set(1, 0, 0, 1);
+    material.emissiveColor.set(1, 0, 0, 1);
     material.baseTexture = texture;
     material.specularTexture = texture;
     material.emissiveTexture = texture;
     material.normalTexture = texture;
     material.normalIntensity = 2;
     material.shininess = 32;
-    material.tilingOffset.setValue(1, 1, 1, 1);
+    material.tilingOffset.set(1, 1, 1, 1);
 
     expect(material.baseColor).to.deep.eq(new Color(1, 0, 0, 1));
     expect(material.specularColor).to.deep.eq(new Color(1, 0, 0, 1));

@@ -15,7 +15,7 @@ describe("PBRSpecularMaterial", () => {
     expect(material.glossiness).to.eq(1);
     expect(material.specularGlossinessTexture).to.be.undefined;
 
-    material.specularColor.setValue(1, 0, 0, 1);
+    material.specularColor.set(1, 0, 0, 1);
     material.glossiness = 2;
     material.specularGlossinessTexture = texture;
 

@@ -64,7 +64,6 @@ export class PointerManager implements IInput {
     this._engine = engine;
     this._canvas = engine.canvas;
     this._htmlCanvas = htmlCanvas;
-    htmlCanvas.style.touchAction = "none";
     htmlCanvas.oncontextmenu = (event: UIEvent) => {
       return false;
     };
@@ -170,6 +169,7 @@ export class PointerManager implements IInput {
   }
 
   private _onPointerEvent(evt: PointerEvent) {
+    evt.cancelable && evt.preventDefault();
     this._nativeEvents.push(evt);
   }
 

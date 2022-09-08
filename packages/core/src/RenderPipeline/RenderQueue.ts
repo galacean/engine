@@ -98,18 +98,26 @@ export class RenderQueue {
           program.uploadAll(program.materialUniformBlock, materialData);
           // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
           program.uploadUnGroupTextures();
+          program._uploadScene = scene;
           program._uploadCamera = camera;
           program._uploadRenderer = renderer;
           program._uploadMaterial = material;
           program._uploadRenderCount = renderCount;
         } else {
+          if (program._uploadScene !== scene) {
+            program.uploadAll(program.sceneUniformBlock, sceneData);
+            program._uploadScene = scene;
+          } else if (switchProgram) {
+            program.uploadTextures(program.sceneUniformBlock, sceneData);
+          }
+
           if (program._uploadCamera !== camera) {
             program.uploadAll(program.cameraUniformBlock, cameraData);
             program._uploadCamera = camera;
           } else if (switchProgram) {
             program.uploadTextures(program.cameraUniformBlock, cameraData);
           }
-          
+
           if (program._uploadRenderer !== renderer) {
             program.uploadAll(program.rendererUniformBlock, rendererData);
             program._uploadRenderer = renderer;

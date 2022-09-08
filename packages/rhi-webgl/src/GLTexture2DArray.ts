@@ -15,6 +15,7 @@ export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArr
       throw new Error(`Texture2D Array is not supported in WebGL1.0`);
     }
 
+    /** @ts-ignore */
     if (!GLTexture._supportTextureFormat(format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
