@@ -30,10 +30,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
   _styleFont: Font = null;
   /** @internal */
   @ignoreClone
-  _charRenderDatas: Array<CharRenderData> = [];
+  _charRenderDatas: CharRenderData[] = [];
 
   @ignoreClone
-  _dirtyFlag: number = DirtyFlag.StyleFont | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition | DirtyFlag.WorldBounds;
+  _dirtyFlag: number = DirtyFlag.Font | DirtyFlag.WorldBounds;
   /** @internal */
   @ignoreClone
   _isWorldMatrixDirty: ListenerUpdateFlag;
@@ -309,29 +309,39 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.StyleFont);
-    if (isFontDirty) {
+    if (this._isContainDirtyFlag(DirtyFlag.StyleFont)) {
       this._resetStyleFont();
       this._setDirtyFlagFalse(DirtyFlag.StyleFont);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) || isFontDirty) {
+    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
       this._updateLocalData();
       this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition) || isFontDirty) {
+    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
       this._updatePosition();
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
+    const spriteElementPool = this._engine._spriteElementPool;
+    const textElement = this._engine._textElementPool.getFromPool();
+    const charElements = textElement.charElements;
+    const material = this.getMaterial();
     const charRenderDatas = this._charRenderDatas;
-    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
+    const charCount = charRenderDatas.length;
+
+    textElement.component = this;
+    textElement.material = material;
+    charElements.length = charCount;
+
+    for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
-      const spriteElement = this._engine._spriteElementPool.getFromPool();
-      spriteElement.setValue(this, charRenderData.renderData, this.getMaterial(), charRenderData.texture, i);
-      camera._renderPipeline.pushPrimitive(spriteElement);
+      const spriteElement = spriteElementPool.getFromPool();
+      spriteElement.setValue(this, charRenderData.renderData, material, charRenderData.texture, i);
+      charElements[i] = spriteElement;
     }
+    camera._renderPipeline.pushPrimitive(textElement);
   }
 
   /**
@@ -409,10 +419,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _resetStyleFont(): void {
-    const lastCharFont = this._styleFont;
-    if (lastCharFont) {
-      lastCharFont._addRefCount(-1);
-      lastCharFont.destroy();
+    const lastStyleFont = this._styleFont;
+    if (lastStyleFont) {
+      lastStyleFont._addRefCount(-1);
+      lastStyleFont.destroy();
     }
     this._styleFont = Font.createFromOS(
       this.engine,
@@ -446,8 +456,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       const { localPositions } = charRenderData;
       const { positions } = charRenderData.renderData;
 
-      const { x: topLeftX, y: topLeftY } = localPositions[0];
-      const bottomRight = localPositions[2];
+      const { x: topLeftX, y: topLeftY } = localPositions;
 
       // Top-Left
       const worldPosition0 = positions[0];
@@ -457,14 +466,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
       // Right offset
       const worldPosition1 = positions[1];
-      Vector3.scale(right, bottomRight.x - topLeftX, worldPosition1);
+      Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
 
       // Top-Right
       Vector3.add(worldPosition0, worldPosition1, worldPosition1);
 
       // Up offset
       const worldPosition2 = positions[2];
-      Vector3.scale(up, bottomRight.y - topLeftY, worldPosition2);
+      Vector3.scale(up, localPositions.w - topLeftY, worldPosition2);
 
       // Bottom-Left
       Vector3.add(worldPosition0, worldPosition2, positions[3]);
