@@ -278,7 +278,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    this._isWorldMatrixDirty = entity.transform._registerWorldChangeListenser();
+    this._isWorldMatrixDirty = entity.transform._registerWorldChangeListener();
     this._isWorldMatrixDirty.listener = () => {
       this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
     };

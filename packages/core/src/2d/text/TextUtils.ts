@@ -4,6 +4,7 @@ import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";
 import { Font } from "./Font";
 import { TextRenderer } from "./TextRenderer";
+import { Color, Vector2 } from "@oasis-engine/math";
 
 /**
  * @internal
