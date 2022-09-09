@@ -251,6 +251,26 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     this._onValueChanged && this._onValueChanged();
     return out;
   }
+
+  /**
+   * Gets the brightness.
+   * @returns The Hue-Saturation-Brightness (HSB) saturation for this
+   */
+  getBrightness(): number {
+    const r = this.r;
+    const g = this.g;
+    const b = this.b;
+
+    let max = r;
+    let min = r;
+    if (g > max) max = g;
+    if (b > max) max = b;
+
+    if (g < min) min = g;
+    if (b < min) min = b;
+
+    return (max + min) / 2;
+  }
 }
 
 interface ColorLike {

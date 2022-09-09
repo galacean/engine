@@ -8,6 +8,7 @@ import {
   Renderer,
   RenderTarget,
   SpriteElement,
+  TextRenderElement,
   SpriteRenderer,
   TextRenderer,
   Texture2D
@@ -71,12 +72,15 @@ export class CanvasRenderer implements IHardwareRenderer {
     ctx.fillRect(0, 0, width, height);
   }
 
-  drawElement(element: SpriteElement, camera: Camera) {
+  drawElement(element: SpriteElement | TextRenderElement, camera: Camera) {
     const { component } = element;
     if (component instanceof SpriteRenderer) {
       this._drawImage(element, camera);
     } else if (component instanceof TextRenderer) {
-      this._drawText(element, camera);
+      const { charElements } = element;
+      for (let i = 0, l = charElements.length; i < l; ++i) {
+        this._drawText(charElements[i], camera);
+      }
     }
   }
 
@@ -107,10 +111,7 @@ export class CanvasRenderer implements IHardwareRenderer {
     const image = element.texture._platformTexture._canvasTexture;
     const vec4 = CanvasRenderer._tempVec4;
     // @ts-ignore
-    const positions = renderer._charRenderDatas[element.dataIndex].localPositions;
-    const ltPosition = positions[0];
-    const rbPosition = positions[2];
-    vec4.set(ltPosition.x, ltPosition.y, rbPosition.x, rbPosition.y);
+    vec4.copyFrom(renderer._charRenderDatas[element.dataIndex].localPositions);
     this._draw(camera, renderer, image, uvs[0], uvs[2], vec4, renderData.color);
   }
 
