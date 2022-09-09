@@ -27,13 +27,13 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   /** @internal */
   @assignmentClone
-  _charFont: Font = null;
+  _styleFont: Font = null;
   /** @internal */
   @ignoreClone
   _charRenderDatas: Array<CharRenderData> = [];
 
   @ignoreClone
-  _dirtyFlag: number = DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition | DirtyFlag.WorldBounds;
+  _dirtyFlag: number = DirtyFlag.StyleFont | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldPosition | DirtyFlag.WorldBounds;
   /** @internal */
   @ignoreClone
   _isWorldMatrixDirty: ListenerUpdateFlag;
@@ -266,15 +266,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * The bounding volume of the TextRenderer.
    */
   get bounds(): BoundingBox {
-    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.Font);
-    const isLocalPositionBoundsDirty = this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds);
-    const isWorldBoundsDirty = this._isContainDirtyFlag(DirtyFlag.WorldBounds);
-    if (isFontDirty || isLocalPositionBoundsDirty || isWorldBoundsDirty) {
-      isFontDirty && this._resetCharFont();
-      (isFontDirty || isLocalPositionBoundsDirty) && this._updateLocalData();
-      isWorldBoundsDirty && this._updateBounds(this._bounds);
-      this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.LocalPositionBounds | DirtyFlag.WorldBounds);
-    }
+    this._isContainDirtyFlag(DirtyFlag.StyleFont) && this._resetStyleFont();
+    this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
+    this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
+    this._isContainDirtyFlag(DirtyFlag.WorldBounds) && this._updateBounds(this._bounds);
+    this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.WorldBounds);
+
     return this._bounds;
   }
 
@@ -290,7 +287,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     if (!engine.supportTintColor) {
       //@ts-ignore
       this._color._onValueChanged = () => {
-        this._setDirtyFlagTrue(DirtyFlag.Font);
+        this._setDirtyFlagTrue(DirtyFlag.StyleFont);
       };
     }
   }
@@ -312,10 +309,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.Font);
+    const isFontDirty = this._isContainDirtyFlag(DirtyFlag.StyleFont);
     if (isFontDirty) {
-      this._resetCharFont();
-      this._setDirtyFlagFalse(DirtyFlag.Font);
+      this._resetStyleFont();
+      this._setDirtyFlagFalse(DirtyFlag.StyleFont);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) || isFontDirty) {
@@ -411,13 +408,13 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _resetCharFont(): void {
-    const lastCharFont = this._charFont;
+  private _resetStyleFont(): void {
+    const lastCharFont = this._styleFont;
     if (lastCharFont) {
       lastCharFont._addRefCount(-1);
       lastCharFont.destroy();
     }
-    this._charFont = Font.createFromOS(
+    this._styleFont = Font.createFromOS(
       this.engine,
       TextUtils.getNativeFontHash(
         this.font.name,
@@ -426,7 +423,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
         this.engine.supportTintColor ? null : this.color
       )
     );
-    this._charFont._addRefCount(1);
+    this._styleFont._addRefCount(1);
   }
 
   private _updatePosition(): void {
@@ -483,7 +480,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     max.set(0, 0, 0);
     const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-    const charFont = this._charFont;
+    const charFont = this._styleFont;
     const rendererWidth = this.width * _pixelsPerUnit;
     const halfRendererWidth = rendererWidth * 0.5;
     const rendererHeight = this.height * _pixelsPerUnit;
@@ -598,9 +595,11 @@ export class TextRenderer extends Renderer implements ICustomClone {
 }
 
 export enum DirtyFlag {
-  Font = 0x1,
+  StyleFont = 0x1,
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,
   WorldBounds = 0x8,
-  MaskInteraction = 0x10
+  MaskInteraction = 0x10,
+
+  Font = StyleFont | LocalPositionBounds | WorldPosition
 }

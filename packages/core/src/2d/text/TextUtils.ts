@@ -94,7 +94,7 @@ export class TextUtils {
     const { name } = renderer.font;
     const color = renderer.engine.supportTintColor ? null : renderer.color;
     const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
-    const charFont = renderer._charFont;
+    const charFont = renderer._styleFont;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lines = new Array<string>();
@@ -180,7 +180,7 @@ export class TextUtils {
     const { name } = renderer.font;
     const color = renderer.engine.supportTintColor ? null : renderer.color;
     const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
-    const charFont = renderer._charFont;
+    const charFont = renderer._styleFont;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lineCount = lines.length;
