@@ -25,13 +25,10 @@ import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
 import { AnimatorTempValue } from "./internal/AnimatorTempValue";
 import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
-
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  private static _baseTempValue = new AnimatorTempValue();
-  private static _crossTempValue = new AnimatorTempValue();
   private static _tempQuat = new Quaternion();
   private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
 
@@ -51,6 +48,10 @@ export class Animator extends Component {
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
+  @ignoreClone
+  private _baseTempValue = new AnimatorTempValue();
+  @ignoreClone
+  private _crossTempValue = new AnimatorTempValue();
 
   /**
    * The playback speed of the Animator, 1.0 is normal playback speed.
@@ -527,7 +528,7 @@ export class Animator extends Component {
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive, Animator._baseTempValue);
+      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive, this._baseTempValue);
       if (additive) {
         this._applyClipValueAdditive(owner, value, weight);
       } else {
@@ -612,13 +613,7 @@ export class Animator extends Component {
 
       const srcValue =
         srcCurveIndex >= 0
-          ? this._evaluateCurve(
-              property,
-              srcCurves[srcCurveIndex].curve,
-              srcClipTime,
-              additive,
-              Animator._baseTempValue
-            )
+          ? this._evaluateCurve(property, srcCurves[srcCurveIndex].curve, srcClipTime, additive, this._baseTempValue)
           : defaultValue;
       const destValue =
         destCurveIndex >= 0
@@ -627,7 +622,7 @@ export class Animator extends Component {
               destCurves[destCurveIndex].curve,
               destClipTime,
               additive,
-              Animator._crossTempValue
+              this._crossTempValue
             )
           : defaultValue;
 
@@ -681,7 +676,7 @@ export class Animator extends Component {
               curves[destCurveIndex].curve,
               destClipTime,
               additive,
-              Animator._crossTempValue
+              this._crossTempValue
             )
           : curveOwner.defaultValue;
 
@@ -716,15 +711,15 @@ export class Animator extends Component {
     if (owner.type === Transform) {
       switch (owner.property) {
         case AnimationProperty.Position:
-          value = Animator._baseTempValue.vector3;
+          value = this._baseTempValue.vector3;
           Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, value as Vector3);
           break;
         case AnimationProperty.Rotation:
-          value = Animator._baseTempValue.quaternion;
+          value = this._baseTempValue.quaternion;
           Quaternion.slerp(srcValue as Quaternion, destValue as Quaternion, crossWeight, value as Quaternion);
           break;
         case AnimationProperty.Scale: {
-          value = Animator._baseTempValue.vector3;
+          value = this._baseTempValue.vector3;
           Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, value as Vector3);
           break;
         }
@@ -732,7 +727,7 @@ export class Animator extends Component {
     } else if (owner.type === SkinnedMeshRenderer) {
       switch (owner.property) {
         case AnimationProperty.BlendShapeWeights:
-          value = Animator._baseTempValue.getFloatArray((<Float32Array>srcValue).length);
+          value = this._baseTempValue.getFloatArray((<Float32Array>srcValue).length);
           for (let i = 0, length = (<Float32Array>value).length; i < length; ++i) {
             value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
           }
@@ -784,7 +779,7 @@ export class Animator extends Component {
           } else {
             const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
             for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
-              blendShapeWeights[i] += (blendShapeWeights[i] - value[i]) * weight;
+              blendShapeWeights[i] += (value[i] - blendShapeWeights[i]) * weight;
             }
           }
           break;
