@@ -6,6 +6,7 @@ import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { Matrix } from "./Matrix";
 import { Plane } from "./Plane";
+import { FrustumFace } from "./enums/FrustumFace";
 
 /**
  * A bounding frustum.
@@ -19,10 +20,10 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
   public left: Plane;
   /** The right plane of this frustum. */
   public right: Plane;
-  /** The top plane of this frustum. */
-  public top: Plane;
   /** The bottom plane of this frustum. */
   public bottom: Plane;
+  /** The top plane of this frustum. */
+  public top: Plane;
 
   /**
    * Constructor of BoundingFrustum.
@@ -40,30 +41,24 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
   }
 
   /**
-   * Get the plane by the given index.
-   * 0: near
-   * 1: far
-   * 2: left
-   * 3: right
-   * 4: top
-   * 5: bottom
-   * @param index - The index
+   * Get the plane by the given frustum face.
+   * @param face - The frustum face
    * @returns The plane get
    */
-  getPlane(index: number): Plane {
-    switch (index) {
-      case 0:
+  getPlane(face: FrustumFace): Plane {
+    switch (face) {
+      case FrustumFace.Near:
         return this.near;
-      case 1:
+      case FrustumFace.Far:
         return this.far;
-      case 2:
+      case FrustumFace.Left:
         return this.left;
-      case 3:
+      case FrustumFace.Right:
         return this.right;
-      case 4:
-        return this.top;
-      case 5:
+      case FrustumFace.Bottom:
         return this.bottom;
+      case FrustumFace.Top:
+        return this.top;
       default:
         return null;
     }
@@ -117,17 +112,17 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
     this.right.distance = m41 - m44;
     this.right.normalize();
 
-    // top
-    const topNormal = this.top.normal;
-    topNormal.set(m12 - m14, m22 - m24, m32 - m34);
-    this.top.distance = m42 - m44;
-    this.top.normalize();
-
     // bottom
     const bottomNormal = this.bottom.normal;
     bottomNormal.set(-m14 - m12, -m24 - m22, -m34 - m32);
     this.bottom.distance = -m44 - m42;
     this.bottom.normalize();
+
+    // top
+    const topNormal = this.top.normal;
+    topNormal.set(m12 - m14, m22 - m24, m32 - m34);
+    this.top.distance = m42 - m44;
+    this.top.normalize();
   }
 
   /**
@@ -168,8 +163,8 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
     this.far.copyFrom(source.far);
     this.left.copyFrom(source.left);
     this.right.copyFrom(source.right);
-    this.top.copyFrom(source.top);
     this.bottom.copyFrom(source.bottom);
+    this.top.copyFrom(source.top);
     return this;
   }
 }
