@@ -126,8 +126,8 @@ export class ShaderProgram {
     if (textureUniforms) {
       for (let i = 0, n = textureUniforms.length; i < n; i++) {
         const uniform = textureUniforms[i];
-        const texture = properties[uniform.propertyId];
-        if (texture) {
+        const texture = <Texture>properties[uniform.propertyId];
+        if (texture && !texture.destroyed) {
           uniform.applyFunc(uniform, texture);
         } else {
           uniform.applyFunc(uniform, uniform.textureDefault);
@@ -409,13 +409,13 @@ export class ShaderProgram {
           let defaultTexture: Texture;
           switch (type) {
             case gl.SAMPLER_2D:
-              defaultTexture = this._engine._whiteTexture2D;
+              defaultTexture = this._engine._magentaTexture2D;
               break;
             case gl.SAMPLER_CUBE:
-              defaultTexture = this._engine._whiteTextureCube;
+              defaultTexture = this._engine._magentaTextureCube;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
-              defaultTexture = this._engine._whiteTexture2DArray;
+              defaultTexture = this._engine._magentaTexture2DArray;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
               defaultTexture = this._engine._depthTexture2D;

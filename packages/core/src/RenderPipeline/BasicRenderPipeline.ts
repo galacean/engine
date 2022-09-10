@@ -1,6 +1,6 @@
 import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { Background, RenderElement, RenderQueueType, ShadowMode, SpriteElement } from "..";
 import { SpriteMask } from "../2d";
+import { Background } from "../Background";
 import { Logger } from "../base";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
@@ -9,13 +9,15 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { Material } from "../material";
+import { Material, RenderQueueType } from "../material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
+import { ShadowMode } from "../shadow/enum/ShadowMode";
 import { Sky } from "../sky";
 import { RenderTarget, TextureCubeFace } from "../texture";
 import { RenderContext } from "./RenderContext";
+import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 
@@ -206,7 +208,7 @@ export class BasicRenderPipeline {
    * Push a render element to the render queue.
    * @param element - Render element
    */
-  pushPrimitive(element: RenderElement | SpriteElement) {
+  pushPrimitive(element: RenderElement): void {
     switch (element.material.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);
