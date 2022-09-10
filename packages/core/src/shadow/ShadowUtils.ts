@@ -169,7 +169,7 @@ export class ShadowUtils {
     if (supportTexture) {
       return TextureFormat.Depth16;
     } else {
-      return TextureFormat.R8G8B8A8;
+      return TextureFormat.R16G16B16A16;
     }
   }
 

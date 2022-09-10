@@ -83,14 +83,14 @@ export class GLTexture implements IPlatformTexture {
         };
       case TextureFormat.R16G16B16A16:
         return {
-          internalFormat: gl.RGBA16F,
+          internalFormat: isWebGL2 ? gl.RGBA16F : gl.RGBA,
           baseFormat: gl.RGBA,
           dataType: gl.HALF_FLOAT,
           isCompressed: false
         };
       case TextureFormat.R32G32B32A32:
         return {
-          internalFormat: gl.RGBA32F,
+          internalFormat: isWebGL2 ? gl.RGBA32F : gl.RGBA,
           baseFormat: gl.RGBA,
           dataType: gl.FLOAT,
           isCompressed: false

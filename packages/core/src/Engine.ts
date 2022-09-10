@@ -221,7 +221,7 @@ export class Engine extends EventDispatcher {
 
     let depthFormat = TextureFormat.Depth16;
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
-      depthFormat = TextureFormat.R8G8B8A8;
+      depthFormat = TextureFormat.R16G16B16A16;
       this._macroCollection.enable(Engine._noDepthTextureMacro);
     }
     const depthTexture2D = new Texture2D(this, 1, 1, depthFormat, false);
