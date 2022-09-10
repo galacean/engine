@@ -79,7 +79,6 @@ export class CascadedShadowCasterPass {
    */
   _render(): void {
     this._updateShadowSettings();
-    this._depthTexture = null;
     this._existShadowMap = false;
     this._renderDirectShadowMap();
 
