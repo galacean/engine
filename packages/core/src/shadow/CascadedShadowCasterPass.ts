@@ -35,7 +35,7 @@ export class CascadedShadowCasterPass {
   private static _maxCascades: number = 4;
   private static _cascadesSplitDistance: number[] = new Array(CascadedShadowCasterPass._maxCascades + 1);
 
-  private static _clearColor = new Color();
+  private static _clearColor = new Color(1, 1, 1, 1);
   private static _tempVector = new Vector3();
   private static _tempMatrix0 = new Matrix();
 
@@ -62,10 +62,9 @@ export class CascadedShadowCasterPass {
   private _vpMatrix = new Float32Array(64);
   // strength, resolution, lightIndex
   private _shadowInfos = new Vector3();
-  private _depthMap: Texture2D;
+  private _depthTexture: Texture2D;
   private _renderTargets: RenderTarget;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  private _depthTexture: Texture2D;
 
   constructor(camera: Camera) {
     this._camera = camera;
@@ -80,7 +79,7 @@ export class CascadedShadowCasterPass {
    */
   _render(): void {
     this._updateShadowSettings();
-    this._depthMap = null;
+    this._depthTexture = null;
     this._existShadowMap = false;
     this._renderDirectShadowMap();
 
@@ -133,12 +132,11 @@ export class CascadedShadowCasterPass {
         if (this._supportDepthTexture) {
           rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
         } else {
-          rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth, CascadedShadowCasterPass._clearColor);
+          rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
         }
         this._shadowInfos.x = light.shadowStrength;
         this._shadowInfos.y = this._shadowTileResolution;
         this._shadowInfos.z = sunLightIndex;
-        this._depthMap = <Texture2D>this._renderTargets.depthTexture;
 
         // prepare light and camera direction
         Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
@@ -216,7 +214,7 @@ export class CascadedShadowCasterPass {
     const shaderData = this._camera.scene.shaderData;
     shaderData.setFloatArray(CascadedShadowCasterPass._viewProjMatFromLightProperty, this._vpMatrix);
     shaderData.setVector3(CascadedShadowCasterPass._shadowInfosProperty, this._shadowInfos);
-    shaderData.setTexture(CascadedShadowCasterPass._shadowMapsProperty, this._depthMap);
+    shaderData.setTexture(CascadedShadowCasterPass._shadowMapsProperty, this._depthTexture);
     shaderData.setFloatArray(CascadedShadowCasterPass._shadowSplitSpheresProperty, this._splitBoundSpheres);
   }
 
@@ -275,9 +273,9 @@ export class CascadedShadowCasterPass {
     let renderTarget = this._renderTargets;
     if (
       renderTarget == null ||
-      depthTexture.width !== width ||
-      depthTexture.height !== height ||
-      depthTexture.format !== format
+      depthTexture?.width !== width ||
+      depthTexture?.height !== height ||
+      depthTexture?.format !== format
     ) {
       depthTexture = this._depthTexture = new Texture2D(engine, width, height, format, false);
       depthTexture.wrapModeV = depthTexture.wrapModeU = TextureWrapMode.Clamp;
