@@ -165,8 +165,8 @@ export class ShadowUtils {
     }
   }
 
-  static shadowDepthFormat(value: ShadowResolution, supportTexture: boolean): TextureFormat {
-    if (supportTexture) {
+  static shadowDepthFormat(value: ShadowResolution, supportDepthTexture: boolean): TextureFormat {
+    if (supportDepthTexture) {
       return TextureFormat.Depth16;
     } else {
       return TextureFormat.R16G16B16A16;

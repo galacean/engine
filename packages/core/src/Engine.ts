@@ -219,15 +219,14 @@ export class Engine extends EventDispatcher {
     magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
     magentaTextureCube.isGCIgnored = true;
 
-    let depthFormat = TextureFormat.Depth16;
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
-      depthFormat = TextureFormat.R16G16B16A16;
       this._macroCollection.enable(Engine._noDepthTextureMacro);
+    } else {
+      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+      depthTexture2D.isGCIgnored = true;
+      this._depthTexture2D = depthTexture2D;
     }
-    const depthTexture2D = new Texture2D(this, 1, 1, depthFormat, false);
-    depthTexture2D.isGCIgnored = true;
 
-    this._depthTexture2D = depthTexture2D;
     this._magentaTexture2D = magentaTexture2D;
     this._magentaTextureCube = magentaTextureCube;
 
