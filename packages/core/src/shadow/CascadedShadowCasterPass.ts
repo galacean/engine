@@ -128,7 +128,11 @@ export class CascadedShadowCasterPass {
         // prepare render target
         const renderTarget = this._getAvailableRenderTarget();
         rhi.activeRenderTarget(renderTarget, null, 0);
-        rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+        if (this._supportDepthTexture) {
+          rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+        } else {
+          rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth, null);
+        }
         this._shadowInfos.x = light.shadowStrength;
         this._shadowInfos.y = this._shadowTileResolution;
         this._shadowInfos.z = sunLightIndex;
