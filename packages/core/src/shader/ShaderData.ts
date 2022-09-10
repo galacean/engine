@@ -476,18 +476,6 @@ export class ShaderData implements IRefObject, IClone {
   }
 
   /**
-   * Get all set float properties.
-   * @param out - all set float propertie
-   */
-  getProperties(out: ShaderProperty[]): void {
-    const properties = this._properties;
-    const propertyIdMap = Shader._propertyIdMap;
-    for (let key in properties) {
-      out.push(propertyIdMap[key]);
-    }
-  }
-
-  /**
    * Enable macro with name.
    * @param macroName - Macro name
    */
@@ -570,6 +558,20 @@ export class ShaderData implements IRefObject, IClone {
       }
     } else {
       return Object.values(this._macroMap);
+    }
+  }
+
+  /**
+   * Get all set float properties.
+   * @param out - all set float propertie
+   */
+  getProperties(out: ShaderProperty[]): void {
+    out.length = 0;
+
+    const properties = this._properties;
+    const propertyIdMap = Shader._propertyIdMap;
+    for (let key in properties) {
+      out.push(propertyIdMap[key]);
     }
   }
 
