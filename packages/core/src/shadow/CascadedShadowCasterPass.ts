@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Vector3 } from "@oasis-engine/math";
+import { Color, MathUtil, Matrix, Vector3 } from "@oasis-engine/math";
 import { Vector2 } from "@oasis-engine/math/src";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
@@ -35,12 +35,14 @@ export class CascadedShadowCasterPass {
   private static _maxCascades: number = 4;
   private static _cascadesSplitDistance: number[] = new Array(CascadedShadowCasterPass._maxCascades + 1);
 
+  private static _clearColor = new Color();
   private static _tempVector = new Vector3();
   private static _tempMatrix0 = new Matrix();
 
   private readonly _camera: Camera;
   private readonly _engine: Engine;
   private readonly _shadowMapMaterial: Material;
+  private readonly _supportDepthTexture: boolean;
 
   private _shadowMode: ShadowMode;
   private _shadowMapResolution: number;
@@ -63,7 +65,7 @@ export class CascadedShadowCasterPass {
   private _depthMap: Texture2D;
   private _renderTargets: RenderTarget;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
-  private _supportDepthTexture = true;
+  private _depthTexture: Texture2D;
 
   constructor(camera: Camera) {
     this._camera = camera;
@@ -131,7 +133,7 @@ export class CascadedShadowCasterPass {
         if (this._supportDepthTexture) {
           rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
         } else {
-          rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth, null);
+          rhi.clearRenderTarget(engine, CameraClearFlags.ColorDepth, CascadedShadowCasterPass._clearColor);
         }
         this._shadowInfos.x = light.shadowStrength;
         this._shadowInfos.y = this._shadowTileResolution;
@@ -269,21 +271,25 @@ export class CascadedShadowCasterPass {
     const engine = this._engine;
     const format = this._shadowMapFormat;
     const { x: width, y: height } = this._shadowMapSize;
-
+    let depthTexture = this._depthTexture;
     let renderTarget = this._renderTargets;
     if (
       renderTarget == null ||
-      renderTarget?.depthTexture.width !== width ||
-      renderTarget?.depthTexture.height !== height ||
-      renderTarget?.depthTexture.format !== format
+      depthTexture.width !== width ||
+      depthTexture.height !== height ||
+      depthTexture.format !== format
     ) {
-      const depthTexture = new Texture2D(engine, width, height, format, false);
+      depthTexture = this._depthTexture = new Texture2D(engine, width, height, format, false);
       depthTexture.wrapModeV = depthTexture.wrapModeU = TextureWrapMode.Clamp;
       if (engine._hardwareRenderer._isWebGL2) {
         depthTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
       }
 
-      renderTarget = this._renderTargets = new RenderTarget(engine, width, height, null, depthTexture);
+      if (this._supportDepthTexture) {
+        renderTarget = this._renderTargets = new RenderTarget(engine, width, height, null, depthTexture);
+      } else {
+        renderTarget = this._renderTargets = new RenderTarget(engine, width, height, depthTexture);
+      }
     }
     return renderTarget;
   }
