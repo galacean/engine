@@ -24,10 +24,11 @@ describe("SkinnedMeshRenderer", () => {
     const entity = rootEntity.createChild();
     const skinnedMeshRenderer = entity.addComponent(SkinnedMeshRenderer);
     skinnedMeshRenderer.mesh = modelMesh;
-    skinnedMeshRenderer.blendShapeWeights[0]=0.6;
 
     const cloneEntity = entity.clone();
-    expect(cloneEntity.getComponent(SkinnedMeshRenderer).blendShapeWeights).to.deep.equal(
+    skinnedMeshRenderer.blendShapeWeights[0] = 0.6;
+
+    expect(cloneEntity.getComponent(SkinnedMeshRenderer).blendShapeWeights).to.not.deep.equal(
       skinnedMeshRenderer.blendShapeWeights
     );
   });
