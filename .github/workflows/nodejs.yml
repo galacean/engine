@@ -17,12 +17,13 @@ jobs:
       uses: actions/setup-node@v1
       with:
         node-version: ${{ matrix.node-version }}
+    
     - uses: pnpm/action-setup@v2.0.1
-        name: Install pnpm
-        id: pnpm-install
-        with:
-          version: 7
-          run_install: false
+      name: Install pnpm
+      id: pnpm-install
+      with:
+        version: 7
+        run_install: false
 
     - name: Get pnpm store directory
       id: pnpm-cache
