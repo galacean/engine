@@ -165,8 +165,12 @@ export class ShadowUtils {
     }
   }
 
-  static shadowDepthFormat(value: ShadowResolution): TextureFormat {
-    return TextureFormat.Depth16;
+  static shadowDepthFormat(value: ShadowResolution, supportTexture: boolean): TextureFormat {
+    if (supportTexture) {
+      return TextureFormat.Depth16;
+    } else {
+      return TextureFormat.R16G16B16A16;
+    }
   }
 
   static cullingRenderBounds(bounds: BoundingBox, cullPlaneCount: number, cullPlanes: Plane[]): boolean {

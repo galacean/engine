@@ -28,6 +28,7 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { GLCapabilityType } from "./base/Constant";
 
 ShaderPool.init();
 
@@ -37,6 +38,8 @@ ShaderPool.init();
 export class Engine extends EventDispatcher {
   /** @internal */
   static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+  /** @internal */
+  static _noDepthTextureMacro: ShaderMacro = Shader.getMacroByName("OASIS_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
@@ -216,7 +219,12 @@ export class Engine extends EventDispatcher {
     magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
     magentaTextureCube.isGCIgnored = true;
 
-    const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+    let depthFormat = TextureFormat.Depth16;
+    if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
+      depthFormat = TextureFormat.R16G16B16A16;
+      this._macroCollection.enable(Engine._noDepthTextureMacro);
+    }
+    const depthTexture2D = new Texture2D(this, 1, 1, depthFormat, false);
     depthTexture2D.isGCIgnored = true;
 
     this._depthTexture2D = depthTexture2D;

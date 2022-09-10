@@ -17,6 +17,7 @@ import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
 import { ShadowMode } from "./enum/ShadowMode";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
+import { GLCapabilityType } from "../base/Constant";
 
 /**
  * Cascade shadow caster.
@@ -62,11 +63,13 @@ export class CascadedShadowCasterPass {
   private _depthMap: Texture2D;
   private _renderTargets: RenderTarget;
   private _viewportOffsets: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
+  private _supportDepthTexture = true;
 
   constructor(camera: Camera) {
     this._camera = camera;
     this._engine = camera.engine;
 
+    this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
     this._shadowMapMaterial = new Material(this._engine, Shader.find("shadow-map"));
   }
 
@@ -284,7 +287,7 @@ export class CascadedShadowCasterPass {
   private _updateShadowSettings(): void {
     const sceneShaderData = this._camera.scene.shaderData;
     const settings = this._engine.settings;
-    const shadowFormat = ShadowUtils.shadowDepthFormat(settings.shadowResolution);
+    const shadowFormat = ShadowUtils.shadowDepthFormat(settings.shadowResolution, this._supportDepthTexture);
     const shadowResolution = ShadowUtils.shadowResolution(settings.shadowResolution);
     const shadowCascades = settings.shadowCascades;
     if (shadowCascades !== this._shadowCascadeMode) {
