@@ -18,10 +18,13 @@
     "dist/**/*",
     "types/**/*"
   ],
+  "dependencies": {},
   "devDependencies": {
-    "@oasis-engine/design": "0.9.0-alpha.1"
+    "@oasis-engine/design": "workspace:*",
+    "oasis-engine": "workspace:*"
   },
   "peerDependencies": {
-    "oasis-engine": "0.9.0-alpha.1"
+    "@oasis-engine/design": "workspace:*",
+    "oasis-engine": "workspace:*"
   }
 }
