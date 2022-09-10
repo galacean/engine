@@ -249,7 +249,7 @@ export class GLTexture implements IPlatformTexture {
     switch (format) {
       case RenderBufferDepthFormat.Depth:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT,
+          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT32F : gl.DEPTH_COMPONENT16,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: isWebGL2 ? gl.FLOAT : gl.UNSIGNED_SHORT,
           isCompressed: false,
@@ -273,7 +273,7 @@ export class GLTexture implements IPlatformTexture {
         };
       case RenderBufferDepthFormat.Depth16:
         return {
-          internalFormat: isWebGL2 ? gl.DEPTH_COMPONENT16 : gl.DEPTH_COMPONENT,
+          internalFormat: gl.DEPTH_COMPONENT16,
           baseFormat: gl.DEPTH_COMPONENT,
           dataType: gl.UNSIGNED_SHORT,
           isCompressed: false,
