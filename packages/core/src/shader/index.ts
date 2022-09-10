@@ -7,4 +7,5 @@ export { ShaderPropertyType } from "./enums/ShaderPropertyType";
 export { StencilOperation } from "./enums/StencilOperation";
 export { Shader } from "./Shader";
 export { ShaderData } from "./ShaderData";
+export { ShaderProperty } from "./ShaderProperty";
 
