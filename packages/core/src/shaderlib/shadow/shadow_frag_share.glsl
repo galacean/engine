@@ -22,7 +22,18 @@
             #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
         #else
             uniform sampler2D u_shadowMap;
-            #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) (texture2D(textureName, coord3.xy).r < coord3.z ? 0.0 : 1.0)
+            #ifdef OASIS_NO_DEPTH_TEXTURE
+                const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
+                /**
+                * Unpack depth value.
+                */
+                float unpack(const in vec4 rgbaDepth) {
+                  return dot(rgbaDepth, bitShift);
+                }
+                #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) (unpack(texture2D(textureName, coord3.xy)) < coord3.z ? 0.0 : 1.0)
+            #else
+                #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) (texture2D(textureName, coord3.xy).r < coord3.z ? 0.0 : 1.0)
+            #endif
             #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap
         #endif
 
