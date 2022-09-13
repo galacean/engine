@@ -7,7 +7,6 @@ import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { RenderState } from "../shader/state/RenderState";
-import { RenderQueueType } from "./enums/RenderQueueType";
 
 /**
  * Material.

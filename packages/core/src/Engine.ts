@@ -345,8 +345,8 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramPool(shader: ShaderPass): ShaderProgramPool {
-    const index = shader._shaderPassId;
+  _getShaderProgramPool(shaderPass: ShaderPass): ShaderProgramPool {
+    const index = shaderPass._shaderPassId;
     const shaderProgramPools = this._shaderProgramPools;
     let pool = shaderProgramPools[index];
     if (!pool) {

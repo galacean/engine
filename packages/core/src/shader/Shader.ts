@@ -29,13 +29,15 @@ export class Shader {
    * @param name - Name of the shader
    * @param vertexSource - Vertex source code
    * @param fragmentSource - Fragment source code
+   * @returns Shader
    */
   static create(name: string, vertexSource: string, fragmentSource: string): Shader;
 
   /**
    * Create a shader.
    * @param name - Name of the shader
-   * @param shaderPasses - Shader passe
+   * @param shaderPasses - Shader passes
+   * @returns Shader
    */
   static create(name: string, shaderPasses: ShaderPass[]): Shader;
 
@@ -152,7 +154,11 @@ export class Shader {
     if (typeof vertexSourceOrShaderPasses === "string") {
       this._passes.push(new ShaderPass(vertexSourceOrShaderPasses, fragmentSource));
     } else {
-      for (let i = 0, n = vertexSourceOrShaderPasses.length; i < n; i++) {
+      const passCount = vertexSourceOrShaderPasses.length;
+      if (passCount < 1) {
+        throw "Shader pass count must large than 1.";
+      }
+      for (let i = 0; i < passCount; i++) {
         this._passes.push(vertexSourceOrShaderPasses[i]);
       }
     }
