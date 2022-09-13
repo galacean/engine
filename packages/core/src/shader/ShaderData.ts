@@ -563,15 +563,33 @@ export class ShaderData implements IRefObject, IClone {
 
   /**
    * Get all shader properties that have been set on this shaderData
+   * @returns  All shader properties
+   */
+  getShaderProperties(): ShaderProperty[];
+
+  /**
+   * Get all shader properties that have been set on this shaderData
    * @param out - All shader properties
    */
-  getShaderProperties(out: ShaderProperty[]): void {
-    out.length = 0;
+  getShaderProperties(out: ShaderProperty[]): void;
+
+  getShaderProperties(out?: ShaderProperty[]): void | ShaderProperty[] {
+    let shaderProperties: ShaderProperty[];
+    if (out) {
+      out.length = 0;
+      shaderProperties = out;
+    } else {
+      shaderProperties = [];
+    }
 
     const properties = this._properties;
     const propertyIdMap = Shader._propertyIdMap;
     for (let key in properties) {
       out.push(propertyIdMap[key]);
+    }
+
+    if (out) {
+      return shaderProperties;
     }
   }
 
