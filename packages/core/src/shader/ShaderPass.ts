@@ -62,7 +62,7 @@ export class ShaderPass {
         ${graphicAPI}
         ${precisionStr}
         ${macroNameStr}
-        ` + this._vertexSource
+      ` + this._vertexSource
     );
 
     let fragmentSource = ShaderFactory.parseIncludes(

@@ -18,8 +18,10 @@ export class Material extends RefObject implements IClone {
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
 
-  private _shader: Shader;
-  private _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+  /** @internal */
+  _shader: Shader;
+  /** @internal */
+  _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
 
   /**
    * Shader used by the material.
@@ -31,15 +33,16 @@ export class Material extends RefObject implements IClone {
   set shader(value: Shader) {
     this._shader = value;
 
-    const lastStatesCount = this._renderStates.length;
+    const renderStates = this._renderStates;
+    const lastStatesCount = renderStates.length;
     const passCount = value.passes.length;
 
     if (lastStatesCount < passCount) {
       for (let i = lastStatesCount; i < passCount; i++) {
-        this._renderStates.push(new RenderState());
+        renderStates.push(new RenderState());
       }
     } else {
-      this._renderStates.length = passCount;
+      renderStates.length = passCount;
     }
   }
 

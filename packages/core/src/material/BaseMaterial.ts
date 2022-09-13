@@ -2,6 +2,7 @@ import { Engine } from "../Engine";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { ShaderMacro } from "../shader/ShaderMacro";
+import { RenderState } from "../shader/state/RenderState";
 import { BlendMode } from "./enums/BlendMode";
 import { RenderFace } from "./enums/RenderFace";
 import { Material } from "./Material";
@@ -24,6 +25,30 @@ export class BaseMaterial extends Material {
   private _renderFace: RenderFace = RenderFace.Front;
   private _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
+
+  /**
+   * Shader used by the material.
+   */
+  get shader(): Shader {
+    return this._shader;
+  }
+
+  set shader(value: Shader) {
+    this._shader = value;
+
+    const renderStates = this._renderStates;
+    const lastStatesCount = renderStates.length;
+    const passCount = value.passes.length;
+
+    if (lastStatesCount < passCount) {
+      for (let i = lastStatesCount; i < passCount; i++) {
+        renderStates.push(new RenderState());
+        this.setBlendMode(i, BlendMode.Normal);
+      }
+    } else {
+      renderStates.length = passCount;
+    }
+  }
 
   /**
    * Whethor transparent of first shader pass render state.
@@ -112,11 +137,6 @@ export class BaseMaterial extends Material {
    */
   constructor(engine: Engine, shader: Shader) {
     super(engine, shader);
-    const renderStates = this.renderStates;
-    for (let i = 0, n = renderStates.length; i < n; i++) {
-      this.setBlendMode(i, BlendMode.Normal);
-    }
-
     this.shaderData.setFloat(BaseMaterial._alphaCutoffProp, 0);
   }
 

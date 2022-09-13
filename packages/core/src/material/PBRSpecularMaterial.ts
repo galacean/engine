@@ -59,10 +59,9 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   /**
    * Create a pbr specular-glossiness workflow material instance.
    * @param engine - Engine to which the material belongs
-   * @param shader - Shader used by the material
    */
-  constructor(engine: Engine, shader?: Shader) {
-    super(engine, shader || Shader.find("pbr-specular"));
+  constructor(engine: Engine) {
+    super(engine, ∏Shader.find("pbr-specular"));
 
     this.shaderData.setColor(PBRSpecularMaterial._specularColorProp, new Color(1, 1, 1, 1));
     this.shaderData.setFloat(PBRSpecularMaterial._glossinessProp, 1.0);
