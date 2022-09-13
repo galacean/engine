@@ -29,7 +29,7 @@ export class ShaderData implements IRefObject, IClone {
   /** @internal */
   _group: ShaderDataGroup;
   /** @internal */
-  _properties: Record<number, ShaderPropertyValueType> = Object.create(null);
+  _propertyValueMap: Record<number, ShaderPropertyValueType> = Object.create(null);
   /** @internal */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
@@ -574,22 +574,22 @@ export class ShaderData implements IRefObject, IClone {
   getShaderProperties(out: ShaderProperty[]): void;
 
   getShaderProperties(out?: ShaderProperty[]): void | ShaderProperty[] {
-    let shaderProperties: ShaderProperty[];
+    let properties: ShaderProperty[];
     if (out) {
       out.length = 0;
-      shaderProperties = out;
+      properties = out;
     } else {
-      shaderProperties = [];
+      properties = [];
     }
 
-    const properties = this._properties;
+    const propertyValueMap = this._propertyValueMap;
     const propertyIdMap = Shader._propertyIdMap;
-    for (let key in properties) {
-      out.push(propertyIdMap[key]);
+    for (let key in propertyValueMap) {
+      properties.push(propertyIdMap[key]);
     }
 
-    if (out) {
-      return shaderProperties;
+    if (!out) {
+      return properties;
     }
   }
 
@@ -603,29 +603,29 @@ export class ShaderData implements IRefObject, IClone {
     CloneManager.deepCloneObject(this._macroCollection, target._macroCollection);
     Object.assign(target._macroMap, this._macroMap);
 
-    const properties = this._properties;
-    const targetProperties = target._properties;
-    const keys = Object.keys(properties);
+    const propertyValueMap = this._propertyValueMap;
+    const targetPropertyValueMap = target._propertyValueMap;
+    const keys = Object.keys(propertyValueMap);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
-      const property: ShaderPropertyValueType = properties[k];
+      const property: ShaderPropertyValueType = propertyValueMap[k];
       if (property != null) {
         if (typeof property === "number") {
-          targetProperties[k] = property;
+          targetPropertyValueMap[k] = property;
         } else if (property instanceof Texture) {
-          targetProperties[k] = property;
+          targetPropertyValueMap[k] = property;
         } else if (property instanceof Array || property instanceof Float32Array || property instanceof Int32Array) {
-          targetProperties[k] = property.slice();
+          targetPropertyValueMap[k] = property.slice();
         } else {
-          const targetProperty = targetProperties[k];
+          const targetProperty = targetPropertyValueMap[k];
           if (targetProperty) {
             targetProperty.copyFrom(property);
           } else {
-            targetProperties[k] = property.clone();
+            targetPropertyValueMap[k] = property.clone();
           }
         }
       } else {
-        targetProperties[k] = property;
+        targetPropertyValueMap[k] = property;
       }
     }
   }
@@ -637,7 +637,7 @@ export class ShaderData implements IRefObject, IClone {
     if (typeof property === "string") {
       property = Shader.getPropertyByName(property);
     }
-    return this._properties[property._uniqueId] as T;
+    return this._propertyValueMap[property._uniqueId] as T;
   }
 
   /**
@@ -668,7 +668,7 @@ export class ShaderData implements IRefObject, IClone {
       }
     }
 
-    this._properties[property._uniqueId] = value;
+    this._propertyValueMap[property._uniqueId] = value;
   }
 
   /**
@@ -683,7 +683,7 @@ export class ShaderData implements IRefObject, IClone {
    */
   _addRefCount(value: number): void {
     this._refCount += value;
-    const properties = this._properties;
+    const properties = this._propertyValueMap;
     for (const k in properties) {
       const property = properties[k];
       // @todo: Separate array to speed performance.

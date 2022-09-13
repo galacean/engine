@@ -104,12 +104,12 @@ export class ShaderProgram {
    * @param shaderData - shader data
    */
   uploadUniforms(uniformBlock: ShaderUniformBlock, shaderData: ShaderData): void {
-    const properties = shaderData._properties;
+    const propertyValueMap = shaderData._propertyValueMap;
     const constUniforms = uniformBlock.constUniforms;
 
     for (let i = 0, n = constUniforms.length; i < n; i++) {
       const uniform = constUniforms[i];
-      const data = properties[uniform.propertyId];
+      const data = propertyValueMap[uniform.propertyId];
       data != null && uniform.applyFunc(uniform, data);
     }
   }
@@ -120,13 +120,13 @@ export class ShaderProgram {
    * @param shaderData - shader data
    */
   uploadTextures(uniformBlock: ShaderUniformBlock, shaderData: ShaderData): void {
-    const properties = shaderData._properties;
+    const propertyValueMap = shaderData._propertyValueMap;
     const textureUniforms = uniformBlock.textureUniforms;
     // textureUniforms property maybe null if ShaderUniformBlock not contain any texture.
     if (textureUniforms) {
       for (let i = 0, n = textureUniforms.length; i < n; i++) {
         const uniform = textureUniforms[i];
-        const texture = <Texture>properties[uniform.propertyId];
+        const texture = <Texture>propertyValueMap[uniform.propertyId];
         if (texture && !texture.destroyed) {
           uniform.applyFunc(uniform, texture);
         } else {
