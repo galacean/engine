@@ -269,9 +269,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
    */
   get bounds(): BoundingBox {
     this._isContainDirtyFlag(DirtyFlag.Font) && this._resetCharFont();
-    this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
-    this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
-    this._isContainDirtyFlag(DirtyFlag.WorldBounds) && this._updateBounds(this._bounds);
+    const isLocalPositionBoundsDirty = this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds);
+    isLocalPositionBoundsDirty && this._updateLocalData();
+    (isLocalPositionBoundsDirty || this._isContainDirtyFlag(DirtyFlag.WorldPosition)) && this._updatePosition();
+    (isLocalPositionBoundsDirty || this._isContainDirtyFlag(DirtyFlag.WorldBounds)) && this._updateBounds(this._bounds);
     this._setDirtyFlagFalse(this._fontDirtyFlag | DirtyFlag.WorldBounds);
 
     return this._bounds;
@@ -310,12 +311,13 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.Font);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
+    const isLocalPositionBoundsDirty = this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds);
+    if (isLocalPositionBoundsDirty) {
       this._updateLocalData();
       this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
+    if (isLocalPositionBoundsDirty || this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
       this._updatePosition();
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
