@@ -23,7 +23,7 @@ export class BaseMaterial extends Material {
 
   private _renderFace: RenderFace = RenderFace.Front;
   private _isTransparent: boolean = false;
-  private _blendMode: BlendMode;
+  private _blendMode: BlendMode = BlendMode.Normal;
 
   /**
    * Whethor transparent of first shader pass render state.
