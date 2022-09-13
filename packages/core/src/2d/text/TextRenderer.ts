@@ -588,5 +588,5 @@ export enum DirtyFlag {
   MaskInteraction = 0x10,
 
   Position = LocalPositionBounds | WorldPosition | WorldBounds,
-  Font = StyleFont | LocalPositionBounds | WorldPosition
+  Font = StyleFont | Position
 }
