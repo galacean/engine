@@ -75,9 +75,9 @@ export class CanvasRenderer implements IHardwareRenderer {
   drawElement(element: SpriteElement | TextRenderElement, camera: Camera) {
     const { component } = element;
     if (component instanceof SpriteRenderer) {
-      this._drawImage(element, camera);
+      this._drawImage(<SpriteElement>element, camera);
     } else if (component instanceof TextRenderer) {
-      const { charElements } = element;
+      const { charElements } = <TextRenderElement>element;
       for (let i = 0, l = charElements.length; i < l; ++i) {
         this._drawText(charElements[i], camera);
       }

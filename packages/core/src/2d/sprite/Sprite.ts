@@ -206,6 +206,8 @@ export class Sprite extends RefObject {
    */
   clone(): Sprite {
     const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._pivot, this._border, this.name);
+    cloneSprite._width = this._width;
+    cloneSprite._height = this._height;
     cloneSprite._assetID = this._assetID;
     cloneSprite._atlasRotated = this._atlasRotated;
     cloneSprite._atlasRegion.copyFrom(this._atlasRegion);
