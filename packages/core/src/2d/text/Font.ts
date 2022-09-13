@@ -28,7 +28,7 @@ export class Font extends RefObject {
   }
 
   private _name: string = "";
-  private _fontAtlases: Array<FontAtlas> = [];
+  private _fontAtlases: FontAtlas[] = [];
   private _lastIndex: number = -1;
 
   /**
