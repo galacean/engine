@@ -41,7 +41,12 @@ export class MaterialParser extends Parser {
         name = ""
       } = gltf.materials[i];
 
-      const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat } = extensions;
+      const {
+        KHR_materials_unlit,
+        KHR_materials_pbrSpecularGlossiness,
+        KHR_materials_clearcoat,
+        OASIS_materials_remap
+      } = extensions;
 
       let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
 
@@ -131,6 +136,16 @@ export class MaterialParser extends Parser {
             Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
           }
         }
+      }
+
+      if (OASIS_materials_remap) {
+        context.gltf.extensions = context.gltf.extensions ?? {};
+        context.gltf.extensions["OASIS_materials_remap"] = context.gltf.extensions["OASIS_materials_remap"] ?? {};
+        context.gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
+          "OASIS_materials_remap",
+          OASIS_materials_remap,
+          context
+        );
       }
 
       if (doubleSided) {
