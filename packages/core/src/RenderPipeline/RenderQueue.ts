@@ -8,6 +8,7 @@ import { MeshRenderElement } from "./MeshRenderElement";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
 import { SpriteElement } from "./SpriteElement";
+import { TextRenderElement } from "./TextRenderElement";
 
 /**
  * Render queue.
@@ -61,8 +62,8 @@ export class RenderQueue {
         continue;
       }
 
-      if (!!(item as RenderElement).mesh) {
-        engine.canBatch2D && this._spriteBatcher.flush(camera);
+      if (!!(item as MeshRenderElement).mesh) {
+        engine.canBatch2D && this._spriteBatcher.flush(camera, replaceMaterial);
 
         const compileMacros = Shader._compileMacros;
         const element = <MeshRenderElement>item;
@@ -140,16 +141,16 @@ export class RenderQueue {
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
-        const spriteElement = <SpriteElement>item;
+        const spriteElement = <SpriteElement | TextRenderElement>item;
         if (engine.canBatch2D) {
-          this._spriteBatcher.drawElement(spriteElement, camera);
+          this._spriteBatcher.drawElement(spriteElement, camera, replaceMaterial);
         } else {
           rhi.drawElement(spriteElement, camera);
         }
       }
     }
 
-    engine.canBatch2D && this._spriteBatcher.flush(camera);
+    engine.canBatch2D && this._spriteBatcher.flush(camera, replaceMaterial);
   }
 
   /**
