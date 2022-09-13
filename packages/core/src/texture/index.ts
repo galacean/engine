@@ -1,5 +1,6 @@
 export { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 export { TextureCubeFace } from "./enums/TextureCubeFace";
+export { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 export { TextureFilterMode } from "./enums/TextureFilterMode";
 export { TextureFormat } from "./enums/TextureFormat";
 export { TextureWrapMode } from "./enums/TextureWrapMode";

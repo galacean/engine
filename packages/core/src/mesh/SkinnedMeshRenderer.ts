@@ -36,10 +36,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
+  @ignoreClone
+  private _blendShapeWeights: Float32Array;
 
   /** @internal */
-  _blendShapeWeights: Float32Array = new Float32Array(0);
-  /** @internal */
+  @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
   /**
@@ -47,11 +48,20 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @remarks Array index is BlendShape index.
    */
   get blendShapeWeights(): Float32Array {
+    this._checkBlendShapeWeightLength();
     return this._blendShapeWeights;
   }
 
   set blendShapeWeights(value: Float32Array) {
-    this._blendShapeWeights = value;
+    this._checkBlendShapeWeightLength();
+    const blendShapeWeights = this._blendShapeWeights;
+    if (value.length <= blendShapeWeights.length) {
+      blendShapeWeights.set(value);
+    } else {
+      for (let i = 0, n = blendShapeWeights.length; i < n; i++) {
+        blendShapeWeights[i] = value[i];
+      }
+    }
   }
 
   /**
@@ -178,7 +188,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * Generate joint texture.
    * Format: (4 * RGBA) * jointCont
    */
-  createJointTexture() {
+  createJointTexture(): void {
     if (!this.jointTexture) {
       const engine = this.engine;
       const rhi = engine._hardwareRenderer;
@@ -189,5 +199,34 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: SkinnedMeshRenderer): void {
+    super._cloneTo(target);
+    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
+  }
+
+  private _checkBlendShapeWeightLength(): void {
+    const mesh = <ModelMesh>this._mesh;
+    const newBlendShapeCount = mesh ? mesh.blendShapeCount : 0;
+    const lastBlendShapeWeights = this._blendShapeWeights;
+    if (lastBlendShapeWeights) {
+      if (lastBlendShapeWeights.length !== newBlendShapeCount) {
+        const newBlendShapeWeights = new Float32Array(newBlendShapeCount);
+        if (newBlendShapeCount > lastBlendShapeWeights.length) {
+          newBlendShapeWeights.set(lastBlendShapeWeights);
+        } else {
+          for (let i = 0, n = lastBlendShapeWeights.length; i < n; i++) {
+            lastBlendShapeWeights[i] = newBlendShapeWeights[i];
+          }
+        }
+        this._blendShapeWeights = newBlendShapeWeights;
+      }
+    } else {
+      this._blendShapeWeights = new Float32Array(newBlendShapeCount);
+    }
   }
 }

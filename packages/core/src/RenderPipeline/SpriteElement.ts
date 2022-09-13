@@ -4,26 +4,20 @@ import { Renderer } from "../Renderer";
 import { ShaderPass } from "../shader";
 import { RenderState } from "../shader/state/RenderState";
 import { Texture2D } from "../texture";
+import { RenderElement } from "./RenderElement";
 
-/**
- * @internal
- */
-export class SpriteElement {
-  component: Renderer;
+export class SpriteElement extends RenderElement {
   renderData: RenderData2D;
-  material: Material;
   texture: Texture2D;
   renderState: RenderState;
   shaderPass: ShaderPass;
 
-  setValue(
-    component: Renderer,
-    renderDate: RenderData2D,
-    material: Material,
-    texture: Texture2D,
-    renderState: RenderState,
-    shaderPass: ShaderPass
-  ): void {
+  constructor() {
+    super();
+    this.multiRenderData = false;
+  }
+
+  setValue(component: Renderer, renderDate: RenderData2D, material: Material, texture: Texture2D): void {
     this.component = component;
     this.renderData = renderDate;
     this.material = material;

@@ -46,7 +46,7 @@ export class FontAtlas extends RefObject {
     const textureSize = texture.width;
     const offsetWidth = width + space;
     const offsetHeight = height + space;
-    if ((1 + offsetWidth) >= textureSize || (1 + offsetHeight) >= textureSize) {
+    if (1 + offsetWidth >= textureSize || 1 + offsetHeight >= textureSize) {
       throw Error("The char fontSize is too large.");
     }
 
@@ -73,12 +73,19 @@ export class FontAtlas extends RefObject {
     const y = this._curY;
     const w = width;
     const h = height;
+    const u0 = x * textureSizeReciprocal;
+    const u1 = (x + w) * textureSizeReciprocal;
+    const v0 = y * textureSizeReciprocal;
+    const v1 = (y + h) * textureSizeReciprocal;
+
     charInfo.x = x;
     charInfo.y = y;
-    charInfo.u0 = x * textureSizeReciprocal;
-    charInfo.u1 = (x + w) * textureSizeReciprocal;
-    charInfo.v0 = y * textureSizeReciprocal;
-    charInfo.v1 = (y + h) * textureSizeReciprocal;
+    const uvs = charInfo.uvs;
+    uvs[0].set(u0, v0);
+    uvs[1].set(u1, v0);
+    uvs[2].set(u1, v1);
+    uvs[3].set(u0, v1);
+
     this._curX += offsetWidth + space;
     return true;
   }

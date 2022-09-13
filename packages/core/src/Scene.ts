@@ -3,10 +3,7 @@ import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
-import { FeatureManager } from "./FeatureManager";
 import { AmbientLight } from "./lighting/AmbientLight";
-import { LightFeature } from "./lighting/LightFeature";
-import { SceneFeature } from "./SceneFeature";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -15,8 +12,6 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
  * Scene.
  */
 export class Scene extends EngineObject {
-  static sceneFeatureManager = new FeatureManager<SceneFeature>();
-
   /** Scene name. */
   name: string;
 
@@ -32,8 +27,9 @@ export class Scene extends EngineObject {
   _isActiveInEngine: boolean = false;
   /** @internal */
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  _rootEntities: Entity[] = [];
 
-  private _rootEntities: Entity[] = [];
   private _ambientLight: AmbientLight;
 
   /**
@@ -81,7 +77,6 @@ export class Scene extends EngineObject {
     this.name = name || "";
 
     const shaderData = this.shaderData;
-    Scene.sceneFeatureManager.addObject(this);
     shaderData._addRefCount(1);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
@@ -102,9 +97,25 @@ export class Scene extends EngineObject {
    * Append an entity.
    * @param entity - The root entity to add
    */
-  addRootEntity(entity: Entity): void {
-    const isRoot = entity._isRoot;
+  addRootEntity(entity: Entity): void;
 
+  /**
+   * Append an entity.
+   * @param index - specified index
+   * @param entity - The root entity to add
+   */
+  addRootEntity(index: number, entity: Entity): void;
+
+  addRootEntity(indexOrChild: number | Entity, entity?: Entity): void {
+    let index: number;
+    if (typeof indexOrChild === "number") {
+      index = indexOrChild;
+    } else {
+      index = undefined;
+      entity = indexOrChild;
+    }
+
+    const isRoot = entity._isRoot;
     // let entity become root
     if (!isRoot) {
       entity._isRoot = true;
@@ -115,12 +126,12 @@ export class Scene extends EngineObject {
     const oldScene = entity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
-        oldScene._removeEntity(entity);
+        oldScene._removeFromEntityList(entity);
       }
-      this._rootEntities.push(entity);
+      this._addToRootEntityList(index, entity);
       Entity._traverseSetOwnerScene(entity, this);
     } else if (!isRoot) {
-      this._rootEntities.push(entity);
+      this._addToRootEntityList(index, entity);
     }
 
     // process entity active/inActive
@@ -137,7 +148,7 @@ export class Scene extends EngineObject {
    */
   removeRootEntity(entity: Entity): void {
     if (entity._isRoot && entity._scene == this) {
-      this._removeEntity(entity);
+      this._removeFromEntityList(entity);
       entity._isRoot = false;
       this._isActiveInEngine && entity._isActiveInHierarchy && entity._processInActive();
       Entity._traverseSetOwnerScene(entity, null);
@@ -250,7 +261,7 @@ export class Scene extends EngineObject {
    * @internal
    */
   _updateShaderData(): void {
-    this.findFeature(LightFeature)._updateShaderData(this.shaderData);
+    this._engine._lightManager._updateShaderData(this.shaderData);
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
       this.engine._macroCollection,
@@ -262,9 +273,14 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _removeEntity(entity: Entity): void {
+  _removeFromEntityList(entity: Entity): void {
     const rootEntities = this._rootEntities;
-    rootEntities.splice(rootEntities.indexOf(entity), 1);
+    let index = entity._siblingIndex;
+    rootEntities.splice(index, 1);
+    for (let n = rootEntities.length; index < n; index++) {
+      rootEntities[index]._siblingIndex--;
+    }
+    entity._siblingIndex = -1;
   }
 
   /**
@@ -272,24 +288,29 @@ export class Scene extends EngineObject {
    */
   _destroy(): void {
     this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
-    Scene.sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
     for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
       this._rootEntities[i].destroy();
     }
     this._rootEntities.length = 0;
     this._activeCameras.length = 0;
-    (Scene.sceneFeatureManager as any)._objects = [];
     this.shaderData._addRefCount(-1);
   }
 
-  //-----------------------------------------@deprecated-----------------------------------
-  static registerFeature(Feature: new () => SceneFeature) {
-    Scene.sceneFeatureManager.registerFeature(Feature);
+  private _addToRootEntityList(index: number, rootEntity: Entity): void {
+    const rootEntities = this._rootEntities;
+    const rootEntityCount = rootEntities.length;
+    if (index === undefined) {
+      rootEntity._siblingIndex = rootEntityCount;
+      rootEntities.push(rootEntity);
+    } else {
+      if (index < 0 || index > rootEntityCount) {
+        throw `The index ${index} is out of child list bounds ${rootEntityCount}`;
+      }
+      rootEntity._siblingIndex = index;
+      rootEntities.splice(index, 0, rootEntity);
+      for (let i = index + 1, n = rootEntityCount + 1; i < n; i++) {
+        rootEntities[i]._siblingIndex++;
+      }
+    }
   }
-
-  findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
-    return Scene.sceneFeatureManager.findFeature(this, Feature) as T;
-  }
-
-  features: SceneFeature[] = [];
 }
