@@ -9,8 +9,9 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { Material, RenderQueueType } from "../material";
-import { Shader } from "../shader";
+import { Material } from "../material";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
+import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowMode } from "../shadow/enum/ShadowMode";
@@ -209,7 +210,7 @@ export class BasicRenderPipeline {
    * @param element - Render element
    */
   pushPrimitive(element: RenderElement): void {
-    switch (element.material.renderQueueType) {
+    switch (element.renderState.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);
         break;

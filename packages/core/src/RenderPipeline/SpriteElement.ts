@@ -9,15 +9,20 @@ import { RenderElement } from "./RenderElement";
 export class SpriteElement extends RenderElement {
   renderData: RenderData2D;
   texture: Texture2D;
-  renderState: RenderState;
-  shaderPass: ShaderPass;
 
   constructor() {
     super();
     this.multiRenderData = false;
   }
 
-  setValue(component: Renderer, renderDate: RenderData2D, material: Material, texture: Texture2D): void {
+  setValue(
+    component: Renderer,
+    renderDate: RenderData2D,
+    material: Material,
+    texture: Texture2D,
+    renderState: RenderState,
+    shaderPass: ShaderPass
+  ): void {
     this.component = component;
     this.renderData = renderDate;
     this.material = material;

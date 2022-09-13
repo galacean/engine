@@ -106,7 +106,7 @@ export class SpriteBatcher extends Basic2DBatcher {
 
       // @todo: temporary solution
       (replaceMaterial || material)._preRender(spriteElement);
-      const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
+      const program = spriteElement.shaderPass._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
       }

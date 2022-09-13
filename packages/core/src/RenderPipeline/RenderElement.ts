@@ -7,4 +7,6 @@ export class RenderElement {
   component: Renderer;
   material: Material;
   multiRenderData: boolean;
+  renderState: RenderState;
+  shaderPass: ShaderPass;
 }

@@ -39,6 +39,7 @@ export class ShaderPass {
     Shader._getNamesByMacros(macroCollection, macroNameList);
     const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
+    const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_WEBGL2" : "#define GRAPHICS_API_WEBGL1";
     let precisionStr = `
     #ifdef GL_FRAGMENT_PRECISION_HIGH
       precision highp float;
@@ -58,6 +59,7 @@ export class ShaderPass {
 
     let vertexSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
+        ${graphicAPI}
         ${precisionStr}
         ${macroNameStr}
         ` + this._vertexSource
@@ -65,6 +67,7 @@ export class ShaderPass {
 
     let fragmentSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
+        ${graphicAPI}
         ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}
         ${precisionStr}
         ${macroNameStr}
