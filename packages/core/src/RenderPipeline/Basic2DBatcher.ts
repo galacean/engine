@@ -42,6 +42,9 @@ export abstract class Basic2DBatcher {
 
   constructor(engine: Engine) {
     this._engine = engine;
+    if (!engine.canSupportPrimitive) {
+      return ;
+    }
 
     const { MAX_VERTEX_COUNT } = Basic2DBatcher;
     this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);

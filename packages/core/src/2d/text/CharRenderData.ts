@@ -9,7 +9,7 @@ export class CharRenderData {
   static triangles: number[] = [0, 2, 1, 2, 0, 3];
 
   texture: Texture2D;
-  /** x:Top y:Left z:Bottom w:Right */
+  /** x:Left y:Top z:Right w:Bottom */
   localPositions: Vector4 = new Vector4();
   renderData: RenderData2D;
 

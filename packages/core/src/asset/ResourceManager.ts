@@ -1,5 +1,6 @@
 import { Engine, EngineObject } from "..";
 import { ObjectValues } from "../base/Util";
+import { Utils } from "../Utils";
 import { AssetPromise } from "./AssetPromise";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
@@ -35,7 +36,7 @@ export class ResourceManager {
   /** Retry delay time after failed to load assets, in milliseconds. */
   retryInterval: number = 0;
   /** The default timeout period for loading assets, in milliseconds. */
-  timeout: number = 20000;
+  timeout: number = Infinity;
   /** @internal */
   _objectPool: { [key: string]: any } = Object.create(null);
   /** @internal */
@@ -153,7 +154,7 @@ export class ResourceManager {
     const promise = obj
       ? Promise.resolve(obj)
       : this.load<any>({ type: this._editorResourceConfig[refId].type, url: this._editorResourceConfig[refId].path });
-    return promise.then((res) => (key ? res[key] : res)).then((item) => (isClone ? item.clone() : item));
+    return promise.then((res) => (key ? Utils._reflectGet(res, key) : res)).then((item) => (isClone ? item.clone() : item));
   }
 
   /**

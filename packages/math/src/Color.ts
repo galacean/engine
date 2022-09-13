@@ -44,10 +44,10 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    */
   static equals(left: Color, right: Color): boolean {
     return (
-      MathUtil.equals(left.r, right.r) &&
-      MathUtil.equals(left.g, right.g) &&
-      MathUtil.equals(left.b, right.b) &&
-      MathUtil.equals(left.a, right.a)
+      MathUtil.equals(left._r, right._r) &&
+      MathUtil.equals(left._g, right._g) &&
+      MathUtil.equals(left._b, right._b) &&
+      MathUtil.equals(left._a, right._a)
     );
   }
 
@@ -59,10 +59,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The added color
    */
   static add(left: Color, right: Color, out: Color): Color {
-    out.r = left.r + right.r;
-    out.g = left.g + right.g;
-    out.b = left.b + right.b;
-    out.a = left.a + right.a;
+    out._r = left._r + right._r;
+    out._g = left._g + right._g;
+    out._b = left._b + right._b;
+    out._a = left._a + right._a;
+    out._onValueChanged && out._onValueChanged();
 
     return out;
   }
@@ -75,10 +76,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The scaled color
    */
   static scale(left: Color, s: number, out: Color): Color {
-    out.r = left.r * s;
-    out.g = left.g * s;
-    out.b = left.b * s;
-    out.a = left.a * s;
+    out._r = left._r * s;
+    out._g = left._g * s;
+    out._b = left._b * s;
+    out._a = left._a * s;
+    out._onValueChanged && out._onValueChanged();
 
     return out;
   }
@@ -98,14 +100,64 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
     out.a = a + (end.a - a) * t;
   }
 
-  /** The red component of the color, 0~1. */
-  public r: number;
-  /** The green component of the color, 0~1. */
-  public g: number;
-  /** The blue component of the color, 0~1. */
-  public b: number;
-  /** The alpha component of the color, 0~1. */
-  public a: number;
+  /** @internal */
+  _r: number;
+  /** @internal */
+  _g: number;
+  /** @internal */
+  _b: number;
+  /** @internal */
+  _a: number;
+  /** @internal */
+  _onValueChanged: () => void = null;
+
+  /**
+   * The red component of the color, 0~1.
+   */
+  public get r(): number {
+    return this._r;
+  }
+
+  public set r(value: number) {
+    this._r = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The green component of the color, 0~1.
+   */
+  public get g(): number {
+    return this._g;
+  }
+
+  public set g(value: number) {
+    this._g = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The blue component of the color, 0~1.
+   */
+  public get b(): number {
+    return this._b;
+  }
+
+  public set b(value: number) {
+    this._b = value;
+    this._onValueChanged && this._onValueChanged();
+  }
+
+  /**
+   * The alpha component of the color, 0~1.
+   */
+  public get a(): number {
+    return this._a;
+  }
+
+  public set a(value: number) {
+    this._a = value;
+    this._onValueChanged && this._onValueChanged();
+  }
 
   /**
    * Constructor of Color.
@@ -115,10 +167,10 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @param a - The alpha component of the color
    */
   constructor(r: number = 1, g: number = 1, b: number = 1, a: number = 1) {
-    this.r = r;
-    this.g = g;
-    this.b = b;
-    this.a = a;
+    this._r = r;
+    this._g = g;
+    this._b = b;
+    this._a = a;
   }
 
   /**
@@ -130,10 +182,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns This color.
    */
   set(r: number, g: number, b: number, a: number): Color {
-    this.r = r;
-    this.g = g;
-    this.b = b;
-    this.a = a;
+    this._r = r;
+    this._g = g;
+    this._b = b;
+    this._a = a;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -143,11 +196,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The added color
    */
   add(color: Color): Color {
-    this.r += color.r;
-    this.g += color.g;
-    this.b += color.b;
-    this.a += color.a;
-
+    this._r += color._r;
+    this._g += color._g;
+    this._b += color._b;
+    this._a += color._a;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -157,11 +210,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The scaled color
    */
   scale(s: number): Color {
-    this.r *= s;
-    this.g *= s;
-    this.b *= s;
-    this.a *= s;
-
+    this._r *= s;
+    this._g *= s;
+    this._b *= s;
+    this._a *= s;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -170,7 +223,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns A clone of this color
    */
   clone(): Color {
-    const ret = new Color(this.r, this.g, this.b, this.a);
+    const ret = new Color(this._r, this._g, this._b, this._a);
     return ret;
   }
 
@@ -180,10 +233,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns This vector
    */
   copyFrom(source: ColorLike): Color {
-    this.r = source.r;
-    this.g = source.g;
-    this.b = source.b;
-    this.a = source.a;
+    this._r = source.r;
+    this._g = source.g;
+    this._b = source.b;
+    this._a = source.a;
+    this._onValueChanged && this._onValueChanged();
     return this;
   }
 
@@ -193,9 +247,10 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The color in linear space
    */
   toLinear(out: Color): Color {
-    out.r = Color.gammaToLinearSpace(this.r);
-    out.g = Color.gammaToLinearSpace(this.g);
-    out.b = Color.gammaToLinearSpace(this.b);
+    out._r = Color.gammaToLinearSpace(this._r);
+    out._g = Color.gammaToLinearSpace(this._g);
+    out._b = Color.gammaToLinearSpace(this._b);
+    this._onValueChanged && this._onValueChanged();
     return out;
   }
 
@@ -205,20 +260,41 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @returns The color in gamma space
    */
   toGamma(out: Color): Color {
-    out.r = Color.linearToGammaSpace(this.r);
-    out.g = Color.linearToGammaSpace(this.g);
-    out.b = Color.linearToGammaSpace(this.b);
+    out._r = Color.linearToGammaSpace(this._r);
+    out._g = Color.linearToGammaSpace(this._g);
+    out._b = Color.linearToGammaSpace(this._b);
+    this._onValueChanged && this._onValueChanged();
     return out;
+  }
+
+  /**
+   * Gets the brightness.
+   * @returns The Hue-Saturation-Brightness (HSB) saturation for this
+   */
+  getBrightness(): number {
+    const r = this.r;
+    const g = this.g;
+    const b = this.b;
+
+    let max = r;
+    let min = r;
+    if (g > max) max = g;
+    if (b > max) max = b;
+
+    if (g < min) min = g;
+    if (b < min) min = b;
+
+    return (max + min) / 2;
   }
 }
 
 interface ColorLike {
-  /** {@inheritDoc Color.r} */
+  /** {@inheritDoc Color._r} */
   r: number;
-  /** {@inheritDoc Color.g} */
+  /** {@inheritDoc Color._g} */
   g: number;
-  /** {@inheritDoc Color.b} */
+  /** {@inheritDoc Color._b} */
   b: number;
-  /** {@inheritDoc Color.a} */
+  /** {@inheritDoc Color._a} */
   a: number;
 }
