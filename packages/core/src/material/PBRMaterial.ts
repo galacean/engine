@@ -53,9 +53,10 @@ export class PBRMaterial extends PBRBaseMaterial {
   /**
    * Create a pbr metallic-roughness workflow material instance.
    * @param engine - Engine to which the material belongs
+   * @param shader - Shader used by the material
    */
-  constructor(engine: Engine) {
-    super(engine, Shader.find("pbr"));
+  constructor(engine: Engine, shader?: Shader) {
+    super(engine, shader || Shader.find("pbr"));
     this.shaderData.setFloat(PBRMaterial._metallicProp, 1);
     this.shaderData.setFloat(PBRMaterial._roughnessProp, 1);
   }
