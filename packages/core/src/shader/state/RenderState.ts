@@ -1,5 +1,5 @@
 import { Engine } from "../../Engine";
-import { RenderQueueType } from "../../material/enums/RenderQueueType";
+import { RenderQueueType } from "../enums/RenderQueueType";
 import { BlendState } from "./BlendState";
 import { DepthState } from "./DepthState";
 import { RasterState } from "./RasterState";

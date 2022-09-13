@@ -9,7 +9,7 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { RenderQueueType } from "../material/enums/RenderQueueType";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Material } from "../material/Material";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";

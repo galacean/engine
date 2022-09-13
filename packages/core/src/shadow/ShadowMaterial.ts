@@ -1,8 +1,8 @@
 import { Engine } from "../Engine";
-import { RenderQueueType } from "../material";
 import { Material } from "../material/Material";
 import { BlendFactor } from "../shader/enums/BlendFactor";
 import { CompareFunction } from "../shader/enums/CompareFunction";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
 
 /**

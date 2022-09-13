@@ -9,7 +9,7 @@ import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
 import { FeatureManager } from "./FeatureManager";
 import { InputManager } from "./input/InputManager";
-import { RenderQueueType } from "./material/enums/RenderQueueType";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { Material } from "./material/Material";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface/IHardwareRenderer";

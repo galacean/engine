@@ -3,7 +3,7 @@ import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { BlendMode } from "./enums/BlendMode";
 import { RenderFace } from "./enums/RenderFace";
-import { RenderQueueType } from "./enums/RenderQueueType";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Material } from "./Material";
 
 export class BaseMaterial extends Material {

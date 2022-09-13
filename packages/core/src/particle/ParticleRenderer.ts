@@ -7,7 +7,7 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { Material } from "../material/Material";
 import { BlendFactor } from "../shader/enums/BlendFactor";
-import { RenderQueueType } from "../material/enums/RenderQueueType";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader, CullMode } from "../shader";
 import { Texture } from "../texture";
 import { MeshRenderer } from "../mesh/MeshRenderer";
