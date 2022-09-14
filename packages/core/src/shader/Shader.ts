@@ -17,6 +17,8 @@ export class Shader {
     "GL_OES_standard_derivatives",
     "GL_EXT_draw_buffers"
   ];
+  /** @internal */
+  static _propertyIdMap: Record<number, ShaderProperty> = Object.create(null);
 
   private static _shaderMap: Record<string, Shader> = Object.create(null);
   private static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
@@ -105,6 +107,7 @@ export class Shader {
     } else {
       const property = new ShaderProperty(name);
       propertyNameMap[name] = property;
+      Shader._propertyIdMap[property._uniqueId] = property;
       return property;
     }
   }
