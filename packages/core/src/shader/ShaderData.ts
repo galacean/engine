@@ -575,7 +575,7 @@ export class ShaderData implements IRefObject, IClone {
     const keys = Object.keys(properties);
     for (let i = 0, n = keys.length; i < n; i++) {
       const k = keys[i];
-      const property: ShaderPropertyValueType = properties[k];
+      const property = <ShaderPropertyValueType>properties[k];
       if (property != null) {
         if (typeof property === "number") {
           targetProperties[k] = property;

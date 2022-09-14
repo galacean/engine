@@ -1,3 +1,4 @@
+export { RenderQueueType } from "./enums/RenderQueueType";
 export { BlendFactor } from "./enums/BlendFactor";
 export { BlendOperation } from "./enums/BlendOperation";
 export { ColorWriteMask } from "./enums/ColorWriteMask";
@@ -6,3 +7,5 @@ export { CullMode } from "./enums/CullMode";
 export { StencilOperation } from "./enums/StencilOperation";
 export { Shader } from "./Shader";
 export { ShaderData } from "./ShaderData";
+export { ShaderPass } from "./ShaderPass";
+
