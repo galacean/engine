@@ -5,13 +5,12 @@ import { Transform } from "../Transform";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
-import { AnimationProperty } from "./enums/AnimationProperty";
-import { Motion } from "./Motion";
+import { AnimationProperty, AnimationPropertyInternal } from "./enums/AnimationProperty";
 
 /**
  * Stores keyframe based animations.
  */
-export class AnimationClip extends Motion {
+export class AnimationClip {
   /** @internal */
   _curveBindings: AnimationClipCurveBinding[] = [];
 
@@ -42,9 +41,7 @@ export class AnimationClip extends Motion {
   /**
    * @param name - The AnimationClip's name
    */
-  constructor(public readonly name: string) {
-    super();
-  }
+  constructor(public readonly name: string) {}
 
   /**
    * Adds an animation event to the clip.
@@ -84,7 +81,7 @@ export class AnimationClip extends Motion {
    * Add curve binding for the clip.
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type- The class type of the component that is animated
-   * @param propertyName - The name to the property being animated
+   * @param propertyName - The name or path to the property being animated.
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
@@ -96,18 +93,20 @@ export class AnimationClip extends Motion {
     let property: AnimationProperty;
     switch (propertyName) {
       case "position":
-        property = AnimationProperty.Position;
+        property = AnimationPropertyInternal.Position;
         break;
-      case "rotation":
-        property = AnimationProperty.Rotation;
+      case "rotationQuaternion":
+        property = AnimationPropertyInternal.Rotation;
         break;
       case "scale":
-        property = AnimationProperty.Scale;
+        property = AnimationPropertyInternal.Scale;
         break;
       case "blendShapeWeights":
-        property = AnimationProperty.BlendShapeWeights;
+        property = AnimationPropertyInternal.BlendShapeWeights;
         break;
       default:
+        property = propertyName;
+        break;
     }
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;
@@ -144,13 +143,13 @@ export class AnimationClip extends Motion {
       const transform = (<Entity>target).transform;
       if (type === Transform) {
         switch (property) {
-          case AnimationProperty.Position:
+          case AnimationPropertyInternal.Position:
             transform.position = val as Vector3;
             break;
-          case AnimationProperty.Rotation:
+          case AnimationPropertyInternal.Rotation:
             transform.rotationQuaternion = val as Quaternion;
             break;
-          case AnimationProperty.Scale:
+          case AnimationPropertyInternal.Scale:
             transform.scale = val as Vector3;
             break;
         }
