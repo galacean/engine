@@ -66,7 +66,7 @@ export class ShaderData implements IRefObject, IClone {
   setFloat(property: ShaderProperty, value: number): void;
 
   setFloat(property: string | ShaderProperty, value: number): void {
-    this._setData(property, ShaderPropertyType.Float, value);
+    this._setPropertyValue(property, ShaderPropertyType.Float, value);
   }
 
   /**
@@ -104,7 +104,7 @@ export class ShaderData implements IRefObject, IClone {
   setInt(property: ShaderProperty, value: number): void;
 
   setInt(property: string | ShaderProperty, value: number): void {
-    this._setData(property, ShaderPropertyType.Int, value);
+    this._setPropertyValue(property, ShaderPropertyType.Int, value);
   }
 
   /**
@@ -142,7 +142,7 @@ export class ShaderData implements IRefObject, IClone {
   setFloatArray(property: ShaderProperty, value: Float32Array): void;
 
   setFloatArray(property: string | ShaderProperty, value: Float32Array): void {
-    this._setData(property, ShaderPropertyType.FloatArray, value);
+    this._setPropertyValue(property, ShaderPropertyType.FloatArray, value);
   }
 
   /**
@@ -180,7 +180,7 @@ export class ShaderData implements IRefObject, IClone {
   setIntArray(property: ShaderProperty, value: Int32Array): void;
 
   setIntArray(property: string | ShaderProperty, value: Int32Array): void {
-    this._setData(property, ShaderPropertyType.IntArray, value);
+    this._setPropertyValue(property, ShaderPropertyType.IntArray, value);
   }
 
   /**
@@ -218,7 +218,7 @@ export class ShaderData implements IRefObject, IClone {
   setVector2(property: ShaderProperty, value: Vector2): void;
 
   setVector2(property: string | ShaderProperty, value: Vector2): void {
-    this._setData(property, ShaderPropertyType.Vector2, value);
+    this._setPropertyValue(property, ShaderPropertyType.Vector2, value);
   }
 
   /**
@@ -256,7 +256,7 @@ export class ShaderData implements IRefObject, IClone {
   setVector3(property: ShaderProperty, value: Vector3): void;
 
   setVector3(property: string | ShaderProperty, value: Vector3): void {
-    this._setData(property, ShaderPropertyType.Vector3, value);
+    this._setPropertyValue(property, ShaderPropertyType.Vector3, value);
   }
 
   /**
@@ -294,7 +294,7 @@ export class ShaderData implements IRefObject, IClone {
   setVector4(property: ShaderProperty, value: Vector4): void;
 
   setVector4(property: string | ShaderProperty, value: Vector4): void {
-    this._setData(property, ShaderPropertyType.Vector4, value);
+    this._setPropertyValue(property, ShaderPropertyType.Vector4, value);
   }
 
   /**
@@ -332,7 +332,7 @@ export class ShaderData implements IRefObject, IClone {
   setMatrix(property: ShaderProperty, value: Matrix);
 
   setMatrix(property: string | ShaderProperty, value: Matrix): void {
-    this._setData(property, ShaderPropertyType.Matrix, value);
+    this._setPropertyValue(property, ShaderPropertyType.Matrix, value);
   }
 
   /**
@@ -370,7 +370,7 @@ export class ShaderData implements IRefObject, IClone {
   setColor(property: ShaderProperty, value: Color): void;
 
   setColor(property: string | ShaderProperty, value: Color): void {
-    this._setData(property, ShaderPropertyType.Color, value);
+    this._setPropertyValue(property, ShaderPropertyType.Color, value);
   }
 
   /**
@@ -411,7 +411,7 @@ export class ShaderData implements IRefObject, IClone {
       lastValue && lastValue._addRefCount(-1);
       value && value._addRefCount(1);
     }
-    this._setData(property, ShaderPropertyType.Texture, value);
+    this._setPropertyValue(property, ShaderPropertyType.Texture, value);
   }
 
   /**
@@ -460,7 +460,7 @@ export class ShaderData implements IRefObject, IClone {
         }
       }
     }
-    this._setData(property, ShaderPropertyType.TextureArray, value);
+    this._setPropertyValue(property, ShaderPropertyType.TextureArray, value);
   }
 
   /**
@@ -633,7 +633,7 @@ export class ShaderData implements IRefObject, IClone {
   /**
    * @internal
    */
-  _setData<T extends ShaderPropertyValueType>(
+  _setPropertyValue<T extends ShaderPropertyValueType>(
     property: string | ShaderProperty,
     type: ShaderPropertyType,
     value: T
