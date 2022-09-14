@@ -14,4 +14,3 @@ export * from "@oasis-engine/rhi-canvas";
 for (let key in CoreObjects) {
   Loader.registerClass(key, CoreObjects[key]);
 }
-

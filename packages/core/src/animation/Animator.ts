@@ -1,18 +1,11 @@
-import { InterpolableValueType } from "./enums/InterpolableValueType";
-import { Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { SkinnedMeshRenderer } from "../mesh";
 import { ClassPool } from "../RenderPipeline/ClassPool";
-import { Transform } from "../Transform";
-import { AnimationCurve } from "./AnimationCurve";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
-import { AnimatorUtils } from "./AnimatorUtils";
-import { AnimationProperty } from "./enums/AnimationProperty";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
@@ -22,15 +15,13 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
-import { CrossCurveData } from "./internal/CrossCurveData";
 import { AnimatorTempValue } from "./internal/AnimatorTempValue";
-import { InterpolableValue, UnionInterpolableKeyframe } from "./KeyFrame";
+import { CrossCurveData } from "./internal/CrossCurveData";
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  private static _tempQuat = new Quaternion();
-  private static _animatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
+  private static _tempAnimatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
 
   protected _animatorController: AnimatorController;
   @assignmentClone
@@ -43,15 +34,11 @@ export class Animator extends Component {
   @ignoreClone
   private _crossCurveDataCollection: CrossCurveData[] = [];
   @ignoreClone
-  private _animationCurveOwners: AnimationCurveOwner[][] = [];
+  private _animationCurveOwners: Record<string, AnimationCurveOwner>[] = [];
   @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
-  @ignoreClone
-  private _baseTempValue = new AnimatorTempValue();
-  @ignoreClone
-  private _crossTempValue = new AnimatorTempValue();
 
   /**
    * The playback speed of the Animator, 1.0 is normal playback speed.
@@ -97,7 +84,7 @@ export class Animator extends Component {
       this._clearPlayData();
     }
 
-    const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
+    const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._tempAnimatorInfo);
     const { state } = animatorInfo;
 
     if (!state) {
@@ -114,33 +101,13 @@ export class Animator extends Component {
       this._revertDefaultValue(srcPlayData.state, srcPlayData.stateData);
     }
 
-    //CM: Not consider same stateName, but different animation
+    //TODO CM: Not consider same stateName, but different animation
     const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData);
 
     animatorLayerData.layerState = LayerState.Playing;
     srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
 
     this._saveDefaultValues(animatorStateData);
-  }
-
-  /**
-   * @internal
-   */
-  _reset(): void {
-    const { _animatorController: animatorController } = this;
-    if (animatorController) {
-      const layers = animatorController.layers;
-      for (let i = 0, n = layers.length; i < n; ++i) {
-        const { states } = layers[i].stateMachine;
-        const animatorLayerData = this._getAnimatorLayerData(i);
-        for (let j = 0, m = states.length; j < m; ++j) {
-          const state = states[j];
-          const animatorStateData = this._getAnimatorStateData(state.name, state, animatorLayerData);
-          this._revertDefaultValue(state, animatorStateData);
-        }
-      }
-    }
-    this._clearPlayData();
   }
 
   /**
@@ -160,7 +127,7 @@ export class Animator extends Component {
       this._clearPlayData();
     }
 
-    const { state } = this._getAnimatorStateInfo(stateName, layerIndex, Animator._animatorInfo);
+    const { state } = this._getAnimatorStateInfo(stateName, layerIndex, Animator._tempAnimatorInfo);
     const { manuallyTransition } = this._getAnimatorLayerData(layerIndex);
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
@@ -219,6 +186,26 @@ export class Animator extends Component {
     this.engine._componentsManager.removeOnUpdateAnimations(this);
   }
 
+  /**
+   * @internal
+   */
+  _reset(): void {
+    const { _animatorController: animatorController } = this;
+    if (animatorController) {
+      const layers = animatorController.layers;
+      for (let i = 0, n = layers.length; i < n; ++i) {
+        const { states } = layers[i].stateMachine;
+        const animatorLayerData = this._getAnimatorLayerData(i);
+        for (let j = 0, m = states.length; j < m; ++j) {
+          const state = states[j];
+          const animatorStateData = this._getAnimatorStateData(state.name, state, animatorLayerData);
+          this._revertDefaultValue(state, animatorStateData);
+        }
+      }
+    }
+    this._clearPlayData();
+  }
+
   private _getAnimatorStateInfo(stateName: string, layerIndex: number, out: AnimatorStateInfo): AnimatorStateInfo {
     let state: AnimatorState = null;
     const { _animatorController: animatorController } = this;
@@ -273,10 +260,8 @@ export class Animator extends Component {
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
       const { property } = curve;
       const { instanceId } = targetEntity;
-      const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = []);
-      curveOwners[i] =
-        propertyOwners[property] ||
-        (propertyOwners[property] = new AnimationCurveOwner(targetEntity, curve.type, property));
+      const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = {});
+      curveOwners[i] = propertyOwners[property] || (propertyOwners[property] = curve._createCurveOwner(targetEntity));
     }
   }
 
@@ -368,7 +353,7 @@ export class Animator extends Component {
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
       owner.crossCurveMark = crossCurveMark;
-      owner.crossCurveIndex = crossCurveData.length;
+      owner.crossCurveDataIndex = crossCurveData.length;
       saveFixed && owner.saveFixedPoseValue();
       this._addCrossCurveData(crossCurveData, owner, i, -1);
     }
@@ -383,90 +368,14 @@ export class Animator extends Component {
     const { curveOwners } = destPlayData.stateData;
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      // Not include in previous AnimatorState.
       if (owner.crossCurveMark === crossCurveMark) {
-        crossCurveData[owner.crossCurveIndex].destCurveIndex = i;
+        crossCurveData[owner.crossCurveDataIndex].destCurveIndex = i;
       } else {
         owner.saveDefaultValue();
         saveFixed && owner.saveFixedPoseValue();
         owner.crossCurveMark = crossCurveMark;
-        owner.crossCurveIndex = crossCurveData.length;
+        owner.crossCurveDataIndex = crossCurveData.length;
         this._addCrossCurveData(crossCurveData, owner, -1, i);
-      }
-    }
-  }
-
-  private _evaluateCurve(
-    property: AnimationProperty,
-    curve: AnimationCurve,
-    time: number,
-    additive: boolean,
-    tempValue: AnimatorTempValue
-  ): InterpolableValue {
-    let baseValue: InterpolableValue;
-    if (additive) {
-      baseValue = (<UnionInterpolableKeyframe>curve.keys[0]).value;
-    }
-
-    switch (curve._valueType) {
-      case InterpolableValueType.Float: {
-        const value = curve.evaluate(time);
-        if (additive) {
-          return <number>value - <number>baseValue;
-        }
-        return value;
-      }
-      case InterpolableValueType.FloatArray: {
-        const value = tempValue.getFloatArray(curve._valueSize);
-        curve._evaluate(time, value);
-        if (additive) {
-          for (let i = 0, n = value.length; i < n; i++) {
-            value[i] = value[i] - baseValue[i];
-          }
-        }
-        return value;
-      }
-      case InterpolableValueType.Vector2: {
-        const value = tempValue.vector2;
-        curve._evaluate(time, value);
-        if (additive) {
-          if (property === AnimationProperty.Scale) {
-            Vector2.divide(value, <Vector2>baseValue, value);
-          } else {
-            Vector2.subtract(value, <Vector2>baseValue, value);
-          }
-        }
-        return value;
-      }
-      case InterpolableValueType.Vector3: {
-        const value = tempValue.vector3;
-        curve._evaluate(time, value);
-        if (additive) {
-          if (property === AnimationProperty.Scale) {
-            Vector3.divide(value, <Vector3>baseValue, value);
-          } else {
-            Vector3.subtract(value, <Vector3>baseValue, value);
-          }
-        }
-        return value;
-      }
-      case InterpolableValueType.Vector4: {
-        const value = tempValue.vector4;
-        curve._evaluate(time, value);
-        if (additive) {
-          Vector4.subtract(value, <Vector4>baseValue, value);
-        }
-        return value;
-      }
-      case InterpolableValueType.Quaternion: {
-        const value = tempValue.quaternion;
-        curve._evaluate(time, value);
-        if (additive) {
-          const tempQuat = Animator._tempQuat;
-          Quaternion.conjugate(<Quaternion>baseValue, tempQuat);
-          Quaternion.multiply(tempQuat, value, value);
-        }
-        return value;
       }
     }
   }
@@ -528,13 +437,14 @@ export class Animator extends Component {
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      const value = this._evaluateCurve(owner.property, curves[i].curve, clipTime, additive, this._baseTempValue);
+      const { curve } = curves[i];
       if (additive) {
-        this._applyClipValueAdditive(owner, value, weight);
+        owner.evaluateAndApplyAdditiveValue(curve, clipTime, weight);
       } else {
-        this._applyClipValue(owner, value, weight);
+        owner.evaluateAndApplyValue(curve, clipTime, weight);
       }
     }
+
     playData.frameTime += state.speed * delta;
 
     if (playState === AnimatorStatePlayState.Finished) {
@@ -563,9 +473,9 @@ export class Animator extends Component {
     const { _crossCurveDataCollection: crossCurveDataCollection } = this;
     const { _curveBindings: srcCurves } = srcPlayData.state.clip;
     const { state: srcState, stateData: srcStateData, playState: lastSrcPlayState } = srcPlayData;
-    const { eventHandlers: srcEventHandler } = srcStateData;
+    const { eventHandlers: srcEventHandlers } = srcStateData;
     const { state: destState, stateData: destStateData, playState: lastDstPlayState } = destPlayData;
-    const { eventHandlers: destEventHandler } = destStateData;
+    const { eventHandlers: destEventHandlers } = destStateData;
     const { _curveBindings: destCurves } = destState.clip;
     const { clipTime: lastSrcClipTime } = srcPlayData;
     const { clipTime: lastDestClipTime } = destPlayData;
@@ -585,9 +495,9 @@ export class Animator extends Component {
     const { clipTime: srcClipTime } = srcPlayData;
     const { clipTime: destClipTime } = destPlayData;
 
-    srcEventHandler.length && this._fireAnimationEvents(srcPlayData, srcEventHandler, lastSrcClipTime, srcClipTime);
-    destEventHandler.length &&
-      this._fireAnimationEvents(destPlayData, destEventHandler, lastDestClipTime, destClipTime);
+    srcEventHandlers.length && this._fireAnimationEvents(srcPlayData, srcEventHandlers, lastSrcClipTime, srcClipTime);
+    destEventHandlers.length &&
+      this._fireAnimationEvents(destPlayData, destEventHandlers, lastDestClipTime, destClipTime);
 
     if (lastSrcPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(srcState, layerIndex);
@@ -609,24 +519,15 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
-      const { property, defaultValue } = curveOwner;
-
-      const srcValue =
-        srcCurveIndex >= 0
-          ? this._evaluateCurve(property, srcCurves[srcCurveIndex].curve, srcClipTime, additive, this._baseTempValue)
-          : defaultValue;
-      const destValue =
-        destCurveIndex >= 0
-          ? this._evaluateCurve(
-              property,
-              destCurves[destCurveIndex].curve,
-              destClipTime,
-              additive,
-              this._crossTempValue
-            )
-          : defaultValue;
-
-      this._applyCrossClipValue(curveOwner, srcValue, destValue, crossWeight, weight, additive);
+      curveOwner.crossFadeAndApplyValue(
+        srcCurves[srcCurveIndex]?.curve,
+        destCurves[destCurveIndex]?.curve,
+        srcClipTime,
+        destClipTime,
+        crossWeight,
+        weight,
+        additive
+      );
     }
   }
 
@@ -634,7 +535,7 @@ export class Animator extends Component {
     destPlayData: AnimatorStatePlayData,
     layerData: AnimatorLayerData,
     layerIndex: number,
-    weight: number,
+    layerWeight: number,
     delta: number,
     additive: boolean
   ) {
@@ -669,18 +570,13 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
-      const destValue =
-        destCurveIndex >= 0
-          ? this._evaluateCurve(
-              curveOwner.property,
-              curves[destCurveIndex].curve,
-              destClipTime,
-              additive,
-              this._crossTempValue
-            )
-          : curveOwner.defaultValue;
-
-      this._applyCrossClipValue(curveOwner, curveOwner.fixedPoseValue, destValue, crossWeight, weight, additive);
+      curveOwner.crossFadeFromPoseAndApplyValue(
+        curves[destCurveIndex]?.curve,
+        destClipTime,
+        crossWeight,
+        layerWeight,
+        additive
+      );
     }
   }
 
@@ -699,154 +595,13 @@ export class Animator extends Component {
     }
   }
 
-  private _applyCrossClipValue(
-    owner: AnimationCurveOwner,
-    srcValue: InterpolableValue,
-    destValue: InterpolableValue,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    let value: InterpolableValue;
-    if (owner.type === Transform) {
-      switch (owner.property) {
-        case AnimationProperty.Position:
-          value = this._baseTempValue.vector3;
-          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, value as Vector3);
-          break;
-        case AnimationProperty.Rotation:
-          value = this._baseTempValue.quaternion;
-          Quaternion.slerp(srcValue as Quaternion, destValue as Quaternion, crossWeight, value as Quaternion);
-          break;
-        case AnimationProperty.Scale: {
-          value = this._baseTempValue.vector3;
-          Vector3.lerp(srcValue as Vector3, destValue as Vector3, crossWeight, value as Vector3);
-          break;
-        }
-      }
-    } else if (owner.type === SkinnedMeshRenderer) {
-      switch (owner.property) {
-        case AnimationProperty.BlendShapeWeights:
-          value = this._baseTempValue.getFloatArray((<Float32Array>srcValue).length);
-          for (let i = 0, length = (<Float32Array>value).length; i < length; ++i) {
-            value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
-          }
-          break;
-      }
-    }
-
-    if (additive) {
-      this._applyClipValueAdditive(owner, value, layerWeight);
-    } else {
-      this._applyClipValue(owner, value, layerWeight);
-    }
-  }
-
-  private _applyClipValue(owner: AnimationCurveOwner, value: InterpolableValue, weight: number): void {
-    if (owner.type === Transform) {
-      const transform = owner.target.transform;
-      switch (owner.property) {
-        case AnimationProperty.Position:
-          if (weight === 1.0) {
-            transform.position = <Vector3>value;
-          } else {
-            const position = transform.position;
-            Vector3.lerp(position, <Vector3>value, weight, position);
-          }
-          break;
-        case AnimationProperty.Rotation:
-          if (weight === 1.0) {
-            transform.rotationQuaternion = <Quaternion>value;
-          } else {
-            const rotationQuaternion = transform.rotationQuaternion;
-            Quaternion.slerp(rotationQuaternion, <Quaternion>value, weight, rotationQuaternion);
-          }
-          break;
-        case AnimationProperty.Scale:
-          if (weight === 1.0) {
-            transform.scale = <Vector3>value;
-          } else {
-            const scale = transform.scale;
-            Vector3.lerp(scale, <Vector3>value, weight, scale);
-          }
-          break;
-      }
-    } else if (owner.type === SkinnedMeshRenderer) {
-      switch (owner.property) {
-        case AnimationProperty.BlendShapeWeights:
-          if (weight === 1.0) {
-            (<SkinnedMeshRenderer>owner.component).blendShapeWeights = <Float32Array>value;
-          } else {
-            const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
-            for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
-              blendShapeWeights[i] += (value[i] - blendShapeWeights[i]) * weight;
-            }
-          }
-          break;
-      }
-    }
-  }
-
-  private _applyClipValueAdditive(owner: AnimationCurveOwner, additiveValue: InterpolableValue, weight: number): void {
-    if (owner.type === Transform) {
-      const transform = (<Entity>owner.target).transform;
-      switch (owner.property) {
-        case AnimationProperty.Position:
-          const position = transform.position;
-          position.x += (<Vector3>additiveValue).x * weight;
-          position.y += (<Vector3>additiveValue).y * weight;
-          position.z += (<Vector3>additiveValue).z * weight;
-          transform.position = position;
-          break;
-        case AnimationProperty.Rotation:
-          const rotationQuaternion = transform.rotationQuaternion;
-          AnimatorUtils.quaternionWeight(<Quaternion>additiveValue, weight, <Quaternion>additiveValue);
-          (<Quaternion>additiveValue).normalize();
-          rotationQuaternion.multiply(<Quaternion>additiveValue);
-          transform.rotationQuaternion = rotationQuaternion;
-          break;
-        case AnimationProperty.Scale:
-          const scale = transform.scale;
-          AnimatorUtils.scaleWeight(scale, weight, scale);
-          Vector3.multiply(scale, <Vector3>additiveValue, scale);
-          transform.scale = scale;
-          break;
-        case AnimationProperty.BlendShapeWeights:
-          const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
-          for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
-            (<SkinnedMeshRenderer>owner.component).blendShapeWeights[i] += additiveValue[i] * weight;
-          }
-          break;
-      }
-    }
-  }
-
   private _revertDefaultValue(state: AnimatorState, stateData: AnimatorStateData) {
     const { clip } = state;
     if (clip) {
       const curves = clip._curveBindings;
       const { curveOwners } = stateData;
       for (let i = curves.length - 1; i >= 0; i--) {
-        const owner = curveOwners[i];
-        const { transform } = owner.target;
-        if (!owner._hasSavedDefaultValue) continue;
-        switch (owner.property) {
-          case AnimationProperty.Position:
-            transform.position = <Vector3>owner.defaultValue;
-            break;
-          case AnimationProperty.Rotation:
-            transform.rotationQuaternion = <Quaternion>owner.defaultValue;
-            break;
-          case AnimationProperty.Scale:
-            transform.scale = <Vector3>owner.defaultValue;
-            break;
-          case AnimationProperty.BlendShapeWeights:
-            const { blendShapeWeights } = <SkinnedMeshRenderer>owner.component;
-            for (let j = 0, length = blendShapeWeights.length; j < length; ++j) {
-              (<SkinnedMeshRenderer>owner.component).blendShapeWeights[j] = owner.defaultValue[j];
-            }
-            break;
-        }
+        curveOwners[i].revertDefaultValue();
       }
     }
   }
@@ -869,7 +624,7 @@ export class Animator extends Component {
 
   private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
     const { name } = transition.destinationState;
-    const animatorStateInfo = this._getAnimatorStateInfo(name, layerIndex, Animator._animatorInfo);
+    const animatorStateInfo = this._getAnimatorStateInfo(name, layerIndex, Animator._tempAnimatorInfo);
     const { state: crossState } = animatorStateInfo;
     if (!crossState) {
       return;
