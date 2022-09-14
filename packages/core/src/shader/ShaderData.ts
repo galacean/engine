@@ -10,18 +10,6 @@ import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderProperty } from "./ShaderProperty";
 
-export type ShaderPropertyValueType =
-  | number
-  | Vector2
-  | Vector3
-  | Vector4
-  | Color
-  | Matrix
-  | Texture
-  | Texture[]
-  | Int32Array
-  | Float32Array;
-
 /**
  * Shader data collection,Correspondence includes shader properties data and macros data.
  */
@@ -58,7 +46,7 @@ export class ShaderData implements IRefObject, IClone {
   getFloat(property: ShaderProperty): number;
 
   getFloat(property: string | ShaderProperty): number {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -96,7 +84,7 @@ export class ShaderData implements IRefObject, IClone {
   getInt(property: ShaderProperty): number;
 
   getInt(property: string | ShaderProperty): number {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -134,7 +122,7 @@ export class ShaderData implements IRefObject, IClone {
   getFloatArray(property: ShaderProperty): Float32Array;
 
   getFloatArray(property: string | ShaderProperty): Float32Array {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -172,7 +160,7 @@ export class ShaderData implements IRefObject, IClone {
   getIntArray(property: ShaderProperty): Int32Array;
 
   getIntArray(property: string | ShaderProperty): Int32Array {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -210,7 +198,7 @@ export class ShaderData implements IRefObject, IClone {
   getVector2(property: ShaderProperty): Vector2;
 
   getVector2(property: string | ShaderProperty): Vector2 {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -248,7 +236,7 @@ export class ShaderData implements IRefObject, IClone {
   getVector3(property: ShaderProperty): Vector3;
 
   getVector3(property: string | ShaderProperty): Vector3 {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -286,7 +274,7 @@ export class ShaderData implements IRefObject, IClone {
   getVector4(property: ShaderProperty): Vector4;
 
   getVector4(property: string | ShaderProperty): Vector4 {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -324,7 +312,7 @@ export class ShaderData implements IRefObject, IClone {
   getMatrix(property: ShaderProperty): Matrix;
 
   getMatrix(property: string | ShaderProperty): Matrix {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -362,7 +350,7 @@ export class ShaderData implements IRefObject, IClone {
   getColor(property: ShaderProperty): Color;
 
   getColor(property: string | ShaderProperty): Color {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -400,7 +388,7 @@ export class ShaderData implements IRefObject, IClone {
   getTexture(property: ShaderProperty): Texture;
 
   getTexture(property: string | ShaderProperty): Texture {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -419,7 +407,7 @@ export class ShaderData implements IRefObject, IClone {
 
   setTexture(property: string | ShaderProperty, value: Texture): void {
     if (this._getRefCount() > 0) {
-      const lastValue = this._getData<Texture>(property);
+      const lastValue = this.getPropertyValue<Texture>(property);
       lastValue && lastValue._addRefCount(-1);
       value && value._addRefCount(1);
     }
@@ -441,7 +429,7 @@ export class ShaderData implements IRefObject, IClone {
   getTextureArray(property: ShaderProperty): Texture[];
 
   getTextureArray(property: string | ShaderProperty): Texture[] {
-    return this._getData(property);
+    return this.getPropertyValue(property);
   }
 
   /**
@@ -460,7 +448,7 @@ export class ShaderData implements IRefObject, IClone {
 
   setTextureArray(property: string | ShaderProperty, value: Texture[]): void {
     if (this._getRefCount() > 0) {
-      const lastValue = this._getData<Texture[]>(property);
+      const lastValue = this.getPropertyValue<Texture[]>(property);
       if (lastValue) {
         for (let i = 0, n = lastValue.length; i < n; i++) {
           lastValue[i]._addRefCount(-1);
@@ -473,6 +461,18 @@ export class ShaderData implements IRefObject, IClone {
       }
     }
     this._setData(property, ShaderPropertyType.TextureArray, value);
+  }
+
+  /**
+   * Get shader property value set on this shaderData.
+   * @param property - Shader property
+   * @returns Property value
+   */
+  getPropertyValue<T extends ShaderPropertyValueType>(property: string | ShaderProperty): T {
+    if (typeof property === "string") {
+      property = Shader.getPropertyByName(property);
+    }
+    return this._propertyValueMap[property._uniqueId] as T;
   }
 
   /**
@@ -565,15 +565,15 @@ export class ShaderData implements IRefObject, IClone {
    * Get all shader properties that have been set on this shaderData
    * @returns  All shader properties
    */
-  getShaderProperties(): ShaderProperty[];
+  getProperties(): ShaderProperty[];
 
   /**
    * Get all shader properties that have been set on this shaderData
    * @param out - All shader properties
    */
-  getShaderProperties(out: ShaderProperty[]): void;
+  getProperties(out: ShaderProperty[]): void;
 
-  getShaderProperties(out?: ShaderProperty[]): void | ShaderProperty[] {
+  getProperties(out?: ShaderProperty[]): void | ShaderProperty[] {
     let properties: ShaderProperty[];
     if (out) {
       out.length = 0;
@@ -633,16 +633,6 @@ export class ShaderData implements IRefObject, IClone {
   /**
    * @internal
    */
-  _getData<T extends ShaderPropertyValueType>(property: string | ShaderProperty): T {
-    if (typeof property === "string") {
-      property = Shader.getPropertyByName(property);
-    }
-    return this._propertyValueMap[property._uniqueId] as T;
-  }
-
-  /**
-   * @internal
-   */
   _setData<T extends ShaderPropertyValueType>(
     property: string | ShaderProperty,
     type: ShaderPropertyType,
@@ -693,3 +683,15 @@ export class ShaderData implements IRefObject, IClone {
     }
   }
 }
+
+export type ShaderPropertyValueType =
+  | number
+  | Vector2
+  | Vector3
+  | Vector4
+  | Color
+  | Matrix
+  | Texture
+  | Texture[]
+  | Int32Array
+  | Float32Array;

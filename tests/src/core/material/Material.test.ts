@@ -49,7 +49,7 @@ describe("Material", () => {
     expect(shaderData.getFloat("_intArray")).to.equal(intArray);
     expect(shaderData.getFloat("_floatArray")).to.equal(floatArray);
 
-    const shaderProperties = shaderData.getShaderProperties();
+    const shaderProperties = shaderData.getProperties();
     for (let i = 0, n = shaderProperties.length; i < n; i++) {
       const shaderProperty = shaderProperties[i];
       switch (shaderProperty.type) {
