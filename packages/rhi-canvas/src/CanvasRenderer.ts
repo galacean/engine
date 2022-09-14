@@ -49,6 +49,10 @@ export class CanvasRenderer implements IHardwareRenderer {
     return this._capability;
   }
 
+  canIUse(capabilityType: CanvasCapability) {
+    return false;
+  }
+
   init(canvas: Canvas) {
     const webCanvas = (this._webCanvas = (canvas as Canvas2dCanvas)._webCanvas);
     this._ctx = webCanvas.getContext("2d");
