@@ -2,22 +2,22 @@ import { BoundingBox, Color } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
+import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
+import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { IAssembler } from "../assembler/IAssembler";
+import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
+import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { RenderData2D } from "../data/RenderData2D";
+import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
+import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { Sprite } from "./Sprite";
-import { IAssembler } from "../assembler/IAssembler";
-import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
-import { SpriteDrawMode } from "../enums/SpriteDrawMode";
-import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
-import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
-import { Engine } from "../../Engine";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -254,9 +254,15 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
 
     // Push primitive.
-    const spriteElement = this._engine._spriteElementPool.getFromPool();
-    spriteElement.setValue(this, this._renderData, this.getMaterial(), this.sprite.texture);
-    camera._renderPipeline.pushPrimitive(spriteElement);
+    const material = this.getMaterial();
+    const passes = material.shader.passes;
+    const renderStates = material.renderStates;
+    const texture = this.sprite.texture;
+    for (let i = 0, n = passes.length; i < n; i++) {
+      const spriteElement = this._engine._spriteElementPool.getFromPool();
+      spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
+      camera._renderPipeline.pushPrimitive(spriteElement);
+    }
   }
 
   /**
