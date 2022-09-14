@@ -347,7 +347,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
         material,
         charRenderData.texture,
         renderStates[0],
-        passes[0]
+        passes[0],
+        i
       );
       charElements[i] = spriteElement;
     }
