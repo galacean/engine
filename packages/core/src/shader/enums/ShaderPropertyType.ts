@@ -1,5 +1,5 @@
 /**
- * Shader Pproperty type.
+ * Shader Property type.
  */
 export enum ShaderPropertyType {
   /** Float type. */
