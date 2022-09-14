@@ -32,7 +32,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _charRenderDatas: CharRenderData[] = [];
   @ignoreClone
-  _dirtyFlag: number = DirtyFlag.Font | DirtyFlag.WorldBounds;
+  _dirtyFlag: number = DirtyFlag.Font;
   /** @internal */
   @ignoreClone
   _isWorldMatrixDirty: ListenerUpdateFlag;
@@ -269,7 +269,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
     this._isContainDirtyFlag(DirtyFlag.WorldBounds) && this._updateBounds(this._bounds);
-    this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.WorldBounds);
+    this._setDirtyFlagFalse(DirtyFlag.Font);
 
     return this._bounds;
   }
