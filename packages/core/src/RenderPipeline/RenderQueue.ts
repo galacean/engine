@@ -81,7 +81,12 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
+        // @todo: temporary solution
+        const program = (replaceMaterial?.shader.passes[0] || element.shaderPass)._getShaderProgram(
+          engine,
+          compileMacros
+        );
+
         if (!program.isValid) {
           continue;
         }
@@ -136,7 +141,7 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        material.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+        element.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {

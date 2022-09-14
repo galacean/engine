@@ -206,7 +206,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
-    target._blendShapeWeights = this._blendShapeWeights.slice();
+    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
   private _checkBlendShapeWeightLength(): void {
