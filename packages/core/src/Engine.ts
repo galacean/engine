@@ -1,15 +1,16 @@
 import { BoundingBox, Vector3 } from "@oasis-engine/math";
 import { Color } from "@oasis-engine/math/src/Color";
-import { ColorSpace, ShadowCascadesMode, ShadowMode, ShadowResolution } from ".";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
+import { GLCapabilityType } from "./base/Constant";
 import { Canvas } from "./Canvas";
 import { ComponentsManager } from "./ComponentsManager";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
+import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
 import { LightManager } from "./lighting/LightManager";
-import { Material, RenderQueueType } from "./material";
+import { Material } from "./material/Material";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
@@ -21,12 +22,22 @@ import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
 import { TextRenderElement } from "./RenderPipeline/TextRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { BlendFactor, BlendOperation, ColorWriteMask, CompareFunction, CullMode, Shader } from "./shader";
+import { BlendFactor } from "./shader/enums/BlendFactor";
+import { BlendOperation } from "./shader/enums/BlendOperation";
+import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
+import { CompareFunction } from "./shader/enums/CompareFunction";
+import { CullMode } from "./shader/enums/CullMode";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
+import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
+import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
+import { ShadowMode } from "./shadow/enum/ShadowMode";
+import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
 ShaderPool.init();
@@ -37,6 +48,8 @@ ShaderPool.init();
 export class Engine extends EventDispatcher {
   /** @internal */
   static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+  /** @internal */
+  static _noDepthTextureMacro: ShaderMacro = Shader.getMacroByName("OASIS_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
@@ -243,10 +256,14 @@ export class Engine extends EventDispatcher {
       magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
       magentaTextureCube.isGCIgnored = true;
 
-      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
-      depthTexture2D.isGCIgnored = true;
+      if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
+        this._macroCollection.enable(Engine._noDepthTextureMacro);
+      } else {
+        const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+        depthTexture2D.isGCIgnored = true;
+        this._depthTexture2D = depthTexture2D;
+      }
 
-      this._depthTexture2D = depthTexture2D;
       this._magentaTexture2D = magentaTexture2D;
       this._magentaTextureCube = magentaTextureCube;
     }
@@ -381,8 +398,8 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _getShaderProgramPool(shader: Shader): ShaderProgramPool {
-    const index = shader._shaderId;
+  _getShaderProgramPool(shaderPass: ShaderPass): ShaderProgramPool {
+    const index = shaderPass._shaderPassId;
     const shaderProgramPools = this._shaderProgramPools;
     let pool = shaderProgramPools[index];
     if (!pool) {
@@ -427,7 +444,7 @@ export class Engine extends EventDispatcher {
     target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
     renderState.depthState.writeEnabled = false;
     renderState.rasterState.cullMode = CullMode.Off;
-    material.renderQueueType = RenderQueueType.Transparent;
+    material.renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }

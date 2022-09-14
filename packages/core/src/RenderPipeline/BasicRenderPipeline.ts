@@ -9,8 +9,9 @@ import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { Material, RenderQueueType } from "../material";
-import { Shader } from "../shader";
+import { Material } from "../material";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
+import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowMode } from "../shadow/enum/ShadowMode";
@@ -209,7 +210,7 @@ export class BasicRenderPipeline {
    * @param element - Render element
    */
   pushPrimitive(element: RenderElement): void {
-    switch (element.material.renderQueueType) {
+    switch (element.renderState.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);
         break;
@@ -235,7 +236,7 @@ export class BasicRenderPipeline {
       background._resizeBackgroundTexture();
     }
 
-    const program = _backgroundTextureMaterial.shader._getShaderProgram(engine, Shader._compileMacros);
+    const program = _backgroundTextureMaterial.shader.passes[0]._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
     program.uploadUnGroupTextures();
@@ -268,7 +269,7 @@ export class BasicRenderPipeline {
     Matrix.multiply(projectionMatrix, _matrix, _matrix);
     shaderData.setMatrix("u_mvpNoscale", _matrix);
 
-    const program = shader._getShaderProgram(engine, compileMacros);
+    const program = shader.passes[0]._getShaderProgram(engine, compileMacros);
     program.bind();
     program.groupingOtherUniformBlock();
     program.uploadAll(program.materialUniformBlock, shaderData);
