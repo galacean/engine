@@ -33,7 +33,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   _charRenderDatas: CharRenderData[] = [];
 
   @ignoreClone
-  _dirtyFlag: number = DirtyFlag.Font | DirtyFlag.WorldBounds;
+  _dirtyFlag: number = DirtyFlag.Font;
   /** @internal */
   @ignoreClone
   _isWorldMatrixDirty: ListenerUpdateFlag;
@@ -93,7 +93,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -107,7 +107,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -121,7 +121,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -177,7 +177,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -191,7 +191,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -205,7 +205,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -219,7 +219,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set enableWrapping(value: boolean) {
     if (this._enableWrapping !== value) {
       this._enableWrapping = value;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -233,7 +233,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set overflowMode(value: OverflowMode) {
     if (this._overflowMode !== value) {
       this._overflowMode = value;
-      this._setDirtyFlagTrue(DirtyFlag.LocalPositionBounds);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -270,7 +270,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
     this._isContainDirtyFlag(DirtyFlag.WorldBounds) && this._updateBounds(this._bounds);
-    this._setDirtyFlagFalse(DirtyFlag.Font | DirtyFlag.WorldBounds);
+    this._setDirtyFlagFalse(DirtyFlag.Font);
 
     return this._bounds;
   }
@@ -336,6 +336,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     textElement.component = this;
     textElement.material = material;
     charElements.length = charCount;
+    textElement.renderState = renderStates[0];
 
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
@@ -346,7 +347,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
         material,
         charRenderData.texture,
         renderStates[0],
-        passes[0]
+        passes[0],
+        i
       );
       charElements[i] = spriteElement;
     }
@@ -608,5 +610,6 @@ export enum DirtyFlag {
   WorldBounds = 0x8,
   MaskInteraction = 0x10,
 
-  Font = StyleFont | LocalPositionBounds | WorldPosition
+  Position = LocalPositionBounds | WorldPosition | WorldBounds,
+  Font = StyleFont | Position
 }
