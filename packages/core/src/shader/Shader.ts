@@ -156,7 +156,7 @@ export class Shader {
     } else {
       const passCount = vertexSourceOrShaderPasses.length;
       if (passCount < 1) {
-        throw "Shader pass count must large than 1.";
+        throw "Shader pass count must large than 0.";
       }
       for (let i = 0; i < passCount; i++) {
         this._passes.push(vertexSourceOrShaderPasses[i]);
