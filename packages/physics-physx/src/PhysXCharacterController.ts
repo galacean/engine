@@ -29,7 +29,11 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setWorldPosition }
    */
   setWorldPosition(position: Vector3): boolean {
-    return this._pxController.setPosition(position);
+    if (this._pxController) {
+      return this._pxController.setPosition(position);
+    } else {
+      return false;
+    }
   }
 
   /**
@@ -120,7 +124,9 @@ export class PhysXCharacterController implements ICharacterController {
    * @internal
    */
   _destroyPXController(): void {
-    this._pxController.release();
-    this._pxController = null;
+    if (this._pxController) {
+      this._pxController.release();
+      this._pxController = null;
+    }
   }
 }
