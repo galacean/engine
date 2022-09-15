@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/design",
-  "version": "0.8.0-beta.23",
+  "version": "0.8.0-beta.24",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -17,6 +17,6 @@
   ],
   "types": "types/index.d.ts",
   "dependencies": {
-    "@oasis-engine/math": "0.8.0-beta.23"
+    "@oasis-engine/math": "0.8.0-beta.24"
   }
 }
