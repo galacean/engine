@@ -64,19 +64,19 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-    /**
+  /**
    * Skin Object.
    */
-     get skin() {
-      return this._skin;
+  get skin() {
+    return this._skin;
+  }
+
+  set skin(value: Skin) {
+    if (this._skin !== value) {
+      this._skin = value;
+      this._hasInitJoints = false;
     }
-  
-    set skin(value: Skin) {
-      if (this._skin !== value) {
-        this._skin = value;
-        this._hasInitJoints = false;
-      }
-    }
+  }
 
   /**
    * Constructor of SkinnedMeshRenderer
