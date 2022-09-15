@@ -154,6 +154,10 @@ export class BlinnPhongMaterial extends BaseMaterial {
     }
   }
 
+  /**
+   * Create a BlinnPhong material instance.
+   * @param engine - Engine to which the material belongs
+   */
   constructor(engine: Engine) {
     super(engine, Shader.find("blinn-phong"));
 
