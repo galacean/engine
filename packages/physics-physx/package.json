@@ -20,9 +20,10 @@
     "types/**/*"
   ],
   "devDependencies": {
-    "@oasis-engine/design": "0.9.0-alpha.4"
+    "@oasis-engine/design": "workspace:*",
+    "oasis-engine": "workspace:*"
   },
   "peerDependencies": {
-    "oasis-engine": "0.9.0-alpha.4"
+    "oasis-engine": "workspace:*"
   }
 }

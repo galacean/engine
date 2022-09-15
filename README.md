@@ -77,10 +77,13 @@ Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [è´¡ç
 
 ## Build
 
-If you don't already have [Node.js v15.0.0+](https://nodejs.org/en/) and NPM, go install them. Then, in the folder where you have cloned the repository, install the build dependencies using npm:
+prerequisites: 
+- [Node.js v15.0.0+](https://nodejs.org/en/) and NPM (Install Node.js By official website)
+- [PNPM](https://pnpm.io/) (Install Pnpm globally by `npm install -g pnpm`)
 
+First, you need to install the dependencies:
 ```sh
-npm run bootstrap
+pnpm install
 ```
 
 Then, to build the source, using npm:
