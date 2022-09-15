@@ -20,9 +20,10 @@
     "types/**/*"
   ],
   "devDependencies": {
-    "@oasis-engine/design": "0.9.0-canvas.0"
+    "@oasis-engine/design": "0.9.0-canvas.0",
+    "oasis-engine": "0.9.0-canvas.0"
   },
   "peerDependencies": {
-    "oasis-engine": "0.9.0-alpha.4"
+    "oasis-engine": "0.9.0-canvas.0"
   }
 }
