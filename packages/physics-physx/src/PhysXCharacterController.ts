@@ -28,12 +28,8 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.setWorldPosition }
    */
-  setWorldPosition(position: Vector3): boolean {
-    if (this._pxController) {
-      return this._pxController.setPosition(position);
-    } else {
-      return false;
-    }
+  setWorldPosition(position: Vector3): void {
+    this._pxController && this._pxController.setPosition(position);
   }
 
   /**
