@@ -96,13 +96,19 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     return this._skin;
   }
 
-  set skin(skin) {
-    this._skin = skin;
+  set skin(value: Skin) {
+    if (this._skin !== value) {
+      this._skin = value;
+      this._hasInitJoints = false;
+    }
   }
 
   _initJoints() {
-    if (!this._skin) return;
-    const skin = this._skin;
+    const { _skin: skin, shaderData } = this;
+    if (!skin) {
+      shaderData.disableMacro("O3_HAS_SKIN");
+      return;
+    }
 
     const joints = skin.joints;
     const jointNodes = [];
@@ -117,7 +123,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
     const maxJoints = Math.floor((maxAttribUniformVec4 - 30) / 4);
-    const shaderData = this.shaderData;
     const jointCount = jointNodes.length;
 
     if (jointCount) {
