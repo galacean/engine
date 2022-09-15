@@ -12,12 +12,15 @@ export abstract class Component extends EngineObject {
   _entity: Entity;
   /** @internal */
   @ignoreClone
+  _awoken: boolean = false;
+  /** @internal */
+  @ignoreClone
   _destroyed: boolean = false;
 
   @assignmentClone
+  private _phasedActive: boolean = false;
+  @assignmentClone
   private _enabled: boolean = true;
-  @ignoreClone
-  private _awoken: boolean = false;
 
   /**
    * Indicates whether the component is enabled.
@@ -103,17 +106,25 @@ export abstract class Component extends EngineObject {
    * @internal
    */
   _setActive(value: boolean): void {
+    const entity = this._entity;
     if (value) {
-      if (!this._awoken) {
+      // Awake condition is un awake && current entity is active in hierarchy
+      if (!this._awoken && entity._isActiveInHierarchy) {
         this._awoken = true;
         this._onAwake();
       }
-      // You can do isActive = false in onAwake function.
-      if (this._entity._isActiveInHierarchy) {
+      // Developer maybe do `isActive = false` in `onAwake` method
+      // Enable condition is phased active state is false && current compoment is active in hierarchy
+      if (!this._phasedActive && entity._isActiveInHierarchy && this._enabled) {
+        this._phasedActive = true;
         this._onEnable();
       }
     } else {
-      this._onDisable();
+      // Disable condition is phased active state is true && current compoment is inActive in hierarchy
+      if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
+        this._phasedActive = false;
+        this._onDisable();
+      }
     }
   }
 }
