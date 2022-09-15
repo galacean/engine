@@ -77,10 +77,15 @@ Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [è´¡ç
 
 ## Build
 
-If you don't already have [Node.js v15.0.0+](https://nodejs.org/en/) and NPM, go install them. Then, in the folder where you have cloned the repository, install the build dependencies using npm:
+Prerequisites: 
+
+- [Node.js v15.0.0+](https://nodejs.org/en/) and NPM (Install by official website)
+- [PNPM](https://pnpm.io/) (Install Pnpm globally by `npm install -g pnpm`)
+
+In the folder where you have cloned the repository, install the build dependencies using pnpm:
 
 ```sh
-npm run bootstrap
+pnpm install
 ```
 
 Then, to build the source, using npm:
@@ -98,4 +103,5 @@ npm run b:all
 
 
 ## License 
+
 The engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.
