@@ -118,6 +118,7 @@ export class PhysXCharacterController implements ICharacterController {
     desc.setMaterial(shape._pxMaterials[0]);
 
     this._pxController = pxManager._getControllerManager().createController(desc);
+    this._pxController.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(shape._id, 0, 0, 0));
   }
 
   /**
