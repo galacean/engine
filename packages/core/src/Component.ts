@@ -17,7 +17,7 @@ export abstract class Component extends EngineObject {
   @ignoreClone
   _destroyed: boolean = false;
 
-  @assignmentClone
+  @ignoreClone
   private _phasedActive: boolean = false;
   @assignmentClone
   private _enabled: boolean = true;
