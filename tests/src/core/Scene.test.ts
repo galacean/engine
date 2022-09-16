@@ -1,8 +1,6 @@
-import { Entity, Script } from "@oasis-engine/core";
+import { Entity } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
-
-class TestComponent extends Script {}
 
 describe("Scene", () => {
   const engine = new WebGLEngine(document.createElement("canvas"));
