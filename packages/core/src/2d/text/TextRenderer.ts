@@ -287,7 +287,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     if (!engine.supportTintColor) {
       //@ts-ignore
       this._color._onValueChanged = () => {
-        this._setDirtyFlagTrue(DirtyFlag.StyleFont);
+        this._setDirtyFlagTrue(DirtyFlag.Font);
       };
     }
   }
