@@ -309,17 +309,15 @@ export class Engine extends EventDispatcher {
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
       this._render(scene);
-      componentsManager.handlingInvalidScripts();
     }
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
 
-
-    // Engine is complete delayed destruction mechanism, entity/compoment incomplete delayed destruction mechanism
-    // @todo: can consider use true complete destruction mechanism in entity/compoment
+    // Engine is complete delayed destruction mechanism
     if (this._waittingDestroy) {
       this._destroy();
     }
+    componentsManager.handlingInvalidScripts();
   }
 
   /**
@@ -334,6 +332,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * Destroy engine.
+   * @remarks The timing of engine destruction is at the end of the current frame
    */
   destroy(): void {
     if (this._destroyed) {
@@ -359,8 +358,6 @@ export class Engine extends EventDispatcher {
 
     this._sceneManager._destroy();
     this._resourceManager._destroy();
-    // If engine destroy, handlingInvalidScripts() maybe will not call anymore.
-    this._componentsManager.handlingInvalidScripts();
     this._sceneManager = null;
     this._resourceManager = null;
 

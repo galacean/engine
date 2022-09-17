@@ -54,6 +54,17 @@ describe("Scene", () => {
         onDisable() {
           console.log("ParentScript___onDisable");
         }
+        onUpdate() {
+          console.log("ParentScript___onUpdate");
+        }
+
+        onLateUpdate() {
+          console.log("ParentScript___onLateUpdate");
+        }
+
+        onDestroy() {
+          console.log("ParentScript___onDestroy");
+        }
       }
       ParentScript.prototype.onAwake = chai.spy(ParentScript.prototype.onAwake);
       ParentScript.prototype.onEnable = chai.spy(ParentScript.prototype.onEnable);
@@ -69,6 +80,19 @@ describe("Scene", () => {
 
         onDisable() {
           console.log("ChildScript___onDisable");
+        }
+
+        onUpdate() {
+          console.log("ChildScript___onUpdate");
+          this.engine.destroy();
+        }
+
+        onLateUpdate() {
+          console.log("ChildScript___onLateUpdate");
+        }
+
+        onDestroy() {
+          console.log("ChildScript___onDestroy");
         }
       }
       ChildScript.prototype.onAwake = chai.spy(ChildScript.prototype.onAwake);
