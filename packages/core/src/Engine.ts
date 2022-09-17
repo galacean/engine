@@ -314,6 +314,9 @@ export class Engine extends EventDispatcher {
 
     engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
 
+
+    // Engine is complete delayed destruction mechanism, entity/compoment incomplete delayed destruction mechanism
+    // @todo: can consider use true complete destruction mechanism in entity/compoment
     if (this._waittingDestroy) {
       this._destroy();
     }
