@@ -373,7 +373,9 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   destroy(): void {
-    if (this._destroyed) return;
+    if (this._destroyed) {
+      return;
+    }
 
     super.destroy();
     const components = this._components;
