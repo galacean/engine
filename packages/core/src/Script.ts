@@ -219,20 +219,11 @@ export class Script extends Component {
    */
   _handlingInValid(): void {
     const componentsManager = this.engine._componentsManager;
-    // Use "xxIndex !== -1" to project.
-    // Maybe call onDisable it is still not in script queue, for example write "entity.isActive = false" in onWake().
-    if (this._onUpdateIndex !== -1) {
-      componentsManager.removeOnUpdateScript(this);
-    }
-    if (this._onLateUpdateIndex !== -1) {
-      componentsManager.removeOnLateUpdateScript(this);
-    }
-    if (this._onPhysicsUpdateIndex !== -1) {
-      componentsManager.removeOnPhysicsUpdateScript(this);
-    }
-    if (this._entityScriptsIndex !== -1) {
-      this._entity._removeScript(this);
-    }
+    componentsManager.removeOnUpdateScript(this);
+    componentsManager.removeOnLateUpdateScript(this);
+    componentsManager.removeOnPhysicsUpdateScript(this);
+
+    this._entity._removeScript(this);
     this._waitHandlingInValid = false;
   }
 }
