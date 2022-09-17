@@ -186,7 +186,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Indicates whether the engin is destroyed.
+   * Indicates whether the engine is destroyed.
    */
   get destroyed(): boolean {
     return this._destroyed;
