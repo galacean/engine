@@ -191,6 +191,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const { _pxRaycastHit: pxHitResult } = PhysXPhysicsManager;
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
 
     const result = this._pxScene.raycastSingle(
       ray.origin,

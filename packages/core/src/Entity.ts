@@ -532,7 +532,7 @@ export class Entity extends EngineObject {
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       const component = components[i];
-      component.enabled && activeChangedComponents.push(component);
+      (component.enabled || !component._awoken) && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {

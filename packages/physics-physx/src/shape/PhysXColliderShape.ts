@@ -128,7 +128,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._pxShape = PhysXPhysics._pxPhysics.createShape(
       this._pxGeometry,
       material._pxMaterial,
-      false,
+      true,
       new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags)
     );
     this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(id, 0, 0, 0));
