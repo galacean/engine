@@ -165,9 +165,7 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this);
     this._components.push(component);
-    if (this._isActiveInHierarchy) {
-      component._setActive(true);
-    }
+    component._setActive(true);
     return component;
   }
 
@@ -375,7 +373,9 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   destroy(): void {
-    if (this._destroyed) return;
+    if (this._destroyed) {
+      return;
+    }
 
     super.destroy();
     const components = this._components;
