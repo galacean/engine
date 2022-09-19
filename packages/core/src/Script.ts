@@ -219,9 +219,16 @@ export class Script extends Component {
    */
   _handlingInValid(): void {
     const componentsManager = this.engine._componentsManager;
-    componentsManager.removeOnUpdateScript(this);
-    componentsManager.removeOnLateUpdateScript(this);
-    componentsManager.removeOnPhysicsUpdateScript(this);
+    const { prototype } = Script;
+    if (this.onUpdate !== prototype.onUpdate) {
+      componentsManager.removeOnUpdateScript(this);
+    }
+    if (this.onLateUpdate !== prototype.onLateUpdate) {
+      componentsManager.removeOnLateUpdateScript(this);
+    }
+    if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
+      componentsManager.removeOnPhysicsUpdateScript(this);
+    }
 
     this._entity._removeScript(this);
     this._waitHandlingInValid = false;

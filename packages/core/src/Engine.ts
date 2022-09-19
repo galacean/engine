@@ -315,9 +315,12 @@ export class Engine extends EventDispatcher {
 
     // Engine is complete delayed destruction mechanism
     if (this._waittingDestroy) {
-      this._destroy();
+      this._sceneManager._destroyAllScene();
     }
     componentsManager.handlingInvalidScripts();
+    if (this._waittingDestroy) {
+      this._destroy();
+    }
   }
 
   /**
@@ -345,6 +348,7 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   _destroy(): void {
+    this._resourceManager._destroy();
     this._magentaTexture2D.destroy(true);
     this._magentaTextureCube.destroy(true);
     this.inputManager._destroy();
@@ -356,8 +360,6 @@ export class Engine extends EventDispatcher {
 
     this._animate = null;
 
-    this._sceneManager._destroy();
-    this._resourceManager._destroy();
     this._sceneManager = null;
     this._resourceManager = null;
 
