@@ -23,6 +23,6 @@
     "oasis-engine": "0.9.0-canvas.2"
   },
   "peerDependencies": {
-    "oasis-engine": "0.9.0-canvas.1"
+    "oasis-engine": "0.9.0-canvas.2"
   }
 }
