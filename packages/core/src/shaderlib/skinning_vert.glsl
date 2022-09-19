@@ -18,9 +18,10 @@
         position = skinMatrix * position;
 
         #if defined(O3_HAS_NORMAL) && !defined(OMIT_NORMAL)
-            normal = vec4( skinMatrix * vec4( normal, 0.0 ) ).xyz;
+            mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
+            normal = normal * skinNormalMatrix;
             #if defined(O3_HAS_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
-                tangent.xyz = vec4( skinMatrix * vec4( tangent.xyz, 0.0 ) ).xyz;
+                tangent.xyz = tangent.xyz * skinNormalMatrix;
             #endif
 
         #endif

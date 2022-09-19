@@ -1,6 +1,6 @@
 import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { Background, RenderElement, RenderQueueType, ShadowMode, SpriteElement } from "..";
 import { SpriteMask } from "../2d";
+import { Background } from "../Background";
 import { Logger } from "../base";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
@@ -10,12 +10,15 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
 import { Material } from "../material";
-import { Shader } from "../shader";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
+import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
+import { ShadowMode } from "../shadow/enum/ShadowMode";
 import { Sky } from "../sky";
 import { RenderTarget, TextureCubeFace } from "../texture";
 import { RenderContext } from "./RenderContext";
+import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 
@@ -206,8 +209,8 @@ export class BasicRenderPipeline {
    * Push a render element to the render queue.
    * @param element - Render element
    */
-  pushPrimitive(element: RenderElement | SpriteElement) {
-    switch (element.material.renderQueueType) {
+  pushPrimitive(element: RenderElement): void {
+    switch (element.renderState.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);
         break;
@@ -233,7 +236,7 @@ export class BasicRenderPipeline {
       background._resizeBackgroundTexture();
     }
 
-    const program = _backgroundTextureMaterial.shader._getShaderProgram(engine, Shader._compileMacros);
+    const program = _backgroundTextureMaterial.shader.passes[0]._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
     program.uploadUnGroupTextures();
@@ -266,7 +269,7 @@ export class BasicRenderPipeline {
     Matrix.multiply(projectionMatrix, _matrix, _matrix);
     shaderData.setMatrix("u_mvpNoscale", _matrix);
 
-    const program = shader._getShaderProgram(engine, compileMacros);
+    const program = shader.passes[0]._getShaderProgram(engine, compileMacros);
     program.bind();
     program.groupingOtherUniformBlock();
     program.uploadAll(program.materialUniformBlock, shaderData);

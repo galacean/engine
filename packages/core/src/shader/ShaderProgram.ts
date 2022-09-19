@@ -104,12 +104,12 @@ export class ShaderProgram {
    * @param shaderData - shader data
    */
   uploadUniforms(uniformBlock: ShaderUniformBlock, shaderData: ShaderData): void {
-    const properties = shaderData._properties;
+    const propertyValueMap = shaderData._propertyValueMap;
     const constUniforms = uniformBlock.constUniforms;
 
     for (let i = 0, n = constUniforms.length; i < n; i++) {
       const uniform = constUniforms[i];
-      const data = properties[uniform.propertyId];
+      const data = propertyValueMap[uniform.propertyId];
       data != null && uniform.applyFunc(uniform, data);
     }
   }
@@ -120,14 +120,14 @@ export class ShaderProgram {
    * @param shaderData - shader data
    */
   uploadTextures(uniformBlock: ShaderUniformBlock, shaderData: ShaderData): void {
-    const properties = shaderData._properties;
+    const propertyValueMap = shaderData._propertyValueMap;
     const textureUniforms = uniformBlock.textureUniforms;
     // textureUniforms property maybe null if ShaderUniformBlock not contain any texture.
     if (textureUniforms) {
       for (let i = 0, n = textureUniforms.length; i < n; i++) {
         const uniform = textureUniforms[i];
-        const texture = properties[uniform.propertyId];
-        if (texture) {
+        const texture = <Texture>propertyValueMap[uniform.propertyId];
+        if (texture && !texture.destroyed) {
           uniform.applyFunc(uniform, texture);
         } else {
           uniform.applyFunc(uniform, uniform.textureDefault);
@@ -153,7 +153,7 @@ export class ShaderProgram {
   /**
    * Grouping other data.
    */
-  groupingOtherUniformBlock() {
+  groupingOtherUniformBlock(): void {
     const { constUniforms, textureUniforms } = this.otherUniformBlock;
     constUniforms.length > 0 && this._groupingSubOtherUniforms(constUniforms, false);
     textureUniforms.length > 0 && this._groupingSubOtherUniforms(textureUniforms, true);
@@ -309,7 +309,7 @@ export class ShaderProgram {
   /**
    * record the location of uniform/attribute.
    */
-  private _recordLocation() {
+  private _recordLocation(): void {
     const gl = this._gl;
     const program = this._glProgram;
     const uniformInfos = this._getUniformInfos();
@@ -325,7 +325,6 @@ export class ShaderProgram {
         isArray = true;
       }
 
-      const group = Shader._getShaderPropertyGroup(name);
       const location = gl.getUniformLocation(program, name);
       shaderUniform.name = name;
       shaderUniform.propertyId = Shader.getPropertyByName(name)._uniqueId;
@@ -409,13 +408,13 @@ export class ShaderProgram {
           let defaultTexture: Texture;
           switch (type) {
             case gl.SAMPLER_2D:
-              defaultTexture = this._engine._whiteTexture2D;
+              defaultTexture = this._engine._magentaTexture2D;
               break;
             case gl.SAMPLER_CUBE:
-              defaultTexture = this._engine._whiteTextureCube;
+              defaultTexture = this._engine._magentaTextureCube;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
-              defaultTexture = this._engine._whiteTexture2DArray;
+              defaultTexture = this._engine._magentaTexture2DArray;
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
               defaultTexture = this._engine._depthTexture2D;
@@ -449,6 +448,8 @@ export class ShaderProgram {
           }
           break;
       }
+
+      const group = Shader._getShaderPropertyGroup(name);
       this._groupingUniform(shaderUniform, group, isTexture);
     });
 

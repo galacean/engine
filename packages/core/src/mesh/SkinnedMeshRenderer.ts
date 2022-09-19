@@ -36,10 +36,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
+  @ignoreClone
+  private _blendShapeWeights: Float32Array;
 
   /** @internal */
-  _blendShapeWeights: Float32Array = new Float32Array(0);
-  /** @internal */
+  @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
   /**
@@ -47,11 +48,34 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @remarks Array index is BlendShape index.
    */
   get blendShapeWeights(): Float32Array {
+    this._checkBlendShapeWeightLength();
     return this._blendShapeWeights;
   }
 
   set blendShapeWeights(value: Float32Array) {
-    this._blendShapeWeights = value;
+    this._checkBlendShapeWeightLength();
+    const blendShapeWeights = this._blendShapeWeights;
+    if (value.length <= blendShapeWeights.length) {
+      blendShapeWeights.set(value);
+    } else {
+      for (let i = 0, n = blendShapeWeights.length; i < n; i++) {
+        blendShapeWeights[i] = value[i];
+      }
+    }
+  }
+
+  /**
+   * Skin Object.
+   */
+  get skin() {
+    return this._skin;
+  }
+
+  set skin(value: Skin) {
+    if (this._skin !== value) {
+      this._skin = value;
+      this._hasInitJoints = false;
+    }
   }
 
   /**
@@ -80,19 +104,63 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Skin Object.
+   * @internal
    */
-  get skin() {
-    return this._skin;
+  update() {
+    if (!this._hasInitJoints) {
+      this._initJoints();
+      this._hasInitJoints = true;
+    }
+    if (this._skin) {
+      const joints = this.jointNodes;
+      const ibms = this._skin.inverseBindMatrices;
+      const matrixPalette = this.matrixPalette;
+      const worldToLocal = this.entity.getInvModelMatrix();
+
+      const mat = this._mat;
+      for (let i = joints.length - 1; i >= 0; i--) {
+        mat.identity();
+        if (joints[i]) {
+          Matrix.multiply(joints[i].transform.worldMatrix, ibms[i], mat);
+        } else {
+          mat.copyFrom(ibms[i]);
+        }
+        Matrix.multiply(worldToLocal, mat, mat);
+        matrixPalette.set(mat.elements, i * 16);
+      }
+      if (this._useJointTexture) {
+        this._createJointTexture();
+      }
+    }
   }
 
-  set skin(skin) {
-    this._skin = skin;
+  /**
+   * @internal
+   */
+  _cloneTo(target: SkinnedMeshRenderer): void {
+    super._cloneTo(target);
+    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
-  _initJoints() {
-    if (!this._skin) return;
-    const skin = this._skin;
+  private _createJointTexture(): void {
+    if (!this.jointTexture) {
+      const engine = this.engine;
+      const rhi = engine._hardwareRenderer;
+      if (!rhi) return;
+      this.jointTexture = new Texture2D(engine, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
+      this.jointTexture.filterMode = TextureFilterMode.Point;
+      this.shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
+      this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
+    }
+    this.jointTexture.setPixelBuffer(this.matrixPalette);
+  }
+
+  private _initJoints() {
+    const { _skin: skin, shaderData } = this;
+    if (!skin) {
+      shaderData.disableMacro("O3_HAS_SKIN");
+      return;
+    }
 
     const joints = skin.joints;
     const jointNodes = [];
@@ -107,7 +175,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (!rhi) return;
     const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
     const maxJoints = Math.floor((maxAttribUniformVec4 - 30) / 4);
-    const shaderData = this.shaderData;
     const jointCount = jointNodes.length;
 
     if (jointCount) {
@@ -143,51 +210,24 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     return this.findByNodeName(entity.parent, nodeName);
   }
 
-  /**
-   * @internal
-   */
-  update() {
-    if (!this._hasInitJoints) {
-      this._initJoints();
-      this._hasInitJoints = true;
-    }
-    if (this._skin) {
-      const joints = this.jointNodes;
-      const ibms = this._skin.inverseBindMatrices;
-      const matrixPalette = this.matrixPalette;
-      const worldToLocal = this.entity.getInvModelMatrix();
-
-      const mat = this._mat;
-      for (let i = joints.length - 1; i >= 0; i--) {
-        mat.identity();
-        if (joints[i]) {
-          Matrix.multiply(joints[i].transform.worldMatrix, ibms[i], mat);
+  private _checkBlendShapeWeightLength(): void {
+    const mesh = <ModelMesh>this._mesh;
+    const newBlendShapeCount = mesh ? mesh.blendShapeCount : 0;
+    const lastBlendShapeWeights = this._blendShapeWeights;
+    if (lastBlendShapeWeights) {
+      if (lastBlendShapeWeights.length !== newBlendShapeCount) {
+        const newBlendShapeWeights = new Float32Array(newBlendShapeCount);
+        if (newBlendShapeCount > lastBlendShapeWeights.length) {
+          newBlendShapeWeights.set(lastBlendShapeWeights);
         } else {
-          mat.copyFrom(ibms[i]);
+          for (let i = 0, n = lastBlendShapeWeights.length; i < n; i++) {
+            lastBlendShapeWeights[i] = newBlendShapeWeights[i];
+          }
         }
-        Matrix.multiply(worldToLocal, mat, mat);
-        matrixPalette.set(mat.elements, i * 16);
+        this._blendShapeWeights = newBlendShapeWeights;
       }
-      if (this._useJointTexture) {
-        this.createJointTexture();
-      }
+    } else {
+      this._blendShapeWeights = new Float32Array(newBlendShapeCount);
     }
-  }
-
-  /**
-   * Generate joint texture.
-   * Format: (4 * RGBA) * jointCont
-   */
-  createJointTexture() {
-    if (!this.jointTexture) {
-      const engine = this.engine;
-      const rhi = engine._hardwareRenderer;
-      if (!rhi) return;
-      this.jointTexture = new Texture2D(engine, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
-      this.jointTexture.filterMode = TextureFilterMode.Point;
-      this.shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
-      this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
-    }
-    this.jointTexture.setPixelBuffer(this.matrixPalette);
   }
 }

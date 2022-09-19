@@ -1,3 +1,4 @@
+#include <common>
 #include <common_vert>
 #include <blendShape_input>
 #include <normal_share>

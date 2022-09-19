@@ -19,8 +19,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
   private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
 
+  /** @internal */
   @ignoreClone
-  private _mesh: Mesh;
+  _mesh: Mesh;
   @ignoreClone
   private _meshUpdateFlag: BoolUpdateFlag;
 
@@ -39,17 +40,8 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   }
 
   set mesh(mesh: Mesh) {
-    const lastMesh = this._mesh;
-    if (lastMesh !== mesh) {
-      if (lastMesh) {
-        lastMesh._addRefCount(-1);
-        this._meshUpdateFlag.destroy();
-      }
-      if (mesh) {
-        mesh._addRefCount(1);
-        this._meshUpdateFlag = mesh.registerUpdateFlag();
-      }
-      this._mesh = mesh;
+    if (this._mesh !== mesh) {
+      this._setMesh(mesh);
     }
   }
 
@@ -99,9 +91,13 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = this._materials[i];
         if (material) {
-          const element = renderElementPool.getFromPool();
-          element.setValue(this, mesh, subMeshes[i], material);
-          renderPipeline.pushPrimitive(element);
+          const renderStates = material.renderStates;
+          const shaderPasses = material.shader.passes;
+          for (let j = 0, m = shaderPasses.length; j < m; j++) {
+            const element = renderElementPool.getFromPool();
+            element.setValue(this, mesh, subMeshes[i], material, renderStates[j], shaderPasses[j]);
+            renderPipeline.pushPrimitive(element);
+          }
         }
       }
     } else {
@@ -142,5 +138,18 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
     }
+  }
+
+  protected _setMesh(mesh: Mesh): void {
+    const lastMesh = this._mesh;
+    if (lastMesh) {
+      lastMesh._addRefCount(-1);
+      this._meshUpdateFlag.destroy();
+    }
+    if (mesh) {
+      mesh._addRefCount(1);
+      this._meshUpdateFlag = mesh.registerUpdateFlag();
+    }
+    this._mesh = mesh;
   }
 }
