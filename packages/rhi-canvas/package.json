@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/rhi-canvas",
-  "version": "0.9.0-canvas.2",
+  "version": "0.0.0-experiment-canvas.0",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -19,10 +19,10 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.9.0-canvas.2",
-    "@oasis-engine/math": "0.9.0-canvas.2"
+    "@oasis-engine/core": "0.0.0-experiment-canvas.0",
+    "@oasis-engine/math": "0.0.0-experiment-canvas.0"
   },
   "devDependencies": {
-    "@oasis-engine/design": "0.9.0-canvas.2"
+    "@oasis-engine/design": "0.0.0-experiment-canvas.0"
   }
 }
