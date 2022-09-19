@@ -228,7 +228,7 @@ export class PhysicsManager {
   ): boolean {
     let hitResult: HitResult;
 
-    let distance = 1.0e7;
+    let distance = Number.MAX_VALUE;
     if (typeof distanceOrResult === "number") {
       distance = distanceOrResult;
     } else if (distanceOrResult != undefined) {

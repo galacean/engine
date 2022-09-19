@@ -97,15 +97,7 @@ export class CharacterController extends Collider {
       throw "only allow single shape on controller!";
     }
     super.addShape(shape);
-
-    const { transform } = this.entity;
-    const shapes = this.shapes;
-    (<ICharacterController>this._nativeCollider).setWorldPosition(transform.worldPosition);
-
-    const worldScale = transform.lossyWorldScale;
-    for (let i = 0, n = shapes.length; i < n; i++) {
-      shapes[i]._nativeShape.setWorldScale(worldScale);
-    }
+    this._updateFlag.flag = true;
   }
 
   /**
