@@ -50,8 +50,8 @@ export class Sky {
 
     // view-proj matrix
     Matrix.multiply(projectionMatrix, viewProjMatrix, viewProjMatrix);
-    const originViewProjMatrix = cameraShaderData.getMatrix("u_VPMat");
-    cameraShaderData.setMatrix("u_VPMat", viewProjMatrix);
+    const originViewProjMatrix = cameraShaderData.getMatrix(Camera._vpMatrixProperty);
+    cameraShaderData.setMatrix(Camera._vpMatrixProperty, viewProjMatrix);
 
     const compileMacros = Shader._compileMacros;
     ShaderMacroCollection.unionCollection(
@@ -68,6 +68,6 @@ export class Sky {
 
     renderState._apply(engine, false);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
-    cameraShaderData.setMatrix("u_VPMat", originViewProjMatrix);
+    cameraShaderData.setMatrix(Camera._vpMatrixProperty, originViewProjMatrix);
   }
 }
