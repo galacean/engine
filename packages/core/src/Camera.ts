@@ -29,9 +29,11 @@ class MathTemp {
  */
 @dependentComponents(Transform)
 export class Camera extends Component {
+  /** @internal */
+  static _vpMatrixProperty = Shader.getPropertyByName("u_VPMat");
+
   private static _viewMatrixProperty = Shader.getPropertyByName("u_viewMat");
   private static _projectionMatrixProperty = Shader.getPropertyByName("u_projMat");
-  private static _vpMatrixProperty = Shader.getPropertyByName("u_VPMat");
   private static _inverseViewMatrixProperty = Shader.getPropertyByName("u_viewInvMat");
   private static _inverseProjectionMatrixProperty = Shader.getPropertyByName("u_projInvMat");
   private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
