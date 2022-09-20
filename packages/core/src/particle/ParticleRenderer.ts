@@ -200,8 +200,7 @@ export class ParticleRenderer extends MeshRenderer {
   }
 
   set color(value: Color) {
-    this._updateDirtyFlag |= DirtyFlagType.Color;
-    this._color = value;
+    this._color.copyFrom(value);
   }
 
   /**
@@ -533,6 +532,10 @@ export class ParticleRenderer extends MeshRenderer {
 
   constructor(props) {
     super(props);
+
+    this._onColorChanged = this._onColorChanged.bind(this);
+    //@ts-ignore
+    this._color._onValueChanged = this._onColorChanged;
 
     this.setMaterial(this._createMaterial());
   }
@@ -926,5 +929,9 @@ export class ParticleRenderer extends MeshRenderer {
     vertices[k2 + 23] = 0.5;
     vertices[k3 + 22] = -0.5;
     vertices[k3 + 23] = 0.5;
+  }
+
+  private _onColorChanged(): void {
+    this._updateDirtyFlag |= DirtyFlagType.Color;
   }
 }

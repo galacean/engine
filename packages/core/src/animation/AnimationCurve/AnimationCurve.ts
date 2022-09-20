@@ -84,7 +84,6 @@ export abstract class AnimationCurve {
 
     // Compute curIndex and nextIndex.
     let curIndex = this._currentIndex;
-
     // Reset loop.
     if (curIndex !== -1 && time < keys[curIndex].time) {
       curIndex = -1;

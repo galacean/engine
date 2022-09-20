@@ -1,13 +1,5 @@
 import { AnimationProperty, InterpolableValueType } from "@oasis-engine/core";
 
-export enum ComponentClass {
-  Transform,
-  SkinnedMeshRenderer,
-  Other
-}
-
-export const PropertyNameMap = ['position', 'rotation', 'scale', 'blendShapeWeights'];
-
 export interface IAnimationClipAsset {
   objectId: string;
   name: string;

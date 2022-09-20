@@ -40,13 +40,17 @@ export abstract class AnimationCurveOwner {
   }
 
   evaluateAndApplyValue(curve: AnimationCurve, time: number, layerWeight: number) {
-    const value = curve._evaluate(time, this._baseTempValue);
-    this._applyValue(value, layerWeight);
+    if (curve.keys.length) {
+      const value = curve._evaluate(time, this._baseTempValue);
+      this._applyValue(value, layerWeight);
+    }
   }
 
   evaluateAndApplyAdditiveValue(curve: AnimationCurve, time: number, layerWeight: number) {
-    const value = curve._evaluateAdditive(time, this._baseTempValue);
-    this._applyAdditiveVale(value, layerWeight);
+    if (curve.keys.length) {
+      const value = curve._evaluateAdditive(time, this._baseTempValue);
+      this._applyAdditiveVale(value, layerWeight);
+    }
   }
 
   crossFadeAndApplyValue(
@@ -58,8 +62,10 @@ export abstract class AnimationCurveOwner {
     layerWeight: number,
     additive: boolean
   ) {
-    const srcValue = srcCurve ? srcCurve._evaluate(srcTime, this._baseTempValue) : this._defaultValue;
-    const destValue = destCurve ? destCurve._evaluate(destTime, this._crossTempValue) : this._defaultValue;
+    const srcValue =
+      srcCurve && srcCurve.keys.length ? srcCurve._evaluate(srcTime, this._baseTempValue) : this._defaultValue;
+    const destValue =
+      destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this._crossTempValue) : this._defaultValue;
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 
@@ -71,7 +77,8 @@ export abstract class AnimationCurveOwner {
     additive: boolean
   ) {
     const srcValue = this._fixedPoseValue;
-    const destValue = destCurve ? destCurve._evaluate(destTime, this._crossTempValue) : this._defaultValue;
+    const destValue =
+      destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this._crossTempValue) : this._defaultValue;
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 

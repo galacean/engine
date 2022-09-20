@@ -29,6 +29,8 @@ export class AnimationClipCurveBinding {
   /** The animation curve. */
   curve: AnimationCurve;
 
+  private defaultCurveOwner: AnimationCurveOwner;
+
   /**
    * @internal
    */
@@ -52,6 +54,17 @@ export class AnimationClipCurveBinding {
         return new AnimationArrayCurveOwner(entity, this.type, this.property);
       default:
         console.error("The curve need add keyframe to play: ", this.curve);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner {
+    if (this.defaultCurveOwner) {
+      return this.defaultCurveOwner;
+    } else {
+      return this._createCurveOwner(entity);
     }
   }
 }

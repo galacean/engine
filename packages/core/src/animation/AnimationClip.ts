@@ -128,32 +128,17 @@ export class AnimationClip {
   }
 
   /**
-   * @internal
    * Samples an animation at a given time.
    * @param entity - The animated entity
    * @param time - The time to sample an animation
    */
-  _sampleAnimation(entity: Entity, time: number): void {
+  sampleAnimation(entity: Entity, time: number): void {
     const { length } = this._curveBindings;
     for (let i = length - 1; i >= 0; i--) {
       const curveData = this._curveBindings[i];
-      const { curve, property, relativePath, type } = curveData;
-      const val = curve.evaluate(time);
-      const target = entity.findByName(relativePath);
-      const transform = (<Entity>target).transform;
-      if (type === Transform) {
-        switch (property) {
-          case AnimationPropertyInternal.Position:
-            transform.position = val as Vector3;
-            break;
-          case AnimationPropertyInternal.Rotation:
-            transform.rotationQuaternion = val as Quaternion;
-            break;
-          case AnimationPropertyInternal.Scale:
-            transform.scale = val as Vector3;
-            break;
-        }
-      }
+      const curveOwner = curveData._getDefaultCurveOwner(entity);
+      const { curve } = curveData;
+      curveOwner && curveOwner.evaluateAndApplyValue(curve, time, 1);
     }
   }
 }
