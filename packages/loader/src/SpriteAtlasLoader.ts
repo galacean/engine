@@ -7,7 +7,8 @@ import {
   ResourceManager,
   Sprite,
   SpriteAtlas,
-  Texture2D
+  Texture2D,
+  TextureFilterMode
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
 import { Rect, Vector2 } from "@oasis-engine/math";
@@ -39,13 +40,18 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               // Generate a SpriteAtlas object.
               const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;
               const spriteAtlas = new SpriteAtlas(engine);
+              const { mipmap, anisoLevel, filterMode, wrapModeU, wrapModeV } = atlasData;
               for (let i = 0; i < atlasItemsLen; i++) {
                 // Generate Texture2D according to configuration.
                 const originalImg = imgs[i];
                 const { width, height } = originalImg;
                 const texture = new Texture2D(engine, width, height, format);
                 texture.setImageSource(originalImg);
-                atlasData.mipmap && texture.generateMipmaps();
+                mipmap && texture.generateMipmaps();
+                anisoLevel && (texture.anisoLevel = anisoLevel);
+                filterMode !== undefined && (texture.filterMode = filterMode);
+                wrapModeU !== undefined && (texture.wrapModeU = wrapModeU);
+                wrapModeV !== undefined && (texture.wrapModeV = wrapModeV);
                 // Generate all the sprites on this texture.
                 const atlasItem = atlasItems[i];
                 const sprites = atlasItem.sprites;
