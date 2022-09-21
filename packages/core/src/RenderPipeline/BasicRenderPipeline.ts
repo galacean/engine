@@ -1,7 +1,6 @@
-import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { Background, RenderElement, RenderQueueType, SpriteElement } from "..";
+import { Vector2, Vector3 } from "@oasis-engine/math";
 import { SpriteMask } from "../2d";
-import { Logger } from "../base";
+import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
@@ -10,15 +9,16 @@ import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
 import { Material } from "../material";
-import { Shader } from "../shader";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
+import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { Sky } from "../sky";
-import { TextureCubeFace } from "../texture";
-import { RenderTarget } from "../texture";
+import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
+import { ShadowMode } from "../shadow/enum/ShadowMode";
+import { RenderTarget, TextureCubeFace } from "../texture";
 import { RenderContext } from "./RenderContext";
+import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
-import { ShadowManager } from "../shadow/ShadowManager";
 
 /**
  * Basic render pipeline.
@@ -40,7 +40,7 @@ export class BasicRenderPipeline {
   private _defaultPass: RenderPass;
   private _renderPassArray: Array<RenderPass>;
   private _lastCanvasSize = new Vector2();
-  private _shadowManager: ShadowManager;
+  private _cascadedShadowCaster: CascadedShadowCasterPass;
 
   /**
    * Create a basic render pipeline.
@@ -52,7 +52,7 @@ export class BasicRenderPipeline {
     this._opaqueQueue = new RenderQueue(engine);
     this._alphaTestQueue = new RenderQueue(engine);
     this._transparentQueue = new RenderQueue(engine);
-    this._shadowManager = new ShadowManager(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
+    this._cascadedShadowCaster = new CascadedShadowCasterPass(camera);
 
     this._renderPassArray = [];
     this._defaultPass = new RenderPass("default", 0, null, null, 0);
@@ -88,7 +88,7 @@ export class BasicRenderPipeline {
       this._renderPassArray.push(nameOrPass);
     }
 
-    this._renderPassArray.sort(function(p1, p2) {
+    this._renderPassArray.sort(function (p1, p2) {
       return p1.priority - p2.priority;
     });
   }
@@ -146,7 +146,9 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
-    this._shadowManager.render();
+    if (camera.engine.settings.shadowMode !== ShadowMode.None) {
+      this._cascadedShadowCaster._render();
+    }
 
     opaqueQueue.clear();
     alphaTestQueue.clear();
@@ -171,7 +173,7 @@ export class BasicRenderPipeline {
       const { background } = scene;
       const rhi = engine._hardwareRenderer;
       const renderTarget = camera.renderTarget || pass.renderTarget;
-      rhi.activeRenderTarget(renderTarget, camera, mipLevel); // change viewport with mip level
+      rhi.activeRenderTarget(renderTarget, camera.viewport, mipLevel);
       renderTarget?._setRenderTargetInfo(cubeFace, mipLevel);
       const clearFlags = pass.clearFlags ?? camera.clearFlags;
       const color = pass.clearColor ?? background.solidColor;
@@ -186,7 +188,7 @@ export class BasicRenderPipeline {
         this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
-            this._drawSky(engine, camera, background.sky);
+            background.sky._render(camera);
           } else if (background.mode === BackgroundMode.Texture && background.texture) {
             this._drawBackgroundTexture(engine, background);
           }
@@ -205,8 +207,8 @@ export class BasicRenderPipeline {
    * Push a render element to the render queue.
    * @param element - Render element
    */
-  pushPrimitive(element: RenderElement | SpriteElement) {
-    switch (element.material.renderQueueType) {
+  pushPrimitive(element: RenderElement): void {
+    switch (element.renderState.renderQueueType) {
       case RenderQueueType.Transparent:
         this._transparentQueue.pushPrimitive(element);
         break;
@@ -232,46 +234,12 @@ export class BasicRenderPipeline {
       background._resizeBackgroundTexture();
     }
 
-    const program = _backgroundTextureMaterial.shader._getShaderProgram(engine, Shader._compileMacros);
+    const program = _backgroundTextureMaterial.shader.passes[0]._getShaderProgram(engine, Shader._compileMacros);
     program.bind();
     program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
     program.uploadUnGroupTextures();
 
     _backgroundTextureMaterial.renderState._apply(engine, false);
-    rhi.drawPrimitive(mesh, mesh.subMesh, program);
-  }
-
-  private _drawSky(engine: Engine, camera: Camera, sky: Sky): void {
-    const { material, mesh, _matrix } = sky;
-    if (!material) {
-      Logger.warn("The material of sky is not defined.");
-      return;
-    }
-    if (!mesh) {
-      Logger.warn("The mesh of sky is not defined.");
-      return;
-    }
-
-    const rhi = engine._hardwareRenderer;
-    const { shaderData, shader, renderState } = material;
-
-    const compileMacros = Shader._compileMacros;
-    ShaderMacroCollection.unionCollection(camera._globalShaderMacro, shaderData._macroCollection, compileMacros);
-
-    const { viewMatrix, projectionMatrix } = camera;
-    _matrix.copyFrom(viewMatrix);
-    const e = _matrix.elements;
-    e[12] = e[13] = e[14] = 0;
-    Matrix.multiply(projectionMatrix, _matrix, _matrix);
-    shaderData.setMatrix("u_mvpNoscale", _matrix);
-
-    const program = shader._getShaderProgram(engine, compileMacros);
-    program.bind();
-    program.groupingOtherUniformBlock();
-    program.uploadAll(program.materialUniformBlock, shaderData);
-    program.uploadUnGroupTextures();
-
-    renderState._apply(engine, false);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
   }
 

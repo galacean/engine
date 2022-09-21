@@ -28,7 +28,7 @@ export class Font extends RefObject {
   }
 
   private _name: string = "";
-  private _fontAtlases: Array<FontAtlas> = [];
+  private _fontAtlases: FontAtlas[] = [];
   private _lastIndex: number = -1;
 
   /**
@@ -120,7 +120,7 @@ export class Font extends RefObject {
   private _createFontAtlas(): FontAtlas {
     const { engine } = this;
     const fontAtlas = new FontAtlas(engine);
-    const texture = new Texture2D(engine, 512, 512);
+    const texture = new Texture2D(engine, 256, 256);
     fontAtlas.texture = texture;
     this._fontAtlases.push(fontAtlas);
     return fontAtlas;

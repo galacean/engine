@@ -1,9 +1,9 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { SpriteRenderer } from "../2d/sprite/SpriteRenderer";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
+import { Material } from "../material";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -24,6 +24,10 @@ export class SpriteBatcher extends Basic2DBatcher {
   }
 
   canBatch(preElement: SpriteElement, curElement: SpriteElement): boolean {
+    if (!this._engine._canSpriteBatch) {
+      return false;
+    }
+
     const preRenderer = <SpriteRenderer>preElement.component;
     const curRenderer = <SpriteRenderer>curElement.component;
 
@@ -72,7 +76,7 @@ export class SpriteBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  drawBatches(camera: Camera): void {
+  drawBatches(camera: Camera, replaceMaterial: Material): void {
     const { _engine: engine, _batchedQueue: batchedQueue } = this;
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
@@ -100,7 +104,9 @@ export class SpriteBatcher extends Basic2DBatcher {
         compileMacros
       );
 
-      const program = material.shader._getShaderProgram(engine, compileMacros);
+      // @todo: temporary solution
+      (replaceMaterial || material)._preRender(spriteElement);
+      const program = spriteElement.shaderPass._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
       }
@@ -114,8 +120,7 @@ export class SpriteBatcher extends Basic2DBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      material.renderState._apply(engine, false);
-
+      spriteElement.renderState._apply(engine, false);
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
 
       maskManager.postRender(renderer);

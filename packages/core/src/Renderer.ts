@@ -1,7 +1,7 @@
 import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Camera } from "./Camera";
-import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
@@ -19,6 +19,8 @@ import { Transform } from "./Transform";
  */
 @dependentComponents(Transform)
 export class Renderer extends Component {
+  private static _receiveShadowMacro = Shader.getMacroByName("OASIS_RECEIVE_SHADOWS");
+
   private static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
   private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
   private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
@@ -69,9 +71,26 @@ export class Renderer extends Component {
   private _materialsInstanced: boolean[] = [];
   @ignoreClone
   private _priority: number = 0;
+  @assignmentClone
+  private _receiveShadows: boolean = false;
 
-  /** whether receive shadow */
-  receiveShadows: boolean = false;
+  /**
+   * Whether receive shadow.
+   */
+  get receiveShadows(): boolean {
+    return this._receiveShadows;
+  }
+
+  set receiveShadows(value: boolean) {
+    if (this._receiveShadows !== value) {
+      if (value) {
+        this.shaderData.enableMacro(Renderer._receiveShadowMacro);
+      } else {
+        this.shaderData.disableMacro(Renderer._receiveShadowMacro);
+      }
+      this._receiveShadows = value;
+    }
+  }
 
   /** whether cast shadow */
   castShadows: boolean = false;
