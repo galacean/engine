@@ -111,52 +111,126 @@ export class TextUtils {
       let charsWidth = 0;
       let maxAscent = -1;
       let maxDescent = -1;
+      let wordChars = "";
+      let wordCharsWidth = 0;
+      let wordMaxAscent = -1;
+      let wordMaxDescent = -1;
+      let curInEnglishWord = false;
 
       for (let j = 0, m = subText.length; j < m; ++j) {
         const char = subText[j];
         const charInfo = TextUtils._getCharInfo(char, fontString, charFont);
+        const charCode = char.charCodeAt(0);
+        const isNotEnglish = charCode === 32 || charCode > 255;
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
         const descent = halfH - offsetY;
-        if (charsWidth + w > wrapWidth) {
-          if (charsWidth === 0) {
-            lines.push(char);
-            lineWidths.push(w);
-            lineMaxSizes.push({
-              ascent,
-              descent,
-              size: ascent + descent
-            });
+
+        if (isNotEnglish) {
+          // If it is an English word before, need to handle the previous English word and chars.
+          if (curInEnglishWord) {
+            if (charsWidth + wordCharsWidth > wrapWidth) {
+              this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
+              chars = wordChars;
+              charsWidth = wordCharsWidth;
+              maxAscent = wordMaxAscent;
+              maxDescent = wordMaxDescent;
+            } else {
+              chars += wordChars;
+              charsWidth += wordCharsWidth;
+              maxAscent < wordMaxAscent && (maxAscent = wordMaxAscent);
+              maxDescent < wordMaxDescent && (maxDescent = wordMaxDescent);
+            }
+
+            curInEnglishWord = false;
+            wordChars = "";
+            wordCharsWidth = 0;
+            wordMaxAscent = -1;
+            wordMaxDescent = -1;
+          }
+
+          // Handle cur char.
+          if (charsWidth + w > wrapWidth) {
+            if (charsWidth === 0) {
+              this._pushCharsToLines(lines, lineWidths, lineMaxSizes, char, w, ascent, descent);
+            } else {
+              this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
+              chars = char;
+              charsWidth = charInfo.xAdvance;
+              maxAscent = ascent;
+              maxDescent = descent;
+            }
           } else {
-            lines.push(chars);
-            lineWidths.push(charsWidth);
-            lineMaxSizes.push({
-              ascent: maxAscent,
-              descent: maxDescent,
-              size: maxAscent + maxDescent
-            });
-            chars = char;
-            charsWidth = charInfo.xAdvance;
-            maxAscent = ascent;
-            maxDescent = descent;
+            chars += char;
+            charsWidth += charInfo.xAdvance;
+            maxAscent < ascent && (maxAscent = ascent);
+            maxDescent < descent && (maxDescent = descent);
           }
         } else {
-          chars += char;
-          charsWidth += charInfo.xAdvance;
-          maxAscent < ascent && (maxAscent = ascent);
-          maxDescent < descent && (maxDescent = descent);
+          curInEnglishWord = true;
+          // Total width from chars and wordChars and char exceed wrap width.
+          if (charsWidth + wordCharsWidth + charInfo.w > wrapWidth) {
+            // Handle chars if it not empty.
+            if (charsWidth > 0) {
+              this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
+
+              chars = "";
+              charsWidth = 0;
+              maxAscent = -1;
+              maxDescent = -1;
+            }
+
+            // Total width from wordChars and char exceed wrap width.
+            if (wordCharsWidth + charInfo.w > wrapWidth) {
+              // Push wordchars to a single line, char becomes the start of a new line.
+              this._pushCharsToLines(
+                lines,
+                lineWidths,
+                lineMaxSizes,
+                wordChars,
+                wordCharsWidth,
+                wordMaxAscent,
+                wordMaxDescent
+              );
+              wordChars = char;
+              wordCharsWidth = charInfo.xAdvance;
+              wordMaxAscent = ascent;
+              wordMaxDescent = descent;
+            } else {
+              wordChars += char;
+              wordCharsWidth += charInfo.xAdvance;
+              wordMaxAscent < ascent && (maxAscent = ascent);
+              wordMaxDescent < descent && (maxDescent = descent);
+            }
+          } else {
+            wordChars += char;
+            wordCharsWidth += charInfo.xAdvance;
+            wordMaxAscent < ascent && (maxAscent = ascent);
+            wordMaxDescent < descent && (maxDescent = descent);
+          }
+        }
+      }
+
+      if (wordCharsWidth > 0) {
+        // If the total width from chars and wordChars exceed wrap width.
+        if (charsWidth + wordCharsWidth > wrapWidth) {
+          // Push chars to a single line.
+          this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
+          charsWidth = 0;
+          // Push wordChars to a single line.
+          this._pushCharsToLines(lines, lineWidths, lineMaxSizes, wordChars, wordCharsWidth, wordMaxAscent, wordMaxDescent);
+        } else {
+          // Merge to chars.
+          chars += wordChars;
+          charsWidth += wordCharsWidth;
+          maxAscent < wordMaxAscent && (maxAscent = wordMaxAscent);
+          maxDescent < wordMaxDescent && (maxDescent = wordMaxDescent);
         }
       }
 
       if (charsWidth > 0) {
-        lines.push(chars);
-        lineWidths.push(charsWidth);
-        lineMaxSizes.push({
-          ascent: maxAscent,
-          descent: maxDescent,
-          size: maxAscent + maxDescent
-        });
+        this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
       }
     }
 
@@ -338,6 +412,24 @@ export class TextUtils {
     }
 
     return charInfo;
+  }
+
+  private static _pushCharsToLines(
+    lines: Array<string>,
+    lineWidths: Array<number>,
+    lineMaxSizes: Array<FontSizeInfo>,
+    chars: string,
+    charsWidth: number,
+    ascent: number,
+    descent: number
+  ): void {
+    lines.push(chars);
+    lineWidths.push(charsWidth);
+    lineMaxSizes.push({
+      ascent,
+      descent,
+      size: ascent + descent
+    });
   }
 }
 
