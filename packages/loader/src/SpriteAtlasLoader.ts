@@ -7,8 +7,7 @@ import {
   ResourceManager,
   Sprite,
   SpriteAtlas,
-  Texture2D,
-  TextureFilterMode
+  Texture2D
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
 import { Rect, Vector2 } from "@oasis-engine/math";

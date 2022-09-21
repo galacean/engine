@@ -4,11 +4,11 @@ import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture
  * The original data type of the atlas.
  */
 export interface AtlasConfig {
+  mipmap?: boolean;
   wrapModeV?: TextureWrapMode;
   wrapModeU?: TextureWrapMode;
   filterMode?: TextureFilterMode;
   anisoLevel?: number;
-  mipmap?: boolean;
   /** Version of Atlas. */
   version: number;
   /** Texture format. */
