@@ -32,10 +32,10 @@ Object.defineProperty(Light.prototype, "enableShadow", {
  */
 Object.defineProperty(Component.prototype, "receiveShadow", {
   get: function () {
-    return this._recieveShadow;
+    return this._receiveShadow;
   },
   set: function (enabled) {
-    this._recieveShadow = enabled;
+    this._receiveShadow = enabled;
   }
 });
 
