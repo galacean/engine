@@ -2,24 +2,21 @@
   "name": "oasis-engine-root",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "packages/*"
-  ],
   "scripts": {
-    "bootstrap": "npm i && lerna bootstrap",
+    "preinstall": "npx only-allow pnpm",
     "test": "cross-env TS_NODE_PROJECT=tsconfig.tests.json floss --path tests -r ts-node/register",
     "test-debug": "cross-env TS_NODE_PROJECT=tsconfig.tests.json floss --path tests -r ts-node/register --debug",
     "test-cov": "cross-env TS_NODE_PROJECT=tsconfig.tests.json nyc --reporter=lcov floss --path tests -r ts-node/register",
-    "ci": "lerna bootstrap && npm run b:module && npm run b:types && npm run test-cov",
+    "ci": "pnpm install && npm run b:module && npm run b:types && npm run test-cov",
     "lint": "eslint packages/*/src --ext .ts",
     "watch": "cross-env NODE_ENV=development BUILD_TYPE=MODULE rollup -cw -m inline",
     "watch:umd": "cross-env NODE_ENV=development BUILD_TYPE=UMD rollup -cw -m inline",
-    "b:types": "lerna run b:types",
+    "b:types": "pnpm -r --filter='./packages/*' run b:types",
     "b:module": "cross-env BUILD_TYPE=MODULE rollup -c",
     "b:umd": "cross-env BUILD_TYPE=UMD rollup -c",
     "b:miniprogram": "cross-env BUILD_TYPE=MINI rollup -c",
     "b:all": "npm run b:types && cross-env BUILD_TYPE=ALL rollup -c",
-    "clean": "lerna exec -- rm -rf dist && lerna clean"
+    "clean": "pnpm -r exec rm -rf dist && pnpm -r exec rm -rf types"
   },
   "devDependencies": {
     "@babel/core": "^7.12.10",
@@ -40,10 +37,10 @@
     "@types/chai": "^4.3.1",
     "@types/chai-spies": "^1.0.3",
     "@types/mocha": "^8.0.0",
+    "@types/node": "^18.7.16",
     "@types/offscreencanvas": "^2019.6.4",
     "@typescript-eslint/eslint-plugin": "^4.12.0",
     "@typescript-eslint/parser": "^4.12.0",
-    "babel-loader": "^8.2.2",
     "chai": "^4.3.6",
     "chai-spies": "^1.0.0",
     "cross-env": "^5.2.0",
@@ -53,7 +50,6 @@
     "eslint-plugin-prettier": "^3.1.1",
     "floss": "^5.0.1",
     "husky": "^4.3.7",
-    "lerna": "^3.22.1",
     "lint-staged": "^10.5.3",
     "nyc": "^15.1.0",
     "prettier": "^2.2.1",

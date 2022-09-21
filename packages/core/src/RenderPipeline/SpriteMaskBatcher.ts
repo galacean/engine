@@ -1,6 +1,5 @@
 import { SpriteMask } from "../2d/sprite/SpriteMask";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { StencilOperation } from "../shader/enums/StencilOperation";
@@ -80,7 +79,7 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       stencilState.passOperationFront = op;
       stencilState.passOperationBack = op;
 
-      const program = material.shader._getShaderProgram(engine, compileMacros);
+      const program = material.shader.passes[0]._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
       }

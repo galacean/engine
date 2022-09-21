@@ -1,8 +1,8 @@
+#include <common>
 #include <common_vert>
 #include <blendShape_input>
 #include <uv_share>
 #include <fog_share>
-#include <shadow_vert_share>
 
 void main() {
 
@@ -11,7 +11,6 @@ void main() {
     #include <skinning_vert>
     #include <uv_vert>
     #include <position_vert>
-    #include <shadow_vert>
 
     #include <fog_vert>
 }

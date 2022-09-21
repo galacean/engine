@@ -66,7 +66,7 @@ export class SceneManager {
   /**
    * @internal
    */
-  _destroyAllScene(): void {
+  _destroy(): void {
     const allScenes = this._allScenes;
     for (let i = 0, n = allScenes.length; i < n; i++) {
       allScenes[i]._destroy();

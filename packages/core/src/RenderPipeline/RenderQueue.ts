@@ -81,7 +81,12 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
+        // @todo: temporary solution
+        const program = (replaceMaterial?.shader.passes[0] || element.shaderPass)._getShaderProgram(
+          engine,
+          compileMacros
+        );
+
         if (!program.isValid) {
           continue;
         }
@@ -97,11 +102,19 @@ export class RenderQueue {
           program.uploadAll(program.materialUniformBlock, materialData);
           // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
           program.uploadUnGroupTextures();
+          program._uploadScene = scene;
           program._uploadCamera = camera;
           program._uploadRenderer = renderer;
           program._uploadMaterial = material;
           program._uploadRenderCount = renderCount;
         } else {
+          if (program._uploadScene !== scene) {
+            program.uploadAll(program.sceneUniformBlock, sceneData);
+            program._uploadScene = scene;
+          } else if (switchProgram) {
+            program.uploadTextures(program.sceneUniformBlock, sceneData);
+          }
+
           if (program._uploadCamera !== camera) {
             program.uploadAll(program.cameraUniformBlock, cameraData);
             program._uploadCamera = camera;
@@ -128,7 +141,7 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        material.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+        element.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
