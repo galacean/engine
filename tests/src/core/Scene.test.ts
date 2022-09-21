@@ -1,8 +1,6 @@
-import { Entity, Script } from "@oasis-engine/core";
+import { Entity } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
-
-class TestComponent extends Script {}
 
 describe("Scene", () => {
   const engine = new WebGLEngine(document.createElement("canvas"));
@@ -66,6 +64,11 @@ describe("Scene", () => {
       expect(child3.siblingIndex).eq(1);
       expect(child2.siblingIndex).eq(2);
       expect(child1.siblingIndex).eq(-1);
+    });
+    it("destroy entity", () => {
+      expect(scene.rootEntities.length).eq(4);
+      scene.rootEntities[0].destroy();
+      expect(scene.rootEntities.length).eq(3);
     });
   });
 });

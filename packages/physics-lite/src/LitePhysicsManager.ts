@@ -51,7 +51,7 @@ export class LitePhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.setGravity }
    */
   setGravity(value: Vector3): void {
-    throw "Physics-lite don't support gravity. Use Physics-PhysX instead!";
+    console.log("Physics-lite don't support gravity. Use Physics-PhysX instead!");
   }
 
   /**

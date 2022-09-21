@@ -167,9 +167,7 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this);
     this._components.push(component);
-    if (this._isActiveInHierarchy) {
-      component._setActive(true);
-    }
+    component._setActive(true);
     return component;
   }
 
@@ -377,7 +375,9 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   destroy(): void {
-    if (this._destroyed) return;
+    if (this._destroyed) {
+      return;
+    }
 
     super.destroy();
     const components = this._components;
@@ -392,7 +392,12 @@ export class Entity extends EngineObject {
     }
     this._children.length = 0;
 
-    this._removeFromParent();
+    if (this._isRoot) {
+      this._scene._removeFromEntityList(this);
+      this._isRoot = false;
+    } else {
+      this._removeFromParent();
+    }
   }
 
   /**
@@ -427,11 +432,11 @@ export class Entity extends EngineObject {
   _removeFromParent(): void {
     const oldParent = this._parent;
     if (oldParent != null) {
-      const oldSilbing = oldParent._children;
+      const oldSibling = oldParent._children;
       let index = this._siblingIndex;
-      oldSilbing.splice(index, 1);
-      for (let n = oldSilbing.length; index < n; index++) {
-        oldSilbing[index]._siblingIndex--;
+      oldSibling.splice(index, 1);
+      for (let n = oldSibling.length; index < n; index++) {
+        oldSibling[index]._siblingIndex--;
       }
       this._parent = null;
       this._siblingIndex = -1;
@@ -534,7 +539,7 @@ export class Entity extends EngineObject {
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       const component = components[i];
-      component.enabled && activeChangedComponents.push(component);
+      (component.enabled || !component._awoken) && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {

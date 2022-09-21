@@ -89,7 +89,7 @@ export class SlicedSpriteAssembler {
     (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);
     wE[12] = pWE[12] - localTransX * wE[0] - localTransY * wE[4];
     wE[13] = pWE[13] - localTransX * wE[1] - localTransY * wE[5];
-    wE[14] = pWE[14];
+    wE[14] = pWE[14] - localTransX * wE[2] - localTransY * wE[6];
 
     // ------------------------
     //  3 - 7 - 11 - 15

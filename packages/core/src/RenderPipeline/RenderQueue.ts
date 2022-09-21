@@ -67,7 +67,7 @@ export class RenderQueue {
         const compileMacros = Shader._compileMacros;
         const element = <MeshRenderElement>item;
         const renderer = element.component;
-        const material = element.material;
+        const material = element.material.destroyed ? engine._magentaMaterial : element.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
 

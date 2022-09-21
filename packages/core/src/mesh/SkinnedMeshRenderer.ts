@@ -1,6 +1,5 @@
 import { Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
-import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
@@ -37,11 +36,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
-  private _blendShapeCountChangeFlag: BoolUpdateFlag = new BoolUpdateFlag();
-
-  /** @internal */
   @ignoreClone
-  _blendShapeWeights: Float32Array = new Float32Array(0);
+  private _blendShapeWeights: Float32Array;
 
   /** @internal */
   @ignoreClone
@@ -52,15 +48,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @remarks Array index is BlendShape index.
    */
   get blendShapeWeights(): Float32Array {
-    if (this._blendShapeCountChangeFlag.flag) {
-      this._resetBlendShapeWeights(<ModelMesh>this._mesh);
-      this._blendShapeCountChangeFlag.flag = false;
-    }
-
+    this._checkBlendShapeWeightLength();
     return this._blendShapeWeights;
   }
 
   set blendShapeWeights(value: Float32Array) {
+    this._checkBlendShapeWeightLength();
     const blendShapeWeights = this._blendShapeWeights;
     if (value.length <= blendShapeWeights.length) {
       blendShapeWeights.set(value);
@@ -209,36 +202,31 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @override
-   * @internal
-   */
-  _setMesh(mesh: ModelMesh): void {
-    const lastMesh = this._mesh;
-    super._setMesh(mesh);
-
-    if (lastMesh) {
-      this._blendShapeCountChangeFlag.clearFromManagers();
-    }
-    if (mesh) {
-      mesh._blendShapeManager._blendShapeCountChangeManager.addFlag(this._blendShapeCountChangeFlag);
-    }
-    this._resetBlendShapeWeights(mesh);
-  }
-
-  /**
    * @internal
    */
   _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
-    target.blendShapeWeights = this._blendShapeWeights.slice();
+    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
-  private _resetBlendShapeWeights(mesh: ModelMesh): void {
-    const blendShapeCount = mesh ? mesh.blendShapeCount : 0;
-    if (this._blendShapeWeights && this._blendShapeWeights.length !== blendShapeCount) {
-      this._blendShapeWeights = new Float32Array(blendShapeCount);
+  private _checkBlendShapeWeightLength(): void {
+    const mesh = <ModelMesh>this._mesh;
+    const newBlendShapeCount = mesh ? mesh.blendShapeCount : 0;
+    const lastBlendShapeWeights = this._blendShapeWeights;
+    if (lastBlendShapeWeights) {
+      if (lastBlendShapeWeights.length !== newBlendShapeCount) {
+        const newBlendShapeWeights = new Float32Array(newBlendShapeCount);
+        if (newBlendShapeCount > lastBlendShapeWeights.length) {
+          newBlendShapeWeights.set(lastBlendShapeWeights);
+        } else {
+          for (let i = 0, n = lastBlendShapeWeights.length; i < n; i++) {
+            lastBlendShapeWeights[i] = newBlendShapeWeights[i];
+          }
+        }
+        this._blendShapeWeights = newBlendShapeWeights;
+      }
     } else {
-      this._blendShapeWeights.fill(0);
+      this._blendShapeWeights = new Float32Array(newBlendShapeCount);
     }
   }
 }

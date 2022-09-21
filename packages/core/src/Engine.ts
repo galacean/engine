@@ -1,4 +1,4 @@
-import { BoundingBox, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
 import { ColorSpace } from ".";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
@@ -12,8 +12,8 @@ import { Material, RenderQueueType } from "./material";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
-import { RenderContext } from "./RenderPipeline/RenderContext";
 import { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
+import { RenderContext } from "./RenderPipeline/RenderContext";
 import { SpriteElement } from "./RenderPipeline/SpriteElement";
 import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
@@ -58,11 +58,13 @@ export class Engine extends EventDispatcher {
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
-  _whiteTexture2D: Texture2D;
+  _magentaTexture2D: Texture2D;
   /* @internal */
-  _whiteTextureCube: TextureCube;
+  _magentaTextureCube: TextureCube;
   /* @internal */
-  _whiteTexture2DArray: Texture2DArray;
+  _magentaTexture2DArray: Texture2DArray;
+  /* @internal */
+  _magentaMaterial: Material;
   /* @internal */
   _backgroundTextureMaterial: Material;
   /* @internal */
@@ -89,6 +91,8 @@ export class Engine extends EventDispatcher {
   private _timeoutId: number;
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
+  private _destroyed: boolean = false;
+  private _waittingDestroy: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -174,6 +178,13 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * Indicates whether the engine is destroyed.
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
+
+  /**
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
@@ -195,34 +206,39 @@ export class Engine extends EventDispatcher {
 
     this.inputManager = new InputManager(this);
 
-    const whitePixel = new Uint8Array([255, 255, 255, 255]);
+    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
 
-    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    whiteTexture2D.setPixelBuffer(whitePixel);
-    whiteTexture2D.isGCIgnored = true;
+    const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    magentaTexture2D.setPixelBuffer(magentaPixel);
+    magentaTexture2D.isGCIgnored = true;
 
-    const whiteTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
-    whiteTextureCube.isGCIgnored = true;
+    const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
+    magentaTextureCube.isGCIgnored = true;
 
-    this._whiteTexture2D = whiteTexture2D;
-    this._whiteTextureCube = whiteTextureCube;
+    this._magentaTexture2D = magentaTexture2D;
+    this._magentaTextureCube = magentaTextureCube;
 
     if (hardwareRenderer.isWebGL2) {
-      const whiteTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
-      whiteTexture2DArray.setPixelBuffer(0, whitePixel);
-      whiteTexture2DArray.isGCIgnored = true;
-      this._whiteTexture2DArray = whiteTexture2DArray;
+      const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
+      magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
+      magentaTexture2DArray.isGCIgnored = true;
+      this._magentaTexture2DArray = magentaTexture2DArray;
     }
 
-    this._backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
-    this._backgroundTextureMaterial.isGCIgnored = true;
-    this._backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    const magentaMaterial = new Material(this, Shader.find("unlit"));
+    magentaMaterial.shaderData.setColor("u_baseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    this._magentaMaterial = magentaMaterial;
+
+    const backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
+    backgroundTextureMaterial.isGCIgnored = true;
+    backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    this._backgroundTextureMaterial = backgroundTextureMaterial;
 
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
@@ -282,7 +298,17 @@ export class Engine extends EventDispatcher {
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
       this._render(scene);
-      componentsManager.handlingInvalidScripts();
+    }
+
+    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
+
+    // Engine is complete delayed destruction mechanism
+    if (this._waittingDestroy) {
+      this._sceneManager._destroyAllScene();
+    }
+    componentsManager.handlingInvalidScripts();
+    if (this._waittingDestroy) {
+      this._destroy();
     }
   }
 
@@ -296,35 +322,47 @@ export class Engine extends EventDispatcher {
 
   /**
    * Destroy engine.
+   * @remarks The timing of engine destruction is at the end of the current frame
    */
   destroy(): void {
-    if (this._sceneManager) {
-      this._whiteTexture2D.destroy(true);
-      this._whiteTextureCube.destroy(true);
-      this.inputManager._destroy();
-      this.trigger(new Event("shutdown", this));
-
-      // -- cancel animation
-      this.pause();
-
-      this._animate = null;
-
-      this._sceneManager._destroy();
-      this._resourceManager._destroy();
-      // If engine destroy, applyScriptsInvalid() maybe will not call anymore.
-      this._componentsManager.handlingInvalidScripts();
-      this._sceneManager = null;
-      this._resourceManager = null;
-
-      this._canvas = null;
-
-      this._time = null;
-
-      // delete mask manager
-      this._spriteMaskManager.destroy();
-
-      this.removeAllEventListeners();
+    if (this._destroyed) {
+      return;
     }
+    this._waittingDestroy = true;
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._resourceManager._destroy();
+    this._magentaTexture2D.destroy(true);
+    this._magentaTextureCube.destroy(true);
+    this.inputManager._destroy();
+    this.trigger(new Event("shutdown", this));
+    engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
+
+    // -- cancel animation
+    this.pause();
+
+    this._animate = null;
+
+    this._sceneManager = null;
+    this._resourceManager = null;
+
+    this._canvas = null;
+
+    this.features = [];
+    this._time = null;
+
+    // delete mask manager
+    this._spriteMaskManager.destroy();
+
+    // todo: delete
+    (engineFeatureManager as any)._objects = [];
+    this.removeAllEventListeners();
+    this._waittingDestroy = false;
+    this._destroyed = true;
   }
 
   /**
