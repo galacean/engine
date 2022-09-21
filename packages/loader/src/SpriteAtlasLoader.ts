@@ -33,60 +33,60 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
                 type: "image"
               })
             )
-          ).then((imgs) => {
-            const { engine } = resourceManager;
-            // Generate a SpriteAtlas object.
-            const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;
-            const spriteAtlas = new SpriteAtlas(engine);
-            for (let i = 0; i < atlasItemsLen; i++) {
-              // Generate Texture2D according to configuration.
-              const originalImg = imgs[i];
-              const { width, height } = originalImg;
-              const texture = new Texture2D(engine, width, height, format);
-              texture.setImageSource(originalImg);
-              texture.generateMipmaps();
-              // Generate all the sprites on this texture.
-              const atlasItem = atlasItems[i];
-              const sprites = atlasItem.sprites;
-              const sourceWidthReciprocal = 1.0 / width;
-              const sourceHeightReciprocal = 1.0 / height;
-              for (let j = sprites.length - 1; j >= 0; j--) {
-                const atlasSprite = sprites[j];
-                const { region, atlasRegionOffset, atlasRegion, id, pivot } = atlasSprite;
-                const sprite = new Sprite(
-                  engine,
-                  texture,
-                  region ? tempRect.set(region.x, region.y, region.w, region.h) : undefined,
-                  pivot ? tempVec2.set(pivot.x, pivot.y) : undefined,
-                  undefined,
-                  atlasSprite.name
-                );
-                sprite.atlasRegion.set(
-                  atlasRegion.x * sourceWidthReciprocal,
-                  atlasRegion.y * sourceHeightReciprocal,
-                  atlasRegion.w * sourceWidthReciprocal,
-                  atlasRegion.h * sourceHeightReciprocal
-                );
-                atlasSprite.atlasRotated && (sprite.atlasRotated = true);
-                if (atlasRegionOffset) {
-                  const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
-                  sprite.atlasRegionOffset.set(
-                    offsetLeft * sourceWidthReciprocal,
-                    offsetTop * sourceHeightReciprocal,
-                    offsetRight * sourceWidthReciprocal,
-                    offsetBottom * sourceHeightReciprocal
+          )
+            .then((imgs) => {
+              const { engine } = resourceManager;
+              // Generate a SpriteAtlas object.
+              const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;
+              const spriteAtlas = new SpriteAtlas(engine);
+              for (let i = 0; i < atlasItemsLen; i++) {
+                // Generate Texture2D according to configuration.
+                const originalImg = imgs[i];
+                const { width, height } = originalImg;
+                const texture = new Texture2D(engine, width, height, format);
+                texture.setImageSource(originalImg);
+                atlasData.mipmap && texture.generateMipmaps();
+                // Generate all the sprites on this texture.
+                const atlasItem = atlasItems[i];
+                const sprites = atlasItem.sprites;
+                const sourceWidthReciprocal = 1.0 / width;
+                const sourceHeightReciprocal = 1.0 / height;
+                for (let j = sprites.length - 1; j >= 0; j--) {
+                  const atlasSprite = sprites[j];
+                  const { region, atlasRegionOffset, atlasRegion, pivot } = atlasSprite;
+                  const sprite = new Sprite(
+                    engine,
+                    texture,
+                    region ? tempRect.set(region.x, region.y, region.w, region.h) : undefined,
+                    pivot ? tempVec2.set(pivot.x, pivot.y) : undefined,
+                    undefined,
+                    atlasSprite.name
                   );
-                }
-                if (id !== undefined) {
+                  sprite.atlasRegion.set(
+                    atlasRegion.x * sourceWidthReciprocal,
+                    atlasRegion.y * sourceHeightReciprocal,
+                    atlasRegion.w * sourceWidthReciprocal,
+                    atlasRegion.h * sourceHeightReciprocal
+                  );
+                  atlasSprite.atlasRotated && (sprite.atlasRotated = true);
+                  if (atlasRegionOffset) {
+                    const { x: offsetLeft, y: offsetTop, z: offsetRight, w: offsetBottom } = atlasRegionOffset;
+                    sprite.atlasRegionOffset.set(
+                      offsetLeft * sourceWidthReciprocal,
+                      offsetTop * sourceHeightReciprocal,
+                      offsetRight * sourceWidthReciprocal,
+                      offsetBottom * sourceHeightReciprocal
+                    );
+                  }
                   // @ts-ignore
-                  sprite._assetID = id;
+                  spriteAtlas._addSprite(sprite);
                 }
-                // @ts-ignore
-                spriteAtlas._addSprite(sprite);
               }
-            }
-            resolve(spriteAtlas);
-          });
+              resolve(spriteAtlas);
+            })
+            .catch((e) => {
+              reject(e);
+            });
         })
         .catch((e) => {
           reject(e);
