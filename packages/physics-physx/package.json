@@ -24,6 +24,6 @@
     "oasis-engine": "0.0.0-experiment-canvas.2"
   },
   "peerDependencies": {
-    "oasis-engine": "0.0.0-experiment-canvas.1"
+    "oasis-engine": "0.0.0-experiment-canvas.2"
   }
 }
