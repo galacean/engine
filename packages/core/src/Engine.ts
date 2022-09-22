@@ -108,6 +108,8 @@ export class Engine extends EventDispatcher {
   private _timeoutId: number;
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
+  private _destroyed: boolean = false;
+  private _waittingDestroy: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -190,6 +192,13 @@ export class Engine extends EventDispatcher {
     value = Math.max(0.000001, value);
     this._targetFrameRate = value;
     this._targetFrameInterval = 1000 / value;
+  }
+
+  /**
+   * Indicates whether the engine is destroyed.
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
   }
 
   /**
@@ -321,7 +330,17 @@ export class Engine extends EventDispatcher {
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
       this._render(scene);
-      componentsManager.handlingInvalidScripts();
+    }
+
+    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
+
+    // Engine is complete delayed destruction mechanism
+    if (this._waittingDestroy) {
+      this._sceneManager._destroyAllScene();
+    }
+    componentsManager.handlingInvalidScripts();
+    if (this._waittingDestroy) {
+      this._destroy();
     }
   }
 
@@ -335,35 +354,47 @@ export class Engine extends EventDispatcher {
 
   /**
    * Destroy engine.
+   * @remarks The timing of engine destruction is at the end of the current frame
    */
   destroy(): void {
-    if (this._sceneManager) {
-      this._magentaTexture2D.destroy(true);
-      this._magentaTextureCube.destroy(true);
-      this.inputManager._destroy();
-      this.trigger(new Event("shutdown", this));
-
-      // -- cancel animation
-      this.pause();
-
-      this._animate = null;
-
-      this._sceneManager._destroy();
-      this._resourceManager._destroy();
-      // If engine destroy, applyScriptsInvalid() maybe will not call anymore.
-      this._componentsManager.handlingInvalidScripts();
-      this._sceneManager = null;
-      this._resourceManager = null;
-
-      this._canvas = null;
-
-      this._time = null;
-
-      // delete mask manager
-      this._spriteMaskManager.destroy();
-
-      this.removeAllEventListeners();
+    if (this._destroyed) {
+      return;
     }
+    this._waittingDestroy = true;
+  }
+
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._resourceManager._destroy();
+    this._magentaTexture2D.destroy(true);
+    this._magentaTextureCube.destroy(true);
+    this.inputManager._destroy();
+    this.trigger(new Event("shutdown", this));
+    engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
+
+    // -- cancel animation
+    this.pause();
+
+    this._animate = null;
+
+    this._sceneManager = null;
+    this._resourceManager = null;
+
+    this._canvas = null;
+
+    this.features = [];
+    this._time = null;
+
+    // delete mask manager
+    this._spriteMaskManager.destroy();
+
+    // todo: delete
+    (engineFeatureManager as any)._objects = [];
+    this.removeAllEventListeners();
+    this._waittingDestroy = false;
+    this._destroyed = true;
   }
 
   /**
