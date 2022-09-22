@@ -332,8 +332,6 @@ export class Engine extends EventDispatcher {
       this._render(scene);
     }
 
-    engineFeatureManager.callFeatureMethod(this, "postTick", [this, this._sceneManager._activeScene]);
-
     // Engine is complete delayed destruction mechanism
     if (this._waittingDestroy) {
       this._sceneManager._destroyAllScene();
@@ -372,7 +370,6 @@ export class Engine extends EventDispatcher {
     this._magentaTextureCube.destroy(true);
     this.inputManager._destroy();
     this.trigger(new Event("shutdown", this));
-    engineFeatureManager.callFeatureMethod(this, "shutdown", [this]);
 
     // -- cancel animation
     this.pause();
@@ -384,14 +381,11 @@ export class Engine extends EventDispatcher {
 
     this._canvas = null;
 
-    this.features = [];
     this._time = null;
 
     // delete mask manager
     this._spriteMaskManager.destroy();
 
-    // todo: delete
-    (engineFeatureManager as any)._objects = [];
     this.removeAllEventListeners();
     this._waittingDestroy = false;
     this._destroyed = true;
