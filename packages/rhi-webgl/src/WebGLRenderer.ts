@@ -38,7 +38,7 @@ export enum WebGLMode {
   Auto = 0,
   /** WebGL2.0. */
   WebGL2 = 1,
-  /** WebGL1.0, */
+  /** WebGL1.0. */
   WebGL1 = 2
 }
 
@@ -48,6 +48,8 @@ export enum WebGLMode {
 export interface WebGLRendererOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
+  /** Whether experimental contexts are allowed. */
+  enableExperimental?: boolean;
 }
 
 /**
@@ -108,12 +110,18 @@ export class WebGLRenderer implements IHardwareRenderer {
     option.alpha === undefined && (option.alpha = false);
     option.stencil === undefined && (option.stencil = true);
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
-    const webGLMode = option.webGLMode || WebGLMode.Auto;
+    const webGLMode = option.webGLMode ?? WebGLMode.Auto;
+    const enableExperimental = option.enableExperimental ?? true;
+
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
       gl = webCanvas.getContext("webgl2", option);
-      if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
+      if (
+        enableExperimental &&
+        !gl &&
+        (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))
+      ) {
         gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", option);
       }
       this._isWebGL2 = true;
@@ -127,7 +135,11 @@ export class WebGLRenderer implements IHardwareRenderer {
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
         gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", option);
-        if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
+        if (
+          enableExperimental &&
+          !gl &&
+          (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))
+        ) {
           gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", option);
         }
         this._isWebGL2 = false;
