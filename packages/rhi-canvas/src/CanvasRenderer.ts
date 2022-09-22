@@ -65,6 +65,10 @@ export class CanvasRenderer implements IHardwareRenderer {
 
   clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor: Color) {
     const { ctx } = this;
+    const { _webCanvas } = this;
+    const realCanvas = _webCanvas._webCanvas;
+    _webCanvas.width !== realCanvas.width && (_webCanvas.width = realCanvas.width);
+    _webCanvas.height !== realCanvas.height && (_webCanvas.height = realCanvas.height);
     const { width, height } = this._webCanvas;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = `rgba(
