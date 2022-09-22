@@ -17,6 +17,6 @@
   ],
   "types": "types/index.d.ts",
   "dependencies": {
-    "@oasis-engine/math": "0.8.0-beta.25"
+    "@oasis-engine/math": "0.8.0-beta.26"
   }
 }

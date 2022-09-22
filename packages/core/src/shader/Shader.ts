@@ -13,6 +13,8 @@ import { ShaderProperty } from "./ShaderProperty";
 export class Shader {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  static _propertyIdMap: Record<number, ShaderProperty> = Object.create(null);
 
   private static _shaderCounter: number = 0;
   private static _shaderMap: Record<string, Shader> = Object.create(null);
@@ -92,6 +94,7 @@ export class Shader {
     } else {
       const property = new ShaderProperty(name);
       propertyNameMap[name] = property;
+      Shader._propertyIdMap[property._uniqueId] = property;
       return property;
     }
   }

@@ -18,9 +18,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.8.0-beta.25",
-    "@oasis-engine/draco": "0.8.0-beta.25",
-    "@oasis-engine/math": "0.8.0-beta.25",
-    "@oasis-engine/rhi-webgl": "0.8.0-beta.25"
+    "@oasis-engine/core": "0.8.0-beta.26",
+    "@oasis-engine/draco": "0.8.0-beta.26",
+    "@oasis-engine/math": "0.8.0-beta.26",
+    "@oasis-engine/rhi-webgl": "0.8.0-beta.26"
   }
 }

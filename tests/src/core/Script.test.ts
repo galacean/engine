@@ -10,6 +10,36 @@ describe("Scene", () => {
   engine.run();
 
   describe("onEnable/onDisable/onAwake", () => {
+    it("Add script to Entity", () => {
+      class TestScript extends Script {
+        onAwake() {
+          console.log("ParentScript___onAwake");
+        }
+        onEnable() {
+          console.log("ParentScript___onEnable");
+        }
+
+        onDisable() {
+          console.log("ParentScript___onDisable");
+        }
+      }
+      TestScript.prototype.onAwake = chai.spy(TestScript.prototype.onAwake);
+      TestScript.prototype.onEnable = chai.spy(TestScript.prototype.onEnable);
+      TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
+
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity();
+
+      const testEntity = new Entity(engine);
+      rootEntity.addChild(testEntity);
+
+      const testScript = testEntity.addComponent(TestScript);
+
+      expect(testScript.onAwake).to.have.been.called.exactly(1);
+      expect(testScript.onEnable).to.have.been.called.exactly(1);
+      expect(testScript.onDisable).to.have.been.called.exactly(0);
+    });
+
     it("Parent onAwakeb call inAtive child", () => {
       class ParentScript extends Script {
         onAwake() {
@@ -24,7 +54,21 @@ describe("Scene", () => {
         onDisable() {
           console.log("ParentScript___onDisable");
         }
+        onUpdate() {
+          console.log("ParentScript___onUpdate");
+        }
+
+        onLateUpdate() {
+          console.log("ParentScript___onLateUpdate");
+        }
+
+        onDestroy() {
+          console.log("ParentScript___onDestroy");
+        }
       }
+      ParentScript.prototype.onAwake = chai.spy(ParentScript.prototype.onAwake);
+      ParentScript.prototype.onEnable = chai.spy(ParentScript.prototype.onEnable);
+      ParentScript.prototype.onDisable = chai.spy(ParentScript.prototype.onDisable);
 
       class ChildScript extends Script {
         onAwake() {
@@ -37,22 +81,32 @@ describe("Scene", () => {
         onDisable() {
           console.log("ChildScript___onDisable");
         }
+
+        onUpdate() {
+          console.log("ChildScript___onUpdate");
+          this.engine.destroy();
+        }
+
+        onLateUpdate() {
+          console.log("ChildScript___onLateUpdate");
+        }
+
+        onDestroy() {
+          console.log("ChildScript___onDestroy");
+        }
       }
+      ChildScript.prototype.onAwake = chai.spy(ChildScript.prototype.onAwake);
+      ChildScript.prototype.onEnable = chai.spy(ChildScript.prototype.onEnable);
+      ChildScript.prototype.onDisable = chai.spy(ChildScript.prototype.onDisable);
 
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity();
 
       const parent = new Entity(engine);
       const parentScript = parent.addComponent(ParentScript);
-      parentScript.onAwake = chai.spy(parentScript.onAwake);
-      parentScript.onEnable = chai.spy(parentScript.onEnable);
-      parentScript.onDisable = chai.spy(parentScript.onDisable);
 
       const child = parent.createChild("child");
       const childScript = child.addComponent(ChildScript);
-      childScript.onAwake = chai.spy(childScript.onAwake);
-      childScript.onEnable = chai.spy(childScript.onEnable);
-      childScript.onDisable = chai.spy(childScript.onDisable);
 
       rootEntity.addChild(parent);
 
