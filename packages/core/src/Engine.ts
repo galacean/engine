@@ -321,7 +321,15 @@ export class Engine extends EventDispatcher {
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
       this._render(scene);
-      componentsManager.handlingInvalidScripts();
+    }
+
+    // Engine is complete delayed destruction mechanism
+    if (this._waittingDestroy) {
+      this._sceneManager._destroyAllScene();
+    }
+    componentsManager.handlingInvalidScripts();
+    if (this._waittingDestroy) {
+      this._destroy();
     }
   }
 
@@ -337,14 +345,24 @@ export class Engine extends EventDispatcher {
    * Destroy engine.
    */
   destroy(): void {
-    if (this._sceneManager) {
-      this._magentaTexture2D.destroy(true);
-      this._magentaTextureCube.destroy(true);
-      this.inputManager._destroy();
-      this.trigger(new Event("shutdown", this));
+    if (this._destroyed) {
+      return;
+    }
+    this._waittingDestroy = true;
+  }
 
-      // -- cancel animation
-      this.pause();
+  /**
+   * @internal
+   */
+  _destroy(): void {
+    this._resourceManager._destroy();
+    this._magentaTexture2D.destroy(true);
+    this._magentaTextureCube.destroy(true);
+    this.inputManager._destroy();
+    this.trigger(new Event("shutdown", this));
+
+    // -- cancel animation
+    this.pause();
 
       this._animate = null;
 
@@ -357,13 +375,14 @@ export class Engine extends EventDispatcher {
 
       this._canvas = null;
 
-      this._time = null;
+    this._time = null;
 
-      // delete mask manager
-      this._spriteMaskManager.destroy();
+    // delete mask manager
+    this._spriteMaskManager.destroy();
 
-      this.removeAllEventListeners();
-    }
+    this.removeAllEventListeners();
+    this._waittingDestroy = false;
+    this._destroyed = true;
   }
 
   /**
