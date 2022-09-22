@@ -277,7 +277,7 @@ export class TextUtils {
         context.font = fontDesc;
         const textWidth = context.measureText(testString).width;
 
-        const div = document.createElement("div");
+        let div = document.createElement("div");
         div.innerHTML = "Oasis";
         const style = div.style;
         style.position = "absolute";
@@ -285,17 +285,24 @@ export class TextUtils {
         style.top = "-100px";
         body.appendChild(div);
 
+        const complete = () => {
+          clearTimeout(checkTimeId);
+          clearTimeout(checkCompleteId);
+          if (div && div.parentNode) {
+            div.parentNode.removeChild(div);
+            div = null;
+          }
+        };
+
         const checkTimeId = setTimeout(() => {
           context.font = fontDesc;
           if (context.measureText(testString).width !== textWidth) {
-            clearTimeout(checkTimeId);
-            clearTimeout(checkCompleteId);
+            complete();
             resolve(true);
           }
         }, 30);
         const checkCompleteId = setTimeout(() => {
-          clearTimeout(checkTimeId);
-          clearTimeout(checkCompleteId);
+          complete();
           reject(new Error(`load ${fontUrl} fail`));
         }, 3000);
       } catch (e) {
