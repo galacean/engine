@@ -1,6 +1,6 @@
 {
   "npmClient": "npm",
-  "version": "0.0.0-experiment-canvas.1",
+  "version": "0.0.0-experiment-canvas.2",
   "bootstrap": {
     "hoist": true
   },

@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/physics-physx",
-  "version": "0.0.0-experiment-canvas.1",
+  "version": "0.0.0-experiment-canvas.2",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -20,10 +20,10 @@
     "types/**/*"
   ],
   "devDependencies": {
-    "@oasis-engine/design": "0.0.0-experiment-canvas.1",
-    "oasis-engine": "0.0.0-experiment-canvas.1"
+    "@oasis-engine/design": "0.0.0-experiment-canvas.2",
+    "oasis-engine": "0.0.0-experiment-canvas.2"
   },
   "peerDependencies": {
-    "oasis-engine": "0.9.0-canvas.2"
+    "oasis-engine": "0.0.0-experiment-canvas.1"
   }
 }
