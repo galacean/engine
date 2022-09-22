@@ -33,6 +33,7 @@ export class CanvasRenderer implements IHardwareRenderer {
   private _ctx: CanvasRenderingContext2D;
   private _capability: CanvasCapability;
   private _webCanvas: Canvas2dCanvas;
+  private _realCanvas: HTMLCanvasElement | OffscreenCanvas;
 
   /**
    * 2D Context
@@ -54,8 +55,9 @@ export class CanvasRenderer implements IHardwareRenderer {
   }
 
   init(canvas: Canvas) {
-    const webCanvas = (this._webCanvas = (canvas as Canvas2dCanvas)._webCanvas);
-    this._ctx = webCanvas.getContext("2d");
+    const webCanvas = this._webCanvas = canvas as Canvas2dCanvas;
+    const realCanvas = this._realCanvas = webCanvas._webCanvas;
+    this._ctx = realCanvas.getContext("2d");
     this._capability = new CanvasCapability(this);
   }
 
@@ -65,11 +67,10 @@ export class CanvasRenderer implements IHardwareRenderer {
 
   clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor: Color) {
     const { ctx } = this;
-    const { _webCanvas } = this;
-    const realCanvas = _webCanvas._webCanvas;
-    _webCanvas.width !== realCanvas.width && (_webCanvas.width = realCanvas.width);
-    _webCanvas.height !== realCanvas.height && (_webCanvas.height = realCanvas.height);
-    const { width, height } = this._webCanvas;
+    const { _webCanvas, _realCanvas } = this;
+    _webCanvas.width !== _realCanvas.width && (_webCanvas.width = _realCanvas.width);
+    _webCanvas.height !== _realCanvas.height && (_webCanvas.height = _realCanvas.height);
+    const { width, height } = _webCanvas;
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = `rgba(
       ${Math.floor(255 * clearColor.r)},
