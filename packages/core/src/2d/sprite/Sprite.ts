@@ -45,6 +45,7 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
+      this._width = this._height = undefined;
       this._dispatchSpriteChange(SpritePropertyDirtyFlag.texture);
     }
   }
@@ -132,6 +133,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
+    this._width = this._height = undefined;
     this._dispatchSpriteChange(SpritePropertyDirtyFlag.region);
   }
 
