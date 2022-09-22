@@ -61,6 +61,8 @@ export class SceneParser extends Parser {
     if (context.defaultSceneRoot) {
       this._createAnimator(context);
     }
+    
+    delete context.gltf.extensions["OASIS_materials_remap"];
     return Promise.all(promises);
   }
 
@@ -138,8 +140,6 @@ export class SceneParser extends Parser {
       }
 
       const materialIndex = gltfMeshPrimitives[i].material;
-      const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
-      renderer.setMaterial(material);
       const remapMaterials = context.gltf.extensions["OASIS_materials_remap"];
       if (remapMaterials && remapMaterials[materialIndex]) {
         promises.push(
@@ -147,6 +147,9 @@ export class SceneParser extends Parser {
             renderer.setMaterial(mtl);
           })
         );
+      } else {
+        const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
+        renderer.setMaterial(material);
       }
 
       const { extensions = {} } = gltfMeshPrimitives[i];
