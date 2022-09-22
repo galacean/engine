@@ -42,5 +42,7 @@ export enum AssetType {
   /** scene */
   Scene = "scene",
   /** HDR to cube */
-  HDR = "HDR"
+  HDR = "HDR",
+  /** Font to text renderer */
+  Font = "Font"
 }

@@ -248,6 +248,62 @@ export class TextUtils {
     return str;
   }
 
+  static async registerTTF(fontName: string, fontUrl: string): Promise<boolean> {
+    if (FontFace) {
+      return this._registerWithFontFace(fontName, fontUrl);
+    } else {
+      return this._registerWithCSS(fontName, fontUrl);
+    }
+  }
+
+  private static async _registerWithFontFace(fontName: string, fontUrl: string): Promise<boolean> {
+    const fontFace = new FontFace(fontName, `url(${fontUrl})`);
+    await fontFace.load();
+    document.fonts.add(fontFace);
+    return true;
+  }
+
+  private static async _registerWithCSS(fontName: string, fontUrl: string): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      try {
+        const fontStyle = document.createElement("style");
+        fontStyle.type = "text/css";
+        const { body } = document;
+        body.appendChild(fontStyle);
+        fontStyle.textContent = `@font-face { font-family:${fontName}; src:url("${fontUrl}");}`;
+        const { context } = TextUtils.textContext();
+        const testString = "OasisTTFFont";
+        const fontDesc = `40px ${fontName}`;
+        context.font = fontDesc;
+        const textWidth = context.measureText(testString).width;
+
+        const div = document.createElement("div");
+        div.innerHTML = "Oasis";
+        const style = div.style;
+        style.position = "absolute";
+        style.left = "-100px";
+        style.top = "-100px";
+        body.appendChild(div);
+
+        const checkTimeId = setTimeout(() => {
+          context.font = fontDesc;
+          if (context.measureText(testString).width !== textWidth) {
+            clearTimeout(checkTimeId);
+            clearTimeout(checkCompleteId);
+            resolve(true);
+          }
+        }, 30);
+        const checkCompleteId = setTimeout(() => {
+          clearTimeout(checkTimeId);
+          clearTimeout(checkCompleteId);
+          reject(new Error(`load ${fontUrl} fail`));
+        }, 3000);
+      } catch (e) {
+        reject(e);
+      }
+    });
+  }
+
   private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;

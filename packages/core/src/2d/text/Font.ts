@@ -3,6 +3,7 @@ import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 import { CharInfo } from "./CharInfo";
 import { FontAtlas } from "../atlas/FontAtlas";
+import { AssetType } from "../../asset/AssetType";
 
 /**
  * Font.
@@ -25,6 +26,43 @@ export class Font extends RefObject {
     font = new Font(engine, name);
     fontMap[name] = font;
     return font;
+  }
+
+  /**
+   *
+   * @param engine
+   * @param fontUrl
+   * @returns
+   */
+  static async createFromTTF(engine: Engine, fontUrl: string = ""): Promise<Font> {
+    const name = this.getFontNameFromTTF(fontUrl);
+    if (name) {
+      const fontMap = Font._fontMap;
+      let font = fontMap[name];
+      if (font) {
+        return font;
+      }
+      font = await engine.resourceManager.load<Font>({
+        url: fontUrl,
+        type: AssetType.Font
+      });
+      font && (fontMap[name] = font);
+      return font;
+    }
+    return null;
+  }
+
+  /**
+   * Get font name from ttf url.
+   * @param fontUrl - the ttf url
+   * @returns The font name from ttf url
+   */
+  static getFontNameFromTTF(fontUrl: string = ""): string {
+    if (fontUrl && fontUrl.endsWith(".ttf")) {
+      const tempArray = fontUrl.toLowerCase().split(".ttf")[0].split("/");
+      return `TTF-${tempArray[tempArray.length - 1]}`;
+    }
+    return "";
   }
 
   private _name: string = "";
@@ -51,7 +89,7 @@ export class Font extends RefObject {
     let lastIndex = this._lastIndex;
     if (lastIndex === -1) {
       this._createFontAtlas();
-      lastIndex++
+      lastIndex++;
     }
     let fontAtlas = fontAtlases[lastIndex];
     if (!fontAtlas.uploadCharTexture(charInfo)) {

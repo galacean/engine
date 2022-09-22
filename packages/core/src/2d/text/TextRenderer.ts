@@ -132,7 +132,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   set font(value: Font) {
-    if (this._font !== value) {
+    if (value && this._font !== value) {
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
