@@ -1,6 +1,6 @@
 {
   "name": "oasis-engine",
-  "version": "0.0.0-experiment-canvas.0",
+  "version": "0.0.0-experiment-canvas.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,10 +18,10 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.0.0-experiment-canvas.0",
-    "@oasis-engine/loader": "0.0.0-experiment-canvas.0",
-    "@oasis-engine/math": "0.0.0-experiment-canvas.0",
-    "@oasis-engine/rhi-canvas": "0.0.0-experiment-canvas.0",
-    "@oasis-engine/rhi-webgl": "0.0.0-experiment-canvas.0"
+    "@oasis-engine/core": "0.0.0-experiment-canvas.1",
+    "@oasis-engine/loader": "0.0.0-experiment-canvas.1",
+    "@oasis-engine/math": "0.0.0-experiment-canvas.1",
+    "@oasis-engine/rhi-canvas": "0.0.0-experiment-canvas.1",
+    "@oasis-engine/rhi-webgl": "0.0.0-experiment-canvas.1"
   }
 }

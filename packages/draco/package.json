@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/draco",
-  "version": "0.0.0-experiment-canvas.0",
+  "version": "0.0.0-experiment-canvas.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -17,6 +17,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.0.0-experiment-canvas.0"
+    "@oasis-engine/core": "0.0.0-experiment-canvas.1"
   }
 }
