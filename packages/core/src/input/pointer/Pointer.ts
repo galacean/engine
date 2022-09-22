@@ -7,7 +7,7 @@ import { PointerPhase } from "../enums/PointerPhase";
 export class Pointer {
   /**
    * Unique id.
-   * @remark Start from 0.
+   * @remarks Start from 0.
    */
   readonly id: number;
   /** The phase of pointer. */
