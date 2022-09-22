@@ -161,7 +161,7 @@ export class Sprite extends RefObject {
    *  x      y       z     w
    *  |      |       |     |
    * Left, bottom, right, top.
-   * @remark only use in sliced mode.
+   * @remarks only use in sliced mode.
    */
   get border(): Vector4 {
     return this._border;
