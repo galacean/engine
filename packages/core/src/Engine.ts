@@ -108,6 +108,8 @@ export class Engine extends EventDispatcher {
   private _timeoutId: number;
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
+  private _destroyed: boolean = false;
+  private _waittingDestroy: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -190,6 +192,13 @@ export class Engine extends EventDispatcher {
     value = Math.max(0.000001, value);
     this._targetFrameRate = value;
     this._targetFrameInterval = 1000 / value;
+  }
+
+  /**
+   * Indicates whether the engine is destroyed.
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
   }
 
   /**
@@ -343,6 +352,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * Destroy engine.
+   * @remarks The timing of engine destruction is at the end of the current frame
    */
   destroy(): void {
     if (this._destroyed) {
@@ -364,16 +374,12 @@ export class Engine extends EventDispatcher {
     // -- cancel animation
     this.pause();
 
-      this._animate = null;
+    this._animate = null;
 
-      this._sceneManager._destroy();
-      this._resourceManager._destroy();
-      // If engine destroy, applyScriptsInvalid() maybe will not call anymore.
-      this._componentsManager.handlingInvalidScripts();
-      this._sceneManager = null;
-      this._resourceManager = null;
+    this._sceneManager = null;
+    this._resourceManager = null;
 
-      this._canvas = null;
+    this._canvas = null;
 
     this._time = null;
 
