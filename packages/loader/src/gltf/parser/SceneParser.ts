@@ -26,13 +26,15 @@ export class SceneParser extends Parser {
     return SceneParser._defaultMaterial;
   }
 
-  parse(context: GLTFResource): void {
+  parse(context: GLTFResource): Promise<any> {
     const {
       gltf: { nodes, cameras: gltfCameras },
       entities
     } = context;
 
     if (!nodes) return;
+
+    const promises = [];
 
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
@@ -45,7 +47,7 @@ export class SceneParser extends Parser {
       }
 
       if (meshID !== undefined) {
-        this._createRenderer(context, gltfNode, entity);
+        promises.push(this._createRenderer(context, gltfNode, entity));
       }
 
       if (KHR_lights_punctual) {
@@ -59,6 +61,9 @@ export class SceneParser extends Parser {
     if (context.defaultSceneRoot) {
       this._createAnimator(context);
     }
+    
+    delete context.gltf.extensions["OASIS_materials_remap"];
+    return Promise.all(promises);
   }
 
   private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
@@ -101,7 +106,7 @@ export class SceneParser extends Parser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: GLTFResource, gltfNode: INode, entity: Entity): void {
+  private _createRenderer(context: GLTFResource, gltfNode: INode, entity: Entity): Promise<any> {
     const {
       engine,
       gltf: { meshes: gltfMeshes },
@@ -114,6 +119,7 @@ export class SceneParser extends Parser {
     const gltfMeshPrimitives = glTFMesh.primitives;
     const blendShapeWeights = gltfNode.weights || glTFMesh.weights;
 
+    const promises = [];
     for (let i = 0; i < gltfMeshPrimitives.length; i++) {
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
@@ -134,8 +140,17 @@ export class SceneParser extends Parser {
       }
 
       const materialIndex = gltfMeshPrimitives[i].material;
-      const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
-      renderer.setMaterial(material);
+      const remapMaterials = context.gltf.extensions["OASIS_materials_remap"];
+      if (remapMaterials && remapMaterials[materialIndex]) {
+        promises.push(
+          remapMaterials[materialIndex].then((mtl) => {
+            renderer.setMaterial(mtl);
+          })
+        );
+      } else {
+        const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
+        renderer.setMaterial(material);
+      }
 
       const { extensions = {} } = gltfMeshPrimitives[i];
       const { KHR_materials_variants } = extensions;
@@ -143,6 +158,7 @@ export class SceneParser extends Parser {
         Parser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context);
       }
     }
+    return Promise.all(promises);
   }
 
   private _createAnimator(context: GLTFResource) {
