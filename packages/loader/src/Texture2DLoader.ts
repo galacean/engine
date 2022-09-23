@@ -17,10 +17,8 @@ class Texture2DLoader extends Loader<Texture2D> {
         type: "image"
       })
         .then((image) => {
-          const params = item.params || {};
-          const width = params.width ?? image.width;
-          const height = params.height ?? image.height;
-          const texture = new Texture2D(resourceManager.engine, width, height, params.format, params.mipmap);
+          const params = item.texture2DParams ?? {};
+          const texture = new Texture2D(resourceManager.engine, image.width, image.height, params.format, params.mipmap);
           /** @ts-ignore */
           if (!texture._platformTexture) return;
           texture.setImageSource(image);
