@@ -26,6 +26,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
  * GlTF loader params.
  */
 export class GLTFParams {
-  /** Keep raw mesh data for glTF parser, default is false. */
-  keepMeshData: boolean = false;
+  /**
+   * Create glTF load params.
+   * @param keepMeshData - Keep raw mesh data for glTF parser, default is false
+   */
+  constructor(keepMeshData: boolean = false) {}
 }

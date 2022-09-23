@@ -48,8 +48,10 @@ class Texture2DLoader extends Loader<Texture2D> {
  * Texture2D loader params.
  */
 export class Texture2DParams {
-  /** Texture format. default  `TextureFormat.R8G8B8A8`. */
-  format: TextureFormat = TextureFormat.R8G8B8A8;
-  /** Whether to use multi-level texture, default is true. */
-  mipmap: boolean = true;
+  /**
+   * Create Texture2D loader params.
+   * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
+   * @param mipmap - Whether to use multi-level texture, default is true.
+   */
+  constructor(format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {}
 }
