@@ -10,7 +10,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       const resource = new GLTFResource(resourceManager.engine);
       resource.url = url;
-      let pipeline = GLTFParser.texturePipeline;
+      let pipeline = GLTFParser.defaultPipeline;
 
       const query = GLTFUtil.getQuery(url);
       if (query.q) {
