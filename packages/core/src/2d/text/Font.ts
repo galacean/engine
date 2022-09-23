@@ -3,7 +3,7 @@ import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture";
 import { CharInfo } from "./CharInfo";
 import { FontAtlas } from "../atlas/FontAtlas";
-import { AssetType } from "../../asset/AssetType";
+import { TextUtils } from "./TextUtils";
 
 /**
  * Font.
@@ -15,9 +15,32 @@ export class Font extends RefObject {
    * Create a font from OS.
    * @param engine - Engine to which the font belongs
    * @param name - The name of font
+   * @param fontUrl - The font url to register, if not, will use system font
    * @returns The font object has been create
    */
-  static createFromOS(engine: Engine, name: string = ""): Font {
+  static async create(engine: Engine, name: string, fontUrl: string = ""): Promise<Font> {
+    if (name) {
+      const fontMap = Font._fontMap;
+      let font = fontMap[name];
+      if (font) {
+        return font;
+      }
+      await TextUtils.registerTTF(name, fontUrl);
+      font = new Font(engine, name);
+      fontMap[name] = font;
+      return font;
+    }
+    return null;
+  }
+
+  /**
+   * @internal
+   * Create a font from OS.
+   * @param engine - Engine to which the font belongs
+   * @param name - The name of font
+   * @returns The font object has been create
+   */
+  static _createFromOS(engine: Engine, name: string = ""): Font {
     const fontMap = Font._fontMap;
     let font = fontMap[name];
     if (font) {
@@ -26,43 +49,6 @@ export class Font extends RefObject {
     font = new Font(engine, name);
     fontMap[name] = font;
     return font;
-  }
-
-  /**
-   *
-   * @param engine
-   * @param fontUrl
-   * @returns
-   */
-  static async createFromTTF(engine: Engine, fontUrl: string = ""): Promise<Font> {
-    const name = this.getFontNameFromTTF(fontUrl);
-    if (name) {
-      const fontMap = Font._fontMap;
-      let font = fontMap[name];
-      if (font) {
-        return font;
-      }
-      font = await engine.resourceManager.load<Font>({
-        url: fontUrl,
-        type: AssetType.Font
-      });
-      font && (fontMap[name] = font);
-      return font;
-    }
-    return null;
-  }
-
-  /**
-   * Get font name from ttf url.
-   * @param fontUrl - the ttf url
-   * @returns The font name from ttf url
-   */
-  static getFontNameFromTTF(fontUrl: string = ""): string {
-    if (fontUrl && fontUrl.endsWith(".ttf")) {
-      const tempArray = fontUrl.toLowerCase().split(".ttf")[0].split("/");
-      return `TTF-${tempArray[tempArray.length - 1]}`;
-    }
-    return "";
   }
 
   private _name: string = "";

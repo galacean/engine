@@ -281,7 +281,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._isWorldMatrixDirty.listener = () => {
       this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
     };
-    this.font = Font.createFromOS(engine);
+    this.font = Font._createFromOS(engine);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
@@ -427,7 +427,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       lastStyleFont._addRefCount(-1);
       lastStyleFont.destroy();
     }
-    this._styleFont = Font.createFromOS(
+    this._styleFont = Font._createFromOS(
       this.engine,
       TextUtils.getNativeFontHash(this.font.name, this.fontSize, this.fontStyle)
     );
