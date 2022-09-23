@@ -133,6 +133,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   set font(value: Font) {
     if (value && this._font !== value) {
+      this._font._addRefCount(-1);
+      value._addRefCount(1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -281,7 +283,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._isWorldMatrixDirty.listener = () => {
       this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
     };
-    this.font = Font._createFromOS(engine);
+    this._font = Font._createFromOS(engine);
+    this._font._addRefCount(1);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 

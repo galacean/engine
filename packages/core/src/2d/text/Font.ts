@@ -33,13 +33,7 @@ export class Font extends RefObject {
     return null;
   }
 
-  /**
-   * @internal
-   * Create a font from OS.
-   * @param engine - Engine to which the font belongs
-   * @param name - The name of font
-   * @returns The font object has been create
-   */
+  /** @internal */
   static _createFromOS(engine: Engine, name: string = ""): Font {
     const fontMap = Font._fontMap;
     let font = fontMap[name];
@@ -52,6 +46,7 @@ export class Font extends RefObject {
   }
 
   private _name: string = "";
+  private _fontUrl: string = "";
   private _fontAtlases: FontAtlas[] = [];
   private _lastIndex: number = -1;
 
@@ -62,9 +57,17 @@ export class Font extends RefObject {
     return this._name;
   }
 
-  private constructor(engine: Engine, name: string = "") {
+  /**
+   * The font url.
+   */
+  get fontUrl(): string {
+    return this._fontUrl;
+  }
+
+  private constructor(engine: Engine, name: string = "", fontUrl: string = "") {
     super(engine);
     this._name = name;
+    this._fontUrl = fontUrl;
   }
 
   /**
