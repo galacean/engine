@@ -11,10 +11,10 @@ export class MeshParser extends Parser {
   private _keepMeshData: boolean = false;
 
   parse(context: GLTFResource): Promise<void> {
-    const { engine, gltf, buffers, keepMeshData } = context;
+    const { engine, gltf, buffers, _keepMeshData } = context;
     if (!gltf.meshes) return;
 
-    this._keepMeshData = keepMeshData;
+    this._keepMeshData = _keepMeshData;
 
     const meshPromises: Promise<ModelMesh[]>[] = [];
 
