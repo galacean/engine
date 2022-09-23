@@ -15,8 +15,8 @@ import "./TextureCubeLoader";
 
 export { parseSingleKTX } from "./compressed-texture";
 export { GLTFResource } from "./gltf/GLTFResource";
-export { GLTFParams } from "./GLTFLoader";
 export * from "./resource-deserialize";
 export * from "./SceneLoader";
-export { Texture2DParams } from "./Texture2DLoader";
+export type { Texture2DParams } from "./Texture2DLoader";
+export type { GLTFParams } from "./GLTFLoader";
 

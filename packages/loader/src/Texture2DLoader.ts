@@ -18,7 +18,7 @@ class Texture2DLoader extends Loader<Texture2D> {
         type: "image"
       })
         .then((image) => {
-          const params = item.params ?? new Texture2DParams();
+          const params = item.params ?? {};
           const texture = new Texture2D(
             resourceManager.engine,
             image.width,
@@ -45,13 +45,11 @@ class Texture2DLoader extends Loader<Texture2D> {
 }
 
 /**
- * Texture2D loader params.
+ * Texture2D loader params interface.
  */
-export class Texture2DParams {
-  /**
-   * Create Texture2D loader params.
-   * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
-   * @param mipmap - Whether to use multi-level texture, default is true.
-   */
-  constructor(format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {}
+export interface Texture2DParams {
+  /** Texture format. default  `TextureFormat.R8G8B8A8` */
+  format: TextureFormat;
+  /** Whether to use multi-level texture, default is true. */
+  mipmap: boolean;
 }
