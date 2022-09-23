@@ -266,17 +266,17 @@ export class TextUtils {
   private static async _registerWithCSS(fontName: string, fontUrl: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
-        const fontStyle = document.createElement("style");
-        fontStyle.type = "text/css";
-        const { body } = document;
-        body.appendChild(fontStyle);
-        fontStyle.textContent = `@font-face { font-family:${fontName}; src:url("${fontUrl}");}`;
         const { context } = TextUtils.textContext();
         const testString = "OasisTTFFont";
         const fontDesc = `40px ${fontName}`;
         context.font = fontDesc;
         const textWidth = context.measureText(testString).width;
 
+        const fontStyle = document.createElement("style");
+        fontStyle.type = "text/css";
+        const { body } = document;
+        body.appendChild(fontStyle);
+        fontStyle.textContent = `@font-face { font-family:${fontName}; src:url("${fontUrl}");}`;
         let div = document.createElement("div");
         div.innerHTML = "Oasis";
         const style = div.style;
@@ -286,7 +286,7 @@ export class TextUtils {
         body.appendChild(div);
 
         const complete = () => {
-          clearTimeout(checkTimeId);
+          clearInterval(checkTimeId);
           clearTimeout(checkCompleteId);
           if (div && div.parentNode) {
             div.parentNode.removeChild(div);
@@ -294,7 +294,7 @@ export class TextUtils {
           }
         };
 
-        const checkTimeId = setTimeout(() => {
+        const checkTimeId = setInterval(() => {
           context.font = fontDesc;
           if (context.measureText(testString).width !== textWidth) {
             complete();
