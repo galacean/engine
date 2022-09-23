@@ -225,7 +225,7 @@ export class MeshParser extends Parser {
     // BlendShapes
     targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
-    mesh.uploadData(this._keepMeshData ? false : true);
+    mesh.uploadData(!this._keepMeshData);
     return Promise.resolve(mesh);
   }
 
