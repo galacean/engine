@@ -41,10 +41,10 @@ class MaterialLoader extends Loader<string> {
             break;
         }
 
-        const texturePromises = [];
-        const materialShaderData: ShaderData = material.shaderData;
+        const texturePromises = new Array<Promise<Texture2D | void>>();
+        const materialShaderData = material.shaderData;
         for (let key in shaderData) {
-          const { type, value } = shaderData[key];
+          const { type, value } = shaderData[key];``
 
           switch (type) {
             case "Vector2":
