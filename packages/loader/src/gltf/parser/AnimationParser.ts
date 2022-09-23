@@ -17,8 +17,8 @@ import { AccessorType, AnimationChannelTargetPath, AnimationSamplerInterpolation
 import { Parser } from "./Parser";
 
 export class AnimationParser extends Parser {
-  parse(context: GLTFResource): void {
-    const { gltf, buffers, entities } = context;
+  parse(context: GLTFResource) {
+    const { gltf, buffers, entities, animationIndex } = context;
     const { animations, accessors } = gltf;
     if (!animations) {
       return;
@@ -31,6 +31,9 @@ export class AnimationParser extends Parser {
     }>(animationClipCount);
 
     for (let i = 0; i < animationClipCount; i++) {
+      if (animationIndex >= 0 && animationIndex !== i) {
+        continue;
+      }
       const gltfAnimation = animations[i];
       const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
       const animationClip = new AnimationClip(name);
@@ -123,6 +126,15 @@ export class AnimationParser extends Parser {
         name,
         index: i
       };
+    }
+
+    if (animationIndex >= 0) {
+      const animationClip = animationClips[animationIndex];
+      if (animationClip) {
+        return animationClip;
+      } else {
+        throw `animation index not find in: ${animationIndex}`;
+      }
     }
     context.animations = animationClips;
     // @ts-ignore for editor

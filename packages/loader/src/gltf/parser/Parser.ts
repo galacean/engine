@@ -60,7 +60,7 @@ export abstract class Parser {
     Parser._extensionParsers[extensionName].push(extensionParser);
   }
 
-  abstract parse(context: GLTFResource): void | Promise<void>;
+  abstract parse(context: GLTFResource);
 }
 
 /**
