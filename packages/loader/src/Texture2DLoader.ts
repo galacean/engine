@@ -5,7 +5,8 @@ import {
   LoadItem,
   resourceLoader,
   ResourceManager,
-  Texture2D
+  Texture2D,
+  TextureFormat
 } from "@oasis-engine/core";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
@@ -17,8 +18,14 @@ class Texture2DLoader extends Loader<Texture2D> {
         type: "image"
       })
         .then((image) => {
-          const params = item.texture2DParams ?? {};
-          const texture = new Texture2D(resourceManager.engine, image.width, image.height, params.format, params.mipmap);
+          const params = item.params ?? new Texture2DParams();
+          const texture = new Texture2D(
+            resourceManager.engine,
+            image.width,
+            image.height,
+            params.format,
+            params.mipmap
+          );
           /** @ts-ignore */
           if (!texture._platformTexture) return;
           texture.setImageSource(image);
@@ -35,4 +42,16 @@ class Texture2DLoader extends Loader<Texture2D> {
         });
     });
   }
+}
+
+/**
+ * Texture2D loader params.
+ */
+export class Texture2DParams {
+  /**
+   * Create Texture2D loader params.
+   * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
+   * @param mipmap - Whether to use multi-level texture, default is true.
+   */
+  constructor(format: TextureFormat = TextureFormat.R8G8B8A8, mipmap: boolean = true) {}
 }
