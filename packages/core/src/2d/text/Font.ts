@@ -12,9 +12,9 @@ export class Font extends RefObject {
   private static _fontMap: Record<string, Font> = {};
 
   /**
-   * Create a font from OS.
+   * Create a font.
    * @param engine - Engine to which the font belongs
-   * @param name - The name of font
+   * @param name - The name of font want to create
    * @param fontUrl - The font url to register, if not, will use system font
    * @returns The font object has been create
    */
@@ -33,6 +33,18 @@ export class Font extends RefObject {
       return font;
     }
     return null;
+  }
+
+  /**
+   * Delete a font.
+   * @param name - The name of font want to delete
+   */
+  static delete(name: string): void {
+    const fontMap = Font._fontMap;
+    const font = fontMap[name];
+    if (font && font.destroy()) {
+      delete fontMap[name];
+    }
   }
 
   /** @internal */
@@ -58,14 +70,16 @@ export class Font extends RefObject {
     return this._name;
   }
 
-  /** @internal */
-  set name(value: string) {
-    this._name = value;
-  }
-
   private constructor(engine: Engine, name: string = "") {
     super(engine);
     this._name = name;
+  }
+
+  /**
+   * @internal
+   */
+  _setName(value: string): void {
+    this._name = value;
   }
 
   /**

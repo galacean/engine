@@ -361,6 +361,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
     charRenderDatas.length = 0;
 
+    if (this._font) {
+      this._font._addRefCount(-1);
+      Font.delete(this._font.name);
+      this._font = null;
+    }
+
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
   }
@@ -428,7 +434,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const lastStyleFont = this._styleFont;
     if (lastStyleFont) {
       lastStyleFont._addRefCount(-1);
-      lastStyleFont.destroy();
+      Font.delete(lastStyleFont.name);
     }
     this._styleFont = Font._createFromOS(
       this.engine,
