@@ -109,7 +109,6 @@ export abstract class AnimationCurve {
       const curFrameTime = keys[curIndex].time;
       const duration = keys[nextIndex].time - curFrameTime;
       const t = (time - curFrameTime) / duration;
-      const dur = duration;
 
       switch (interpolation) {
         case InterpolationType.Linear:
@@ -120,7 +119,7 @@ export abstract class AnimationCurve {
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
-          value = this._evaluateHermite(curIndex, nextIndex, t, dur, out);
+          value = this._evaluateHermite(curIndex, nextIndex, t, duration, out);
           break;
         default:
           value = this._evaluateLinear(curIndex, nextIndex, t, out);
