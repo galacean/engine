@@ -2,9 +2,7 @@ import {
   AnimationArrayCurve,
   AnimationClip,
   AnimationColorCurve,
-  AnimationCurve,
-  AnimationCurveFactory,
-  AnimationEvent,
+  AnimationCurve, AnimationEvent,
   AnimationFloatArrayCurve,
   AnimationFloatCurve,
   AnimationQuaternionCurve,
@@ -55,7 +53,7 @@ export class AnimationClipDecoder {
           const valueType = bufferReader.nextUint8();
           switch (valueType) {
             case InterpolableValueType.Float: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Float);
+              curve = curve || new AnimationFloatCurve();
               curve.interpolation = interpolation;
               const keyframe = new InterpolableKeyframe<number, number>();
               keyframe.time = bufferReader.nextFloat32();
@@ -66,7 +64,7 @@ export class AnimationClipDecoder {
               break;
             }
             case InterpolableValueType.Array: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Array);
+              curve = curve || new AnimationArrayCurve();
               curve.interpolation = interpolation;
               const keyframe = new InterpolableKeyframe<number[], number[]>();
               keyframe.time = bufferReader.nextFloat32();
@@ -78,7 +76,7 @@ export class AnimationClipDecoder {
               break;
             }
             case InterpolableValueType.FloatArray: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.FloatArray);
+              curve = curve || new AnimationFloatArrayCurve();
               curve.interpolation = interpolation;
               const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
               keyframe.time = bufferReader.nextFloat32();
@@ -90,7 +88,7 @@ export class AnimationClipDecoder {
               break;
             }
             case InterpolableValueType.Vector2: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector2);
+              curve = curve || new AnimationVector2Curve();
               curve.interpolation = interpolation;
               const keyframe = new InterpolableKeyframe<Vector2, Vector2>();
               keyframe.time = bufferReader.nextFloat32();
@@ -101,7 +99,7 @@ export class AnimationClipDecoder {
               break;
             }
             case InterpolableValueType.Vector3: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector3);
+              curve = curve || new AnimationVector3Curve();
               curve.interpolation = interpolation;
               const keyframe = new InterpolableKeyframe<Vector3, Vector3>();
               keyframe.time = bufferReader.nextFloat32();
@@ -124,7 +122,7 @@ export class AnimationClipDecoder {
               break;
             }
             case InterpolableValueType.Vector4: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector4);
+              curve = curve || new AnimationVector4Curve();
               curve.interpolation = interpolation;
               const keyframe = new InterpolableKeyframe<Vector4, Vector4>();
               keyframe.time = bufferReader.nextFloat32();
@@ -150,7 +148,7 @@ export class AnimationClipDecoder {
               break;
             }
             case InterpolableValueType.Color: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Color);
+              curve = curve || new AnimationColorCurve();
               curve.interpolation = interpolation;
               const keyframe = new InterpolableKeyframe<Vector4, Color>();
               keyframe.time = bufferReader.nextFloat32();
@@ -176,7 +174,7 @@ export class AnimationClipDecoder {
               break;
             }
             case InterpolableValueType.Quaternion: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Quaternion);
+              curve = curve || new AnimationQuaternionCurve();
               curve.interpolation = interpolation;
               const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
               keyframe.time = bufferReader.nextFloat32();

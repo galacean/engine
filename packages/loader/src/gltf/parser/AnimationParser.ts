@@ -1,6 +1,7 @@
 import {
-  AnimationClip,
-  AnimationCurveFactory,
+  AnimationClip, AnimationFloatArrayCurve,
+  AnimationQuaternionCurve,
+  AnimationVector3Curve,
   Component,
   Entity,
   InterpolableKeyframe,
@@ -139,7 +140,7 @@ export class AnimationParser extends Parser {
 
     switch (interpolableValueType) {
       case InterpolableValueType.Vector3: {
-        const curve = AnimationCurveFactory.create(InterpolableValueType.Vector3);
+        const curve = new AnimationVector3Curve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
 
         let outputBufferOffset = 0;
@@ -168,7 +169,7 @@ export class AnimationParser extends Parser {
         return curve;
       }
       case InterpolableValueType.Quaternion: {
-        const curve = AnimationCurveFactory.create(InterpolableValueType.Quaternion);
+        const curve = new AnimationQuaternionCurve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
 
         let outputBufferOffset = 0;
@@ -205,7 +206,7 @@ export class AnimationParser extends Parser {
         return curve;
       }
       case InterpolableValueType.FloatArray: {
-        const curve = AnimationCurveFactory.create(InterpolableValueType.FloatArray);
+        const curve = new AnimationFloatArrayCurve();
         curve.interpolation = sampleData.interpolation;
 
         let outputBufferOffset = 0;
