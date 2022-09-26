@@ -1,7 +1,5 @@
-import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { Transform } from "../Transform";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";

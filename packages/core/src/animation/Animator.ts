@@ -15,7 +15,6 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
-import { AnimatorTempValue } from "./internal/AnimatorTempValue";
 import { CrossCurveData } from "./internal/CrossCurveData";
 /**
  * The controller of the animation system.
