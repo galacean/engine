@@ -17,16 +17,6 @@ export { AnimationVector2Curve } from "./AnimationVector2Curve";
 export { AnimationVector3Curve } from "./AnimationVector3Curve";
 export { AnimationVector4Curve } from "./AnimationVector4Curve";
 
-export type UnionAnimationCurve =
-  | AnimationArrayCurve
-  | AnimationColorCurve
-  | AnimationFloatArrayCurve
-  | AnimationFloatCurve
-  | AnimationQuaternionCurve
-  | AnimationVector2Curve
-  | AnimationVector3Curve
-  | AnimationVector4Curve;
-
 export class AnimationCurveFactory {
   static create(type: InterpolableValueType.Float): AnimationFloatCurve;
   static create(type: InterpolableValueType.Vector2): AnimationVector2Curve;

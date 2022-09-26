@@ -1,6 +1,6 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { UnionAnimationCurve } from "./AnimationCurve";
+import { AnimationCurve } from "./AnimationCurve";
 import { AnimationPropertyInternal } from "./enums/AnimationProperty";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
 import { AnimationQuaternionCurveOwner } from "./internal/AnimationCurveOwner";
@@ -12,6 +12,7 @@ import { AnimationFloatCurveOwner } from "./internal/AnimationCurveOwner/Animati
 import { AnimationVector2CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector2CurveOwner";
 import { AnimationVector3CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector3CurveOwner";
 import { AnimationVector4CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector4CurveOwner";
+import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
 
 /**
  * Associate AnimationCurve and the Entity
@@ -27,7 +28,7 @@ export class AnimationClipCurveBinding {
   /** The name or path to the property being animated. */
   property: AnimationPropertyInternal | string;
   /** The animation curve. */
-  curve: UnionAnimationCurve;
+  curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>;
 
   private _defaultCurveOwner: AnimationCurveOwner;
 

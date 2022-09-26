@@ -1,8 +1,8 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
-import { UnionAnimationCurve } from "../../AnimationCurve";
+import { AnimationCurve } from "../../AnimationCurve";
 import { AnimationProperty } from "../../enums/AnimationProperty";
-import { KeyFrameValueType } from "../../KeyFrame";
+import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
 
 /**
  * @internal
@@ -39,14 +39,22 @@ export abstract class AnimationCurveOwner {
     this.component = target.getComponent(type);
   }
 
-  evaluateAndApplyValue(curve: UnionAnimationCurve, time: number, layerWeight: number) {
+  evaluateAndApplyValue(
+    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>,
+    time: number,
+    layerWeight: number
+  ) {
     if (curve.keys.length) {
       const value = curve._evaluate(time, this._baseTempValue);
       this._applyValue(value, layerWeight);
     }
   }
 
-  evaluateAndApplyAdditiveValue(curve: UnionAnimationCurve, time: number, layerWeight: number) {
+  evaluateAndApplyAdditiveValue(
+    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>,
+    time: number,
+    layerWeight: number
+  ) {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this._baseTempValue);
       this._applyAdditiveVale(value, layerWeight);
@@ -54,8 +62,8 @@ export abstract class AnimationCurveOwner {
   }
 
   crossFadeAndApplyValue(
-    srcCurve: UnionAnimationCurve | undefined,
-    destCurve: UnionAnimationCurve | undefined,
+    srcCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
+    destCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
     srcTime: number,
     destTime: number,
     crossWeight: number,
@@ -70,7 +78,7 @@ export abstract class AnimationCurveOwner {
   }
 
   crossFadeFromPoseAndApplyValue(
-    destCurve: UnionAnimationCurve | undefined,
+    destCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
     destTime: number,
     crossWeight: number,
     layerWeight: number,

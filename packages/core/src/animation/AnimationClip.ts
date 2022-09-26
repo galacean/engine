@@ -1,9 +1,10 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
-import { UnionAnimationCurve } from "./AnimationCurve";
+import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
 import { AnimationProperty, AnimationPropertyInternal } from "./enums/AnimationProperty";
+import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
 
 /**
  * Stores keyframe based animations.
@@ -86,7 +87,7 @@ export class AnimationClip {
     relativePath: string,
     type: new (entity: Entity) => T,
     propertyName: string,
-    curve: UnionAnimationCurve
+    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>
   ): void {
     let property: AnimationProperty;
     switch (propertyName) {

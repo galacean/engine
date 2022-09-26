@@ -2,6 +2,7 @@ import {
   AnimationArrayCurve,
   AnimationClip,
   AnimationColorCurve,
+  AnimationCurve,
   AnimationCurveFactory,
   AnimationEvent,
   AnimationFloatArrayCurve,
@@ -13,7 +14,8 @@ import {
   Engine,
   InterpolableKeyframe,
   InterpolableValueType,
-  UnionAnimationCurve
+  KeyFrameTangentType,
+  KeyFrameValueType
 } from "@oasis-engine/core";
 import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import type { BufferReader } from "../../utils/BufferReader";
@@ -44,7 +46,7 @@ export class AnimationClipDecoder {
         const componentStr = bufferReader.nextStr();
         const componentType = ComponentMap[componentStr];
         const property = bufferReader.nextStr();
-        let curve: UnionAnimationCurve;
+        let curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>;
         const interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
         console.log("AnimationClipDecoder", relativePath, componentType, property, interpolation, keysLen);
