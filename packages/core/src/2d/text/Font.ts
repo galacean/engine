@@ -48,7 +48,6 @@ export class Font extends RefObject {
   }
 
   private _name: string = "";
-  private _fontUrl: string = "";
   private _fontAtlases: FontAtlas[] = [];
   private _lastIndex: number = -1;
 
@@ -59,17 +58,14 @@ export class Font extends RefObject {
     return this._name;
   }
 
-  /**
-   * The font url.
-   */
-  get fontUrl(): string {
-    return this._fontUrl;
+  /** @internal */
+  set name(value: string) {
+    this._name = value;
   }
 
-  private constructor(engine: Engine, name: string = "", fontUrl: string = "") {
+  private constructor(engine: Engine, name: string = "") {
     super(engine);
     this._name = name;
-    this._fontUrl = fontUrl;
   }
 
   /**
