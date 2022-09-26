@@ -8,7 +8,7 @@ import { AnimationCurve } from "./AnimationCurve";
 export class AnimationFloatCurve extends AnimationCurve<number, number> {
   constructor() {
     super();
-    this._valueType = InterpolableValueType.Float;
+    this._type = InterpolableValueType.Float;
   }
 
   /**

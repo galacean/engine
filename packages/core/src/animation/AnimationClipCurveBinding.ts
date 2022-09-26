@@ -35,7 +35,7 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _createCurveOwner(entity: Entity): AnimationCurveOwner {
-    switch (this.curve._valueType) {
+    switch (this.curve._type) {
       case InterpolableValueType.Float:
         return new AnimationFloatCurveOwner(entity, this.type, this.property);
       case InterpolableValueType.Vector2:

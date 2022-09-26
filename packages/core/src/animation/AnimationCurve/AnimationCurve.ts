@@ -12,7 +12,7 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
   interpolation: InterpolationType;
 
   /** @internal */
-  _valueType: InterpolableValueType;
+  _type: InterpolableValueType;
 
   protected _tempValue: KeyFrameValueType;
   protected _length: number = 0;

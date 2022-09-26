@@ -9,7 +9,7 @@ import { AnimationCurve } from "./AnimationCurve";
 export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
   constructor() {
     super();
-    this._valueType = InterpolableValueType.Color;
+    this._type = InterpolableValueType.Color;
   }
 
   /**
@@ -32,8 +32,7 @@ export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
   }
 
   protected _evaluateStep(frameIndex: number, out: Color): Color {
-    const { keys } = this;
-    out.copyFrom(keys[frameIndex].value);
+    out.copyFrom(this.keys[frameIndex].value);
     return out;
   }
 

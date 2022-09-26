@@ -12,7 +12,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
 
   constructor() {
     super();
-    this._valueType = InterpolableValueType.Quaternion;
+    this._type = InterpolableValueType.Quaternion;
   }
 
   /**

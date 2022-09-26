@@ -8,7 +8,7 @@ import { AnimationCurve } from "./AnimationCurve";
 export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
   constructor() {
     super();
-    this._valueType = InterpolableValueType.Array;
+    this._type = InterpolableValueType.Array;
   }
 
   /**

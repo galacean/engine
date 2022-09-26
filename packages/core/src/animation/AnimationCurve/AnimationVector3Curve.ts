@@ -9,7 +9,7 @@ import { AnimationCurve } from "./AnimationCurve";
 export class AnimationVector3Curve extends AnimationCurve<Vector3, Vector3> {
   constructor() {
     super();
-    this._valueType = InterpolableValueType.Vector3;
+    this._type = InterpolableValueType.Vector3;
   }
 
   /**
