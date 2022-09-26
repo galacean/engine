@@ -250,20 +250,20 @@ export class TextUtils {
 
   static async registerTTF(fontName: string, fontUrl: string): Promise<boolean> {
     if (FontFace) {
-      return this._registerWithFontFace(fontName, fontUrl);
+      return this._registerTTFWithFontFace(fontName, fontUrl);
     } else {
-      return this._registerWithCSS(fontName, fontUrl);
+      return this._registerTTFWithCSS(fontName, fontUrl);
     }
   }
 
-  private static async _registerWithFontFace(fontName: string, fontUrl: string): Promise<boolean> {
+  private static async _registerTTFWithFontFace(fontName: string, fontUrl: string): Promise<boolean> {
     const fontFace = new FontFace(fontName, `url(${fontUrl})`);
     await fontFace.load();
     document.fonts.add(fontFace);
     return true;
   }
 
-  private static async _registerWithCSS(fontName: string, fontUrl: string): Promise<boolean> {
+  private static async _registerTTFWithCSS(fontName: string, fontUrl: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
         const { context } = TextUtils.textContext();

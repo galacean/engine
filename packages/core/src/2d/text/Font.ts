@@ -78,13 +78,6 @@ export class Font extends RefObject {
   /**
    * @internal
    */
-  _setName(value: string): void {
-    this._name = value;
-  }
-
-  /**
-   * @internal
-   */
   _uploadCharTexture(charInfo: CharInfo): void {
     const fontAtlases = this._fontAtlases;
     let lastIndex = this._lastIndex;
