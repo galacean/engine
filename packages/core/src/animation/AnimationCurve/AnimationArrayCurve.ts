@@ -21,7 +21,7 @@ export class AnimationArrayCurve extends AnimationCurve {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out: Array<number>): Array<number> {
+  _evaluateAdditive(time: number, out: Array<number>): number[] {
     const { keys } = this;
     const baseValue = keys[0].value;
     const value = this._evaluate(time, out) as Array<number>;

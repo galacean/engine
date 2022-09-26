@@ -78,7 +78,7 @@ export abstract class AnimationCurve {
   /**
    * @internal
    */
-  _evaluate(time: number, out?: InterpolableValue) {
+  _evaluate(time: number, out?: InterpolableValue): InterpolableValue {
     const { keys, interpolation } = this;
     const { length } = this.keys;
 
@@ -133,7 +133,7 @@ export abstract class AnimationCurve {
   /**
    * @internal
    */
-  abstract _evaluateAdditive(time: number, out?: InterpolableValue);
+  abstract _evaluateAdditive(time: number, out?: InterpolableValue): InterpolableValue;
 
   protected abstract _evaluateLinear(
     frameIndex: number,
