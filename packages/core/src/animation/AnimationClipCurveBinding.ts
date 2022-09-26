@@ -1,19 +1,17 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { AnimationCurve } from "./AnimationCurve";
+import { AnimationCurve } from "./AnimationCurve/AnimationCurve";
 import { AnimationPropertyInternal } from "./enums/AnimationProperty";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
-import {
-  AnimationCurveOwner,
-  AnimationFloatCurveOwner,
-  AnimationVector2CurveOwner,
-  AnimationVector3CurveOwner,
-  AnimationVector4CurveOwner,
-  AnimationQuatCurveOwner,
-  AnimationColorCurveOwner,
-  AnimationFloatArrayCurveOwner,
-  AnimationArrayCurveOwner
-} from "./internal/AnimationCurveOwner";
+import { AnimationArrayCurveOwner } from "./internal/AnimationCurveOwner/AnimationArrayCurveOwner";
+import { AnimationColorCurveOwner } from "./internal/AnimationCurveOwner/AnimationColorCurveOwner";
+import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationFloatArrayCurveOwner } from "./internal/AnimationCurveOwner/AnimationFloatArrayCurveOwner";
+import { AnimationFloatCurveOwner } from "./internal/AnimationCurveOwner/AnimationFloatCurveOwner";
+import { AnimationQuatCurveOwner } from "./internal/AnimationCurveOwner/AnimationQuatCurveOwner";
+import { AnimationVector2CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector2CurveOwner";
+import { AnimationVector3CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector3CurveOwner";
+import { AnimationVector4CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector4CurveOwner";
 
 /**
  * Associate AnimationCurve and the Entity
@@ -29,7 +27,7 @@ export class AnimationClipCurveBinding {
   /** The animation curve. */
   curve: AnimationCurve;
 
-  private defaultCurveOwner: AnimationCurveOwner;
+  private _defaultCurveOwner: AnimationCurveOwner;
 
   /**
    * @internal
@@ -61,8 +59,8 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner {
-    if (this.defaultCurveOwner) {
-      return this.defaultCurveOwner;
+    if (this._defaultCurveOwner) {
+      return this._defaultCurveOwner;
     } else {
       return this._createCurveOwner(entity);
     }

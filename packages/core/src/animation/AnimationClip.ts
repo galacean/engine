@@ -79,7 +79,7 @@ export class AnimationClip {
    * Add curve binding for the clip.
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type- The class type of the component that is animated
-   * @param propertyName - The name or path to the property being animated.
+   * @param propertyName - The name or path to the property being animated
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
@@ -135,8 +135,7 @@ export class AnimationClip {
     for (let i = length - 1; i >= 0; i--) {
       const curveData = this._curveBindings[i];
       const curveOwner = curveData._getDefaultCurveOwner(entity);
-      const { curve } = curveData;
-      curveOwner && curveOwner.evaluateAndApplyValue(curve, time, 1);
+      curveOwner && curveOwner.evaluateAndApplyValue(curveData.curve, time, 1);
     }
   }
 }
