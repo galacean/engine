@@ -34,8 +34,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float
   }
 
   protected _evaluateStep(frameIndex: number, out: Float32Array): Float32Array {
-    const { keys } = this;
-    const value = keys[frameIndex].value;
+    const value = this.keys[frameIndex].value;
     for (let i = 0, n = value.length; i < n; i++) {
       out[i] = value[i];
     }

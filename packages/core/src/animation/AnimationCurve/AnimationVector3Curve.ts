@@ -29,8 +29,7 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3, Vector3> {
   }
 
   protected _evaluateStep(frameIndex: number, out: Vector3): Vector3 {
-    const { keys } = this;
-    out.copyFrom(keys[frameIndex].value);
+    out.copyFrom(this.keys[frameIndex].value);
     return out;
   }
 

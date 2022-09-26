@@ -34,8 +34,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
   }
 
   protected _evaluateStep(frameIndex: number, out: Quaternion): Quaternion {
-    const { keys } = this;
-    out.copyFrom(keys[frameIndex].value);
+    out.copyFrom(this.keys[frameIndex].value);
     return out;
   }
 
