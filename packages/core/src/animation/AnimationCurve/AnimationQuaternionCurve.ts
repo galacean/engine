@@ -7,8 +7,7 @@ import { AnimationCurve } from "./AnimationCurve";
  * Store a collection of Keyframes that can be evaluated over time.
  */
 export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
-
-  private _tempConjugateQuat = new Quaternion();
+  private static _tempConjugateQuat = new Quaternion();
 
   constructor() {
     super();
@@ -19,7 +18,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
    * @internal
    */
   _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
-    const { _tempConjugateQuat } = this;
+    const { _tempConjugateQuat } = AnimationQuaternionCurve;
     const baseValue = this.keys[0].value;
     this._evaluate(time, out);
     Quaternion.conjugate(baseValue, _tempConjugateQuat);
