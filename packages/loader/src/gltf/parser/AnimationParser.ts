@@ -1,17 +1,14 @@
 import {
   AnimationClip,
-  AnimationCurve,
   AnimationCurveFactory,
   Component,
   Entity,
-  FloatArrayKeyframe,
+  InterpolableKeyframe,
   InterpolableValueType,
   InterpolationType,
-  QuaternionKeyframe,
   SkinnedMeshRenderer,
   Transform,
-  TypedArray,
-  Vector3Keyframe
+  TypedArray
 } from "@oasis-engine/core";
 import { Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
@@ -118,7 +115,7 @@ export class AnimationParser extends Parser {
         }
 
         const curve = this._addCurve(interpolableValueType, gltfChannel, sampleDataCollection);
-        animationClip.addCurveBinding(relativePath, compType, propertyName, curve as AnimationCurve);
+        animationClip.addCurveBinding(relativePath, compType, propertyName, curve);
       }
 
       animationClips[i] = animationClip;
@@ -157,7 +154,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new Vector3Keyframe();
+          const keyframe = new InterpolableKeyframe<Vector3, Vector3>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue();
@@ -194,7 +191,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new QuaternionKeyframe();
+          const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue(false) as Vector4;
@@ -219,7 +216,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new FloatArrayKeyframe();
+          const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
           keyframe.time = input[i];
           if (curve.interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue();

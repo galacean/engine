@@ -1,14 +1,14 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { AnimationCurve } from "./AnimationCurve/AnimationCurve";
+import { UnionAnimationCurve } from "./AnimationCurve";
 import { AnimationPropertyInternal } from "./enums/AnimationProperty";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { AnimationQuaternionCurveOwner } from "./internal/AnimationCurveOwner";
 import { AnimationArrayCurveOwner } from "./internal/AnimationCurveOwner/AnimationArrayCurveOwner";
 import { AnimationColorCurveOwner } from "./internal/AnimationCurveOwner/AnimationColorCurveOwner";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationFloatArrayCurveOwner } from "./internal/AnimationCurveOwner/AnimationFloatArrayCurveOwner";
 import { AnimationFloatCurveOwner } from "./internal/AnimationCurveOwner/AnimationFloatCurveOwner";
-import { AnimationQuatCurveOwner } from "./internal/AnimationCurveOwner/AnimationQuatCurveOwner";
 import { AnimationVector2CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector2CurveOwner";
 import { AnimationVector3CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector3CurveOwner";
 import { AnimationVector4CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector4CurveOwner";
@@ -27,7 +27,7 @@ export class AnimationClipCurveBinding {
   /** The name or path to the property being animated. */
   property: AnimationPropertyInternal | string;
   /** The animation curve. */
-  curve: AnimationCurve;
+  curve: UnionAnimationCurve;
 
   private _defaultCurveOwner: AnimationCurveOwner;
 
@@ -45,7 +45,7 @@ export class AnimationClipCurveBinding {
       case InterpolableValueType.Vector4:
         return new AnimationVector4CurveOwner(entity, this.type, this.property);
       case InterpolableValueType.Quaternion:
-        return new AnimationQuatCurveOwner(entity, this.type, this.property);
+        return new AnimationQuaternionCurveOwner(entity, this.type, this.property);
       case InterpolableValueType.Color:
         return new AnimationColorCurveOwner(entity, this.type, this.property);
       case InterpolableValueType.FloatArray:

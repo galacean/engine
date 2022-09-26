@@ -1,22 +1,20 @@
 import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { InterpolationType } from "../enums/InterpolationType";
-import { InterpolableValue, UnionInterpolableKeyframe } from "../KeyFrame";
+import { InterpolableKeyframe, KeyFrameTangentType, KeyFrameValueType } from "../KeyFrame";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export abstract class AnimationCurve {
+export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
   /** All keys defined in the animation curve. */
-  keys: UnionInterpolableKeyframe[] = [];
+  keys: InterpolableKeyframe<T, V>[] = [];
   /** The interpolationType of the animation curve. */
   interpolation: InterpolationType;
 
   /** @internal */
-  _valueSize: number;
-  /** @internal */
   _valueType: InterpolableValueType;
 
-  protected _tempValue: InterpolableValue;
+  protected _tempValue: KeyFrameValueType;
   protected _length: number = 0;
   protected _currentIndex: number = 0;
 
@@ -31,7 +29,7 @@ export abstract class AnimationCurve {
    * Add a new key to the curve.
    * @param key - The keyframe
    */
-  addKey(key: UnionInterpolableKeyframe): void {
+  addKey(key: InterpolableKeyframe<T, V>): void {
     const { time } = key;
     this.keys.push(key);
     if (time > this._length) {
@@ -45,7 +43,7 @@ export abstract class AnimationCurve {
    * Evaluate the curve at time.
    * @param time - The time within the curve you want to evaluate
    */
-  evaluate(time: number): InterpolableValue {
+  evaluate(time: number): KeyFrameValueType {
     return this._evaluate(time, this._tempValue);
   }
 
@@ -54,7 +52,7 @@ export abstract class AnimationCurve {
    * @param index - The index of the key to move
    * @param key - The key to insert
    */
-  moveKey(index: number, key: UnionInterpolableKeyframe): void {
+  moveKey(index: number, key: InterpolableKeyframe<T, V>): void {
     this.keys[index] = key;
   }
 
@@ -78,7 +76,7 @@ export abstract class AnimationCurve {
   /**
    * @internal
    */
-  _evaluate(time: number, out?: InterpolableValue): InterpolableValue {
+  _evaluate(time: number, out?: KeyFrameValueType): KeyFrameValueType {
     const { keys, interpolation } = this;
     const { length } = this.keys;
 
@@ -99,7 +97,7 @@ export abstract class AnimationCurve {
     }
     this._currentIndex = curIndex;
     // Evaluate value.
-    let value: InterpolableValue;
+    let value: KeyFrameValueType;
     if (curIndex === -1) {
       value = this._evaluateStep(0, out);
     } else if (nextIndex === length) {
@@ -132,22 +130,22 @@ export abstract class AnimationCurve {
   /**
    * @internal
    */
-  abstract _evaluateAdditive(time: number, out?: InterpolableValue): InterpolableValue;
+  abstract _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType;
 
   protected abstract _evaluateLinear(
     frameIndex: number,
     nextFrameIndex: number,
     t: number,
-    out: InterpolableValue
-  ): InterpolableValue;
+    out: KeyFrameValueType
+  ): KeyFrameValueType;
 
-  protected abstract _evaluateStep(frameIndex: number, out: InterpolableValue): InterpolableValue;
+  protected abstract _evaluateStep(frameIndex: number, out: KeyFrameValueType): KeyFrameValueType;
 
   protected abstract _evaluateHermite(
     frameIndex: number,
     nextFrameIndex: number,
     t: number,
     dur: number,
-    out: InterpolableValue
-  ): InterpolableValue;
+    out: KeyFrameValueType
+  ): KeyFrameValueType;
 }

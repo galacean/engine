@@ -1,36 +1,29 @@
-import { Quaternion } from "@oasis-engine/math";
-import { AnimationCurve } from "./AnimationCurve";
+import { Quaternion, Vector4 } from "@oasis-engine/math";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { QuaternionKeyframe } from "../KeyFrame";
+import { KeyFrameValueType } from "../KeyFrame";
+import { AnimationCurve } from "./AnimationCurve";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationQuatCurve extends AnimationCurve {
-  /** All keys defined in the animation curve. */
-  keys: QuaternionKeyframe[] = [];
+export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
 
-  /** @internal */
-  _valueSize = 4;
-  /** @internal */
-  _valueType = InterpolableValueType.Quaternion;
-
-  protected _tempValue: Quaternion = new Quaternion();
   private _tempConjugateQuat = new Quaternion();
 
-  addKey(key: QuaternionKeyframe) {
-    super.addKey(key);
+  constructor() {
+    super();
+    this._valueType = InterpolableValueType.Quaternion;
   }
 
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out: Quaternion): Quaternion {
-    const { keys, _tempConjugateQuat } = this;
-    const baseValue = keys[0].value;
+  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+    const { _tempConjugateQuat } = this;
+    const baseValue = this.keys[0].value;
     this._evaluate(time, out);
     Quaternion.conjugate(baseValue, _tempConjugateQuat);
-    Quaternion.multiply(_tempConjugateQuat, out, out);
+    Quaternion.multiply(_tempConjugateQuat, <Quaternion>out, <Quaternion>out);
     return out;
   }
 

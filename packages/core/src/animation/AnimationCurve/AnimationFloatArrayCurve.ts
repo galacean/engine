@@ -1,28 +1,22 @@
-import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { FloatArrayKeyframe } from "../KeyFrame";
+import { KeyFrameValueType } from "../KeyFrame";
+import { AnimationCurve } from "./AnimationCurve";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationFloatArrayCurve extends AnimationCurve {
-  /** All keys defined in the animation curve. */
-  keys: FloatArrayKeyframe[] = [];
-
-  /** @internal */
-  _valueType = InterpolableValueType.FloatArray;
-
-  addKey(key: FloatArrayKeyframe) {
-    super.addKey(key);
+export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float32Array> {
+  constructor() {
+    super();
+    this._valueType = InterpolableValueType.FloatArray;
   }
 
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out: Float32Array): Float32Array {
-    const { keys } = this;
-    const baseValue = keys[0].value;
-    const value = this._evaluate(time, out) as Float32Array;
+  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+    const baseValue = this.keys[0].value;
+    const value = <Float32Array>this._evaluate(time, out);
     for (let i = 0, n = value.length; i < n; i++) {
       value[i] = value[i] - baseValue[i];
     }

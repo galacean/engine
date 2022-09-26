@@ -1,7 +1,7 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
-import { AnimationCurve } from "./AnimationCurve";
+import { UnionAnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
 import { AnimationProperty, AnimationPropertyInternal } from "./enums/AnimationProperty";
 
@@ -86,7 +86,7 @@ export class AnimationClip {
     relativePath: string,
     type: new (entity: Entity) => T,
     propertyName: string,
-    curve: AnimationCurve
+    curve: UnionAnimationCurve
   ): void {
     let property: AnimationProperty;
     switch (propertyName) {

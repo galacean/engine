@@ -1,34 +1,24 @@
 import { Vector2 } from "@oasis-engine/math";
-import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { Vector2Keyframe } from "../KeyFrame";
+import { KeyFrameValueType } from "../KeyFrame";
+import { AnimationCurve } from "./AnimationCurve";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationVector2Curve extends AnimationCurve {
-  /** All keys defined in the animation curve. */
-  keys: Vector2Keyframe[] = [];
-
-  /** @internal */
-  _valueSize = 2;
-  /** @internal */
-  _valueType = InterpolableValueType.Vector2;
-
-  protected _tempValue: Vector2 = new Vector2();
-
-  addKey(key: Vector2Keyframe) {
-    super.addKey(key);
+export class AnimationVector2Curve extends AnimationCurve<Vector2, Vector2> {
+  constructor() {
+    super();
+    this._valueType = InterpolableValueType.Vector2;
   }
 
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out: Vector2): Vector2 {
-    const { keys } = this;
-    const baseValue = keys[0].value;
+  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+    const baseValue = this.keys[0].value;
     this._evaluate(time, out);
-    Vector2.subtract(out, baseValue, out);
+    Vector2.subtract(<Vector2>out, baseValue, <Vector2>out);
     return out;
   }
 
