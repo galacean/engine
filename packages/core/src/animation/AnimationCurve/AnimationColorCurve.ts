@@ -1,37 +1,27 @@
-import { Color } from "@oasis-engine/math";
-import { AnimationCurve } from "./AnimationCurve";
+import { Color, Vector4 } from "@oasis-engine/math";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { ColorKeyframe } from "../KeyFrame";
+import { KeyFrameValueType } from "../KeyFrame";
+import { AnimationCurve } from "./AnimationCurve";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationColorCurve extends AnimationCurve {
-  /** All keys defined in the animation curve. */
-  keys: ColorKeyframe[] = [];
-
-  /** @internal */
-  _valueSize = 4;
-  /** @internal */
-  _valueType = InterpolableValueType.Color;
-
-  protected _tempValue: Color = new Color();
-
-  addKey(key: ColorKeyframe) {
-    super.addKey(key);
+export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
+  constructor() {
+    super();
+    this._type = InterpolableValueType.Color;
   }
 
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out: Color): Color {
-    const { keys } = this;
-    const baseValue = keys[0].value;
+  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+    const baseValue = this.keys[0].value;
     this._evaluate(time, out);
-    out.r -= baseValue.r;
-    out.g -= baseValue.g;
-    out.b -= baseValue.b;
-    out.a -= baseValue.a;
+    (<Color>out).r -= baseValue.r;
+    (<Color>out).g -= baseValue.g;
+    (<Color>out).b -= baseValue.b;
+    (<Color>out).a -= baseValue.a;
     return out;
   }
 
@@ -42,8 +32,7 @@ export class AnimationColorCurve extends AnimationCurve {
   }
 
   protected _evaluateStep(frameIndex: number, out: Color): Color {
-    const { keys } = this;
-    out.copyFrom(keys[frameIndex].value);
+    out.copyFrom(this.keys[frameIndex].value);
     return out;
   }
 

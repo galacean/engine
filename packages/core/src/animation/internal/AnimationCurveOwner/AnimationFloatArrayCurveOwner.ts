@@ -1,9 +1,8 @@
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { SkinnedMeshRenderer } from "../../../mesh";
 import { AnimationProperty, AnimationPropertyInternal } from "../../enums/AnimationProperty";
-import { InterpolableValue } from "../../KeyFrame";
+import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 /**
  * @internal
  */

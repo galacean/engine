@@ -3,39 +3,40 @@ import { Entity } from "../Entity";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationPropertyInternal } from "./enums/AnimationProperty";
 import { InterpolableValueType } from "./enums/InterpolableValueType";
-import {
-  AnimationCurveOwner,
-  AnimationFloatCurveOwner,
-  AnimationVector2CurveOwner,
-  AnimationVector3CurveOwner,
-  AnimationVector4CurveOwner,
-  AnimationQuatCurveOwner,
-  AnimationColorCurveOwner,
-  AnimationFloatArrayCurveOwner,
-  AnimationArrayCurveOwner
-} from "./internal/AnimationCurveOwner";
+import { AnimationQuaternionCurveOwner } from "./internal/AnimationCurveOwner";
+import { AnimationArrayCurveOwner } from "./internal/AnimationCurveOwner/AnimationArrayCurveOwner";
+import { AnimationColorCurveOwner } from "./internal/AnimationCurveOwner/AnimationColorCurveOwner";
+import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationFloatArrayCurveOwner } from "./internal/AnimationCurveOwner/AnimationFloatArrayCurveOwner";
+import { AnimationFloatCurveOwner } from "./internal/AnimationCurveOwner/AnimationFloatCurveOwner";
+import { AnimationVector2CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector2CurveOwner";
+import { AnimationVector3CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector3CurveOwner";
+import { AnimationVector4CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector4CurveOwner";
+import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
 
 /**
  * Associate AnimationCurve and the Entity
  */
 export class AnimationClipCurveBinding {
-  /** Path to the entity this curve applies to. The relativePath is formatted similar to a pathname,
-   * e.g. "root/spine/leftArm". If relativePath is empty it refers to the entity the animation clip is attached to. */
+  /**
+   * Path to the entity this curve applies to. The relativePath is formatted similar to a pathname,
+   * e.g. "root/spine/leftArm". If relativePath is empty it refers to the entity the animation clip is attached to.
+   */
   relativePath: string;
   /** The class type of the component that is animated. */
   type: new (entity: Entity) => Component;
   /** The name or path to the property being animated. */
   property: AnimationPropertyInternal | string;
   /** The animation curve. */
-  curve: AnimationCurve;
+  curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>;
 
-  private defaultCurveOwner: AnimationCurveOwner;
+  private _defaultCurveOwner: AnimationCurveOwner;
 
   /**
    * @internal
    */
   _createCurveOwner(entity: Entity): AnimationCurveOwner {
-    switch (this.curve._valueType) {
+    switch (this.curve._type) {
       case InterpolableValueType.Float:
         return new AnimationFloatCurveOwner(entity, this.type, this.property);
       case InterpolableValueType.Vector2:
@@ -45,7 +46,7 @@ export class AnimationClipCurveBinding {
       case InterpolableValueType.Vector4:
         return new AnimationVector4CurveOwner(entity, this.type, this.property);
       case InterpolableValueType.Quaternion:
-        return new AnimationQuatCurveOwner(entity, this.type, this.property);
+        return new AnimationQuaternionCurveOwner(entity, this.type, this.property);
       case InterpolableValueType.Color:
         return new AnimationColorCurveOwner(entity, this.type, this.property);
       case InterpolableValueType.FloatArray:
@@ -61,8 +62,8 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner {
-    if (this.defaultCurveOwner) {
-      return this.defaultCurveOwner;
+    if (this._defaultCurveOwner) {
+      return this._defaultCurveOwner;
     } else {
       return this._createCurveOwner(entity);
     }

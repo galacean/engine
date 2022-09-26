@@ -2,13 +2,13 @@ import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
 import { AnimationProperty } from "../../enums/AnimationProperty";
-import { InterpolableValue } from "../../KeyFrame";
+import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
 
 /**
  * @internal
  */
 export interface PropertyReference {
-  mounted: { [key: string]: InterpolableValue };
+  mounted: { [key: string]: KeyFrameValueType };
   propertyName: string;
 }
 
@@ -26,11 +26,11 @@ export abstract class AnimationCurveOwner {
 
   protected _hasSavedDefaultValue: boolean = false;
 
-  protected abstract _defaultValue: InterpolableValue;
-  protected abstract _fixedPoseValue: InterpolableValue;
+  protected abstract _defaultValue: KeyFrameValueType;
+  protected abstract _fixedPoseValue: KeyFrameValueType;
   protected abstract _propertyReference: PropertyReference;
-  protected abstract _baseTempValue: InterpolableValue;
-  protected abstract _crossTempValue: InterpolableValue;
+  protected abstract _baseTempValue: KeyFrameValueType;
+  protected abstract _crossTempValue: KeyFrameValueType;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     this.target = target;
@@ -39,14 +39,22 @@ export abstract class AnimationCurveOwner {
     this.component = target.getComponent(type);
   }
 
-  evaluateAndApplyValue(curve: AnimationCurve, time: number, layerWeight: number) {
+  evaluateAndApplyValue(
+    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>,
+    time: number,
+    layerWeight: number
+  ) {
     if (curve.keys.length) {
       const value = curve._evaluate(time, this._baseTempValue);
       this._applyValue(value, layerWeight);
     }
   }
 
-  evaluateAndApplyAdditiveValue(curve: AnimationCurve, time: number, layerWeight: number) {
+  evaluateAndApplyAdditiveValue(
+    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>,
+    time: number,
+    layerWeight: number
+  ) {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this._baseTempValue);
       this._applyAdditiveVale(value, layerWeight);
@@ -54,8 +62,8 @@ export abstract class AnimationCurveOwner {
   }
 
   crossFadeAndApplyValue(
-    srcCurve: AnimationCurve | undefined,
-    destCurve: AnimationCurve | undefined,
+    srcCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
+    destCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
     srcTime: number,
     destTime: number,
     crossWeight: number,
@@ -70,7 +78,7 @@ export abstract class AnimationCurveOwner {
   }
 
   crossFadeFromPoseAndApplyValue(
-    destCurve: AnimationCurve | undefined,
+    destCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
     destTime: number,
     crossWeight: number,
     layerWeight: number,
@@ -99,11 +107,11 @@ export abstract class AnimationCurveOwner {
     };
   }
 
-  protected abstract _applyValue(value: InterpolableValue, weight: number): void;
-  protected abstract _applyAdditiveVale(value: InterpolableValue, weight: number): void;
+  protected abstract _applyValue(value: KeyFrameValueType, weight: number): void;
+  protected abstract _applyAdditiveVale(value: KeyFrameValueType, weight: number): void;
   protected abstract _applyCrossValue(
-    srcValue: InterpolableValue,
-    destValue: InterpolableValue,
+    srcValue: KeyFrameValueType,
+    destValue: KeyFrameValueType,
     crossWeight: number,
     layerWeight: number,
     additive: boolean

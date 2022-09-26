@@ -7,7 +7,7 @@ import { AnimatorUtils } from "./../../AnimatorUtils";
 /**
  * @internal
  */
-export class AnimationQuatCurveOwner extends AnimationCurveOwner {
+export class AnimationQuaternionCurveOwner extends AnimationCurveOwner {
   protected _defaultValue = new Quaternion();
   protected _fixedPoseValue = new Quaternion();
   protected _propertyReference: PropertyReference;

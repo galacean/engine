@@ -1,34 +1,24 @@
 import { Vector3 } from "@oasis-engine/math";
-import { AnimationCurve } from "./AnimationCurve";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { Vector3Keyframe } from "../KeyFrame";
+import { KeyFrameValueType } from "../KeyFrame";
+import { AnimationCurve } from "./AnimationCurve";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationVector3Curve extends AnimationCurve {
-  /** All keys defined in the animation curve. */
-  keys: Vector3Keyframe[] = [];
-
-  /** @internal */
-  _valueSize = 3;
-  /** @internal */
-  _valueType = InterpolableValueType.Vector3;
-
-  protected _tempValue: Vector3 = new Vector3();
-
-  addKey(key: Vector3Keyframe) {
-    super.addKey(key);
+export class AnimationVector3Curve extends AnimationCurve<Vector3, Vector3> {
+  constructor() {
+    super();
+    this._type = InterpolableValueType.Vector3;
   }
 
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out: Vector3): Vector3 {
-    const { keys } = this;
-    const baseValue = keys[0].value;
+  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+    const baseValue = this.keys[0].value;
     this._evaluate(time, out);
-    Vector3.subtract(out, baseValue, out);
+    Vector3.subtract(<Vector3>out, baseValue, <Vector3>out);
     return out;
   }
 
@@ -39,8 +29,7 @@ export class AnimationVector3Curve extends AnimationCurve {
   }
 
   protected _evaluateStep(frameIndex: number, out: Vector3): Vector3 {
-    const { keys } = this;
-    out.copyFrom(keys[frameIndex].value);
+    out.copyFrom(this.keys[frameIndex].value);
     return out;
   }
 
