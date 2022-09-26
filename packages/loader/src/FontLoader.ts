@@ -1,6 +1,6 @@
 import { resourceLoader, Loader, AssetType, Font, LoadItem, ResourceManager, AssetPromise } from "@oasis-engine/core";
 
-@resourceLoader(AssetType.Font, ["fnt"], false)
+@resourceLoader(AssetType.Font, ["fnt", "json"], false)
 class FontLoader extends Loader<Font> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Font> {
     return new AssetPromise((resolve, reject) => {
