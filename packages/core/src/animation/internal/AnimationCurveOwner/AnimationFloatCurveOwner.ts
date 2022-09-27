@@ -14,28 +14,28 @@ export class AnimationFloatCurveOwner extends AnimationCurveOwner<number, number
     this._targetValue = mounted[propertyName];
   }
 
-  saveDefaultValue() {
+  saveDefaultValue(): void {
     this._defaultValue = this._targetValue;
     this._hasSavedDefaultValue = true;
   }
 
-  saveFixedPoseValue() {
+  saveFixedPoseValue(): void {
     this._fixedPoseValue = this._targetValue;
   }
 
-  revertDefaultValue() {
+  revertDefaultValue(): void {
     if (!this._hasSavedDefaultValue) return;
 
     const { mounted, propertyName } = this._propertyReference;
     mounted[propertyName] = this._defaultValue;
   }
 
-  protected _applyValue(value: number, weight: number) {
+  protected _applyValue(value: number, weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     mounted[propertyName] += (value - mounted[propertyName]) * weight;
   }
 
-  protected _applyAdditiveValue(value: number, weight: number) {
+  protected _applyAdditiveValue(value: number, weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     mounted[propertyName] += value * weight;
   }
@@ -46,7 +46,7 @@ export class AnimationFloatCurveOwner extends AnimationCurveOwner<number, number
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const value = srcValue + (destValue - srcValue) * crossWeight;
     if (additive) {
       this._applyAdditiveValue(value, layerWeight);

@@ -62,7 +62,7 @@ export class AnimationArrayCurveOwner extends AnimationCurveOwner<number[], numb
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const value = this._baseTempValue;
     for (let i = 0, n = value.length; i < n; ++i) {
       value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;

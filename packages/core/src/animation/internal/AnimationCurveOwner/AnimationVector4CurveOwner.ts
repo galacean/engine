@@ -15,23 +15,23 @@ export class AnimationVector4CurveOwner extends AnimationCurveOwner<Vector4, Vec
     this._targetValue = mounted[propertyName];
   }
 
-  saveDefaultValue() {
+  saveDefaultValue(): void {
     this._defaultValue.copyFrom(this._targetValue);
     this._hasSavedDefaultValue = true;
   }
 
-  saveFixedPoseValue() {
+  saveFixedPoseValue(): void {
     this._fixedPoseValue.copyFrom(this._targetValue);
   }
 
-  revertDefaultValue() {
+  revertDefaultValue(): void {
     if (!this._hasSavedDefaultValue) return;
 
     const { mounted, propertyName } = this._propertyReference;
     mounted[propertyName] = this._defaultValue;
   }
 
-  protected _applyValue(value: Vector4, weight: number) {
+  protected _applyValue(value: Vector4, weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     if (weight === 1.0) {
       mounted[propertyName] = value;
@@ -41,7 +41,7 @@ export class AnimationVector4CurveOwner extends AnimationCurveOwner<Vector4, Vec
     }
   }
 
-  protected _applyAdditiveValue(value: Vector4, weight: number) {
+  protected _applyAdditiveValue(value: Vector4, weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     const originValue = mounted[propertyName];
     originValue.x += value.x * weight;
@@ -57,7 +57,7 @@ export class AnimationVector4CurveOwner extends AnimationCurveOwner<Vector4, Vec
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const value = this._baseTempValue;
     Vector4.lerp(srcValue, destValue, crossWeight, value);
     if (additive) {
