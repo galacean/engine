@@ -86,7 +86,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vec
     }
   }
 
-  protected _applyAdditiveVale(value: Vector3, weight: number): void {
+  protected _applyAdditiveValue(value: Vector3, weight: number): void {
     const { target, property } = this;
     switch (property) {
       case AnimationPropertyInternal.Position: {
@@ -128,7 +128,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vec
     const value = this._baseTempValue;
     Vector3.lerp(srcValue, destValue, crossWeight, value);
     if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
+      this._applyAdditiveValue(value, layerWeight);
     } else {
       this._applyValue(value, layerWeight);
     }

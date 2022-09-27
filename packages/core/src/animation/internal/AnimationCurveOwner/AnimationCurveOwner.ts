@@ -50,13 +50,13 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
   evaluateAndApplyAdditiveValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number) {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this._baseTempValue);
-      this._applyAdditiveVale(value, layerWeight);
+      this._applyAdditiveValue(value, layerWeight);
     }
   }
 
   crossFadeAndApplyValue(
-    srcCurve: AnimationCurve<T, V> | undefined,
-    destCurve: AnimationCurve<T, V> | undefined,
+    srcCurve: AnimationCurve<T, V>,
+    destCurve: AnimationCurve<T, V>,
     srcTime: number,
     destTime: number,
     crossWeight: number,
@@ -71,7 +71,7 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
   }
 
   crossFadeFromPoseAndApplyValue(
-    destCurve: AnimationCurve<T, V> | undefined,
+    destCurve: AnimationCurve<T, V>,
     destTime: number,
     crossWeight: number,
     layerWeight: number,
@@ -87,10 +87,10 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
   abstract saveFixedPoseValue(): void;
   abstract revertDefaultValue(): void;
 
-  protected _getPropertyReference() {
+  protected _getPropertyReference(): PropertyReference<V> {
     let mounted: any = this.component;
     const properties = (this.property as string).split(".");
-    for (let i = 0, n = properties.length; i < n - 1; ++i) {
+    for (let i = 0, n = properties.length; i < n - 1; i++) {
       mounted = mounted[properties[i]];
     }
 
@@ -101,7 +101,7 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
   }
 
   protected abstract _applyValue(value: V, weight: number): void;
-  protected abstract _applyAdditiveVale(value: V, weight: number): void;
+  protected abstract _applyAdditiveValue(value: V, weight: number): void;
   protected abstract _applyCrossValue(
     srcValue: V,
     destValue: V,

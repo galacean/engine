@@ -84,7 +84,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
     }
   }
 
-  protected _applyAdditiveVale(value: Float32Array, weight: number) {
+  protected _applyAdditiveValue(value: Float32Array, weight: number) {
     const { component, property } = this;
     switch (property) {
       case AnimationPropertyInternal.BlendShapeWeights: {
@@ -116,7 +116,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
       value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
     }
     if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
+      this._applyAdditiveValue(value, layerWeight);
     } else {
       this._applyValue(value, layerWeight);
     }

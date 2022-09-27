@@ -48,7 +48,7 @@ export class AnimationArrayCurveOwner extends AnimationCurveOwner<number[], numb
     }
   }
 
-  protected _applyAdditiveVale(value: number[], weight: number): void {
+  protected _applyAdditiveValue(value: number[], weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     const originValue = mounted[propertyName];
     for (let i = 0, n = originValue.length; i < n; ++i) {
@@ -68,7 +68,7 @@ export class AnimationArrayCurveOwner extends AnimationCurveOwner<number[], numb
       value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
     }
     if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
+      this._applyAdditiveValue(value, layerWeight);
     } else {
       this._applyValue(value, layerWeight);
     }

@@ -41,7 +41,7 @@ export class AnimationColorCurveOwner extends AnimationCurveOwner<Vector4, Color
     }
   }
 
-  protected _applyAdditiveVale(value: Color, weight: number) {
+  protected _applyAdditiveValue(value: Color, weight: number) {
     const { mounted, propertyName } = this._propertyReference;
     const originValue = mounted[propertyName];
     originValue.r += value.r * weight;
@@ -61,7 +61,7 @@ export class AnimationColorCurveOwner extends AnimationCurveOwner<Vector4, Color
     const value = this._baseTempValue;
     Color.lerp(srcValue, destValue, crossWeight, value);
     if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
+      this._applyAdditiveValue(value, layerWeight);
     } else {
       this._applyValue(value, layerWeight);
     }

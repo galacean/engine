@@ -71,7 +71,7 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
     }
   }
 
-  protected _applyAdditiveVale(value: Quaternion, weight: number) {
+  protected _applyAdditiveValue(value: Quaternion, weight: number) {
     const { target, property } = this;
     switch (property) {
       case AnimationPropertyInternal.Rotation: {
@@ -104,7 +104,7 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
     const value = this._baseTempValue;
     Quaternion.slerp(srcValue, destValue, crossWeight, value);
     if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
+      this._applyAdditiveValue(value, layerWeight);
     } else {
       this._applyValue(value, layerWeight);
     }

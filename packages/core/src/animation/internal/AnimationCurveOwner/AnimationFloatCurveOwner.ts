@@ -35,7 +35,7 @@ export class AnimationFloatCurveOwner extends AnimationCurveOwner<number, number
     mounted[propertyName] += (value - mounted[propertyName]) * weight;
   }
 
-  protected _applyAdditiveVale(value: number, weight: number) {
+  protected _applyAdditiveValue(value: number, weight: number) {
     const { mounted, propertyName } = this._propertyReference;
     mounted[propertyName] += value * weight;
   }
@@ -49,7 +49,7 @@ export class AnimationFloatCurveOwner extends AnimationCurveOwner<number, number
   ) {
     const value = srcValue + (destValue - srcValue) * crossWeight;
     if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
+      this._applyAdditiveValue(value, layerWeight);
     } else {
       this._applyValue(value, layerWeight);
     }
