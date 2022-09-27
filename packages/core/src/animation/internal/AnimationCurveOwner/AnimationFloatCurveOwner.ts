@@ -40,18 +40,7 @@ export class AnimationFloatCurveOwner extends AnimationCurveOwner<number, number
     mounted[propertyName] += value * weight;
   }
 
-  protected _applyCrossValue(
-    srcValue: number,
-    destValue: number,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    const value = srcValue + (destValue - srcValue) * crossWeight;
-    if (additive) {
-      this._applyAdditiveValue(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+  protected _lerpValue(srcValue: number, destValue: number, crossWeight: number, out: number): number {
+    return srcValue + (destValue - srcValue) * crossWeight;
   }
 }

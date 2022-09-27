@@ -51,19 +51,10 @@ export class AnimationColorCurveOwner extends AnimationCurveOwner<Vector4, Color
     mounted[propertyName] = originValue;
   }
 
-  protected _applyCrossValue(
-    srcValue: Color,
-    destValue: Color,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    const value = this._baseTempValue;
-    Color.lerp(srcValue, destValue, crossWeight, value);
-    if (additive) {
-      this._applyAdditiveValue(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+  protected _lerpValue(srcValue: Color, destValue: Color, crossWeight: number, out: Color): Color {
+    Color.lerp(srcValue, destValue, crossWeight, out);
+    return out;
   }
+
+
 }

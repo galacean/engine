@@ -94,19 +94,8 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
     }
   }
 
-  protected _applyCrossValue(
-    srcValue: Quaternion,
-    destValue: Quaternion,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ) {
-    const value = this._baseTempValue;
-    Quaternion.slerp(srcValue, destValue, crossWeight, value);
-    if (additive) {
-      this._applyAdditiveValue(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+  protected _lerpValue(srcValue: Quaternion, destValue: Quaternion, crossWeight: number, out: Quaternion): Quaternion {
+    Quaternion.lerp(srcValue, destValue, crossWeight, out);
+    return out;
   }
 }

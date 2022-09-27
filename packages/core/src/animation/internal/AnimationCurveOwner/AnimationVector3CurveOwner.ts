@@ -118,19 +118,8 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vec
     }
   }
 
-  protected _applyCrossValue(
-    srcValue: Vector3,
-    destValue: Vector3,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    const value = this._baseTempValue;
-    Vector3.lerp(srcValue, destValue, crossWeight, value);
-    if (additive) {
-      this._applyAdditiveValue(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+  protected _lerpValue(srcValue: Vector3, destValue: Vector3, crossWeight: number, out: Vector3): Vector3 {
+    Vector3.lerp(srcValue, destValue, crossWeight, out);
+    return out;
   }
 }

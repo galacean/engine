@@ -102,11 +102,20 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
 
   protected abstract _applyValue(value: V, weight: number): void;
   protected abstract _applyAdditiveValue(value: V, weight: number): void;
-  protected abstract _applyCrossValue(
+  protected abstract _lerpValue(srcValue: V, destValue: V, crossWeight: number, out: V): V;
+
+  private _applyCrossValue(
     srcValue: V,
     destValue: V,
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ): void;
+  ): void {
+    const out = this._lerpValue(srcValue, destValue, crossWeight, this._baseTempValue);
+    if (additive) {
+      this._applyAdditiveValue(out, layerWeight);
+    } else {
+      this._applyValue(out, layerWeight);
+    }
+  }
 }

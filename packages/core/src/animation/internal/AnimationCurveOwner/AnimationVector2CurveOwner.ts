@@ -48,19 +48,8 @@ export class AnimationVector2CurveOwner extends AnimationCurveOwner<Vector2, Vec
     mounted[propertyName] = originValue;
   }
 
-  protected _applyCrossValue(
-    srcValue: Vector2,
-    destValue: Vector2,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    const value = this._baseTempValue;
-    Vector2.lerp(srcValue, destValue, crossWeight, value);
-    if (additive) {
-      this._applyAdditiveValue(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+  protected _lerpValue(srcValue: Vector2, destValue: Vector2, crossWeight: number, out: Vector2): Vector2 {
+    Vector2.lerp(srcValue, destValue, crossWeight, out);
+    return out;
   }
 }

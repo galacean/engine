@@ -56,21 +56,11 @@ export class AnimationArrayCurveOwner extends AnimationCurveOwner<number[], numb
     }
   }
 
-  protected _applyCrossValue(
-    srcValue: number[],
-    destValue: number[],
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    const value = this._baseTempValue;
-    for (let i = 0, n = value.length; i < n; ++i) {
-      value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
+  protected _lerpValue(srcValue: number[], destValue: number[], crossWeight: number, out: number[]): number[] {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      const src = srcValue[i];
+      out[i] = src + (destValue[i] - src) * crossWeight;
     }
-    if (additive) {
-      this._applyAdditiveValue(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+    return out;
   }
 }

@@ -104,21 +104,16 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
     }
   }
 
-  protected _applyCrossValue(
+  protected _lerpValue(
     srcValue: Float32Array,
     destValue: Float32Array,
     crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    const value = this._baseTempValue;
-    for (let i = 0, n = value.length; i < n; ++i) {
-      value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
+    out: Float32Array
+  ): Float32Array {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      const src = srcValue[i];
+      out[i] = src + (destValue[i] - src) * crossWeight;
     }
-    if (additive) {
-      this._applyAdditiveValue(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+    return out;
   }
 }
