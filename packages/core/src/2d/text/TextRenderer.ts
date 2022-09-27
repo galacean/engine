@@ -132,9 +132,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   set font(value: Font) {
-    if (value && this._font !== value) {
-      this._font._addRefCount(-1);
+    if (this._font !== value) {
       value._addRefCount(1);
+      this._font._addRefCount(-1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -283,7 +283,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._isWorldMatrixDirty.listener = () => {
       this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
     };
-    this._font = Font._createFromOS(engine);
+    this._font = engine._textDefaultFont;
     this._font._addRefCount(1);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
@@ -361,10 +361,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
     charRenderDatas.length = 0;
 
+    // Delete font.
     if (this._font) {
       this._font._addRefCount(-1);
-      Font.delete(this._font.name);
       this._font = null;
+    }
+    if (this._styleFont) {
+      this._styleFont._addRefCount(-1);
+      this._styleFont = null;
     }
 
     this._isWorldMatrixDirty.destroy();
@@ -434,7 +438,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const lastStyleFont = this._styleFont;
     if (lastStyleFont) {
       lastStyleFont._addRefCount(-1);
-      Font.delete(lastStyleFont.name);
     }
     this._styleFont = Font._createFromOS(
       this.engine,

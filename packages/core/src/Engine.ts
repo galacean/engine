@@ -1,5 +1,6 @@
 import { BoundingBox, Vector3 } from "@oasis-engine/math";
 import { Color } from "@oasis-engine/math/src/Color";
+import { Font } from "./2d";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -69,6 +70,7 @@ export class Engine extends EventDispatcher {
   _textElementPool: ClassPool<TextRenderElement> = new ClassPool(TextRenderElement);
   _spriteDefaultMaterial: Material;
   _spriteMaskDefaultMaterial: Material;
+  _textDefaultFont: Font;
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
@@ -220,6 +222,8 @@ export class Engine extends EventDispatcher {
     this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
+    this._textDefaultFont = Font._createFromOS(this, "Arial");
+    this._textDefaultFont._addRefCount(1);
 
     this.inputManager = new InputManager(this);
 
@@ -385,6 +389,9 @@ export class Engine extends EventDispatcher {
 
     // delete mask manager
     this._spriteMaskManager.destroy();
+    // delete font
+    this._textDefaultFont._addRefCount(-1);
+    Font.delete(this._textDefaultFont.name);
 
     this.removeAllEventListeners();
     this._waittingDestroy = false;
