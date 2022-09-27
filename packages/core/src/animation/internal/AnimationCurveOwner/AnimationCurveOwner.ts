@@ -8,7 +8,7 @@ import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
  * @internal
  */
 export interface PropertyReference<V extends KeyFrameValueType> {
-  mounted: { [key: string]: V };
+  mounted: Record<string, V>;
   propertyName: string;
 }
 
@@ -40,14 +40,14 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
     this.component = target.getComponent(type);
   }
 
-  evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number) {
+  evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
       const value = curve._evaluate(time, this._baseTempValue);
       this._applyValue(value, layerWeight);
     }
   }
 
-  evaluateAndApplyAdditiveValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number) {
+  evaluateAndApplyAdditiveValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this._baseTempValue);
       this._applyAdditiveValue(value, layerWeight);
@@ -62,7 +62,7 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const srcValue =
       srcCurve && srcCurve.keys.length ? srcCurve._evaluate(srcTime, this._baseTempValue) : this._defaultValue;
     const destValue =
@@ -76,7 +76,7 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const srcValue = this._fixedPoseValue;
     const destValue =
       destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this._crossTempValue) : this._defaultValue;
