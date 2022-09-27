@@ -16,7 +16,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
       default:
         this._propertyReference = this._getPropertyReference();
         const { mounted, propertyName } = this._propertyReference;
-        this._targetValue = mounted[propertyName] as Float32Array;
+        this._targetValue = mounted[propertyName];
         break;
     }
     const size = this._targetValue.length;
@@ -27,7 +27,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
 
   saveDefaultValue(): void {
     const arr = this._targetValue;
-    for (let i = 0, length = arr.length; i < length; ++i) {
+    for (let i = 0, n = arr.length; i < n; ++i) {
       this._defaultValue[i] = arr[i];
     }
     this._hasSavedDefaultValue = true;
@@ -35,7 +35,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
 
   saveFixedPoseValue(): void {
     const arr = this._targetValue;
-    for (let i = 0, length = arr.length; i < length; ++i) {
+    for (let i = 0, n = arr.length; i < n; ++i) {
       this._defaultValue[i] = arr[i];
     }
   }
@@ -64,7 +64,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
           skinnedMeshRenderer.blendShapeWeights = value;
         } else {
           const { blendShapeWeights } = skinnedMeshRenderer;
-          for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+          for (let i = 0, n = blendShapeWeights.length; i < n; ++i) {
             blendShapeWeights[i] += (value[i] - blendShapeWeights[i]) * weight;
           }
         }
@@ -75,8 +75,8 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
         if (weight === 1.0) {
           mounted[propertyName] = value;
         } else {
-          const originValue = mounted[propertyName] as Float32Array;
-          for (let i = 0, length = originValue.length; i < length; ++i) {
+          const originValue = mounted[propertyName];
+          for (let i = 0, n = originValue.length; i < n; ++i) {
             originValue[i] += (value[i] - originValue[i]) * weight;
           }
         }
@@ -89,15 +89,15 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
     switch (property) {
       case AnimationPropertyInternal.BlendShapeWeights: {
         const { blendShapeWeights } = <SkinnedMeshRenderer>component;
-        for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+        for (let i = 0, n = blendShapeWeights.length; i < n; ++i) {
           blendShapeWeights[i] += value[i] * weight;
         }
         break;
       }
       default:
         const { mounted, propertyName } = this._propertyReference;
-        const originValue = mounted[propertyName] as Float32Array;
-        for (let i = 0, length = originValue.length; i < length; ++i) {
+        const originValue = mounted[propertyName];
+        for (let i = 0, n = originValue.length; i < n; ++i) {
           originValue[i] += value[i] * weight;
         }
         break;
@@ -112,7 +112,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Ar
     additive: boolean
   ): void {
     const value = this._baseTempValue;
-    for (let i = 0, length = (<Float32Array>value).length; i < length; ++i) {
+    for (let i = 0, n = value.length; i < n; ++i) {
       value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
     }
     if (additive) {

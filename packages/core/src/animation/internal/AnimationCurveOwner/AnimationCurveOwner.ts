@@ -7,8 +7,8 @@ import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
 /**
  * @internal
  */
-export interface PropertyReference {
-  mounted: { [key: string]: KeyFrameValueType };
+export interface PropertyReference<V extends KeyFrameValueType> {
+  mounted: { [key: string]: V };
   propertyName: string;
 }
 
@@ -28,7 +28,7 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
 
   protected _defaultValue: V;
   protected _fixedPoseValue: V;
-  protected _propertyReference: PropertyReference;
+  protected _propertyReference: PropertyReference<V>;
   protected _baseTempValue: V;
   protected _crossTempValue: V;
   protected _targetValue: V;

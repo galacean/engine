@@ -20,7 +20,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vec
       default:
         this._propertyReference = this._getPropertyReference();
         const { mounted, propertyName } = this._propertyReference;
-        this._targetValue = mounted[propertyName] as Vector3;
+        this._targetValue = mounted[propertyName];
         break;
     }
   }
@@ -79,7 +79,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vec
         if (layerWeight === 1.0) {
           mounted[propertyName] = value;
         } else {
-          const originValue = mounted[propertyName] as Vector3;
+          const originValue = mounted[propertyName];
           Vector3.lerp(originValue, value, layerWeight, originValue);
         }
         break;
@@ -109,7 +109,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vec
       }
       default:
         const { mounted, propertyName } = this._propertyReference;
-        const originValue = mounted[propertyName] as Vector3;
+        const originValue = mounted[propertyName];
         originValue.x += value.x * weight;
         originValue.y += value.y * weight;
         originValue.z += value.z * weight;

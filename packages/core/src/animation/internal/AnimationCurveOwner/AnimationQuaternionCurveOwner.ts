@@ -18,7 +18,7 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
       default:
         this._propertyReference = this._getPropertyReference();
         const { mounted, propertyName } = this._propertyReference;
-        this._targetValue = mounted[propertyName] as Quaternion;
+        this._targetValue = mounted[propertyName];
         break;
     }
   }
@@ -64,7 +64,7 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
         if (weight === 1.0) {
           mounted[propertyName] = value;
         } else {
-          const originValue = mounted[propertyName] as Quaternion;
+          const originValue = mounted[propertyName];
           Quaternion.slerp(originValue, value, weight, originValue);
         }
         break;
@@ -85,7 +85,7 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
       }
       default:
         const { mounted, propertyName } = this._propertyReference;
-        const originValue = mounted[propertyName] as Quaternion;
+        const originValue = mounted[propertyName];
         AnimatorUtils.quaternionWeight(value, weight, value);
         value.normalize();
         originValue.multiply(value);
