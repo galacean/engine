@@ -1,20 +1,13 @@
 import { Color } from "@oasis-engine/math";
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
+import { Vector4 } from "@oasis-engine/math/src";
 import { Component } from "../../../Component";
 import { AnimationProperty } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
-export class AnimationColorCurveOwner extends AnimationCurveOwner {
-  protected _defaultValue = new Color();
-  protected _fixedPoseValue = new Color();
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue = new Color();
-  protected _crossTempValue = new Color();
-
-  private _targetValue: Color;
-
+export class AnimationColorCurveOwner extends AnimationCurveOwner<Vector4, Color> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     this._propertyReference = this._getPropertyReference();

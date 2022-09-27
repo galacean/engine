@@ -30,12 +30,12 @@ export class AnimationClipCurveBinding {
   /** The animation curve. */
   curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>;
 
-  private _defaultCurveOwner: AnimationCurveOwner;
+  private _defaultCurveOwner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>;
 
   /**
    * @internal
    */
-  _createCurveOwner(entity: Entity): AnimationCurveOwner {
+  _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType> {
     switch (this.curve._type) {
       case InterpolableValueType.Float:
         return new AnimationFloatCurveOwner(entity, this.type, this.property);
@@ -61,7 +61,7 @@ export class AnimationClipCurveBinding {
   /**
    * @internal
    */
-  _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner {
+  _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType> {
     if (this._defaultCurveOwner) {
       return this._defaultCurveOwner;
     } else {

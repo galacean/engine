@@ -1,20 +1,12 @@
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { AnimationProperty } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
  * @internal
  */
-export class AnimationFloatCurveOwner extends AnimationCurveOwner {
-  protected _defaultValue: number;
-  protected _fixedPoseValue: number;
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue: number;
-  protected _crossTempValue: number;
-
-  private _targetValue: number;
-
+export class AnimationFloatCurveOwner extends AnimationCurveOwner<number, number> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     this._propertyReference = this._getPropertyReference();

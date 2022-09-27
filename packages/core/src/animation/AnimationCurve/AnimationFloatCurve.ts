@@ -1,5 +1,4 @@
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { KeyFrameValueType } from "../KeyFrame";
 import { AnimationCurve } from "./AnimationCurve";
 
 /**
@@ -14,9 +13,9 @@ export class AnimationFloatCurve extends AnimationCurve<number, number> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+  _evaluateAdditive(time: number, out?: number): number {
     const baseValue = this.keys[0].value;
-    const value = this._evaluate(time) as number;
+    const value = this._evaluate(time);
     return value - baseValue;
   }
 

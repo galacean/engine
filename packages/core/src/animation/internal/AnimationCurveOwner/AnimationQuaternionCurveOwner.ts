@@ -1,21 +1,14 @@
 import { Quaternion } from "@oasis-engine/math";
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
+import { Vector4 } from "@oasis-engine/math/src";
 import { Component } from "../../../Component";
 import { AnimationProperty, AnimationPropertyInternal } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
 import { AnimatorUtils } from "./../../AnimatorUtils";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
-export class AnimationQuaternionCurveOwner extends AnimationCurveOwner {
-  protected _defaultValue = new Quaternion();
-  protected _fixedPoseValue = new Quaternion();
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue = new Quaternion();
-  protected _crossTempValue = new Quaternion();
-
-  private _targetValue: Quaternion;
-
+export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, Quaternion> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     switch (property) {

@@ -1,20 +1,12 @@
 import { Vector2 } from "@oasis-engine/math";
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationProperty } from "../../enums/AnimationProperty";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
-export class AnimationVector2CurveOwner extends AnimationCurveOwner {
-  protected _defaultValue = new Vector2();
-  protected _fixedPoseValue = new Vector2();
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue = new Vector2();
-  protected _crossTempValue = new Vector2();
-
-  private _targetValue: Vector2;
-
+export class AnimationVector2CurveOwner extends AnimationCurveOwner<Vector2, Vector2> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     this._propertyReference = this._getPropertyReference();
@@ -38,7 +30,7 @@ export class AnimationVector2CurveOwner extends AnimationCurveOwner {
     mounted[propertyName] = this._defaultValue;
   }
 
-  protected _applyValue(value: Vector2, weight: number) {
+  protected _applyValue(value: Vector2, weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     if (weight === 1.0) {
       mounted[propertyName] = value;
@@ -48,7 +40,7 @@ export class AnimationVector2CurveOwner extends AnimationCurveOwner {
     }
   }
 
-  protected _applyAdditiveVale(value: Vector2, weight: number) {
+  protected _applyAdditiveVale(value: Vector2, weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     const originValue = mounted[propertyName] as Vector2;
     originValue.x += value.x * weight;
@@ -62,7 +54,7 @@ export class AnimationVector2CurveOwner extends AnimationCurveOwner {
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const value = this._baseTempValue;
     Vector2.lerp(srcValue, destValue, crossWeight, value);
     if (additive) {

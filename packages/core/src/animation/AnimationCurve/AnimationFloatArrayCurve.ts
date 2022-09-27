@@ -1,5 +1,4 @@
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { KeyFrameValueType } from "../KeyFrame";
 import { AnimationCurve } from "./AnimationCurve";
 
 /**
@@ -14,9 +13,9 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+  _evaluateAdditive(time: number, out?: Float32Array): Float32Array {
     const baseValue = this.keys[0].value;
-    const value = <Float32Array>this._evaluate(time, out);
+    const value = this._evaluate(time, out);
     for (let i = 0, n = value.length; i < n; i++) {
       value[i] = value[i] - baseValue[i];
     }

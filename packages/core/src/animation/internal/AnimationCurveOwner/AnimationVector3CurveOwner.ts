@@ -1,21 +1,13 @@
 import { Vector3 } from "@oasis-engine/math";
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationProperty, AnimationPropertyInternal } from "../../enums/AnimationProperty";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
  * @internal
  */
-export class AnimationVector3CurveOwner extends AnimationCurveOwner {
-  protected _defaultValue = new Vector3();
-  protected _fixedPoseValue = new Vector3();
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue = new Vector3();
-  protected _crossTempValue = new Vector3();
-
-  private _targetValue: Vector3;
-
+export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vector3> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     switch (property) {
@@ -33,16 +25,16 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner {
     }
   }
 
-  saveDefaultValue() {
+  saveDefaultValue(): void {
     this._defaultValue.copyFrom(this._targetValue);
     this._hasSavedDefaultValue = true;
   }
 
-  saveFixedPoseValue() {
+  saveFixedPoseValue(): void {
     this._fixedPoseValue.copyFrom(this._targetValue);
   }
 
-  revertDefaultValue() {
+  revertDefaultValue(): void {
     if (!this._hasSavedDefaultValue) return;
 
     const { target, property } = this;
@@ -59,7 +51,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner {
     }
   }
 
-  protected _applyValue(value: Vector3, layerWeight: number) {
+  protected _applyValue(value: Vector3, layerWeight: number): void {
     const { target, property } = this;
     switch (property) {
       case AnimationPropertyInternal.Position: {
@@ -94,7 +86,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner {
     }
   }
 
-  protected _applyAdditiveVale(value: Vector3, weight: number) {
+  protected _applyAdditiveVale(value: Vector3, weight: number): void {
     const { target, property } = this;
     switch (property) {
       case AnimationPropertyInternal.Position: {
@@ -132,7 +124,7 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner {
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const value = this._baseTempValue;
     Vector3.lerp(srcValue, destValue, crossWeight, value);
     if (additive) {

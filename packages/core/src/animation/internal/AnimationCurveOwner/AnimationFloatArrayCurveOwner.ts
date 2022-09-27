@@ -2,19 +2,11 @@ import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { SkinnedMeshRenderer } from "../../../mesh";
 import { AnimationProperty, AnimationPropertyInternal } from "../../enums/AnimationProperty";
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
-export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
-  protected _defaultValue: Float32Array;
-  protected _fixedPoseValue: Float32Array;
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue: Float32Array;
-  protected _crossTempValue: Float32Array;
-
-  private _targetValue: Float32Array;
-
+export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Array, Float32Array> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     switch (property) {

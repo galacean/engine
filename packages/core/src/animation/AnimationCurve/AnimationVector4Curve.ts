@@ -1,6 +1,5 @@
 import { Vector4 } from "@oasis-engine/math";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { KeyFrameValueType } from "../KeyFrame";
 import { AnimationCurve } from "./AnimationCurve";
 
 /**
@@ -15,10 +14,10 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4, Vector4> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+  _evaluateAdditive(time: number, out?: Vector4): Vector4 {
     const baseValue = this.keys[0].value;
     this._evaluate(time, out);
-    Vector4.subtract(<Vector4>out, baseValue, <Vector4>out);
+    Vector4.subtract(out, baseValue, out);
     return out;
   }
 

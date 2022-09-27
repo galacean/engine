@@ -15,7 +15,7 @@ export interface PropertyReference {
 /**
  * @internal
  */
-export abstract class AnimationCurveOwner {
+export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
   crossCurveMark: number = 0;
   crossCurveDataIndex: number;
 
@@ -26,11 +26,12 @@ export abstract class AnimationCurveOwner {
 
   protected _hasSavedDefaultValue: boolean = false;
 
-  protected abstract _defaultValue: KeyFrameValueType;
-  protected abstract _fixedPoseValue: KeyFrameValueType;
-  protected abstract _propertyReference: PropertyReference;
-  protected abstract _baseTempValue: KeyFrameValueType;
-  protected abstract _crossTempValue: KeyFrameValueType;
+  protected _defaultValue: V;
+  protected _fixedPoseValue: V;
+  protected _propertyReference: PropertyReference;
+  protected _baseTempValue: V;
+  protected _crossTempValue: V;
+  protected _targetValue: V;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     this.target = target;
@@ -39,22 +40,14 @@ export abstract class AnimationCurveOwner {
     this.component = target.getComponent(type);
   }
 
-  evaluateAndApplyValue(
-    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>,
-    time: number,
-    layerWeight: number
-  ) {
+  evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number) {
     if (curve.keys.length) {
       const value = curve._evaluate(time, this._baseTempValue);
       this._applyValue(value, layerWeight);
     }
   }
 
-  evaluateAndApplyAdditiveValue(
-    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>,
-    time: number,
-    layerWeight: number
-  ) {
+  evaluateAndApplyAdditiveValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number) {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this._baseTempValue);
       this._applyAdditiveVale(value, layerWeight);
@@ -62,8 +55,8 @@ export abstract class AnimationCurveOwner {
   }
 
   crossFadeAndApplyValue(
-    srcCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
-    destCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
+    srcCurve: AnimationCurve<T, V> | undefined,
+    destCurve: AnimationCurve<T, V> | undefined,
     srcTime: number,
     destTime: number,
     crossWeight: number,
@@ -78,7 +71,7 @@ export abstract class AnimationCurveOwner {
   }
 
   crossFadeFromPoseAndApplyValue(
-    destCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
+    destCurve: AnimationCurve<T, V> | undefined,
     destTime: number,
     crossWeight: number,
     layerWeight: number,
@@ -107,11 +100,11 @@ export abstract class AnimationCurveOwner {
     };
   }
 
-  protected abstract _applyValue(value: KeyFrameValueType, weight: number): void;
-  protected abstract _applyAdditiveVale(value: KeyFrameValueType, weight: number): void;
+  protected abstract _applyValue(value: V, weight: number): void;
+  protected abstract _applyAdditiveVale(value: V, weight: number): void;
   protected abstract _applyCrossValue(
-    srcValue: KeyFrameValueType,
-    destValue: KeyFrameValueType,
+    srcValue: V,
+    destValue: V,
     crossWeight: number,
     layerWeight: number,
     additive: boolean
