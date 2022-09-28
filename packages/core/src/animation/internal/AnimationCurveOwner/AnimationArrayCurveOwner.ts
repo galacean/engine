@@ -32,8 +32,7 @@ export class AnimationArrayCurveOwner extends AnimationCurveOwner<number[], numb
   revertDefaultValue(): void {
     if (!this._hasSavedDefaultValue) return;
 
-    const { mounted, propertyName } = this._propertyReference;
-    mounted[propertyName] = this._defaultValue;
+    this._assembler.setValue(this._defaultValue);
   }
 
   protected _applyValue(value: number[], weight: number): void {

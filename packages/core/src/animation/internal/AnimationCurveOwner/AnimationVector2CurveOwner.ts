@@ -26,16 +26,14 @@ export class AnimationVector2CurveOwner extends AnimationCurveOwner<Vector2, Vec
   revertDefaultValue() {
     if (!this._hasSavedDefaultValue) return;
 
-    const { mounted, propertyName } = this._propertyReference;
-    mounted[propertyName] = this._defaultValue;
+    this._assembler.setValue(this._defaultValue);
   }
 
   protected _applyValue(value: Vector2, weight: number): void {
-    const { mounted, propertyName } = this._propertyReference;
     if (weight === 1.0) {
-      mounted[propertyName] = value;
+      this._assembler.setValue(value);
     } else {
-      const originValue = mounted[propertyName];
+      const originValue = this._assembler.getValue();
       Vector2.lerp(originValue, value, weight, originValue);
     }
   }

@@ -1,6 +1,5 @@
 import { Vector4 } from "@oasis-engine/math";
 import { Component } from "../../../Component";
-import { AnimationProperty } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
@@ -29,28 +28,24 @@ export class AnimationVector4CurveOwner extends AnimationCurveOwner<Vector4, Vec
   revertDefaultValue(): void {
     if (!this._hasSavedDefaultValue) return;
 
-    const { mounted, propertyName } = this._propertyReference;
-    mounted[propertyName] = this._defaultValue;
+    this._assembler.setValue(this._defaultValue);
   }
 
   protected _applyValue(value: Vector4, weight: number): void {
-    const { mounted, propertyName } = this._propertyReference;
     if (weight === 1.0) {
-      mounted[propertyName] = value;
+      this._assembler.setValue(value);
     } else {
-      const originValue = mounted[propertyName];
+      const originValue = this._assembler.getValue();
       Vector4.lerp(originValue, value, weight, originValue);
     }
   }
 
   protected _applyAdditiveValue(value: Vector4, weight: number): void {
-    const { mounted, propertyName } = this._propertyReference;
-    const originValue = mounted[propertyName];
+    const originValue = this._assembler.getValue();
     originValue.x += value.x * weight;
     originValue.y += value.y * weight;
     originValue.z += value.z * weight;
     originValue.w += value.w * weight;
-    mounted[propertyName] = originValue;
   }
 
   protected _lerpValue(srcValue: Vector4, destValue: Vector4, crossWeight: number, out: Vector4): Vector4 {

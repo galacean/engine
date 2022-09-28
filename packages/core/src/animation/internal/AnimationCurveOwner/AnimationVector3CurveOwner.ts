@@ -34,8 +34,8 @@ export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vec
     if (layerWeight === 1.0) {
       this._assembler.setValue(value);
     } else {
-      const value = this._assembler.getValue();
-      Vector3.lerp(value, value, layerWeight, value);
+      const originValue = this._assembler.getValue();
+      Vector3.lerp(originValue, value, layerWeight, originValue);
     }
   }
 

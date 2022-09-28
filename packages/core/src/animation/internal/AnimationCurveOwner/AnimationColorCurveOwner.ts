@@ -27,28 +27,24 @@ export class AnimationColorCurveOwner extends AnimationCurveOwner<Vector4, Color
   revertDefaultValue(): void {
     if (!this._hasSavedDefaultValue) return;
 
-    const { mounted, propertyName } = this._propertyReference;
-    mounted[propertyName] = this._defaultValue;
+    this._assembler.setValue(this._defaultValue);
   }
 
   protected _applyValue(value: Color, weight: number): void {
-    const { mounted, propertyName } = this._propertyReference;
     if (weight === 1.0) {
-      mounted[propertyName] = value;
+      this._assembler.setValue(value);
     } else {
-      const originValue = mounted[propertyName];
+      const originValue = this._assembler.getValue();
       Color.lerp(originValue, value, weight, originValue);
     }
   }
 
   protected _applyAdditiveValue(value: Color, weight: number): void {
-    const { mounted, propertyName } = this._propertyReference;
-    const originValue = mounted[propertyName];
+    const originValue = this._assembler.getValue();
     originValue.r += value.r * weight;
     originValue.g += value.g * weight;
     originValue.b += value.b * weight;
     originValue.a += value.a * weight;
-    mounted[propertyName] = originValue;
   }
 
   protected _lerpValue(srcValue: Color, destValue: Color, crossWeight: number, out: Color): Color {
