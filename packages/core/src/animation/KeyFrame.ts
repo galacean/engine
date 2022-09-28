@@ -23,5 +23,12 @@ export class InterpolableKeyframe<T extends KeyFrameTangentType, V extends KeyFr
   outTangent?: T;
 }
 
+/**
+ * Type of Keyframe tangent.
+ */
 export type KeyFrameTangentType = number | Vector2 | Vector3 | Vector4 | number[] | Float32Array;
+
+/**
+ * Type of Keyframe value.
+ */
 export type KeyFrameValueType = number | Vector2 | Vector3 | Vector4 | number[] | Float32Array | Quaternion | Color;
