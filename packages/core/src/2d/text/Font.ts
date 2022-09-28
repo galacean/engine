@@ -45,10 +45,8 @@ export class Font extends RefObject {
     const font = fontMap[name];
     if (font) {
       font._addRefCount(-1);
-      if (font.refCount === 0) {
-        font.destroy();
-        delete fontMap[name];
-      }
+      font.destroy();
+      delete fontMap[name];
     }
   }
 
@@ -60,6 +58,7 @@ export class Font extends RefObject {
       return font;
     }
     font = new Font(engine, name);
+    font._addRefCount(1);
     fontMap[name] = font;
     return font;
   }
