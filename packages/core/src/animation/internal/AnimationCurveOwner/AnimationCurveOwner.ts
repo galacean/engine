@@ -11,16 +11,12 @@ import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnim
  * @internal
  */
 export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
-  private static _assemblerMap = new Map<ComponentConstructor, Record<string, AssemblerConstructor>>();
+  private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   /**
    * @internal
    */
-  static _registerAssemblerType(
-    compomentType: ComponentConstructor,
-    property: string,
-    assemblerType: AssemblerConstructor
-  ): void {
+  static _registerAssemblerType(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
     let subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
     if (!subMap) {
       subMap = {};
@@ -32,7 +28,7 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
   /**
    * @internal
    */
-  static _getAssemblerType(compomentType: ComponentConstructor, property: string): AssemblerConstructor {
+  static _getAssemblerType(compomentType: ComponentType, property: string): AssemblerType {
     const subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
     return subMap ? subMap[property] : UniversalAnimationCurveOwnerAssembler<KeyFrameValueType>;
   }
@@ -162,5 +158,5 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
   }
 }
 
-type ComponentConstructor = new (entity: Entity) => Component;
-type AssemblerConstructor = new () => IAnimationCurveOwnerAssembler<KeyFrameValueType>;
+type ComponentType = new (entity: Entity) => Component;
+type AssemblerType = new () => IAnimationCurveOwnerAssembler<KeyFrameValueType>;
