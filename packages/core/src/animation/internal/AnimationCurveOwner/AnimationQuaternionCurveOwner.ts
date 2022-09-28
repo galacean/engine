@@ -101,7 +101,7 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
   }
 
   protected _lerpValue(srcValue: Quaternion, destValue: Quaternion, crossWeight: number, out: Quaternion): Quaternion {
-    Quaternion.lerp(srcValue, destValue, crossWeight, out);
+    Quaternion.slerp(srcValue, destValue, crossWeight, out);
     return out;
   }
 }
