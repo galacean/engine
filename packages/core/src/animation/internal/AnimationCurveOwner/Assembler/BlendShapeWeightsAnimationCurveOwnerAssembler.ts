@@ -16,6 +16,7 @@ export class BlendShapeWeightsAnimationCurveOwnerAssembler implements IAnimation
   getTargetValue(): Float32Array {
     return this._skinnedMeshRenderer.blendShapeWeights;
   }
+
   setTargetValue(value: Float32Array): void {
     this._skinnedMeshRenderer.blendShapeWeights = value;
   }

@@ -17,6 +17,7 @@ export class RotationAnimationCurveOwnerAssembler implements IAnimationCurveOwne
   getTargetValue(): Quaternion {
     return this._transform.rotationQuaternion;
   }
+
   setTargetValue(value: Quaternion): void {
     this._transform.rotationQuaternion = value;
   }
