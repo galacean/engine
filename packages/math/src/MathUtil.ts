@@ -2,6 +2,8 @@
  * Common utility methods for math operations.
  */
 export class MathUtil {
+  /** Ths critical value as denominator. */
+  static readonly epsilon: number = 1e-15;
   /** The value for which all absolute numbers smaller than are considered equal to zero. */
   static readonly zeroTolerance: number = 1e-6;
   /** The conversion factor that radian to degree. */
@@ -28,7 +30,7 @@ export class MathUtil {
    * @returns True if a almost equal to b, false otherwise
    */
   static equals(a: number, b: number): boolean {
-    return Math.abs(a - b) <= MathUtil.zeroTolerance;
+    return Math.abs(a - b) < MathUtil.zeroTolerance;
   }
 
   /**
