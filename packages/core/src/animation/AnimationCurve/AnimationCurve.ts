@@ -14,7 +14,7 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
   /** @internal */
   _type: InterpolableValueType;
 
-  protected _tempValue: KeyFrameValueType;
+  protected _tempValue: V;
   protected _length: number = 0;
   protected _currentIndex: number = 0;
 
@@ -43,7 +43,7 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
    * Evaluate the curve at time.
    * @param time - The time within the curve you want to evaluate
    */
-  evaluate(time: number): KeyFrameValueType {
+  evaluate(time: number): V {
     return this._evaluate(time, this._tempValue);
   }
 
@@ -76,7 +76,7 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
   /**
    * @internal
    */
-  _evaluate(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+  _evaluate(time: number, out?: V): V {
     const { keys, interpolation } = this;
     const { length } = this.keys;
 
@@ -97,7 +97,7 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
     }
     this._currentIndex = curIndex;
     // Evaluate value.
-    let value: KeyFrameValueType;
+    let value: V;
     if (curIndex === -1) {
       value = this._evaluateStep(0, out);
     } else if (nextIndex === length) {
@@ -130,22 +130,11 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
   /**
    * @internal
    */
-  abstract _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType;
+  abstract _evaluateAdditive(time: number, out?: V): V;
 
-  protected abstract _evaluateLinear(
-    frameIndex: number,
-    nextFrameIndex: number,
-    t: number,
-    out: KeyFrameValueType
-  ): KeyFrameValueType;
+  protected abstract _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: V): V;
 
-  protected abstract _evaluateStep(frameIndex: number, out: KeyFrameValueType): KeyFrameValueType;
+  protected abstract _evaluateStep(frameIndex: number, out: V): V;
 
-  protected abstract _evaluateHermite(
-    frameIndex: number,
-    nextFrameIndex: number,
-    t: number,
-    dur: number,
-    out: KeyFrameValueType
-  ): KeyFrameValueType;
+  protected abstract _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number, out: V): V;
 }

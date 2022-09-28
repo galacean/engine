@@ -1,84 +1,66 @@
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
 import { Component } from "../../../Component";
 import { AnimationProperty } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
  * @internal
  */
-export class AnimationArrayCurveOwner extends AnimationCurveOwner {
-  protected _defaultValue: number[] = [];
-  protected _fixedPoseValue: number[] = [];
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue: number[] = [];
-  protected _crossTempValue: number[] = [];
-
-  private _targetValue: number[];
-
+export class AnimationArrayCurveOwner extends AnimationCurveOwner<number[], number[]> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     this._propertyReference = this._getPropertyReference();
     const { mounted, propertyName } = this._propertyReference;
-    this._targetValue = mounted[propertyName] as number[];
+    this._targetValue = mounted[propertyName];
   }
 
-  saveDefaultValue() {
+  saveDefaultValue(): void {
     const arr = this._targetValue;
-    for (let i = 0, length = arr.length; i < length; ++i) {
+    for (let i = 0, n = arr.length; i < n; ++i) {
       this._defaultValue[i] = arr[i];
     }
     this._hasSavedDefaultValue = true;
   }
 
-  saveFixedPoseValue() {
+  saveFixedPoseValue(): void {
     const arr = this._targetValue;
-    for (let i = 0, length = arr.length; i < length; ++i) {
+    for (let i = 0, n = arr.length; i < n; ++i) {
       this._defaultValue[i] = arr[i];
     }
   }
 
-  revertDefaultValue() {
+  revertDefaultValue(): void {
     if (!this._hasSavedDefaultValue) return;
 
     const { mounted, propertyName } = this._propertyReference;
     mounted[propertyName] = this._defaultValue;
   }
 
-  protected _applyValue(value: number[], weight: number) {
+  protected _applyValue(value: number[], weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     if (weight === 1.0) {
       mounted[propertyName] = value;
     } else {
-      const originValue = mounted[propertyName] as number[];
-      for (let i = 0, length = originValue.length; i < length; ++i) {
+      const originValue = mounted[propertyName];
+      for (let i = 0, n = originValue.length; i < n; ++i) {
         originValue[i] += (value[i] - originValue[i]) * weight;
       }
     }
   }
 
-  protected _applyAdditiveVale(value: number[], weight: number) {
+  protected _applyAdditiveValue(value: number[], weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
-    const originValue = mounted[propertyName] as number[];
-    for (let i = 0, length = originValue.length; i < length; ++i) {
+    const originValue = mounted[propertyName];
+    for (let i = 0, n = originValue.length; i < n; ++i) {
       originValue[i] += value[i] * weight;
     }
   }
 
-  protected _applyCrossValue(
-    srcValue: number[],
-    destValue: number[],
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ) {
-    const value = this._baseTempValue;
-    for (let i = 0, length = value.length; i < length; ++i) {
-      value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
+  protected _lerpValue(srcValue: number[], destValue: number[], crossWeight: number, out: number[]): number[] {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      const src = srcValue[i];
+      out[i] = src + (destValue[i] - src) * crossWeight;
     }
-    if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+    return out;
   }
 }

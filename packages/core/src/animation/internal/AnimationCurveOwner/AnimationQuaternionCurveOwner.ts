@@ -1,21 +1,14 @@
 import { Quaternion } from "@oasis-engine/math";
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
+import { Vector4 } from "@oasis-engine/math/src";
 import { Component } from "../../../Component";
 import { AnimationProperty, AnimationPropertyInternal } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
 import { AnimatorUtils } from "./../../AnimatorUtils";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
-export class AnimationQuaternionCurveOwner extends AnimationCurveOwner {
-  protected _defaultValue = new Quaternion();
-  protected _fixedPoseValue = new Quaternion();
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue = new Quaternion();
-  protected _crossTempValue = new Quaternion();
-
-  private _targetValue: Quaternion;
-
+export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, Quaternion> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     switch (property) {
@@ -25,7 +18,7 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner {
       default:
         this._propertyReference = this._getPropertyReference();
         const { mounted, propertyName } = this._propertyReference;
-        this._targetValue = mounted[propertyName] as Quaternion;
+        this._targetValue = mounted[propertyName];
         break;
     }
   }
@@ -71,14 +64,14 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner {
         if (weight === 1.0) {
           mounted[propertyName] = value;
         } else {
-          const originValue = mounted[propertyName] as Quaternion;
+          const originValue = mounted[propertyName];
           Quaternion.slerp(originValue, value, weight, originValue);
         }
         break;
     }
   }
 
-  protected _applyAdditiveVale(value: Quaternion, weight: number) {
+  protected _applyAdditiveValue(value: Quaternion, weight: number) {
     const { target, property } = this;
     switch (property) {
       case AnimationPropertyInternal.Rotation: {
@@ -92,7 +85,7 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner {
       }
       default:
         const { mounted, propertyName } = this._propertyReference;
-        const originValue = mounted[propertyName] as Quaternion;
+        const originValue = mounted[propertyName];
         AnimatorUtils.quaternionWeight(value, weight, value);
         value.normalize();
         originValue.multiply(value);
@@ -101,19 +94,8 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner {
     }
   }
 
-  protected _applyCrossValue(
-    srcValue: Quaternion,
-    destValue: Quaternion,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ) {
-    const value = this._baseTempValue;
-    Quaternion.slerp(srcValue, destValue, crossWeight, value);
-    if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+  protected _lerpValue(srcValue: Quaternion, destValue: Quaternion, crossWeight: number, out: Quaternion): Quaternion {
+    Quaternion.lerp(srcValue, destValue, crossWeight, out);
+    return out;
   }
 }

@@ -15,13 +15,13 @@ export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: KeyFrameValueType): KeyFrameValueType {
+  _evaluateAdditive(time: number, out?: Color): Color {
     const baseValue = this.keys[0].value;
     this._evaluate(time, out);
-    (<Color>out).r -= baseValue.r;
-    (<Color>out).g -= baseValue.g;
-    (<Color>out).b -= baseValue.b;
-    (<Color>out).a -= baseValue.a;
+    out.r -= baseValue.r;
+    out.g -= baseValue.g;
+    out.b -= baseValue.b;
+    out.a -= baseValue.a;
     return out;
   }
 

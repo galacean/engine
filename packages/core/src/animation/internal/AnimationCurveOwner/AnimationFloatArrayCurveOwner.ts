@@ -2,19 +2,11 @@ import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { SkinnedMeshRenderer } from "../../../mesh";
 import { AnimationProperty, AnimationPropertyInternal } from "../../enums/AnimationProperty";
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
-export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
-  protected _defaultValue: Float32Array;
-  protected _fixedPoseValue: Float32Array;
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue: Float32Array;
-  protected _crossTempValue: Float32Array;
-
-  private _targetValue: Float32Array;
-
+export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Array, Float32Array> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     switch (property) {
@@ -24,7 +16,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
       default:
         this._propertyReference = this._getPropertyReference();
         const { mounted, propertyName } = this._propertyReference;
-        this._targetValue = mounted[propertyName] as Float32Array;
+        this._targetValue = mounted[propertyName];
         break;
     }
     const size = this._targetValue.length;
@@ -35,7 +27,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
 
   saveDefaultValue(): void {
     const arr = this._targetValue;
-    for (let i = 0, length = arr.length; i < length; ++i) {
+    for (let i = 0, n = arr.length; i < n; ++i) {
       this._defaultValue[i] = arr[i];
     }
     this._hasSavedDefaultValue = true;
@@ -43,7 +35,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
 
   saveFixedPoseValue(): void {
     const arr = this._targetValue;
-    for (let i = 0, length = arr.length; i < length; ++i) {
+    for (let i = 0, n = arr.length; i < n; ++i) {
       this._defaultValue[i] = arr[i];
     }
   }
@@ -72,7 +64,7 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
           skinnedMeshRenderer.blendShapeWeights = value;
         } else {
           const { blendShapeWeights } = skinnedMeshRenderer;
-          for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+          for (let i = 0, n = blendShapeWeights.length; i < n; ++i) {
             blendShapeWeights[i] += (value[i] - blendShapeWeights[i]) * weight;
           }
         }
@@ -83,8 +75,8 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
         if (weight === 1.0) {
           mounted[propertyName] = value;
         } else {
-          const originValue = mounted[propertyName] as Float32Array;
-          for (let i = 0, length = originValue.length; i < length; ++i) {
+          const originValue = mounted[propertyName];
+          for (let i = 0, n = originValue.length; i < n; ++i) {
             originValue[i] += (value[i] - originValue[i]) * weight;
           }
         }
@@ -92,41 +84,36 @@ export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner {
     }
   }
 
-  protected _applyAdditiveVale(value: Float32Array, weight: number) {
+  protected _applyAdditiveValue(value: Float32Array, weight: number) {
     const { component, property } = this;
     switch (property) {
       case AnimationPropertyInternal.BlendShapeWeights: {
         const { blendShapeWeights } = <SkinnedMeshRenderer>component;
-        for (let i = 0, length = blendShapeWeights.length; i < length; ++i) {
+        for (let i = 0, n = blendShapeWeights.length; i < n; ++i) {
           blendShapeWeights[i] += value[i] * weight;
         }
         break;
       }
       default:
         const { mounted, propertyName } = this._propertyReference;
-        const originValue = mounted[propertyName] as Float32Array;
-        for (let i = 0, length = originValue.length; i < length; ++i) {
+        const originValue = mounted[propertyName];
+        for (let i = 0, n = originValue.length; i < n; ++i) {
           originValue[i] += value[i] * weight;
         }
         break;
     }
   }
 
-  protected _applyCrossValue(
+  protected _lerpValue(
     srcValue: Float32Array,
     destValue: Float32Array,
     crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    const value = this._baseTempValue;
-    for (let i = 0, length = (<Float32Array>value).length; i < length; ++i) {
-      value[i] = srcValue[i] + (destValue[i] - srcValue[i]) * crossWeight;
+    out: Float32Array
+  ): Float32Array {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      const src = srcValue[i];
+      out[i] = src + (destValue[i] - src) * crossWeight;
     }
-    if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+    return out;
   }
 }

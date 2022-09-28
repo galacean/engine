@@ -1,56 +1,49 @@
 import { Color } from "@oasis-engine/math";
-import { AnimationCurveOwner, PropertyReference } from "./AnimationCurveOwner";
+import { Vector4 } from "@oasis-engine/math/src";
 import { Component } from "../../../Component";
 import { AnimationProperty } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
+import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
-export class AnimationColorCurveOwner extends AnimationCurveOwner {
-  protected _defaultValue = new Color();
-  protected _fixedPoseValue = new Color();
-  protected _propertyReference: PropertyReference;
-  protected _baseTempValue = new Color();
-  protected _crossTempValue = new Color();
-
-  private _targetValue: Color;
-
+export class AnimationColorCurveOwner extends AnimationCurveOwner<Vector4, Color> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
     this._propertyReference = this._getPropertyReference();
     const { mounted, propertyName } = this._propertyReference;
-    this._targetValue = mounted[propertyName] as Color;
+    this._targetValue = mounted[propertyName];
   }
 
-  saveDefaultValue() {
+  saveDefaultValue(): void {
     this._defaultValue.copyFrom(this._targetValue);
     this._hasSavedDefaultValue = true;
   }
 
-  saveFixedPoseValue() {
+  saveFixedPoseValue(): void {
     this._fixedPoseValue.copyFrom(this._targetValue);
   }
 
-  revertDefaultValue() {
+  revertDefaultValue(): void {
     if (!this._hasSavedDefaultValue) return;
 
     const { mounted, propertyName } = this._propertyReference;
     mounted[propertyName] = this._defaultValue;
   }
 
-  protected _applyValue(value: Color, weight: number) {
+  protected _applyValue(value: Color, weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
     if (weight === 1.0) {
       mounted[propertyName] = value;
     } else {
-      const originValue = mounted[propertyName] as Color;
+      const originValue = mounted[propertyName];
       Color.lerp(originValue, value, weight, originValue);
     }
   }
 
-  protected _applyAdditiveVale(value: Color, weight: number) {
+  protected _applyAdditiveValue(value: Color, weight: number): void {
     const { mounted, propertyName } = this._propertyReference;
-    const originValue = mounted[propertyName] as Color;
+    const originValue = mounted[propertyName];
     originValue.r += value.r * weight;
     originValue.g += value.g * weight;
     originValue.b += value.b * weight;
@@ -58,19 +51,10 @@ export class AnimationColorCurveOwner extends AnimationCurveOwner {
     mounted[propertyName] = originValue;
   }
 
-  protected _applyCrossValue(
-    srcValue: Color,
-    destValue: Color,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ) {
-    const value = this._baseTempValue;
-    Color.lerp(srcValue, destValue, crossWeight, value);
-    if (additive) {
-      this._applyAdditiveVale(value, layerWeight);
-    } else {
-      this._applyValue(value, layerWeight);
-    }
+  protected _lerpValue(srcValue: Color, destValue: Color, crossWeight: number, out: Color): Color {
+    Color.lerp(srcValue, destValue, crossWeight, out);
+    return out;
   }
+
+
 }

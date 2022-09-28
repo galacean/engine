@@ -7,15 +7,15 @@ import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
 /**
  * @internal
  */
-export interface PropertyReference {
-  mounted: { [key: string]: KeyFrameValueType };
+export interface PropertyReference<V extends KeyFrameValueType> {
+  mounted: Record<string, V>;
   propertyName: string;
 }
 
 /**
  * @internal
  */
-export abstract class AnimationCurveOwner {
+export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
   crossCurveMark: number = 0;
   crossCurveDataIndex: number;
 
@@ -26,11 +26,12 @@ export abstract class AnimationCurveOwner {
 
   protected _hasSavedDefaultValue: boolean = false;
 
-  protected abstract _defaultValue: KeyFrameValueType;
-  protected abstract _fixedPoseValue: KeyFrameValueType;
-  protected abstract _propertyReference: PropertyReference;
-  protected abstract _baseTempValue: KeyFrameValueType;
-  protected abstract _crossTempValue: KeyFrameValueType;
+  protected _defaultValue: V;
+  protected _fixedPoseValue: V;
+  protected _propertyReference: PropertyReference<V>;
+  protected _baseTempValue: V;
+  protected _crossTempValue: V;
+  protected _targetValue: V;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     this.target = target;
@@ -39,37 +40,29 @@ export abstract class AnimationCurveOwner {
     this.component = target.getComponent(type);
   }
 
-  evaluateAndApplyValue(
-    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>,
-    time: number,
-    layerWeight: number
-  ) {
+  evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
       const value = curve._evaluate(time, this._baseTempValue);
       this._applyValue(value, layerWeight);
     }
   }
 
-  evaluateAndApplyAdditiveValue(
-    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>,
-    time: number,
-    layerWeight: number
-  ) {
+  evaluateAndApplyAdditiveValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this._baseTempValue);
-      this._applyAdditiveVale(value, layerWeight);
+      this._applyAdditiveValue(value, layerWeight);
     }
   }
 
   crossFadeAndApplyValue(
-    srcCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
-    destCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
+    srcCurve: AnimationCurve<T, V>,
+    destCurve: AnimationCurve<T, V>,
     srcTime: number,
     destTime: number,
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const srcValue =
       srcCurve && srcCurve.keys.length ? srcCurve._evaluate(srcTime, this._baseTempValue) : this._defaultValue;
     const destValue =
@@ -78,12 +71,12 @@ export abstract class AnimationCurveOwner {
   }
 
   crossFadeFromPoseAndApplyValue(
-    destCurve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType> | undefined,
+    destCurve: AnimationCurve<T, V>,
     destTime: number,
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ) {
+  ): void {
     const srcValue = this._fixedPoseValue;
     const destValue =
       destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this._crossTempValue) : this._defaultValue;
@@ -94,10 +87,10 @@ export abstract class AnimationCurveOwner {
   abstract saveFixedPoseValue(): void;
   abstract revertDefaultValue(): void;
 
-  protected _getPropertyReference() {
+  protected _getPropertyReference(): PropertyReference<V> {
     let mounted: any = this.component;
     const properties = (this.property as string).split(".");
-    for (let i = 0, n = properties.length; i < n - 1; ++i) {
+    for (let i = 0, n = properties.length; i < n - 1; i++) {
       mounted = mounted[properties[i]];
     }
 
@@ -107,13 +100,22 @@ export abstract class AnimationCurveOwner {
     };
   }
 
-  protected abstract _applyValue(value: KeyFrameValueType, weight: number): void;
-  protected abstract _applyAdditiveVale(value: KeyFrameValueType, weight: number): void;
-  protected abstract _applyCrossValue(
-    srcValue: KeyFrameValueType,
-    destValue: KeyFrameValueType,
+  protected abstract _applyValue(value: V, weight: number): void;
+  protected abstract _applyAdditiveValue(value: V, weight: number): void;
+  protected abstract _lerpValue(srcValue: V, destValue: V, crossWeight: number, out: V): V;
+
+  private _applyCrossValue(
+    srcValue: V,
+    destValue: V,
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ): void;
+  ): void {
+    const out = this._lerpValue(srcValue, destValue, crossWeight, this._baseTempValue);
+    if (additive) {
+      this._applyAdditiveValue(out, layerWeight);
+    } else {
+      this._applyValue(out, layerWeight);
+    }
+  }
 }
