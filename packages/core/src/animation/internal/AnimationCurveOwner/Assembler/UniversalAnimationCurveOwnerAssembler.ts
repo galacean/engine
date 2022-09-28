@@ -11,7 +11,16 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyframeValueType>
   private _propertyReference: PropertyReference<V>;
 
   initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
-    this._propertyReference = this._getPropertyReference(owner);
+    let mounted: any = owner.component;
+    const properties = (owner.property as string).split(".");
+    for (let i = 0, n = properties.length; i < n - 1; i++) {
+      mounted = mounted[properties[i]];
+    }
+
+    this._propertyReference = {
+      mounted,
+      propertyName: properties[properties.length - 1]
+    };
   }
 
   getTargetValue(): V {
@@ -23,27 +32,9 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyframeValueType>
     const propertyReference = this._propertyReference;
     propertyReference.mounted[propertyReference.propertyName] = value;
   }
-
-  protected _getPropertyReference(
-    owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>
-  ): PropertyReference<V> {
-    let mounted: any = owner.component;
-    const properties = (owner.property as string).split(".");
-    for (let i = 0, n = properties.length; i < n - 1; i++) {
-      mounted = mounted[properties[i]];
-    }
-
-    return {
-      mounted,
-      propertyName: properties[properties.length - 1]
-    };
-  }
 }
 
-/**
- * @internal
- */
-export interface PropertyReference<V extends KeyframeValueType> {
+interface PropertyReference<V extends KeyframeValueType> {
   mounted: Record<string, V>;
   propertyName: string;
 }
