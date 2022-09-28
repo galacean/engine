@@ -9,32 +9,32 @@ export class AnimationCurveValueOwner<T extends number, V extends number> extend
   _cureType: IAnimationValueCurveOperation<V>;
 
   saveDefaultValue(): void {
-    this._defaultValue = this._assembler.getValue();
+    this._defaultValue = this._assembler.getTargetValue();
     this._hasSavedDefaultValue = true;
   }
 
   saveFixedPoseValue(): void {
-    this._fixedPoseValue = this._assembler.getValue();
+    this._fixedPoseValue = this._assembler.getTargetValue();
   }
 
   revertDefaultValue(): void {
-    this._assembler.setValue(this._defaultValue);
+    this._assembler.setTargetValue(this._defaultValue);
   }
 
   protected _applyValue(value: V, weight: number): void {
     if (weight === 1.0) {
-      this._assembler.setValue(value);
+      this._assembler.setTargetValue(value);
     } else {
-      const originValue = this._assembler.getValue();
+      const originValue = this._assembler.getTargetValue();
       const lerpValue = this._cureType._lerpValue(originValue, value, weight);
-      this._assembler.setValue(lerpValue);
+      this._assembler.setTargetValue(lerpValue);
     }
   }
 
   protected _applyAdditiveValue(value: V, weight: number): void {
-    const originValue = this._assembler.getValue();
+    const originValue = this._assembler.getTargetValue();
     const lerpValue = this._cureType._additiveValue(value, weight, originValue);
-    this._assembler.setValue(lerpValue);
+    this._assembler.setTargetValue(lerpValue);
   }
 
   protected _applyCrossValue(

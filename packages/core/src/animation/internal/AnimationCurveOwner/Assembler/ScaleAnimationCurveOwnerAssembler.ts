@@ -10,14 +10,14 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 export class ScaleAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<Vector3> {
   private _transform: Transform;
 
-  initialization(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
+  initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
     this._transform = owner.target.transform;
   }
-  getValue(): Vector3 {
+  getTargetValue(): Vector3 {
     return this._transform.scale;
   }
-  setValue(value: Vector3): void {
+  setTargetValue(value: Vector3): void {
     this._transform.scale = value;
   }
 }
-AnimationCurveOwner._registerAssemblerType(Transform, "scale",ScaleAnimationCurveOwnerAssembler);
+AnimationCurveOwner._registerAssembler(Transform, "scale",ScaleAnimationCurveOwnerAssembler);

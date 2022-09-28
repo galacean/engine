@@ -10,16 +10,16 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyframeValueType>
 {
   private _propertyReference: PropertyReference<V>;
 
-  initialization(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
+  initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
     this._propertyReference = this._getPropertyReference(owner);
   }
 
-  getValue(): V {
+  getTargetValue(): V {
     const propertyReference = this._propertyReference;
     const originValue = propertyReference.mounted[propertyReference.propertyName];
     return originValue;
   }
-  setValue(value: V): void {
+  setTargetValue(value: V): void {
     const propertyReference = this._propertyReference;
     propertyReference.mounted[propertyReference.propertyName] = value;
   }

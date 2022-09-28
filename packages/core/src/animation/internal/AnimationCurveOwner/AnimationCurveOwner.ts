@@ -14,7 +14,7 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
   /**
    * @internal
    */
-  static _registerAssemblerType(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
+  static _registerAssembler(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
     let subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
     if (!subMap) {
       subMap = {};
@@ -60,7 +60,7 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
 
     const assemblerType = AnimationCurveOwner._getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
-    this._assembler.initialization(this);
+    this._assembler.initialize(this);
   }
 
   evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {

@@ -10,16 +10,16 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 export class RotationAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<Quaternion> {
   private _transform: Transform;
 
-  initialization(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
+  initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
     this._transform = owner.target.transform;
   }
 
-  getValue(): Quaternion {
+  getTargetValue(): Quaternion {
     return this._transform.rotationQuaternion;
   }
-  setValue(value: Quaternion): void {
+  setTargetValue(value: Quaternion): void {
     this._transform.rotationQuaternion = value;
   }
 }
 
-AnimationCurveOwner._registerAssemblerType(Transform, "rotationQuaternion", RotationAnimationCurveOwnerAssembler);
+AnimationCurveOwner._registerAssembler(Transform, "rotationQuaternion", RotationAnimationCurveOwnerAssembler);

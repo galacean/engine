@@ -18,7 +18,7 @@ export class AnimationCurveReferenceOwner<
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     super(target, type, property);
-    this._targetValue = this._assembler.getValue();
+    this._targetValue = this._assembler.getTargetValue();
   }
 
   saveDefaultValue(): void {
@@ -31,12 +31,12 @@ export class AnimationCurveReferenceOwner<
   }
 
   revertDefaultValue(): void {
-    this._assembler.setValue(this._defaultValue);
+    this._assembler.setTargetValue(this._defaultValue);
   }
 
   protected _applyValue(value: V, weight: number): void {
     if (weight === 1.0) {
-      this._assembler.setValue(value);
+      this._assembler.setTargetValue(value);
     } else {
       const targetValue = this._targetValue;
       this._cureType._lerpValue(targetValue, value, weight, targetValue);
