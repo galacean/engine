@@ -1,6 +1,5 @@
 import { Vector2 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
-import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
@@ -25,11 +24,6 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2, Vector2> {
 
   static _copyFrom(scource: Vector2, out: Vector2): void {
     out.copyFrom(scource);
-  }
-
-  constructor() {
-    super();
-    this._type = InterpolableValueType.Vector2;
   }
 
   /**

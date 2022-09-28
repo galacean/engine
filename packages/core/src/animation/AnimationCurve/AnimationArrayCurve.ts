@@ -1,5 +1,4 @@
 import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
-import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
@@ -33,11 +32,6 @@ export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = scource[i];
     }
-  }
-
-  constructor() {
-    super();
-    this._type = InterpolableValueType.Array;
   }
 
   /**

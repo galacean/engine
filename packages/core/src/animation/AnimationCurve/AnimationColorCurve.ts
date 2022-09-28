@@ -1,6 +1,5 @@
 import { Color, Vector4 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
-import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
@@ -30,11 +29,6 @@ export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
 
   static _copyFrom(scource: Color, out: Color): void {
     out.copyFrom(scource);
-  }
-
-  constructor() {
-    super();
-    this._type = InterpolableValueType.Color;
   }
 
   /**

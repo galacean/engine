@@ -1,5 +1,4 @@
 import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
-import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
@@ -23,11 +22,6 @@ export class AnimationFloatCurve extends AnimationCurve<number, number> {
 
   static _copyFrom(scource: number, out: number): void {
     out = scource;
-  }
-
-  constructor() {
-    super();
-    this._type = InterpolableValueType.Float;
   }
 
   /**

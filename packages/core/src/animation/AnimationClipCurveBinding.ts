@@ -1,17 +1,9 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import {
-  AnimationArrayCurve,
-  AnimationColorCurve,
-  AnimationCurve,
-  AnimationFloatArrayCurve,
-  AnimationFloatCurve,
-  AnimationQuaternionCurve,
-  AnimationVector2Curve,
-  AnimationVector3Curve,
-  AnimationVector4Curve
+  AnimationCurve
 } from "./AnimationCurve";
-import { InterpolableValueType } from "./enums/InterpolableValueType";
+import { IAnimationCurveStatic } from "./AnimationCurve/IAnimationCurveStatic";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
 import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
 
@@ -38,34 +30,7 @@ export class AnimationClipCurveBinding {
    */
   _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType> {
     let owner = new AnimationCurveOwner(entity, this.type, this.property);
-    switch (this.curve._type) {
-      case InterpolableValueType.Float:
-        owner._cureType = AnimationFloatCurve;
-        break;
-      case InterpolableValueType.Vector2:
-        owner._cureType = AnimationVector2Curve;
-        break;
-      case InterpolableValueType.Vector3:
-        owner._cureType = AnimationVector3Curve;
-        break;
-      case InterpolableValueType.Vector4:
-        owner._cureType = AnimationVector4Curve;
-        break;
-      case InterpolableValueType.Quaternion:
-        owner._cureType = AnimationQuaternionCurve;
-        break;
-      case InterpolableValueType.Color:
-        owner._cureType = AnimationColorCurve;
-        break;
-      case InterpolableValueType.FloatArray:
-        owner._cureType = AnimationFloatArrayCurve;
-        break;
-      case InterpolableValueType.Array:
-        owner._cureType = AnimationArrayCurve;
-        break;
-      default:
-        console.error("The curve need add keyframe to play: ", this.curve);
-    }
+    owner._cureType = (<unknown>this.curve.constructor) as IAnimationCurveStatic<KeyFrameValueType>;
     this.curve._initializeOwner(owner);
     return owner;
   }

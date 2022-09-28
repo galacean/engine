@@ -1,7 +1,6 @@
 import { Quaternion, Vector4 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
 import { AnimatorUtils } from "../AnimatorUtils";
-import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
@@ -32,11 +31,6 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
 
   static _copyFrom(scource: Quaternion, out: Quaternion): void {
     out.copyFrom(scource);
-  }
-
-  constructor() {
-    super();
-    this._type = InterpolableValueType.Quaternion;
   }
 
   /**

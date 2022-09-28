@@ -1,4 +1,3 @@
-import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { InterpolationType } from "../enums/InterpolationType";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { InterpolableKeyframe, KeyFrameTangentType, KeyFrameValueType } from "../KeyFrame";
@@ -21,9 +20,6 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
   keys: InterpolableKeyframe<T, V>[] = [];
   /** The interpolationType of the animation curve. */
   interpolation: InterpolationType;
-
-  /** @internal */
-  _type: InterpolableValueType;
 
   protected _tempValue: V;
   protected _length: number = 0;
