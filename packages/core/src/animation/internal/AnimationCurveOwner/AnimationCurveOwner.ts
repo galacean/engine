@@ -60,8 +60,8 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
   /** @internal */
   _cureType: IAnimationCurveStatic<V>;
 
-  protected _hasSavedDefaultValue: boolean = false;
-  protected _assembler: IAnimationCurveOwnerAssembler<V>;
+  private _hasSavedDefaultValue: boolean = false;
+  private _assembler: IAnimationCurveOwnerAssembler<V>;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     this.target = target;
@@ -134,7 +134,7 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
     this._assembler.setValue(this._defaultValue);
   }
 
-  protected _applyValue(value: V, weight: number) {
+  private _applyValue(value: V, weight: number) {
     if (weight === 1.0) {
       this._assembler.setValue(value);
     } else {
@@ -143,7 +143,7 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
     }
   }
 
-  protected _applyAdditiveValue(value: V, weight: number): void {
+  private _applyAdditiveValue(value: V, weight: number): void {
     const targetValue = this._assembler.getValue();
     this._cureType._additiveValue(value, weight, targetValue);
   }
