@@ -1,5 +1,5 @@
 import { Quaternion, Vector4 } from "@oasis-engine/math";
-import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimatorUtils } from "../AnimatorUtils";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";

@@ -1,5 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
-import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveStatic } from "./IAnimationCurveStatic";

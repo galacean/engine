@@ -1,4 +1,5 @@
-import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
+
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveStatic } from "./IAnimationCurveStatic";

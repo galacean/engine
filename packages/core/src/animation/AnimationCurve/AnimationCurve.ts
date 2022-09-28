@@ -6,16 +6,6 @@ import { InterpolableKeyframe, KeyFrameTangentType, KeyFrameValueType } from "..
  * Store a collection of Keyframes that can be evaluated over time.
  */
 export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
-  /** @internal */
-  static _lerpValue(
-    srcValue: KeyFrameValueType,
-    destValue: KeyFrameValueType,
-    crossWeight: number,
-    out: KeyFrameValueType
-  ): KeyFrameValueType {
-    throw "You must override this method";
-  }
-
   /** All keys defined in the animation curve. */
   keys: InterpolableKeyframe<T, V>[] = [];
   /** The interpolationType of the animation curve. */
