@@ -1,5 +1,5 @@
 import { KeyFrameTangentType, KeyFrameValueType } from "../../../KeyFrame";
-import { AnimationCurveOwner, PropertyReference } from "../AnimationCurveOwner";
+import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 
 /**
@@ -38,4 +38,12 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyFrameValueType>
       propertyName: properties[properties.length - 1]
     };
   }
+}
+
+/**
+ * @internal
+ */
+export interface PropertyReference<V extends KeyFrameValueType> {
+  mounted: Record<string, V>;
+  propertyName: string;
 }

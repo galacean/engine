@@ -54,8 +54,6 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
   /** @internal */
   _crossTempValue: V;
   /** @internal */
-  _propertyReference: PropertyReference<V>;
-  /** @internal */
   _targetValue: V;
   /** @internal */
   _cureType: IAnimationCurveStatic<V>;
@@ -162,14 +160,6 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
       this._applyValue(out, layerWeight);
     }
   }
-}
-
-/**
- * @internal
- */
-export interface PropertyReference<V extends KeyFrameValueType> {
-  mounted: Record<string, V>;
-  propertyName: string;
 }
 
 type ComponentConstructor = new (entity: Entity) => Component;
