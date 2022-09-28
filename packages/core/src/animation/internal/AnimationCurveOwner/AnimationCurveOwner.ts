@@ -3,19 +3,39 @@ import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
 import { AnimationProperty } from "../../enums/AnimationProperty";
 import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
-
-/**
- * @internal
- */
-export interface PropertyReference<V extends KeyFrameValueType> {
-  mounted: Record<string, V>;
-  propertyName: string;
-}
+import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
+import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
 
 /**
  * @internal
  */
 export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
+  private static _assemblerMap = new Map<ComponentConstructor, Record<string, AssemblerConstructor>>();
+
+  /**
+   * @internal
+   */
+  static _registerAssemblerType(
+    compomentType: ComponentConstructor,
+    property: string,
+    assemblerType: AssemblerConstructor
+  ): void {
+    let subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
+    if (!subMap) {
+      subMap = {};
+      AnimationCurveOwner._assemblerMap.set(compomentType, subMap);
+    }
+    subMap[property] = assemblerType;
+  }
+
+  /**
+   * @internal
+   */
+  static _getAssemblerType(compomentType: ComponentConstructor, property: string): AssemblerConstructor {
+    const subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
+    return subMap ? subMap[property] : UniversalAnimationCurveOwnerAssembler<KeyFrameValueType>;
+  }
+
   crossCurveMark: number = 0;
   crossCurveDataIndex: number;
 
@@ -35,12 +55,18 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
   protected _baseTempValue: V;
   protected _crossTempValue: V;
   protected _targetValue: V;
+  protected _assembler: IAnimationCurveOwnerAssembler<V>;
 
-  constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
+  constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     this.target = target;
     this.type = type;
     this.property = property;
     this.component = target.getComponent(type);
+
+    const assemblerType = AnimationCurveOwner._getAssemblerType(type, property);
+    this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
+    this._assembler.initialization(this);
+    this._targetValue = this._assembler.getValue();
   }
 
   evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
@@ -90,19 +116,6 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
   abstract saveFixedPoseValue(): void;
   abstract revertDefaultValue(): void;
 
-  protected _getPropertyReference(): PropertyReference<V> {
-    let mounted: any = this.component;
-    const properties = (this.property as string).split(".");
-    for (let i = 0, n = properties.length; i < n - 1; i++) {
-      mounted = mounted[properties[i]];
-    }
-
-    return {
-      mounted,
-      propertyName: properties[properties.length - 1]
-    };
-  }
-
   protected abstract _applyValue(value: V, weight: number): void;
   protected abstract _applyAdditiveValue(value: V, weight: number): void;
   protected abstract _lerpValue(srcValue: V, destValue: V, crossWeight: number, out: V): V;
@@ -122,3 +135,14 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
     }
   }
 }
+
+/**
+ * @internal
+ */
+export interface PropertyReference<V extends KeyFrameValueType> {
+  mounted: Record<string, V>;
+  propertyName: string;
+}
+
+type ComponentConstructor = new (entity: Entity) => Component;
+type AssemblerConstructor = new () => IAnimationCurveOwnerAssembler<KeyFrameValueType>;

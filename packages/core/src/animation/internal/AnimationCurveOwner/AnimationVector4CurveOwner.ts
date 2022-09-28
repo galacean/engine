@@ -8,17 +8,13 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
  * @internal
  */
 export class AnimationVector4CurveOwner extends AnimationCurveOwner<Vector4, Vector4> {
-  constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
+  constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     super(target, type, property);
 
     this._defaultValue = new Vector4();
     this._fixedPoseValue = new Vector4();
     this._baseTempValue = new Vector4();
     this._crossTempValue = new Vector4();
-
-    this._propertyReference = this._getPropertyReference();
-    const { mounted, propertyName } = this._propertyReference;
-    this._targetValue = mounted[propertyName];
   }
 
   saveDefaultValue(): void {

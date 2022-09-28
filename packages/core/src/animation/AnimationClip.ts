@@ -89,28 +89,10 @@ export class AnimationClip {
     propertyName: string,
     curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>
   ): void {
-    let property: AnimationProperty;
-    switch (propertyName) {
-      case "position":
-        property = AnimationPropertyInternal.Position;
-        break;
-      case "rotationQuaternion":
-        property = AnimationPropertyInternal.Rotation;
-        break;
-      case "scale":
-        property = AnimationPropertyInternal.Scale;
-        break;
-      case "blendShapeWeights":
-        property = AnimationPropertyInternal.BlendShapeWeights;
-        break;
-      default:
-        property = propertyName;
-        break;
-    }
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;
     curveBinding.type = type;
-    curveBinding.property = property;
+    curveBinding.property = propertyName;
     curveBinding.curve = curve;
     if (curve.length > this._length) {
       this._length = curve.length;

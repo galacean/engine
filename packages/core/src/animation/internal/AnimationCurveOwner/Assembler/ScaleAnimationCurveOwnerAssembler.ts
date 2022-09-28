@@ -1,5 +1,6 @@
 import { Vector3 } from "@oasis-engine/math";
-import { KeyFrameTangentType } from "../../../KeyFrame";
+import { Transform } from "../../../../Transform";
+import { KeyFrameTangentType, KeyFrameValueType } from "../../../KeyFrame";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 
@@ -7,10 +8,16 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
  * @internal
  */
 export class ScaleAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<Vector3> {
-  getValue(owner: AnimationCurveOwner<KeyFrameTangentType, Vector3>): Vector3 {
-    return owner.target.transform.scale;
+  private _transform: Transform;
+
+  initialization(owner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>): void {
+    this._transform = owner.target.transform;
   }
-  setValue(owner: AnimationCurveOwner<KeyFrameTangentType, Vector3>, value: Vector3): void {
-    owner.target.transform.scale = value;
+  getValue(): Vector3 {
+    return this._transform.scale;
+  }
+  setValue(value: Vector3): void {
+    this._transform.scale = value;
   }
 }
+AnimationCurveOwner._registerAssemblerType(Transform, "scale",ScaleAnimationCurveOwnerAssembler);

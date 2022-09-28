@@ -7,18 +7,8 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
  * @internal
  */
 export class AnimationFloatArrayCurveOwner extends AnimationCurveOwner<Float32Array, Float32Array> {
-  constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
+  constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     super(target, type, property);
-    switch (property) {
-      case AnimationPropertyInternal.BlendShapeWeights:
-        this._targetValue = (this.component as SkinnedMeshRenderer).blendShapeWeights;
-        break;
-      default:
-        this._propertyReference = this._getPropertyReference();
-        const { mounted, propertyName } = this._propertyReference;
-        this._targetValue = mounted[propertyName];
-        break;
-    }
     const size = this._targetValue.length;
     this._defaultValue = new Float32Array(size);
     this._fixedPoseValue = new Float32Array(size);

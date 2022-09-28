@@ -1,5 +1,4 @@
 import { Component } from "../../../Component";
-import { AnimationProperty } from "../../enums/AnimationProperty";
 import { Entity } from "./../../../Entity";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
@@ -7,16 +6,12 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
  * @internal
  */
 export class AnimationArrayCurveOwner extends AnimationCurveOwner<number[], number[]> {
-  constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
+  constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     super(target, type, property);
     this._defaultValue = [];
     this._fixedPoseValue = [];
     this._baseTempValue = [];
     this._crossTempValue = [];
-
-    this._propertyReference = this._getPropertyReference();
-    const { mounted, propertyName } = this._propertyReference;
-    this._targetValue = mounted[propertyName];
   }
 
   saveDefaultValue(): void {

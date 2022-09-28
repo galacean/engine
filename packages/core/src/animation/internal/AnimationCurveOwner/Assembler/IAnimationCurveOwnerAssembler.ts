@@ -5,6 +5,7 @@ import { AnimationCurveOwner } from "../AnimationCurveOwner";
  * @internal
  */
 export interface IAnimationCurveOwnerAssembler<V extends KeyFrameValueType> {
-  getValue(owner: AnimationCurveOwner<KeyFrameTangentType, V>): V;
-  setValue(owner: AnimationCurveOwner<KeyFrameTangentType, V>, value: V): void;
+  initialization(owner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>): void;
+  getValue(): V;
+  setValue(value: V): void;
 }

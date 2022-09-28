@@ -1,22 +1,17 @@
 import { Vector2 } from "@oasis-engine/math";
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
-import { AnimationProperty } from "../../enums/AnimationProperty";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
 export class AnimationVector2CurveOwner extends AnimationCurveOwner<Vector2, Vector2> {
-  constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
+  constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     super(target, type, property);
     this._defaultValue = new Vector2();
     this._fixedPoseValue = new Vector2();
     this._baseTempValue = new Vector2();
     this._crossTempValue = new Vector2();
-
-    this._propertyReference = this._getPropertyReference();
-    const { mounted, propertyName } = this._propertyReference;
-    this._targetValue = mounted[propertyName];
   }
 
   saveDefaultValue() {
