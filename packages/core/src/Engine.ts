@@ -222,7 +222,7 @@ export class Engine extends EventDispatcher {
     this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
-    this._textDefaultFont = Font._createFromOS(this, "Arial");
+    this._textDefaultFont = new Font(this, "Arial");
     this._textDefaultFont._addRefCount(1);
 
     this.inputManager = new InputManager(this);

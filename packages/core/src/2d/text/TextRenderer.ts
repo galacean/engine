@@ -15,6 +15,7 @@ import { OverflowMode } from "../enums/TextOverflow";
 import { CharRenderData } from "./CharRenderData";
 import { CharRenderDataPool } from "./CharRenderDataPool";
 import { Font } from "./Font";
+import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 
 /**
@@ -27,7 +28,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   /** @internal */
   @assignmentClone
-  _styleFont: Font = null;
+  _subFont: SubFont = null;
   /** @internal */
   @ignoreClone
   _charRenderDatas: CharRenderData[] = [];
@@ -267,7 +268,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * The bounding volume of the TextRenderer.
    */
   get bounds(): BoundingBox {
-    this._isContainDirtyFlag(DirtyFlag.StyleFont) && this._resetStyleFont();
+    this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
     this._isContainDirtyFlag(DirtyFlag.WorldBounds) && this._updateBounds(this._bounds);
@@ -305,9 +306,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.StyleFont)) {
-      this._resetStyleFont();
-      this._setDirtyFlagFalse(DirtyFlag.StyleFont);
+    if (this._isContainDirtyFlag(DirtyFlag.SubFont)) {
+      this._resetSubFont();
+      this._setDirtyFlagFalse(DirtyFlag.SubFont);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
@@ -366,10 +367,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._font._addRefCount(-1);
       this._font = null;
     }
-    if (this._styleFont) {
-      this._styleFont._addRefCount(-1);
-      this._styleFont = null;
-    }
+    this._subFont && (this._subFont = null);
 
     this._isWorldMatrixDirty.destroy();
     super._onDestroy();
@@ -380,6 +378,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
    */
   _cloneTo(target: TextRenderer): void {
     target.font = this._font;
+    target._subFont = this._subFont;
   }
 
   /**
@@ -434,16 +433,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _resetStyleFont(): void {
-    const lastStyleFont = this._styleFont;
-    if (lastStyleFont) {
-      lastStyleFont._addRefCount(-1);
-    }
-    this._styleFont = Font._createFromOS(
-      this.engine,
-      TextUtils.getNativeFontHash(this.font.name, this.fontSize, this.fontStyle)
-    );
-    this._styleFont._addRefCount(1);
+  private _resetSubFont(): void {
+    this._subFont = this._font._getSubFont(this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {
@@ -499,7 +490,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     max.set(0, 0, 0);
     const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-    const charFont = this._styleFont;
+    const charFont = this._subFont;
     const rendererWidth = this.width * _pixelsPerUnit;
     const halfRendererWidth = rendererWidth * 0.5;
     const rendererHeight = this.height * _pixelsPerUnit;
@@ -603,12 +594,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
 }
 
 export enum DirtyFlag {
-  StyleFont = 0x1,
+  SubFont = 0x1,
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,
   WorldBounds = 0x8,
   MaskInteraction = 0x10,
 
   Position = LocalPositionBounds | WorldPosition | WorldBounds,
-  Font = StyleFont | Position
+  Font = SubFont | Position
 }
