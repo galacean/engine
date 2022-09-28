@@ -1,28 +1,28 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
+import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
+import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationCurveStatic<Float32Array>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveOperation<Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float32Array> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Float32Array, destValue: Float32Array, weight: number, out: Float32Array): Float32Array {
+  static _lerpValue(srcValue: Float32Array, destValue: Float32Array, weight: number, out: Float32Array): void {
     for (let i = 0, n = out.length; i < n; ++i) {
       const src = srcValue[i];
       out[i] = src + (destValue[i] - src) * weight;
     }
-    return out;
   }
 
   /**
    * @internal
    */
-  static _additiveValue(value: Float32Array, weight: number, out: Float32Array) {
+  static _additiveValue(value: Float32Array, weight: number, out: Float32Array): void {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] += value[i] * weight;
     }
@@ -37,7 +37,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float
   /**
    * @internal
    */
-  _initializeOwner(owner: AnimationCurveOwner<Float32Array, Float32Array>): void {
+  _initializeOwner(owner: AnimationCurveReferenceOwner<Float32Array, Float32Array>): void {
     const size = owner._targetValue.length;
     owner._defaultValue = new Float32Array(size);
     owner._fixedPoseValue = new Float32Array(size);

@@ -1,28 +1,23 @@
-
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
+import { IAnimationValueCurveOperation } from "./IAnimationValueCurveOperation";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationCurveStatic<number>>()
+@StaticInterfaceImplement<IAnimationValueCurveOperation<number>>()
 export class AnimationFloatCurve extends AnimationCurve<number, number> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: number, destValue: number, crossWeight: number, out: number): number {
+  static _lerpValue(srcValue: number, destValue: number, crossWeight: number): number {
     return srcValue + (destValue - srcValue) * crossWeight;
   }
 
-  static _additiveValue(value: number, weight: number, out: number): void {
-    out += value * weight;
-    //CM: 有BUG
-  }
-
-  static _copyFrom(scource: number, out: number): void {
-    out = scource;
+  static _additiveValue(value: number, weight: number, scource: number): number {
+    scource += value * weight;
+    return scource;
   }
 
   /**

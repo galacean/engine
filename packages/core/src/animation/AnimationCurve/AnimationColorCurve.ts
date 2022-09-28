@@ -2,19 +2,18 @@ import { Color, Vector4 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
+import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationCurveStatic<Color>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveOperation<Color>>()
 export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Color, destValue: Color, weight: number, out: Color): Color {
+  static _lerpValue(srcValue: Color, destValue: Color, weight: number, out: Color): void {
     Color.lerp(srcValue, destValue, weight, out);
-    return out;
   }
 
   /**

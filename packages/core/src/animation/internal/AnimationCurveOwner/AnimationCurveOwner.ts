@@ -1,7 +1,6 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
-import { IAnimationCurveStatic } from "../../AnimationCurve/IAnimationCurveStatic";
 import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
@@ -9,7 +8,7 @@ import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnim
 /**
  * @internal
  */
-export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
+export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   /**
@@ -48,13 +47,9 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
   _baseTempValue: V;
   /** @internal */
   _crossTempValue: V;
-  /** @internal */
-  _targetValue: V;
-  /** @internal */
-  _cureType: IAnimationCurveStatic<V>;
 
-  private _hasSavedDefaultValue: boolean = false;
-  private _assembler: IAnimationCurveOwnerAssembler<V>;
+  protected _assembler: IAnimationCurveOwnerAssembler<V>;
+  protected _hasSavedDefaultValue: boolean = false;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     this.target = target;
@@ -65,7 +60,6 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
     const assemblerType = AnimationCurveOwner._getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialization(this);
-    this._targetValue = this._assembler.getValue();
   }
 
   evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
@@ -111,49 +105,19 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 
-  saveDefaultValue(): void {
-    this._cureType._copyFrom(this._targetValue, this._defaultValue);
-    this._hasSavedDefaultValue = true;
-  }
+  abstract saveDefaultValue(): void;
+  abstract saveFixedPoseValue(): void;
+  abstract revertDefaultValue(): void;
 
-  saveFixedPoseValue(): void {
-    this._cureType._copyFrom(this._targetValue, this._fixedPoseValue);
-  }
-
-  revertDefaultValue(): void {
-    if (!this._hasSavedDefaultValue) {
-      return;
-    }
-    this._assembler.setValue(this._defaultValue);
-  }
-
-  private _applyValue(value: V, weight: number): void {
-    if (weight === 1.0) {
-      this._assembler.setValue(value);
-    } else {
-      const targetValue = this._targetValue;
-      this._cureType._lerpValue(targetValue, value, weight, targetValue);
-    }
-  }
-
-  private _applyAdditiveValue(value: V, weight: number): void {
-    this._cureType._additiveValue(value, weight, this._targetValue);
-  }
-
-  private _applyCrossValue(
+  protected abstract _applyValue(value: V, weight: number): void;
+  protected abstract _applyAdditiveValue(value: V, weight: number): void;
+  protected abstract _applyCrossValue(
     srcValue: V,
     destValue: V,
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ): void {
-    const out = this._cureType._lerpValue(srcValue, destValue, crossWeight, this._baseTempValue);
-    if (additive) {
-      this._applyAdditiveValue(out, layerWeight);
-    } else {
-      this._applyValue(out, layerWeight);
-    }
-  }
+  ): void;
 }
 
 type ComponentType = new (entity: Entity) => Component;

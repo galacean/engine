@@ -2,19 +2,18 @@ import { Vector3 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
+import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationCurveStatic<Vector3>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveOperation<Vector3>>()
 export class AnimationVector3Curve extends AnimationCurve<Vector3, Vector3> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Vector3, destValue: Vector3, weight: number, out: Vector3): Vector3 {
+  static _lerpValue(srcValue: Vector3, destValue: Vector3, weight: number, out: Vector3): void {
     Vector3.lerp(srcValue, destValue, weight, out);
-    return out;
   }
 
   static _additiveValue(value: Vector3, weight: number, out: Vector3): void {

@@ -3,21 +3,20 @@ import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimatorUtils } from "../AnimatorUtils";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
+import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationCurveStatic<Quaternion>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveOperation<Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
 
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Quaternion, destValue: Quaternion, weight: number, out: Quaternion): Quaternion {
+  static _lerpValue(srcValue: Quaternion, destValue: Quaternion, weight: number, out: Quaternion): void {
     Quaternion.slerp(srcValue, destValue, weight, out);
-    return out;
   }
 
   /**

@@ -1,10 +1,11 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import {
-  AnimationCurve
-} from "./AnimationCurve";
-import { IAnimationCurveStatic } from "./AnimationCurve/IAnimationCurveStatic";
+import { AnimationCurve, AnimationFloatCurve } from "./AnimationCurve";
+import { IAnimationReferenceCurveOperation } from "./AnimationCurve/IAnimationReferenceCurveOperation";
+import { IAnimationValueCurveOperation } from "./AnimationCurve/IAnimationValueCurveOperation";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveReferenceOwner } from "./internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
+import { AnimationCurveValueOwner } from "./internal/AnimationCurveOwner/AnimationCurveValueOwner";
 import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
 
 /**
@@ -29,10 +30,19 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType> {
-    let owner = new AnimationCurveOwner(entity, this.type, this.property);
-    owner._cureType = (<unknown>this.curve.constructor) as IAnimationCurveStatic<KeyFrameValueType>;
-    this.curve._initializeOwner(owner);
-    return owner;
+    if (this.curve instanceof AnimationFloatCurve) {
+      const owner = new AnimationCurveValueOwner(entity, this.type, this.property);
+      owner._cureType = (<unknown>this.curve.constructor) as IAnimationValueCurveOperation<number>;
+      this.curve._initializeOwner(owner);
+      return owner;
+    } else {
+      const owner = new AnimationCurveReferenceOwner(entity, this.type, this.property);
+      owner._cureType = (<unknown>(
+        this.curve.constructor
+      )) as IAnimationReferenceCurveOperation<KeyFrameValueType>;
+      this.curve._initializeOwner(owner);
+      return owner;
+    }
   }
 
   /**

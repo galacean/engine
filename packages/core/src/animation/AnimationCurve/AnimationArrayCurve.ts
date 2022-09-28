@@ -1,23 +1,21 @@
-
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
+import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationCurveStatic<number[]>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveOperation<number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: number[], destValue: number[], weight: number, out: number[]): number[] {
+  static _lerpValue(srcValue: number[], destValue: number[], weight: number, out: number[]): void {
     for (let i = 0, n = out.length; i < n; ++i) {
       const src = srcValue[i];
       out[i] = src + (destValue[i] - src) * weight;
     }
-    return out;
   }
 
   /**
