@@ -44,5 +44,5 @@ export enum AssetType {
   /** HDR to cube */
   HDR = "HDR",
   /** Font to text renderer */
-  Font = "Font"
+  Font = "font"
 }
