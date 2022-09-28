@@ -8,7 +8,8 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 export class UniversalAnimationCurveOwnerAssembler<V extends KeyframeValueType>
   implements IAnimationCurveOwnerAssembler<V>
 {
-  private _propertyReference: PropertyReference<V>;
+  private _mounted: Record<string, V>;
+  private _propertyName: string;
 
   initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
     let mounted: any = owner.component;
@@ -16,25 +17,15 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyframeValueType>
     for (let i = 0, n = properties.length; i < n - 1; i++) {
       mounted = mounted[properties[i]];
     }
-
-    this._propertyReference = {
-      mounted,
-      propertyName: properties[properties.length - 1]
-    };
+    this._mounted = mounted;
+    this._propertyName = properties[properties.length - 1];
   }
 
   getTargetValue(): V {
-    const propertyReference = this._propertyReference;
-    const originValue = propertyReference.mounted[propertyReference.propertyName];
-    return originValue;
+    return this._mounted[this._propertyName];
   }
-  setTargetValue(value: V): void {
-    const propertyReference = this._propertyReference;
-    propertyReference.mounted[propertyReference.propertyName] = value;
-  }
-}
 
-interface PropertyReference<V extends KeyframeValueType> {
-  mounted: Record<string, V>;
-  propertyName: string;
+  setTargetValue(value: V): void {
+    this._mounted[this._propertyName] = value;
+  }
 }
