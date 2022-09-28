@@ -11,6 +11,12 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
 export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, Quaternion> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
+
+    this._defaultValue = new Quaternion();
+    this._fixedPoseValue = new Quaternion();
+    this._baseTempValue = new Quaternion();
+    this._crossTempValue = new Quaternion();
+
     switch (property) {
       case AnimationPropertyInternal.Rotation:
         this._targetValue = target.transform.rotationQuaternion;

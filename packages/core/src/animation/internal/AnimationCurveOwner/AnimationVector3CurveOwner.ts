@@ -10,6 +10,11 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
 export class AnimationVector3CurveOwner extends AnimationCurveOwner<Vector3, Vector3> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
+    this._defaultValue = new Vector3();
+    this._fixedPoseValue = new Vector3();
+    this._baseTempValue = new Vector3();
+    this._crossTempValue = new Vector3();
+
     switch (property) {
       case AnimationPropertyInternal.Position:
         this._targetValue = target.transform.position;

@@ -10,6 +10,12 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
 export class AnimationColorCurveOwner extends AnimationCurveOwner<Vector4, Color> {
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
+
+    this._defaultValue = new Color();
+    this._fixedPoseValue = new Color();
+    this._baseTempValue = new Color();
+    this._crossTempValue = new Color();
+
     this._propertyReference = this._getPropertyReference();
     const { mounted, propertyName } = this._propertyReference;
     this._targetValue = mounted[propertyName];
@@ -55,6 +61,4 @@ export class AnimationColorCurveOwner extends AnimationCurveOwner<Vector4, Color
     Color.lerp(srcValue, destValue, crossWeight, out);
     return out;
   }
-
-
 }
