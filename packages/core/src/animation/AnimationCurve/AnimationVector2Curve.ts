@@ -1,14 +1,45 @@
 import { Vector2 } from "@oasis-engine/math";
+import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
+@StaticInterfaceImplement<IAnimationCurveStatic<Vector2>>()
 export class AnimationVector2Curve extends AnimationCurve<Vector2, Vector2> {
+  /**
+   * @internal
+   */
+  static _lerpValue(srcValue: Vector2, destValue: Vector2, crossWeight: number, out: Vector2): Vector2 {
+    Vector2.lerp(srcValue, destValue, crossWeight, out);
+    return out;
+  }
+
+  static _additiveValue(value: Vector2, weight: number, out: Vector2): void {
+    out.x += value.x * weight;
+    out.y += value.y * weight;
+  }
+
+  static _copyFrom(scource: Vector2, out: Vector2): void {
+    out.copyFrom(scource);
+  }
+
   constructor() {
     super();
     this._type = InterpolableValueType.Vector2;
+  }
+
+  /**
+   * @internal
+   */
+  _initializeOwner(owner: AnimationCurveOwner<Vector2, Vector2>): void {
+    owner._defaultValue = new Vector2();
+    owner._fixedPoseValue = new Vector2();
+    owner._baseTempValue = new Vector2();
+    owner._crossTempValue = new Vector2();
   }
 
   /**

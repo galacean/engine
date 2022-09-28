@@ -1,13 +1,43 @@
+import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
+@StaticInterfaceImplement<IAnimationCurveStatic<number>>()
 export class AnimationFloatCurve extends AnimationCurve<number, number> {
+  /**
+   * @internal
+   */
+  static _lerpValue(srcValue: number, destValue: number, crossWeight: number, out: number): number {
+    return srcValue + (destValue - srcValue) * crossWeight;
+  }
+
+  static _additiveValue(value: number, weight: number, out: number): void {
+    out += value * weight;
+    //CM: 有BUG
+  }
+
+  static _copyFrom(scource: number, out: number): void {
+    out = scource;
+  }
+
   constructor() {
     super();
     this._type = InterpolableValueType.Float;
+  }
+
+  /**
+   * @internal
+   */
+  _initializeOwner(owner: AnimationCurveOwner<number, number>): void {
+    owner._defaultValue = 0;
+    owner._fixedPoseValue = 0;
+    owner._baseTempValue = 0;
+    owner._crossTempValue = 0;
   }
 
   /**

@@ -1,13 +1,53 @@
+import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
+@StaticInterfaceImplement<IAnimationCurveStatic<number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
+  /**
+   * @internal
+   */
+  static _lerpValue(srcValue: number[], destValue: number[], crossWeight: number, out: number[]): number[] {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      const src = srcValue[i];
+      out[i] = src + (destValue[i] - src) * crossWeight;
+    }
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _additiveValue(value: number[], weight: number, out: number[]): void {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      out[i] += value[i] * weight;
+    }
+  }
+
+  static _copyFrom(scource: number[], out: number[]): void {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      out[i] = scource[i];
+    }
+  }
+
   constructor() {
     super();
     this._type = InterpolableValueType.Array;
+  }
+
+  /**
+   * @internal
+   */
+  _initializeOwner(owner: AnimationCurveOwner<number[], number[]>): void {
+    owner._defaultValue = [];
+    owner._fixedPoseValue = [];
+    owner._baseTempValue = [];
+    owner._crossTempValue = [];
   }
 
   /**

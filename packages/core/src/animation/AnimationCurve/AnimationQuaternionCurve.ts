@@ -1,16 +1,52 @@
 import { Quaternion, Vector4 } from "@oasis-engine/math";
+import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
+import { AnimatorUtils } from "../AnimatorUtils";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
+@StaticInterfaceImplement<IAnimationCurveStatic<Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
+
+  /**
+   * @internal
+   */
+  static _lerpValue(srcValue: Quaternion, destValue: Quaternion, crossWeight: number, out: Quaternion): Quaternion {
+    Quaternion.slerp(srcValue, destValue, crossWeight, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Quaternion, weight: number, out: Quaternion) {
+    AnimatorUtils.quaternionWeight(value, weight, value);
+    value.normalize();
+    out.multiply(value);
+  }
+
+  static _copyFrom(scource: Quaternion, out: Quaternion): void {
+    out.copyFrom(scource);
+  }
 
   constructor() {
     super();
     this._type = InterpolableValueType.Quaternion;
+  }
+
+  /**
+   * @internal
+   */
+  _initializeOwner(owner: AnimationCurveOwner<Vector4, Quaternion>): void {
+    owner._defaultValue = new Quaternion();
+    owner._fixedPoseValue = new Quaternion();
+    owner._baseTempValue = new Quaternion();
+    owner._crossTempValue = new Quaternion();
   }
 
   /**

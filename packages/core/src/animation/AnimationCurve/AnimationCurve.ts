@@ -1,11 +1,22 @@
 import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { InterpolationType } from "../enums/InterpolationType";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { InterpolableKeyframe, KeyFrameTangentType, KeyFrameValueType } from "../KeyFrame";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
 export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
+  /** @internal */
+  static _lerpValue(
+    srcValue: KeyFrameValueType,
+    destValue: KeyFrameValueType,
+    crossWeight: number,
+    out: KeyFrameValueType
+  ): KeyFrameValueType {
+    throw "You must override this method";
+  }
+
   /** All keys defined in the animation curve. */
   keys: InterpolableKeyframe<T, V>[] = [];
   /** The interpolationType of the animation curve. */
@@ -127,14 +138,12 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
     return value;
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
+  abstract _initializeOwner(owner: AnimationCurveOwner<T, V>): void;
+  /** @internal */
   abstract _evaluateAdditive(time: number, out?: V): V;
 
   protected abstract _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: V): V;
-
   protected abstract _evaluateStep(frameIndex: number, out: V): V;
-
   protected abstract _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number, out: V): V;
 }

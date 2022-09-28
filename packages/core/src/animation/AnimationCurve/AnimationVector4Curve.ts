@@ -1,14 +1,47 @@
 import { Vector4 } from "@oasis-engine/math";
+import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
+@StaticInterfaceImplement<IAnimationCurveStatic<Vector4>>()
 export class AnimationVector4Curve extends AnimationCurve<Vector4, Vector4> {
+  /**
+   * @internal
+   */
+  static _lerpValue(srcValue: Vector4, destValue: Vector4, crossWeight: number, out: Vector4): Vector4 {
+    Vector4.lerp(srcValue, destValue, crossWeight, out);
+    return out;
+  }
+
+  static _additiveValue(value: Vector4, weight: number, out: Vector4): void {
+    out.x += value.x * weight;
+    out.y += value.y * weight;
+    out.z += value.z * weight;
+    out.w += value.w * weight;
+  }
+
+  static _copyFrom(scource: Vector4, out: Vector4): void {
+    out.copyFrom(scource);
+  }
+
   constructor() {
     super();
     this._type = InterpolableValueType.Vector4;
+  }
+
+  /**
+   * @internal
+   */
+  _initializeOwner(owner: AnimationCurveOwner<Vector4, Vector4>): void {
+    owner._defaultValue = new Vector4();
+    owner._fixedPoseValue = new Vector4();
+    owner._baseTempValue = new Vector4();
+    owner._crossTempValue = new Vector4();
   }
 
   /**

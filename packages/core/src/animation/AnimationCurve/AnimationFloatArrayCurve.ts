@@ -1,13 +1,58 @@
+import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
+@StaticInterfaceImplement<IAnimationCurveStatic<Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float32Array> {
+  /**
+   * @internal
+   */
+  static _lerpValue(
+    srcValue: Float32Array,
+    destValue: Float32Array,
+    crossWeight: number,
+    out: Float32Array
+  ): Float32Array {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      const src = srcValue[i];
+      out[i] = src + (destValue[i] - src) * crossWeight;
+    }
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Float32Array, weight: number, out: Float32Array) {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      out[i] += value[i] * weight;
+    }
+  }
+
+  static _copyFrom(scource: Float32Array, out: Float32Array): void {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      out[i] = scource[i];
+    }
+  }
+
   constructor() {
     super();
     this._type = InterpolableValueType.FloatArray;
+  }
+
+  /**
+   * @internal
+   */
+  _initializeOwner(owner: AnimationCurveOwner<Float32Array, Float32Array>): void {
+    const size = owner._targetValue.length;
+    owner._defaultValue = new Float32Array(size);
+    owner._fixedPoseValue = new Float32Array(size);
+    owner._baseTempValue = new Float32Array(size);
   }
 
   /**

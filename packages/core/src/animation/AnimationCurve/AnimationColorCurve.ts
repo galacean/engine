@@ -1,15 +1,50 @@
 import { Color, Vector4 } from "@oasis-engine/math";
+import { StaticInterfaceImplement } from "../../2d/assembler/StaticInterfaceImplement";
 import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { KeyFrameValueType } from "../KeyFrame";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveStatic } from "./IAnimationCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
+@StaticInterfaceImplement<IAnimationCurveStatic<Color>>()
 export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
+  /**
+   * @internal
+   */
+  static _lerpValue(srcValue: Color, destValue: Color, crossWeight: number, out: Color): Color {
+    Color.lerp(srcValue, destValue, crossWeight, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Color, weight: number, out: Color): void {
+    out.r += value.r * weight;
+    out.g += value.g * weight;
+    out.b += value.b * weight;
+    out.a += value.a * weight;
+  }
+
+  static _copyFrom(scource: Color, out: Color): void {
+    out.copyFrom(scource);
+  }
+
   constructor() {
     super();
     this._type = InterpolableValueType.Color;
+  }
+
+  /**
+   * @internal
+   */
+  _initializeOwner(owner: AnimationCurveOwner<Vector4, Color>): void {
+    owner._defaultValue = new Color();
+    owner._fixedPoseValue = new Color();
+    owner._baseTempValue = new Color();
+    owner._crossTempValue = new Color();
   }
 
   /**
