@@ -14,10 +14,11 @@ export { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 export { InterpolableValueType } from "./enums/InterpolableValueType";
 export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
-export * from "./KeyFrame";
+export { InterpolableKeyframe, Keyframe } from "./KeyFrame";
 export { StateMachineScript } from "./StateMachineScript";
 
 import "./internal/AnimationCurveOwner/Assembler/BlendShapeWeightsAnimationCurveOwnerAssembler";
 import "./internal/AnimationCurveOwner/Assembler/PositionAnimationCurveOwnerAssembler";
 import "./internal/AnimationCurveOwner/Assembler/RotationAnimationCurveOwnerAssembler";
 import "./internal/AnimationCurveOwner/Assembler/ScaleAnimationCurveOwnerAssembler";
+
