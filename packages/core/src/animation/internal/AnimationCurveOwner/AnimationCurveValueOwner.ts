@@ -18,9 +18,6 @@ export class AnimationCurveValueOwner<T extends number, V extends number> extend
   }
 
   revertDefaultValue(): void {
-    if (!this._hasSavedDefaultValue) {
-      return;
-    }
     this._assembler.setValue(this._defaultValue);
   }
 

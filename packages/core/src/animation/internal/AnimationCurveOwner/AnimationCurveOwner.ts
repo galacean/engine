@@ -47,9 +47,10 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
   _baseTempValue: V;
   /** @internal */
   _crossTempValue: V;
+  /** @internal */
+  _hasSavedDefaultValue: boolean = false;
 
   protected _assembler: IAnimationCurveOwnerAssembler<V>;
-  protected _hasSavedDefaultValue: boolean = false;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     this.target = target;

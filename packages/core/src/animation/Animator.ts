@@ -601,7 +601,8 @@ export class Animator extends Component {
       const curves = clip._curveBindings;
       const { curveOwners } = stateData;
       for (let i = curves.length - 1; i >= 0; i--) {
-        curveOwners[i].revertDefaultValue();
+      const owner=curveOwners[i];
+        owner._hasSavedDefaultValue&& owner.revertDefaultValue();
       }
     }
   }

@@ -13,10 +13,7 @@ export class AnimationCurveReferenceOwner<
 > extends AnimationCurveOwner<T, V> {
   /** @intenral */
   _cureType: IAnimationReferenceCurveOperation<V>;
-
-  /**
-   * @internal
-   */
+  /** @intenral */
   _targetValue: V;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
@@ -34,9 +31,6 @@ export class AnimationCurveReferenceOwner<
   }
 
   revertDefaultValue(): void {
-    if (!this._hasSavedDefaultValue) {
-      return;
-    }
     this._assembler.setValue(this._defaultValue);
   }
 
