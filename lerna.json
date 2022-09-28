@@ -1,6 +1,6 @@
 {
   "npmClient": "npm",
-  "version": "0.8.0-beta.29",
+  "version": "0.8.0-beta.30",
   "bootstrap": {
     "hoist": true
   },
