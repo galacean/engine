@@ -6,7 +6,7 @@ import { IAnimationValueCurveOperation } from "./AnimationCurve/IAnimationValueC
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurveReferenceOwner } from "./internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurveValueOwner } from "./internal/AnimationCurveOwner/AnimationCurveValueOwner";
-import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
+import { KeyframeTangentType, KeyframeValueType } from "./KeyFrame";
 
 /**
  * Associate AnimationCurve and the Entity
@@ -22,14 +22,14 @@ export class AnimationClipCurveBinding {
   /** The name or path to the property being animated. */
   property: string;
   /** The animation curve. */
-  curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>;
+  curve: AnimationCurve<KeyframeTangentType, KeyframeValueType>;
 
-  private _defaultCurveOwner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>;
+  private _defaultCurveOwner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>;
 
   /**
    * @internal
    */
-  _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType> {
+  _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeTangentType, KeyframeValueType> {
     if (this.curve instanceof AnimationFloatCurve) {
       const owner = new AnimationCurveValueOwner(entity, this.type, this.property);
       owner._cureType = (<unknown>this.curve.constructor) as IAnimationValueCurveOperation<number>;
@@ -37,18 +37,16 @@ export class AnimationClipCurveBinding {
       return owner;
     } else {
       const owner = new AnimationCurveReferenceOwner(entity, this.type, this.property);
-      owner._cureType = (<unknown>(
-        this.curve.constructor
-      )) as IAnimationReferenceCurveOperation<KeyFrameValueType>;
+      owner._cureType = (<unknown>this.curve.constructor) as IAnimationReferenceCurveOperation<KeyframeTangentType>;
       this.curve._initializeOwner(owner);
       return owner;
     }
   }
 
   /**
-   * @internal
+   * @internalKeyframeTangentType
    */
-  _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType> {
+  _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeTangentType, KeyframeValueType> {
     if (this._defaultCurveOwner) {
       return this._defaultCurveOwner;
     } else {

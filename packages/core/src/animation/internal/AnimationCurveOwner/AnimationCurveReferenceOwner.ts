@@ -1,15 +1,15 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { IAnimationReferenceCurveOperation } from "../../AnimationCurve/IAnimationReferenceCurveOperation";
-import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
+import { KeyframeTangentType, KeyframeValueType } from "../../KeyFrame";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
  * @internal
  */
 export class AnimationCurveReferenceOwner<
-  T extends KeyFrameTangentType,
-  V extends KeyFrameValueType
+  T extends KeyframeTangentType,
+  V extends KeyframeValueType
 > extends AnimationCurveOwner<T, V> {
   /** @intenral */
   _cureType: IAnimationReferenceCurveOperation<V>;

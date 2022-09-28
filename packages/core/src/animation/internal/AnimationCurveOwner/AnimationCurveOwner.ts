@@ -1,14 +1,14 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
-import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
+import { KeyframeTangentType, KeyframeValueType } from "../../KeyFrame";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
 
 /**
  * @internal
  */
-export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
+export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V extends KeyframeValueType> {
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   /**
@@ -28,7 +28,7 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
    */
   static _getAssemblerType(compomentType: ComponentType, property: string): AssemblerType {
     const subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
-    return subMap ? subMap[property] : UniversalAnimationCurveOwnerAssembler<KeyFrameValueType>;
+    return subMap ? subMap[property] : UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
   }
 
   crossCurveMark: number = 0;
@@ -121,4 +121,4 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
 }
 
 type ComponentType = new (entity: Entity) => Component;
-type AssemblerType = new () => IAnimationCurveOwnerAssembler<KeyFrameValueType>;
+type AssemblerType = new () => IAnimationCurveOwnerAssembler<KeyframeValueType>;

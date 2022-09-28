@@ -1,16 +1,16 @@
-import { KeyFrameTangentType, KeyFrameValueType } from "../../../KeyFrame";
+import { KeyframeTangentType, KeyframeValueType } from "../../../KeyFrame";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 
 /**
  * @internal
  */
-export class UniversalAnimationCurveOwnerAssembler<V extends KeyFrameValueType>
+export class UniversalAnimationCurveOwnerAssembler<V extends KeyframeValueType>
   implements IAnimationCurveOwnerAssembler<V>
 {
   private _propertyReference: PropertyReference<V>;
 
-  initialization(owner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>): void {
+  initialization(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
     this._propertyReference = this._getPropertyReference(owner);
   }
 
@@ -25,7 +25,7 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyFrameValueType>
   }
 
   protected _getPropertyReference(
-    owner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>
+    owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>
   ): PropertyReference<V> {
     let mounted: any = owner.component;
     const properties = (owner.property as string).split(".");
@@ -43,7 +43,7 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyFrameValueType>
 /**
  * @internal
  */
-export interface PropertyReference<V extends KeyFrameValueType> {
+export interface PropertyReference<V extends KeyframeValueType> {
   mounted: Record<string, V>;
   propertyName: string;
 }

@@ -1,6 +1,6 @@
 import { Quaternion } from "@oasis-engine/math";
 import { Transform } from "../../../../Transform";
-import { KeyFrameTangentType, KeyFrameValueType } from "../../../KeyFrame";
+import { KeyframeTangentType, KeyframeValueType } from "../../../KeyFrame";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 
@@ -10,7 +10,7 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 export class RotationAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<Quaternion> {
   private _transform: Transform;
 
-  initialization(owner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>): void {
+  initialization(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
     this._transform = owner.target.transform;
   }
 

@@ -16,7 +16,7 @@ export class Keyframe<V> {
  * @typeParam T - Type of Tangent value
  * @typeParam V - Type of Keyframe value
  */
-export class InterpolableKeyframe<T extends KeyFrameTangentType, V extends KeyFrameValueType> extends Keyframe<V> {
+export class InterpolableKeyframe<T extends KeyframeTangentType, V extends KeyframeValueType> extends Keyframe<V> {
   /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
   inTangent?: T;
   /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */
@@ -26,9 +26,9 @@ export class InterpolableKeyframe<T extends KeyFrameTangentType, V extends KeyFr
 /**
  * Type of Keyframe tangent.
  */
-export type KeyFrameTangentType = number | Vector2 | Vector3 | Vector4 | number[] | Float32Array;
+export type KeyframeTangentType = number | Vector2 | Vector3 | Vector4 | number[] | Float32Array;
 
 /**
  * Type of Keyframe value.
  */
-export type KeyFrameValueType = number | Vector2 | Vector3 | Vector4 | number[] | Float32Array | Quaternion | Color;
+export type KeyframeValueType = number | Vector2 | Vector3 | Vector4 | number[] | Float32Array | Quaternion | Color;

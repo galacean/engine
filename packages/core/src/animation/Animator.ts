@@ -16,7 +16,7 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
-import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
+import { KeyframeTangentType, KeyframeValueType } from "./KeyFrame";
 /**
  * The controller of the animation system.
  */
@@ -34,7 +34,7 @@ export class Animator extends Component {
   @ignoreClone
   private _crossCurveDataCollection: CrossCurveData[] = [];
   @ignoreClone
-  private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>>[] = [];
+  private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>>[] = [];
   @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
@@ -298,7 +298,7 @@ export class Animator extends Component {
 
   private _addCrossCurveData(
     crossCurveData: CrossCurveData[],
-    owner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>,
+    owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>,
     curCurveIndex: number,
     nextCurveIndex: number
   ): void {
