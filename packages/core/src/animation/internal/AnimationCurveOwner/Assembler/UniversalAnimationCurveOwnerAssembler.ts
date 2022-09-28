@@ -14,11 +14,12 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyframeValueType>
   initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
     let mounted: any = owner.component;
     const properties = (owner.property as string).split(".");
-    for (let i = 0, n = properties.length; i < n - 1; i++) {
+    const endIndex = properties.length - 1;
+    for (let i = 0; i < endIndex; i++) {
       mounted = mounted[properties[i]];
     }
     this._mounted = mounted;
-    this._propertyName = properties[properties.length - 1];
+    this._propertyName = properties[endIndex];
   }
 
   getTargetValue(): V {
