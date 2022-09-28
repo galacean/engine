@@ -5,10 +5,15 @@ import { AnimationProperty, AnimationPropertyInternal } from "../../enums/Animat
 import { Entity } from "./../../../Entity";
 import { AnimatorUtils } from "./../../AnimatorUtils";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
+import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
+import { RotationAnimationCurveOwnerAssembler } from "./Assembler/RotationAnimationCurveOwnerAssembler";
+import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
 /**
  * @internal
  */
 export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, Quaternion> {
+  private _assembler: IAnimationCurveOwnerAssembler<Quaternion>;
+
   constructor(target: Entity, type: new (entity: Entity) => Component, property: AnimationProperty) {
     super(target, type, property);
 
@@ -20,11 +25,13 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
     switch (property) {
       case AnimationPropertyInternal.Rotation:
         this._targetValue = target.transform.rotationQuaternion;
+        this._assembler = new RotationAnimationCurveOwnerAssembler();
         break;
       default:
         this._propertyReference = this._getPropertyReference();
         const { mounted, propertyName } = this._propertyReference;
         this._targetValue = mounted[propertyName];
+        this._assembler = new UniversalAnimationCurveOwnerAssembler();
         break;
     }
   }
@@ -41,63 +48,23 @@ export class AnimationQuaternionCurveOwner extends AnimationCurveOwner<Vector4, 
   revertDefaultValue() {
     if (!this._hasSavedDefaultValue) return;
 
-    const { target, property } = this;
-    switch (property) {
-      case AnimationPropertyInternal.Rotation:
-        target.transform.rotationQuaternion = this._defaultValue;
-        break;
-      default:
-        const { mounted, propertyName } = this._propertyReference;
-        mounted[propertyName] = this._defaultValue;
-    }
+    this._assembler.setValue(this, this._defaultValue);
   }
 
   protected _applyValue(value: Quaternion, weight: number) {
-    const { target, property } = this;
-    switch (property) {
-      case AnimationPropertyInternal.Rotation: {
-        const { transform } = target;
-        if (weight === 1.0) {
-          transform.rotationQuaternion = value;
-        } else {
-          const rotationQuaternion = transform.rotationQuaternion;
-          Quaternion.slerp(rotationQuaternion, value, weight, rotationQuaternion);
-        }
-        break;
-      }
-      default:
-        const { mounted, propertyName } = this._propertyReference;
-        if (weight === 1.0) {
-          mounted[propertyName] = value;
-        } else {
-          const originValue = mounted[propertyName];
-          Quaternion.slerp(originValue, value, weight, originValue);
-        }
-        break;
+    if (weight === 1.0) {
+      this._assembler.setValue(this, value);
+    } else {
+      const targetValue = this._assembler.getValue(this);
+      Quaternion.slerp(targetValue, value, weight, targetValue);
     }
   }
 
   protected _applyAdditiveValue(value: Quaternion, weight: number) {
-    const { target, property } = this;
-    switch (property) {
-      case AnimationPropertyInternal.Rotation: {
-        const { transform } = target;
-        const rotationQuaternion = transform.rotationQuaternion;
-        AnimatorUtils.quaternionWeight(value, weight, value);
-        value.normalize();
-        rotationQuaternion.multiply(value);
-        transform.rotationQuaternion = rotationQuaternion;
-        break;
-      }
-      default:
-        const { mounted, propertyName } = this._propertyReference;
-        const originValue = mounted[propertyName];
-        AnimatorUtils.quaternionWeight(value, weight, value);
-        value.normalize();
-        originValue.multiply(value);
-        mounted[propertyName] = originValue;
-        break;
-    }
+    const targetValue = this._assembler.getValue(this);
+    AnimatorUtils.quaternionWeight(value, weight, value);
+    value.normalize();
+    targetValue.multiply(value);
   }
 
   protected _lerpValue(srcValue: Quaternion, destValue: Quaternion, crossWeight: number, out: Quaternion): Quaternion {

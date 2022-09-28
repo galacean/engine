@@ -24,11 +24,14 @@ export abstract class AnimationCurveOwner<T extends KeyFrameTangentType, V exten
   readonly property: AnimationProperty;
   readonly component: Component;
 
-  protected _hasSavedDefaultValue: boolean = false;
+  /**
+   * @internal
+   */
+  _propertyReference: PropertyReference<V>;
 
+  protected _hasSavedDefaultValue: boolean = false;
   protected _defaultValue: V;
   protected _fixedPoseValue: V;
-  protected _propertyReference: PropertyReference<V>;
   protected _baseTempValue: V;
   protected _crossTempValue: V;
   protected _targetValue: V;
