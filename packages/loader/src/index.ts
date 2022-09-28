@@ -1,8 +1,15 @@
 import "./BufferLoader";
+import "./EnvLoader";
+import "./gltf/extensions/index";
 import "./GLTFLoader";
+import "./HDRLoader";
 import "./JSONLoader";
 import "./KTXCubeLoader";
 import "./KTXLoader";
+import "./MaterialLoader";
+import "./MeshLoader";
+import "./SpriteAtlasLoader";
+import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
 import "./SpriteLoader";
@@ -14,7 +21,10 @@ import "./MaterialLoader";
 import "./MeshLoader";
 import "./FontLoader";
 
-export * from "./resource-deserialize";
-export { GLTFResource } from "./gltf/GLTFResource";
-export * from "./SceneLoader";
 export { parseSingleKTX } from "./compressed-texture";
+export { GLTFResource } from "./gltf/GLTFResource";
+export * from "./resource-deserialize";
+export * from "./SceneLoader";
+export type { Texture2DParams } from "./Texture2DLoader";
+export type { GLTFParams } from "./GLTFLoader";
+
