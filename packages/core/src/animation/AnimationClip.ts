@@ -3,7 +3,6 @@ import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
-import { AnimationProperty, AnimationPropertyInternal } from "./enums/AnimationProperty";
 import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
 
 /**

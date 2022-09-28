@@ -2,7 +2,6 @@ import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
 import { IAnimationCurveStatic } from "../../AnimationCurve/IAnimationCurveStatic";
-import { AnimationProperty } from "../../enums/AnimationProperty";
 import { KeyFrameTangentType, KeyFrameValueType } from "../../KeyFrame";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
@@ -38,7 +37,7 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
 
   readonly target: Entity;
   readonly type: new (entity: Entity) => Component;
-  readonly property: AnimationProperty;
+  readonly property: string;
   readonly component: Component;
 
   /** @internal */
@@ -128,18 +127,17 @@ export class AnimationCurveOwner<T extends KeyFrameTangentType, V extends KeyFra
     this._assembler.setValue(this._defaultValue);
   }
 
-  private _applyValue(value: V, weight: number) {
+  private _applyValue(value: V, weight: number): void {
     if (weight === 1.0) {
       this._assembler.setValue(value);
     } else {
-      const targetValue = this._assembler.getValue();
+      const targetValue = this._targetValue;
       this._cureType._lerpValue(targetValue, value, weight, targetValue);
     }
   }
 
   private _applyAdditiveValue(value: V, weight: number): void {
-    const targetValue = this._assembler.getValue();
-    this._cureType._additiveValue(value, weight, targetValue);
+    this._cureType._additiveValue(value, weight, this._targetValue);
   }
 
   private _applyCrossValue(

@@ -1,4 +1,4 @@
-import { AnimationProperty, InterpolableValueType } from "@oasis-engine/core";
+import { InterpolableValueType } from "@oasis-engine/core";
 
 export interface IAnimationClipAsset {
   objectId: string;
@@ -10,7 +10,7 @@ export interface IAnimationClipAsset {
   }>;
   curveBindings: Array<{
     relativePath: string;
-    property: AnimationProperty;
+    property: string;
     curve: {
       interpolation: number;
       keys: Array<{

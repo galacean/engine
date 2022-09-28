@@ -22,4 +22,4 @@ export class RotationAnimationCurveOwnerAssembler implements IAnimationCurveOwne
   }
 }
 
-AnimationCurveOwner._registerAssemblerType(Transform, "rotationQuaternion",RotationAnimationCurveOwnerAssembler);
+AnimationCurveOwner._registerAssemblerType(Transform, "rotationQuaternion", RotationAnimationCurveOwnerAssembler);
