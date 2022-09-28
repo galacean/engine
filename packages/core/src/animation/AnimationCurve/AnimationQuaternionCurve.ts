@@ -15,8 +15,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Quaternion, destValue: Quaternion, crossWeight: number, out: Quaternion): Quaternion {
-    Quaternion.slerp(srcValue, destValue, crossWeight, out);
+  static _lerpValue(srcValue: Quaternion, destValue: Quaternion, weight: number, out: Quaternion): Quaternion {
+    Quaternion.slerp(srcValue, destValue, weight, out);
     return out;
   }
 

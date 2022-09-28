@@ -12,8 +12,8 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4, Vector4> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Vector4, destValue: Vector4, crossWeight: number, out: Vector4): Vector4 {
-    Vector4.lerp(srcValue, destValue, crossWeight, out);
+  static _lerpValue(srcValue: Vector4, destValue: Vector4, weight: number, out: Vector4): Vector4 {
+    Vector4.lerp(srcValue, destValue, weight, out);
     return out;
   }
 

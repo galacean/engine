@@ -12,8 +12,8 @@ export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Color, destValue: Color, crossWeight: number, out: Color): Color {
-    Color.lerp(srcValue, destValue, crossWeight, out);
+  static _lerpValue(srcValue: Color, destValue: Color, weight: number, out: Color): Color {
+    Color.lerp(srcValue, destValue, weight, out);
     return out;
   }
 

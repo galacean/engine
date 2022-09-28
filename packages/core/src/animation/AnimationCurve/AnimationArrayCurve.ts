@@ -12,10 +12,10 @@ export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: number[], destValue: number[], crossWeight: number, out: number[]): number[] {
+  static _lerpValue(srcValue: number[], destValue: number[], weight: number, out: number[]): number[] {
     for (let i = 0, n = out.length; i < n; ++i) {
       const src = srcValue[i];
-      out[i] = src + (destValue[i] - src) * crossWeight;
+      out[i] = src + (destValue[i] - src) * weight;
     }
     return out;
   }

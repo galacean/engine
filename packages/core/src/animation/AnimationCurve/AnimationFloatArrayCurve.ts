@@ -11,15 +11,10 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float
   /**
    * @internal
    */
-  static _lerpValue(
-    srcValue: Float32Array,
-    destValue: Float32Array,
-    crossWeight: number,
-    out: Float32Array
-  ): Float32Array {
+  static _lerpValue(srcValue: Float32Array, destValue: Float32Array, weight: number, out: Float32Array): Float32Array {
     for (let i = 0, n = out.length; i < n; ++i) {
       const src = srcValue[i];
-      out[i] = src + (destValue[i] - src) * crossWeight;
+      out[i] = src + (destValue[i] - src) * weight;
     }
     return out;
   }
