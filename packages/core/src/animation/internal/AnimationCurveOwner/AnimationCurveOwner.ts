@@ -40,6 +40,7 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
   hasSavedDefaultValue: boolean = false;
 
   protected _assembler: IAnimationCurveOwnerAssembler<V>;
+
   abstract cureType: IAnimationCurveStatic<T, V>;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
