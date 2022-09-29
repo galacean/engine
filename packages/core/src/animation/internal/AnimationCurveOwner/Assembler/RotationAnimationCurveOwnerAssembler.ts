@@ -1,6 +1,6 @@
 import { Quaternion } from "@oasis-engine/math";
 import { Transform } from "../../../../Transform";
-import { KeyframeValueType } from "../../../KeyFrame";
+import { KeyframeValueType } from "../../../Keyframe";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 

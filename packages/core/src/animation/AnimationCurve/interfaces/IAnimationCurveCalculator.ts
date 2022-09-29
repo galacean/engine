@@ -1,7 +1,7 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurveOwner } from "../../internal/AnimationCurveOwner/AnimationCurveOwner";
-import { KeyframeValueType } from "../../KeyFrame";
+import { KeyframeValueType } from "../../Keyframe";
 
 /**
  * @internal

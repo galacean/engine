@@ -3,7 +3,7 @@ import { Entity } from "../Entity";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./AnimationCurve/interfaces/IAnimationCurveCalculator";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
-import { KeyframeValueType } from "./KeyFrame";
+import { KeyframeValueType } from "./Keyframe";
 
 /**
  * Associate AnimationCurve and the Entity

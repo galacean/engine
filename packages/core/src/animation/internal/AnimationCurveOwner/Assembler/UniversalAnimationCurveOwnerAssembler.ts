@@ -1,4 +1,4 @@
-import { KeyframeValueType } from "../../../KeyFrame";
+import { KeyframeValueType } from "../../../Keyframe";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 

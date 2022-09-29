@@ -16,7 +16,7 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
-import { KeyframeValueType } from "./KeyFrame";
+import { KeyframeValueType } from "./Keyframe";
 /**
  * The controller of the animation system.
  */

@@ -1,5 +1,5 @@
 import { InterpolationType } from "../enums/InterpolationType";
-import { InterpolableKeyframe, KeyframeValueType } from "../KeyFrame";
+import { InterpolableKeyframe, KeyframeValueType } from "../Keyframe";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
