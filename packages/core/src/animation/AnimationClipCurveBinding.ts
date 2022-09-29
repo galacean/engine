@@ -39,7 +39,7 @@ export class AnimationClipCurveBinding {
   }
 
   /**
-   * @internalKeyframeTangentType
+   * @internal
    */
   _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeTangentType, KeyframeValueType> {
     if (this._defaultCurveOwner) {
