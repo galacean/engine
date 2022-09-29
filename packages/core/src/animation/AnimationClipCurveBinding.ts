@@ -3,8 +3,6 @@ import { Entity } from "../Entity";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveStatic } from "./AnimationCurve/interfaces/IAnimationCurveStatic";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
-import { AnimationCurveReferenceOwner } from "./internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
-import { AnimationCurveValueOwner } from "./internal/AnimationCurveOwner/AnimationCurveValueOwner";
 import { KeyframeTangentType, KeyframeValueType } from "./KeyFrame";
 
 /**
@@ -34,10 +32,7 @@ export class AnimationClipCurveBinding {
       KeyframeValueType
     >;
 
-    const owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType> = animationCurveStatic._isReferenceType
-      ? new AnimationCurveReferenceOwner(entity, this.type, this.property)
-      : new AnimationCurveValueOwner(entity, this.type, this.property);
-
+    const owner = new animationCurveStatic._ownerType(entity, this.type, this.property);
     owner.cureType = animationCurveStatic;
     animationCurveStatic._initializeOwner(owner);
     return owner;

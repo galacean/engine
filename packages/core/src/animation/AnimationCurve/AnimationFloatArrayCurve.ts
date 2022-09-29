@@ -1,6 +1,7 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveStatic";
 import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReferenceCurveStatic";
 
 /**
@@ -8,8 +9,8 @@ import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReference
  */
 @StaticInterfaceImplement<IAnimationReferenceCurveStatic<Float32Array, Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float32Array> {
-  /** @internal */
-  static _isReferenceType: boolean = true;
+   /** @internal */
+   static _ownerType: AnimationCurveOwnertType = AnimationCurveReferenceOwner;
 
   /**
    * @internal

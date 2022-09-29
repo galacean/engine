@@ -1,7 +1,9 @@
 import { Vector2 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
+import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurve } from "./AnimationCurve";
+import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveStatic";
 import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReferenceCurveStatic";
 
 /**
@@ -10,7 +12,7 @@ import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReference
 @StaticInterfaceImplement<IAnimationReferenceCurveStatic<Vector2, Vector2>>()
 export class AnimationVector2Curve extends AnimationCurve<Vector2, Vector2> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _ownerType: AnimationCurveOwnertType = AnimationCurveReferenceOwner;
 
   /**
    * @internal
