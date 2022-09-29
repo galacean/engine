@@ -6,7 +6,7 @@ import { KeyframeTangentType, KeyframeValueType } from "../../KeyFrame";
 /**
  * @internal
  */
-export interface IAnimationCurveStatic<T extends KeyframeTangentType, V extends KeyframeValueType> {
+export interface IAnimationCurveCalculator<T extends KeyframeTangentType, V extends KeyframeValueType> {
   _ownerType: AnimationCurveOwnertType;
 
   _initializeOwner(owner: AnimationCurveOwner<T, V>);

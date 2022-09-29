@@ -2,13 +2,13 @@ import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurveValueOwner } from "../internal/AnimationCurveOwner/AnimationCurveValueOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveStatic";
-import { IAnimationValueCurveStatic } from "./interfaces/IAnimationValueCurveStatic";
+import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveCalculator";
+import { IAnimationValueCurveCalculator } from "./interfaces/IAnimationValueCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationValueCurveStatic<number, number>>()
+@StaticInterfaceImplement<IAnimationValueCurveCalculator<number, number>>()
 export class AnimationFloatCurve extends AnimationCurve<number, number> {
   /** @internal */
   static _ownerType: AnimationCurveOwnertType = AnimationCurveValueOwner;

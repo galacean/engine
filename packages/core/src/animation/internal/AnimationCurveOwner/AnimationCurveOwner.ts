@@ -1,7 +1,7 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
-import { IAnimationCurveStatic } from "../../AnimationCurve/interfaces/IAnimationCurveStatic";
+import { IAnimationCurveCalculator } from "../../AnimationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeTangentType, KeyframeValueType } from "../../KeyFrame";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
@@ -41,7 +41,7 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
 
   protected _assembler: IAnimationCurveOwnerAssembler<V>;
 
-  abstract cureType: IAnimationCurveStatic<T, V>;
+  abstract cureType: IAnimationCurveCalculator<T, V>;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     this.target = target;

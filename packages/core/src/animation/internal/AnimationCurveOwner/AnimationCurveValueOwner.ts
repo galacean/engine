@@ -1,11 +1,11 @@
-import { IAnimationValueCurveStatic } from "../../AnimationCurve/interfaces/IAnimationValueCurveStatic";
+import { IAnimationValueCurveCalculator } from "../../AnimationCurve/interfaces/IAnimationValueCurveCalculator";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
  * @internal
  */
 export class AnimationCurveValueOwner<T extends number, V extends number> extends AnimationCurveOwner<T, V> {
-  cureType: IAnimationValueCurveStatic<T, V>;
+  cureType: IAnimationValueCurveCalculator<T, V>;
 
   saveDefaultValue(): void {
     this.defaultValue = this._getTargetValue();

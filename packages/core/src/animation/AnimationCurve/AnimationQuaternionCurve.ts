@@ -4,13 +4,13 @@ import { AnimatorUtils } from "../AnimatorUtils";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveStatic";
-import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReferenceCurveStatic";
+import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveCalculator";
+import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveStatic<Vector4, Quaternion>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Vector4, Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
 
