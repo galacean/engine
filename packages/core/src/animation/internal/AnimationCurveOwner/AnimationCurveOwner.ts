@@ -12,8 +12,6 @@ import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnim
 export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V extends KeyframeValueType> {
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
-  abstract cureType: IAnimationCurveStatic<T, V>;
-
   static registerAssembler(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
     let subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
     if (!subMap) {
@@ -42,6 +40,7 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
   hasSavedDefaultValue: boolean = false;
 
   protected _assembler: IAnimationCurveOwnerAssembler<V>;
+  abstract cureType: IAnimationCurveStatic<T, V>;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     this.target = target;
@@ -101,18 +100,35 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
     this._assembler.setTargetValue(this.defaultValue);
   }
 
-  abstract saveDefaultValue(): void;
-  abstract saveFixedPoseValue(): void;
+  protected _applyValue(value: V, weight: number): void {
+    if (weight === 1.0) {
+      this._assembler.setTargetValue(value);
+    } else {
+      this._applyLerpValue(value, weight);
+    }
+  }
 
-  protected abstract _applyValue(value: V, weight: number): void;
-  protected abstract _applyAdditiveValue(value: V, weight: number): void;
-  protected abstract _applyCrossValue(
+  private _applyCrossValue(
     srcValue: V,
     destValue: V,
     crossWeight: number,
     layerWeight: number,
     additive: boolean
-  ): void;
+  ): void {
+    const out = this._lerpCrossValue(srcValue, destValue, crossWeight);
+    if (additive) {
+      this._applyAdditiveValue(out, layerWeight);
+    } else {
+      this._applyValue(out, layerWeight);
+    }
+  }
+
+  abstract saveDefaultValue(): void;
+  abstract saveFixedPoseValue(): void;
+
+  protected abstract _applyLerpValue(value: V, weight: number): void;
+  protected abstract _applyAdditiveValue(value: V, weight: number): void;
+  protected abstract _lerpCrossValue(srcValue: V, destValue: V, weight: number): V;
 }
 
 type ComponentType = new (entity: Entity) => Component;

@@ -38,8 +38,8 @@ export class AnimationClipCurveBinding {
       ? new AnimationCurveReferenceOwner(entity, this.type, this.property)
       : new AnimationCurveValueOwner(entity, this.type, this.property);
 
-    animationCurveStatic._initializeOwner(owner);
     owner.cureType = animationCurveStatic;
+    animationCurveStatic._initializeOwner(owner);
     return owner;
   }
 

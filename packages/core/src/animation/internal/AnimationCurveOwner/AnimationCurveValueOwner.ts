@@ -8,22 +8,22 @@ export class AnimationCurveValueOwner<T extends number, V extends number> extend
   cureType: IAnimationValueCurveStatic<T, V>;
 
   saveDefaultValue(): void {
-    this.defaultValue = this._assembler.getTargetValue();
+    this.defaultValue = this._getTargetValue();
     this.hasSavedDefaultValue = true;
   }
 
   saveFixedPoseValue(): void {
-    this.fixedPoseValue = this._assembler.getTargetValue();
+    this.fixedPoseValue = this._getTargetValue();
   }
 
-  protected _applyValue(value: V, weight: number): void {
-    if (weight === 1.0) {
-      this._assembler.setTargetValue(value);
-    } else {
-      const originValue = this._assembler.getTargetValue();
-      const lerpValue = this.cureType._lerpValue(originValue, value, weight);
-      this._assembler.setTargetValue(lerpValue);
-    }
+  protected _getTargetValue(): V {
+    return this._assembler.getTargetValue();
+  }
+
+  protected _applyLerpValue(value: V, weight: number): void {
+    const originValue = this._assembler.getTargetValue();
+    const lerpValue = this.cureType._lerpValue(originValue, value, weight);
+    this._assembler.setTargetValue(lerpValue);
   }
 
   protected _applyAdditiveValue(value: V, weight: number): void {
@@ -32,18 +32,7 @@ export class AnimationCurveValueOwner<T extends number, V extends number> extend
     this._assembler.setTargetValue(lerpValue);
   }
 
-  protected _applyCrossValue(
-    srcValue: V,
-    destValue: V,
-    crossWeight: number,
-    layerWeight: number,
-    additive: boolean
-  ): void {
-    const out = this.cureType._lerpValue(srcValue, destValue, crossWeight);
-    if (additive) {
-      this._applyAdditiveValue(out, layerWeight);
-    } else {
-      this._applyValue(out, layerWeight);
-    }
+  protected _lerpCrossValue(srcValue: V, destValue: V, weight: number): V {
+    return this.cureType._lerpValue(srcValue, destValue, weight);
   }
 }
