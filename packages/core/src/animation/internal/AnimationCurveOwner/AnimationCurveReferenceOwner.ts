@@ -11,40 +11,34 @@ export class AnimationCurveReferenceOwner<
   T extends KeyframeTangentType,
   V extends KeyframeValueType
 > extends AnimationCurveOwner<T, V> {
-  /** @intenral */
-  _cureType: IAnimationReferenceCurveStatic<T, V>;
-  /** @intenral */
-  _targetValue: V;
+  cureType: IAnimationReferenceCurveStatic<T, V>;
+  targetValue: V;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     super(target, type, property);
-    this._targetValue = this._assembler.getTargetValue();
+    this.targetValue = this._assembler.getTargetValue();
   }
 
   saveDefaultValue(): void {
-    this._cureType._copyFrom(this._targetValue, this._defaultValue);
-    this._hasSavedDefaultValue = true;
+    this.cureType._copyFrom(this.targetValue, this.defaultValue);
+    this.hasSavedDefaultValue = true;
   }
 
   saveFixedPoseValue(): void {
-    this._cureType._copyFrom(this._targetValue, this._fixedPoseValue);
-  }
-
-  revertDefaultValue(): void {
-    this._assembler.setTargetValue(this._defaultValue);
+    this.cureType._copyFrom(this.targetValue, this.fixedPoseValue);
   }
 
   protected _applyValue(value: V, weight: number): void {
     if (weight === 1.0) {
       this._assembler.setTargetValue(value);
     } else {
-      const targetValue = this._targetValue;
-      this._cureType._lerpValue(targetValue, value, weight, targetValue);
+      const targetValue = this.targetValue;
+      this.cureType._lerpValue(targetValue, value, weight, targetValue);
     }
   }
 
   protected _applyAdditiveValue(value: V, weight: number): void {
-    this._cureType._additiveValue(value, weight, this._targetValue);
+    this.cureType._additiveValue(value, weight, this.targetValue);
   }
 
   protected _applyCrossValue(
@@ -54,8 +48,8 @@ export class AnimationCurveReferenceOwner<
     layerWeight: number,
     additive: boolean
   ): void {
-    const out = this._baseTempValue;
-    this._cureType._lerpValue(srcValue, destValue, crossWeight, out);
+    const out = this.baseTempValue;
+    this.cureType._lerpValue(srcValue, destValue, crossWeight, out);
     if (additive) {
       this._applyAdditiveValue(out, layerWeight);
     } else {

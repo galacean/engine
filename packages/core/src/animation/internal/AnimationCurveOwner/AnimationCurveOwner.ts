@@ -1,6 +1,7 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
+import { IAnimationCurveStatic } from "../../AnimationCurve/interfaces/IAnimationCurveStatic";
 import { KeyframeTangentType, KeyframeValueType } from "../../KeyFrame";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
@@ -11,10 +12,9 @@ import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnim
 export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V extends KeyframeValueType> {
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
-  /**
-   * @internal
-   */
-  static _registerAssembler(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
+  abstract cureType: IAnimationCurveStatic<T, V>;
+
+  static registerAssembler(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
     let subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
     if (!subMap) {
       subMap = {};
@@ -23,32 +23,23 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
     subMap[property] = assemblerType;
   }
 
-  /**
-   * @internal
-   */
-  static _getAssemblerType(compomentType: ComponentType, property: string): AssemblerType {
+  static getAssemblerType(compomentType: ComponentType, property: string): AssemblerType {
     const subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
     return subMap ? subMap[property] : UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
   }
-
-  crossCurveMark: number = 0;
-  crossCurveDataIndex: number;
 
   readonly target: Entity;
   readonly type: new (entity: Entity) => Component;
   readonly property: string;
   readonly component: Component;
 
-  /** @internal */
-  _defaultValue: V;
-  /** @internal */
-  _fixedPoseValue: V;
-  /** @internal */
-  _baseTempValue: V;
-  /** @internal */
-  _crossTempValue: V;
-  /** @internal */
-  _hasSavedDefaultValue: boolean = false;
+  crossCurveMark: number = 0;
+  crossCurveDataIndex: number;
+  defaultValue: V;
+  fixedPoseValue: V;
+  baseTempValue: V;
+  crossTempValue: V;
+  hasSavedDefaultValue: boolean = false;
 
   protected _assembler: IAnimationCurveOwnerAssembler<V>;
 
@@ -58,21 +49,21 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
     this.property = property;
     this.component = target.getComponent(type);
 
-    const assemblerType = AnimationCurveOwner._getAssemblerType(type, property);
+    const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
   }
 
   evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
-      const value = curve._evaluate(time, this._baseTempValue);
+      const value = curve._evaluate(time, this.baseTempValue);
       this._applyValue(value, layerWeight);
     }
   }
 
   evaluateAndApplyAdditiveValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
-      const value = curve._evaluateAdditive(time, this._baseTempValue);
+      const value = curve._evaluateAdditive(time, this.baseTempValue);
       this._applyAdditiveValue(value, layerWeight);
     }
   }
@@ -87,9 +78,9 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
     additive: boolean
   ): void {
     const srcValue =
-      srcCurve && srcCurve.keys.length ? srcCurve._evaluate(srcTime, this._baseTempValue) : this._defaultValue;
+      srcCurve && srcCurve.keys.length ? srcCurve._evaluate(srcTime, this.baseTempValue) : this.defaultValue;
     const destValue =
-      destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this._crossTempValue) : this._defaultValue;
+      destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this.crossTempValue) : this.defaultValue;
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 
@@ -100,15 +91,18 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
     layerWeight: number,
     additive: boolean
   ): void {
-    const srcValue = this._fixedPoseValue;
+    const srcValue = this.fixedPoseValue;
     const destValue =
-      destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this._crossTempValue) : this._defaultValue;
+      destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this.crossTempValue) : this.defaultValue;
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
+  }
+
+  revertDefaultValue(): void {
+    this._assembler.setTargetValue(this.defaultValue);
   }
 
   abstract saveDefaultValue(): void;
   abstract saveFixedPoseValue(): void;
-  abstract revertDefaultValue(): void;
 
   protected abstract _applyValue(value: V, weight: number): void;
   protected abstract _applyAdditiveValue(value: V, weight: number): void;

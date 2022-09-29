@@ -8,6 +8,9 @@ import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReference
  */
 @StaticInterfaceImplement<IAnimationReferenceCurveStatic<Float32Array, Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float32Array> {
+  /** @internal */
+  static _isReferenceType: boolean = true;
+
   /**
    * @internal
    */
@@ -40,10 +43,10 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float
    * @internal
    */
   static _initializeOwner(owner: AnimationCurveReferenceOwner<Float32Array, Float32Array>): void {
-    const size = owner._targetValue.length;
-    owner._defaultValue = new Float32Array(size);
-    owner._fixedPoseValue = new Float32Array(size);
-    owner._baseTempValue = new Float32Array(size);
+    const size = owner.targetValue.length;
+    owner.defaultValue = new Float32Array(size);
+    owner.fixedPoseValue = new Float32Array(size);
+    owner.baseTempValue = new Float32Array(size);
   }
 
   /**

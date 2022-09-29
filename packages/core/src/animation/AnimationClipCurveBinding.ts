@@ -1,8 +1,7 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { AnimationCurve, AnimationFloatCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveStatic } from "./AnimationCurve/interfaces/IAnimationReferenceCurveStatic";
-import { IAnimationValueCurveStatic } from "./AnimationCurve/interfaces/IAnimationValueCurveStatic";
+import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveStatic } from "./AnimationCurve/interfaces/IAnimationCurveStatic";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurveReferenceOwner } from "./internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurveValueOwner } from "./internal/AnimationCurveOwner/AnimationCurveValueOwner";
@@ -30,20 +29,18 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeTangentType, KeyframeValueType> {
-    if (this.curve instanceof AnimationFloatCurve) {
-      const owner = new AnimationCurveValueOwner(entity, this.type, this.property);
-      owner._cureType = (<unknown>this.curve.constructor) as IAnimationValueCurveStatic<number, number>;
-      owner._cureType._initializeOwner(owner);
-      return owner;
-    } else {
-      const owner = new AnimationCurveReferenceOwner(entity, this.type, this.property);
-      owner._cureType = (<unknown>this.curve.constructor) as IAnimationReferenceCurveStatic<
-        KeyframeTangentType,
-        KeyframeValueType
-      >;
-      owner._cureType._initializeOwner(owner);
-      return owner;
-    }
+    const animationCurveStatic = (<unknown>this.curve.constructor) as IAnimationCurveStatic<
+      KeyframeTangentType,
+      KeyframeValueType
+    >;
+
+    const owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType> = animationCurveStatic._isReferenceType
+      ? new AnimationCurveReferenceOwner(entity, this.type, this.property)
+      : new AnimationCurveValueOwner(entity, this.type, this.property);
+
+    animationCurveStatic._initializeOwner(owner);
+    owner.cureType = animationCurveStatic;
+    return owner;
   }
 
   /**

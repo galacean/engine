@@ -8,6 +8,9 @@ import { IAnimationValueCurveStatic } from "./interfaces/IAnimationValueCurveSta
  */
 @StaticInterfaceImplement<IAnimationValueCurveStatic<number, number>>()
 export class AnimationFloatCurve extends AnimationCurve<number, number> {
+  /** @internal */
+  static _isReferenceType: boolean = false;
+
   /**
    * @internal
    */
@@ -27,10 +30,10 @@ export class AnimationFloatCurve extends AnimationCurve<number, number> {
    * @internal
    */
   static _initializeOwner(owner: AnimationCurveOwner<number, number>): void {
-    owner._defaultValue = 0;
-    owner._fixedPoseValue = 0;
-    owner._baseTempValue = 0;
-    owner._crossTempValue = 0;
+    owner.defaultValue = 0;
+    owner.fixedPoseValue = 0;
+    owner.baseTempValue = 0;
+    owner.crossTempValue = 0;
   }
 
   /**

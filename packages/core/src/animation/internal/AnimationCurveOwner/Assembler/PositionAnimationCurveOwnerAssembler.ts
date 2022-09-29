@@ -22,4 +22,4 @@ export class PositionAnimationCurveOwnerAssembler implements IAnimationCurveOwne
   }
 }
 
-AnimationCurveOwner._registerAssembler(Transform, "position", PositionAnimationCurveOwnerAssembler);
+AnimationCurveOwner.registerAssembler(Transform, "position", PositionAnimationCurveOwnerAssembler);

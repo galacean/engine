@@ -9,6 +9,9 @@ import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReference
  */
 @StaticInterfaceImplement<IAnimationReferenceCurveStatic<Vector4, Color>>()
 export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
+  /** @internal */
+  static _isReferenceType: boolean = true;
+
   /**
    * @internal
    */
@@ -37,10 +40,10 @@ export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
    * @internal
    */
   static _initializeOwner(owner: AnimationCurveOwner<Vector4, Color>): void {
-    owner._defaultValue = new Color();
-    owner._fixedPoseValue = new Color();
-    owner._baseTempValue = new Color();
-    owner._crossTempValue = new Color();
+    owner.defaultValue = new Color();
+    owner.fixedPoseValue = new Color();
+    owner.baseTempValue = new Color();
+    owner.crossTempValue = new Color();
   }
 
   /**

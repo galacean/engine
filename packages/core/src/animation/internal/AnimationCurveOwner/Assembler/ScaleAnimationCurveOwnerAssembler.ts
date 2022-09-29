@@ -22,4 +22,4 @@ export class ScaleAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAs
     this._transform.scale = value;
   }
 }
-AnimationCurveOwner._registerAssembler(Transform, "scale", ScaleAnimationCurveOwnerAssembler);
+AnimationCurveOwner.registerAssembler(Transform, "scale", ScaleAnimationCurveOwnerAssembler);

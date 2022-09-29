@@ -12,6 +12,9 @@ import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReference
 export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
 
+  /** @internal */
+  static _isReferenceType: boolean = true;
+
   /**
    * @internal
    */
@@ -39,10 +42,10 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
    * @internal
    */
   static _initializeOwner(owner: AnimationCurveOwner<Vector4, Quaternion>): void {
-    owner._defaultValue = new Quaternion();
-    owner._fixedPoseValue = new Quaternion();
-    owner._baseTempValue = new Quaternion();
-    owner._crossTempValue = new Quaternion();
+    owner.defaultValue = new Quaternion();
+    owner.fixedPoseValue = new Quaternion();
+    owner.baseTempValue = new Quaternion();
+    owner.crossTempValue = new Quaternion();
   }
 
   /**

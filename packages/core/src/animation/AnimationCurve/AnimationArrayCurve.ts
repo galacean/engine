@@ -8,6 +8,9 @@ import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReference
  */
 @StaticInterfaceImplement<IAnimationReferenceCurveStatic<number[], number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
+  /** @internal */
+  static _isReferenceType: boolean = true;
+
   /**
    * @internal
    */
@@ -40,10 +43,10 @@ export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
    * @internal
    */
   static _initializeOwner(owner: AnimationCurveOwner<number[], number[]>): void {
-    owner._defaultValue = [];
-    owner._fixedPoseValue = [];
-    owner._baseTempValue = [];
-    owner._crossTempValue = [];
+    owner.defaultValue = [];
+    owner.fixedPoseValue = [];
+    owner.baseTempValue = [];
+    owner.crossTempValue = [];
   }
 
   /**

@@ -9,6 +9,9 @@ import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReference
  */
 @StaticInterfaceImplement<IAnimationReferenceCurveStatic<Vector3, Vector3>>()
 export class AnimationVector3Curve extends AnimationCurve<Vector3, Vector3> {
+  /** @internal */
+  static _isReferenceType: boolean = true;
+
   /**
    * @internal
    */
@@ -36,10 +39,10 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3, Vector3> {
    * @internal
    */
   static _initializeOwner(owner: AnimationCurveOwner<Vector3, Vector3>): void {
-    owner._defaultValue = new Vector3();
-    owner._fixedPoseValue = new Vector3();
-    owner._baseTempValue = new Vector3();
-    owner._crossTempValue = new Vector3();
+    owner.defaultValue = new Vector3();
+    owner.fixedPoseValue = new Vector3();
+    owner.baseTempValue = new Vector3();
+    owner.crossTempValue = new Vector3();
   }
 
   /**
