@@ -1,4 +1,4 @@
-import { KeyframeTangentType, KeyframeValueType } from "../../../KeyFrame";
+import { KeyframeValueType } from "../../../KeyFrame";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 
@@ -11,7 +11,7 @@ export class UniversalAnimationCurveOwnerAssembler<V extends KeyframeValueType>
   private _mounted: Record<string, V>;
   private _propertyName: string;
 
-  initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
+  initialize(owner: AnimationCurveOwner<KeyframeValueType>): void {
     let mounted: any = owner.component;
     const properties = (owner.property as string).split(".");
     const endIndex = properties.length - 1;

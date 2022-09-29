@@ -1,4 +1,4 @@
-import { Quaternion, Vector4 } from "@oasis-engine/math";
+import { Quaternion } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimatorUtils } from "../AnimatorUtils";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
@@ -10,8 +10,8 @@ import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationRefer
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Vector4, Quaternion>>()
-export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
+@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Quaternion>>()
+export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
 
   /** @internal */
@@ -43,7 +43,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner<Vector4, Quaternion>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<Quaternion>): void {
     owner.defaultValue = new Quaternion();
     owner.fixedPoseValue = new Quaternion();
     owner.baseTempValue = new Quaternion();

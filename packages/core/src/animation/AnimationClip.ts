@@ -3,7 +3,7 @@ import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
-import { KeyframeTangentType, KeyframeValueType } from "./KeyFrame";
+import { KeyframeValueType } from "./KeyFrame";
 
 /**
  * Stores keyframe based animations.
@@ -86,7 +86,7 @@ export class AnimationClip {
     relativePath: string,
     type: new (entity: Entity) => T,
     propertyName: string,
-    curve: AnimationCurve<KeyframeTangentType, KeyframeValueType>
+    curve: AnimationCurve<KeyframeValueType>
   ): void {
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;

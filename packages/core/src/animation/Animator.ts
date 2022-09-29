@@ -16,7 +16,7 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
-import { KeyframeTangentType, KeyframeValueType } from "./KeyFrame";
+import { KeyframeValueType } from "./KeyFrame";
 /**
  * The controller of the animation system.
  */
@@ -34,7 +34,7 @@ export class Animator extends Component {
   @ignoreClone
   private _crossCurveDataCollection: CrossCurveData[] = [];
   @ignoreClone
-  private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>>[] = [];
+  private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeValueType>>[] = [];
   @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
@@ -298,7 +298,7 @@ export class Animator extends Component {
 
   private _addCrossCurveData(
     crossCurveData: CrossCurveData[],
-    owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>,
+    owner: AnimationCurveOwner<KeyframeValueType>,
     curCurveIndex: number,
     nextCurveIndex: number
   ): void {
@@ -601,8 +601,8 @@ export class Animator extends Component {
       const curves = clip._curveBindings;
       const { curveOwners } = stateData;
       for (let i = curves.length - 1; i >= 0; i--) {
-      const owner=curveOwners[i];
-        owner.hasSavedDefaultValue&& owner.revertDefaultValue();
+        const owner = curveOwners[i];
+        owner.hasSavedDefaultValue && owner.revertDefaultValue();
       }
     }
   }

@@ -1,6 +1,6 @@
 import { Vector3 } from "@oasis-engine/math";
 import { Transform } from "../../../../Transform";
-import { KeyframeTangentType, KeyframeValueType } from "../../../KeyFrame";
+import { KeyframeValueType } from "../../../KeyFrame";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 
@@ -10,7 +10,7 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 export class PositionAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<Vector3> {
   private _transform: Transform;
 
-  initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
+  initialize(owner: AnimationCurveOwner<KeyframeValueType>): void {
     this._transform = owner.target.transform;
   }
 

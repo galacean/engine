@@ -7,8 +7,8 @@ import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationRefer
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Float32Array, Float32Array>>()
-export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float32Array> {
+@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Float32Array>>()
+export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /** @internal */
   static _ownerType: AnimationCurveOwnertType = AnimationCurveReferenceOwner;
 
@@ -43,7 +43,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveReferenceOwner<Float32Array, Float32Array>): void {
+  static _initializeOwner(owner: AnimationCurveReferenceOwner<Float32Array>): void {
     const size = owner.targetValue.length;
     owner.defaultValue = new Float32Array(size);
     owner.fixedPoseValue = new Float32Array(size);

@@ -1,12 +1,12 @@
 import { InterpolationType } from "../enums/InterpolationType";
-import { InterpolableKeyframe, KeyframeTangentType, KeyframeValueType } from "../KeyFrame";
+import { InterpolableKeyframe, KeyframeValueType } from "../KeyFrame";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export abstract class AnimationCurve<T extends KeyframeTangentType, V extends KeyframeValueType> {
+export abstract class AnimationCurve<V extends KeyframeValueType> {
   /** All keys defined in the animation curve. */
-  keys: InterpolableKeyframe<T, V>[] = [];
+  keys: InterpolableKeyframe<V>[] = [];
   /** The interpolationType of the animation curve. */
   interpolation: InterpolationType;
 
@@ -25,7 +25,7 @@ export abstract class AnimationCurve<T extends KeyframeTangentType, V extends Ke
    * Add a new key to the curve.
    * @param key - The keyframe
    */
-  addKey(key: InterpolableKeyframe<T, V>): void {
+  addKey(key: InterpolableKeyframe<V>): void {
     const { time } = key;
     this.keys.push(key);
     if (time > this._length) {
@@ -48,7 +48,7 @@ export abstract class AnimationCurve<T extends KeyframeTangentType, V extends Ke
    * @param index - The index of the key to move
    * @param key - The key to insert
    */
-  moveKey(index: number, key: InterpolableKeyframe<T, V>): void {
+  moveKey(index: number, key: InterpolableKeyframe<V>): void {
     this.keys[index] = key;
   }
 

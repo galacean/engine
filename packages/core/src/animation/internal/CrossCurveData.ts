@@ -1,10 +1,10 @@
-import { KeyframeTangentType, KeyframeValueType } from "../KeyFrame";
+import { KeyframeValueType } from "../KeyFrame";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
 export class CrossCurveData {
-  curveOwner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>;
+  curveOwner: AnimationCurveOwner<KeyframeValueType>;
   srcCurveIndex: number;
   destCurveIndex: number;
 }

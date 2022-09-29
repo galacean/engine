@@ -13,7 +13,6 @@ import {
   Engine,
   InterpolableKeyframe,
   InterpolableValueType,
-  KeyframeTangentType,
   KeyframeValueType
 } from "@oasis-engine/core";
 import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
@@ -45,7 +44,7 @@ export class AnimationClipDecoder {
         const componentStr = bufferReader.nextStr();
         const componentType = ComponentMap[componentStr];
         const property = bufferReader.nextStr();
-        let curve: AnimationCurve<KeyframeTangentType, KeyframeValueType>;
+        let curve: AnimationCurve<KeyframeValueType>;
         const interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
         console.log("AnimationClipDecoder", relativePath, componentType, property, interpolation, keysLen);
@@ -79,12 +78,12 @@ export class AnimationClipDecoder {
             case InterpolableValueType.FloatArray: {
               curve = curve || new AnimationFloatArrayCurve();
               curve.interpolation = interpolation;
-              const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
+              const keyframe = new InterpolableKeyframe<Float32Array>();
               keyframe.time = bufferReader.nextFloat32();
               const len = bufferReader.nextUint16();
               keyframe.value = bufferReader.nextFloat32Array(len);
-              keyframe.inTangent = bufferReader.nextFloat32Array(len);
-              keyframe.outTangent = bufferReader.nextFloat32Array(len);
+              keyframe.inTangent = Array.from(bufferReader.nextFloat32Array(len));
+              keyframe.outTangent = Array.from(bufferReader.nextFloat32Array(len));
               (<AnimationFloatArrayCurve>curve).addKey(keyframe);
               break;
             }
@@ -151,7 +150,7 @@ export class AnimationClipDecoder {
             case InterpolableValueType.Color: {
               curve = curve || new AnimationColorCurve();
               curve.interpolation = interpolation;
-              const keyframe = new InterpolableKeyframe<Vector4, Color>();
+              const keyframe = new InterpolableKeyframe<Color>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Color(
                 bufferReader.nextFloat32(),
@@ -177,7 +176,7 @@ export class AnimationClipDecoder {
             case InterpolableValueType.Quaternion: {
               curve = curve || new AnimationQuaternionCurve();
               curve.interpolation = interpolation;
-              const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
+              const keyframe = new InterpolableKeyframe<Quaternion>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Quaternion(
                 bufferReader.nextFloat32(),

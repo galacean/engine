@@ -2,14 +2,14 @@ import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
 import { IAnimationCurveCalculator } from "../../AnimationCurve/interfaces/IAnimationCurveCalculator";
-import { KeyframeTangentType, KeyframeValueType } from "../../KeyFrame";
+import { KeyframeValueType } from "../../KeyFrame";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
 
 /**
  * @internal
  */
-export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V extends KeyframeValueType> {
+export abstract class AnimationCurveOwner<V extends KeyframeValueType> {
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   static registerAssembler(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
@@ -41,7 +41,7 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
 
   protected _assembler: IAnimationCurveOwnerAssembler<V>;
 
-  abstract cureType: IAnimationCurveCalculator<T, V>;
+  abstract cureType: IAnimationCurveCalculator<V>;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
     this.target = target;
@@ -54,14 +54,14 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
     this._assembler.initialize(this);
   }
 
-  evaluateAndApplyValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
+  evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
       const value = curve._evaluate(time, this.baseTempValue);
       this._applyValue(value, layerWeight);
     }
   }
 
-  evaluateAndApplyAdditiveValue(curve: AnimationCurve<T, V>, time: number, layerWeight: number): void {
+  evaluateAndApplyAdditiveValue(curve: AnimationCurve<V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this.baseTempValue);
       this._applyAdditiveValue(value, layerWeight);
@@ -69,8 +69,8 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
   }
 
   crossFadeAndApplyValue(
-    srcCurve: AnimationCurve<T, V>,
-    destCurve: AnimationCurve<T, V>,
+    srcCurve: AnimationCurve<V>,
+    destCurve: AnimationCurve<V>,
     srcTime: number,
     destTime: number,
     crossWeight: number,
@@ -85,7 +85,7 @@ export abstract class AnimationCurveOwner<T extends KeyframeTangentType, V exten
   }
 
   crossFadeFromPoseAndApplyValue(
-    destCurve: AnimationCurve<T, V>,
+    destCurve: AnimationCurve<V>,
     destTime: number,
     crossWeight: number,
     layerWeight: number,

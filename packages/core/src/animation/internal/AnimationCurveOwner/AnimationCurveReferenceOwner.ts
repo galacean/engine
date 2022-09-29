@@ -1,17 +1,14 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { IAnimationReferenceCurveCalculator } from "../../AnimationCurve/interfaces/IAnimationReferenceCurveCalculator";
-import { KeyframeTangentType, KeyframeValueType } from "../../KeyFrame";
+import { KeyframeValueType } from "../../KeyFrame";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
  * @internal
  */
-export class AnimationCurveReferenceOwner<
-  T extends KeyframeTangentType,
-  V extends KeyframeValueType
-> extends AnimationCurveOwner<T, V> {
-  cureType: IAnimationReferenceCurveCalculator<T, V>;
+export class AnimationCurveReferenceOwner<V extends KeyframeValueType> extends AnimationCurveOwner<V> {
+  cureType: IAnimationReferenceCurveCalculator<V>;
   targetValue: V;
 
   constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {

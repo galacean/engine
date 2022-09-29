@@ -1,5 +1,6 @@
 import {
-  AnimationClip, AnimationFloatArrayCurve,
+  AnimationClip,
+  AnimationFloatArrayCurve,
   AnimationQuaternionCurve,
   AnimationVector3Curve,
   Component,
@@ -192,7 +193,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
+          const keyframe = new InterpolableKeyframe<Quaternion>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue(false) as Vector4;
@@ -217,12 +218,12 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
+          const keyframe = new InterpolableKeyframe<Float32Array>();
           keyframe.time = input[i];
           if (curve.interpolation === InterpolationType.CubicSpine) {
-            keyframe.inTangent = getNextOutputValue();
+            keyframe.inTangent = Array.from(getNextOutputValue());
             keyframe.value = getNextOutputValue();
-            keyframe.outTangent = getNextOutputValue();
+            keyframe.outTangent = Array.from(getNextOutputValue());
           } else {
             keyframe.value = getNextOutputValue();
           }

@@ -8,8 +8,8 @@ import { IAnimationValueCurveCalculator } from "./interfaces/IAnimationValueCurv
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationValueCurveCalculator<number, number>>()
-export class AnimationFloatCurve extends AnimationCurve<number, number> {
+@StaticInterfaceImplement<IAnimationValueCurveCalculator<number>>()
+export class AnimationFloatCurve extends AnimationCurve<number> {
   /** @internal */
   static _ownerType: AnimationCurveOwnertType = AnimationCurveValueOwner;
 
@@ -31,7 +31,7 @@ export class AnimationFloatCurve extends AnimationCurve<number, number> {
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner<number, number>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<number>): void {
     owner.defaultValue = 0;
     owner.fixedPoseValue = 0;
     owner.baseTempValue = 0;

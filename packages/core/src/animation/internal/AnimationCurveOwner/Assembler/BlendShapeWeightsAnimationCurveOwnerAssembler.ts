@@ -1,5 +1,5 @@
 import { SkinnedMeshRenderer } from "../../../../mesh";
-import { KeyframeTangentType, KeyframeValueType } from "../../../KeyFrame";
+import { KeyframeValueType } from "../../../KeyFrame";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";
 import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 
@@ -9,7 +9,7 @@ import { IAnimationCurveOwnerAssembler } from "./IAnimationCurveOwnerAssembler";
 export class BlendShapeWeightsAnimationCurveOwnerAssembler implements IAnimationCurveOwnerAssembler<Float32Array> {
   private _skinnedMeshRenderer: SkinnedMeshRenderer;
 
-  initialize(owner: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>): void {
+  initialize(owner: AnimationCurveOwner<KeyframeValueType>): void {
     this._skinnedMeshRenderer = owner.target.getComponent(SkinnedMeshRenderer);
   }
 

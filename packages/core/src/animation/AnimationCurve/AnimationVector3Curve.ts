@@ -9,8 +9,8 @@ import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationRefer
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Vector3, Vector3>>()
-export class AnimationVector3Curve extends AnimationCurve<Vector3, Vector3> {
+@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Vector3>>()
+export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /** @internal */
   static _ownerType: AnimationCurveOwnertType = AnimationCurveReferenceOwner;
 
@@ -40,7 +40,7 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3, Vector3> {
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner<Vector3, Vector3>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<Vector3>): void {
     owner.defaultValue = new Vector3();
     owner.fixedPoseValue = new Vector3();
     owner.baseTempValue = new Vector3();

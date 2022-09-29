@@ -4,8 +4,8 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
 /**
  * @internal
  */
-export class AnimationCurveValueOwner<T extends number, V extends number> extends AnimationCurveOwner<T, V> {
-  cureType: IAnimationValueCurveCalculator<T, V>;
+export class AnimationCurveValueOwner<V extends number> extends AnimationCurveOwner<V> {
+  cureType: IAnimationValueCurveCalculator<V>;
 
   saveDefaultValue(): void {
     this.defaultValue = this._getTargetValue();

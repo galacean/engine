@@ -1,4 +1,4 @@
-import { KeyframeTangentType, KeyframeValueType } from "../KeyFrame";
+import { KeyframeValueType } from "../KeyFrame";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 import { AnimationEventHandler } from "./AnimationEventHandler";
 
@@ -6,6 +6,6 @@ import { AnimationEventHandler } from "./AnimationEventHandler";
  * @internal
  */
 export class AnimatorStateData {
-  curveOwners: AnimationCurveOwner<KeyframeTangentType, KeyframeValueType>[] = [];
+  curveOwners: AnimationCurveOwner<KeyframeValueType>[] = [];
   eventHandlers: AnimationEventHandler[] = [];
 }
