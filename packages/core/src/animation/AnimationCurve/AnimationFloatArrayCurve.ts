@@ -1,13 +1,12 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
+import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReferenceCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveOperation<Float32Array>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveStatic<Float32Array, Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float32Array> {
   /**
    * @internal
@@ -28,6 +27,9 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float
     }
   }
 
+  /**
+   * @internal
+   */
   static _copyFrom(scource: Float32Array, out: Float32Array): void {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = scource[i];
@@ -37,7 +39,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array, Float
   /**
    * @internal
    */
-  _initializeOwner(owner: AnimationCurveReferenceOwner<Float32Array, Float32Array>): void {
+  static _initializeOwner(owner: AnimationCurveReferenceOwner<Float32Array, Float32Array>): void {
     const size = owner._targetValue.length;
     owner._defaultValue = new Float32Array(size);
     owner._fixedPoseValue = new Float32Array(size);

@@ -3,12 +3,12 @@ import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimatorUtils } from "../AnimatorUtils";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
+import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReferenceCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveOperation<Quaternion>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveStatic<Vector4, Quaternion>>()
 export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
 
@@ -28,6 +28,9 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
     out.multiply(value);
   }
 
+  /**
+   * @internal
+   */
   static _copyFrom(scource: Quaternion, out: Quaternion): void {
     out.copyFrom(scource);
   }
@@ -35,7 +38,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
   /**
    * @internal
    */
-  _initializeOwner(owner: AnimationCurveOwner<Vector4, Quaternion>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<Vector4, Quaternion>): void {
     owner._defaultValue = new Quaternion();
     owner._fixedPoseValue = new Quaternion();
     owner._baseTempValue = new Quaternion();

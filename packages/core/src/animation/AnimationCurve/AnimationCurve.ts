@@ -1,5 +1,4 @@
 import { InterpolationType } from "../enums/InterpolationType";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { InterpolableKeyframe, KeyframeTangentType, KeyframeValueType } from "../KeyFrame";
 
 /**
@@ -124,8 +123,6 @@ export abstract class AnimationCurve<T extends KeyframeTangentType, V extends Ke
     return value;
   }
 
-  /** @internal */
-  abstract _initializeOwner(owner: AnimationCurveOwner<T, V>): void;
   /** @internal */
   abstract _evaluateAdditive(time: number, out?: V): V;
 

@@ -2,12 +2,12 @@ import { Color, Vector4 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
+import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReferenceCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveOperation<Color>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveStatic<Vector4, Color>>()
 export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
   /**
    * @internal
@@ -26,6 +26,9 @@ export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
     out.a += value.a * weight;
   }
 
+  /**
+   * @internal
+   */
   static _copyFrom(scource: Color, out: Color): void {
     out.copyFrom(scource);
   }
@@ -33,7 +36,7 @@ export class AnimationColorCurve extends AnimationCurve<Vector4, Color> {
   /**
    * @internal
    */
-  _initializeOwner(owner: AnimationCurveOwner<Vector4, Color>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<Vector4, Color>): void {
     owner._defaultValue = new Color();
     owner._fixedPoseValue = new Color();
     owner._baseTempValue = new Color();

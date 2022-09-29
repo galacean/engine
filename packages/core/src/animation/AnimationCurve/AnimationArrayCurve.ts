@@ -1,12 +1,12 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
+import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReferenceCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveOperation<number[]>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveStatic<number[], number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
   /**
    * @internal
@@ -27,6 +27,9 @@ export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
     }
   }
 
+  /**
+   * @internal
+   */
   static _copyFrom(scource: number[], out: number[]): void {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = scource[i];
@@ -36,7 +39,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[], number[]> {
   /**
    * @internal
    */
-  _initializeOwner(owner: AnimationCurveOwner<number[], number[]>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<number[], number[]>): void {
     owner._defaultValue = [];
     owner._fixedPoseValue = [];
     owner._baseTempValue = [];

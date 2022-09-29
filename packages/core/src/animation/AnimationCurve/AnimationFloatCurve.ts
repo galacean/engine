@@ -1,12 +1,12 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationValueCurveOperation } from "./IAnimationValueCurveOperation";
+import { IAnimationValueCurveStatic } from "./interfaces/IAnimationValueCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationValueCurveOperation<number>>()
+@StaticInterfaceImplement<IAnimationValueCurveStatic<number, number>>()
 export class AnimationFloatCurve extends AnimationCurve<number, number> {
   /**
    * @internal
@@ -15,6 +15,9 @@ export class AnimationFloatCurve extends AnimationCurve<number, number> {
     return srcValue + (destValue - srcValue) * crossWeight;
   }
 
+  /**
+   * @internal
+   */
   static _additiveValue(value: number, weight: number, scource: number): number {
     scource += value * weight;
     return scource;
@@ -23,7 +26,7 @@ export class AnimationFloatCurve extends AnimationCurve<number, number> {
   /**
    * @internal
    */
-  _initializeOwner(owner: AnimationCurveOwner<number, number>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<number, number>): void {
     owner._defaultValue = 0;
     owner._fixedPoseValue = 0;
     owner._baseTempValue = 0;

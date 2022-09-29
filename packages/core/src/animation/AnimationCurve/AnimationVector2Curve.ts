@@ -2,12 +2,12 @@ import { Vector2 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveOperation } from "./IAnimationReferenceCurveOperation";
+import { IAnimationReferenceCurveStatic } from "./interfaces/IAnimationReferenceCurveStatic";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveOperation<Vector2>>()
+@StaticInterfaceImplement<IAnimationReferenceCurveStatic<Vector2, Vector2>>()
 export class AnimationVector2Curve extends AnimationCurve<Vector2, Vector2> {
   /**
    * @internal
@@ -16,11 +16,17 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2, Vector2> {
     Vector2.lerp(srcValue, destValue, weight, out);
   }
 
+  /**
+   * @internal
+   */
   static _additiveValue(value: Vector2, weight: number, out: Vector2): void {
     out.x += value.x * weight;
     out.y += value.y * weight;
   }
 
+  /**
+   * @internal
+   */
   static _copyFrom(scource: Vector2, out: Vector2): void {
     out.copyFrom(scource);
   }
@@ -28,7 +34,7 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2, Vector2> {
   /**
    * @internal
    */
-  _initializeOwner(owner: AnimationCurveOwner<Vector2, Vector2>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<Vector2, Vector2>): void {
     owner._defaultValue = new Vector2();
     owner._fixedPoseValue = new Vector2();
     owner._baseTempValue = new Vector2();

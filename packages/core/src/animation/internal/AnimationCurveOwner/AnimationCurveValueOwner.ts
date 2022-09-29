@@ -1,4 +1,4 @@
-import { IAnimationValueCurveOperation } from "../../AnimationCurve/IAnimationValueCurveOperation";
+import { IAnimationValueCurveStatic } from "../../AnimationCurve/interfaces/IAnimationValueCurveStatic";
 import { AnimationCurveOwner } from "./AnimationCurveOwner";
 
 /**
@@ -6,7 +6,7 @@ import { AnimationCurveOwner } from "./AnimationCurveOwner";
  */
 export class AnimationCurveValueOwner<T extends number, V extends number> extends AnimationCurveOwner<T, V> {
   /** @intenral */
-  _cureType: IAnimationValueCurveOperation<V>;
+  _cureType: IAnimationValueCurveStatic<T, V>;
 
   saveDefaultValue(): void {
     this._defaultValue = this._assembler.getTargetValue();
