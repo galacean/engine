@@ -3,7 +3,7 @@ import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
-import { KeyframeValueType } from "./KeyFrame";
+import { KeyframeValueType } from "./Keyframe";
 
 /**
  * Stores keyframe based animations.
