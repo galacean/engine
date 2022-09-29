@@ -156,7 +156,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new InterpolableKeyframe<Vector3, Vector3>();
+          const keyframe = new InterpolableKeyframe<Vector3>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue();

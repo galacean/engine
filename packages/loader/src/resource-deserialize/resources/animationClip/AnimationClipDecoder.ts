@@ -55,7 +55,7 @@ export class AnimationClipDecoder {
             case InterpolableValueType.Float: {
               curve = curve || new AnimationFloatCurve();
               curve.interpolation = interpolation;
-              const keyframe = new InterpolableKeyframe<number, number>();
+              const keyframe = new InterpolableKeyframe<number>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = bufferReader.nextFloat32();
               keyframe.inTangent = bufferReader.nextFloat32();
@@ -66,7 +66,7 @@ export class AnimationClipDecoder {
             case InterpolableValueType.Array: {
               curve = curve || new AnimationArrayCurve();
               curve.interpolation = interpolation;
-              const keyframe = new InterpolableKeyframe<number[], number[]>();
+              const keyframe = new InterpolableKeyframe<number[]>();
               keyframe.time = bufferReader.nextFloat32();
               const len = bufferReader.nextUint16();
               keyframe.value = Array.from(bufferReader.nextFloat32Array(len));
@@ -90,7 +90,7 @@ export class AnimationClipDecoder {
             case InterpolableValueType.Vector2: {
               curve = curve || new AnimationVector2Curve();
               curve.interpolation = interpolation;
-              const keyframe = new InterpolableKeyframe<Vector2, Vector2>();
+              const keyframe = new InterpolableKeyframe<Vector2>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
               keyframe.inTangent = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
@@ -101,7 +101,7 @@ export class AnimationClipDecoder {
             case InterpolableValueType.Vector3: {
               curve = curve || new AnimationVector3Curve();
               curve.interpolation = interpolation;
-              const keyframe = new InterpolableKeyframe<Vector3, Vector3>();
+              const keyframe = new InterpolableKeyframe<Vector3>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector3(
                 bufferReader.nextFloat32(),
@@ -124,7 +124,7 @@ export class AnimationClipDecoder {
             case InterpolableValueType.Vector4: {
               curve = curve || new AnimationVector4Curve();
               curve.interpolation = interpolation;
-              const keyframe = new InterpolableKeyframe<Vector4, Vector4>();
+              const keyframe = new InterpolableKeyframe<Vector4>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector4(
                 bufferReader.nextFloat32(),
