@@ -1,8 +1,6 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
-import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveCalculator";
 import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
 
 /**
@@ -10,8 +8,7 @@ import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationRefer
  */
 @StaticInterfaceImplement<IAnimationReferenceCurveCalculator<number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[]> {
-  /** @internal */
-  static _ownerType: AnimationCurveOwnertType = AnimationCurveReferenceOwner;
+  static _isReferenceType: boolean = true;
 
   /**
    * @internal

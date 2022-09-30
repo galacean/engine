@@ -7,7 +7,7 @@ import { KeyframeValueType } from "../../Keyframe";
  * @internal
  */
 export interface IAnimationCurveCalculator<V extends KeyframeValueType> {
-  _ownerType: AnimationCurveOwnertType;
+  _isReferenceType: boolean;
 
   _initializeOwner(owner: AnimationCurveOwner<V>);
 }

@@ -2,9 +2,7 @@ import { Quaternion } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimatorUtils } from "../AnimatorUtils";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
-import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveCalculator";
 import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
 
 /**
@@ -14,8 +12,7 @@ import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationRefer
 export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
 
-  /** @internal */
-  static _ownerType: AnimationCurveOwnertType = AnimationCurveReferenceOwner;
+  static _isReferenceType: boolean = true;
 
   /**
    * @internal

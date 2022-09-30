@@ -2,6 +2,8 @@ import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
 import { IAnimationCurveCalculator } from "../../AnimationCurve/interfaces/IAnimationCurveCalculator";
+import { IAnimationReferenceCurveCalculator as ReferenceCalculator } from "../../AnimationCurve/interfaces/IAnimationReferenceCurveCalculator";
+import { IAnimationValueCurveCalculator as ValueCalculator } from "../../AnimationCurve/interfaces/IAnimationValueCurveCalculator";
 import { KeyframeValueType } from "../../Keyframe";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
@@ -9,7 +11,7 @@ import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnim
 /**
  * @internal
  */
-export abstract class AnimationCurveOwner<V extends KeyframeValueType> {
+export class AnimationCurveOwner<V extends KeyframeValueType> {
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
   static registerAssembler(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
@@ -38,12 +40,13 @@ export abstract class AnimationCurveOwner<V extends KeyframeValueType> {
   baseTempValue: V;
   crossTempValue: V;
   hasSavedDefaultValue: boolean = false;
+  cureType: IAnimationCurveCalculator<V>;
+  isReferenceType: boolean;
+  referenceTargetValue: V;
 
-  protected _assembler: IAnimationCurveOwnerAssembler<V>;
+  private _assembler: IAnimationCurveOwnerAssembler<V>;
 
-  abstract cureType: IAnimationCurveCalculator<V>;
-
-  constructor(target: Entity, type: new (entity: Entity) => Component, property: string) {
+  constructor(target: Entity, type: new (entity: Entity) => Component, property: string, isReferenceType: boolean) {
     this.target = target;
     this.type = type;
     this.property = property;
@@ -52,6 +55,10 @@ export abstract class AnimationCurveOwner<V extends KeyframeValueType> {
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
+    if (isReferenceType) {
+      this.referenceTargetValue = this._assembler.getTargetValue();
+    }
+    this.isReferenceType = isReferenceType;
   }
 
   evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number): void {
@@ -64,7 +71,14 @@ export abstract class AnimationCurveOwner<V extends KeyframeValueType> {
   evaluateAndApplyAdditiveValue(curve: AnimationCurve<V>, time: number, layerWeight: number): void {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this.baseTempValue);
-      this._applyAdditiveValue(value, layerWeight);
+
+      if (this.isReferenceType) {
+        (<ReferenceCalculator<V>>this.cureType)._additiveValue(value, layerWeight, this.referenceTargetValue);
+      } else {
+        const originValue = this._assembler.getTargetValue();
+        const addtiveValue = (<ValueCalculator<V>>this.cureType)._additiveValue(value, layerWeight, originValue);
+        this._assembler.setTargetValue(addtiveValue);
+      }
     }
   }
 
@@ -101,11 +115,35 @@ export abstract class AnimationCurveOwner<V extends KeyframeValueType> {
     this._assembler.setTargetValue(this.defaultValue);
   }
 
-  protected _applyValue(value: V, weight: number): void {
+  saveDefaultValue(): void {
+    if (this.isReferenceType) {
+      (<ReferenceCalculator<V>>this.cureType)._copyFrom(this.referenceTargetValue, this.defaultValue);
+    } else {
+      this.defaultValue = this._assembler.getTargetValue();
+    }
+    this.hasSavedDefaultValue = true;
+  }
+
+  saveFixedPoseValue(): void {
+    if (this.isReferenceType) {
+      (<ReferenceCalculator<V>>this.cureType)._copyFrom(this.referenceTargetValue, this.fixedPoseValue);
+    } else {
+      this.fixedPoseValue = this._assembler.getTargetValue();
+    }
+  }
+
+  private _applyValue(value: V, weight: number): void {
     if (weight === 1.0) {
       this._assembler.setTargetValue(value);
     } else {
-      this._applyLerpValue(value, weight);
+      if (this.isReferenceType) {
+        const targetValue = this.referenceTargetValue;
+        (<ReferenceCalculator<V>>this.cureType)._lerpValue(targetValue, value, weight, targetValue);
+      } else {
+        const originValue = this._assembler.getTargetValue();
+        const lerpValue = (<ValueCalculator<V>>this.cureType)._lerpValue(originValue, value, weight);
+        this._assembler.setTargetValue(lerpValue);
+      }
     }
   }
 
@@ -116,20 +154,26 @@ export abstract class AnimationCurveOwner<V extends KeyframeValueType> {
     layerWeight: number,
     additive: boolean
   ): void {
-    const out = this._lerpCrossValue(srcValue, destValue, crossWeight);
+    let out: V;
+    if (this.isReferenceType) {
+      out = this.baseTempValue;
+      (<ReferenceCalculator<V>>this.cureType)._lerpValue(srcValue, destValue, crossWeight, out);
+    } else {
+      out = (<ValueCalculator<V>>this.cureType)._lerpValue(srcValue, destValue, crossWeight);
+    }
+
     if (additive) {
-      this._applyAdditiveValue(out, layerWeight);
+      if (this.isReferenceType) {
+        (<ReferenceCalculator<V>>this.cureType)._additiveValue(out, layerWeight, this.referenceTargetValue);
+      } else {
+        const originValue = this._assembler.getTargetValue();
+        const lerpValue = (<ValueCalculator<V>>this.cureType)._additiveValue(out, layerWeight, originValue);
+        this._assembler.setTargetValue(lerpValue);
+      }
     } else {
       this._applyValue(out, layerWeight);
     }
   }
-
-  abstract saveDefaultValue(): void;
-  abstract saveFixedPoseValue(): void;
-
-  protected abstract _applyLerpValue(value: V, weight: number): void;
-  protected abstract _applyAdditiveValue(value: V, weight: number): void;
-  protected abstract _lerpCrossValue(srcValue: V, destValue: V, weight: number): V;
 }
 
 type ComponentType = new (entity: Entity) => Component;

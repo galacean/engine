@@ -1,7 +1,6 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveCalculator";
 import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
 
 /**
@@ -10,7 +9,7 @@ import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationRefer
 @StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Float32Array>>()
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /** @internal */
-  static _ownerType: AnimationCurveOwnertType = AnimationCurveReferenceOwner;
+  static _isReferenceType: boolean = true;
 
   /**
    * @internal
@@ -43,8 +42,8 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveReferenceOwner<Float32Array>): void {
-    const size = owner.targetValue.length;
+  static _initializeOwner(owner: AnimationCurveOwner<Float32Array>): void {
+    const size = owner.referenceTargetValue.length;
     owner.defaultValue = new Float32Array(size);
     owner.fixedPoseValue = new Float32Array(size);
     owner.baseTempValue = new Float32Array(size);

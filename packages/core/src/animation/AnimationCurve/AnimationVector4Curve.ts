@@ -1,9 +1,7 @@
 import { Vector4 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
-import { AnimationCurveReferenceOwner } from "../internal/AnimationCurveOwner/AnimationCurveReferenceOwner";
 import { AnimationCurve } from "./AnimationCurve";
-import { AnimationCurveOwnertType } from "./interfaces/IAnimationCurveCalculator";
 import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
 
 /**
@@ -11,8 +9,7 @@ import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationRefer
  */
 @StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Vector4>>()
 export class AnimationVector4Curve extends AnimationCurve<Vector4> {
-  /** @internal */
-  static _ownerType: AnimationCurveOwnertType = AnimationCurveReferenceOwner;
+  static _isReferenceType: boolean = true;
 
   /**
    * @internal
@@ -41,7 +38,7 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner< Vector4>): void {
+  static _initializeOwner(owner: AnimationCurveOwner<Vector4>): void {
     owner.defaultValue = new Vector4();
     owner.fixedPoseValue = new Vector4();
     owner.baseTempValue = new Vector4();
