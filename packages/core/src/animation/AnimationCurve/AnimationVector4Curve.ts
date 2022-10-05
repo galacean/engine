@@ -56,12 +56,7 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
     return out;
   }
 
-  protected _evaluateLinear(
-    frame: Keyframe<Vector4>,
-    nextFrame: Keyframe<Vector4>,
-    t: number,
-    out: Vector4
-  ): Vector4 {
+  protected _evaluateLinear(frame: Keyframe<Vector4>, nextFrame: Keyframe<Vector4>, t: number, out: Vector4): Vector4 {
     Vector4.lerp(frame.value, nextFrame.value, t, out);
     return out;
   }

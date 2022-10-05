@@ -51,16 +51,12 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   _evaluateAdditive(time: number, out?: Vector3): Vector3 {
     const baseValue = this.keys[0].value;
     this._evaluate(time, out);
+    //CM: 如果缩放需要 Vector3.divide
     Vector3.subtract(out, baseValue, out);
     return out;
   }
 
-  protected _evaluateLinear(
-    frame: Keyframe<Vector3>,
-    nextFrame: Keyframe<Vector3>,
-    t: number,
-    out: Vector3
-  ): Vector3 {
+  protected _evaluateLinear(frame: Keyframe<Vector3>, nextFrame: Keyframe<Vector3>, t: number, out: Vector3): Vector3 {
     Vector3.lerp(frame.value, nextFrame.value, t, out);
     return out;
   }
