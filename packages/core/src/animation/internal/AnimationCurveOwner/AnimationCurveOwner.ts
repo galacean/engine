@@ -1,9 +1,7 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
 import { AnimationCurve } from "../../AnimationCurve";
-import { IAnimationCurveCalculator } from "../../AnimationCurve/interfaces/IAnimationCurveCalculator";
-import { IAnimationReferenceCurveCalculator as ReferenceCalculator } from "../../AnimationCurve/interfaces/IAnimationReferenceCurveCalculator";
-import { IAnimationValueCurveCalculator as ValueCalculator } from "../../AnimationCurve/interfaces/IAnimationValueCurveCalculator";
+import { IAnimationCurveCalculator as Calculator } from "../../AnimationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeValueType } from "../../Keyframe";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
@@ -40,7 +38,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   baseTempValue: V;
   crossTempValue: V;
   hasSavedDefaultValue: boolean = false;
-  cureType: IAnimationCurveCalculator<V>;
+  cureType: Calculator<V>;
   isReferenceType: boolean;
   referenceTargetValue: V;
 
@@ -73,10 +71,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       const value = curve._evaluateAdditive(time, this.baseTempValue);
 
       if (this.isReferenceType) {
-        (<ReferenceCalculator<V>>this.cureType)._additiveValue(value, layerWeight, this.referenceTargetValue);
+        (<Calculator<V>>this.cureType)._additiveValue(value, layerWeight, this.referenceTargetValue);
       } else {
         const originValue = this._assembler.getTargetValue();
-        const addtiveValue = (<ValueCalculator<V>>this.cureType)._additiveValue(value, layerWeight, originValue);
+        const addtiveValue = (<Calculator<V>>this.cureType)._additiveValue(value, layerWeight, originValue);
         this._assembler.setTargetValue(addtiveValue);
       }
     }
@@ -117,7 +115,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   saveDefaultValue(): void {
     if (this.isReferenceType) {
-      (<ReferenceCalculator<V>>this.cureType)._copyFromValue(this.referenceTargetValue, this.defaultValue);
+      (<Calculator<V>>this.cureType)._copyFromValue(this.referenceTargetValue, this.defaultValue);
     } else {
       this.defaultValue = this._assembler.getTargetValue();
     }
@@ -126,7 +124,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   saveFixedPoseValue(): void {
     if (this.isReferenceType) {
-      (<ReferenceCalculator<V>>this.cureType)._copyFromValue(this.referenceTargetValue, this.fixedPoseValue);
+      (<Calculator<V>>this.cureType)._copyFromValue(this.referenceTargetValue, this.fixedPoseValue);
     } else {
       this.fixedPoseValue = this._assembler.getTargetValue();
     }
@@ -138,10 +136,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     } else {
       if (this.isReferenceType) {
         const targetValue = this.referenceTargetValue;
-        (<ReferenceCalculator<V>>this.cureType)._lerpValue(targetValue, value, weight, targetValue);
+        (<Calculator<V>>this.cureType)._lerpValue(targetValue, value, weight, targetValue);
       } else {
         const originValue = this._assembler.getTargetValue();
-        const lerpValue = (<ValueCalculator<V>>this.cureType)._lerpValue(originValue, value, weight);
+        const lerpValue = (<Calculator<V>>this.cureType)._lerpValue(originValue, value, weight);
         this._assembler.setTargetValue(lerpValue);
       }
     }
@@ -157,17 +155,17 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     let out: V;
     if (this.isReferenceType) {
       out = this.baseTempValue;
-      (<ReferenceCalculator<V>>this.cureType)._lerpValue(srcValue, destValue, crossWeight, out);
+      (<Calculator<V>>this.cureType)._lerpValue(srcValue, destValue, crossWeight, out);
     } else {
-      out = (<ValueCalculator<V>>this.cureType)._lerpValue(srcValue, destValue, crossWeight);
+      out = (<Calculator<V>>this.cureType)._lerpValue(srcValue, destValue, crossWeight);
     }
 
     if (additive) {
       if (this.isReferenceType) {
-        (<ReferenceCalculator<V>>this.cureType)._additiveValue(out, layerWeight, this.referenceTargetValue);
+        (<Calculator<V>>this.cureType)._additiveValue(out, layerWeight, this.referenceTargetValue);
       } else {
         const originValue = this._assembler.getTargetValue();
-        const lerpValue = (<ValueCalculator<V>>this.cureType)._additiveValue(out, layerWeight, originValue);
+        const lerpValue = (<Calculator<V>>this.cureType)._additiveValue(out, layerWeight, originValue);
         this._assembler.setTargetValue(lerpValue);
       }
     } else {

@@ -3,36 +3,14 @@ import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Color>>()
+@StaticInterfaceImplement<IAnimationCurveCalculator<Color>>()
 export class AnimationColorCurve extends AnimationCurve<Color> {
   static _isReferenceType: boolean = true;
-
-  /**
-   * @internal
-   */
-  static _lerpValue(srcValue: Color, destValue: Color, weight: number, out: Color): void {
-    Color.lerp(srcValue, destValue, weight, out);
-  }
-
-  /**
-   * @internal
-   */
-  static _additiveValue(value: Color, weight: number, out: Color): void {
-    Color.scale(value, weight, value);
-    Color.add(out, value, out);
-  }
-
-  /**
-   * @internal
-   */
-  static _copyFromValue(scource: Color, out: Color): void {
-    out.copyFrom(scource);
-  }
 
   /**
    * @internal
@@ -47,27 +25,32 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: Color): Color {
-    const baseValue = this.keys[0].value;
-    this._evaluate(time, out);
-    out.r -= baseValue.r;
-    out.g -= baseValue.g;
-    out.b -= baseValue.b;
-    out.a -= baseValue.a;
+  static _lerpValue(srcValue: Color, destValue: Color, weight: number, out: Color): Color {
+    Color.lerp(srcValue, destValue, weight, out);
     return out;
   }
 
-  protected _evaluateFrameLinear(frame: Keyframe<Color>, nextFrame: Keyframe<Color>, t: number, out: Color): Color {
-    Color.lerp(frame.value, nextFrame.value, t, out);
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Color, weight: number, out: Color): Color {
+    Color.scale(value, weight, value);
+    Color.add(out, value, out);
     return out;
   }
 
-  protected _evaluateFrameStep(frame: Keyframe<Color>, out: Color): Color {
-    out.copyFrom(frame.value);
+  /**
+   * @internal
+   */
+  static _copyFromValue(scource: Color, out: Color): Color {
+    out.copyFrom(scource);
     return out;
   }
 
-  protected _evaluateFrameHermite(
+  /**
+   * @internal
+   */
+  static _evaluateFrameHermite(
     frame: Keyframe<Color>,
     nextFrame: Keyframe<Color>,
     t: number,
@@ -115,6 +98,19 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
       out.a = p0.a;
     }
 
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  _evaluateAdditive(time: number, out?: Color): Color {
+    const baseValue = this.keys[0].value;
+    this._evaluate(time, out);
+    out.r -= baseValue.r;
+    out.g -= baseValue.g;
+    out.b -= baseValue.b;
+    out.a -= baseValue.a;
     return out;
   }
 }

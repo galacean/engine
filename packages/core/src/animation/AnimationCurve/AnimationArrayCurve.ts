@@ -2,42 +2,14 @@ import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<number[]>>()
+@StaticInterfaceImplement<IAnimationCurveCalculator<number[]>>()
 export class AnimationArrayCurve extends AnimationCurve<number[]> {
   static _isReferenceType: boolean = true;
-
-  /**
-   * @internal
-   */
-  static _lerpValue(srcValue: number[], destValue: number[], weight: number, out: number[]): void {
-    for (let i = 0, n = out.length; i < n; ++i) {
-      const src = srcValue[i];
-      out[i] = src + (destValue[i] - src) * weight;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  static _additiveValue(value: number[], weight: number, out: number[]): void {
-    for (let i = 0, n = out.length; i < n; ++i) {
-      out[i] += value[i] * weight;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  static _copyFromValue(scource: number[], out: number[]): void {
-    for (let i = 0, n = out.length; i < n; ++i) {
-      out[i] = scource[i];
-    }
-  }
 
   /**
    * @internal
@@ -52,38 +24,38 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: number[]): number[] {
-    const baseValue = this.keys[0].value;
-    const value = this._evaluate(time, out);
-    for (let i = 0, n = value.length; i < n; i++) {
-      value[i] = value[i] - baseValue[i];
-    }
-    return value;
-  }
-
-  protected _evaluateFrameLinear(
-    frame: Keyframe<number[]>,
-    nextFrame: Keyframe<number[]>,
-    t: number,
-    out: number[]
-  ): number[] {
-    const value = frame.value;
-    const nextValue = nextFrame.value;
-    for (let i = 0, n = value.length; i < n; i++) {
-      out[i] = value[i] * (1 - t) + nextValue[i] * t;
+  static _lerpValue(srcValue: number[], destValue: number[], weight: number, out: number[]): number[] {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      const src = srcValue[i];
+      out[i] = src + (destValue[i] - src) * weight;
     }
     return out;
   }
 
-  protected _evaluateFrameStep(frame: Keyframe<number[]>, out: number[]): number[] {
-    const value = frame.value;
-    for (let i = 0, n = value.length; i < n; i++) {
-      out[i] = value[i];
+  /**
+   * @internal
+   */
+  static _additiveValue(value: number[], weight: number, out: number[]): number[] {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      out[i] += value[i] * weight;
     }
     return out;
   }
 
-  protected _evaluateFrameHermite(
+  /**
+   * @internal
+   */
+  static _copyFromValue(scource: number[], out: number[]): number[] {
+    for (let i = 0, n = out.length; i < n; ++i) {
+      out[i] = scource[i];
+    }
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _evaluateFrameHermite(
     frame: Keyframe<number[]>,
     nextFrame: Keyframe<number[]>,
     t: number,
@@ -110,5 +82,17 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
       }
     }
     return out;
+  }
+
+  /**
+   * @internal
+   */
+  _evaluateAdditive(time: number, out?: number[]): number[] {
+    const baseValue = this.keys[0].value;
+    const value = this._evaluate(time, out);
+    for (let i = 0, n = value.length; i < n; i++) {
+      value[i] = value[i] - baseValue[i];
+    }
+    return value;
   }
 }

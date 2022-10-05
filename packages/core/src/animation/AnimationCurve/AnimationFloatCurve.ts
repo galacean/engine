@@ -2,30 +2,15 @@ import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationValueCurveCalculator } from "./interfaces/IAnimationValueCurveCalculator";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationValueCurveCalculator<number>>()
+@StaticInterfaceImplement<IAnimationCurveCalculator<number>>()
 export class AnimationFloatCurve extends AnimationCurve<number> {
   /** @internal */
   static _isReferenceType: boolean = false;
-
-  /**
-   * @internal
-   */
-  static _lerpValue(srcValue: number, destValue: number, crossWeight: number): number {
-    return srcValue + (destValue - srcValue) * crossWeight;
-  }
-
-  /**
-   * @internal
-   */
-  static _additiveValue(value: number, weight: number, scource: number): number {
-    scource += value * weight;
-    return scource;
-  }
 
   /**
    * @internal
@@ -40,21 +25,35 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: number): number {
-    const baseValue = this.keys[0].value;
-    const value = this._evaluate(time);
-    return value - baseValue;
+  static _lerpValue(srcValue: number, destValue: number, crossWeight: number, out: number): number {
+    return srcValue + (destValue - srcValue) * crossWeight;
   }
 
-  protected _evaluateFrameLinear(frame: Keyframe<number>, nextFrame: Keyframe<number>, t: number): number {
-    return frame.value * (1 - t) + nextFrame.value * t;
+  /**
+   * @internal
+   */
+  static _additiveValue(value: number, weight: number, scource: number): number {
+    scource += value * weight;
+    return scource;
   }
 
-  protected _evaluateFrameStep(frame: Keyframe<number>): number {
-    return frame.value;
+  /**
+   * @internal
+   */
+  static _copyFromValue(scource: number, out: number): number {
+    return scource;
   }
 
-  protected _evaluateFrameHermite(frame: Keyframe<number>, nextFrame: Keyframe<number>, t: number, dur: number): number {
+  /**
+   * @internal
+   */
+  static _evaluateFrameHermite(
+    frame: Keyframe<number>,
+    nextFrame: Keyframe<number>,
+    t: number,
+    dur: number,
+    out: number
+  ): number {
     const t0 = frame.outTangent;
     const t1 = nextFrame.inTangent;
     if (Number.isFinite(t0) && Number.isFinite(t1)) {
@@ -68,5 +67,18 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     } else {
       return frame.value;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _evaluateAdditive(time: number, out?: number): number {
+    const baseValue = this.keys[0].value;
+    const value = this._evaluate(time);
+    return value - baseValue;
+  }
+
+  protected _evaluateFrameStep(frame: Keyframe<number>): number {
+    return frame.value;
   }
 }

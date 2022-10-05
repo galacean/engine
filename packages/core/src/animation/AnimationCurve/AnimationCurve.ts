@@ -1,5 +1,6 @@
 import { InterpolationType } from "../enums/InterpolationType";
 import { Keyframe, KeyframeValueType } from "../Keyframe";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
@@ -14,11 +15,17 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   protected _length: number = 0;
   protected _currentIndex: number = 0;
 
+  private _type: IAnimationCurveCalculator<V>;
+
   /**
    * Animation curve length in seconds.
    */
   get length(): number {
     return this._length;
+  }
+
+  constructor() {
+    this._type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
   }
 
   /**
@@ -95,9 +102,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     // Evaluate value.
     let value: V;
     if (curIndex === -1) {
-      value = this._evaluateFrameStep(keys[0], out);
+      value = this._type._copyFromValue(keys[0].value, out);
     } else if (nextIndex === length) {
-      value = this._evaluateFrameStep(keys[curIndex], out);
+      value = this._type._copyFromValue(keys[curIndex].value, out);
     } else {
       // Time between first frame and end frame.
       const curFrame = keys[curIndex];
@@ -108,17 +115,17 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
       switch (interpolation) {
         case InterpolationType.Linear:
-          value = this._evaluateFrameLinear(curFrame, nextFrame, t, out);
+          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);
           break;
         case InterpolationType.Step:
-          value = this._evaluateFrameStep(curFrame, out);
+          value = this._type._copyFromValue(curFrame.value, out);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
-          value = this._evaluateFrameHermite(curFrame, nextFrame, t, duration, out);
+          value = this._type._evaluateFrameHermite(curFrame, nextFrame, t, duration, out);
           break;
         default:
-          value = this._evaluateFrameLinear(curFrame, nextFrame, t, out);
+          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);
           break;
       }
     }
@@ -127,14 +134,4 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
   /** @internal */
   abstract _evaluateAdditive(time: number, out?: V): V;
-
-  protected abstract _evaluateFrameLinear(frame: Keyframe<V>, nextFrame: Keyframe<V>, t: number, out: V): V;
-  protected abstract _evaluateFrameStep(frame: Keyframe<V>, out: V): V;
-  protected abstract _evaluateFrameHermite(
-    frame: Keyframe<V>,
-    nextFrame: Keyframe<V>,
-    t: number,
-    dur: number,
-    out: V
-  ): V;
 }

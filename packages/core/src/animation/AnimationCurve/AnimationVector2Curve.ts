@@ -3,36 +3,14 @@ import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationReferenceCurveCalculator<Vector2>>()
+@StaticInterfaceImplement<IAnimationCurveCalculator<Vector2>>()
 export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   static _isReferenceType: boolean = true;
-
-  /**
-   * @internal
-   */
-  static _lerpValue(srcValue: Vector2, destValue: Vector2, weight: number, out: Vector2): void {
-    Vector2.lerp(srcValue, destValue, weight, out);
-  }
-
-  /**
-   * @internal
-   */
-  static _additiveValue(value: Vector2, weight: number, out: Vector2): void {
-    Vector2.scale(value, weight, value);
-    Vector2.add(out, value, out);
-  }
-
-  /**
-   * @internal
-   */
-  static _copyFromValue(scource: Vector2, out: Vector2): void {
-    out.copyFrom(scource);
-  }
 
   /**
    * @internal
@@ -47,24 +25,32 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: Vector2): Vector2 {
-    const baseValue = this.keys[0].value;
-    this._evaluate(time, out);
-    Vector2.subtract(out, baseValue, out);
+  static _lerpValue(srcValue: Vector2, destValue: Vector2, weight: number, out: Vector2): Vector2 {
+    Vector2.lerp(srcValue, destValue, weight, out);
     return out;
   }
 
-  protected _evaluateFrameLinear(frame: Keyframe<Vector2>, nextFrame: Keyframe<Vector2>, t: number, out: Vector2): Vector2 {
-    Vector2.lerp(frame.value, nextFrame.value, t, out);
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Vector2, weight: number, out: Vector2): Vector2 {
+    Vector2.scale(value, weight, value);
+    Vector2.add(out, value, out);
     return out;
   }
 
-  protected _evaluateFrameStep(frame: Keyframe<Vector2>, out: Vector2): Vector2 {
-    out.copyFrom(frame.value);
+  /**
+   * @internal
+   */
+  static _copyFromValue(scource: Vector2, out: Vector2): Vector2 {
+    out.copyFrom(scource);
     return out;
   }
 
-  protected _evaluateFrameHermite(
+  /**
+   * @internal
+   */
+  static _evaluateFrameHermite(
     frame: Keyframe<Vector2>,
     nextFrame: Keyframe<Vector2>,
     t: number,
@@ -98,6 +84,16 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
       out.y = p0.y;
     }
 
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  _evaluateAdditive(time: number, out?: Vector2): Vector2 {
+    const baseValue = this.keys[0].value;
+    this._evaluate(time, out);
+    Vector2.subtract(out, baseValue, out);
     return out;
   }
 }
