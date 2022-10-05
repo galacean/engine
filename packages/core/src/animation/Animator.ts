@@ -427,7 +427,7 @@ export class Animator extends Component {
   ): void {
     const { curveOwners, eventHandlers } = playData.stateData;
     const { state, playState: lastPlayState, clipTime: lastClipTime } = playData;
-    const { _curveBindings: curves } = state.clip;
+    const { _curveBindings: curveBindings } = state.clip;
 
     playData.update(this.speed < 0);
 
@@ -435,13 +435,11 @@ export class Animator extends Component {
 
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
-    for (let i = curves.length - 1; i >= 0; i--) {
-      const owner = curveOwners[i];
-      const { curve } = curves[i];
+    for (let i = curveBindings.length - 1; i >= 0; i--) {
       if (additive) {
-        owner.evaluateAndApplyAdditiveValue(curve, clipTime, weight);
+        curveOwners[i].evaluateAndApplyAdditiveValue(curveBindings[i].curve, clipTime, weight);
       } else {
-        owner.evaluateAndApplyValue(curve, clipTime, weight);
+        curveOwners[i].evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight);
       }
     }
 
@@ -518,10 +516,10 @@ export class Animator extends Component {
     }
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
-      const { curveOwner, srcCurveIndex, destCurveIndex } = crossCurveDataCollection[i];
-      curveOwner.crossFadeAndApplyValue(
-        srcCurves[srcCurveIndex]?.curve,
-        destCurves[destCurveIndex]?.curve,
+      const crossCurveData = crossCurveDataCollection[i];
+      crossCurveData.curveOwner.crossFadeAndApplyValue(
+        srcCurves[crossCurveData.srcCurveIndex]?.curve,
+        destCurves[crossCurveData.destCurveIndex]?.curve,
         srcClipTime,
         destClipTime,
         crossWeight,
@@ -542,7 +540,7 @@ export class Animator extends Component {
     const crossCurveDataCollection = this._crossCurveDataCollection;
     const { state, stateData, playState: lastPlayState } = destPlayData;
     const { eventHandlers } = stateData;
-    const { _curveBindings: curves } = state.clip;
+    const { _curveBindings: curveBindings } = state.clip;
     const { clipTime: lastDestClipTime } = destPlayData;
 
     let crossWeight =
@@ -571,7 +569,7 @@ export class Animator extends Component {
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
       curveOwner.crossFadeFromPoseAndApplyValue(
-        curves[destCurveIndex]?.curve,
+        curveBindings[destCurveIndex]?.curve,
         destClipTime,
         crossWeight,
         layerWeight,
