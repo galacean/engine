@@ -30,7 +30,7 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /**
    * @internal
    */
-  static _copyFrom(scource: Vector3, out: Vector3): void {
+  static _copyFromValue(scource: Vector3, out: Vector3): void {
     out.copyFrom(scource);
   }
 
@@ -56,6 +56,7 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
 
   protected _evaluateLinear(frame: Keyframe<Vector3>, nextFrame: Keyframe<Vector3>, t: number, out: Vector3): Vector3 {
     Vector3.lerp(frame.value, nextFrame.value, t, out);
+
     return out;
   }
 
