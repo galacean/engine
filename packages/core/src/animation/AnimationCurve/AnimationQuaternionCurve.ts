@@ -54,11 +54,11 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
    * @internal
    */
   _evaluateAdditive(time: number, out?: Quaternion): Quaternion {
-    const { _tempConjugateQuat } = AnimationQuaternionCurve;
+    const { _tempConjugateQuat: conjugate } = AnimationQuaternionCurve;
     const baseValue = this.keys[0].value;
     this._evaluate(time, out);
-    Quaternion.conjugate(baseValue, _tempConjugateQuat);
-    Quaternion.multiply(_tempConjugateQuat, out, out);
+    Quaternion.conjugate(baseValue, conjugate);
+    Quaternion.multiply(conjugate, out, out);
     return out;
   }
 
