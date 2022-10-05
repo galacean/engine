@@ -1,5 +1,6 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
 
@@ -60,18 +61,22 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     return value;
   }
 
-  protected _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: number[]): number[] {
-    const { keys } = this;
-    const value = keys[frameIndex].value;
-    const nextValue = keys[nextFrameIndex].value;
+  protected _evaluateLinear(
+    frame: Keyframe<number[]>,
+    nextFrame: Keyframe<number[]>,
+    t: number,
+    out: number[]
+  ): number[] {
+    const value = frame.value;
+    const nextValue = nextFrame.value;
     for (let i = 0, n = value.length; i < n; i++) {
       out[i] = value[i] * (1 - t) + nextValue[i] * t;
     }
     return out;
   }
 
-  protected _evaluateStep(frameIndex: number, out: number[]): number[] {
-    const value = this.keys[frameIndex].value;
+  protected _evaluateStep(frame: Keyframe<number[]>, out: number[]): number[] {
+    const value = frame.value;
     for (let i = 0, n = value.length; i < n; i++) {
       out[i] = value[i];
     }
@@ -79,22 +84,18 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   }
 
   protected _evaluateHermite(
-    frameIndex: number,
-    nextFrameIndex: number,
+    frame: Keyframe<number[]>,
+    nextFrame: Keyframe<number[]>,
     t: number,
     duration: number,
     out: number[]
   ): number[] {
-    const { keys } = this;
-    const curKey = keys[frameIndex];
-    const nextKey = keys[nextFrameIndex];
-    const t0 = curKey.outTangent,
-      t1 = nextKey.inTangent,
-      p0 = curKey.value,
-      p1 = nextKey.value,
-      length = p0.length;
+    const t0 = frame.outTangent;
+    const t1 = nextFrame.inTangent;
+    const p0 = frame.value;
+    const p1 = nextFrame.value;
 
-    for (let i = 0; i < length; ++i) {
+    for (let i = 0, n = p0.length; i < n; ++i) {
       if (Number.isFinite(t0[i]) && Number.isFinite(t1[i])) {
         const t2 = t * t;
         const t3 = t2 * t;
@@ -104,7 +105,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
         const d = -2.0 * t3 + 3.0 * t2;
         out[i] = a * p0[i] + b * t0[i] * duration + c * t1[i] * duration + d * p1[i];
       } else {
-        out[i] = curKey.value[i];
+        out[i] = frame.value[i];
       }
     }
     return out;

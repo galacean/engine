@@ -5,7 +5,7 @@ import {
   AnimationVector3Curve,
   Component,
   Entity,
-  InterpolableKeyframe,
+  Keyframe,
   InterpolableValueType,
   InterpolationType,
   SkinnedMeshRenderer,
@@ -156,7 +156,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new InterpolableKeyframe<Vector3>();
+          const keyframe = new Keyframe<Vector3>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue();
@@ -193,7 +193,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new InterpolableKeyframe<Quaternion>();
+          const keyframe = new Keyframe<Quaternion>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue(false) as Vector4;
@@ -218,7 +218,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new InterpolableKeyframe<Float32Array>();
+          const keyframe = new Keyframe<Float32Array>();
           keyframe.time = input[i];
           if (curve.interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = Array.from(getNextOutputValue());

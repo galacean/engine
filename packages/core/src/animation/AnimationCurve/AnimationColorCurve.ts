@@ -1,6 +1,7 @@
 import { Color } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
 
@@ -58,25 +59,27 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
     return out;
   }
 
-  protected _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: Color): Color {
-    const { keys } = this;
-    Color.lerp(keys[frameIndex].value, keys[nextFrameIndex].value, t, out);
+  protected _evaluateLinear(frame: Keyframe<Color>, nextFrame: Keyframe<Color>, t: number, out: Color): Color {
+    Color.lerp(frame.value, nextFrame.value, t, out);
     return out;
   }
 
-  protected _evaluateStep(frameIndex: number, out: Color): Color {
-    out.copyFrom(this.keys[frameIndex].value);
+  protected _evaluateStep(frame: Keyframe<Color>, out: Color): Color {
+    out.copyFrom(frame.value);
     return out;
   }
 
-  protected _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number, out: Color): Color {
-    const { keys } = this;
-    const curKey = keys[frameIndex];
-    const nextKey = keys[nextFrameIndex];
-    const p0 = curKey.value;
-    const tan0 = curKey.outTangent;
-    const p1 = nextKey.value;
-    const tan1 = nextKey.inTangent;
+  protected _evaluateHermite(
+    frame: Keyframe<Color>,
+    nextFrame: Keyframe<Color>,
+    t: number,
+    dur: number,
+    out: Color
+  ): Color {
+    const p0 = frame.value;
+    const tan0 = frame.outTangent;
+    const p1 = nextFrame.value;
+    const tan1 = nextFrame.inTangent;
 
     const t2 = t * t;
     const t3 = t2 * t;

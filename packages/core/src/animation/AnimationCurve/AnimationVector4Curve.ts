@@ -1,6 +1,7 @@
 import { Vector4 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
+import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationReferenceCurveCalculator } from "./interfaces/IAnimationReferenceCurveCalculator";
 
@@ -55,31 +56,32 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
     return out;
   }
 
-  protected _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: Vector4): Vector4 {
-    const { keys } = this;
-    Vector4.lerp(keys[frameIndex].value, keys[nextFrameIndex].value, t, out);
+  protected _evaluateLinear(
+    frame: Keyframe<Vector4>,
+    nextFrame: Keyframe<Vector4>,
+    t: number,
+    out: Vector4
+  ): Vector4 {
+    Vector4.lerp(frame.value, nextFrame.value, t, out);
     return out;
   }
 
-  protected _evaluateStep(frameIndex: number, out: Vector4): Vector4 {
-    out.copyFrom(this.keys[frameIndex].value);
+  protected _evaluateStep(frame: Keyframe<Vector4>, out: Vector4): Vector4 {
+    out.copyFrom(frame.value);
     return out;
   }
 
   protected _evaluateHermite(
-    frameIndex: number,
-    nextFrameIndex: number,
+    frame: Keyframe<Vector4>,
+    nextFrame: Keyframe<Vector4>,
     t: number,
     dur: number,
     out: Vector4
   ): Vector4 {
-    const { keys } = this;
-    const curKey = keys[frameIndex];
-    const nextKey = keys[nextFrameIndex];
-    const p0 = curKey.value;
-    const tan0 = curKey.outTangent;
-    const p1 = nextKey.value;
-    const tan1 = nextKey.inTangent;
+    const p0 = frame.value;
+    const tan0 = frame.outTangent;
+    const p1 = nextFrame.value;
+    const tan1 = nextFrame.inTangent;
 
     const t2 = t * t;
     const t3 = t2 * t;

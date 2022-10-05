@@ -4,18 +4,7 @@ import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math
  * Keyframe.
  * @typeParam V - Type of Keyframe value
  */
-export class Keyframe<V> {
-  /** The time of the Keyframe. */
-  time: number;
-  /** The value of the Keyframe. */
-  value: V;
-}
-
-/**
- * InterpolableKeyframe.
- * @typeParam V - Type of Keyframe value
- */
-export class InterpolableKeyframe<
+export class Keyframe<
   V extends KeyframeValueType,
   T = V extends number
     ? number
@@ -28,7 +17,11 @@ export class InterpolableKeyframe<
     : V extends number[] | Float32Array
     ? number[]
     : never
-> extends Keyframe<V> {
+> {
+  /** The time of the Keyframe. */
+  time: number;
+  /** The value of the Keyframe. */
+  value: V;
   /** Sets the incoming tangent for this key. The incoming tangent affects the slope of the curve from the previous key to this key. */
   inTangent?: T;
   /** Sets the outgoing tangent for this key. The outgoing tangent affects the slope of the curve from this key to the next key. */

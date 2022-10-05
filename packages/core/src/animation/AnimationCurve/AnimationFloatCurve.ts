@@ -1,5 +1,6 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationValueCurveCalculator } from "./interfaces/IAnimationValueCurveCalculator";
 
@@ -45,24 +46,17 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     return value - baseValue;
   }
 
-  protected _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number): number {
-    const { keys } = this;
-    return keys[frameIndex].value * (1 - t) + keys[nextFrameIndex].value * t;
+  protected _evaluateLinear(frame: Keyframe<number>, nextFrame: Keyframe<number>, t: number): number {
+    return frame.value * (1 - t) + nextFrame.value * t;
   }
 
-  protected _evaluateStep(frameIndex: number): number {
-    return this.keys[frameIndex].value;
+  protected _evaluateStep(frame: Keyframe<number>): number {
+    return frame.value;
   }
 
-  protected _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number): number {
-    const { keys } = this;
-    const curKey = keys[frameIndex];
-    const nextKey = keys[nextFrameIndex];
-
-    const t0 = curKey.outTangent,
-      t1 = nextKey.inTangent,
-      p0 = curKey.value,
-      p1 = nextKey.value;
+  protected _evaluateHermite(frame: Keyframe<number>, nextFrame: Keyframe<number>, t: number, dur: number): number {
+    const t0 = frame.outTangent;
+    const t1 = nextFrame.inTangent;
     if (Number.isFinite(t0) && Number.isFinite(t1)) {
       const t2 = t * t;
       const t3 = t2 * t;
@@ -70,9 +64,9 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
       const b = t3 - 2.0 * t2 + t;
       const c = t3 - t2;
       const d = -2.0 * t3 + 3.0 * t2;
-      return a * p0 + b * t0 * dur + c * t1 * dur + d * p1;
+      return a * frame.value + b * t0 * dur + c * t1 * dur + d * nextFrame.value;
     } else {
-      return curKey.value;
+      return frame.value;
     }
   }
 }
