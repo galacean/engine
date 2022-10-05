@@ -611,8 +611,8 @@ export class Animator extends Component {
     layerIndex: number
   ) {
     const { state, clipTime } = stateData;
-    const duration = state._getDuration();
     const { transitions } = state;
+    const duration = state._getDuration();
     for (let i = 0, n = transitions.length; i < n; ++i) {
       const transition = transitions[i];
       if (duration * transition.exitTime <= clipTime) {
@@ -738,8 +738,8 @@ export class Animator extends Component {
         break;
       }
 
-      const { handlers } = eventHandler;
       if (time <= lastClipTime) {
+        const { handlers } = eventHandler;
         for (let j = handlers.length - 1; j >= 0; j--) {
           handlers[j](parameter);
         }
