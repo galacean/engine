@@ -54,7 +54,12 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
     return out;
   }
 
-  protected _evaluateFrameLinear(frame: Keyframe<Vector3>, nextFrame: Keyframe<Vector3>, t: number, out: Vector3): Vector3 {
+  protected _evaluateFrameLinear(
+    frame: Keyframe<Vector3>,
+    nextFrame: Keyframe<Vector3>,
+    t: number,
+    out: Vector3
+  ): Vector3 {
     Vector3.lerp(frame.value, nextFrame.value, t, out);
 
     return out;

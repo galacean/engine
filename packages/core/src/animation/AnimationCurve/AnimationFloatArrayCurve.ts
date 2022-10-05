@@ -96,14 +96,15 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     const p0 = frame.value;
     const p1 = nextFrame.value;
 
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const a = 2.0 * t3 - 3.0 * t2 + 1.0;
+    const b = t3 - 2.0 * t2 + t;
+    const c = t3 - t2;
+    const d = -2.0 * t3 + 3.0 * t2;
+
     for (let i = 0, n = p0.length; i < n; ++i) {
       if (Number.isFinite(t0[i]) && Number.isFinite(t1[i])) {
-        const t2 = t * t;
-        const t3 = t2 * t;
-        const a = 2.0 * t3 - 3.0 * t2 + 1.0;
-        const b = t3 - 2.0 * t2 + t;
-        const c = t3 - t2;
-        const d = -2.0 * t3 + 3.0 * t2;
         out[i] = a * p0[i] + b * t0[i] * dur + c * t1[i] * dur + d * p1[i];
       } else {
         out[i] = frame.value[i];
