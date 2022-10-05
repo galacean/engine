@@ -1,6 +1,5 @@
 import { Quaternion } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimatorUtils } from "../AnimatorUtils";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -26,7 +25,10 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
    * @internal
    */
   static _additiveValue(value: Quaternion, weight: number, out: Quaternion) {
-    AnimatorUtils.quaternionWeight(value, weight, value);
+    value.x = value.x * weight;
+    value.y = value.y * weight;
+    value.z = value.z * weight;
+
     value.normalize();
     out.multiply(value);
   }
