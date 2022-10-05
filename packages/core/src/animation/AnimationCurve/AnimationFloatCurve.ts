@@ -33,8 +33,7 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
    * @internal
    */
   static _additiveValue(value: number, weight: number, scource: number): number {
-    scource += value * weight;
-    return scource;
+    return (scource += value * weight);
   }
 
   /**
@@ -51,8 +50,7 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     frame: Keyframe<number>,
     nextFrame: Keyframe<number>,
     t: number,
-    dur: number,
-    out: number
+    dur: number
   ): number {
     const t0 = frame.outTangent;
     const t1 = nextFrame.inTangent;
@@ -72,13 +70,9 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: number): number {
+  _evaluateAdditive(time: number): number {
     const baseValue = this.keys[0].value;
     const value = this._evaluate(time);
     return value - baseValue;
-  }
-
-  protected _evaluateFrameStep(frame: Keyframe<number>): number {
-    return frame.value;
   }
 }
