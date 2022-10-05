@@ -62,7 +62,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
     return out;
   }
 
-  protected _evaluateLinear(
+  protected _evaluateFrameLinear(
     frame: Keyframe<Quaternion>,
     nextFrame: Keyframe<Quaternion>,
     t: number,
@@ -72,12 +72,12 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
     return out;
   }
 
-  protected _evaluateStep(frame: Keyframe<Quaternion>, out: Quaternion): Quaternion {
+  protected _evaluateFrameStep(frame: Keyframe<Quaternion>, out: Quaternion): Quaternion {
     out.copyFrom(frame.value);
     return out;
   }
 
-  protected _evaluateHermite(
+  protected _evaluateFrameHermite(
     frame: Keyframe<Quaternion>,
     nextFrame: Keyframe<Quaternion>,
     t: number,

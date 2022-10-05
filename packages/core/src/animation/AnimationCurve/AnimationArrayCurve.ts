@@ -61,7 +61,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     return value;
   }
 
-  protected _evaluateLinear(
+  protected _evaluateFrameLinear(
     frame: Keyframe<number[]>,
     nextFrame: Keyframe<number[]>,
     t: number,
@@ -75,7 +75,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     return out;
   }
 
-  protected _evaluateStep(frame: Keyframe<number[]>, out: number[]): number[] {
+  protected _evaluateFrameStep(frame: Keyframe<number[]>, out: number[]): number[] {
     const value = frame.value;
     for (let i = 0, n = value.length; i < n; i++) {
       out[i] = value[i];
@@ -83,7 +83,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     return out;
   }
 
-  protected _evaluateHermite(
+  protected _evaluateFrameHermite(
     frame: Keyframe<number[]>,
     nextFrame: Keyframe<number[]>,
     t: number,

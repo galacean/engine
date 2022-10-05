@@ -62,7 +62,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     return value;
   }
 
-  protected _evaluateLinear(
+  protected _evaluateFrameLinear(
     frame: Keyframe<Float32Array>,
     nextFrame: Keyframe<Float32Array>,
     t: number,
@@ -76,7 +76,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     return out;
   }
 
-  protected _evaluateStep(frame: Keyframe<Float32Array>, out: Float32Array): Float32Array {
+  protected _evaluateFrameStep(frame: Keyframe<Float32Array>, out: Float32Array): Float32Array {
     const value = frame.value;
     for (let i = 0, n = value.length; i < n; i++) {
       out[i] = value[i];
@@ -84,7 +84,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     return out;
   }
 
-  protected _evaluateHermite(
+  protected _evaluateFrameHermite(
     frame: Keyframe<Float32Array>,
     nextFrame: Keyframe<Float32Array>,
     t: number,

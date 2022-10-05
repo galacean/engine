@@ -57,17 +57,17 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
     return out;
   }
 
-  protected _evaluateLinear(frame: Keyframe<Color>, nextFrame: Keyframe<Color>, t: number, out: Color): Color {
+  protected _evaluateFrameLinear(frame: Keyframe<Color>, nextFrame: Keyframe<Color>, t: number, out: Color): Color {
     Color.lerp(frame.value, nextFrame.value, t, out);
     return out;
   }
 
-  protected _evaluateStep(frame: Keyframe<Color>, out: Color): Color {
+  protected _evaluateFrameStep(frame: Keyframe<Color>, out: Color): Color {
     out.copyFrom(frame.value);
     return out;
   }
 
-  protected _evaluateHermite(
+  protected _evaluateFrameHermite(
     frame: Keyframe<Color>,
     nextFrame: Keyframe<Color>,
     t: number,

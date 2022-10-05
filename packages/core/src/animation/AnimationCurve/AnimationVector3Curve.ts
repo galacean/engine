@@ -54,18 +54,18 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
     return out;
   }
 
-  protected _evaluateLinear(frame: Keyframe<Vector3>, nextFrame: Keyframe<Vector3>, t: number, out: Vector3): Vector3 {
+  protected _evaluateFrameLinear(frame: Keyframe<Vector3>, nextFrame: Keyframe<Vector3>, t: number, out: Vector3): Vector3 {
     Vector3.lerp(frame.value, nextFrame.value, t, out);
 
     return out;
   }
 
-  protected _evaluateStep(frame: Keyframe<Vector3>, out: Vector3): Vector3 {
+  protected _evaluateFrameStep(frame: Keyframe<Vector3>, out: Vector3): Vector3 {
     out.copyFrom(frame.value);
     return out;
   }
 
-  protected _evaluateHermite(
+  protected _evaluateFrameHermite(
     frame: Keyframe<Vector3>,
     nextFrame: Keyframe<Vector3>,
     t: number,

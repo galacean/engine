@@ -95,9 +95,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     // Evaluate value.
     let value: V;
     if (curIndex === -1) {
-      value = this._evaluateStep(keys[0], out);
+      value = this._evaluateFrameStep(keys[0], out);
     } else if (nextIndex === length) {
-      value = this._evaluateStep(keys[curIndex], out);
+      value = this._evaluateFrameStep(keys[curIndex], out);
     } else {
       // Time between first frame and end frame.
       const curFrame = keys[curIndex];
@@ -108,17 +108,17 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
       switch (interpolation) {
         case InterpolationType.Linear:
-          value = this._evaluateLinear(curFrame, nextFrame, t, out);
+          value = this._evaluateFrameLinear(curFrame, nextFrame, t, out);
           break;
         case InterpolationType.Step:
-          value = this._evaluateStep(curFrame, out);
+          value = this._evaluateFrameStep(curFrame, out);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
-          value = this._evaluateHermite(curFrame, nextFrame, t, duration, out);
+          value = this._evaluateFrameHermite(curFrame, nextFrame, t, duration, out);
           break;
         default:
-          value = this._evaluateLinear(curFrame, nextFrame, t, out);
+          value = this._evaluateFrameLinear(curFrame, nextFrame, t, out);
           break;
       }
     }
@@ -128,14 +128,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /** @internal */
   abstract _evaluateAdditive(time: number, out?: V): V;
 
-  protected abstract _evaluateLinear(
-    frame: Keyframe<V>,
-    nextFrame: Keyframe<V>,
-    t: number,
-    out: V
-  ): V;
-  protected abstract _evaluateStep(frame: Keyframe<V>, out: V): V;
-  protected abstract _evaluateHermite(
+  protected abstract _evaluateFrameLinear(frame: Keyframe<V>, nextFrame: Keyframe<V>, t: number, out: V): V;
+  protected abstract _evaluateFrameStep(frame: Keyframe<V>, out: V): V;
+  protected abstract _evaluateFrameHermite(
     frame: Keyframe<V>,
     nextFrame: Keyframe<V>,
     t: number,

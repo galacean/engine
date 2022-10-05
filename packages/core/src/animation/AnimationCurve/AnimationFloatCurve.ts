@@ -46,15 +46,15 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     return value - baseValue;
   }
 
-  protected _evaluateLinear(frame: Keyframe<number>, nextFrame: Keyframe<number>, t: number): number {
+  protected _evaluateFrameLinear(frame: Keyframe<number>, nextFrame: Keyframe<number>, t: number): number {
     return frame.value * (1 - t) + nextFrame.value * t;
   }
 
-  protected _evaluateStep(frame: Keyframe<number>): number {
+  protected _evaluateFrameStep(frame: Keyframe<number>): number {
     return frame.value;
   }
 
-  protected _evaluateHermite(frame: Keyframe<number>, nextFrame: Keyframe<number>, t: number, dur: number): number {
+  protected _evaluateFrameHermite(frame: Keyframe<number>, nextFrame: Keyframe<number>, t: number, dur: number): number {
     const t0 = frame.outTangent;
     const t1 = nextFrame.inTangent;
     if (Number.isFinite(t0) && Number.isFinite(t1)) {
