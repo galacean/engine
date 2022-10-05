@@ -56,7 +56,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /**
    * @internal
    */
-  static _evaluateFrameHermite(
+  static _hermiteInterpolationValue(
     frame: Keyframe<Float32Array>,
     nextFrame: Keyframe<Float32Array>,
     t: number,

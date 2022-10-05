@@ -50,7 +50,7 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   /**
    * @internal
    */
-  static _evaluateFrameHermite(
+  static _hermiteInterpolationValue(
     frame: Keyframe<Color>,
     nextFrame: Keyframe<Color>,
     t: number,

@@ -56,7 +56,7 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /**
    * @internal
    */
-  static _evaluateFrameHermite(
+  static _hermiteInterpolationValue(
     frame: Keyframe<Quaternion>,
     nextFrame: Keyframe<Quaternion>,
     t: number,

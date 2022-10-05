@@ -25,7 +25,7 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: number, destValue: number, crossWeight: number, out: number): number {
+  static _lerpValue(srcValue: number, destValue: number, crossWeight: number): number {
     return srcValue + (destValue - srcValue) * crossWeight;
   }
 
@@ -40,14 +40,14 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  static _copyFromValue(scource: number, out: number): number {
+  static _copyFromValue(scource: number): number {
     return scource;
   }
 
   /**
    * @internal
    */
-  static _evaluateFrameHermite(
+  static _hermiteInterpolationValue(
     frame: Keyframe<number>,
     nextFrame: Keyframe<number>,
     t: number,

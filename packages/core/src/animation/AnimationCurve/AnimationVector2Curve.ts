@@ -50,7 +50,7 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   /**
    * @internal
    */
-  static _evaluateFrameHermite(
+  static _hermiteInterpolationValue(
     frame: Keyframe<Vector2>,
     nextFrame: Keyframe<Vector2>,
     t: number,

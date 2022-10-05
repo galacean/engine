@@ -122,7 +122,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
-          value = this._type._evaluateFrameHermite(curFrame, nextFrame, t, duration, out);
+          value = this._type._hermiteInterpolationValue(curFrame, nextFrame, t, duration, out);
           break;
         default:
           value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);

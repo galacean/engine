@@ -55,7 +55,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /**
    * @internal
    */
-  static _evaluateFrameHermite(
+  static _hermiteInterpolationValue(
     frame: Keyframe<number[]>,
     nextFrame: Keyframe<number[]>,
     t: number,

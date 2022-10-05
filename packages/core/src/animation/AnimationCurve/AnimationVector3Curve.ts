@@ -15,6 +15,16 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /**
    * @internal
    */
+  static _initializeOwner(owner: AnimationCurveOwner<Vector3>): void {
+    owner.defaultValue = new Vector3();
+    owner.fixedPoseValue = new Vector3();
+    owner.baseTempValue = new Vector3();
+    owner.crossTempValue = new Vector3();
+  }
+
+  /**
+   * @internal
+   */
   static _lerpValue(srcValue: Vector3, destValue: Vector3, weight: number, out: Vector3): Vector3 {
     Vector3.lerp(srcValue, destValue, weight, out);
     return out;
@@ -40,17 +50,7 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner<Vector3>): void {
-    owner.defaultValue = new Vector3();
-    owner.fixedPoseValue = new Vector3();
-    owner.baseTempValue = new Vector3();
-    owner.crossTempValue = new Vector3();
-  }
-
-  /**
-   * @internal
-   */
-  static _evaluateFrameHermite(
+  static _hermiteInterpolationValue(
     frame: Keyframe<Vector3>,
     nextFrame: Keyframe<Vector3>,
     t: number,
