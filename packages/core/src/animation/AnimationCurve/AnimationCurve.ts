@@ -102,9 +102,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     // Evaluate value.
     let value: V;
     if (curIndex === -1) {
-      value = this._type._copyFromValue(keys[0].value, out);
+      value = this._type._copyValue(keys[0].value, out);
     } else if (nextIndex === length) {
-      value = this._type._copyFromValue(keys[curIndex].value, out);
+      value = this._type._copyValue(keys[curIndex].value, out);
     } else {
       // Time between first frame and end frame.
       const curFrame = keys[curIndex];
@@ -118,7 +118,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
           value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);
           break;
         case InterpolationType.Step:
-          value = this._type._copyFromValue(curFrame.value, out);
+          value = this._type._copyValue(curFrame.value, out);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:

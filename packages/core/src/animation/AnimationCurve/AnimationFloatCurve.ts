@@ -39,7 +39,7 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  static _copyFromValue(scource: number): number {
+  static _copyValue(scource: number): number {
     return scource;
   }
 

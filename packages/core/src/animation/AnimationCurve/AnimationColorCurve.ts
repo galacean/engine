@@ -42,7 +42,7 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   /**
    * @internal
    */
-  static _copyFromValue(scource: Color, out: Color): Color {
+  static _copyValue(scource: Color, out: Color): Color {
     out.copyFrom(scource);
     return out;
   }

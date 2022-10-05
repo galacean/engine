@@ -42,12 +42,12 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
   /**
    * @internal
    */
-  static _copyFromValue(scource: Vector4, out: Vector4): Vector4 {
+  static _copyValue(scource: Vector4, out: Vector4): Vector4 {
     out.copyFrom(scource);
     return out;
   }
 
-   /**
+  /**
    * @internal
    */
   static _hermiteInterpolationValue(

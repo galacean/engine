@@ -115,7 +115,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   saveDefaultValue(): void {
     if (this.isReferenceType) {
-      this.cureType._copyFromValue(this.referenceTargetValue, this.defaultValue);
+      this.cureType._copyValue(this.referenceTargetValue, this.defaultValue);
     } else {
       this.defaultValue = this._assembler.getTargetValue();
     }
@@ -124,7 +124,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   saveFixedPoseValue(): void {
     if (this.isReferenceType) {
-      this.cureType._copyFromValue(this.referenceTargetValue, this.fixedPoseValue);
+      this.cureType._copyValue(this.referenceTargetValue, this.fixedPoseValue);
     } else {
       this.fixedPoseValue = this._assembler.getTargetValue();
     }
@@ -132,7 +132,11 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   private _applyValue(value: V, weight: number): void {
     if (weight === 1.0) {
-      this._assembler.setTargetValue(value);
+      if (this.isReferenceType) {
+        this.cureType._copyValue(value, this.referenceTargetValue);
+      } else {
+        this._assembler.setTargetValue(value);
+      }
     } else {
       if (this.isReferenceType) {
         const targetValue = this.referenceTargetValue;

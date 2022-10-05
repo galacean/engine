@@ -45,7 +45,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /**
    * @internal
    */
-  static _copyFromValue(scource: number[], out: number[]): number[] {
+  static _copyValue(scource: number[], out: number[]): number[] {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = scource[i];
     }

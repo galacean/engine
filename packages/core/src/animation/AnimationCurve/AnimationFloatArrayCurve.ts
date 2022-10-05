@@ -46,7 +46,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /**
    * @internal
    */
-  static _copyFromValue(scource: Float32Array, out: Float32Array): Float32Array {
+  static _copyValue(scource: Float32Array, out: Float32Array): Float32Array {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] = scource[i];
     }
