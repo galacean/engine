@@ -23,10 +23,8 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
    * @internal
    */
   static _additiveValue(value: Vector4, weight: number, out: Vector4): void {
-    out.x += value.x * weight;
-    out.y += value.y * weight;
-    out.z += value.z * weight;
-    out.w += value.w * weight;
+    Vector4.scale(value, weight, value);
+    Vector4.add(out, value, out);
   }
 
   /**

@@ -23,10 +23,8 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
    * @internal
    */
   static _additiveValue(value: Color, weight: number, out: Color): void {
-    out.r += value.r * weight;
-    out.g += value.g * weight;
-    out.b += value.b * weight;
-    out.a += value.a * weight;
+    Color.scale(value, weight, value);
+    Color.add(out, value, out);
   }
 
   /**
