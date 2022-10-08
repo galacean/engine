@@ -1,55 +1,72 @@
-import { Quaternion, Vector4 } from "@oasis-engine/math";
-import { InterpolableValueType } from "../enums/InterpolableValueType";
+import { Quaternion } from "@oasis-engine/math";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
+import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion> {
+@StaticInterfaceImplement<IAnimationCurveCalculator<Quaternion>>()
+export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   private static _tempConjugateQuat = new Quaternion();
 
-  constructor() {
-    super();
-    this._type = InterpolableValueType.Quaternion;
+  static _isReferenceType: boolean = true;
+
+  /**
+   * @internal
+   */
+  static _initializeOwner(owner: AnimationCurveOwner<Quaternion>): void {
+    owner.defaultValue = new Quaternion();
+    owner.fixedPoseValue = new Quaternion();
+    owner.baseTempValue = new Quaternion();
+    owner.crossTempValue = new Quaternion();
   }
 
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: Quaternion): Quaternion {
-    const { _tempConjugateQuat } = AnimationQuaternionCurve;
-    const baseValue = this.keys[0].value;
-    this._evaluate(time, out);
-    Quaternion.conjugate(baseValue, _tempConjugateQuat);
-    Quaternion.multiply(_tempConjugateQuat, out, out);
+  static _lerpValue(srcValue: Quaternion, destValue: Quaternion, weight: number, out: Quaternion): Quaternion {
+    Quaternion.slerp(srcValue, destValue, weight, out);
     return out;
   }
 
-  protected _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: Quaternion): Quaternion {
-    const { keys } = this;
-    Quaternion.slerp(keys[frameIndex].value, keys[nextFrameIndex].value, t, out);
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Quaternion, weight: number, out: Quaternion): Quaternion {
+    value.x = value.x * weight;
+    value.y = value.y * weight;
+    value.z = value.z * weight;
+
+    value.normalize();
+    out.multiply(value);
     return out;
   }
 
-  protected _evaluateStep(frameIndex: number, out: Quaternion): Quaternion {
-    out.copyFrom(this.keys[frameIndex].value);
+  /**
+   * @internal
+   */
+  static _copyValue(scource: Quaternion, out: Quaternion): Quaternion {
+    out.copyFrom(scource);
     return out;
   }
 
-  protected _evaluateHermite(
-    frameIndex: number,
-    nextFrameIndex: number,
+  /**
+   * @internal
+   */
+  static _hermiteInterpolationValue(
+    frame: Keyframe<Quaternion>,
+    nextFrame: Keyframe<Quaternion>,
     t: number,
     dur: number,
     out: Quaternion
   ): Quaternion {
-    const { keys } = this;
-    const curKey = keys[frameIndex];
-    const nextKey = keys[nextFrameIndex];
-    const p0 = curKey.value;
-    const tan0 = curKey.outTangent;
-    const p1 = nextKey.value;
-    const tan1 = nextKey.inTangent;
+    const p0 = frame.value;
+    const tan0 = frame.outTangent;
+    const p1 = nextFrame.value;
+    const tan1 = nextFrame.inTangent;
 
     const t2 = t * t;
     const t3 = t2 * t;
@@ -86,6 +103,18 @@ export class AnimationQuaternionCurve extends AnimationCurve<Vector4, Quaternion
     } else {
       out.w = p0.w;
     }
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  _evaluateAdditive(time: number, out?: Quaternion): Quaternion {
+    const { _tempConjugateQuat: conjugate } = AnimationQuaternionCurve;
+    const baseValue = this.keys[0].value;
+    this._evaluate(time, out);
+    Quaternion.conjugate(baseValue, conjugate);
+    Quaternion.multiply(conjugate, out, out);
     return out;
   }
 }

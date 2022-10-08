@@ -1,51 +1,66 @@
 import { Vector4 } from "@oasis-engine/math";
-import { InterpolableValueType } from "../enums/InterpolableValueType";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
+import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationVector4Curve extends AnimationCurve<Vector4, Vector4> {
-  constructor() {
-    super();
-    this._type = InterpolableValueType.Vector4;
+@StaticInterfaceImplement<IAnimationCurveCalculator<Vector4>>()
+export class AnimationVector4Curve extends AnimationCurve<Vector4> {
+  static _isReferenceType: boolean = true;
+
+  /**
+   * @internal
+   */
+  static _initializeOwner(owner: AnimationCurveOwner<Vector4>): void {
+    owner.defaultValue = new Vector4();
+    owner.fixedPoseValue = new Vector4();
+    owner.baseTempValue = new Vector4();
+    owner.crossTempValue = new Vector4();
   }
 
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: Vector4): Vector4 {
-    const baseValue = this.keys[0].value;
-    this._evaluate(time, out);
-    Vector4.subtract(out, baseValue, out);
+  static _lerpValue(srcValue: Vector4, destValue: Vector4, weight: number, out: Vector4): Vector4 {
+    Vector4.lerp(srcValue, destValue, weight, out);
     return out;
   }
 
-  protected _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: Vector4): Vector4 {
-    const { keys } = this;
-    Vector4.lerp(keys[frameIndex].value, keys[nextFrameIndex].value, t, out);
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Vector4, weight: number, out: Vector4): Vector4 {
+    Vector4.scale(value, weight, value);
+    Vector4.add(out, value, out);
     return out;
   }
 
-  protected _evaluateStep(frameIndex: number, out: Vector4): Vector4 {
-    out.copyFrom(this.keys[frameIndex].value);
+  /**
+   * @internal
+   */
+  static _copyValue(scource: Vector4, out: Vector4): Vector4 {
+    out.copyFrom(scource);
     return out;
   }
 
-  protected _evaluateHermite(
-    frameIndex: number,
-    nextFrameIndex: number,
+  /**
+   * @internal
+   */
+  static _hermiteInterpolationValue(
+    frame: Keyframe<Vector4>,
+    nextFrame: Keyframe<Vector4>,
     t: number,
     dur: number,
     out: Vector4
   ): Vector4 {
-    const { keys } = this;
-    const curKey = keys[frameIndex];
-    const nextKey = keys[nextFrameIndex];
-    const p0 = curKey.value;
-    const tan0 = curKey.outTangent;
-    const p1 = nextKey.value;
-    const tan1 = nextKey.inTangent;
+    const p0 = frame.value;
+    const tan0 = frame.outTangent;
+    const p1 = nextFrame.value;
+    const tan1 = nextFrame.inTangent;
 
     const t2 = t * t;
     const t3 = t2 * t;
@@ -82,6 +97,16 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4, Vector4> {
     } else {
       out.w = p0.w;
     }
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  _evaluateAdditive(time: number, out?: Vector4): Vector4 {
+    const baseValue = this.keys[0].value;
+    this._evaluate(time, out);
+    Vector4.subtract(out, baseValue, out);
     return out;
   }
 }

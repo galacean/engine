@@ -1,18 +1,9 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AnimationCurve } from "./AnimationCurve";
-import { AnimationPropertyInternal } from "./enums/AnimationProperty";
-import { InterpolableValueType } from "./enums/InterpolableValueType";
-import { AnimationQuaternionCurveOwner } from "./internal/AnimationCurveOwner";
-import { AnimationArrayCurveOwner } from "./internal/AnimationCurveOwner/AnimationArrayCurveOwner";
-import { AnimationColorCurveOwner } from "./internal/AnimationCurveOwner/AnimationColorCurveOwner";
+import { IAnimationCurveCalculator } from "./AnimationCurve/interfaces/IAnimationCurveCalculator";
 import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
-import { AnimationFloatArrayCurveOwner } from "./internal/AnimationCurveOwner/AnimationFloatArrayCurveOwner";
-import { AnimationFloatCurveOwner } from "./internal/AnimationCurveOwner/AnimationFloatCurveOwner";
-import { AnimationVector2CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector2CurveOwner";
-import { AnimationVector3CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector3CurveOwner";
-import { AnimationVector4CurveOwner } from "./internal/AnimationCurveOwner/AnimationVector4CurveOwner";
-import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
+import { KeyframeValueType } from "./Keyframe";
 
 /**
  * Associate AnimationCurve and the Entity
@@ -26,42 +17,28 @@ export class AnimationClipCurveBinding {
   /** The class type of the component that is animated. */
   type: new (entity: Entity) => Component;
   /** The name or path to the property being animated. */
-  property: AnimationPropertyInternal | string;
+  property: string;
   /** The animation curve. */
-  curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>;
+  curve: AnimationCurve<KeyframeValueType>;
 
-  private _defaultCurveOwner: AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType>;
+  private _defaultCurveOwner: AnimationCurveOwner<KeyframeValueType>;
 
   /**
    * @internal
    */
-  _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType> {
-    switch (this.curve._type) {
-      case InterpolableValueType.Float:
-        return new AnimationFloatCurveOwner(entity, this.type, this.property);
-      case InterpolableValueType.Vector2:
-        return new AnimationVector2CurveOwner(entity, this.type, this.property);
-      case InterpolableValueType.Vector3:
-        return new AnimationVector3CurveOwner(entity, this.type, this.property);
-      case InterpolableValueType.Vector4:
-        return new AnimationVector4CurveOwner(entity, this.type, this.property);
-      case InterpolableValueType.Quaternion:
-        return new AnimationQuaternionCurveOwner(entity, this.type, this.property);
-      case InterpolableValueType.Color:
-        return new AnimationColorCurveOwner(entity, this.type, this.property);
-      case InterpolableValueType.FloatArray:
-        return new AnimationFloatArrayCurveOwner(entity, this.type, this.property);
-      case InterpolableValueType.Array:
-        return new AnimationArrayCurveOwner(entity, this.type, this.property);
-      default:
-        console.error("The curve need add keyframe to play: ", this.curve);
-    }
+  _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
+    const animationCurveCalculator = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
+
+    const owner = new AnimationCurveOwner(entity, this.type, this.property, animationCurveCalculator._isReferenceType);
+    owner.cureType = animationCurveCalculator;
+    animationCurveCalculator._initializeOwner(owner);
+    return owner;
   }
 
   /**
    * @internal
    */
-  _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner<KeyFrameTangentType, KeyFrameValueType> {
+  _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
     if (this._defaultCurveOwner) {
       return this._defaultCurveOwner;
     } else {

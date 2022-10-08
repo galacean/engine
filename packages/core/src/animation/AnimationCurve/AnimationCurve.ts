@@ -1,22 +1,21 @@
-import { InterpolableValueType } from "../enums/InterpolableValueType";
 import { InterpolationType } from "../enums/InterpolationType";
-import { InterpolableKeyframe, KeyFrameTangentType, KeyFrameValueType } from "../KeyFrame";
+import { Keyframe, KeyframeValueType } from "../Keyframe";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends KeyFrameValueType> {
+export abstract class AnimationCurve<V extends KeyframeValueType> {
   /** All keys defined in the animation curve. */
-  keys: InterpolableKeyframe<T, V>[] = [];
+  keys: Keyframe<V>[] = [];
   /** The interpolationType of the animation curve. */
   interpolation: InterpolationType;
-
-  /** @internal */
-  _type: InterpolableValueType;
 
   protected _tempValue: V;
   protected _length: number = 0;
   protected _currentIndex: number = 0;
+
+  private _type: IAnimationCurveCalculator<V>;
 
   /**
    * Animation curve length in seconds.
@@ -25,11 +24,15 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
     return this._length;
   }
 
+  constructor() {
+    this._type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
+  }
+
   /**
    * Add a new key to the curve.
    * @param key - The keyframe
    */
-  addKey(key: InterpolableKeyframe<T, V>): void {
+  addKey(key: Keyframe<V>): void {
     const { time } = key;
     this.keys.push(key);
     if (time > this._length) {
@@ -52,7 +55,7 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
    * @param index - The index of the key to move
    * @param key - The key to insert
    */
-  moveKey(index: number, key: InterpolableKeyframe<T, V>): void {
+  moveKey(index: number, key: Keyframe<V>): void {
     this.keys[index] = key;
   }
 
@@ -99,42 +102,36 @@ export abstract class AnimationCurve<T extends KeyFrameTangentType, V extends Ke
     // Evaluate value.
     let value: V;
     if (curIndex === -1) {
-      value = this._evaluateStep(0, out);
+      value = this._type._copyValue(keys[0].value, out);
     } else if (nextIndex === length) {
-      value = this._evaluateStep(curIndex, out);
+      value = this._type._copyValue(keys[curIndex].value, out);
     } else {
       // Time between first frame and end frame.
-      const curFrameTime = keys[curIndex].time;
-      const duration = keys[nextIndex].time - curFrameTime;
+      const curFrame = keys[curIndex];
+      const nextFrame = keys[nextIndex];
+      const curFrameTime = curFrame.time;
+      const duration = nextFrame.time - curFrameTime;
       const t = (time - curFrameTime) / duration;
 
       switch (interpolation) {
         case InterpolationType.Linear:
-          value = this._evaluateLinear(curIndex, nextIndex, t, out);
+          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);
           break;
         case InterpolationType.Step:
-          value = this._evaluateStep(curIndex, out);
+          value = this._type._copyValue(curFrame.value, out);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
-          value = this._evaluateHermite(curIndex, nextIndex, t, duration, out);
+          value = this._type._hermiteInterpolationValue(curFrame, nextFrame, t, duration, out);
           break;
         default:
-          value = this._evaluateLinear(curIndex, nextIndex, t, out);
+          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);
           break;
       }
     }
     return value;
   }
 
-  /**
-   * @internal
-   */
+  /** @internal */
   abstract _evaluateAdditive(time: number, out?: V): V;
-
-  protected abstract _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: V): V;
-
-  protected abstract _evaluateStep(frameIndex: number, out: V): V;
-
-  protected abstract _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number, out: V): V;
 }

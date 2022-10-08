@@ -3,8 +3,7 @@ import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
-import { AnimationProperty, AnimationPropertyInternal } from "./enums/AnimationProperty";
-import { KeyFrameTangentType, KeyFrameValueType } from "./KeyFrame";
+import { KeyframeValueType } from "./Keyframe";
 
 /**
  * Stores keyframe based animations.
@@ -87,30 +86,12 @@ export class AnimationClip {
     relativePath: string,
     type: new (entity: Entity) => T,
     propertyName: string,
-    curve: AnimationCurve<KeyFrameTangentType, KeyFrameValueType>
+    curve: AnimationCurve<KeyframeValueType>
   ): void {
-    let property: AnimationProperty;
-    switch (propertyName) {
-      case "position":
-        property = AnimationPropertyInternal.Position;
-        break;
-      case "rotationQuaternion":
-        property = AnimationPropertyInternal.Rotation;
-        break;
-      case "scale":
-        property = AnimationPropertyInternal.Scale;
-        break;
-      case "blendShapeWeights":
-        property = AnimationPropertyInternal.BlendShapeWeights;
-        break;
-      default:
-        property = propertyName;
-        break;
-    }
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;
     curveBinding.type = type;
-    curveBinding.property = property;
+    curveBinding.property = propertyName;
     curveBinding.curve = curve;
     if (curve.length > this._length) {
       this._length = curve.length;
