@@ -18,9 +18,20 @@ import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 import { ComponentMap } from "./ComponentMap";
-import { InterpolableValueType } from "./type";
 
 export { ComponentMap } from "./ComponentMap";
+
+export enum InterpolableValueType {
+  Float,
+  FloatArray,
+  Vector2,
+  Vector3,
+  Vector4,
+  Quaternion,
+  Color,
+  Array,
+  Boolean
+}
 
 @decoder("AnimationClip")
 export class AnimationClipDecoder {
