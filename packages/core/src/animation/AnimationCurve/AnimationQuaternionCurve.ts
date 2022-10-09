@@ -1,6 +1,6 @@
 import { Quaternion } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -27,8 +27,18 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Quaternion, destValue: Quaternion, weight: number, out: Quaternion): Quaternion {
-    Quaternion.slerp(srcValue, destValue, weight, out);
+  static _lerpValue(src: Quaternion, dest: Quaternion, weight: number, out: Quaternion): Quaternion {
+    Quaternion.slerp(src, dest, weight, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _relativeBaseValue(base: Quaternion, out: Quaternion): Quaternion {
+    const { _tempConjugateQuat: conjugate } = AnimationQuaternionCurve;
+    Quaternion.conjugate(base, conjugate);
+    Quaternion.multiply(conjugate, out, out);
     return out;
   }
 
@@ -103,18 +113,6 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
     } else {
       out.w = p0.w;
     }
-    return out;
-  }
-
-  /**
-   * @internal
-   */
-  _evaluateAdditive(time: number, out?: Quaternion): Quaternion {
-    const { _tempConjugateQuat: conjugate } = AnimationQuaternionCurve;
-    const baseValue = this.keys[0].value;
-    this._evaluate(time, out);
-    Quaternion.conjugate(baseValue, conjugate);
-    Quaternion.multiply(conjugate, out, out);
     return out;
   }
 }

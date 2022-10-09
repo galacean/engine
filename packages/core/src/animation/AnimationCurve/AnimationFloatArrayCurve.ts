@@ -36,6 +36,16 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /**
    * @internal
    */
+  static _relativeBaseValue(base: Float32Array, out: Float32Array): Float32Array {
+    for (let i = 0, n = out.length; i < n; i++) {
+      out[i] -= base[i];
+    }
+    return out;
+  }
+
+  /**
+   * @internal
+   */
   static _additiveValue(value: Float32Array, weight: number, out: Float32Array): Float32Array {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] += value[i] * weight;
@@ -83,17 +93,5 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
       }
     }
     return out;
-  }
-
-  /**
-   * @internal
-   */
-  _evaluateAdditive(time: number, out?: Float32Array): Float32Array {
-    const baseValue = this.keys[0].value;
-    const value = this._evaluate(time, out);
-    for (let i = 0, n = value.length; i < n; i++) {
-      value[i] = value[i] - baseValue[i];
-    }
-    return value;
   }
 }

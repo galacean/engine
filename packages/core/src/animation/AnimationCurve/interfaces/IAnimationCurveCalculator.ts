@@ -10,7 +10,8 @@ export interface IAnimationCurveCalculator<V extends KeyframeValueType> {
   _initializeOwner(owner: AnimationCurveOwner<V>);
 
   _lerpValue(src: V, dest: V, weight: number, out?: V): V;
-  _additiveValue(additive: V, weight: number, sourceOut: V): V;
-  _copyValue(source: V, out?: V): V;
+  _relativeBaseValue(base: V, srcOut: V): V;
+  _additiveValue(additive: V, weight: number, srcOut: V): V;
+  _copyValue(src: V, out?: V): V;
   _hermiteInterpolationValue(frame: Keyframe<V>, nextFrame: Keyframe<V>, t: number, dur: number, out?: V): V;
 }

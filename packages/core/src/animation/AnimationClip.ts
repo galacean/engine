@@ -108,6 +108,7 @@ export class AnimationClip {
   }
 
   /**
+   * @internal
    * Samples an animation at a given time.
    * @param entity - The animated entity
    * @param time - The time to sample an animation
@@ -119,7 +120,7 @@ export class AnimationClip {
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
         try {
-          const curveOwner = curveData._getDefaultCurveOwner(entity);
+          const curveOwner = curveData._getTempCurveOwner(entity);
           curveOwner && curveOwner.evaluateAndApplyValue(curveData.curve, time, 1);
         } catch (error) {
           console.error(error);

@@ -21,7 +21,7 @@ export class AnimationClipCurveBinding {
   /** The animation curve. */
   curve: AnimationCurve<KeyframeValueType>;
 
-  private _defaultCurveOwner: AnimationCurveOwner<KeyframeValueType>;
+  private _tempCurveOwner: Record<number, AnimationCurveOwner<KeyframeValueType>> = {};
 
   /**
    * @internal
@@ -38,12 +38,11 @@ export class AnimationClipCurveBinding {
   /**
    * @internal
    */
-  _getDefaultCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
-    if (this._defaultCurveOwner) {
-      return this._defaultCurveOwner;
-    } else {
-      this._defaultCurveOwner = this._createCurveOwner(entity);
-      return this._defaultCurveOwner;
+  _getTempCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
+    const { instanceId } = entity;
+    if (!this._tempCurveOwner[instanceId]) {
+      this._tempCurveOwner[instanceId] = this._createCurveOwner(entity);
     }
+    return this._tempCurveOwner[instanceId];
   }
 }

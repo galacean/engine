@@ -11,7 +11,6 @@ import {
   AnimationVector3Curve,
   AnimationVector4Curve,
   Engine,
-  InterpolableValueType,
   Keyframe,
   KeyframeValueType
 } from "@oasis-engine/core";
@@ -19,6 +18,7 @@ import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 import { ComponentMap } from "./ComponentMap";
+import { InterpolableValueType } from "./type";
 
 export { ComponentMap } from "./ComponentMap";
 

@@ -28,7 +28,14 @@ export class AnimationBoolCurve extends AnimationCurve<Boolean> {
   /**
    * @internal
    */
-  static _additiveValue(value: Boolean): Boolean {
+  static _relativeBaseValue(base: Boolean, src: Boolean): Boolean {
+    return src;
+  }
+
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Boolean, weight: number, source: Boolean): Boolean {
     return value;
   }
 
@@ -52,11 +59,5 @@ export class AnimationBoolCurve extends AnimationCurve<Boolean> {
   _evaluate(time: number, out?: Boolean): Boolean {
     this.interpolation = InterpolationType.Step;
     return super._evaluate(time, out);
-  }
-  /**
-   * @internal
-   */
-  _evaluateAdditive(time: number): Boolean {
-    return this._evaluate(time);
   }
 }

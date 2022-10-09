@@ -23,7 +23,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   static getAssemblerType(componentType: ComponentType, property: string): AssemblerType {
     const subMap = AnimationCurveOwner._assemblerMap.get(componentType);
-    return subMap[property] ?? UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
+    return subMap?.property ?? UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
   }
 
   readonly target: Entity;

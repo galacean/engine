@@ -35,6 +35,16 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /**
    * @internal
    */
+  static _relativeBaseValue(base: number[], srcOut: number[]): number[] {
+    for (let i = 0, n = srcOut.length; i < n; i++) {
+      srcOut[i] -= base[i];
+    }
+    return srcOut;
+  }
+
+  /**
+   * @internal
+   */
   static _additiveValue(value: number[], weight: number, out: number[]): number[] {
     for (let i = 0, n = out.length; i < n; ++i) {
       out[i] += value[i] * weight;
@@ -82,17 +92,5 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
       }
     }
     return out;
-  }
-
-  /**
-   * @internal
-   */
-  _evaluateAdditive(time: number, out?: number[]): number[] {
-    const baseValue = this.keys[0].value;
-    const value = this._evaluate(time, out);
-    for (let i = 0, n = value.length; i < n; i++) {
-      value[i] = value[i] - baseValue[i];
-    }
-    return value;
   }
 }

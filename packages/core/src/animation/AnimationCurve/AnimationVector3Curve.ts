@@ -1,6 +1,6 @@
 import { Vector3 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -27,6 +27,14 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
    */
   static _lerpValue(srcValue: Vector3, destValue: Vector3, weight: number, out: Vector3): Vector3 {
     Vector3.lerp(srcValue, destValue, weight, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _relativeBaseValue(base: Vector3, out: Vector3): Vector3 {
+    Vector3.subtract(out, base, out);
     return out;
   }
 
@@ -91,16 +99,6 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
       out.z = p0.z;
     }
 
-    return out;
-  }
-
-  /**
-   * @internal
-   */
-  _evaluateAdditive(time: number, out?: Vector3): Vector3 {
-    const baseValue = this.keys[0].value;
-    this._evaluate(time, out);
-    Vector3.subtract(out, baseValue, out);
     return out;
   }
 }

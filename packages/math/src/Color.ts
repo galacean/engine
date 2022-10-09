@@ -69,6 +69,19 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   }
 
   /**
+   * Determines the difference between two colors.
+   * @param left - The first color to subtract
+   * @param right - The second color to subtract
+   * @param out - The difference between two colors
+   */
+  static subtract(left: Color, right: Color, out: Color): void {
+    out.r = left.r - right.r;
+    out.g = left.g - right.g;
+    out.b = left.b - right.b;
+    out.a = left.a - right.a;
+  }
+
+  /**
    * Scale a color by the given value.
    * @param left - The color to scale
    * @param s - The amount by which to scale the color

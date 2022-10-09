@@ -32,8 +32,15 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  static _additiveValue(value: number, weight: number, source: number): number {
-    return (source += value * weight);
+  static _relativeBaseValue(base: number, src: number): number {
+    return src - base;
+  }
+
+  /**
+   * @internal
+   */
+  static _additiveValue(value: number, weight: number, scource: number): number {
+    return (scource += value * weight);
   }
 
   /**
@@ -65,14 +72,5 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     } else {
       return frame.value;
     }
-  }
-
-  /**
-   * @internal
-   */
-  _evaluateAdditive(time: number): number {
-    const baseValue = this.keys[0].value;
-    const value = this._evaluate(time);
-    return value - baseValue;
   }
 }
