@@ -1,60 +1,66 @@
 import { Color } from "@oasis-engine/math";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
-import { InterpolableValueType } from "../enums/InterpolableValueType";
-import { ColorKeyframe } from "../KeyFrame";
+import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-export class AnimationColorCurve extends AnimationCurve {
-  /** All keys defined in the animation curve. */
-  keys: ColorKeyframe[] = [];
+@StaticInterfaceImplement<IAnimationCurveCalculator<Color>>()
+export class AnimationColorCurve extends AnimationCurve<Color> {
+  static _isReferenceType: boolean = true;
 
-  /** @internal */
-  _valueSize = 4;
-  /** @internal */
-  _valueType = InterpolableValueType.Color;
-
-  protected _tempValue: Color = new Color();
-
-  addKey(key: ColorKeyframe) {
-    super.addKey(key);
+  /**
+   * @internal
+   */
+  static _initializeOwner(owner: AnimationCurveOwner<Color>): void {
+    owner.defaultValue = new Color();
+    owner.fixedPoseValue = new Color();
+    owner.baseTempValue = new Color();
+    owner.crossTempValue = new Color();
   }
 
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out: Color): Color {
-    const { keys } = this;
-    const baseValue = keys[0].value;
-    this._evaluate(time, out);
-    out.r -= baseValue.r;
-    out.g -= baseValue.g;
-    out.b -= baseValue.b;
-    out.a -= baseValue.a;
+  static _lerpValue(srcValue: Color, destValue: Color, weight: number, out: Color): Color {
+    Color.lerp(srcValue, destValue, weight, out);
     return out;
   }
 
-  protected _evaluateLinear(frameIndex: number, nextFrameIndex: number, t: number, out: Color): Color {
-    const { keys } = this;
-    Color.lerp(keys[frameIndex].value, keys[nextFrameIndex].value, t, out);
+  /**
+   * @internal
+   */
+  static _additiveValue(value: Color, weight: number, out: Color): Color {
+    Color.scale(value, weight, value);
+    Color.add(out, value, out);
     return out;
   }
 
-  protected _evaluateStep(frameIndex: number, out: Color): Color {
-    const { keys } = this;
-    out.copyFrom(keys[frameIndex].value);
+  /**
+   * @internal
+   */
+  static _copyValue(scource: Color, out: Color): Color {
+    out.copyFrom(scource);
     return out;
   }
 
-  protected _evaluateHermite(frameIndex: number, nextFrameIndex: number, t: number, dur: number, out: Color): Color {
-    const { keys } = this;
-    const curKey = keys[frameIndex];
-    const nextKey = keys[nextFrameIndex];
-    const p0 = curKey.value;
-    const tan0 = curKey.outTangent;
-    const p1 = nextKey.value;
-    const tan1 = nextKey.inTangent;
+  /**
+   * @internal
+   */
+  static _hermiteInterpolationValue(
+    frame: Keyframe<Color>,
+    nextFrame: Keyframe<Color>,
+    t: number,
+    dur: number,
+    out: Color
+  ): Color {
+    const p0 = frame.value;
+    const tan0 = frame.outTangent;
+    const p1 = nextFrame.value;
+    const tan1 = nextFrame.inTangent;
 
     const t2 = t * t;
     const t3 = t2 * t;
@@ -92,6 +98,19 @@ export class AnimationColorCurve extends AnimationCurve {
       out.a = p0.a;
     }
 
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  _evaluateAdditive(time: number, out?: Color): Color {
+    const baseValue = this.keys[0].value;
+    this._evaluate(time, out);
+    out.r -= baseValue.r;
+    out.g -= baseValue.g;
+    out.b -= baseValue.b;
+    out.a -= baseValue.a;
     return out;
   }
 }

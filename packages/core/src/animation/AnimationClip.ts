@@ -1,11 +1,9 @@
-import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { Transform } from "../Transform";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 import { AnimationCurve } from "./AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
-import { AnimationProperty, AnimationPropertyInternal } from "./enums/AnimationProperty";
+import { KeyframeValueType } from "./Keyframe";
 
 /**
  * Stores keyframe based animations.
@@ -81,37 +79,19 @@ export class AnimationClip {
    * Add curve binding for the clip.
    * @param relativePath - Path to the game object this curve applies to. The relativePath is formatted similar to a pathname, e.g. "/root/spine/leftArm"
    * @param type- The class type of the component that is animated
-   * @param propertyName - The name or path to the property being animated.
+   * @param propertyName - The name or path to the property being animated
    * @param curve - The animation curve
    */
   addCurveBinding<T extends Component>(
     relativePath: string,
     type: new (entity: Entity) => T,
     propertyName: string,
-    curve: AnimationCurve
+    curve: AnimationCurve<KeyframeValueType>
   ): void {
-    let property: AnimationProperty;
-    switch (propertyName) {
-      case "position":
-        property = AnimationPropertyInternal.Position;
-        break;
-      case "rotationQuaternion":
-        property = AnimationPropertyInternal.Rotation;
-        break;
-      case "scale":
-        property = AnimationPropertyInternal.Scale;
-        break;
-      case "blendShapeWeights":
-        property = AnimationPropertyInternal.BlendShapeWeights;
-        break;
-      default:
-        property = propertyName;
-        break;
-    }
     const curveBinding = new AnimationClipCurveBinding();
     curveBinding.relativePath = relativePath;
     curveBinding.type = type;
-    curveBinding.property = property;
+    curveBinding.property = propertyName;
     curveBinding.curve = curve;
     if (curve.length > this._length) {
       this._length = curve.length;
@@ -139,11 +119,10 @@ export class AnimationClip {
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
         try {
-          const curveOwner = curveData._getDefaultCurveOwner(targetEntity);
-          const { curve } = curveData;
-          curveOwner && curveOwner.evaluateAndApplyValue(curve, time, 1);
+          const curveOwner = curveData._getDefaultCurveOwner(entity);
+          curveOwner && curveOwner.evaluateAndApplyValue(curveData.curve, time, 1);
         } catch (error) {
-          console.warn(error);
+          console.error(error);
         }
       }
     }

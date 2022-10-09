@@ -1,17 +1,16 @@
 import {
   AnimationClip,
-  AnimationCurve,
-  AnimationCurveFactory,
+  AnimationFloatArrayCurve,
+  AnimationQuaternionCurve,
+  AnimationVector3Curve,
   Component,
   Entity,
-  FloatArrayKeyframe,
+  Keyframe,
   InterpolableValueType,
   InterpolationType,
-  QuaternionKeyframe,
   SkinnedMeshRenderer,
   Transform,
-  TypedArray,
-  Vector3Keyframe
+  TypedArray
 } from "@oasis-engine/core";
 import { Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
@@ -118,7 +117,7 @@ export class AnimationParser extends Parser {
         }
 
         const curve = this._addCurve(interpolableValueType, gltfChannel, sampleDataCollection);
-        animationClip.addCurveBinding(relativePath, compType, propertyName, curve as AnimationCurve);
+        animationClip.addCurveBinding(relativePath, compType, propertyName, curve);
       }
 
       animationClips[i] = animationClip;
@@ -142,7 +141,7 @@ export class AnimationParser extends Parser {
 
     switch (interpolableValueType) {
       case InterpolableValueType.Vector3: {
-        const curve = AnimationCurveFactory.create(InterpolableValueType.Vector3);
+        const curve = new AnimationVector3Curve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
 
         let outputBufferOffset = 0;
@@ -157,7 +156,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new Vector3Keyframe();
+          const keyframe = new Keyframe<Vector3>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue();
@@ -171,7 +170,7 @@ export class AnimationParser extends Parser {
         return curve;
       }
       case InterpolableValueType.Quaternion: {
-        const curve = AnimationCurveFactory.create(InterpolableValueType.Quaternion);
+        const curve = new AnimationQuaternionCurve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
 
         let outputBufferOffset = 0;
@@ -194,7 +193,7 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new QuaternionKeyframe();
+          const keyframe = new Keyframe<Quaternion>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
             keyframe.inTangent = getNextOutputValue(false) as Vector4;
@@ -208,7 +207,7 @@ export class AnimationParser extends Parser {
         return curve;
       }
       case InterpolableValueType.FloatArray: {
-        const curve = AnimationCurveFactory.create(InterpolableValueType.FloatArray);
+        const curve = new AnimationFloatArrayCurve();
         curve.interpolation = sampleData.interpolation;
 
         let outputBufferOffset = 0;
@@ -219,12 +218,12 @@ export class AnimationParser extends Parser {
         };
 
         for (let i = 0, n = input.length; i < n; i++) {
-          const keyframe = new FloatArrayKeyframe();
+          const keyframe = new Keyframe<Float32Array>();
           keyframe.time = input[i];
           if (curve.interpolation === InterpolationType.CubicSpine) {
-            keyframe.inTangent = getNextOutputValue();
+            keyframe.inTangent = Array.from(getNextOutputValue());
             keyframe.value = getNextOutputValue();
-            keyframe.outTangent = getNextOutputValue();
+            keyframe.outTangent = Array.from(getNextOutputValue());
           } else {
             keyframe.value = getNextOutputValue();
           }
