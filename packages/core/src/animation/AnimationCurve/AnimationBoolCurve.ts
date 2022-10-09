@@ -21,8 +21,8 @@ export class AnimationBoolCurve extends AnimationCurve<Boolean> {
   /**
    * @internal
    */
-  static _lerpValue(value: Boolean): Boolean {
-    return value;
+  static _lerpValue(srcValue: Boolean, destValue: Boolean): Boolean {
+    return destValue;
   }
 
   /**
@@ -57,7 +57,6 @@ export class AnimationBoolCurve extends AnimationCurve<Boolean> {
    * @internal
    */
   _evaluateAdditive(time: number): Boolean {
-    const value = this._evaluate(time);
-    return value;
+    return this._evaluate(time);
   }
 }
