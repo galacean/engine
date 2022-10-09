@@ -33,6 +33,14 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   /**
    * @internal
    */
+  static _relativeBaseValue(base: Color, out: Color): Color {
+    Color.subtract(out, base, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
   static _additiveValue(value: Color, weight: number, out: Color): Color {
     Color.scale(value, weight, value);
     Color.add(out, value, out);
@@ -98,19 +106,6 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
       out.a = p0.a;
     }
 
-    return out;
-  }
-
-  /**
-   * @internal
-   */
-  _evaluateAdditive(time: number, out?: Color): Color {
-    const baseValue = this.keys[0].value;
-    this._evaluate(time, out);
-    out.r -= baseValue.r;
-    out.g -= baseValue.g;
-    out.b -= baseValue.b;
-    out.a -= baseValue.a;
     return out;
   }
 }

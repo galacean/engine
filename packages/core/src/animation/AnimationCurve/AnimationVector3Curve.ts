@@ -33,6 +33,14 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /**
    * @internal
    */
+  static _relativeBaseValue(base: Vector3, out: Vector3): Vector3 {
+    Vector3.subtract(out, base, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
   static _additiveValue(value: Vector3, weight: number, out: Vector3): Vector3 {
     Vector3.scale(value, weight, value);
     Vector3.add(out, value, out);
@@ -91,16 +99,6 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
       out.z = p0.z;
     }
 
-    return out;
-  }
-
-  /**
-   * @internal
-   */
-  _evaluateAdditive(time: number, out?: Vector3): Vector3 {
-    const baseValue = this.keys[0].value;
-    this._evaluate(time, out);
-    Vector3.subtract(out, baseValue, out);
     return out;
   }
 }
