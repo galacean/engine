@@ -1,6 +1,6 @@
 import { Quaternion } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";

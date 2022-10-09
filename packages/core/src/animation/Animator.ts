@@ -9,7 +9,7 @@ import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
-import { AnimationCurveOwner } from "./internal/AnimationCurveOwner";
+import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";

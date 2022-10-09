@@ -16,8 +16,8 @@ export { WrapMode } from "./enums/WrapMode";
 export * from "./KeyFrame";
 export { StateMachineScript } from "./StateMachineScript";
 
-import "./internal/AnimationCurveOwner/Assembler/BlendShapeWeightsAnimationCurveOwnerAssembler";
-import "./internal/AnimationCurveOwner/Assembler/PositionAnimationCurveOwnerAssembler";
-import "./internal/AnimationCurveOwner/Assembler/RotationAnimationCurveOwnerAssembler";
-import "./internal/AnimationCurveOwner/Assembler/ScaleAnimationCurveOwnerAssembler";
+import "./Assembler/BlendShapeWeightsAnimationCurveOwnerAssembler";
+import "./Assembler/PositionAnimationCurveOwnerAssembler";
+import "./Assembler/RotationAnimationCurveOwnerAssembler";
+import "./Assembler/ScaleAnimationCurveOwnerAssembler";
 
