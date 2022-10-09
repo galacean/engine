@@ -32,15 +32,15 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  static _additiveValue(value: number, weight: number, scource: number): number {
-    return (scource += value * weight);
+  static _additiveValue(value: number, weight: number, source: number): number {
+    return (source += value * weight);
   }
 
   /**
    * @internal
    */
-  static _copyValue(scource: number): number {
-    return scource;
+  static _copyValue(source: number): number {
+    return source;
   }
 
   /**

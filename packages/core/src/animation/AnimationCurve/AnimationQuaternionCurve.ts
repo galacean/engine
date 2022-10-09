@@ -48,8 +48,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /**
    * @internal
    */
-  static _copyValue(scource: Quaternion, out: Quaternion): Quaternion {
-    out.copyFrom(scource);
+  static _copyValue(source: Quaternion, out: Quaternion): Quaternion {
+    out.copyFrom(source);
     return out;
   }
 

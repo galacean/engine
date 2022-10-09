@@ -42,8 +42,8 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /**
    * @internal
    */
-  static _copyValue(scource: Vector3, out: Vector3): Vector3 {
-    out.copyFrom(scource);
+  static _copyValue(source: Vector3, out: Vector3): Vector3 {
+    out.copyFrom(source);
     return out;
   }
 

@@ -12,17 +12,17 @@ import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnim
 export class AnimationCurveOwner<V extends KeyframeValueType> {
   private static _assemblerMap = new Map<ComponentType, Record<string, AssemblerType>>();
 
-  static registerAssembler(compomentType: ComponentType, property: string, assemblerType: AssemblerType): void {
-    let subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
+  static registerAssembler(componentType: ComponentType, property: string, assemblerType: AssemblerType): void {
+    let subMap = AnimationCurveOwner._assemblerMap.get(componentType);
     if (!subMap) {
       subMap = {};
-      AnimationCurveOwner._assemblerMap.set(compomentType, subMap);
+      AnimationCurveOwner._assemblerMap.set(componentType, subMap);
     }
     subMap[property] = assemblerType;
   }
 
-  static getAssemblerType(compomentType: ComponentType, property: string): AssemblerType {
-    const subMap = AnimationCurveOwner._assemblerMap.get(compomentType);
+  static getAssemblerType(componentType: ComponentType, property: string): AssemblerType {
+    const subMap = AnimationCurveOwner._assemblerMap.get(componentType);
     return subMap[property] ?? UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
   }
 
@@ -74,8 +74,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
         this.cureType._additiveValue(value, layerWeight, this.referenceTargetValue);
       } else {
         const originValue = this._assembler.getTargetValue();
-        const addtiveValue = this.cureType._additiveValue(value, layerWeight, originValue);
-        this._assembler.setTargetValue(addtiveValue);
+        const additiveValue = this.cureType._additiveValue(value, layerWeight, originValue);
+        this._assembler.setTargetValue(additiveValue);
       }
     }
   }
