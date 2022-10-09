@@ -136,7 +136,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * @internal
    */
   _evaluateAdditive(time: number, out?: V): V {
-    this._evaluate(time, out);
-    return this._type._relativeBaseValue(this.keys[0].value, out);
+    const result = this._evaluate(time, out);
+    return this._type._relativeBaseValue(this.keys[0].value, result);
   }
 }
