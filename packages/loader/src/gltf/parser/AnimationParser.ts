@@ -5,9 +5,8 @@ import {
   AnimationVector3Curve,
   Component,
   Entity,
-  Keyframe,
-  InterpolableValueType,
   InterpolationType,
+  Keyframe,
   SkinnedMeshRenderer,
   Transform,
   TypedArray
@@ -91,32 +90,27 @@ export class AnimationParser extends Parser {
 
         let compType: new (entity: Entity) => Component;
         let propertyName: string;
-        let interpolableValueType: InterpolableValueType;
         switch (target.path) {
           case AnimationChannelTargetPath.TRANSLATION:
             compType = Transform;
             propertyName = "position";
-            interpolableValueType = InterpolableValueType.Vector3;
             break;
           case AnimationChannelTargetPath.ROTATION:
             compType = Transform;
             propertyName = "rotationQuaternion";
-            interpolableValueType = InterpolableValueType.Quaternion;
             break;
           case AnimationChannelTargetPath.SCALE:
             compType = Transform;
             propertyName = "scale";
-            interpolableValueType = InterpolableValueType.Vector3;
             break;
           case AnimationChannelTargetPath.WEIGHTS:
             compType = SkinnedMeshRenderer;
             propertyName = "blendShapeWeights";
-            interpolableValueType = InterpolableValueType.FloatArray;
             break;
           default:
         }
 
-        const curve = this._addCurve(interpolableValueType, gltfChannel, sampleDataCollection);
+        const curve = this._addCurve(target.path, gltfChannel, sampleDataCollection);
         animationClip.addCurveBinding(relativePath, compType, propertyName, curve);
       }
 
@@ -132,15 +126,16 @@ export class AnimationParser extends Parser {
   }
 
   private _addCurve(
-    interpolableValueType: InterpolableValueType,
+    animationchannelTargetPath: AnimationChannelTargetPath,
     gltfChannel: IAnimationChannel,
     sampleDataCollection: SampleData[]
   ) {
     const sampleData = sampleDataCollection[gltfChannel.sampler];
     const { input, output, outputSize } = sampleData;
 
-    switch (interpolableValueType) {
-      case InterpolableValueType.Vector3: {
+    switch (animationchannelTargetPath) {
+      case AnimationChannelTargetPath.TRANSLATION:
+      case AnimationChannelTargetPath.SCALE: {
         const curve = new AnimationVector3Curve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
 
@@ -169,7 +164,7 @@ export class AnimationParser extends Parser {
         }
         return curve;
       }
-      case InterpolableValueType.Quaternion: {
+      case AnimationChannelTargetPath.ROTATION: {
         const curve = new AnimationQuaternionCurve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
 
@@ -206,7 +201,7 @@ export class AnimationParser extends Parser {
         }
         return curve;
       }
-      case InterpolableValueType.FloatArray: {
+      case AnimationChannelTargetPath.WEIGHTS: {
         const curve = new AnimationFloatArrayCurve();
         curve.interpolation = sampleData.interpolation;
 

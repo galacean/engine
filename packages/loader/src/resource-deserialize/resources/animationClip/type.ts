@@ -1,4 +1,13 @@
-import { InterpolableValueType } from "@oasis-engine/core";
+export enum InterpolableValueType {
+  Float,
+  FloatArray,
+  Vector2,
+  Vector3,
+  Vector4,
+  Quaternion,
+  Color,
+  Array
+}
 
 export interface IAnimationClipAsset {
   objectId: string;
