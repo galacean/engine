@@ -150,7 +150,6 @@ describe("Scene", () => {
       script.enabled = false;
       entity.isActive = true;
       script.enabled = true;
-      debugger;
       entity.isActive = false;
 
       expect(script.onAwake).to.have.been.called.exactly(1);
