@@ -14,9 +14,3 @@ export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
 export * from "./KeyFrame";
 export { StateMachineScript } from "./StateMachineScript";
-
-import "./Assembler/BlendShapeWeightsAnimationCurveOwnerAssembler";
-import "./Assembler/PositionAnimationCurveOwnerAssembler";
-import "./Assembler/RotationAnimationCurveOwnerAssembler";
-import "./Assembler/ScaleAnimationCurveOwnerAssembler";
-
