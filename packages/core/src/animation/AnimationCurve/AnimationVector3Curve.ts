@@ -50,6 +50,22 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /**
    * @internal
    */
+  static _subtractValue(src: Vector3, base: Vector3, out: Vector3): Vector3 {
+    Vector3.subtract(src, base, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _getZeroValue(out: Vector3): Vector3 {
+    out.set(0, 0, 0);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
   static _copyValue(source: Vector3, out: Vector3): Vector3 {
     out.copyFrom(source);
     return out;

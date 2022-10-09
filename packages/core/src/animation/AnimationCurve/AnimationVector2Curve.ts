@@ -33,17 +33,25 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   /**
    * @internal
    */
-  static _relativeBaseValue(base: Vector2, out: Vector2): Vector2 {
-    Vector2.subtract(out, base, out);
+  static _additiveValue(value: Vector2, weight: number, out: Vector2): Vector2 {
+    Vector2.scale(value, weight, value);
+    Vector2.add(out, value, out);
     return out;
   }
 
   /**
    * @internal
    */
-  static _additiveValue(value: Vector2, weight: number, out: Vector2): Vector2 {
-    Vector2.scale(value, weight, value);
-    Vector2.add(out, value, out);
+  static _subtractValue(src: Vector2, base: Vector2, out: Vector2): Vector2 {
+    Vector2.subtract(src, base, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _getZeroValue(out: Vector2): Vector2 {
+    out.set(0, 0);
     return out;
   }
 

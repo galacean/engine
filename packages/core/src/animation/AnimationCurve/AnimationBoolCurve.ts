@@ -8,55 +8,61 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
-@StaticInterfaceImplement<IAnimationCurveCalculator<Boolean>>()
-export class AnimationBoolCurve extends AnimationCurve<Boolean> {
+@StaticInterfaceImplement<IAnimationCurveCalculator<boolean>>()
+export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /** @internal */
   static _isReferenceType: boolean = false;
 
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner<Boolean>): void {}
+  static _initializeOwner(owner: AnimationCurveOwner<boolean>): void {}
 
   /**
    * @internal
    */
-  static _lerpValue(srcValue: Boolean, destValue: Boolean): Boolean {
+  static _lerpValue(srcValue: boolean, destValue: boolean): boolean {
     return destValue;
   }
 
   /**
    * @internal
    */
-  static _relativeBaseValue(base: Boolean, src: Boolean): Boolean {
+  static _subtractValue(src: boolean, base: boolean, out: boolean): boolean {
     return src;
   }
 
   /**
    * @internal
    */
-  static _additiveValue(value: Boolean, weight: number, source: Boolean): Boolean {
+  static _getZeroValue(): boolean {
+    return false;
+  }
+  /**
+   * @internal
+   */
+  static _additiveValue(value: boolean, weight: number, source: boolean): boolean {
     return value;
   }
 
   /**
    * @internal
    */
-  static _copyValue(value: Boolean): Boolean {
+  static _copyValue(value: boolean): boolean {
     return value;
   }
 
   /**
    * @internal
    */
-  static _hermiteInterpolationValue(frame: Keyframe<Boolean>): Boolean {
+  static _hermiteInterpolationValue(frame: Keyframe<boolean>): boolean {
     return frame.value;
   }
 
   /**
    * @internal
    */
-  _evaluate(time: number, out?: Boolean): Boolean {
+  _evaluate(time: number, out?: boolean): boolean {
     this.interpolation = InterpolationType.Step;
     return super._evaluate(time, out);
   }

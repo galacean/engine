@@ -35,16 +35,6 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /**
    * @internal
    */
-  static _relativeBaseValue(base: Quaternion, out: Quaternion): Quaternion {
-    const { _tempConjugateQuat: conjugate } = AnimationQuaternionCurve;
-    Quaternion.conjugate(base, conjugate);
-    Quaternion.multiply(conjugate, out, out);
-    return out;
-  }
-
-  /**
-   * @internal
-   */
   static _additiveValue(value: Quaternion, weight: number, out: Quaternion): Quaternion {
     value.x = value.x * weight;
     value.y = value.y * weight;
@@ -52,6 +42,24 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
 
     value.normalize();
     out.multiply(value);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _subtractValue(src: Quaternion, base: Quaternion, out: Quaternion): Quaternion {
+    const { _tempConjugateQuat: conjugate } = AnimationQuaternionCurve;
+    Quaternion.conjugate(base, conjugate);
+    Quaternion.multiply(conjugate, src, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _getZeroValue(out: Quaternion): Quaternion {
+    out.set(0, 0, 0, 1);
     return out;
   }
 

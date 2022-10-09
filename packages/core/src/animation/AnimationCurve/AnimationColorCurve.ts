@@ -33,8 +33,16 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   /**
    * @internal
    */
-  static _relativeBaseValue(base: Color, out: Color): Color {
-    Color.subtract(out, base, out);
+  static _subtractValue(src: Color, base: Color, out: Color): Color {
+    Color.subtract(src, base, out);
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _getZeroValue(out: Color) {
+    out.set(0, 0, 0, 0);
     return out;
   }
 

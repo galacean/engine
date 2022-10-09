@@ -36,9 +36,19 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /**
    * @internal
    */
-  static _relativeBaseValue(base: Float32Array, out: Float32Array): Float32Array {
+  static _subtractValue(src: Float32Array, base: Float32Array, out: Float32Array): Float32Array {
+    for (let i = 0, n = src.length; i < n; i++) {
+      out[i] = src[i] - base[i];
+    }
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _getZeroValue(out: Float32Array): Float32Array {
     for (let i = 0, n = out.length; i < n; i++) {
-      out[i] -= base[i];
+      out[i] = 0;
     }
     return out;
   }

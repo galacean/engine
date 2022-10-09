@@ -22,8 +22,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   static getAssemblerType(componentType: ComponentType, property: string): AssemblerType {
-    const subMap = AnimationCurveOwner._assemblerMap.get(componentType);
-    return subMap?.property ?? UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
+    const subMap = AnimationCurveOwner._assemblerMap.get(componentType) || {};
+    return subMap[property] ?? UniversalAnimationCurveOwnerAssembler<KeyframeValueType>;
   }
 
   readonly target: Entity;
@@ -90,9 +90,21 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     additive: boolean
   ): void {
     const srcValue =
-      srcCurve && srcCurve.keys.length ? srcCurve._evaluate(srcTime, this.baseTempValue) : this.defaultValue;
+      srcCurve && srcCurve.keys.length
+        ? additive
+          ? srcCurve._evaluateAdditive(srcTime, this.baseTempValue)
+          : srcCurve._evaluate(srcTime, this.baseTempValue)
+        : additive
+        ? this.cureType._getZeroValue(this.baseTempValue)
+        : this.defaultValue;
     const destValue =
-      destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this.crossTempValue) : this.defaultValue;
+      destCurve && destCurve.keys.length
+        ? additive
+          ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
+          : destCurve._evaluate(destTime, this.crossTempValue)
+        : additive
+        ? this.cureType._getZeroValue(this.crossTempValue)
+        : this.defaultValue;
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 
@@ -103,9 +115,17 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     layerWeight: number,
     additive: boolean
   ): void {
-    const srcValue = this.fixedPoseValue;
+    const srcValue = additive
+      ? this.cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseTempValue)
+      : this.fixedPoseValue;
     const destValue =
-      destCurve && destCurve.keys.length ? destCurve._evaluate(destTime, this.crossTempValue) : this.defaultValue;
+      destCurve && destCurve.keys.length
+        ? additive
+          ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
+          : destCurve._evaluate(destTime, this.crossTempValue)
+        : additive
+        ? this.cureType._getZeroValue(this.crossTempValue)
+        : this.defaultValue;
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 

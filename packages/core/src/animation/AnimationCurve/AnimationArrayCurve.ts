@@ -35,11 +35,21 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /**
    * @internal
    */
-  static _relativeBaseValue(base: number[], srcOut: number[]): number[] {
-    for (let i = 0, n = srcOut.length; i < n; i++) {
-      srcOut[i] -= base[i];
+  static _subtractValue(src: number[], base: number[], out: number[]): number[] {
+    for (let i = 0, n = src.length; i < n; i++) {
+      out[i] = src[i] - base[i];
     }
-    return srcOut;
+    return out;
+  }
+
+  /**
+   * @internal
+   */
+  static _getZeroValue(out: number[]): number[] {
+    for (let i = 0, n = out.length; i < n; i++) {
+      out[i] = 0;
+    }
+    return out;
   }
 
   /**

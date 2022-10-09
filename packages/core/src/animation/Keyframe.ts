@@ -40,4 +40,4 @@ export type KeyframeValueType =
   | Float32Array
   | Quaternion
   | Color
-  | Boolean;
+  | boolean;
