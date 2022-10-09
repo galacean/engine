@@ -136,9 +136,16 @@ export class AnimationClip {
     const { length } = this._curveBindings;
     for (let i = length - 1; i >= 0; i--) {
       const curveData = this._curveBindings[i];
-      const curveOwner = curveData._getDefaultCurveOwner(entity);
-      const { curve } = curveData;
-      curveOwner && curveOwner.evaluateAndApplyValue(curve, time, 1);
+      const targetEntity = entity.findByPath(curveData.relativePath);
+      if (targetEntity) {
+        try {
+          const curveOwner = curveData._getDefaultCurveOwner(targetEntity);
+          const { curve } = curveData;
+          curveOwner && curveOwner.evaluateAndApplyValue(curve, time, 1);
+        } catch (error) {
+          console.warn(error);
+        }
+      }
     }
   }
 }

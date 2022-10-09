@@ -50,25 +50,37 @@ export class AnimationClipDecoder {
         let curve: AnimationCurve;
         const interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
-        console.log("AnimationClipDecoder", relativePath, componentType, property, interpolation, keysLen);
+        const valueType = bufferReader.nextUint8();
 
-        for (let j = 0; j < keysLen; ++j) {
-          const valueType = bufferReader.nextUint8();
-          switch (valueType) {
-            case InterpolableValueType.Float: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Float);
-              curve.interpolation = interpolation;
+        console.log(
+          "AnimationClipDecoder",
+          relativePath,
+          componentStr,
+          componentType,
+          property,
+          interpolation,
+          keysLen,
+          valueType
+        );
+
+        switch (valueType) {
+          case InterpolableValueType.Float: {
+            curve = curve || AnimationCurveFactory.create(InterpolableValueType.Float);
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
               const keyframe = new FloatKeyframe();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = bufferReader.nextFloat32();
               keyframe.inTangent = bufferReader.nextFloat32();
               keyframe.outTangent = bufferReader.nextFloat32();
               curve.addKey(keyframe);
-              break;
             }
-            case InterpolableValueType.Array: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Array);
-              curve.interpolation = interpolation;
+            break;
+          }
+          case InterpolableValueType.Array: {
+            curve = curve || AnimationCurveFactory.create(InterpolableValueType.Array);
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
               const keyframe = new ArrayKeyframe();
               keyframe.time = bufferReader.nextFloat32();
               const len = bufferReader.nextUint16();
@@ -76,11 +88,13 @@ export class AnimationClipDecoder {
               keyframe.inTangent = Array.from(bufferReader.nextFloat32Array(len));
               keyframe.outTangent = Array.from(bufferReader.nextFloat32Array(len));
               curve.addKey(keyframe);
-              break;
             }
-            case InterpolableValueType.FloatArray: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.FloatArray);
-              curve.interpolation = interpolation;
+            break;
+          }
+          case InterpolableValueType.FloatArray: {
+            curve = curve || AnimationCurveFactory.create(InterpolableValueType.FloatArray);
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
               const keyframe = new FloatArrayKeyframe();
               keyframe.time = bufferReader.nextFloat32();
               const len = bufferReader.nextUint16();
@@ -88,22 +102,26 @@ export class AnimationClipDecoder {
               keyframe.inTangent = bufferReader.nextFloat32Array(len);
               keyframe.outTangent = bufferReader.nextFloat32Array(len);
               curve.addKey(keyframe);
-              break;
             }
-            case InterpolableValueType.Vector2: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector2);
-              curve.interpolation = interpolation;
+            break;
+          }
+          case InterpolableValueType.Vector2: {
+            curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector2);
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
               const keyframe = new Vector2Keyframe();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
               keyframe.inTangent = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
               keyframe.outTangent = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
               curve.addKey(keyframe);
-              break;
             }
-            case InterpolableValueType.Vector3: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector3);
-              curve.interpolation = interpolation;
+            break;
+          }
+          case InterpolableValueType.Vector3: {
+            curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector3);
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
               const keyframe = new Vector3Keyframe();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector3(
@@ -122,11 +140,13 @@ export class AnimationClipDecoder {
                 bufferReader.nextFloat32()
               );
               curve.addKey(keyframe);
-              break;
             }
-            case InterpolableValueType.Vector4: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector4);
-              curve.interpolation = interpolation;
+            break;
+          }
+          case InterpolableValueType.Vector4: {
+            curve = curve || AnimationCurveFactory.create(InterpolableValueType.Vector4);
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
               const keyframe = new Vector4Keyframe();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector4(
@@ -148,11 +168,13 @@ export class AnimationClipDecoder {
                 bufferReader.nextFloat32()
               );
               curve.addKey(keyframe);
-              break;
             }
-            case InterpolableValueType.Color: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Color);
-              curve.interpolation = interpolation;
+            break;
+          }
+          case InterpolableValueType.Color: {
+            curve = curve || AnimationCurveFactory.create(InterpolableValueType.Color);
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
               const keyframe = new ColorKeyframe();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Color(
@@ -174,11 +196,13 @@ export class AnimationClipDecoder {
                 bufferReader.nextFloat32()
               );
               curve.addKey(keyframe);
-              break;
             }
-            case InterpolableValueType.Quaternion: {
-              curve = curve || AnimationCurveFactory.create(InterpolableValueType.Quaternion);
-              curve.interpolation = interpolation;
+            break;
+          }
+          case InterpolableValueType.Quaternion: {
+            curve = curve || AnimationCurveFactory.create(InterpolableValueType.Quaternion);
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
               const keyframe = new QuaternionKeyframe();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Quaternion(
@@ -200,11 +224,12 @@ export class AnimationClipDecoder {
                 bufferReader.nextFloat32()
               );
               curve.addKey(keyframe);
-              break;
             }
+            break;
           }
         }
-        clip.addCurveBinding(relativePath, componentType, property, curve);
+        console.log(curve, valueType);
+        curve && clip.addCurveBinding(relativePath, componentType, property, curve);
       }
 
       resolve(clip);
