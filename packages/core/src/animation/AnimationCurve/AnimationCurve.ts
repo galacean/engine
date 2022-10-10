@@ -8,14 +8,29 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 export abstract class AnimationCurve<V extends KeyframeValueType> {
   /** All keys defined in the animation curve. */
   keys: Keyframe<V>[] = [];
-  /** The interpolationType of the animation curve. */
-  interpolation: InterpolationType;
 
   protected _tempValue: V;
   protected _length: number = 0;
   protected _currentIndex: number = 0;
+  protected _interpolation: InterpolationType;
 
   private _type: IAnimationCurveCalculator<V>;
+
+  /**
+   * The interpolationType of the animation curve.
+   */
+  get interpolation(): InterpolationType {
+    return this._interpolation;
+  }
+
+  set interpolation(value: InterpolationType) {
+    if (!this._type._isInterpolationType && value !== InterpolationType.Step) {
+      this._interpolation = InterpolationType.Step;
+      console.warn("The interpolation type must be `InterpolationType.Step`.");
+    } else {
+      this._interpolation = value;
+    }
+  }
 
   /**
    * Animation curve length in seconds.
@@ -25,7 +40,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   constructor() {
-    this._type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
+    const type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
+    this._interpolation = type._isInterpolationType ? InterpolationType.Linear : InterpolationType.Step;
+    this._type = type;
   }
 
   /**
@@ -123,9 +140,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
           value = this._type._hermiteInterpolationValue(curFrame, nextFrame, t, duration, out);
-          break;
-        default:
-          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);
           break;
       }
     }

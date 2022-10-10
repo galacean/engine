@@ -11,6 +11,8 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /** @internal */
   static _isReferenceType: boolean = true;
+  /** @internal */
+  static _isInterpolationType: boolean = true;
 
   /**
    * @internal

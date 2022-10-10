@@ -10,7 +10,10 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
  */
 @StaticInterfaceImplement<IAnimationCurveCalculator<Color>>()
 export class AnimationColorCurve extends AnimationCurve<Color> {
+  /** @internal */
   static _isReferenceType: boolean = true;
+  /** @internal */
+  static _isInterpolationType: boolean = true;
 
   /**
    * @internal

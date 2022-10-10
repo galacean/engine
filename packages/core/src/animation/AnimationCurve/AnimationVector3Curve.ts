@@ -10,7 +10,10 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
  */
 @StaticInterfaceImplement<IAnimationCurveCalculator<Vector3>>()
 export class AnimationVector3Curve extends AnimationCurve<Vector3> {
+  /** @internal */
   static _isReferenceType: boolean = true;
+  /** @internal */
+  static _isInterpolationType: boolean = true;
 
   /**
    * @internal

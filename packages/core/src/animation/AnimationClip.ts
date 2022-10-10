@@ -113,18 +113,14 @@ export class AnimationClip {
    * @param entity - The animated entity
    * @param time - The time to sample an animation
    */
-  sampleAnimation(entity: Entity, time: number): void {
-    const { length } = this._curveBindings;
-    for (let i = length - 1; i >= 0; i--) {
-      const curveData = this._curveBindings[i];
+  _sampleAnimation(entity: Entity, time: number): void {
+    const { _curveBindings: curveBindings } = this;
+    for (let i = curveBindings.length - 1; i >= 0; i--) {
+      const curveData = curveBindings[i];
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
-        try {
-          const curveOwner = curveData._getTempCurveOwner(targetEntity);
-          curveOwner && curveOwner.evaluateAndApplyValue(curveData.curve, time, 1);
-        } catch (error) {
-          console.error(error);
-        }
+        const curveOwner = curveData._getTempCurveOwner(targetEntity);
+        curveOwner.evaluateAndApplyValue(curveData.curve, time, 1,false);
       }
     }
   }
