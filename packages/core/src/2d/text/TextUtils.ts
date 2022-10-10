@@ -246,26 +246,26 @@ export class TextUtils {
     return str;
   }
 
-  static async registerTTF(fontName: string, fontUrl: string): Promise<boolean> {
+  static async registerFont(fontName: string, fontUrl: string): Promise<boolean> {
     if (FontFace) {
-      return this._registerTTFWithFontFace(fontName, fontUrl);
+      return this._registerFontWithFontFace(fontName, fontUrl);
     } else {
-      return this._registerTTFWithCSS(fontName, fontUrl);
+      return this._registerFontWithCSS(fontName, fontUrl);
     }
   }
 
-  private static async _registerTTFWithFontFace(fontName: string, fontUrl: string): Promise<boolean> {
+  private static async _registerFontWithFontFace(fontName: string, fontUrl: string): Promise<boolean> {
     const fontFace = new FontFace(fontName, `url(${fontUrl})`);
     await fontFace.load();
     document.fonts.add(fontFace);
     return true;
   }
 
-  private static async _registerTTFWithCSS(fontName: string, fontUrl: string): Promise<boolean> {
+  private static async _registerFontWithCSS(fontName: string, fontUrl: string): Promise<boolean> {
     return new Promise((resolve, reject) => {
       try {
         const { context } = TextUtils.textContext();
-        const testString = "OasisTTFFont";
+        const testString = "OasisCustomFont";
         const fontDesc = `40px ${fontName}`;
         context.font = fontDesc;
         const textWidth = context.measureText(testString).width;

@@ -25,7 +25,7 @@ export class Font extends RefObject {
         return font;
       }
       if (fontUrl !== "") {
-        await TextUtils.registerTTF(name, fontUrl);
+        await TextUtils.registerFont(name, fontUrl);
       }
       font = new Font(engine, name);
       fontMap[name] = font;
