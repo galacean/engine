@@ -436,11 +436,7 @@ export class Animator extends Component {
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
     for (let i = curveBindings.length - 1; i >= 0; i--) {
-      if (additive) {
-        curveOwners[i].evaluateAndApplyAdditiveValue(curveBindings[i].curve, clipTime, weight);
-      } else {
-        curveOwners[i].evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight);
-      }
+      curveOwners[i].evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight, additive);
     }
 
     playData.frameTime += state.speed * delta;
@@ -517,9 +513,10 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const crossCurveData = crossCurveDataCollection[i];
+      const { srcCurveIndex, destCurveIndex } = crossCurveData;
       crossCurveData.curveOwner.crossFadeAndApplyValue(
-        srcCurves[crossCurveData.srcCurveIndex]?.curve,
-        destCurves[crossCurveData.destCurveIndex]?.curve,
+        srcCurveIndex >= 0 ? srcCurves[srcCurveIndex].curve : null,
+        destCurveIndex >= 0 ? destCurves[destCurveIndex].curve : null,
         srcClipTime,
         destClipTime,
         crossWeight,
@@ -567,9 +564,10 @@ export class Animator extends Component {
     }
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
-      const { curveOwner, destCurveIndex } = crossCurveDataCollection[i];
-      curveOwner.crossFadeFromPoseAndApplyValue(
-        curveBindings[destCurveIndex]?.curve,
+      const crossCurveData = crossCurveDataCollection[i];
+      const { destCurveIndex } = crossCurveData;
+      crossCurveData.curveOwner.crossFadeFromPoseAndApplyValue(
+        destCurveIndex >= 0 ? curveBindings[destCurveIndex].curve : null,
         destClipTime,
         crossWeight,
         layerWeight,

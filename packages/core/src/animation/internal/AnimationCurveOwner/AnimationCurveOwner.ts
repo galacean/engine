@@ -66,23 +66,24 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     }
   }
 
-  evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number): void {
+  evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number, additive: boolean): void {
     if (curve.keys.length) {
-      const value = curve._evaluate(time, this.baseTempValue);
-      this._applyValue(value, layerWeight);
-    }
-  }
+      if (additive) {
+        const value = curve._evaluate(time, this.baseTempValue);
 
-  evaluateAndApplyAdditiveValue(curve: AnimationCurve<V>, time: number, layerWeight: number): void {
-    if (curve.keys.length) {
-      const value = curve._evaluateAdditive(time, this.baseTempValue);
-
-      if (this._cureType._isReferenceType) {
-        this._cureType._additiveValue(value, layerWeight, this.referenceTargetValue);
+        this._applyValue(value, layerWeight);
       } else {
-        const originValue = this._assembler.getTargetValue();
-        const additiveValue = this._cureType._additiveValue(value, layerWeight, originValue);
-        this._assembler.setTargetValue(additiveValue);
+        const value = curve._evaluateAdditive(time, this.baseTempValue);
+
+        const cureType = this._cureType;
+        if (cureType._isReferenceType) {
+          cureType._additiveValue(value, layerWeight, this.referenceTargetValue);
+        } else {
+          const assembler = this._assembler;
+          const originValue = assembler.getTargetValue();
+          const additiveValue = cureType._additiveValue(value, layerWeight, originValue);
+          assembler.setTargetValue(additiveValue);
+        }
       }
     }
   }
@@ -96,23 +97,27 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     layerWeight: number,
     additive: boolean
   ): void {
-    const srcValue =
-      srcCurve && srcCurve.keys.length
-        ? additive
-          ? srcCurve._evaluateAdditive(srcTime, this.baseTempValue)
-          : srcCurve._evaluate(srcTime, this.baseTempValue)
-        : additive
-        ? this._cureType._getZeroValue(this.baseTempValue)
-        : this.defaultValue;
-    const destValue =
-      destCurve && destCurve.keys.length
-        ? additive
-          ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
-          : destCurve._evaluate(destTime, this.crossTempValue)
-        : additive
-        ? this._cureType._getZeroValue(this.crossTempValue)
-        : this.defaultValue;
-    this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
+    const srcCount = srcCurve.keys.length;
+    const destCount = destCurve.keys.length;
+    if (srcCount || destCount) {
+      const srcValue =
+        srcCurve && srcCount
+          ? additive
+            ? srcCurve._evaluateAdditive(srcTime, this.baseTempValue)
+            : srcCurve._evaluate(srcTime, this.baseTempValue)
+          : additive
+          ? this._cureType._getZeroValue(this.baseTempValue)
+          : this.defaultValue;
+      const destValue =
+        destCurve && destCount
+          ? additive
+            ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
+            : destCurve._evaluate(destTime, this.crossTempValue)
+          : additive
+          ? this._cureType._getZeroValue(this.crossTempValue)
+          : this.defaultValue;
+      this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
+    }
   }
 
   crossFadeFromPoseAndApplyValue(
