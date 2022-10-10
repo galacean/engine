@@ -40,7 +40,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   constructor() {
-    this._type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
+    const type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
+    this._interpolation = type._isInterpolationType ? InterpolationType.Linear : InterpolationType.Step;
+    this._type = type;
   }
 
   /**
@@ -138,9 +140,6 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
           value = this._type._hermiteInterpolationValue(curFrame, nextFrame, t, duration, out);
-          break;
-        default:
-          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);
           break;
       }
     }
