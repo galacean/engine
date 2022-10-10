@@ -27,10 +27,10 @@ export class AnimationClipCurveBinding {
    * @internal
    */
   _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
-    const animationCurveCalculator = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
-
-    const owner = new AnimationCurveOwner(entity, this.type, this.property,animationCurveCalculator);
-    animationCurveCalculator._initializeOwner(owner);
+    const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
+    const owner = new AnimationCurveOwner(entity, this.type, this.property, curveType);
+    
+    curveType._initializeOwner(owner);
     return owner;
   }
 
