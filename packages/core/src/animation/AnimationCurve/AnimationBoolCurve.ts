@@ -12,6 +12,8 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /** @internal */
   static _isReferenceType: boolean = false;
+  /** @internal */
+  static _isInterpolationType: boolean = false;
 
   /**
    * @internal
@@ -59,11 +61,18 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
     return frame.value;
   }
 
+  get interpolation(): InterpolationType {
+    return this._interpolation;
+  }
+
   /**
-   * @internal
+   * @override
+   * The interpolationType of the animation curve.
    */
-  _evaluate(time: number, out?: boolean): boolean {
-    this.interpolation = InterpolationType.Step;
-    return super._evaluate(time, out);
+  _setInterpolation(value: InterpolationType): void {
+    if (value != InterpolationType.Step) {
+      throw "Interpolation type must be `InterpolationType.Step`";
+    }
+    this._interpolation = value;
   }
 }
