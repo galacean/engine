@@ -38,25 +38,31 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   baseTempValue: V;
   crossTempValue: V;
   hasSavedDefaultValue: boolean = false;
-  cureType: IAnimationCurveCalculator<V>;
-  isReferenceType: boolean;
+
   referenceTargetValue: V;
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
+  private _cureType: IAnimationCurveCalculator<V>;
 
-  constructor(target: Entity, type: new (entity: Entity) => Component, property: string, isReferenceType: boolean) {
+  constructor(
+    target: Entity,
+    type: new (entity: Entity) => Component,
+    property: string,
+    cureType: IAnimationCurveCalculator<V>
+  ) {
     this.target = target;
     this.type = type;
     this.property = property;
     this.component = target.getComponent(type);
+    this._cureType = cureType;
 
     const assemblerType = AnimationCurveOwner.getAssemblerType(type, property);
     this._assembler = <IAnimationCurveOwnerAssembler<V>>new assemblerType();
     this._assembler.initialize(this);
-    if (isReferenceType) {
+
+    if (cureType._isReferenceType) {
       this.referenceTargetValue = this._assembler.getTargetValue();
     }
-    this.isReferenceType = isReferenceType;
   }
 
   evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number): void {
@@ -70,11 +76,11 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     if (curve.keys.length) {
       const value = curve._evaluateAdditive(time, this.baseTempValue);
 
-      if (this.isReferenceType) {
-        this.cureType._additiveValue(value, layerWeight, this.referenceTargetValue);
+      if (this._cureType._isReferenceType) {
+        this._cureType._additiveValue(value, layerWeight, this.referenceTargetValue);
       } else {
         const originValue = this._assembler.getTargetValue();
-        const additiveValue = this.cureType._additiveValue(value, layerWeight, originValue);
+        const additiveValue = this._cureType._additiveValue(value, layerWeight, originValue);
         this._assembler.setTargetValue(additiveValue);
       }
     }
@@ -95,7 +101,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? srcCurve._evaluateAdditive(srcTime, this.baseTempValue)
           : srcCurve._evaluate(srcTime, this.baseTempValue)
         : additive
-        ? this.cureType._getZeroValue(this.baseTempValue)
+        ? this._cureType._getZeroValue(this.baseTempValue)
         : this.defaultValue;
     const destValue =
       destCurve && destCurve.keys.length
@@ -103,7 +109,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
           : destCurve._evaluate(destTime, this.crossTempValue)
         : additive
-        ? this.cureType._getZeroValue(this.crossTempValue)
+        ? this._cureType._getZeroValue(this.crossTempValue)
         : this.defaultValue;
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
@@ -116,7 +122,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     additive: boolean
   ): void {
     const srcValue = additive
-      ? this.cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseTempValue)
+      ? this._cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseTempValue)
       : this.fixedPoseValue;
     const destValue =
       destCurve && destCurve.keys.length
@@ -124,7 +130,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
           : destCurve._evaluate(destTime, this.crossTempValue)
         : additive
-        ? this.cureType._getZeroValue(this.crossTempValue)
+        ? this._cureType._getZeroValue(this.crossTempValue)
         : this.defaultValue;
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
@@ -134,8 +140,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   saveDefaultValue(): void {
-    if (this.isReferenceType) {
-      this.cureType._copyValue(this.referenceTargetValue, this.defaultValue);
+    if (this._cureType._isReferenceType) {
+      this._cureType._copyValue(this.referenceTargetValue, this.defaultValue);
     } else {
       this.defaultValue = this._assembler.getTargetValue();
     }
@@ -143,8 +149,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   }
 
   saveFixedPoseValue(): void {
-    if (this.isReferenceType) {
-      this.cureType._copyValue(this.referenceTargetValue, this.fixedPoseValue);
+    if (this._cureType._isReferenceType) {
+      this._cureType._copyValue(this.referenceTargetValue, this.fixedPoseValue);
     } else {
       this.fixedPoseValue = this._assembler.getTargetValue();
     }
@@ -152,18 +158,18 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   private _applyValue(value: V, weight: number): void {
     if (weight === 1.0) {
-      if (this.isReferenceType) {
-        this.cureType._copyValue(value, this.referenceTargetValue);
+      if (this._cureType._isReferenceType) {
+        this._cureType._copyValue(value, this.referenceTargetValue);
       } else {
         this._assembler.setTargetValue(value);
       }
     } else {
-      if (this.isReferenceType) {
+      if (this._cureType._isReferenceType) {
         const targetValue = this.referenceTargetValue;
-        this.cureType._lerpValue(targetValue, value, weight, targetValue);
+        this._cureType._lerpValue(targetValue, value, weight, targetValue);
       } else {
         const originValue = this._assembler.getTargetValue();
-        const lerpValue = this.cureType._lerpValue(originValue, value, weight);
+        const lerpValue = this._cureType._lerpValue(originValue, value, weight);
         this._assembler.setTargetValue(lerpValue);
       }
     }
@@ -177,19 +183,19 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     additive: boolean
   ): void {
     let out: V;
-    if (this.isReferenceType) {
+    if (this._cureType._isReferenceType) {
       out = this.baseTempValue;
-      this.cureType._lerpValue(srcValue, destValue, crossWeight, out);
+      this._cureType._lerpValue(srcValue, destValue, crossWeight, out);
     } else {
-      out = this.cureType._lerpValue(srcValue, destValue, crossWeight);
+      out = this._cureType._lerpValue(srcValue, destValue, crossWeight);
     }
 
     if (additive) {
-      if (this.isReferenceType) {
-        this.cureType._additiveValue(out, layerWeight, this.referenceTargetValue);
+      if (this._cureType._isReferenceType) {
+        this._cureType._additiveValue(out, layerWeight, this.referenceTargetValue);
       } else {
         const originValue = this._assembler.getTargetValue();
-        const lerpValue = this.cureType._additiveValue(out, layerWeight, originValue);
+        const lerpValue = this._cureType._additiveValue(out, layerWeight, originValue);
         this._assembler.setTargetValue(lerpValue);
       }
     } else {
