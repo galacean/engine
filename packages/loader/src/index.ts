@@ -12,13 +12,6 @@ import "./SpriteAtlasLoader";
 import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
-import "./SpriteLoader";
-import "./SpriteAtlasLoader";
-import "./EnvLoader";
-import "./HDRLoader";
-import "./gltf/extensions/index";
-import "./MaterialLoader";
-import "./MeshLoader";
 import "./FontLoader";
 
 export { parseSingleKTX } from "./compressed-texture";
