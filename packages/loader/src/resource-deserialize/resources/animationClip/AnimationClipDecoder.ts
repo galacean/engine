@@ -58,10 +58,10 @@ export class AnimationClipDecoder {
         let curve: AnimationCurve<KeyframeValueType>;
         const interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
-        const valueType = bufferReader.nextUint8();
+        const curveType = bufferReader.nextStr();
 
-        switch (valueType) {
-          case InterpolableValueType.Float: {
+        switch (curveType) {
+          case "AnimationFloatCurve": {
             curve = curve || new AnimationFloatCurve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
@@ -74,7 +74,7 @@ export class AnimationClipDecoder {
             }
             break;
           }
-          case InterpolableValueType.Array: {
+          case "AnimationArrayCurve": {
             curve = curve || new AnimationArrayCurve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
@@ -88,7 +88,7 @@ export class AnimationClipDecoder {
             }
             break;
           }
-          case InterpolableValueType.FloatArray: {
+          case "AnimationFloatArrayCurve": {
             curve = curve || new AnimationFloatArrayCurve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
@@ -102,7 +102,7 @@ export class AnimationClipDecoder {
             }
             break;
           }
-          case InterpolableValueType.Vector2: {
+          case "AnimationVector2Curve": {
             curve = curve || new AnimationVector2Curve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
@@ -115,7 +115,7 @@ export class AnimationClipDecoder {
             }
             break;
           }
-          case InterpolableValueType.Vector3: {
+          case "AnimationVector3Curve": {
             curve = curve || new AnimationVector3Curve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
@@ -140,7 +140,7 @@ export class AnimationClipDecoder {
             }
             break;
           }
-          case InterpolableValueType.Vector4: {
+          case "AnimationVector4Curve": {
             curve = curve || new AnimationVector4Curve();
             curve.interpolation = interpolation;
             const keyframe = new Keyframe<Vector4>();
@@ -166,7 +166,7 @@ export class AnimationClipDecoder {
             (<AnimationVector4Curve>curve).addKey(keyframe);
             break;
           }
-          case InterpolableValueType.Color: {
+          case "AnimationColorCurve": {
             curve = curve || new AnimationColorCurve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {
@@ -194,7 +194,7 @@ export class AnimationClipDecoder {
             }
             break;
           }
-          case InterpolableValueType.Quaternion: {
+          case "AnimationQuaternionCurve": {
             curve = curve || new AnimationQuaternionCurve();
             curve.interpolation = interpolation;
             for (let j = 0; j < keysLen; ++j) {

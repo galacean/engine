@@ -120,7 +120,7 @@ export class AnimationClip {
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
         try {
-          const curveOwner = curveData._getTempCurveOwner(entity);
+          const curveOwner = curveData._getTempCurveOwner(targetEntity);
           curveOwner && curveOwner.evaluateAndApplyValue(curveData.curve, time, 1);
         } catch (error) {
           console.error(error);
