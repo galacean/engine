@@ -24,8 +24,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   }
 
   set interpolation(value: InterpolationType) {
-    if (!this._type._isInterpolationType) {
-      value = InterpolationType.Step;
+    if (!this._type._isInterpolationType && value !== InterpolationType.Step) {
+      this._interpolation = InterpolationType.Step;
+      console.warn("The interpolation type must be `InterpolationType.Step`.");
     }
     this._interpolation = value;
   }
