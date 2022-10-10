@@ -69,10 +69,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number, additive: boolean): void {
     if (curve.keys.length) {
       if (additive) {
-        const value = curve._evaluate(time, this.baseTempValue);
-
-        this._applyValue(value, layerWeight);
-      } else {
         const value = curve._evaluateAdditive(time, this.baseTempValue);
 
         const cureType = this._cureType;
@@ -84,6 +80,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           const additiveValue = cureType._additiveValue(value, layerWeight, originValue);
           assembler.setTargetValue(additiveValue);
         }
+      } else {
+        const value = curve._evaluate(time, this.baseTempValue);
+
+        this._applyValue(value, layerWeight);
       }
     }
   }
