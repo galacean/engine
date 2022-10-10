@@ -23,7 +23,7 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
    * @internal
    */
   static _lerpValue(srcValue: boolean, destValue: boolean): boolean {
-    throw "AnimationBoolCurve can not lerp value.";
+    return destValue;
   }
 
   /**
