@@ -391,7 +391,8 @@ export class Engine extends EventDispatcher {
     this._spriteMaskManager.destroy();
     // delete font
     this._textDefaultFont._addRefCount(-1);
-    Font.delete(this._textDefaultFont.name);
+    this._textDefaultFont.destroy();
+    this._textDefaultFont = null;
 
     this.removeAllEventListeners();
     this._waittingDestroy = false;
