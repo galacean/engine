@@ -28,7 +28,6 @@ export class Font extends RefObject {
         await TextUtils.registerTTF(name, fontUrl);
       }
       font = new Font(engine, name);
-      font._addRefCount(1);
       fontMap[name] = font;
       return font;
     }
@@ -43,7 +42,6 @@ export class Font extends RefObject {
     const fontMap = Font._fontMap;
     const font = fontMap[name];
     if (font) {
-      font._addRefCount(-1);
       font.destroy();
       delete fontMap[name];
     }
