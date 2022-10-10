@@ -1,5 +1,4 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { InterpolationType } from "../enums/InterpolationType";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -59,20 +58,5 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
    */
   static _hermiteInterpolationValue(frame: Keyframe<boolean>): boolean {
     return frame.value;
-  }
-
-  get interpolation(): InterpolationType {
-    return this._interpolation;
-  }
-
-  /**
-   * @override
-   * The interpolationType of the animation curve.
-   */
-  _setInterpolation(value: InterpolationType): void {
-    if (value != InterpolationType.Step) {
-      throw "Interpolation type must be `InterpolationType.Step`";
-    }
-    this._interpolation = value;
   }
 }
