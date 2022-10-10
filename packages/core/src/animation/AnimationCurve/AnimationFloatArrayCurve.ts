@@ -20,6 +20,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     owner.defaultValue = new Float32Array(size);
     owner.fixedPoseValue = new Float32Array(size);
     owner.baseTempValue = new Float32Array(size);
+    owner.crossTempValue = new Float32Array(size);
   }
 
   /**
