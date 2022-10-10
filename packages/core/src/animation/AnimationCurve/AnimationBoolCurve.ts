@@ -1,5 +1,4 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { InterpolationType } from "../enums/InterpolationType";
 import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -12,6 +11,8 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /** @internal */
   static _isReferenceType: boolean = false;
+  /** @internal */
+  static _isInterpolationType: boolean = false;
 
   /**
    * @internal
@@ -57,13 +58,5 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
    */
   static _hermiteInterpolationValue(frame: Keyframe<boolean>): boolean {
     return frame.value;
-  }
-
-  /**
-   * @internal
-   */
-  _evaluate(time: number, out?: boolean): boolean {
-    this.interpolation = InterpolationType.Step;
-    return super._evaluate(time, out);
   }
 }
