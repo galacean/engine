@@ -81,7 +81,6 @@ export class LightManager {
         maxIntensity = Number.NEGATIVE_INFINITY;
         hasShadowLight = true;
       }
-
       const intensity = directLight.intensity * directLight.color.getBrightness();
       if (hasShadowLight) {
         if (directLight.enableShadow && maxIntensity < intensity) {
