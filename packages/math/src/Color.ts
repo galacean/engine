@@ -75,10 +75,11 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
    * @param out - The difference between two colors
    */
   static subtract(left: Color, right: Color, out: Color): void {
-    out.r = left.r - right.r;
-    out.g = left.g - right.g;
-    out.b = left.b - right.b;
-    out.a = left.a - right.a;
+    out._r = left._r - right._r;
+    out._g = left._g - right._g;
+    out._b = left._b - right._b;
+    out._a = left._a - right._a;
+    out._onValueChanged && out._onValueChanged();
   }
 
   /**
