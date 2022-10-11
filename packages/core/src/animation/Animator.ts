@@ -176,23 +176,7 @@ export class Animator extends Component {
    * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
    */
   findAnimatorState(stateName: string, layerIndex: number): AnimatorState {
-    const { _animatorController: animatorController } = this;
-    let state: AnimatorState = null;
-    if (animatorController) {
-      const layers = animatorController.layers;
-      if (layerIndex === -1) {
-        for (let i = 0, n = layers.length; i < n; i++) {
-          state = layers[i].stateMachine.findStateByName(stateName);
-          if (state) {
-            layerIndex = i;
-            break;
-          }
-        }
-      } else {
-        state = layers[layerIndex].stateMachine.findStateByName(stateName);
-      }
-    }
-    return state;
+    return this._getAnimatorStateInfo(stateName, layerIndex, Animator._tempAnimatorInfo).state;
   }
 
   /**
@@ -232,7 +216,22 @@ export class Animator extends Component {
   }
 
   private _getAnimatorStateInfo(stateName: string, layerIndex: number, out: AnimatorStateInfo): AnimatorStateInfo {
-    const state = this.findAnimatorState(stateName, layerIndex);
+    const { _animatorController: animatorController } = this;
+    let state: AnimatorState = null;
+    if (animatorController) {
+      const layers = animatorController.layers;
+      if (layerIndex === -1) {
+        for (let i = 0, n = layers.length; i < n; i++) {
+          state = layers[i].stateMachine.findStateByName(stateName);
+          if (state) {
+            layerIndex = i;
+            break;
+          }
+        }
+      } else {
+        state = layers[layerIndex].stateMachine.findStateByName(stateName);
+      }
+    }
     out.layerIndex = layerIndex;
     out.state = state;
     return out;
