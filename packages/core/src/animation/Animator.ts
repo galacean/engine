@@ -168,7 +168,7 @@ export class Animator extends Component {
    */
   getCurrentAnimatorState(layerIndex: number = -1) {
     const { _animatorLayersData } = this;
-    let state: AnimatorState;
+    let state: AnimatorState = null;
     if (layerIndex === -1) {
       for (let i = 0, n = _animatorLayersData.length; i < n; i++) {
         state = _animatorLayersData[i]?.srcPlayData?.state;
@@ -229,7 +229,7 @@ export class Animator extends Component {
 
   private _getAnimatorStateInfo(stateName: string, layerIndex: number, out: AnimatorStateInfo): AnimatorStateInfo {
     const { _animatorController: animatorController } = this;
-    let state: AnimatorState;
+    let state: AnimatorState = null;
     if (animatorController) {
       const layers = animatorController.layers;
       if (layerIndex === -1) {
