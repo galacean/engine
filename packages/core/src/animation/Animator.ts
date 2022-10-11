@@ -164,10 +164,31 @@ export class Animator extends Component {
 
   /**
    * Get the playing state from the target layerIndex.
-   * @param layerIndex - The layer index
+   * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
    */
-  getCurrentAnimatorState(layerIndex: number) {
-    return this._animatorLayersData[layerIndex]?.srcPlayData?.state;
+  getCurrentAnimatorState(layerIndex: number = -1) {
+    const { _animatorLayersData } = this;
+    let state: AnimatorState;
+    if (layerIndex === -1) {
+      for (let i = 0, n = _animatorLayersData.length; i < n; i++) {
+        state = _animatorLayersData[i]?.srcPlayData?.state;
+        if (state) {
+          break;
+        }
+      }
+    } else {
+      state = this._animatorLayersData[layerIndex]?.srcPlayData?.state;
+    }
+    return state;
+  }
+
+  /**
+   * Get the state by name.
+   * @param stateName - The state name
+   * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
+   */
+  getAnimatorStateByName(stateName: string, layerIndex: number): AnimatorState {
+    return this._getAnimatorStateInfo(stateName, layerIndex, Animator._tempAnimatorInfo).state;
   }
 
   /**
@@ -207,8 +228,8 @@ export class Animator extends Component {
   }
 
   private _getAnimatorStateInfo(stateName: string, layerIndex: number, out: AnimatorStateInfo): AnimatorStateInfo {
-    let state: AnimatorState = null;
     const { _animatorController: animatorController } = this;
+    let state: AnimatorState;
     if (animatorController) {
       const layers = animatorController.layers;
       if (layerIndex === -1) {
