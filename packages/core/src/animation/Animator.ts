@@ -175,7 +175,7 @@ export class Animator extends Component {
    * @param stateName - The state name
    * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
    */
-  findAnimatorState(stateName: string, layerIndex: number): AnimatorState {
+  findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorState {
     return this._getAnimatorStateInfo(stateName, layerIndex, Animator._tempAnimatorInfo).state;
   }
 
