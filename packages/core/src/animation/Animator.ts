@@ -166,8 +166,33 @@ export class Animator extends Component {
    * Get the playing state from the target layerIndex.
    * @param layerIndex - The layer index
    */
-  getCurrentAnimatorState(layerIndex: number) {
+  getCurrentAnimatorState(layerIndex: number): AnimatorState {
     return this._animatorLayersData[layerIndex]?.srcPlayData?.state;
+  }
+
+  /**
+   * Get the state by name.
+   * @param stateName - The state name
+   * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
+   */
+  findAnimatorState(stateName: string, layerIndex: number): AnimatorState {
+    const { _animatorController: animatorController } = this;
+    let state: AnimatorState = null;
+    if (animatorController) {
+      const layers = animatorController.layers;
+      if (layerIndex === -1) {
+        for (let i = 0, n = layers.length; i < n; i++) {
+          state = layers[i].stateMachine.findStateByName(stateName);
+          if (state) {
+            layerIndex = i;
+            break;
+          }
+        }
+      } else {
+        state = layers[layerIndex].stateMachine.findStateByName(stateName);
+      }
+    }
+    return state;
   }
 
   /**
@@ -207,22 +232,7 @@ export class Animator extends Component {
   }
 
   private _getAnimatorStateInfo(stateName: string, layerIndex: number, out: AnimatorStateInfo): AnimatorStateInfo {
-    let state: AnimatorState = null;
-    const { _animatorController: animatorController } = this;
-    if (animatorController) {
-      const layers = animatorController.layers;
-      if (layerIndex === -1) {
-        for (let i = 0, n = layers.length; i < n; i++) {
-          state = layers[i].stateMachine.findStateByName(stateName);
-          if (state) {
-            layerIndex = i;
-            break;
-          }
-        }
-      } else {
-        state = layers[layerIndex].stateMachine.findStateByName(stateName);
-      }
-    }
+    const state = this.findAnimatorState(stateName, layerIndex);
     out.layerIndex = layerIndex;
     out.state = state;
     return out;
