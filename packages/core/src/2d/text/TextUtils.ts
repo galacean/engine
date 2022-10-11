@@ -247,66 +247,10 @@ export class TextUtils {
   }
 
   static async registerFont(fontName: string, fontUrl: string): Promise<boolean> {
-    if (FontFace) {
-      return this._registerFontWithFontFace(fontName, fontUrl);
-    } else {
-      return this._registerFontWithCSS(fontName, fontUrl);
-    }
-  }
-
-  private static async _registerFontWithFontFace(fontName: string, fontUrl: string): Promise<boolean> {
     const fontFace = new FontFace(fontName, `url(${fontUrl})`);
     await fontFace.load();
     document.fonts.add(fontFace);
     return true;
-  }
-
-  private static async _registerFontWithCSS(fontName: string, fontUrl: string): Promise<boolean> {
-    return new Promise((resolve, reject) => {
-      try {
-        const { context } = TextUtils.textContext();
-        const testString = "OasisCustomFont";
-        const fontDesc = `40px ${fontName}`;
-        context.font = fontDesc;
-        const textWidth = context.measureText(testString).width;
-
-        const fontStyle = document.createElement("style");
-        fontStyle.type = "text/css";
-        const { body } = document;
-        body.appendChild(fontStyle);
-        fontStyle.textContent = `@font-face { font-family:${fontName}; src:url("${fontUrl}");}`;
-        let div = document.createElement("div");
-        div.innerHTML = "Oasis";
-        const style = div.style;
-        style.position = "absolute";
-        style.left = "-100px";
-        style.top = "-100px";
-        body.appendChild(div);
-
-        const complete = () => {
-          clearInterval(checkTimeId);
-          clearTimeout(checkCompleteId);
-          if (div && div.parentNode) {
-            div.parentNode.removeChild(div);
-            div = null;
-          }
-        };
-
-        const checkTimeId = setInterval(() => {
-          context.font = fontDesc;
-          if (context.measureText(testString).width !== textWidth) {
-            complete();
-            resolve(true);
-          }
-        }, 30);
-        const checkCompleteId = setTimeout(() => {
-          complete();
-          reject(new Error(`load ${fontUrl} fail`));
-        }, 3000);
-      } catch (e) {
-        reject(e);
-      }
-    });
   }
 
   private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
