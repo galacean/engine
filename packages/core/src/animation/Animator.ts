@@ -164,22 +164,10 @@ export class Animator extends Component {
 
   /**
    * Get the playing state from the target layerIndex.
-   * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
+   * @param layerIndex - The layer index
    */
-  getCurrentAnimatorState(layerIndex: number = -1) {
-    const { _animatorLayersData } = this;
-    let state: AnimatorState = null;
-    if (layerIndex === -1) {
-      for (let i = 0, n = _animatorLayersData.length; i < n; i++) {
-        state = _animatorLayersData[i]?.srcPlayData?.state;
-        if (state) {
-          break;
-        }
-      }
-    } else {
-      state = this._animatorLayersData[layerIndex]?.srcPlayData?.state;
-    }
-    return state;
+  getCurrentAnimatorState(layerIndex: number): AnimatorState {
+    return this._animatorLayersData[layerIndex]?.srcPlayData?.state;
   }
 
   /**
