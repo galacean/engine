@@ -12,6 +12,7 @@ import "./HDRLoader";
 import "./gltf/extensions/index";
 import "./MaterialLoader";
 import "./MeshLoader";
+import "./AnimatorControllerLoader";
 
 export * from "./resource-deserialize";
 export { GLTFResource } from "./gltf/GLTFResource";
