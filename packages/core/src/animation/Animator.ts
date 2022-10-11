@@ -232,7 +232,7 @@ export class Animator extends Component {
   }
 
   private _getAnimatorStateInfo(stateName: string, layerIndex: number, out: AnimatorStateInfo): AnimatorStateInfo {
-    const state = this.findAnimatorStateByName(stateName, layerIndex);
+    const state = this.findAnimatorState(stateName, layerIndex);
     out.layerIndex = layerIndex;
     out.state = state;
     return out;
