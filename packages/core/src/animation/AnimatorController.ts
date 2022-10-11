@@ -6,9 +6,6 @@ import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
  * Store the data for Animator playback.
  */
 export class AnimatorController {
-  /** @internal */
-  _onDataChanged: () => void = null;
-
   private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
   private _layers: AnimatorControllerLayer[] = [];
   private _layersMap: Record<string, AnimatorControllerLayer> = {};
@@ -35,7 +32,7 @@ export class AnimatorController {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
-    this._onChange();
+    this._distributeUpdateFlag();
   }
 
   /**
@@ -46,7 +43,7 @@ export class AnimatorController {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
     delete this._layersMap[theLayer.name];
-    this._onChange();
+    this._distributeUpdateFlag();
   }
 
   /**
@@ -57,7 +54,7 @@ export class AnimatorController {
     for (let name in this._layersMap) {
       delete this._layersMap[name];
     }
-    this._onChange();
+    this._distributeUpdateFlag();
   }
 
   /**
@@ -67,8 +64,7 @@ export class AnimatorController {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 
-  private _onChange() {
+  private _distributeUpdateFlag(): void {
     this._updateFlagManager.dispatch();
-    this._onDataChanged && this._onDataChanged();
   }
 }
