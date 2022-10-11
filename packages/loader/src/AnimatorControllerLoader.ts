@@ -41,8 +41,6 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                 clip: clipData
               } = stateData;
               const state = stateMachine.addState(name);
-              //@ts-ignore
-              isDefaultState && (stateMachine.entryState = state);
               state.speed = speed;
               state.wrapMode = wrapMode;
               state.clipStartTime = clipStartNormalizedTime;

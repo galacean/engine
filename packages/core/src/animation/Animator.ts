@@ -72,13 +72,10 @@ export class Animator extends Component {
   }
 
   set animatorController(animatorController: AnimatorController) {
-    if (animatorController && animatorController !== this._animatorController) {
+    if (animatorController !== this._animatorController) {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
-      this._animatorController && (this._animatorController._onDataChanged = null);
       this._animatorController = animatorController;
-      this._onAnimatorControllerChange();
-      animatorController._onDataChanged = this._onAnimatorControllerChange.bind(this);
     }
   }
 
@@ -1015,20 +1012,6 @@ export class Animator extends Component {
     const scripts = state._onStateExitScripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateExit(this, state, layerIndex);
-    }
-  }
-
-  private _onAnimatorControllerChange() {
-    this._checkAutoPlay();
-  }
-
-  private _checkAutoPlay() {
-    const { layers } = this._animatorController;
-    for (let i = 0, n = layers.length; i < n; ++i) {
-      const stateMachine = layers[i].stateMachine;
-      if (stateMachine && stateMachine.entryState) {
-        this.play(stateMachine.entryState.name, i);
-      }
     }
   }
 
