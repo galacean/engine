@@ -1,4 +1,4 @@
-import { Color, Matrix, Vector3 } from "@oasis-engine/math";
+import { Matrix, Vector3 } from "@oasis-engine/math";
 import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -26,7 +26,7 @@ export class DirectLight extends Light {
   }
 
   private _forward: Vector3 = new Vector3();
-  private _lightColor: Color = new Color(1, 1, 1, 1);
+
   private _reverseDirection: Vector3 = new Vector3();
 
   /**
@@ -35,17 +35,6 @@ export class DirectLight extends Light {
   get direction(): Vector3 {
     this.entity.transform.getWorldForward(this._forward);
     return this._forward;
-  }
-
-  /**
-   * Get the final light color.
-   */
-  get lightColor(): Color {
-    this._lightColor.r = this.color.r * this.intensity;
-    this._lightColor.g = this.color.g * this.intensity;
-    this._lightColor.b = this.color.b * this.intensity;
-    this._lightColor.a = this.color.a * this.intensity;
-    return this._lightColor;
   }
 
   /**
@@ -70,7 +59,7 @@ export class DirectLight extends Light {
   _appendData(lightIndex: number): void {
     const colorStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
-    const lightColor = this.lightColor;
+    const lightColor = this._getLightColor();
     const direction = this.direction;
 
     const data = DirectLight._combinedData;
