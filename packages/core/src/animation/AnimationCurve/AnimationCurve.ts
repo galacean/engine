@@ -103,7 +103,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     // Compute curIndex and nextIndex.
     let curIndex = this._currentIndex;
     // Reset loop.
-    if (curIndex !== -1 && time < keys[curIndex].time) {
+    if (curIndex !== -1 && (curIndex >= length || time < keys[curIndex].time)) {
       curIndex = -1;
     }
 
