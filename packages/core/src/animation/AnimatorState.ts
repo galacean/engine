@@ -44,7 +44,21 @@ export class AnimatorState {
   }
 
   /**
-   * The start time of the clip, the range is 0 to 1, default is 0.
+   * The start time of this state's clip
+   */
+  get startTime() {
+    return this._clip.length * this._clipStartTime;
+  }
+
+  /**
+   * The end time of this state's clip
+   */
+  get endTime() {
+    return this._clip.length * this._clipEndTime;
+  }
+
+  /**
+   * The normalized start time of the clip, the range is 0 to 1, default is 0.
    */
   get clipStartTime() {
     return this._clipStartTime;
@@ -55,7 +69,7 @@ export class AnimatorState {
   }
 
   /**
-   * The end time of the clip, the range is 0 to 1, default is 1.
+   * The normalized end time of the clip, the range is 0 to 1, default is 1.
    */
   get clipEndTime() {
     return this._clipEndTime;

@@ -1,3 +1,4 @@
+import { AnimatorControllerParameter } from "./AnimatorControllerParameter";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
@@ -17,6 +18,9 @@ import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { CrossCurveData } from "./internal/CrossCurveData";
 import { KeyframeValueType } from "./Keyframe";
+import { AnimatorCondition } from "./AnimatorCondition";
+import { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
+
 /**
  * The controller of the animation system.
  */
@@ -403,7 +407,7 @@ export class Animator extends Component {
     const layerWeight = firstLayer ? 1.0 : weight;
     //TODO: 任意情况都应该检查，后面要优化
     animLayerData.layerState !== LayerState.FixedCrossFading &&
-      this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
+      this._checkTransitions(srcPlayData, crossFadeTransitionInfo, layerIndex, deltaTime);
 
     switch (animLayerData.layerState) {
       case LayerState.Playing:
@@ -612,20 +616,83 @@ export class Animator extends Component {
     }
   }
 
-  private _checkTransition(
+  private _checkTransitions(
     stateData: AnimatorStatePlayData,
     crossFadeTransition: AnimatorStateTransition,
-    layerIndex: number
+    layerIndex: number,
+    deltaTime: number
   ) {
     const { state, clipTime } = stateData;
-    const { transitions } = state;
+    const { transitions, speed } = state;
     const duration = state._getDuration();
+    const time = clipTime + speed * deltaTime;
+    let runTransition: AnimatorStateTransition;
+    let hasSolo: boolean;
+
     for (let i = 0, n = transitions.length; i < n; ++i) {
       const transition = transitions[i];
-      if (duration * transition.exitTime <= clipTime) {
-        crossFadeTransition !== transition && this._crossFadeByTransition(transition, layerIndex);
+      const { mute, conditions, solo } = transition;
+
+      if (solo) {
+        hasSolo = true;
+        runTransition = null;
+      }
+      if (!mute && (solo || !hasSolo) && duration * transition.exitTime <= time && this._checkConditions(conditions)) {
+        if (crossFadeTransition !== transition) {
+          runTransition = transition;
+          if (solo) {
+            break;
+          }
+        }
       }
     }
+    runTransition && this._crossFadeByTransition(runTransition, layerIndex);
+  }
+
+  private _checkConditions(conditions: Readonly<AnimatorCondition[]>) {
+    let allPass = true;
+    for (let i = 0, n = conditions.length; i < n; ++i) {
+      let pass = false;
+      const { mode, parameter: name, threshold } = conditions[i];
+      const parameter = this._animatorController.getParameter(name);
+      switch (mode) {
+        case AnimatorConditionMode.Equals:
+          if (parameter.value === threshold) {
+            pass = true;
+          }
+          break;
+        case AnimatorConditionMode.Greater:
+          if (parameter.value > threshold) {
+            pass = true;
+          }
+          break;
+        case AnimatorConditionMode.Less:
+          if (parameter.value < threshold) {
+            pass = true;
+          }
+          break;
+        case AnimatorConditionMode.NotEquals:
+          if (parameter.value !== threshold) {
+            pass = true;
+          }
+          break;
+        case AnimatorConditionMode.If:
+          if (parameter.value === true) {
+            pass = true;
+          }
+          break;
+        case AnimatorConditionMode.IfNot:
+          if (parameter.value === false) {
+            pass = true;
+          }
+          break;
+      }
+      if (!pass) {
+        allPass = false;
+        break;
+      }
+    }
+    return allPass;
   }
 
   private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
