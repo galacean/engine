@@ -44,8 +44,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
   private _cureType: IAnimationCurveCalculator<V>;
-  private _currentSrcIndex: number = 0;
-  private _currentDestIndex: number = 0;
+  private _baseCurveCurrentKeyframeIndex: number = 0;
+  private _crossCurveCurrentKeyframeIndex: number = 0;
 
   constructor(
     target: Entity,
@@ -71,8 +71,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number, additive: boolean): void {
     if (curve.keys.length) {
       if (additive) {
-        const value = curve._evaluateAdditive(time, this._currentSrcIndex, this.baseTempValue);
-        this._currentSrcIndex = AnimationCurve._tempProgress.curIndex;
+        const value = curve._evaluateAdditive(time, this._baseCurveCurrentKeyframeIndex, this.baseTempValue);
+        this._baseCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
 
         const cureType = this._cureType;
         if (cureType._isReferenceType) {
@@ -84,8 +84,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           assembler.setTargetValue(additiveValue);
         }
       } else {
-        const value = curve._evaluate(time, this._currentSrcIndex, this.baseTempValue);
-        this._currentSrcIndex = AnimationCurve._tempProgress.curIndex;
+        const value = curve._evaluate(time, this._baseCurveCurrentKeyframeIndex, this.baseTempValue);
+        this._baseCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
 
         this._applyValue(value, layerWeight);
       }
@@ -107,27 +107,27 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       const srcValue =
         srcCurve && srcCount
           ? additive
-            ? srcCurve._evaluateAdditive(srcTime, this._currentSrcIndex, this.baseTempValue)
-            : srcCurve._evaluate(srcTime, this._currentSrcIndex, this.baseTempValue)
+            ? srcCurve._evaluateAdditive(srcTime, this._baseCurveCurrentKeyframeIndex, this.baseTempValue)
+            : srcCurve._evaluate(srcTime, this._baseCurveCurrentKeyframeIndex, this.baseTempValue)
           : additive
           ? this._cureType._getZeroValue(this.baseTempValue)
           : this.defaultValue;
 
       if (srcCurve && srcCount && additive) {
-        this._currentSrcIndex = AnimationCurve._tempProgress.curIndex;
+        this._baseCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
       }
 
       const destValue =
         destCurve && destCount
           ? additive
-            ? destCurve._evaluateAdditive(destTime, this._currentDestIndex, this.crossTempValue)
-            : destCurve._evaluate(destTime, this._currentDestIndex, this.crossTempValue)
+            ? destCurve._evaluateAdditive(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
+            : destCurve._evaluate(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
           : additive
           ? this._cureType._getZeroValue(this.crossTempValue)
           : this.defaultValue;
 
       if (destCurve && destCount && additive) {
-        this._currentDestIndex = AnimationCurve._tempProgress.curIndex;
+        this._crossCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
       }
 
       this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
@@ -148,14 +148,14 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     const destValue =
       destCurve && destCount
         ? additive
-          ? destCurve._evaluateAdditive(destTime, this._currentDestIndex, this.crossTempValue)
-          : destCurve._evaluate(destTime, this._currentDestIndex, this.crossTempValue)
+          ? destCurve._evaluateAdditive(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
+          : destCurve._evaluate(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
         : additive
         ? this._cureType._getZeroValue(this.crossTempValue)
         : this.defaultValue;
 
     if (destCurve && destCount && additive) {
-      this._currentDestIndex = AnimationCurve._tempProgress.curIndex;
+      this._crossCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
     }
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
