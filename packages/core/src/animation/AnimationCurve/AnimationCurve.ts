@@ -2,16 +2,21 @@ import { InterpolationType } from "../enums/InterpolationType";
 import { Keyframe, KeyframeValueType } from "../Keyframe";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
+interface IProgress {
+  curIndex: number;
+  t: number;
+  duration: number;
+}
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
 export abstract class AnimationCurve<V extends KeyframeValueType> {
+  static _tempProgress: IProgress = { curIndex: -1, t: 0, duration: 0 };
   /** All keys defined in the animation curve. */
   keys: Keyframe<V>[] = [];
 
   protected _tempValue: V;
   protected _length: number = 0;
-  protected _currentIndex: number = 0;
   protected _interpolation: InterpolationType;
 
   private _type: IAnimationCurveCalculator<V>;
@@ -64,16 +69,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): V {
-    return this._evaluate(time, this._tempValue);
-  }
-
-  /**
-   * Removes the keyframe at index and inserts key.
-   * @param index - The index of the key to move
-   * @param key - The key to insert
-   */
-  moveKey(index: number, key: Keyframe<V>): void {
-    this.keys[index] = key;
+    return this._evaluate(time, 0, this._tempValue);
   }
 
   /**
@@ -83,11 +79,12 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   removeKey(index: number): void {
     this.keys.splice(index, 1);
     const { keys } = this;
-    const count = this.keys.length;
+
     let newLength = 0;
-    for (let i = count - 1; i >= 0; i--) {
-      if (keys[i].time > length) {
-        newLength = keys[i].time;
+    for (let i = keys.length - 1; i >= 0; i--) {
+      const key = keys[i];
+      if (key.time > length) {
+        newLength = key.time;
       }
     }
     this._length = newLength;
@@ -96,12 +93,12 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /**
    * @internal
    */
-  _evaluate(time: number, out?: V): V {
-    const { keys, interpolation } = this;
+  _getProgress(time: number, startIndex: number): IProgress {
+    const { keys } = this;
     const { length } = this.keys;
-
     // Compute curIndex and nextIndex.
-    let curIndex = this._currentIndex;
+    let curIndex = startIndex;
+
     // Reset loop.
     if (curIndex !== -1 && (curIndex >= length || time < keys[curIndex].time)) {
       curIndex = -1;
@@ -115,20 +112,39 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       curIndex++;
       nextIndex++;
     }
-    this._currentIndex = curIndex;
-    // Evaluate value.
+    const { _tempProgress } = AnimationCurve;
+    const curFrameTime = keys[curIndex].time;
+    const duration = keys[nextIndex].time - curFrameTime;
+    const t = (time - curFrameTime) / duration;
+    _tempProgress.curIndex = curIndex;
+    _tempProgress.t = t;
+    _tempProgress.duration = duration;
+    return _tempProgress;
+  }
+
+  /**
+   * @internal
+   */
+  _evaluate(time: number, startIndex: number, out?: V): V {
+    const { keys, interpolation } = this;
+    const { curIndex, t, duration } = this._getProgress(time, startIndex);
+
+    if (!keys.length) {
+      console.warn(`This curve don't have any keyframes: `, this);
+      return;
+    }
+
+    const curFrame = keys[curIndex];
+    const nextFrame = keys[curIndex + 1];
+
     let value: V;
     if (curIndex === -1) {
-      value = this._type._copyValue(keys[0].value, out);
-    } else if (nextIndex === length) {
-      value = this._type._copyValue(keys[curIndex].value, out);
+      value = this._type._copyValue(nextFrame.value, out);
+    } else if (curIndex + 1 === length) {
+      value = this._type._copyValue(curFrame.value, out);
     } else {
-      // Time between first frame and end frame.
       const curFrame = keys[curIndex];
-      const nextFrame = keys[nextIndex];
-      const curFrameTime = curFrame.time;
-      const duration = nextFrame.time - curFrameTime;
-      const t = (time - curFrameTime) / duration;
+      const nextFrame = keys[curIndex + 1];
 
       switch (interpolation) {
         case InterpolationType.Linear:
@@ -149,8 +165,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, out?: V): V {
-    const result = this._evaluate(time, out);
+  _evaluateAdditive(time: number, startIndex: number, out?: V): V {
+    const result = this._evaluate(time, startIndex, this._tempValue);
     return this._type._subtractValue(result, this.keys[0].value, out);
   }
 }
