@@ -1,6 +1,5 @@
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
-import { TextUtils } from "./TextUtils";
 import { SubFont } from "./SubFont";
 import { FontStyle } from "../enums/FontStyle";
 
@@ -11,40 +10,23 @@ export class Font extends RefObject {
   private static _fontMap: Record<string, Font> = {};
 
   /**
-   * Create a font.
+   * Create a system font.
    * @param engine - Engine to which the font belongs
    * @param name - The name of font want to create
-   * @param fontUrl - The font url to register, if not, will use system font
    * @returns The font object has been create
    */
-  static async create(engine: Engine, name: string, fontUrl: string = ""): Promise<Font> {
+  static createFromOS(engine: Engine, name: string): Font {
     if (name) {
       const fontMap = Font._fontMap;
       let font = fontMap[name];
       if (font) {
         return font;
       }
-      if (fontUrl !== "") {
-        await TextUtils.registerFont(name, fontUrl);
-      }
       font = new Font(engine, name);
       fontMap[name] = font;
       return font;
     }
     return null;
-  }
-
-  /**
-   * Delete a font.
-   * @param name - The name of font want to delete
-   */
-  static delete(name: string): void {
-    const fontMap = Font._fontMap;
-    const font = fontMap[name];
-    if (font) {
-      font.destroy();
-      delete fontMap[name];
-    }
   }
 
   private _name: string = "";

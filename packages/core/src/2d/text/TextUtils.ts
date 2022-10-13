@@ -246,13 +246,6 @@ export class TextUtils {
     return str;
   }
 
-  static async registerFont(fontName: string, fontUrl: string): Promise<boolean> {
-    const fontFace = new FontFace(fontName, `url(${fontUrl})`);
-    await fontFace.load();
-    document.fonts.add(fontFace);
-    return true;
-  }
-
   private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
