@@ -113,8 +113,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       nextIndex++;
     }
     const { _tempProgress } = AnimationCurve;
-    const curFrameTime = keys[curIndex].time;
-    const duration = keys[nextIndex].time - curFrameTime;
+    const curFrameTime = keys[curIndex]?.time;
+    const duration = keys[nextIndex]?.time - curFrameTime;
     const t = (time - curFrameTime) / duration;
     _tempProgress.curIndex = curIndex;
     _tempProgress.t = t;
@@ -128,8 +128,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   _evaluate(time: number, startIndex: number, out?: V): V {
     const { keys, interpolation } = this;
     const { curIndex, t, duration } = this._getProgress(time, startIndex);
+    const { length } = keys;
 
-    if (!keys.length) {
+    if (!length) {
       console.warn(`This curve don't have any keyframes: `, this);
       return;
     }
