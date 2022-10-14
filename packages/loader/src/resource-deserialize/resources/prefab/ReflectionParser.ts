@@ -1,7 +1,14 @@
 import { Engine, Entity, Loader } from "@oasis-engine/core";
+import { debug } from "console";
 import { IBasicType, IClassObject, IEntity, IReferenceType } from "./PrefabDesign";
 
 export class ReflectionParser {
+  static customParseComponentHandles = new Map<string, Function>();
+
+  static registerCustomParseComponent(componentType: string, handle: Function) {
+    this.customParseComponentHandles[componentType] = handle;
+  }
+
   static parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
       entity.isActive = entityConfig.isActive ?? true;
@@ -103,8 +110,17 @@ export class ReflectionParser {
       }
     }
 
-    return Promise.all(promises).then(() => {
-      return instance;
+    return new Promise((resolve) => {
+      Promise.all(promises).then(() => {
+        const handle = this.customParseComponentHandles[instance.constructor.name];
+        if (handle) {
+          handle(instance, item, engine).then(() => {
+            resolve(instance);
+          });
+        } else {
+          resolve(instance);
+        }
+      });
     });
   }
 
