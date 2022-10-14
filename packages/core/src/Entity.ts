@@ -491,14 +491,15 @@ export class Entity extends EngineObject {
       if (parent) {
         parent._addToChildrenList(siblingIndex, this);
 
+        const parentScene = parent._scene;
+        if (this._scene !== parentScene) {
+          Entity._traverseSetOwnerScene(this, parentScene);
+        }
+
         if (parent._isActiveInHierarchy) {
           !this._isActiveInHierarchy && this._isActive && this._processActive();
         } else {
           this._isActiveInHierarchy && this._processInActive();
-        }
-        const parentScene = parent._scene;
-        if (this._scene !== parentScene) {
-          Entity._traverseSetOwnerScene(this, parentScene);
         }
       } else {
         this._isActiveInHierarchy && this._processInActive();
