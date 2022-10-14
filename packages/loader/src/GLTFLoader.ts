@@ -37,6 +37,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
             resource.meshIndex = value1;
             resource.subMeshIndex = value2;
             break;
+          case "defaultSceneRoot":
+            pipeline = GLTFParser.defaultPipeline;
+            resource.defaultSceneRootOnly = true;
+            break;
         }
       }
 

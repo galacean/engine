@@ -50,4 +50,5 @@ export class GLTFResource extends EngineObject {
   animationIndex?: number;
   meshIndex?: number;
   subMeshIndex?: number;
+  defaultSceneRootOnly?: boolean;
 }
