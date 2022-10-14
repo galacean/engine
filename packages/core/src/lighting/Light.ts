@@ -1,6 +1,6 @@
 import { Color, Matrix } from "@oasis-engine/math";
-import { Component } from "../Component";
 import { ignoreClone } from "../clone/CloneManager";
+import { Component } from "../Component";
 
 /**
  * Light base class.
@@ -11,8 +11,6 @@ export abstract class Light extends Component {
    * */
   protected static _maxLight: number = 10;
 
-  /** Light Color */
-  color: Color = new Color(1, 1, 1, 1);
   /** Light Intensity */
   intensity: number = 1;
 
@@ -31,8 +29,23 @@ export abstract class Light extends Component {
   @ignoreClone
   _lightIndex: number = -1;
 
+  private _color: Color = new Color(1, 1, 1, 1);
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
+  private _lightColor: Color = new Color();
+
+  /**
+   * Light Color.
+   */
+  get color(): Color {
+    return this._color;
+  }
+
+  set color(value: Color) {
+    if (this._color !== value) {
+      this._color.copyFrom(value);
+    }
+  }
 
   /**
    * View matrix.
@@ -56,4 +69,12 @@ export abstract class Light extends Component {
    * @internal
    */
   abstract get _shadowProjectionMatrix(): Matrix;
+
+  protected _getLightColor(): Color {
+    this._lightColor.r = this.color.r * this.intensity;
+    this._lightColor.g = this.color.g * this.intensity;
+    this._lightColor.b = this.color.b * this.intensity;
+    this._lightColor.a = this.color.a * this.intensity;
+    return this._lightColor;
+  }
 }

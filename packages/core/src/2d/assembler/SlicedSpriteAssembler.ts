@@ -1,8 +1,7 @@
 import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { SpriteMask } from "../sprite";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
-import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 /**
  * @internal
