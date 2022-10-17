@@ -63,6 +63,7 @@ export class Animator extends Component {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController && (this._animatorController._onDataChanged = null);
+      this._reset();
       this._animatorController = animatorController;
       this._onAnimatorControllerChange();
       animatorController._onDataChanged = this._onAnimatorControllerChange.bind(this);
@@ -206,7 +207,8 @@ export class Animator extends Component {
     if (animatorController) {
       const layers = animatorController.layers;
       for (let i = 0, n = layers.length; i < n; ++i) {
-        const { states } = layers[i].stateMachine;
+        const states = layers[i].stateMachine?.states;
+        if (!states) continue;
         const animatorLayerData = this._getAnimatorLayerData(i);
         for (let j = 0, m = states.length; j < m; ++j) {
           const state = states[j];
