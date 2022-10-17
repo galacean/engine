@@ -12,7 +12,7 @@ import { TextureParser } from "./parser/TextureParser";
 import { Validator } from "./parser/Validator";
 
 export class GLTFParser {
-  static instance = new GLTFParser([
+  static defaultPipeline = new GLTFParser([
     BufferParser,
     Validator,
     TextureParser,
@@ -24,6 +24,11 @@ export class GLTFParser {
     SceneParser
   ]);
 
+  static texturePipeline = new GLTFParser([BufferParser, TextureParser]);
+  static materialPipeline = new GLTFParser([BufferParser, TextureParser, MaterialParser]);
+  static animationPipeline = new GLTFParser([BufferParser, EntityParser, AnimationParser]);
+  static meshPipeline = new GLTFParser([BufferParser, MeshParser]);
+
   private _pipes: Parser[] = [];
 
   private constructor(pipes: (new () => Parser)[]) {
@@ -34,7 +39,7 @@ export class GLTFParser {
 
   parse(context: ParserContext): Promise<GLTFResource> {
     const glTFResource = context.glTFResource;
-    let lastPipe: void | Promise<void>;
+    let lastPipe;
 
     return new Promise((resolve, reject) => {
       this._pipes.forEach((parser: Parser) => {
@@ -49,8 +54,8 @@ export class GLTFParser {
 
       if (lastPipe) {
         lastPipe
-          .then(() => {
-            resolve(glTFResource);
+          .then((customRes) => {
+            resolve(customRes || glTFResource);
           })
           .catch(reject);
       } else {

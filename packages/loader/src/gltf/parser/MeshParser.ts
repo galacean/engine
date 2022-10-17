@@ -8,95 +8,108 @@ import { ParserContext } from "./ParserContext";
 export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
 
-  parse(context: ParserContext): Promise<void> {
-    const glTFResource = context.glTFResource;
+  parse(context: ParserContext) {
+    const { meshIndex, subMeshIndex, glTFResource } = context;
     const { engine, gltf, buffers } = glTFResource;
     if (!gltf.meshes) return;
 
     const meshPromises: Promise<ModelMesh[]>[] = [];
 
     for (let i = 0; i < gltf.meshes.length; i++) {
+      if (meshIndex >= 0 && meshIndex !== i) {
+        continue;
+      }
       const gltfMesh = gltf.meshes[i];
       const primitivePromises: Promise<ModelMesh>[] = [];
 
       for (let j = 0; j < gltfMesh.primitives.length; j++) {
+        if (subMeshIndex >= 0 && subMeshIndex !== j) {
+          continue;
+        }
+
         const gltfPrimitive = gltfMesh.primitives[j];
         const { extensions = {} } = gltfPrimitive;
         const { KHR_draco_mesh_compression } = extensions;
 
-        primitivePromises.push(
-          new Promise((resolve) => {
-            const mesh = new ModelMesh(engine, gltfMesh.name || j + "");
+        primitivePromises[j] = new Promise((resolve) => {
+          const mesh = new ModelMesh(engine, gltfMesh.name || j + "");
 
-            if (KHR_draco_mesh_compression) {
-              (<Promise<EngineObject>>(
-                Parser.createEngineResource(
-                  "KHR_draco_mesh_compression",
-                  KHR_draco_mesh_compression,
-                  glTFResource,
-                  gltfPrimitive
-                )
-              ))
-                .then((decodedGeometry: any) => {
-                  return this._parseMeshFromGLTFPrimitive(
-                    mesh,
-                    gltfMesh,
-                    gltfPrimitive,
-                    gltf,
-                    (attributeSemantic) => {
-                      for (let j = 0; j < decodedGeometry.attributes.length; j++) {
-                        if (decodedGeometry.attributes[j].name === attributeSemantic) {
-                          return decodedGeometry.attributes[j].array;
-                        }
+          if (KHR_draco_mesh_compression) {
+            (<Promise<EngineObject>>(
+              Parser.createEngineResource(
+                "KHR_draco_mesh_compression",
+                KHR_draco_mesh_compression,
+                glTFResource,
+                gltfPrimitive
+              )
+            ))
+              .then((decodedGeometry: any) => {
+                return this._parseMeshFromGLTFPrimitive(
+                  mesh,
+                  gltfMesh,
+                  gltfPrimitive,
+                  gltf,
+                  (attributeSemantic) => {
+                    for (let j = 0; j < decodedGeometry.attributes.length; j++) {
+                      if (decodedGeometry.attributes[j].name === attributeSemantic) {
+                        return decodedGeometry.attributes[j].array;
                       }
-                      return null;
-                    },
-                    (attributeSemantic, shapeIndex) => {
-                      throw "BlendShape animation is not supported when using draco.";
-                    },
-                    () => {
-                      return decodedGeometry.index.array;
-                    },
-                    context.keepMeshData
-                  );
-                })
-                .then(resolve);
-            } else {
-              this._parseMeshFromGLTFPrimitive(
-                mesh,
-                gltfMesh,
-                gltfPrimitive,
-                gltf,
-                (attributeSemantic) => {
-                  const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
-                  const accessor = gltf.accessors[accessorIdx];
-                  return GLTFUtil.getAccessorData(gltf, accessor, buffers);
-                },
-                (attributeName, shapeIndex) => {
-                  const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
-                  const attributeAccessorIdx = shapeAccessorIdx[attributeName];
-                  if (attributeAccessorIdx) {
-                    const accessor = gltf.accessors[attributeAccessorIdx];
-                    return GLTFUtil.getAccessorData(gltf, accessor, buffers);
-                  } else {
+                    }
                     return null;
-                  }
-                },
-                () => {
-                  const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-                  return GLTFUtil.getAccessorData(gltf, indexAccessor, buffers);
-                },
-                context.keepMeshData
-              ).then(resolve);
-            }
-          })
-        );
+                  },
+                  (attributeSemantic, shapeIndex) => {
+                    throw "BlendShape animation is not supported when using draco.";
+                  },
+                  () => {
+                    return decodedGeometry.index.array;
+                  },
+                  context.keepMeshData
+                );
+              })
+              .then(resolve);
+          } else {
+            this._parseMeshFromGLTFPrimitive(
+              mesh,
+              gltfMesh,
+              gltfPrimitive,
+              gltf,
+              (attributeSemantic) => {
+                const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
+                const accessor = gltf.accessors[accessorIdx];
+                return GLTFUtil.getAccessorData(gltf, accessor, buffers);
+              },
+              (attributeName, shapeIndex) => {
+                const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
+                const attributeAccessorIdx = shapeAccessorIdx[attributeName];
+                if (attributeAccessorIdx) {
+                  const accessor = gltf.accessors[attributeAccessorIdx];
+                  return GLTFUtil.getAccessorData(gltf, accessor, buffers);
+                } else {
+                  return null;
+                }
+              },
+              () => {
+                const indexAccessor = gltf.accessors[gltfPrimitive.indices];
+                return GLTFUtil.getAccessorData(gltf, indexAccessor, buffers);
+              },
+              context.keepMeshData
+            ).then(resolve);
+          }
+        });
       }
 
-      meshPromises.push(Promise.all(primitivePromises));
+      meshPromises[i] = Promise.all(primitivePromises);
     }
 
     return Promise.all(meshPromises).then((meshes: ModelMesh[][]) => {
+      if (meshIndex >= 0) {
+        const mesh = meshes[meshIndex]?.[subMeshIndex];
+        if (mesh) {
+          return mesh;
+        } else {
+          throw `meshIndex-subMeshIndex index not find in: ${meshIndex}-${subMeshIndex}`;
+        }
+      }
       glTFResource.meshes = meshes;
     });
   }

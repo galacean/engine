@@ -6,5 +6,12 @@ import { GLTFResource } from "../GLTFResource";
 export class ParserContext {
   glTFResource: GLTFResource;
   keepMeshData: boolean;
-  createAnimator: boolean;
+  hasSkinned: boolean = false;
+  /** adapter subAsset */
+  textureIndex?: number;
+  materialIndex?: number;
+  animationIndex?: number;
+  meshIndex?: number;
+  subMeshIndex?: number;
+  defaultSceneRootOnly?: boolean;
 }

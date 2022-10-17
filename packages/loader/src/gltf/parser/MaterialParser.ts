@@ -22,8 +22,8 @@ export class MaterialParser extends Parser {
     }
   }
 
-  parse(context: ParserContext): void {
-    const glTFResource = context.glTFResource;
+  parse(context: ParserContext) {
+    const { glTFResource, materialIndex } = context;
 
     const { gltf, engine, textures } = glTFResource;
     if (!gltf.materials) return;
@@ -31,6 +31,9 @@ export class MaterialParser extends Parser {
     const materials: Material[] = [];
 
     for (let i = 0; i < gltf.materials.length; i++) {
+      if (materialIndex >= 0 && materialIndex !== i) {
+        continue;
+      }
       const {
         extensions = {},
         pbrMetallicRoughness,
@@ -171,6 +174,15 @@ export class MaterialParser extends Parser {
       }
 
       materials[i] = material;
+    }
+
+    if (materialIndex >= 0) {
+      const material = materials[materialIndex];
+      if (material) {
+        return material;
+      } else {
+        throw `material index not find in: ${materialIndex}`;
+      }
     }
 
     glTFResource.materials = materials;

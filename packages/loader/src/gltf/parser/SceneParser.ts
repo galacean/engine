@@ -27,8 +27,8 @@ export class SceneParser extends Parser {
     return SceneParser._defaultMaterial;
   }
 
-  parse(context: ParserContext): Promise<any> {
-    const glTFResource = context.glTFResource;
+  parse(context: ParserContext) {
+    const { defaultSceneRootOnly, glTFResource } = context;
     const {
       gltf: { nodes, cameras: gltfCameras },
       entities
@@ -63,9 +63,18 @@ export class SceneParser extends Parser {
     if (glTFResource.defaultSceneRoot) {
       this._createAnimator(context);
     }
-    
+
     glTFResource.gltf.extensions && delete glTFResource.gltf.extensions["OASIS_materials_remap"];
-    return Promise.all(promises);
+
+    if (defaultSceneRootOnly) {
+      if (glTFResource.defaultSceneRoot) {
+        return glTFResource.defaultSceneRoot;
+      } else {
+        throw `defaultSceneRoot is not find in this gltf`;
+      }
+    }
+
+    return Promise.all(promises).then(() => null);
   }
 
   private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
@@ -108,7 +117,7 @@ export class SceneParser extends Parser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: ParserContext, gltfNode: INode, entity: Entity): Promise<any> {
+  private _createRenderer(context: ParserContext, gltfNode: INode, entity: Entity) {
     const glTFResource = context.glTFResource;
     const {
       engine,
@@ -128,7 +137,7 @@ export class SceneParser extends Parser {
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
       if (skinID !== undefined || blendShapeWeights) {
-        context.createAnimator = true;
+        context.hasSkinned = true;
         const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
         skinRenderer.mesh = mesh;
         if (skinID !== undefined) {
@@ -139,7 +148,6 @@ export class SceneParser extends Parser {
         }
         renderer = skinRenderer;
       } else {
-        context.createAnimator = false;
         renderer = entity.addComponent(MeshRenderer);
         renderer.mesh = mesh;
       }
@@ -167,7 +175,7 @@ export class SceneParser extends Parser {
   }
 
   private _createAnimator(context: ParserContext): void {
-    if (!context.createAnimator) {
+    if (!context.hasSkinned && !context.glTFResource.animations) {
       return;
     }
 

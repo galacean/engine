@@ -61,7 +61,7 @@ export abstract class Parser {
     Parser._extensionParsers[extensionName].push(extensionParser);
   }
 
-  abstract parse(context: ParserContext): void | Promise<void>;
+  abstract parse(context: ParserContext);
 }
 
 /**
