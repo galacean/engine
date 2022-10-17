@@ -1,12 +1,13 @@
 import { Skin } from "@oasis-engine/core";
 import { Matrix } from "@oasis-engine/math";
-import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class SkinParser extends Parser {
-  parse(context: GLTFResource): void {
-    const { gltf, buffers, entities, defaultSceneRoot } = context;
+  parse(context: ParserContext): void {
+    const glTFResource = context.glTFResource;
+    const { gltf, buffers, entities, defaultSceneRoot } = glTFResource;
     const gltfSkins = gltf.skins;
 
     if (!gltfSkins) return;
@@ -44,6 +45,6 @@ export class SkinParser extends Parser {
       skins[i] = skin;
     }
 
-    context.skins = skins;
+    glTFResource.skins = skins;
   }
 }
