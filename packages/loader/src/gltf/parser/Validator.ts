@@ -1,16 +1,16 @@
 import { Logger } from "@oasis-engine/core";
-import { GLTFResource } from "../GLTFResource";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class Validator extends Parser {
-  parse(context: GLTFResource): void {
+  parse(context: ParserContext): void {
     const {
       gltf: {
         asset: { version },
         extensionsUsed,
         extensionsRequired
       }
-    } = context;
+    } = context.glTFResource;
 
     const gltfVersion = Number(version);
     if (!(gltfVersion >= 2 && gltfVersion < 3)) {
