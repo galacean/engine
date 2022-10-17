@@ -22,8 +22,8 @@ export class MaterialParser extends Parser {
     }
   }
 
-  parse(context: ParserContext): void {
-    const glTFResource = context.glTFResource;
+  parse(context: ParserContext) {
+    const { glTFResource, materialIndex } = context;
 
     const { gltf, engine, textures } = glTFResource;
     if (!gltf.materials) return;
@@ -31,6 +31,9 @@ export class MaterialParser extends Parser {
     const materials: Material[] = [];
 
     for (let i = 0; i < gltf.materials.length; i++) {
+      if (materialIndex >= 0 && materialIndex !== i) {
+        continue;
+      }
       const {
         extensions = {},
         pbrMetallicRoughness,
@@ -44,7 +47,12 @@ export class MaterialParser extends Parser {
         name = ""
       } = gltf.materials[i];
 
-      const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat } = extensions;
+      const {
+        KHR_materials_unlit,
+        KHR_materials_pbrSpecularGlossiness,
+        KHR_materials_clearcoat,
+        OASIS_materials_remap
+      } = extensions;
 
       let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
 
@@ -136,6 +144,17 @@ export class MaterialParser extends Parser {
         }
       }
 
+      if (OASIS_materials_remap) {
+        glTFResource.gltf.extensions = glTFResource.gltf.extensions ?? {};
+        glTFResource.gltf.extensions["OASIS_materials_remap"] =
+          glTFResource.gltf.extensions["OASIS_materials_remap"] ?? {};
+        glTFResource.gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
+          "OASIS_materials_remap",
+          OASIS_materials_remap,
+          glTFResource
+        );
+      }
+
       if (doubleSided) {
         material.renderFace = RenderFace.Double;
       } else {
@@ -155,6 +174,15 @@ export class MaterialParser extends Parser {
       }
 
       materials[i] = material;
+    }
+
+    if (materialIndex >= 0) {
+      const material = materials[materialIndex];
+      if (material) {
+        return material;
+      } else {
+        throw `material index not find in: ${materialIndex}`;
+      }
     }
 
     glTFResource.materials = materials;

@@ -41,7 +41,8 @@ class MaterialLoader extends Loader<string> {
             break;
         }
 
-        const materialShaderData: ShaderData = material.shaderData;
+        const texturePromises = new Array<Promise<Texture2D | void>>();
+        const materialShaderData = material.shaderData;
         for (let key in shaderData) {
           const { type, value } = shaderData[key];
 
@@ -62,9 +63,11 @@ class MaterialLoader extends Loader<string> {
               materialShaderData.setFloat(key, value);
               break;
             case "Texture":
-              resourceManager.getResourceByRef<Texture2D>(value).then((texture) => {
-                materialShaderData.setTexture(key, texture);
-              });
+              texturePromises.push(
+                resourceManager.getResourceByRef<Texture2D>(value).then((texture) => {
+                  materialShaderData.setTexture(key, texture);
+                })
+              );
               break;
           }
         }
@@ -82,7 +85,9 @@ class MaterialLoader extends Loader<string> {
           materialShaderData[key] = renderState[key];
         }
 
-        resolve(material);
+        Promise.all(texturePromises).then(() => {
+          resolve(material);
+        });
       });
     });
   }

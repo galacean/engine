@@ -43,6 +43,7 @@ export class BufferParser extends Parser {
   }
 
   private _isGLB(url: string): boolean {
-    return url.substring(url.lastIndexOf(".") + 1) === "glb";
+    const index = url.lastIndexOf(".");
+    return url.substring(index + 1, index + 4) === "glb";
   }
 }
