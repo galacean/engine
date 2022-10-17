@@ -63,7 +63,7 @@ export class ReflectionParser {
   ): Promise<any> {
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.parseBasicType(item, engine, resourceManager)));
-    } else if (typeof value === "object") {
+    } else if (typeof value === "object" && value != null) {
       if (this._isClass(value)) {
         // 类对象
         return this.parseClassObject(value, engine, resourceManager);
@@ -127,10 +127,10 @@ export class ReflectionParser {
   }
 
   private static _isClass(value: any): value is IClassObject {
-    return "class" in value;
+    return value["class"] != undefined;
   }
 
   private static _isRef(value: any): value is IReferenceType {
-    return "refId" in value;
+    return value["refId"] != undefined;
   }
 }
