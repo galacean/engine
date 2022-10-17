@@ -122,8 +122,6 @@ export class AnimationParser extends Parser {
       };
     }
     glTFResource.animations = animationClips;
-    // @ts-ignore for editor
-    context._animationsIndices = animationsIndices;
   }
 
   private _addCurve(
