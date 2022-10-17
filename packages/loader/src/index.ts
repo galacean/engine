@@ -12,6 +12,7 @@ import "./SpriteAtlasLoader";
 import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
+import "./AnimatorControllerLoader";
 
 export { parseSingleKTX } from "./compressed-texture";
 export { GLTFResource } from "./gltf/GLTFResource";
@@ -19,4 +20,3 @@ export * from "./resource-deserialize";
 export * from "./SceneLoader";
 export type { Texture2DParams } from "./Texture2DLoader";
 export type { GLTFParams } from "./GLTFLoader";
-

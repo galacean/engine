@@ -86,6 +86,7 @@ export class PointerManager implements IInput {
     this._upList.length = 0;
     this._movingDelta.set(0, 0);
     this._nativeEvents.length > 0 && this._handlePointerEvent(this._nativeEvents, frameCount);
+    this._pointers.length > 0 && (this._lastPositionFrameCount = frameCount);
     if (this._engine.physicsManager._initialized) {
       const rayCastEntity = this._pointerRayCast();
       const { _keyEventCount: keyEventCount } = this;
@@ -309,7 +310,6 @@ export class PointerManager implements IInput {
       if (this._lastPositionFrameCount === frameCount - 1) {
         this._movingDelta.set(currentPosition.x - lastX, currentPosition.y - lastY);
       }
-      this._lastPositionFrameCount = frameCount;
     }
     nativeEvents.length = 0;
   }
