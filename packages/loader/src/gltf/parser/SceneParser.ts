@@ -137,7 +137,7 @@ export class SceneParser extends Parser {
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
       if (skinID !== undefined || blendShapeWeights) {
-        context.createAnimator = true;
+        context.hasSkinned = true;
         const skinRenderer = entity.addComponent(SkinnedMeshRenderer);
         skinRenderer.mesh = mesh;
         if (skinID !== undefined) {
@@ -148,7 +148,6 @@ export class SceneParser extends Parser {
         }
         renderer = skinRenderer;
       } else {
-        context.createAnimator = false;
         renderer = entity.addComponent(MeshRenderer);
         renderer.mesh = mesh;
       }
@@ -176,7 +175,7 @@ export class SceneParser extends Parser {
   }
 
   private _createAnimator(context: ParserContext): void {
-    if (!context.createAnimator) {
+    if (!context.hasSkinned && !context.glTFResource.animations) {
       return;
     }
 
