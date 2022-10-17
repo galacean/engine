@@ -273,9 +273,6 @@ export class GLTFUtil {
     return new Promise((resolve, reject) => {
       const blob = new window.Blob([imageBuffer], { type });
       const img = new Image();
-      img.src = URL.createObjectURL(blob);
-
-      img.crossOrigin = "anonymous";
       img.onerror = function () {
         reject(new Error("Failed to load image buffer"));
       };
@@ -288,6 +285,8 @@ export class GLTFUtil {
           img.onabort = null;
         });
       };
+      img.crossOrigin = "anonymous";
+      img.src = URL.createObjectURL(blob);
     });
   }
 
