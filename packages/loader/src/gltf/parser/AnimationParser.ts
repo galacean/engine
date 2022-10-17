@@ -12,14 +12,15 @@ import {
   TypedArray
 } from "@oasis-engine/core";
 import { Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
-import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, AnimationChannelTargetPath, AnimationSamplerInterpolation, IAnimationChannel } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class AnimationParser extends Parser {
-  parse(context: GLTFResource): void {
-    const { gltf, buffers, entities } = context;
+  parse(context: ParserContext): void {
+    const glTFResource = context.glTFResource;
+    const { gltf, buffers, entities } = glTFResource;
     const { animations, accessors } = gltf;
     if (!animations) {
       return;
@@ -120,9 +121,7 @@ export class AnimationParser extends Parser {
         index: i
       };
     }
-    context.animations = animationClips;
-    // @ts-ignore for editor
-    context._animationsIndices = animationsIndices;
+    glTFResource.animations = animationClips;
   }
 
   private _addCurve(

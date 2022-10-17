@@ -5,6 +5,7 @@ import { EntityParser } from "./parser/EntityParser";
 import { MaterialParser } from "./parser/MaterialParser";
 import { MeshParser } from "./parser/MeshParser";
 import { Parser } from "./parser/Parser";
+import { ParserContext } from "./parser/ParserContext";
 import { SceneParser } from "./parser/SceneParser";
 import { SkinParser } from "./parser/SkinParser";
 import { TextureParser } from "./parser/TextureParser";
@@ -31,7 +32,8 @@ export class GLTFParser {
     });
   }
 
-  parse(context: GLTFResource): Promise<GLTFResource> {
+  parse(context: ParserContext): Promise<GLTFResource> {
+    const glTFResource = context.glTFResource;
     let lastPipe: void | Promise<void>;
 
     return new Promise((resolve, reject) => {
@@ -48,11 +50,11 @@ export class GLTFParser {
       if (lastPipe) {
         lastPipe
           .then(() => {
-            resolve(context);
+            resolve(glTFResource);
           })
           .catch(reject);
       } else {
-        resolve(context);
+        resolve(glTFResource);
       }
     });
   }
