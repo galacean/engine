@@ -120,4 +120,6 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
 
     return out;
   }
+
+  protected _tempValue: Vector3 = new Vector3();
 }

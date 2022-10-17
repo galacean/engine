@@ -119,4 +119,6 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
 
     return out;
   }
+
+  protected _tempValue: Color = new Color();
 }

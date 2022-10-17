@@ -127,4 +127,6 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
     }
     return out;
   }
+
+  protected _tempValue: Quaternion = new Quaternion();
 }

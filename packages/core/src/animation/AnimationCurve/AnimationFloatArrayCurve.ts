@@ -107,4 +107,22 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     }
     return out;
   }
+
+  /**
+   * Evaluate the curve at time.
+   * @param time - The time within the curve you want to evaluate
+   */
+  evaluate(time: number): Float32Array {
+    let tempValue = this._tempValue;
+    if (!tempValue) {
+      const size = this.keys[0]?.value?.length;
+      if (size) {
+        tempValue = new Float32Array(this.keys[0]?.value?.length);
+        this._tempValue = tempValue;
+      } else {
+        tempValue = new Float32Array();
+      }
+    }
+    return this._evaluate(time, 0, tempValue);
+  }
 }

@@ -167,7 +167,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * @internal
    */
   _evaluateAdditive(time: number, startIndex: number, out?: V): V {
-    const result = this._evaluate(time, startIndex, this._tempValue);
+    const result = this._evaluate(time, startIndex, out);
     return this._type._subtractValue(result, this.keys[0].value, out);
   }
 }
