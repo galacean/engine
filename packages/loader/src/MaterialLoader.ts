@@ -8,7 +8,6 @@ import {
   PBRSpecularMaterial,
   resourceLoader,
   ResourceManager,
-  ShaderData,
   Texture2D,
   UnlitMaterial
 } from "@oasis-engine/core";
