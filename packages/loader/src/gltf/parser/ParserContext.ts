@@ -5,6 +5,6 @@ import { GLTFResource } from "../GLTFResource";
  */
 export class ParserContext {
   glTFResource: GLTFResource;
-  keepMeshData?: boolean;
-  createAnimator?: boolean;
+  keepMeshData: boolean;
+  createAnimator: boolean;
 }

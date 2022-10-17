@@ -133,6 +133,7 @@ export class SceneParser extends Parser {
         }
         renderer = skinRenderer;
       } else {
+        context.createAnimator = false;
         renderer = entity.addComponent(MeshRenderer);
         renderer.mesh = mesh;
       }
