@@ -247,48 +247,29 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
    * Performs a spherical linear blend between two quaternions.
    * @param start - The first quaternion
    * @param end - The second quaternion
-   * @param t - The blend amount where 0 returns start and 1 end
+   * @param amount - The blend amount where 0 returns start and 1 end
    * @param out - The result of spherical linear blending between two quaternions
    */
-  static slerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
-    const ax = start._x;
-    const ay = start._y;
-    const az = start._z;
-    const aw = start._w;
-    let bx = end._x;
-    let by = end._y;
-    let bz = end._z;
-    let bw = end._w;
+  static slerp(start: Quaternion, end: Quaternion, amount: number, out: Quaternion): void {
+    let opposite: number;
+    let inverse: number;
+    const dot = Quaternion.dot(start, end);
 
-    let scale0: number, scale1: number;
-    // calc cosine
-    let cosom = ax * bx + ay * by + az * bz + aw * bw;
-    // adjust signs (if necessary)
-    if (cosom < 0.0) {
-      cosom = -cosom;
-      bx = -bx;
-      by = -by;
-      bz = -bz;
-      bw = -bw;
-    }
-    // calculate coefficients
-    if (1.0 - cosom > MathUtil.zeroTolerance) {
-      // standard case (slerp)
-      const omega = Math.acos(cosom);
-      const sinom = Math.sin(omega);
-      scale0 = Math.sin((1.0 - t) * omega) / sinom;
-      scale1 = Math.sin(t * omega) / sinom;
+    if (Math.abs(dot) > 1.0 - MathUtil.zeroTolerance) {
+      inverse = 1.0 - amount;
+      opposite = amount * Math.sign(dot);
     } else {
-      // "from" and "to" quaternions are very close
-      //  ... so we can do a linear interpolation
-      scale0 = 1.0 - t;
-      scale1 = t;
+      const acos = Math.acos(Math.abs(dot));
+      const invSin = 1.0 / Math.sin(acos);
+
+      inverse = Math.sin((1.0 - amount) * acos) * invSin;
+      opposite = Math.sin(amount * acos) * invSin * Math.sign(dot);
     }
-    // calculate final values
-    out._x = scale0 * ax + scale1 * bx;
-    out._y = scale0 * ay + scale1 * by;
-    out._z = scale0 * az + scale1 * bz;
-    out._w = scale0 * aw + scale1 * bw;
+
+    out.x = inverse * start.x + opposite * end.x;
+    out.y = inverse * start.y + opposite * end.y;
+    out.z = inverse * start.z + opposite * end.z;
+    out.w = inverse * start.w + opposite * end.w;
     out._onValueChanged && out._onValueChanged();
   }
 

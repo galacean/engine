@@ -3,6 +3,7 @@ import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
 import { ISampler } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class TextureParser extends Parser {
   private static _wrapMap = {
@@ -11,8 +12,9 @@ export class TextureParser extends Parser {
     10497: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFResource) {
-    const { gltf, buffers, engine, url, textureIndex } = context;
+  parse(context: ParserContext) {
+    const { textureIndex, glTFResource } = context;
+    const { gltf, buffers, engine, url } = glTFResource;
 
     if (gltf.textures) {
       return Promise.all(
@@ -62,7 +64,7 @@ export class TextureParser extends Parser {
             throw `texture index not find in: ${textureIndex}`;
           }
         }
-        context.textures = textures;
+        glTFResource.textures = textures;
       });
     }
   }

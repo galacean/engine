@@ -10,6 +10,7 @@ import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
 export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColliderShape {
   private static _tempBox: BoundingBox = new BoundingBox();
   private _halfSize: Vector3 = new Vector3();
+  private _scale: Vector3 = new Vector3(1, 1, 1);
 
   /** @internal */
   _boxMin: Vector3 = new Vector3(-0.5, -0.5, -0.5);
@@ -42,7 +43,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
    */
   setWorldScale(scale: Vector3): void {
     this._transform.position = this._transform.position.multiply(scale);
-    this._halfSize.multiply(scale);
+    this._scale.copyFrom(scale);
   }
 
   /**
@@ -60,8 +61,16 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
     const localRay = this._getLocalRay(ray);
 
     const boundingBox = LiteBoxColliderShape._tempBox;
-    boundingBox.min.set(-this._halfSize.x, -this._halfSize.y, -this._halfSize.z);
-    boundingBox.max.set(this._halfSize.x, this._halfSize.y, this._halfSize.z);
+    boundingBox.min.set(
+      -this._halfSize.x * this._scale.x,
+      -this._halfSize.y * this._scale.y,
+      -this._halfSize.z * this._scale.z
+    );
+    boundingBox.max.set(
+      this._halfSize.x * this._scale.x,
+      this._halfSize.y * this._scale.y,
+      this._halfSize.z * this._scale.z
+    );
     const rayDistance = localRay.intersectBox(boundingBox);
     if (rayDistance !== -1) {
       this._updateHitResult(localRay, rayDistance, hit, ray.origin);

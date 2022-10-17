@@ -44,11 +44,4 @@ export class GLTFResource extends EngineObject {
   defaultSceneRoot: Entity;
   /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
   variants?: { renderer: Renderer; material: Material; variants: string[] }[];
-  /** adapter subAsset */
-  textureIndex?: number;
-  materialIndex?: number;
-  animationIndex?: number;
-  meshIndex?: number;
-  subMeshIndex?: number;
-  defaultSceneRootOnly?: boolean;
 }

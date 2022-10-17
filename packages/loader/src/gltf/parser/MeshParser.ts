@@ -1,14 +1,16 @@
-import { BlendShape, Engine, EngineObject, ModelMesh, TypedArray } from "@oasis-engine/core";
+import { BlendShape, EngineObject, ModelMesh, TypedArray } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
-import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
-  parse(context: GLTFResource) {
-    const { engine, gltf, buffers, meshIndex, subMeshIndex } = context;
+
+  parse(context: ParserContext) {
+    const { meshIndex, subMeshIndex, glTFResource } = context;
+    const { engine, gltf, buffers } = glTFResource;
     if (!gltf.meshes) return;
 
     const meshPromises: Promise<ModelMesh[]>[] = [];
@@ -37,7 +39,7 @@ export class MeshParser extends Parser {
               Parser.createEngineResource(
                 "KHR_draco_mesh_compression",
                 KHR_draco_mesh_compression,
-                context,
+                glTFResource,
                 gltfPrimitive
               )
             ))
@@ -61,7 +63,7 @@ export class MeshParser extends Parser {
                   () => {
                     return decodedGeometry.index.array;
                   },
-                  engine
+                  context.keepMeshData
                 );
               })
               .then(resolve);
@@ -90,7 +92,7 @@ export class MeshParser extends Parser {
                 const indexAccessor = gltf.accessors[gltfPrimitive.indices];
                 return GLTFUtil.getAccessorData(gltf, indexAccessor, buffers);
               },
-              engine
+              context.keepMeshData
             ).then(resolve);
           }
         });
@@ -108,7 +110,7 @@ export class MeshParser extends Parser {
           throw `meshIndex-subMeshIndex index not find in: ${meshIndex}-${subMeshIndex}`;
         }
       }
-      context.meshes = meshes;
+      glTFResource.meshes = meshes;
     });
   }
 
@@ -120,7 +122,7 @@ export class MeshParser extends Parser {
     getVertexBufferData: (semantic: string) => TypedArray,
     getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
     getIndexBufferData: () => TypedArray,
-    engine: Engine
+    keepMeshData: boolean
   ): Promise<ModelMesh> {
     const { attributes, targets, indices, mode } = gltfPrimitive;
     let vertexCount: number;
@@ -233,7 +235,7 @@ export class MeshParser extends Parser {
     // BlendShapes
     targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
-    mesh.uploadData(true);
+    mesh.uploadData(!keepMeshData);
     return Promise.resolve(mesh);
   }
 

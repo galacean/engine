@@ -2,6 +2,7 @@ import { EngineObject } from "@oasis-engine/core";
 import { ExtensionParser } from "../extensions/ExtensionParser";
 import { ExtensionSchema } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
+import { ParserContext } from "./ParserContext";
 
 export abstract class Parser {
   private static _extensionParsers: Record<string, ExtensionParser[]> = {};
@@ -60,7 +61,7 @@ export abstract class Parser {
     Parser._extensionParsers[extensionName].push(extensionParser);
   }
 
-  abstract parse(context: GLTFResource);
+  abstract parse(context: ParserContext);
 }
 
 /**

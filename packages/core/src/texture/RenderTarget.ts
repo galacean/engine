@@ -150,7 +150,7 @@ export class RenderTarget extends EngineObject {
     engine: Engine,
     width: number,
     height: number,
-    renderTexture: Texture | Array<Texture> | null,
+    renderTexture: Texture | Texture[] | null,
     depth: Texture | RenderBufferDepthFormat | null = RenderBufferDepthFormat.Depth,
     antiAliasing: number = 1
   ) {
@@ -162,12 +162,21 @@ export class RenderTarget extends EngineObject {
     this._depth = depth;
 
     if (renderTexture) {
-      this._colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
+      const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
+      for (let i = 0, n = colorTextures.length; i < n; i++) {
+        if (colorTextures[i]._isDepthTexture) {
+          throw "Render texture can't use depth format.";
+        }
+      }
+      this._colorTextures = colorTextures;
     } else {
       this._colorTextures = [];
     }
 
     if (depth instanceof Texture) {
+      if (!depth._isDepthTexture) {
+        throw "Depth texture must use depth format.";
+      }
       this._depthTexture = depth;
     }
 

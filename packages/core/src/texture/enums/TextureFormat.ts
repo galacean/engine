@@ -54,20 +54,18 @@ export enum TextureFormat {
   /** RGB(A) compressed format,128 bits per 12x12 pixel block. */
   ASTC_12x12,
 
-  /** Render to depth buffer,engine will automatically select the supported precision. */
+  /** Automatic depth format,engine will automatically select the supported precision. */
   Depth,
-  /** Render to depth stencil buffer, engine will automatically select the supported precision. */
+  /** Automatic depth setncil format, engine will automatically select the supported precision. */
   DepthStencil,
-  /** Render to stencil buffer. */
-  Stencil,
-  /** Force 16-bit depth buffer. */
+  /** 16-bit depth format. */
   Depth16,
-  /** Force 24-bit depth buffer. */
+  /** 24-bit depth format. */
   Depth24,
-  /** Force 32-bit depth buffer. */
+  /** 32-bit depth format. */
   Depth32,
-  /** Force 16-bit depth + 8-bit stencil buffer. */
+  /** 16-bit depth + 8-bit stencil format. */
   Depth24Stencil8,
-  /** Force 32-bit depth + 8-bit stencil buffer. */
+  /** 32-bit depth + 8-bit stencil format. */
   Depth32Stencil8
 }

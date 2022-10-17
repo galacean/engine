@@ -2,14 +2,19 @@ import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceMana
 import { GLTFParser } from "./gltf/GLTFParser";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFUtil } from "./gltf/GLTFUtil";
+import { ParserContext } from "./gltf/parser/ParserContext";
 
 @resourceLoader(AssetType.Prefab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const url = item.url;
     return new AssetPromise((resolve, reject) => {
-      const resource = new GLTFResource(resourceManager.engine);
-      resource.url = url;
+      const context = new ParserContext();
+      const glTFResource = new GLTFResource(resourceManager.engine);
+      context.glTFResource = glTFResource;
+      glTFResource.url = url;
+      context.keepMeshData = item.params?.keepMeshData ?? false;
+
       let pipeline = GLTFParser.defaultPipeline;
 
       const query = GLTFUtil.getQuery(url);
@@ -22,30 +27,30 @@ export class GLTFLoader extends Loader<GLTFResource> {
         switch (key) {
           case "textures":
             pipeline = GLTFParser.texturePipeline;
-            resource.textureIndex = value1;
+            context.textureIndex = value1;
             break;
           case "materials":
             pipeline = GLTFParser.materialPipeline;
-            resource.materialIndex = value1;
+            context.materialIndex = value1;
             break;
           case "animations":
             pipeline = GLTFParser.animationPipeline;
-            resource.animationIndex = value1;
+            context.animationIndex = value1;
             break;
           case "meshes":
             pipeline = GLTFParser.meshPipeline;
-            resource.meshIndex = value1;
-            resource.subMeshIndex = value2;
+            context.meshIndex = value1;
+            context.subMeshIndex = value2;
             break;
           case "defaultSceneRoot":
             pipeline = GLTFParser.defaultPipeline;
-            resource.defaultSceneRootOnly = true;
+            context.defaultSceneRootOnly = true;
             break;
         }
       }
 
       pipeline
-        .parse(resource)
+        .parse(context)
         .then(resolve)
         .catch((e) => {
           console.error(e);
@@ -53,4 +58,12 @@ export class GLTFLoader extends Loader<GLTFResource> {
         });
     });
   }
+}
+
+/**
+ * GlTF loader params.
+ */
+export interface GLTFParams {
+  /** Keep raw mesh data for glTF parser, default is false. */
+  keepMeshData: boolean;
 }

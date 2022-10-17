@@ -47,6 +47,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
 
   /**
    * @internal
+   * @override
    */
   _render(camera: Camera): void {
     const mesh = this._mesh;
@@ -90,9 +91,13 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = this._materials[i];
         if (material) {
-          const element = renderElementPool.getFromPool();
-          element.setValue(this, mesh, subMeshes[i], material);
-          renderPipeline.pushPrimitive(element);
+          const renderStates = material.renderStates;
+          const shaderPasses = material.shader.passes;
+          for (let j = 0, m = shaderPasses.length; j < m; j++) {
+            const element = renderElementPool.getFromPool();
+            element.setValue(this, mesh, subMeshes[i], material, renderStates[j], shaderPasses[j]);
+            renderPipeline.pushPrimitive(element);
+          }
         }
       }
     } else {

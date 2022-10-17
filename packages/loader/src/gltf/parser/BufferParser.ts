@@ -1,12 +1,13 @@
 import { AssetType } from "@oasis-engine/core";
-import { GLTFResource } from "../GLTFResource";
-import { IBuffer, IGLTF } from "../Schema";
 import { GLTFUtil } from "../GLTFUtil";
+import { IBuffer, IGLTF } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class BufferParser extends Parser {
-  parse(context: GLTFResource): Promise<void> {
-    const { url, engine } = context;
+  parse(context: ParserContext): Promise<void> {
+    const glTFResource = context.glTFResource;
+    const { url, engine } = glTFResource;
 
     if (this._isGLB(url)) {
       return engine.resourceManager
@@ -16,8 +17,8 @@ export class BufferParser extends Parser {
         })
         .then(GLTFUtil.parseGLB)
         .then(({ gltf, buffers }) => {
-          context.gltf = gltf;
-          context.buffers = buffers;
+          glTFResource.gltf = gltf;
+          glTFResource.buffers = buffers;
         });
     } else {
       return engine.resourceManager
@@ -26,7 +27,7 @@ export class BufferParser extends Parser {
           type: AssetType.JSON
         })
         .then((gltf: IGLTF) => {
-          context.gltf = gltf;
+          glTFResource.gltf = gltf;
           return Promise.all(
             gltf.buffers.map((buffer: IBuffer) => {
               return engine.resourceManager.load<ArrayBuffer>({
@@ -35,7 +36,7 @@ export class BufferParser extends Parser {
               });
             })
           ).then((buffers: ArrayBuffer[]) => {
-            context.buffers = buffers;
+            glTFResource.buffers = buffers;
           });
         });
     }
