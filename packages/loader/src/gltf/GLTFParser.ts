@@ -39,7 +39,7 @@ export class GLTFParser {
 
   parse(context: ParserContext): Promise<GLTFResource> {
     const glTFResource = context.glTFResource;
-    let lastPipe: void | Promise<void>;
+    let lastPipe;
 
     return new Promise((resolve, reject) => {
       this._pipes.forEach((parser: Parser) => {
