@@ -10,7 +10,7 @@ export class AnimatorStateMachine {
   /** The list of states. */
   readonly states: AnimatorState[] = [];
 
-  /** The state will be played automatically. */
+  /** The state will be played automatically when the Animator's AnimatorController changed or the Animator's onEnable be triggered. */
   entryState: AnimatorState;
 
   /** @internal */
