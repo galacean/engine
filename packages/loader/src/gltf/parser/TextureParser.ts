@@ -1,8 +1,9 @@
 import { AssetType, Logger, Texture2D, TextureWrapMode } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
-import { ISampler } from "../Schema";
 import { GLTFUtil } from "../GLTFUtil";
+import { ISampler } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class TextureParser extends Parser {
   private static _wrapMap = {
@@ -11,12 +12,17 @@ export class TextureParser extends Parser {
     10497: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFResource): void | Promise<void> {
-    const { gltf, buffers, engine, url } = context;
+  parse(context: ParserContext) {
+    const { textureIndex, glTFResource } = context;
+    const { gltf, buffers, engine, url } = glTFResource;
 
     if (gltf.textures) {
       return Promise.all(
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
+          if (textureIndex >= 0 && textureIndex !== index) {
+            return;
+          }
+
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
 
           if (uri) {
@@ -50,7 +56,15 @@ export class TextureParser extends Parser {
           }
         })
       ).then((textures: Texture2D[]) => {
-        context.textures = textures;
+        if (textureIndex >= 0) {
+          const texture = textures[textureIndex];
+          if (texture) {
+            return texture;
+          } else {
+            throw `texture index not find in: ${textureIndex}`;
+          }
+        }
+        glTFResource.textures = textures;
       });
     }
   }
