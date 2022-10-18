@@ -1,15 +1,14 @@
-import { AssetType, Logger, Texture2D, TextureWrapMode } from "@oasis-engine/core";
-import { GLTFResource } from "../GLTFResource";
+import { AssetType, Logger, Texture2D, TextureWrapMode, TextureFilterMode } from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
-import { ISampler } from "../Schema";
+import { ISampler, TextureWrapMode as GLTFTextureWrapMode, TextureMagFilter, TextureMinFilter } from "../Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
 export class TextureParser extends Parser {
   private static _wrapMap = {
-    33071: TextureWrapMode.Clamp,
-    33648: TextureWrapMode.Mirror,
-    10497: TextureWrapMode.Repeat
+    [GLTFTextureWrapMode.CLAMP_TO_EDGE]: TextureWrapMode.Clamp,
+    [GLTFTextureWrapMode.MIRRORED_REPEAT]: TextureWrapMode.Mirror,
+    [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
   parse(context: ParserContext) {
@@ -74,6 +73,13 @@ export class TextureParser extends Parser {
 
     if (magFilter || minFilter) {
       Logger.warn("texture use filterMode in engine");
+      if (magFilter === TextureMagFilter.NEAREST) {
+        texture.filterMode = TextureFilterMode.Point;
+      } else if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
+        texture.filterMode = TextureFilterMode.Bilinear;
+      } else {
+        texture.filterMode = TextureFilterMode.Trilinear;
+      }
     }
 
     if (wrapS) {
