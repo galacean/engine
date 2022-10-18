@@ -72,7 +72,6 @@ export class TextureParser extends Parser {
     const { magFilter, minFilter, wrapS, wrapT } = sampler;
 
     if (magFilter || minFilter) {
-      Logger.warn("texture use filterMode in engine");
       if (magFilter === TextureMagFilter.NEAREST) {
         texture.filterMode = TextureFilterMode.Point;
       } else if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
