@@ -62,11 +62,8 @@ export class Animator extends Component {
     if (animatorController && animatorController !== this._animatorController) {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
-      this._animatorController && (this._animatorController._onDataChanged = null);
-      this._reset();
       this._animatorController = animatorController;
-      this._onAnimatorControllerChange();
-      animatorController._onDataChanged = this._onAnimatorControllerChange.bind(this);
+      this._reset();
     }
   }
 
@@ -153,6 +150,7 @@ export class Animator extends Component {
       return;
     }
     if (this._controllerUpdateFlag?.flag) {
+      this._checkAutoPlay();
       return;
     }
     deltaTime *= this.speed;
@@ -189,6 +187,7 @@ export class Animator extends Component {
    */
   _onEnable(): void {
     this.engine._componentsManager.addOnUpdateAnimations(this);
+    this._checkAutoPlay();
   }
 
   /**
@@ -781,15 +780,11 @@ export class Animator extends Component {
     }
   }
 
-  private _onAnimatorControllerChange() {
-    this._checkAutoPlay();
-  }
-
   private _checkAutoPlay() {
     const { layers } = this._animatorController;
     for (let i = 0, n = layers.length; i < n; ++i) {
       const stateMachine = layers[i].stateMachine;
-      if (stateMachine && stateMachine.entryState) {
+      if (stateMachine?.entryState) {
         this.play(stateMachine.entryState.name, i);
       }
     }

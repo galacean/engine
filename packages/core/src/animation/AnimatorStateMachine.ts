@@ -10,7 +10,7 @@ export class AnimatorStateMachine {
   /** The list of states. */
   readonly states: AnimatorState[] = [];
 
-  /** The state will be played automatically */
+  /** The state will be played automatically. */
   entryState: AnimatorState;
 
   /** @internal */
