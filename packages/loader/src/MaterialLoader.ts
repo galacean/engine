@@ -8,7 +8,6 @@ import {
   PBRSpecularMaterial,
   resourceLoader,
   ResourceManager,
-  ShaderData,
   Texture2D,
   UnlitMaterial
 } from "@oasis-engine/core";
@@ -44,7 +43,7 @@ class MaterialLoader extends Loader<string> {
         const texturePromises = new Array<Promise<Texture2D | void>>();
         const materialShaderData = material.shaderData;
         for (let key in shaderData) {
-          const { type, value } = shaderData[key];``
+          const { type, value } = shaderData[key];
 
           switch (type) {
             case "Vector2":
@@ -86,7 +85,7 @@ class MaterialLoader extends Loader<string> {
         }
 
         Promise.all(texturePromises).then(() => {
-          resolve(material);  
+          resolve(material);
         });
       });
     });

@@ -8,7 +8,6 @@ export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
 export { ReflectionParser } from "./resources/prefab/ReflectionParser";
 export { PrefabParser } from "./resources/prefab/PrefabParser";
 export * from "./resources/animationClip/AnimationClipDecoder";
-export { AnimatorControllerDecoder } from "./resources/animatorController/AnimatorControllerDecoder";
 export type { IModelMesh } from "./resources/mesh/IModelMesh";
 
 /**
