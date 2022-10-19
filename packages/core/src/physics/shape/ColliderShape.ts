@@ -100,6 +100,9 @@ export abstract class ColliderShape {
   protected constructor() {
     this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
+
+    this._setRotation = this._setRotation.bind(this);
+    this._setPosition = this._setPosition.bind(this);
     //@ts-ignore
     this._rotation._onValueChanged = this._setRotation;
     //@ts-ignore
