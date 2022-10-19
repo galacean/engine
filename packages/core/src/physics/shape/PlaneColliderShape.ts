@@ -1,5 +1,3 @@
-import { IPlaneColliderShape } from "@oasis-engine/design";
-import { Vector3 } from "@oasis-engine/math";
 import { PhysicsManager } from "../PhysicsManager";
 import { ColliderShape } from "./ColliderShape";
 
