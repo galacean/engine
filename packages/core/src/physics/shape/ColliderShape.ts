@@ -20,6 +20,7 @@ export abstract class ColliderShape {
   protected _isTrigger: boolean = false;
   protected _isSceneQuery: boolean = true;
   private _contactOffset: number = 0;
+  private _rotation: Vector3 = new Vector3();
 
   /**
    * Collider owner of this shape.
@@ -57,6 +58,20 @@ export abstract class ColliderShape {
   set material(value: PhysicsMaterial) {
     this._material = value;
     this._nativeShape.setMaterial(value._nativeMaterial);
+  }
+
+  /**
+   * The local rotation of this ColliderShape.
+   */
+  get rotation(): Vector3 {
+    return this._rotation;
+  }
+
+  set rotation(value: Vector3) {
+    if (this._rotation != value) {
+      this._rotation.copyFrom(value);
+    }
+    this._nativeShape.setRotation(value);
   }
 
   /**
@@ -99,6 +114,17 @@ export abstract class ColliderShape {
   setPosition(x: number, y: number, z: number): void {
     this._position.set(x, y, z);
     this._nativeShape.setPosition(this._position);
+  }
+
+  /**
+   * Set the local rotation of collider shape
+   * @param x - Radian of yaw
+   * @param y - Radian of pitch
+   * @param z - Radian of roll
+   */
+  setRotation(x: number, y: number, z: number): void {
+    this._rotation.set(x, y, z);
+    this._nativeShape.setRotation(this._rotation);
   }
 
   /**

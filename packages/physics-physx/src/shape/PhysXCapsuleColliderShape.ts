@@ -1,5 +1,5 @@
 import { ICapsuleColliderShape } from "@oasis-engine/design";
-import { Vector3 } from "oasis-engine";
+import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape } from "./PhysXColliderShape";
@@ -8,6 +8,7 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  * Capsule collider shape in PhysX.
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
+  private static _tempQuat = new Quaternion();
   /** @internal */
   _radius: number;
   /** @internal */
@@ -84,18 +85,23 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc ICapsuleColliderShape.setUpAxis }
    */
   setUpAxis(upAxis: ColliderShapeUpAxis): void {
+    const tempQuat = PhysXCapsuleColliderShape._tempQuat;
+    Quaternion.invert(this._axis, tempQuat);
+
     this._upAxis = upAxis;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        this._rotation.set(0, 0, 0, 1);
+        this._axis.set(0, 0, 0, 1);
         break;
       case ColliderShapeUpAxis.Y:
-        this._rotation.set(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
+        this._axis.set(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
         break;
       case ColliderShapeUpAxis.Z:
-        this._rotation.set(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
+        this._axis.set(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
         break;
     }
+    Quaternion.multiply(this._rotation, tempQuat, this._rotation);
+    Quaternion.multiply(this._rotation, this._axis, this._rotation);
     this._setLocalPose();
   }
 
