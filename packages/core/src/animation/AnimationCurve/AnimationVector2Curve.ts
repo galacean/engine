@@ -21,8 +21,8 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   static _initializeOwner(owner: AnimationCurveOwner<Vector2>): void {
     owner.defaultValue = new Vector2();
     owner.fixedPoseValue = new Vector2();
-    owner.baseTempValue = new Vector2();
-    owner.crossTempValue = new Vector2();
+    owner.baseEvaluateData.value = new Vector2();
+    owner.crossEvaluateData.value = new Vector2();
   }
 
   /**
@@ -106,5 +106,8 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
     return out;
   }
 
-  protected _tempValue: Vector2 = new Vector2();
+  constructor() {
+    super();
+    this._evaluateData.value = new Vector2();
+  }
 }

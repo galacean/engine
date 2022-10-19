@@ -21,8 +21,8 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     const size = owner.referenceTargetValue.length;
     owner.defaultValue = new Float32Array(size);
     owner.fixedPoseValue = new Float32Array(size);
-    owner.baseTempValue = new Float32Array(size);
-    owner.crossTempValue = new Float32Array(size);
+    owner.baseEvaluateData.value = new Float32Array(size);
+    owner.crossEvaluateData.value = new Float32Array(size);
   }
 
   /**
@@ -113,16 +113,16 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
    * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): Float32Array {
-    let tempValue = this._tempValue;
+    let tempValue = this._evaluateData.value;
     if (!tempValue) {
       const size = this.keys[0]?.value?.length;
       if (size) {
         tempValue = new Float32Array(this.keys[0]?.value?.length);
-        this._tempValue = tempValue;
+        this._evaluateData.value = tempValue;
       } else {
         tempValue = new Float32Array();
       }
     }
-    return this._evaluate(time, 0, tempValue);
+    return this._evaluate(time, this._evaluateData);
   }
 }

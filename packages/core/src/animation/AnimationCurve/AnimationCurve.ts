@@ -1,21 +1,16 @@
 import { InterpolationType } from "../enums/InterpolationType";
+import { IEvaluateData } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe, KeyframeValueType } from "../Keyframe";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
 
-interface IProgress {
-  curIndex: number;
-  t: number;
-  duration: number;
-}
 /**
  * Store a collection of Keyframes that can be evaluated over time.
  */
 export abstract class AnimationCurve<V extends KeyframeValueType> {
-  static _tempProgress: IProgress = { curIndex: -1, t: 0, duration: 0 };
   /** All keys defined in the animation curve. */
   keys: Keyframe<V>[] = [];
 
-  protected _tempValue: V;
+  protected _evaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
   protected _length: number = 0;
   protected _interpolation: InterpolationType;
 
@@ -69,7 +64,7 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * @param time - The time within the curve you want to evaluate
    */
   evaluate(time: number): V {
-    return this._evaluate(time, 0, this._tempValue);
+    return this._evaluate(time, this._evaluateData);
   }
 
   /**
@@ -93,11 +88,12 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /**
    * @internal
    */
-  _getProgress(time: number, startIndex: number): IProgress {
-    const { keys } = this;
+  _evaluate(time: number, evaluateData: IEvaluateData<V>): V {
+    const { keys, interpolation } = this;
+
     const { length } = this.keys;
     // Compute curIndex and nextIndex.
-    let curIndex = startIndex;
+    let curIndex = evaluateData.curKeyframeIndex;
 
     // Reset loop.
     if (curIndex !== -1 && (curIndex >= length || time < keys[curIndex].time)) {
@@ -112,23 +108,10 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       curIndex++;
       nextIndex++;
     }
-    const { _tempProgress } = AnimationCurve;
     const curFrameTime = keys[curIndex]?.time;
     const duration = keys[nextIndex]?.time - curFrameTime;
     const t = (time - curFrameTime) / duration;
-    _tempProgress.curIndex = curIndex;
-    _tempProgress.t = t;
-    _tempProgress.duration = duration;
-    return _tempProgress;
-  }
-
-  /**
-   * @internal
-   */
-  _evaluate(time: number, startIndex: number, out?: V): V {
-    const { keys, interpolation } = this;
-    const { curIndex, t, duration } = this._getProgress(time, startIndex);
-    const { length } = keys;
+    evaluateData.curKeyframeIndex = curIndex;
 
     if (!length) {
       console.warn(`This curve don't have any keyframes: `, this);
@@ -140,23 +123,23 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
 
     let value: V;
     if (curIndex === -1) {
-      value = this._type._copyValue(nextFrame.value, out);
+      value = this._type._copyValue(nextFrame.value, evaluateData.value);
     } else if (curIndex + 1 === length) {
-      value = this._type._copyValue(curFrame.value, out);
+      value = this._type._copyValue(curFrame.value, evaluateData.value);
     } else {
       const curFrame = keys[curIndex];
       const nextFrame = keys[curIndex + 1];
 
       switch (interpolation) {
         case InterpolationType.Linear:
-          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, out);
+          value = this._type._lerpValue(curFrame.value, nextFrame.value, t, evaluateData.value);
           break;
         case InterpolationType.Step:
-          value = this._type._copyValue(curFrame.value, out);
+          value = this._type._copyValue(curFrame.value, evaluateData.value);
           break;
         case InterpolationType.CubicSpine:
         case InterpolationType.Hermite:
-          value = this._type._hermiteInterpolationValue(curFrame, nextFrame, t, duration, out);
+          value = this._type._hermiteInterpolationValue(curFrame, nextFrame, t, duration, evaluateData.value);
           break;
       }
     }
@@ -166,8 +149,8 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
   /**
    * @internal
    */
-  _evaluateAdditive(time: number, startIndex: number, out?: V): V {
-    const result = this._evaluate(time, startIndex, out);
-    return this._type._subtractValue(result, this.keys[0].value, out);
+  _evaluateAdditive(time: number, evaluateData: IEvaluateData<V>): V {
+    const result = this._evaluate(time, evaluateData);
+    return this._type._subtractValue(result, this.keys[0].value, evaluateData.value);
   }
 }

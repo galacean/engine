@@ -1,6 +1,6 @@
 import { Vector4 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner, IEvaluateData } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -21,8 +21,8 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
   static _initializeOwner(owner: AnimationCurveOwner<Vector4>): void {
     owner.defaultValue = new Vector4();
     owner.fixedPoseValue = new Vector4();
-    owner.baseTempValue = new Vector4();
-    owner.crossTempValue = new Vector4();
+    owner.baseEvaluateData.value = new Vector4();
+    owner.crossEvaluateData.value = new Vector4();
   }
 
   /**
@@ -119,5 +119,8 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
     return out;
   }
 
-  protected _tempValue: Vector4 = new Vector4();
+  constructor() {
+    super();
+    this._evaluateData.value = new Vector4();
+  }
 }

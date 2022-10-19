@@ -24,8 +24,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   static _initializeOwner(owner: AnimationCurveOwner<Quaternion>): void {
     owner.defaultValue = new Quaternion();
     owner.fixedPoseValue = new Quaternion();
-    owner.baseTempValue = new Quaternion();
-    owner.crossTempValue = new Quaternion();
+    owner.baseEvaluateData.value = new Quaternion();
+    owner.crossEvaluateData.value = new Quaternion();
   }
 
   /**
@@ -128,5 +128,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
     return out;
   }
 
-  protected _tempValue: Quaternion = new Quaternion();
+  constructor() {
+    super();
+    this._evaluateData.value = new Quaternion();
+  }
 }

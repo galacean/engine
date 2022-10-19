@@ -20,8 +20,8 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   static _initializeOwner(owner: AnimationCurveOwner<number[]>): void {
     owner.defaultValue = [];
     owner.fixedPoseValue = [];
-    owner.baseTempValue = [];
-    owner.crossTempValue = [];
+    owner.baseEvaluateData.value = [];
+    owner.crossEvaluateData.value = [];
   }
 
   /**

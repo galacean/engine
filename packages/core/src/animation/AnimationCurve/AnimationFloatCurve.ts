@@ -20,8 +20,8 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   static _initializeOwner(owner: AnimationCurveOwner<number>): void {
     owner.defaultValue = 0;
     owner.fixedPoseValue = 0;
-    owner.baseTempValue = 0;
-    owner.crossTempValue = 0;
+    owner.baseEvaluateData.value = 0;
+    owner.crossEvaluateData.value = 0;
   }
 
   /**

@@ -21,8 +21,8 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   static _initializeOwner(owner: AnimationCurveOwner<Color>): void {
     owner.defaultValue = new Color();
     owner.fixedPoseValue = new Color();
-    owner.baseTempValue = new Color();
-    owner.crossTempValue = new Color();
+    owner.baseEvaluateData.value = new Color();
+    owner.crossEvaluateData.value = new Color();
   }
 
   /**
@@ -120,5 +120,8 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
     return out;
   }
 
-  protected _tempValue: Color = new Color();
+  constructor() {
+    super();
+    this._evaluateData.value = new Color();
+  }
 }

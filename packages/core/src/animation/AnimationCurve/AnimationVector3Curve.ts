@@ -21,8 +21,8 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   static _initializeOwner(owner: AnimationCurveOwner<Vector3>): void {
     owner.defaultValue = new Vector3();
     owner.fixedPoseValue = new Vector3();
-    owner.baseTempValue = new Vector3();
-    owner.crossTempValue = new Vector3();
+    owner.baseEvaluateData.value = new Vector3();
+    owner.crossEvaluateData.value = new Vector3();
   }
 
   /**
@@ -121,5 +121,8 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
     return out;
   }
 
-  protected _tempValue: Vector3 = new Vector3();
+  constructor() {
+    super();
+    this._evaluateData.value = new Vector3();
+  }
 }
