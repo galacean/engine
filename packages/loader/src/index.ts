@@ -13,7 +13,6 @@ import "./SpriteAtlasLoader";
 import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
-import "./AnimatorControllerLoader";
 
 export { parseSingleKTX } from "./compressed-texture";
 export { GLTFResource } from "./gltf/GLTFResource";
