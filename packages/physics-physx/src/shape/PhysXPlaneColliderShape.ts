@@ -16,7 +16,7 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
   constructor(uniqueID: number, material: PhysXPhysicsMaterial) {
     super();
     this._axis = new Quaternion(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
-    this._rotation.copyFrom(this._axis);
+    this._physxRotation.copyFrom(this._axis);
 
     this._pxGeometry = new PhysXPhysics._physX.PxPlaneGeometry();
     this._initialize(material, uniqueID);

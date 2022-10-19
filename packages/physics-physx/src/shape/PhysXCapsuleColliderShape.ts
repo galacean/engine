@@ -84,7 +84,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc ICapsuleColliderShape.setUpAxis }
    */
   setUpAxis(upAxis: ColliderShapeUpAxis): void {
-    const { _originalRotation: originalRotation, _axis: axis, _rotation: rotation } = this;
+    const { _rotation: rotation, _axis: axis, _physxRotation: physxRotation } = this;
 
     this._upAxis = upAxis;
     switch (this._upAxis) {
@@ -98,11 +98,11 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
         axis.set(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
         break;
     }
-    if (originalRotation) {
-      Quaternion.rotationYawPitchRoll(originalRotation.x, originalRotation.y, originalRotation.z, rotation);
-      Quaternion.multiply(rotation, axis, rotation);
+    if (rotation) {
+      Quaternion.rotationYawPitchRoll(rotation.x, rotation.y, rotation.z, physxRotation);
+      Quaternion.multiply(physxRotation, axis, physxRotation);
     } else {
-      rotation.copyFrom(axis);
+      physxRotation.copyFrom(axis);
     }
     this._setLocalPose();
   }
