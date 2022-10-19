@@ -36,8 +36,6 @@ export class Animator extends Component {
   @ignoreClone
   private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeValueType>>[] = [];
   @ignoreClone
-  private _animationCurveOwnerSet: Set<AnimationCurveOwner<KeyframeValueType>> = new Set();
-  @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
@@ -204,11 +202,13 @@ export class Animator extends Component {
    * @internal
    */
   _reset(): void {
-    const { _animationCurveOwnerSet: animationCurveOwnerSet } = this;
-    if (animationCurveOwnerSet.size) {
-      animationCurveOwnerSet.forEach((curveOwner) => {
-        curveOwner.hasSavedDefaultValue && curveOwner.revertDefaultValue();
-      });
+    const { _animationCurveOwners: animationCurveOwners } = this;
+    for (let instanceId in animationCurveOwners) {
+      const propertyOwners = animationCurveOwners[instanceId];
+      for (let property in propertyOwners) {
+        const owner = propertyOwners[property];
+        owner.hasSavedDefaultValue && owner.revertDefaultValue();
+      }
     }
     this._clearPlayData();
   }
@@ -259,11 +259,7 @@ export class Animator extends Component {
   }
 
   private _saveAnimatorStateData(animatorState: AnimatorState, animatorStateData: AnimatorStateData): void {
-    const {
-      entity,
-      _animationCurveOwners: animationCureOwners,
-      _animationCurveOwnerSet: animationCurveOwnerSet
-    } = this;
+    const { entity, _animationCurveOwners: animationCureOwners } = this;
     const { curveOwners } = animatorStateData;
     const { _curveBindings: curves } = animatorState.clip;
     for (let i = curves.length - 1; i >= 0; i--) {
@@ -273,7 +269,6 @@ export class Animator extends Component {
       const { instanceId } = targetEntity;
       const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = {});
       curveOwners[i] = propertyOwners[property] || (propertyOwners[property] = curve._createCurveOwner(targetEntity));
-      animationCurveOwnerSet.add(curveOwners[i]);
     }
   }
 
@@ -783,8 +778,8 @@ export class Animator extends Component {
     const { layers } = this._animatorController;
     for (let i = 0, n = layers.length; i < n; ++i) {
       const stateMachine = layers[i].stateMachine;
-      if (stateMachine?.entryState) {
-        this.play(stateMachine.entryState.name, i);
+      if (stateMachine?.defaultState) {
+        this.play(stateMachine.defaultState.name, i);
       }
     }
   }
@@ -793,7 +788,6 @@ export class Animator extends Component {
     this._animatorLayersData.length = 0;
     this._crossCurveDataCollection.length = 0;
     this._animationCurveOwners.length = 0;
-    this._animationCurveOwnerSet.clear();
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
     }
