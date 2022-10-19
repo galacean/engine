@@ -20,4 +20,3 @@ export type { GLTFParams } from "./GLTFLoader";
 export * from "./resource-deserialize";
 export * from "./SceneLoader";
 export type { Texture2DParams } from "./Texture2DLoader";
-
