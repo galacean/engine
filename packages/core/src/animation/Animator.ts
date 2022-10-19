@@ -36,6 +36,8 @@ export class Animator extends Component {
   @ignoreClone
   private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeValueType>>[] = [];
   @ignoreClone
+  private _animationCurveOwnerSet: Set<AnimationCurveOwner<KeyframeValueType>> = new Set();
+  @ignoreClone
   private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
@@ -59,7 +61,7 @@ export class Animator extends Component {
   }
 
   set animatorController(animatorController: AnimatorController) {
-    if (animatorController && animatorController !== this._animatorController) {
+    if (animatorController !== this._animatorController) {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
@@ -202,19 +204,11 @@ export class Animator extends Component {
    * @internal
    */
   _reset(): void {
-    const { _animatorController: animatorController } = this;
-    if (animatorController) {
-      const layers = animatorController.layers;
-      for (let i = 0, n = layers.length; i < n; ++i) {
-        const states = layers[i].stateMachine?.states;
-        if (!states) continue;
-        const animatorLayerData = this._getAnimatorLayerData(i);
-        for (let j = 0, m = states.length; j < m; ++j) {
-          const state = states[j];
-          const animatorStateData = this._getAnimatorStateData(state.name, state, animatorLayerData);
-          this._revertDefaultValue(state, animatorStateData);
-        }
-      }
+    const { _animationCurveOwnerSet: animationCurveOwnerSet } = this;
+    if (animationCurveOwnerSet.size) {
+      animationCurveOwnerSet.forEach((curveOwner) => {
+        curveOwner.hasSavedDefaultValue && curveOwner.revertDefaultValue();
+      });
     }
     this._clearPlayData();
   }
@@ -265,7 +259,11 @@ export class Animator extends Component {
   }
 
   private _saveAnimatorStateData(animatorState: AnimatorState, animatorStateData: AnimatorStateData): void {
-    const { entity, _animationCurveOwners: animationCureOwners } = this;
+    const {
+      entity,
+      _animationCurveOwners: animationCureOwners,
+      _animationCurveOwnerSet: animationCurveOwnerSet
+    } = this;
     const { curveOwners } = animatorStateData;
     const { _curveBindings: curves } = animatorState.clip;
     for (let i = curves.length - 1; i >= 0; i--) {
@@ -275,6 +273,7 @@ export class Animator extends Component {
       const { instanceId } = targetEntity;
       const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = {});
       curveOwners[i] = propertyOwners[property] || (propertyOwners[property] = curve._createCurveOwner(targetEntity));
+      animationCurveOwnerSet.add(curveOwners[i]);
     }
   }
 
@@ -780,7 +779,7 @@ export class Animator extends Component {
     }
   }
 
-  private _checkAutoPlay() {
+  private _checkAutoPlay(): void {
     const { layers } = this._animatorController;
     for (let i = 0, n = layers.length; i < n; ++i) {
       const stateMachine = layers[i].stateMachine;
@@ -794,6 +793,7 @@ export class Animator extends Component {
     this._animatorLayersData.length = 0;
     this._crossCurveDataCollection.length = 0;
     this._animationCurveOwners.length = 0;
+    this._animationCurveOwnerSet.clear();
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
     }
