@@ -8,7 +8,6 @@ import { PhysXColliderShape } from "./PhysXColliderShape";
  * Capsule collider shape in PhysX.
  */
 export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICapsuleColliderShape {
-  private static _tempQuat = new Quaternion();
   /** @internal */
   _radius: number;
   /** @internal */
@@ -27,7 +26,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
 
     this._radius = radius;
     this._halfHeight = height * 0.5;
-
+    this._axis = new Quaternion();
     this._pxGeometry = new PhysXPhysics._physX.PxCapsuleGeometry(this._radius, this._halfHeight);
     this._initialize(material, uniqueID);
     this._setLocalPose();
@@ -85,23 +84,26 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc ICapsuleColliderShape.setUpAxis }
    */
   setUpAxis(upAxis: ColliderShapeUpAxis): void {
-    const tempQuat = PhysXCapsuleColliderShape._tempQuat;
-    Quaternion.invert(this._axis, tempQuat);
+    const { _originalRotation: originalRotation, _axis: axis, _rotation: rotation } = this;
 
     this._upAxis = upAxis;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        this._axis.set(0, 0, 0, 1);
+        axis.set(0, 0, 0, 1);
         break;
       case ColliderShapeUpAxis.Y:
-        this._axis.set(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
+        axis.set(0, 0, PhysXColliderShape.halfSqrt, PhysXColliderShape.halfSqrt);
         break;
       case ColliderShapeUpAxis.Z:
-        this._axis.set(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
+        axis.set(0, PhysXColliderShape.halfSqrt, 0, PhysXColliderShape.halfSqrt);
         break;
     }
-    Quaternion.multiply(this._rotation, tempQuat, this._rotation);
-    Quaternion.multiply(this._rotation, this._axis, this._rotation);
+    if (originalRotation) {
+      Quaternion.rotationYawPitchRoll(originalRotation.x, originalRotation.y, originalRotation.z, rotation);
+      Quaternion.multiply(rotation, axis, rotation);
+    } else {
+      rotation.copyFrom(axis);
+    }
     this._setLocalPose();
   }
 

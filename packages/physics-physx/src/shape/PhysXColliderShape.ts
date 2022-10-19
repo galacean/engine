@@ -30,10 +30,11 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
 
+  protected _scale: Vector3 = new Vector3(1, 1, 1);
   protected _position: Vector3 = new Vector3();
   protected _rotation: Quaternion = new Quaternion();
-  protected _axis: Quaternion = new Quaternion();
-  protected _scale: Vector3 = new Vector3(1, 1, 1);
+  protected _originalRotation: Vector3 = null;
+  protected _axis: Quaternion = null;
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
@@ -52,8 +53,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
    * {@inheritDoc IColliderShape.setRotation }
    */
   setRotation(value: Vector3): void {
+    this._originalRotation = value;
     Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._rotation);
-    Quaternion.multiply(this._rotation, this._axis, this._rotation);
+    this._axis && Quaternion.multiply(this._rotation, this._axis, this._rotation);
     this._rotation.normalize();
     this._setLocalPose();
   }
