@@ -1,5 +1,5 @@
 import { KeyframeValueType } from "../Keyframe";
-import { AnimationCurveOwner } from "./AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "./animationCurveOwner/AnimationCurveOwner";
 /**
  * @internal
  */

@@ -1,6 +1,6 @@
 import { Vector3 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
