@@ -9,7 +9,7 @@ import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
-import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
@@ -63,6 +63,7 @@ export class Animator extends Component {
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
+      this._reset();
     }
   }
 
@@ -149,6 +150,7 @@ export class Animator extends Component {
       return;
     }
     if (this._controllerUpdateFlag?.flag) {
+      this._checkAutoPlay();
       return;
     }
     deltaTime *= this.speed;
@@ -185,6 +187,7 @@ export class Animator extends Component {
    */
   _onEnable(): void {
     this.engine._componentsManager.addOnUpdateAnimations(this);
+    this._checkAutoPlay();
   }
 
   /**
@@ -199,17 +202,12 @@ export class Animator extends Component {
    * @internal
    */
   _reset(): void {
-    const { _animatorController: animatorController } = this;
-    if (animatorController) {
-      const layers = animatorController.layers;
-      for (let i = 0, n = layers.length; i < n; ++i) {
-        const { states } = layers[i].stateMachine;
-        const animatorLayerData = this._getAnimatorLayerData(i);
-        for (let j = 0, m = states.length; j < m; ++j) {
-          const state = states[j];
-          const animatorStateData = this._getAnimatorStateData(state.name, state, animatorLayerData);
-          this._revertDefaultValue(state, animatorStateData);
-        }
+    const { _animationCurveOwners: animationCurveOwners } = this;
+    for (let instanceId in animationCurveOwners) {
+      const propertyOwners = animationCurveOwners[instanceId];
+      for (let property in propertyOwners) {
+        const owner = propertyOwners[property];
+        owner.hasSavedDefaultValue && owner.revertDefaultValue();
       }
     }
     this._clearPlayData();
@@ -773,6 +771,16 @@ export class Animator extends Component {
     const scripts = state._onStateExitScripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
       scripts[i].onStateExit(this, state, layerIndex);
+    }
+  }
+
+  private _checkAutoPlay(): void {
+    const { layers } = this._animatorController;
+    for (let i = 0, n = layers.length; i < n; ++i) {
+      const stateMachine = layers[i].stateMachine;
+      if (stateMachine?.defaultState) {
+        this.play(stateMachine.defaultState.name, i);
+      }
     }
   }
 

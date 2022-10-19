@@ -1,8 +1,8 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
-import { AnimationCurve } from "./AnimationCurve";
-import { IAnimationCurveCalculator } from "./AnimationCurve/interfaces/IAnimationCurveCalculator";
-import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurve } from "./animationCurve";
+import { IAnimationCurveCalculator } from "./animationCurve/interfaces/IAnimationCurveCalculator";
+import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { KeyframeValueType } from "./Keyframe";
 
 /**

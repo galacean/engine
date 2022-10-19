@@ -1,6 +1,6 @@
 export { AnimationClip } from "./AnimationClip";
 export { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
-export * from "./AnimationCurve";
+export * from "./animationCurve";
 export { AnimationEvent } from "./AnimationEvent";
 export { Animator } from "./Animator";
 export { AnimatorController } from "./AnimatorController";
