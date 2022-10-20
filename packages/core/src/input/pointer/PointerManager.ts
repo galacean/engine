@@ -39,7 +39,7 @@ export class PointerManager implements IInput {
   private _engine: Engine;
   private _canvas: Canvas;
   private _htmlCanvas: HTMLCanvasElement;
-  private _nativeEvents = [];
+  private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _hadListener: boolean = false;
   private _pointerIDMap = [];
@@ -68,40 +68,46 @@ export class PointerManager implements IInput {
    * @internal
    */
   _update(frameCount: number): void {
-    const { _pointers: pointers, _nativeEvents: nativeEvents } = this;
+    const { _pointers: pointers, _pointerIDMap: pointerIDMap, _nativeEvents: nativeEvents } = this;
     /** Clean up the pointer released in the previous frame. */
-    let length = pointers.length;
-    if (length > 0) {
-      for (let i = length - 1; i >= 0; i--) {
-        if (i !== length - 1) {
-          pointers[i] = pointers[length - 1];
-          --length;
+    let lastIndex = pointers.length - 1;
+    if (lastIndex >= 0) {
+      for (let i = lastIndex; i >= 0; i--) {
+        if (pointers[i].phase === PointerPhase.Leave) {
+          if (i !== lastIndex) {
+            pointers[i] = pointers[lastIndex];
+            pointerIDMap[i] = pointerIDMap[lastIndex];
+          }
+          pointerIDMap[lastIndex] = -1;
+          --lastIndex;
         }
       }
-      pointers.length = length;
+      pointers.length = lastIndex + 1;
     }
 
     /** Generate the pointer received for this frame. */
-    length = nativeEvents.length;
-    if (length > 0) {
-      this._buttons = nativeEvents[length - 1].buttons;
-      for (let i = 0; i < length; i++) {
+    lastIndex = nativeEvents.length - 1;
+    if (lastIndex >= 0) {
+      for (let i = 0; i <= lastIndex; i++) {
         const evt = nativeEvents[i];
-        this._getPointer(evt.pointerId, frameCount)?._events.push(evt);
+        this._getPointer(evt.pointerId)?._events.push(evt);
       }
       nativeEvents.length = 0;
     }
 
     /** Pointer handles its own events. */
-    length = pointers.length;
-    if (length > 0) {
+    lastIndex = pointers.length - 1;
+    this._buttons = 0;
+    if (lastIndex >= 0) {
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;
       const { clientWidth, clientHeight } = this._htmlCanvas;
       const { width, height } = this._canvas;
-      for (let i = length - 1; i >= 0; i--) {
-        updatePointer(frameCount, pointers[i], clientWidth, clientHeight, width, height);
+      for (let i = lastIndex; i >= 0; i--) {
+        const pointer = pointers[i];
+        updatePointer(frameCount, pointer, clientWidth, clientHeight, width, height);
+        this._buttons |= pointer.buttons;
       }
     }
   }
@@ -131,6 +137,7 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointerout", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       this._hadListener = false;
+      this._pointerIDMap.length = 0;
       this._downList.length = 0;
       this._upList.length = 0;
       const { _pointers: pointers } = this;
@@ -154,6 +161,7 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       this._hadListener = false;
     }
+    this._pointerIDMap.length = 0;
     this._pointerPool.length = 0;
     this._pointers.length = 0;
     this._downList.length = 0;
@@ -167,7 +175,7 @@ export class PointerManager implements IInput {
     this._nativeEvents.push(evt);
   }
 
-  private _getPointer(pointerId: number, frameCount: number): Pointer {
+  private _getPointer(pointerId: number): Pointer {
     const { _pointers: pointers } = this;
     const index = this._pointerIDMap.indexOf(pointerId);
     if (index >= 0) {
@@ -189,7 +197,7 @@ export class PointerManager implements IInput {
         }
         this._pointerIDMap[i] = pointerId;
         pointers.splice(i, 0, pointer);
-        pointer.frameCount = frameCount;
+        pointer.timeStamp = this._engine.time.nowTime;
         return pointer;
       } else {
         return null;
@@ -232,9 +240,8 @@ export class PointerManager implements IInput {
     canvasW: number,
     canvasH: number
   ): void {
-    const { _events: events } = pointer;
+    const { _events: events, position } = pointer;
     const length = events.length;
-    const { position } = pointer;
     if (length > 0) {
       const { _upList, _upMap, _downList, _downMap } = this;
       const latestEvent = events[length - 1];
@@ -242,19 +249,21 @@ export class PointerManager implements IInput {
       const normalizedY = latestEvent.offsetY / clientH;
       const currX = normalizedX * canvasW;
       const currY = normalizedY * canvasH;
-      if (pointer.phase === PointerPhase.Leave) {
-        pointer.movingDelta.set(0, 0);
-      } else {
-        pointer.movingDelta.set(currX - position.x, currY - position.y);
-      }
       position.set(currX, currY);
+      if (currX === position.x && currY === position.y) {
+        pointer.deltaPosition.set(currX - position.x, currY - position.y);
+        pointer.phase = PointerPhase.Move;
+      } else {
+        pointer.deltaPosition.set(0, 0);
+        pointer.phase = PointerPhase.Stationary;
+      }
+      pointer._firePointerDrag();
       const rayCastEntity = this._pointerRayCast(normalizedX, normalizedY);
       pointer._firePointerExitAndEnter(rayCastEntity);
-      // Merge move events.
-      let hadMoved = false;
       for (let i = 0; i < length; i++) {
         const event = events[i];
         const pointerButton: PointerButton = (pointer.button = event.button | PointerButton.Primary);
+        pointer.button = event.button;
         pointer.buttons = event.buttons;
         switch (event.type) {
           case "pointerdown":
@@ -269,13 +278,6 @@ export class PointerManager implements IInput {
             pointer.phase = PointerPhase.Up;
             pointer._firePointerUpAndClick(rayCastEntity);
             break;
-          case "pointermove":
-            pointer.phase = PointerPhase.Move;
-            if (hadMoved) {
-              hadMoved = true;
-              pointer._firePointerDrag();
-            }
-            break;
           case "pointerout":
             pointer.phase = PointerPhase.Leave;
             pointer._firePointerExitAndEnter(null);
@@ -285,10 +287,10 @@ export class PointerManager implements IInput {
       }
       pointer._events.length = 0;
     } else {
-      pointer.movingDelta.set(0, 0);
+      pointer.deltaPosition.set(0, 0);
       pointer.phase = PointerPhase.Stationary;
-      const rayCastEntity = this._pointerRayCast(position.x / canvasW, position.y / canvasH);
-      pointer._firePointerExitAndEnter(rayCastEntity);
+      pointer._firePointerDrag();
+      pointer._firePointerExitAndEnter(this._pointerRayCast(position.x / canvasW, position.y / canvasH));
     }
   }
 
@@ -307,11 +309,7 @@ export class PointerManager implements IInput {
       const latestEvent = events[length - 1];
       const currX = (latestEvent.offsetX / clientW) * canvasW;
       const currY = (latestEvent.offsetY / clientH) * canvasH;
-      if (pointer.phase === PointerPhase.Leave) {
-        pointer.movingDelta.set(0, 0);
-      } else {
-        pointer.movingDelta.set(currX - position.x, currY - position.y);
-      }
+      pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
       pointer.button = latestEvent.button;
       pointer.buttons = latestEvent.buttons;
@@ -340,7 +338,7 @@ export class PointerManager implements IInput {
       }
       pointer._events.length = 0;
     } else {
-      pointer.movingDelta.set(0, 0);
+      pointer.deltaPosition.set(0, 0);
       pointer.phase = PointerPhase.Stationary;
     }
   }

@@ -26,13 +26,6 @@ export class InputManager {
   }
 
   /**
-   * Pointer count.
-   */
-  get pointerCount(): number {
-    return this._initialized ? this._pointerManager._pointers.length : 0;
-  }
-
-  /**
    *  Whether to handle multi-pointer.
    */
   get multiPointerEnabled(): boolean {

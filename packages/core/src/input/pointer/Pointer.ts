@@ -12,9 +12,6 @@ export class Pointer {
    * @remark Start from 0.
    */
   readonly id: number;
-  /** @internal */
-  _events: PointerEvent[] = [];
-
   /** The phase of pointer. */
   phase: PointerPhase = PointerPhase.Leave;
   /** The button of pointer. */
@@ -24,14 +21,11 @@ export class Pointer {
   /** The position of the pointer in screen space pixel coordinates. */
   position: Vector2 = new Vector2();
   /** The change of the pointer. */
-  movingDelta: Vector2 = new Vector2();
-  // @todo: 这里用 frameCount 还是 event 自带的 timestamp ?
-  // 必要性：开发者可能需要判断 pointer 产生的先后顺序来决定用最早的 or 最近的 pointer
-  // timestamp 的好处是毫秒级，绝对可以判断出 pointer 的时序，但是可能有兼容性问题
-  // frameCount 的含义是代表它在哪一帧生成，好处是引擎原生无需引入时间戳概念，且无兼容问题
-  // 但是同一帧生成的 pointer 无法区分先后顺序
-  /** The frameCount the pointer was generated */
-  frameCount: number = -1;
+  deltaPosition: Vector2 = new Vector2();
+  /** The time stamp the pointer was generated */
+  timeStamp: number = 0;
+  /** @internal */
+  _events: PointerEvent[] = [];
 
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;
