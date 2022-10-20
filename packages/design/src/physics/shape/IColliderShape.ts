@@ -1,10 +1,16 @@
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
 /**
  * Interface for physics collider shape.
  */
 export interface IColliderShape {
+  /**
+   * Set local rotation.
+   * @param rotation - The local rotation
+   */
+  setRotation(rotation: Vector3): void;
+
   /**
    * Set local position.
    * @param position - The local position

@@ -1,4 +1,4 @@
-import { Color, Matrix, Vector3 } from "@oasis-engine/math";
+import { Matrix, Vector3 } from "@oasis-engine/math";
 import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -31,24 +31,11 @@ export class PointLight extends Light {
   /** Defines a distance cutoff at which the light's intensity must be considered zero. */
   distance: number = 100;
 
-  private _lightColor: Color = new Color(1, 1, 1, 1);
-
   /**
    * Get light position.
    */
   get position(): Vector3 {
     return this.entity.transform.worldPosition;
-  }
-
-  /**
-   * Get the final light color.
-   */
-  get lightColor(): Color {
-    this._lightColor.r = this.color.r * this.intensity;
-    this._lightColor.g = this.color.g * this.intensity;
-    this._lightColor.b = this.color.b * this.intensity;
-    this._lightColor.a = this.color.a * this.intensity;
-    return this._lightColor;
   }
 
   /**
@@ -67,7 +54,7 @@ export class PointLight extends Light {
     const positionStart = lightIndex * 3;
     const distanceStart = lightIndex;
 
-    const lightColor = this.lightColor;
+    const lightColor = this._getLightColor();
     const lightPosition = this.position;
 
     const data = PointLight._combinedData;
