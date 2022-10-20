@@ -20,28 +20,4 @@ export class SystemInfo {
     const ua = window.navigator.userAgent.toLocaleLowerCase();
     return /iphone|ipad|ipod/.test(ua);
   }
-
-  /**
-   * @internal
-   */
-  static _isAppleDevice(): boolean {
-    if (!window) {
-      return false;
-    }
-
-    const ua = window.navigator.userAgent.toLocaleLowerCase();
-    return /iphone|ipad|ipod|macintosh/.test(ua);
-  }
-
-  /**
-   * @internal
-   */
-  static _isChrome(): boolean {
-    if (!window) {
-      return false;
-    }
-
-    const ua = window.navigator.userAgent.toLocaleLowerCase();
-    return /Chrome/.test(ua);
-  }
 }
