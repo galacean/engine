@@ -30,7 +30,6 @@ export class SystemInfo {
     }
 
     const ua = window.navigator.userAgent.toLocaleLowerCase();
-    console.log(ua);
     return /iphone|ipad|ipod|macintosh/.test(ua);
   }
 
@@ -43,7 +42,6 @@ export class SystemInfo {
     }
 
     const ua = window.navigator.userAgent.toLocaleLowerCase();
-    console.log(ua);
     return /Chrome/.test(ua);
   }
 }
