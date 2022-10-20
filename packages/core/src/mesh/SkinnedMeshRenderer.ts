@@ -39,7 +39,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _blendShapeWeights: Float32Array;
 
-  private _maxVertexUniformVectors: number = 0;
+  private _maxVertexUniformVectors: number;
 
   /** @internal */
   @ignoreClone
