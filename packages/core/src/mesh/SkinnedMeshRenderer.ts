@@ -4,7 +4,6 @@ import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
-import { SystemInfo } from "../SystemInfo";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
