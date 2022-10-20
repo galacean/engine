@@ -43,8 +43,6 @@
 		#endif
 	#endif
 
-	
-
 	#ifdef OASIS_BLENDSHAPE_TEXTURE
 		vec3 getBlendShapeVertexElement(int blendShapeIndex, int vertexElementIndex)
 		{			

@@ -61,14 +61,6 @@
 				position.xyz += POSITION_BS6 * u_blendShapeWeights[6];
 				position.xyz += POSITION_BS7 * u_blendShapeWeights[7];
 			#endif
-			
-		#endif				
-			
-		#else
-			position.xyz += POSITION_BS4 * u_blendShapeWeights[4];
-			position.xyz += POSITION_BS5 * u_blendShapeWeights[5];
-			position.xyz += POSITION_BS6 * u_blendShapeWeights[6];
-			position.xyz += POSITION_BS7 * u_blendShapeWeights[7];
 		#endif
 	#endif
 #endif
