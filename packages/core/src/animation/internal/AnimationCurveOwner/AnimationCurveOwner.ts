@@ -38,7 +38,10 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   fixedPoseValue: V;
   hasSavedDefaultValue: boolean = false;
   baseEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
+
   crossEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
+  crossSrcCurveIndex: number;
+  crossDestCurveIndex: number;
 
   referenceTargetValue: V;
 
