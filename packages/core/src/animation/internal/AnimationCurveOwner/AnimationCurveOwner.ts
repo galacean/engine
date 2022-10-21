@@ -97,8 +97,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     layerWeight: number,
     additive: boolean
   ): void {
-    const srcCount = srcCurve.keys.length;
-    const destCount = destCurve.keys.length;
+    const srcCount = srcCurve?.keys?.length;
+    const destCount = destCurve?.keys?.length;
     if (srcCount || destCount) {
       const srcValue =
         srcCurve && srcCount
