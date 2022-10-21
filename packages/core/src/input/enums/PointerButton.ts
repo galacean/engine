@@ -6,6 +6,7 @@
  * Refer to Microsoft's documentation.(https://docs.microsoft.com/en-us/dotnet/api/system.windows.input.mousebutton?view=windowsdesktop-6.0)
  */
 export enum PointerButton {
+  /** No pointer. */
   None = 0x0,
   /** Indicate the primary pointer of the device (in general, the left button or the only button on single-button devices, used to activate a user interface control or select text) or the un-initialized value. */
   Primary = 0x1,
