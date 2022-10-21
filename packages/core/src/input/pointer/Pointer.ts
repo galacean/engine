@@ -24,6 +24,8 @@ export class Pointer {
   deltaPosition: Vector2 = new Vector2();
   /** @internal */
   _events: PointerEvent[] = [];
+  /** @internal */
+  _uniqueID: number;
 
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;
