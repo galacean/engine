@@ -259,9 +259,7 @@ export class PointerManager implements IInput {
       pointer._firePointerExitAndEnter(rayCastEntity);
       for (let i = 0; i < length; i++) {
         const event = events[i];
-        const pointerButton = (pointer.button = event.button
-          ? _pointerDec2BinMap[event.button]
-          : PointerButton.Primary);
+        const pointerButton = (pointer.button = _pointerDec2BinMap[event.button]);
         pointer.pressedButtons = event.buttons;
         switch (event.type) {
           case "pointerdown":
@@ -309,7 +307,7 @@ export class PointerManager implements IInput {
       const currY = (latestEvent.offsetY / clientH) * canvasH;
       pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
-      pointer.button = latestEvent.button;
+      pointer.button = _pointerDec2BinMap[latestEvent.button];
       pointer.pressedButtons = latestEvent.buttons;
       const { _upList, _upMap, _downList, _downMap } = this;
       for (let i = 0; i < length; i++) {
