@@ -42,7 +42,7 @@ export class PointerManager implements IInput {
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _hadListener: boolean = false;
-  private _pointerIDMap = [];
+  private _pointerIDMap: number[] = [];
 
   /**
    * Create a PointerManager.
@@ -107,7 +107,7 @@ export class PointerManager implements IInput {
       for (let i = lastIndex; i >= 0; i--) {
         const pointer = pointers[i];
         updatePointer(frameCount, pointer, clientWidth, clientHeight, width, height);
-        this._buttons |= pointer.buttons;
+        this._buttons |= pointer.pressedButtons;
       }
     }
   }
@@ -264,7 +264,7 @@ export class PointerManager implements IInput {
         const event = events[i];
         const pointerButton: PointerButton = (pointer.button = event.button | PointerButton.Primary);
         pointer.button = event.button;
-        pointer.buttons = event.buttons;
+        pointer.pressedButtons = event.buttons;
         switch (event.type) {
           case "pointerdown":
             _downList.add(pointerButton);
@@ -312,7 +312,7 @@ export class PointerManager implements IInput {
       pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
       pointer.button = latestEvent.button;
-      pointer.buttons = latestEvent.buttons;
+      pointer.pressedButtons = latestEvent.buttons;
       const { _upList, _upMap, _downList, _downMap } = this;
       for (let i = 0; i < length; i++) {
         const event = events[i];

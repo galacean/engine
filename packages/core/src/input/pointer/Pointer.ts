@@ -14,15 +14,15 @@ export class Pointer {
   readonly id: number;
   /** The phase of pointer. */
   phase: PointerPhase = PointerPhase.Leave;
-  /** The button of pointer. */
+  /** The button that triggers the pointer event. */
   button: PointerButton;
-  /** The buttons of pointer. */
-  buttons: number;
+  /** The currently pressed buttons for this pointer. */
+  pressedButtons: number;
   /** The position of the pointer in screen space pixel coordinates. */
   position: Vector2 = new Vector2();
   /** The change of the pointer. */
   deltaPosition: Vector2 = new Vector2();
-  /** The time stamp the pointer was generated */
+  /** The time stamp the pointer was generated. */
   timeStamp: number = 0;
   /** @internal */
   _events: PointerEvent[] = [];
