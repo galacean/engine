@@ -3,7 +3,7 @@ import { KeyboardManager } from "./keyboard/KeyboardManager";
 import { Keys } from "./enums/Keys";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
-import { PointerButton } from "./enums/PointerButton";
+import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
 import { Vector2, Vector3 } from "@oasis-engine/math";
 
@@ -105,7 +105,7 @@ export class InputManager {
       if (pointerButton === undefined) {
         return this._pointerManager._buttons !== 0;
       } else {
-        return (this._pointerManager._buttons & PointerManager.Buttons[pointerButton]) !== 0;
+        return (this._pointerManager._buttons & pointerButton) !== 0;
       }
     } else {
       return false;
@@ -122,7 +122,7 @@ export class InputManager {
       if (pointerButton === undefined) {
         return this._pointerManager._downList.length > 0;
       } else {
-        return this._pointerManager._downMap[pointerButton] === this._curFrameCount;
+        return this._pointerManager._downMap[_pointerBin2DecMap[pointerButton]] === this._curFrameCount;
       }
     } else {
       return false;
@@ -139,7 +139,7 @@ export class InputManager {
       if (pointerButton === undefined) {
         return this._pointerManager._upList.length > 0;
       } else {
-        return this._pointerManager._upMap[pointerButton] === this._curFrameCount;
+        return this._pointerManager._upMap[_pointerBin2DecMap[pointerButton]] === this._curFrameCount;
       }
     } else {
       return false;

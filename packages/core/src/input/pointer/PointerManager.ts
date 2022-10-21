@@ -6,7 +6,7 @@ import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
 import { PointerPhase } from "../enums/PointerPhase";
-import { PointerButton } from "../enums/PointerButton";
+import { PointerButton, _pointerBin2DecMap, _pointerDec2BinMap } from "../enums/PointerButton";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
 
@@ -15,9 +15,6 @@ import { Pointer } from "./Pointer";
  * @internal
  */
 export class PointerManager implements IInput {
-  /** Refer to the W3C standards.(https://www.w3.org/TR/uievents/#dom-mouseevent-buttons) */
-  public static Buttons = [0x1, 0x4, 0x2, 0x8, 0x10, 0x20, 0x40, 0x80, 0x100, 0x200, 0x400];
-
   private static _tempRay: Ray = new Ray();
   private static _tempPoint: Vector2 = new Vector2();
   private static _tempHitResult: HitResult = new HitResult();
@@ -26,7 +23,7 @@ export class PointerManager implements IInput {
   /** @internal */
   _multiPointerEnabled: boolean = true;
   /** @internal */
-  _buttons: number = 0x0;
+  _buttons: PointerButton = PointerButton.None;
   /** @internal */
   _upMap: number[] = [];
   /** @internal */
@@ -97,7 +94,7 @@ export class PointerManager implements IInput {
 
     /** Pointer handles its own events. */
     lastIndex = pointers.length - 1;
-    this._buttons = 0;
+    this._buttons = PointerButton.None;
     if (lastIndex >= 0) {
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
@@ -262,8 +259,9 @@ export class PointerManager implements IInput {
       pointer._firePointerExitAndEnter(rayCastEntity);
       for (let i = 0; i < length; i++) {
         const event = events[i];
-        const pointerButton: PointerButton = (pointer.button = event.button | PointerButton.Primary);
-        pointer.button = event.button;
+        const pointerButton = (pointer.button = event.button
+          ? _pointerDec2BinMap[event.button]
+          : PointerButton.Primary);
         pointer.pressedButtons = event.buttons;
         switch (event.type) {
           case "pointerdown":

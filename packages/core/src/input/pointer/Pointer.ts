@@ -17,7 +17,7 @@ export class Pointer {
   /** The button that triggers the pointer event. */
   button: PointerButton;
   /** The currently pressed buttons for this pointer. */
-  pressedButtons: number;
+  pressedButtons: PointerButton;
   /** The position of the pointer in screen space pixel coordinates. */
   position: Vector2 = new Vector2();
   /** The change of the pointer. */
