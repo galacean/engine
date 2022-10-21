@@ -1,30 +1,43 @@
 import { BoundingBox, Vector3 } from "@oasis-engine/math";
-import { ColorSpace } from ".";
+import { Color } from "@oasis-engine/math/src/Color";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
+import { GLCapabilityType } from "./base/Constant";
 import { Canvas } from "./Canvas";
 import { ComponentsManager } from "./ComponentsManager";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
+import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
 import { LightManager } from "./lighting/LightManager";
-import { Material, RenderQueueType } from "./material";
+import { Material } from "./material/Material";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
+import { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteElement } from "./RenderPipeline/SpriteElement";
 import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
+import { TextRenderElement } from "./RenderPipeline/TextRenderElement";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { BlendFactor, BlendOperation, ColorWriteMask, CompareFunction, CullMode, Shader } from "./shader";
+import { BlendFactor } from "./shader/enums/BlendFactor";
+import { BlendOperation } from "./shader/enums/BlendOperation";
+import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
+import { CompareFunction } from "./shader/enums/CompareFunction";
+import { CullMode } from "./shader/enums/CullMode";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
+import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
+import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
+import { ShadowMode } from "./shadow/enum/ShadowMode";
+import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
 ShaderPool.init();
@@ -35,6 +48,8 @@ ShaderPool.init();
 export class Engine extends EventDispatcher {
   /** @internal */
   static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+  /** @internal */
+  static _noDepthTextureMacro: ShaderMacro = Shader.getMacroByName("OASIS_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
   /** @internal */
@@ -48,19 +63,25 @@ export class Engine extends EventDispatcher {
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
-  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _renderElementPool: ClassPool<MeshRenderElement> = new ClassPool(MeshRenderElement);
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
   _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
+  _textElementPool: ClassPool<TextRenderElement> = new ClassPool(TextRenderElement);
   _spriteDefaultMaterial: Material;
   _spriteMaskDefaultMaterial: Material;
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
-  _whiteTexture2D: Texture2D;
+  _magentaTexture2D: Texture2D;
   /* @internal */
-  _whiteTextureCube: TextureCube;
+  _magentaTextureCube: TextureCube;
   /* @internal */
-  _whiteTexture2DArray: Texture2DArray;
+  _magentaTexture2DArray: Texture2DArray;
+  /* @internal */
+  _magentaMaterial: Material;
+  /* @internal */
+  _depthTexture2D: Texture2D;
+
   /* @internal */
   _backgroundTextureMaterial: Material;
   /* @internal */
@@ -70,6 +91,8 @@ export class Engine extends EventDispatcher {
   /** @internal */
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
+  _canSpriteBatch: boolean = true;
+  /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
   protected _canvas: Canvas;
@@ -85,6 +108,8 @@ export class Engine extends EventDispatcher {
   private _timeoutId: number;
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
+  private _destroyed: boolean = false;
+  private _waittingDestroy: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -102,7 +127,7 @@ export class Engine extends EventDispatcher {
   /**
    * Settings of Engine.
    */
-  get settings(): Readonly<EngineSettings> {
+  get settings(): EngineSettings {
     return this._settings;
   }
 
@@ -170,6 +195,13 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * Indicates whether the engine is destroyed.
+   */
+  get destroyed(): boolean {
+    return this._destroyed;
+  }
+
+  /**
    * Create engine.
    * @param canvas - The canvas to use for rendering
    * @param hardwareRenderer - Graphics API renderer
@@ -191,38 +223,58 @@ export class Engine extends EventDispatcher {
 
     this.inputManager = new InputManager(this);
 
-    const whitePixel = new Uint8Array([255, 255, 255, 255]);
+    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
 
-    const whiteTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    whiteTexture2D.setPixelBuffer(whitePixel);
-    whiteTexture2D.isGCIgnored = true;
+    const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    magentaTexture2D.setPixelBuffer(magentaPixel);
+    magentaTexture2D.isGCIgnored = true;
 
-    const whiteTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, whitePixel);
-    whiteTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, whitePixel);
-    whiteTextureCube.isGCIgnored = true;
+    const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
+    magentaTextureCube.isGCIgnored = true;
 
-    this._whiteTexture2D = whiteTexture2D;
-    this._whiteTextureCube = whiteTextureCube;
-
-    if (hardwareRenderer.isWebGL2) {
-      const whiteTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
-      whiteTexture2DArray.setPixelBuffer(0, whitePixel);
-      whiteTexture2DArray.isGCIgnored = true;
-      this._whiteTexture2DArray = whiteTexture2DArray;
+    if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
+      this._macroCollection.enable(Engine._noDepthTextureMacro);
+    } else {
+      const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
+      depthTexture2D.isGCIgnored = true;
+      this._depthTexture2D = depthTexture2D;
     }
 
-    this._backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
-    this._backgroundTextureMaterial.isGCIgnored = true;
-    this._backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    this._magentaTexture2D = magentaTexture2D;
+    this._magentaTextureCube = magentaTextureCube;
 
+    if (hardwareRenderer.isWebGL2) {
+      const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
+      magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
+      magentaTexture2DArray.isGCIgnored = true;
+      this._magentaTexture2DArray = magentaTexture2DArray;
+    }
+
+    const magentaMaterial = new Material(this, Shader.find("unlit"));
+    magentaMaterial.shaderData.setColor("u_baseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    this._magentaMaterial = magentaMaterial;
+
+    const backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
+    backgroundTextureMaterial.isGCIgnored = true;
+    backgroundTextureMaterial.renderState.depthState.compareFunction = CompareFunction.LessEqual;
+    this._backgroundTextureMaterial = backgroundTextureMaterial;
+
+    const innerSettings = this._settings;
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
-    this._settings.colorSpace = colorSpace;
+    innerSettings.colorSpace = colorSpace;
+    innerSettings.shadowMode = settings?.shadowMode || ShadowMode.SoftLow;
+    innerSettings.shadowResolution = settings?.shadowResolution || ShadowResolution.High;
+    innerSettings.shadowCascades = settings?.shadowCascades || ShadowCascadesMode.FourCascades;
+    innerSettings.shadowTwoCascadeSplits = settings?.shadowTwoCascadeSplits || 1.0 / 3.0;
+    innerSettings.shadowFourCascadeSplits =
+      settings?.shadowFourCascadeSplits || new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
   }
 
   /**
@@ -264,6 +316,7 @@ export class Engine extends EventDispatcher {
     this._renderElementPool.resetPool();
     this._spriteElementPool.resetPool();
     this._spriteMaskElementPool.resetPool();
+    this._textElementPool.resetPool();
 
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;
@@ -277,7 +330,15 @@ export class Engine extends EventDispatcher {
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
       this._render(scene);
-      componentsManager.handlingInvalidScripts();
+    }
+
+    // Engine is complete delayed destruction mechanism
+    if (this._waittingDestroy) {
+      this._sceneManager._destroyAllScene();
+    }
+    componentsManager.handlingInvalidScripts();
+    if (this._waittingDestroy) {
+      this._destroy();
     }
   }
 
@@ -291,42 +352,50 @@ export class Engine extends EventDispatcher {
 
   /**
    * Destroy engine.
+   * @remarks The timing of engine destruction is at the end of the current frame
    */
   destroy(): void {
-    if (this._sceneManager) {
-      this._whiteTexture2D.destroy(true);
-      this._whiteTextureCube.destroy(true);
-      this.inputManager._destroy();
-      this.trigger(new Event("shutdown", this));
-
-      // -- cancel animation
-      this.pause();
-
-      this._animate = null;
-
-      this._sceneManager._destroy();
-      this._resourceManager._destroy();
-      // If engine destroy, applyScriptsInvalid() maybe will not call anymore.
-      this._componentsManager.handlingInvalidScripts();
-      this._sceneManager = null;
-      this._resourceManager = null;
-
-      this._canvas = null;
-
-      this._time = null;
-
-      // delete mask manager
-      this._spriteMaskManager.destroy();
-
-      this.removeAllEventListeners();
+    if (this._destroyed) {
+      return;
     }
+    this._waittingDestroy = true;
   }
 
   /**
    * @internal
    */
-  _getShaderProgramPool(shader: Shader): ShaderProgramPool {
-    const index = shader._shaderId;
+  _destroy(): void {
+    this._resourceManager._destroy();
+    this._magentaTexture2D.destroy(true);
+    this._magentaTextureCube.destroy(true);
+    this.inputManager._destroy();
+    this.trigger(new Event("shutdown", this));
+
+    // -- cancel animation
+    this.pause();
+
+    this._animate = null;
+
+    this._sceneManager = null;
+    this._resourceManager = null;
+
+    this._canvas = null;
+
+    this._time = null;
+
+    // delete mask manager
+    this._spriteMaskManager.destroy();
+
+    this.removeAllEventListeners();
+    this._waittingDestroy = false;
+    this._destroyed = true;
+  }
+
+  /**
+   * @internal
+   */
+  _getShaderProgramPool(shaderPass: ShaderPass): ShaderProgramPool {
+    const index = shaderPass._shaderPassId;
     const shaderProgramPools = this._shaderProgramPools;
     let pool = shaderProgramPools[index];
     if (!pool) {
@@ -371,7 +440,7 @@ export class Engine extends EventDispatcher {
     target.colorBlendOperation = target.alphaBlendOperation = BlendOperation.Add;
     renderState.depthState.writeEnabled = false;
     renderState.rasterState.cullMode = CullMode.Off;
-    material.renderQueueType = RenderQueueType.Transparent;
+    material.renderState.renderQueueType = RenderQueueType.Transparent;
     material.isGCIgnored = true;
     return material;
   }

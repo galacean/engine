@@ -30,9 +30,11 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
 
-  protected _position: Vector3 = new Vector3();
-  protected _rotation: Quaternion = new Quaternion();
   protected _scale: Vector3 = new Vector3(1, 1, 1);
+  protected _position: Vector3 = new Vector3();
+  protected _rotation: Vector3 = null;
+  protected _axis: Quaternion = null;
+  protected _physxRotation: Quaternion = new Quaternion();
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
@@ -46,6 +48,17 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _id: number;
   /** @internal */
   _contactOffset: number = 0;
+
+  /**
+   * {@inheritDoc IColliderShape.setRotation }
+   */
+  setRotation(value: Vector3): void {
+    this._rotation = value;
+    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._physxRotation);
+    this._axis && Quaternion.multiply(this._physxRotation, this._axis, this._physxRotation);
+    this._physxRotation.normalize();
+    this._setLocalPose();
+  }
 
   /**
    * {@inheritDoc IColliderShape.setPosition }
@@ -118,7 +131,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   protected _setLocalPose(): void {
     const transform = PhysXColliderShape.transform;
     Vector3.multiply(this._position, this._scale, transform.translation);
-    transform.rotation = this._rotation;
+    transform.rotation = this._physxRotation;
     this._pxShape.setLocalPose(transform);
   }
 
@@ -128,7 +141,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
     this._pxShape = PhysXPhysics._pxPhysics.createShape(
       this._pxGeometry,
       material._pxMaterial,
-      false,
+      true,
       new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags)
     );
     this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(id, 0, 0, 0));

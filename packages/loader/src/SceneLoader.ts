@@ -22,23 +22,29 @@ class SceneLoader extends Loader<Scene> {
         engine.resourceManager.initVirtualResources(data.files);
         return SceneParser.parse(engine, data).then((scene) => {
           const ambient = data.scene.ambient;
+          let ambientLightPromise = Promise.resolve();
           if (ambient.ambientLight) {
-            resourceManager.getResourceByRef<any>(data.scene.ambient.ambientLight).then((light) => {
-              scene.ambientLight = light;
-              scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
-              scene.ambientLight.specularIntensity = ambient.specularIntensity;
-            });
+            ambientLightPromise = resourceManager
+              .getResourceByRef<any>(data.scene.ambient.ambientLight)
+              .then((light) => {
+                scene.ambientLight = light;
+                scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
+                scene.ambientLight.specularIntensity = ambient.specularIntensity;
+              });
           }
 
           const background = data.scene.background;
           scene.background.mode = background.mode;
+
+          let backgroundPromise = Promise.resolve();
+
           switch (scene.background.mode) {
             case BackgroundMode.SolidColor:
               scene.background.solidColor.copyFrom(background.color);
               break;
             case BackgroundMode.Sky:
               if (background.sky) {
-                resourceManager.getResourceByRef<any>(background.sky).then((light) => {
+                backgroundPromise = resourceManager.getResourceByRef<any>(background.sky).then((light) => {
                   const sky = scene.background.sky;
                   const skyMaterial = new SkyBoxMaterial(engine);
                   skyMaterial.textureCubeMap = light.specularTexture;
@@ -50,13 +56,15 @@ class SceneLoader extends Loader<Scene> {
               break;
             case BackgroundMode.Texture:
               if (background.texture) {
-                resourceManager.getResourceByRef<any>(background.texture).then((texture) => {
+                backgroundPromise = resourceManager.getResourceByRef<any>(background.texture).then((texture) => {
                   scene.background.texture = texture;
                 });
               }
               break;
           }
-          resolve(scene);
+          Promise.all([ambientLightPromise, backgroundPromise]).then(() => {
+            resolve(scene);
+          });
         });
       });
       //

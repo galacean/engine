@@ -1,3 +1,5 @@
+import { Vector2 } from "@oasis-engine/math";
+
 /**
  * @internal
  */
@@ -9,12 +11,9 @@ export interface CharInfo {
   offsetX: number;
   offsetY: number;
   xAdvance: number;
-  u0: number;
-  v0: number;
-  u1: number;
-  v1: number;
   ascent: number;
   descent: number;
   index: number;
   data?: Uint8Array;
+  uvs: Vector2[];
 }

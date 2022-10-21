@@ -28,8 +28,8 @@ export class PhysXCharacterController implements ICharacterController {
   /**
    * {@inheritDoc ICharacterController.setWorldPosition }
    */
-  setWorldPosition(position: Vector3): boolean {
-    return this._pxController.setPosition(position);
+  setWorldPosition(position: Vector3): void {
+    this._pxController && this._pxController.setPosition(position);
   }
 
   /**
@@ -114,13 +114,16 @@ export class PhysXCharacterController implements ICharacterController {
     desc.setMaterial(shape._pxMaterials[0]);
 
     this._pxController = pxManager._getControllerManager().createController(desc);
+    this._pxController.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(shape._id, 0, 0, 0));
   }
 
   /**
    * @internal
    */
   _destroyPXController(): void {
-    this._pxController.release();
-    this._pxController = null;
+    if (this._pxController) {
+      this._pxController.release();
+      this._pxController = null;
+    }
   }
 }

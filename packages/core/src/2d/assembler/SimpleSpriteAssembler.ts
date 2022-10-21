@@ -1,8 +1,8 @@
 import { BoundingBox, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
-import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 /**
  * @internal
@@ -40,7 +40,7 @@ export class SimpleSpriteAssembler {
     (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);
     wE[12] = pWE[12] - pivotX * wE[0] - pivotY * wE[4];
     wE[13] = pWE[13] - pivotX * wE[1] - pivotY * wE[5];
-    wE[14] = pWE[14];
+    wE[14] = pWE[14] - pivotX * wE[2] - pivotY * wE[6];
 
     // ---------------
     //  2 - 3

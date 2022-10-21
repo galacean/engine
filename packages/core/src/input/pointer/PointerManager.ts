@@ -169,6 +169,7 @@ export class PointerManager implements IInput {
 
   private _onPointerEvent(evt: PointerEvent) {
     evt.cancelable && evt.preventDefault();
+    evt.type === "pointerdown" && this._htmlCanvas.focus();
     this._nativeEvents.push(evt);
   }
 

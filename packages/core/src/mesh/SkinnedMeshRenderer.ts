@@ -36,10 +36,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
   private _skin: Skin;
+  @ignoreClone
+  private _blendShapeWeights: Float32Array;
+
+  private _maxVertexUniformVectors: number;
 
   /** @internal */
-  _blendShapeWeights: Float32Array = new Float32Array(0);
-  /** @internal */
+  @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
 
   /**
@@ -47,11 +50,34 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @remarks Array index is BlendShape index.
    */
   get blendShapeWeights(): Float32Array {
+    this._checkBlendShapeWeightLength();
     return this._blendShapeWeights;
   }
 
   set blendShapeWeights(value: Float32Array) {
-    this._blendShapeWeights = value;
+    this._checkBlendShapeWeightLength();
+    const blendShapeWeights = this._blendShapeWeights;
+    if (value.length <= blendShapeWeights.length) {
+      blendShapeWeights.set(value);
+    } else {
+      for (let i = 0, n = blendShapeWeights.length; i < n; i++) {
+        blendShapeWeights[i] = value[i];
+      }
+    }
+  }
+
+  /**
+   * Skin Object.
+   */
+  get skin() {
+    return this._skin;
+  }
+
+  set skin(value: Skin) {
+    if (this._skin !== value) {
+      this._skin = value;
+      this._hasInitJoints = false;
+    }
   }
 
   /**
@@ -62,6 +88,15 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     super(entity);
     this._mat = new Matrix();
     this._skin = null;
+
+    const rhi = this.entity.engine._hardwareRenderer;
+    let maxVertexUniformVectors = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
+    if (rhi.renderer === "Apple GPU") {
+      // When uniform is large than 256, the skeleton matrix array access in shader very slow in Safari or WKWebview.
+      // This may be a apple bug, Chrome and Firefox is OK!
+      maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
+    }
+    this._maxVertexUniformVectors = maxVertexUniformVectors;
   }
 
   /**
@@ -77,70 +112,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const mesh = <ModelMesh>this.mesh;
     mesh._blendShapeManager._updateShaderData(shaderData, this);
-  }
-
-  /**
-   * Skin Object.
-   */
-  get skin() {
-    return this._skin;
-  }
-
-  set skin(skin) {
-    this._skin = skin;
-  }
-
-  _initJoints() {
-    if (!this._skin) return;
-    const skin = this._skin;
-
-    const joints = skin.joints;
-    const jointNodes = [];
-    for (let i = joints.length - 1; i >= 0; i--) {
-      jointNodes[i] = this.findByNodeName(this.entity, joints[i]);
-    } // end of for
-    this.matrixPalette = new Float32Array(jointNodes.length * 16);
-    this.jointNodes = jointNodes;
-
-    /** Whether to use a skeleton texture */
-    const rhi = this.entity.engine._hardwareRenderer;
-    if (!rhi) return;
-    const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    const maxJoints = Math.floor((maxAttribUniformVec4 - 30) / 4);
-    const shaderData = this.shaderData;
-    const jointCount = jointNodes.length;
-
-    if (jointCount) {
-      shaderData.enableMacro("O3_HAS_SKIN");
-      shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
-      if (jointCount > maxJoints) {
-        if (rhi.canIUseMoreJoints) {
-          this._useJointTexture = true;
-        } else {
-          Logger.error(
-            `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
-            this
-          );
-        }
-      } else {
-        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, jointCount);
-        SkinnedMeshRenderer._maxJoints = maxJoints;
-        shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
-        shaderData.enableMacro("O3_JOINTS_NUM", maxJoints.toString());
-      }
-    } else {
-      shaderData.disableMacro("O3_HAS_SKIN");
-    }
-  }
-
-  private findByNodeName(entity: Entity, nodeName: string) {
-    if (!entity) return null;
-
-    const n = entity.findByName(nodeName);
-
-    if (n) return n;
-
-    return this.findByNodeName(entity.parent, nodeName);
   }
 
   /**
@@ -169,16 +140,20 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         matrixPalette.set(mat.elements, i * 16);
       }
       if (this._useJointTexture) {
-        this.createJointTexture();
+        this._createJointTexture();
       }
     }
   }
 
   /**
-   * Generate joint texture.
-   * Format: (4 * RGBA) * jointCont
+   * @internal
    */
-  createJointTexture() {
+  _cloneTo(target: SkinnedMeshRenderer): void {
+    super._cloneTo(target);
+    this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
+  }
+
+  private _createJointTexture(): void {
     if (!this.jointTexture) {
       const engine = this.engine;
       const rhi = engine._hardwareRenderer;
@@ -189,5 +164,81 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
     }
     this.jointTexture.setPixelBuffer(this.matrixPalette);
+  }
+
+  private _initJoints() {
+    const { _skin: skin, shaderData } = this;
+    if (!skin) {
+      shaderData.disableMacro("O3_HAS_SKIN");
+      return;
+    }
+
+    const joints = skin.joints;
+    const jointNodes = [];
+    for (let i = joints.length - 1; i >= 0; i--) {
+      jointNodes[i] = this.findByNodeName(this.entity, joints[i]);
+    } // end of for
+    this.matrixPalette = new Float32Array(jointNodes.length * 16);
+    this.jointNodes = jointNodes;
+
+    /** Whether to use a skeleton texture */
+    const rhi = this.entity.engine._hardwareRenderer;
+    if (!rhi) return;
+
+    const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
+    const jointCount = jointNodes.length;
+
+    if (jointCount) {
+      shaderData.enableMacro("O3_HAS_SKIN");
+      shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
+      if (jointCount > maxJoints) {
+        if (rhi.canIUseMoreJoints) {
+          this._useJointTexture = true;
+        } else {
+          Logger.error(
+            `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
+            this
+          );
+        }
+      } else {
+        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, jointCount);
+        SkinnedMeshRenderer._maxJoints = maxJoints;
+        shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
+        shaderData.enableMacro("O3_JOINTS_NUM", maxJoints.toString());
+      }
+    } else {
+      shaderData.disableMacro("O3_HAS_SKIN");
+    }
+  }
+
+  private findByNodeName(entity: Entity, nodeName: string) {
+    if (!entity) return null;
+
+    const n = entity.findByName(nodeName);
+
+    if (n) return n;
+
+    return this.findByNodeName(entity.parent, nodeName);
+  }
+
+  private _checkBlendShapeWeightLength(): void {
+    const mesh = <ModelMesh>this._mesh;
+    const newBlendShapeCount = mesh ? mesh.blendShapeCount : 0;
+    const lastBlendShapeWeights = this._blendShapeWeights;
+    if (lastBlendShapeWeights) {
+      if (lastBlendShapeWeights.length !== newBlendShapeCount) {
+        const newBlendShapeWeights = new Float32Array(newBlendShapeCount);
+        if (newBlendShapeCount > lastBlendShapeWeights.length) {
+          newBlendShapeWeights.set(lastBlendShapeWeights);
+        } else {
+          for (let i = 0, n = lastBlendShapeWeights.length; i < n; i++) {
+            lastBlendShapeWeights[i] = newBlendShapeWeights[i];
+          }
+        }
+        this._blendShapeWeights = newBlendShapeWeights;
+      }
+    } else {
+      this._blendShapeWeights = new Float32Array(newBlendShapeCount);
+    }
   }
 }

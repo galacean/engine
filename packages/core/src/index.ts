@@ -27,7 +27,7 @@ export { RefObject } from "./asset/RefObject";
 export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 export { RenderQueue } from "./RenderPipeline/RenderQueue";
 export { RenderPass } from "./RenderPipeline/RenderPass";
-export { RenderElement } from "./RenderPipeline/RenderElement";
+export { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
 export { SpriteElement } from "./RenderPipeline/SpriteElement";
 export * from "./base";
 
@@ -38,6 +38,7 @@ export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
 export * from "./input/index";
 export * from "./lighting/index";
+export * from "./shadow/index";
 export * from "./material/index";
 export * from "./texture/index";
 export * from "./graphic/index";

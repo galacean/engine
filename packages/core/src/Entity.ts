@@ -142,9 +142,7 @@ export class Entity extends EngineObject {
       throw `The entity ${this.name} is not in the hierarchy`;
     }
 
-    if (this._siblingIndex !== value) {
-      this._setSiblingIndex(this._isRoot ? this._scene._rootEntities : this._parent._children, value);
-    }
+    this._setSiblingIndex(this._isRoot ? this._scene._rootEntities : this._parent._children, value);
   }
 
   /**
@@ -167,9 +165,7 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this);
     this._components.push(component);
-    if (this._isActiveInHierarchy) {
-      component._setActive(true);
-    }
+    component._setActive(true);
     return component;
   }
 
@@ -377,7 +373,9 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   destroy(): void {
-    if (this._destroyed) return;
+    if (this._destroyed) {
+      return;
+    }
 
     super.destroy();
     const components = this._components;
@@ -392,7 +390,12 @@ export class Entity extends EngineObject {
     }
     this._children.length = 0;
 
-    this._removeFromParent();
+    if (this._isRoot) {
+      this._scene._removeFromEntityList(this);
+      this._isRoot = false;
+    } else {
+      this._removeFromParent();
+    }
   }
 
   /**
@@ -427,11 +430,11 @@ export class Entity extends EngineObject {
   _removeFromParent(): void {
     const oldParent = this._parent;
     if (oldParent != null) {
-      const oldSilbing = oldParent._children;
+      const oldSibling = oldParent._children;
       let index = this._siblingIndex;
-      oldSilbing.splice(index, 1);
-      for (let n = oldSilbing.length; index < n; index++) {
-        oldSilbing[index]._siblingIndex--;
+      oldSibling.splice(index, 1);
+      for (let n = oldSibling.length; index < n; index++) {
+        oldSibling[index]._siblingIndex--;
       }
       this._parent = null;
       this._siblingIndex = -1;
@@ -534,7 +537,7 @@ export class Entity extends EngineObject {
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       const component = components[i];
-      component.enabled && activeChangedComponents.push(component);
+      (component.enabled || !component._awoken) && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
@@ -568,22 +571,24 @@ export class Entity extends EngineObject {
   }
 
   private _setSiblingIndex(sibling: Entity[], target: number): void {
-    if (target < 0 || target > sibling.length) {
-      throw `The index ${target} is out of child list bounds ${sibling.length}`;
+    target = Math.min(target, sibling.length - 1);
+    if (target < 0) {
+      throw `Sibling index ${target} should large than 0`;
     }
-
-    const oldIndex = this._siblingIndex;
-    if (target < oldIndex) {
-      for (let i = oldIndex; i >= target; i--) {
-        const child = i == target ? this : sibling[i - 1];
-        sibling[i] = child;
-        child._siblingIndex = i;
-      }
-    } else {
-      for (let i = oldIndex; i <= target; i++) {
-        const child = i == target ? this : sibling[i + 1];
-        sibling[i] = child;
-        child._siblingIndex = i;
+    if (this._siblingIndex !== target) {
+      const oldIndex = this._siblingIndex;
+      if (target < oldIndex) {
+        for (let i = oldIndex; i >= target; i--) {
+          const child = i == target ? this : sibling[i - 1];
+          sibling[i] = child;
+          child._siblingIndex = i;
+        }
+      } else {
+        for (let i = oldIndex; i <= target; i++) {
+          const child = i == target ? this : sibling[i + 1];
+          sibling[i] = child;
+          child._siblingIndex = i;
+        }
       }
     }
   }

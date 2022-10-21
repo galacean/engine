@@ -35,7 +35,7 @@ export class BlendShapeManager {
   /** @internal */
   _blendShapeNames: string[];
   /** @internal */
-  _layoutDirtyFlag: ListenerUpdateFlag = new ListenerUpdateFlag();
+  _layoutDirtyListener: ListenerUpdateFlag = new ListenerUpdateFlag();
   /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
   /** @internal */
@@ -61,7 +61,7 @@ export class BlendShapeManager {
     this._engine = engine;
     this._modelMesh = modelMesh;
     this._canUseTextureStoreData = this._engine._hardwareRenderer.capability.canUseFloatTextureBlendShape;
-    this._layoutDirtyFlag.listener = this._updateLayoutChange.bind(this);
+    this._layoutDirtyListener.listener = this._updateLayoutChange.bind(this);
   }
 
   /**
@@ -71,7 +71,7 @@ export class BlendShapeManager {
     this._blendShapes.push(blendShape);
     this._blendShapeCount++;
 
-    blendShape._addLayoutChangeFlag(this._layoutDirtyFlag);
+    blendShape._addLayoutChangeFlag(this._layoutDirtyListener);
     this._updateLayoutChange(blendShape);
 
     this._subDataDirtyFlags.push(blendShape._createSubDataDirtyFlag());
@@ -87,7 +87,7 @@ export class BlendShapeManager {
     this._blendShapes.length = 0;
     this._blendShapeCount = 0;
 
-    this._layoutDirtyFlag.clearFromManagers();
+    this._layoutDirtyListener.clearFromManagers();
     const subDataDirtyFlags = this._subDataDirtyFlags;
     for (let i = 0, n = subDataDirtyFlags.length; i < n; i++) {
       subDataDirtyFlags[i].destroy();
@@ -106,7 +106,7 @@ export class BlendShapeManager {
         shaderData.enableMacro(BlendShapeManager._blendShapeTextureMacro);
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
         shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
-        shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer._blendShapeWeights);
+        shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
       } else {
         const maxBlendCount = this._getVertexBufferModeSupportCount();
         if (blendShapeCount > maxBlendCount) {
@@ -115,15 +115,12 @@ export class BlendShapeManager {
             condensedBlendShapeWeights = new Float32Array(maxBlendCount);
             skinnedMeshRenderer._condensedBlendShapeWeights = condensedBlendShapeWeights;
           }
-          this._filterCondensedBlendShapeWeights(skinnedMeshRenderer._blendShapeWeights, condensedBlendShapeWeights);
+          this._filterCondensedBlendShapeWeights(skinnedMeshRenderer.blendShapeWeights, condensedBlendShapeWeights);
           shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, condensedBlendShapeWeights);
           this._modelMesh._enableVAO = false;
           blendShapeCount = maxBlendCount;
         } else {
-          shaderData.setFloatArray(
-            BlendShapeManager._blendShapeWeightsProperty,
-            skinnedMeshRenderer._blendShapeWeights
-          );
+          shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
           this._modelMesh._enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
@@ -248,13 +245,13 @@ export class BlendShapeManager {
     }
     this._blendShapeNames = blendShapeNamesMap;
 
-    this._layoutDirtyFlag.destroy();
+    this._layoutDirtyListener.destroy();
     const dataChangedFlags = this._subDataDirtyFlags;
     for (let i = 0, n = dataChangedFlags.length; i < n; i++) {
       dataChangedFlags[i].destroy();
     }
 
-    this._layoutDirtyFlag = null;
+    this._layoutDirtyListener = null;
     this._subDataDirtyFlags = null;
     this._blendShapes = null;
     this._vertices = null;
@@ -505,10 +502,10 @@ export class BlendShapeManager {
   }
 
   private _getVertexBufferModeSupportCount(): number {
-    if (this._useBlendNormal || this._useBlendTangent) {
-      return 4;
+    if (this._useBlendNormal && this._useBlendTangent) {
+      return 2;
     } else {
-      return 8;
+      return this._useBlendNormal || this._useBlendTangent ? 4 : 8;
     }
   }
 
