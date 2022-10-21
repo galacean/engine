@@ -1,16 +1,20 @@
 import { Entity } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class EntityParser extends Parser {
   /** @internal */
   static _defaultName: String = "_GLTF_ENTITY_";
 
-  parse(context: GLTFResource): void {
+  parse(context: ParserContext): void {
+    const glTFResource = context.glTFResource;
+
     const {
       engine,
       gltf: { nodes }
-    } = context;
+    } = glTFResource;
+
     if (!nodes) return;
 
     const entities: Entity[] = [];
@@ -40,9 +44,9 @@ export class EntityParser extends Parser {
       entities[i] = entity;
     }
 
-    context.entities = entities;
-    this._buildEntityTree(context);
-    this._createSceneRoots(context);
+    glTFResource.entities = entities;
+    this._buildEntityTree(glTFResource);
+    this._createSceneRoots(glTFResource);
   }
 
   private _buildEntityTree(context: GLTFResource): void {

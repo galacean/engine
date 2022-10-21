@@ -65,6 +65,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _extensions;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
+  private _renderer: string;
   private _webCanvas: WebCanvas;
 
   private _activeTextureID: number;
@@ -75,8 +76,12 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _lastClearColor: Color = new Color(null, null, null, null);
   private _scissorEnable: boolean = false;
 
-  get isWebGL2() {
+  get isWebGL2(): boolean {
     return this._isWebGL2;
+  }
+
+  get renderer(): string {
+    return this._renderer;
   }
 
   /**
@@ -145,6 +150,11 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._capability = new GLCapability(this);
     // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
     gl.activeTexture(gl.TEXTURE0);
+
+    const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    if (debugRenderInfo != null) {
+      this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
+    }
 
     this._options = null;
   }
