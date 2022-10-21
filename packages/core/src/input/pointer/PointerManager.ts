@@ -195,7 +195,6 @@ export class PointerManager implements IInput {
         }
         this._pointerIDMap[i] = pointerId;
         pointers.splice(i, 0, pointer);
-        pointer.timeStamp = this._engine.time.nowTime;
         return pointer;
       } else {
         return null;

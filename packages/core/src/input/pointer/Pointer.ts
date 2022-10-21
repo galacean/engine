@@ -22,8 +22,6 @@ export class Pointer {
   position: Vector2 = new Vector2();
   /** The change of the pointer. */
   deltaPosition: Vector2 = new Vector2();
-  /** The time stamp the pointer was generated. */
-  timeStamp: number = 0;
   /** @internal */
   _events: PointerEvent[] = [];
 
