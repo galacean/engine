@@ -60,10 +60,10 @@ export class Animator extends Component {
 
   set animatorController(animatorController: AnimatorController) {
     if (animatorController !== this._animatorController) {
+      this._reset();
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
-      this._reset();
     }
   }
 
@@ -187,7 +187,7 @@ export class Animator extends Component {
    */
   _onEnable(): void {
     this.engine._componentsManager.addOnUpdateAnimations(this);
-    this._checkAutoPlay();
+    this.animatorController && this._checkAutoPlay();
   }
 
   /**
