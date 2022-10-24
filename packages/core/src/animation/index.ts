@@ -12,5 +12,5 @@ export { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 export { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
-export * from "./KeyFrame";
+export * from "./Keyframe";
 export { StateMachineScript } from "./StateMachineScript";

@@ -12,14 +12,15 @@ import {
   TypedArray
 } from "@oasis-engine/core";
 import { Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
-import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, AnimationChannelTargetPath, AnimationSamplerInterpolation, IAnimationChannel } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class AnimationParser extends Parser {
-  parse(context: GLTFResource): void {
-    const { gltf, buffers, entities } = context;
+  parse(context: ParserContext) {
+    const { animationIndex, glTFResource } = context;
+    const { gltf, buffers, entities } = glTFResource;
     const { animations, accessors } = gltf;
     if (!animations) {
       return;
@@ -32,6 +33,9 @@ export class AnimationParser extends Parser {
     }>(animationClipCount);
 
     for (let i = 0; i < animationClipCount; i++) {
+      if (animationIndex >= 0 && animationIndex !== i) {
+        continue;
+      }
       const gltfAnimation = animations[i];
       const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
       const animationClip = new AnimationClip(name);
@@ -120,9 +124,18 @@ export class AnimationParser extends Parser {
         index: i
       };
     }
-    context.animations = animationClips;
+
+    if (animationIndex >= 0) {
+      const animationClip = animationClips[animationIndex];
+      if (animationClip) {
+        return animationClip;
+      } else {
+        throw `animation index not find in: ${animationIndex}`;
+      }
+    }
+    glTFResource.animations = animationClips;
     // @ts-ignore for editor
-    context._animationsIndices = animationsIndices;
+    glTFResource._animationsIndices = animationsIndices;
   }
 
   private _addCurve(

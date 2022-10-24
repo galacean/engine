@@ -120,10 +120,7 @@ export class BlendShapeManager {
           this._modelMesh._enableVAO = false;
           blendShapeCount = maxBlendCount;
         } else {
-          shaderData.setFloatArray(
-            BlendShapeManager._blendShapeWeightsProperty,
-            skinnedMeshRenderer.blendShapeWeights
-          );
+          shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
           this._modelMesh._enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
@@ -505,10 +502,10 @@ export class BlendShapeManager {
   }
 
   private _getVertexBufferModeSupportCount(): number {
-    if (this._useBlendNormal || this._useBlendTangent) {
-      return 4;
+    if (this._useBlendNormal && this._useBlendTangent) {
+      return 2;
     } else {
-      return 8;
+      return this._useBlendNormal || this._useBlendTangent ? 4 : 8;
     }
   }
 

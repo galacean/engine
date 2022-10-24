@@ -30,14 +30,17 @@ export abstract class Component extends EngineObject {
   }
 
   set enabled(value: boolean) {
-    if (value === this._enabled) {
-      return;
-    }
-    this._enabled = value;
-    if (value) {
-      this._entity.isActiveInHierarchy && this._onEnable();
-    } else {
-      this._entity.isActiveInHierarchy && this._onDisable();
+    if (value !== this._enabled) {
+      this._enabled = value;
+      if (this._entity.isActiveInHierarchy) {
+        if (value) {
+          this._phasedActive = true;
+          this._onEnable();
+        } else {
+          this._phasedActive = false;
+          this._onDisable();
+        }
+      }
     }
   }
 
