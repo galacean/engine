@@ -27,7 +27,7 @@ export enum AssetType {
   Mesh = "mesh",
   /** Animation Clip. */
   AnimationClip = "animation-clip",
-  /** Prefab.*/
+  /** Prefab. */
   Prefab = "prefab",
   /** Compress Texture. */
   KTX = "ktx",
@@ -37,14 +37,14 @@ export enum AssetType {
   Sprite = "sprite",
   /** Sprite Atlas. */
   SpriteAtlas = "sprite-atlas",
-  /** ambient light */
+  /** Ambient light. */
   Env = "environment",
-  /** scene */
+  /** Scene. */
   Scene = "scene",
-  /** HDR to cube */
+  /** HDR to cube. */
   HDR = "HDR",
-  /** Font to text renderer */
+  /** Font. */
   Font = "font",
-  /** Font to text renderer for editor */
-  EditorFont = "editor-font"
+  /** Source Font, include ttf、 otf and woff. */
+  SourceFont = "source-font"
 }

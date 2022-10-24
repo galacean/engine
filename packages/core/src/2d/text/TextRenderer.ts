@@ -133,9 +133,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   set font(value: Font) {
-    if (this._font !== value) {
-      value._addRefCount(1);
-      this._font._addRefCount(-1);
+    const lastFont = this._font;
+    if (lastFont !== value) {
+      lastFont && lastFont._addRefCount(-1);
+      value && value._addRefCount(1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -362,7 +363,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
     charRenderDatas.length = 0;
 
-    // Delete font.
     if (this._font) {
       this._font._addRefCount(-1);
       this._font = null;

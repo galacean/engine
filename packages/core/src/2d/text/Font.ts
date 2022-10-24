@@ -1,7 +1,7 @@
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
-import { SubFont } from "./SubFont";
 import { FontStyle } from "../enums/FontStyle";
+import { SubFont } from "./SubFont";
 
 /**
  * Font.
@@ -44,7 +44,9 @@ export class Font extends RefObject {
     this._name = name;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _getSubFont(fontSize: number, fontStyle: FontStyle): SubFont {
     const key = `${fontSize}-${fontStyle}`;
     const subFontMap = this._subFontMap;
@@ -61,9 +63,9 @@ export class Font extends RefObject {
    * @override
    */
   _onDestroy(): void {
-    const styleFonts = Object.values(this._subFontMap);
-    for (let i = 0, l = styleFonts.length; i < l; ++i) {
-      styleFonts[i].destroy();
+    const subFontMap = this._subFontMap;
+    for (let k in subFontMap) {
+      subFontMap[k].destroy();
     }
     this._subFontMap = null;
     delete Font._fontMap[this._name];
