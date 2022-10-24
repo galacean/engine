@@ -3,6 +3,9 @@ import { Texture2D } from "../../texture";
 import { FontAtlas } from "../atlas/FontAtlas";
 import { CharInfo } from "./CharInfo";
 
+/**
+ * @internal
+ */
 export class SubFont {
   private _engine: Engine;
   private _fontAtlases: FontAtlas[] = [];
@@ -12,7 +15,7 @@ export class SubFont {
     this._engine = engine;
   }
 
-  destroy() {
+  destroy(): void {
     const fontAtlases = this._fontAtlases;
     for (let i = 0, n = fontAtlases.length; i < n; ++i) {
       fontAtlases[i].destroy(true);
@@ -43,7 +46,7 @@ export class SubFont {
   /**
    * @internal
    */
-  _addCharInfo(char: string, charInfo: CharInfo) {
+  _addCharInfo(char: string, charInfo: CharInfo): void {
     const lastIndex = this._lastIndex;
     charInfo.index = lastIndex;
     this._fontAtlases[lastIndex].addCharInfo(char, charInfo);

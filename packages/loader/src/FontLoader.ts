@@ -1,4 +1,4 @@
-import { resourceLoader, Loader, AssetType, Font, LoadItem, ResourceManager, AssetPromise } from "@oasis-engine/core";
+import { AssetPromise, AssetType, Font, Loader, LoadItem, resourceLoader, ResourceManager } from "@oasis-engine/core";
 
 @resourceLoader(AssetType.Font, ["ttf", "otf", "woff"], false)
 class FontLoader extends Loader<Font> {
@@ -6,11 +6,9 @@ class FontLoader extends Loader<Font> {
     return new AssetPromise((resolve, reject) => {
       const { url } = item;
       this._registerFont(url, url)
-        .then((isSuccess) => {
-          if (isSuccess) {
-            const font = new Font(resourceManager.engine, url);
-            resolve(font);
-          }
+        .then(() => {
+          const font = new Font(resourceManager.engine, url);
+          resolve(font);
         })
         .catch((e) => {
           reject(`load font ${url} fail`);
@@ -18,10 +16,9 @@ class FontLoader extends Loader<Font> {
     });
   }
 
-  private async _registerFont(fontName: string, fontUrl: string): Promise<boolean> {
+  private async _registerFont(fontName: string, fontUrl: string): Promise<void> {
     const fontFace = new FontFace(fontName, `url(${fontUrl})`);
     await fontFace.load();
     document.fonts.add(fontFace);
-    return true;
   }
 }
