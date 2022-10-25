@@ -117,7 +117,7 @@ export class InputManager {
    * @param pointerButton - The pointerButton on a pointer device
    * @returns Whether the pointer starts to be pressed down during the current frame
    */
-  isPointerDown(pointerButton?: PointerButton): boolean {
+  isPointerDown(pointerButton: PointerButton): boolean {
     if (this._initialized) {
       if (pointerButton === undefined) {
         return this._pointerManager._downList.length > 0;
@@ -134,7 +134,7 @@ export class InputManager {
    * @param pointerButton - The pointerButtons on a mouse device
    * @returns Whether the pointer is released during the current frame
    */
-  isPointerUp(pointerButton?: PointerButton): boolean {
+  isPointerUp(pointerButton: PointerButton): boolean {
     if (this._initialized) {
       if (pointerButton === undefined) {
         return this._pointerManager._upList.length > 0;
