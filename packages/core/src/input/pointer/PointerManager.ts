@@ -90,8 +90,10 @@ export class PointerManager implements IInput {
     }
 
     /** Pointer handles its own events. */
-    lastIndex = pointers.length - 1;
+    this._upList.length = 0;
+    this._downList.length = 0;
     this._buttons = PointerButton.None;
+    lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
@@ -251,31 +253,31 @@ export class PointerManager implements IInput {
       const normalizedY = latestEvent.offsetY / clientH;
       const currX = normalizedX * canvasW;
       const currY = normalizedY * canvasH;
-      position.set(currX, currY);
       if (currX === position.x && currY === position.y) {
-        pointer.deltaPosition.set(currX - position.x, currY - position.y);
-        pointer.phase = PointerPhase.Move;
-      } else {
         pointer.deltaPosition.set(0, 0);
         pointer.phase = PointerPhase.Stationary;
+      } else {
+        pointer.deltaPosition.set(currX - position.x, currY - position.y);
+        pointer.phase = PointerPhase.Move;
       }
+      position.set(currX, currY);
       pointer._firePointerDrag();
       const rayCastEntity = this._pointerRayCast(normalizedX, normalizedY);
       pointer._firePointerExitAndEnter(rayCastEntity);
       for (let i = 0; i < length; i++) {
         const event = events[i];
-        const pointerButton = (pointer.button = _pointerDec2BinMap[event.button]);
+        pointer.button = _pointerDec2BinMap[event.button] || PointerButton.None;
         pointer.pressedButtons = event.buttons;
         switch (event.type) {
           case "pointerdown":
-            _downList.add(pointerButton);
-            _downMap[pointerButton] = frameCount;
+            _downList.add(event.button);
+            _downMap[event.button] = frameCount;
             pointer.phase = PointerPhase.Down;
             pointer._firePointerDown(rayCastEntity);
             break;
           case "pointerup":
-            _upList.add(pointerButton);
-            _upMap[pointerButton] = frameCount;
+            _upList.add(event.button);
+            _upMap[event.button] = frameCount;
             pointer.phase = PointerPhase.Up;
             pointer._firePointerUpAndClick(rayCastEntity);
             break;
@@ -312,7 +314,7 @@ export class PointerManager implements IInput {
       const currY = (latestEvent.offsetY / clientH) * canvasH;
       pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
-      pointer.button = _pointerDec2BinMap[latestEvent.button];
+      pointer.button = _pointerDec2BinMap[latestEvent.button] || PointerButton.None;
       pointer.pressedButtons = latestEvent.buttons;
       const { _upList, _upMap, _downList, _downMap } = this;
       for (let i = 0; i < length; i++) {
