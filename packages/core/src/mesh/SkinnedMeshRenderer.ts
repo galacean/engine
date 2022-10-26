@@ -1,4 +1,4 @@
-import { Matrix } from "@oasis-engine/math";
+import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
@@ -38,8 +38,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _skin: Skin;
   @ignoreClone
   private _blendShapeWeights: Float32Array;
-
+  @ignoreClone
   private _maxVertexUniformVectors: number;
+  @ignoreClone
+  private _rootBone: Entity;
+  @ignoreClone
+  private _localBounds: BoundingBox = new BoundingBox();
 
   /** @internal */
   @ignoreClone
@@ -69,7 +73,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * Skin Object.
    */
-  get skin() {
+  get skin(): Skin {
     return this._skin;
   }
 
@@ -81,8 +85,42 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * Constructor of SkinnedMeshRenderer
-   * @param entity - Entity
+   *  Local bounds.
+   */
+  get localBounds(): BoundingBox {
+    return this._localBounds;
+  }
+
+  set localBounds(value: BoundingBox) {
+    this._localBounds = value;
+  }
+
+  /**
+   *  Root bone.
+   */
+  get rootBone(): Entity {
+    return this._rootBone;
+  }
+
+  set rootBone(value: Entity) {
+    this._rootBone = value;
+  }
+
+  /**
+   * @override
+   * The bounding volume of the renderer.
+   */
+  get bounds(): BoundingBox {
+    const changeFlag = this._transformChangeFlag;
+    if (changeFlag.flag || true) {
+      this._updateBounds(this._bounds);
+      changeFlag.flag = false;
+    }
+    return this._bounds;
+  }
+
+  /**
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
@@ -102,22 +140,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  _updateShaderData(context: RenderContext) {
-    super._updateShaderData(context);
-
-    const shaderData = this.shaderData;
-    if (!this._useJointTexture && this.matrixPalette) {
-      shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
-    }
-
-    const mesh = <ModelMesh>this.mesh;
-    mesh._blendShapeManager._updateShaderData(shaderData, this);
-  }
-
-  /**
-   * @internal
-   */
-  update() {
+  update(): void {
     if (!this._hasInitJoints) {
       this._initJoints();
       this._hasInitJoints = true;
@@ -148,9 +171,40 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
+  _updateShaderData(context: RenderContext): void {
+    super._updateShaderData(context);
+
+    const shaderData = this.shaderData;
+    if (!this._useJointTexture && this.matrixPalette) {
+      shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
+    }
+
+    const mesh = <ModelMesh>this.mesh;
+    mesh._blendShapeManager._updateShaderData(shaderData, this);
+  }
+
+  /**
+   * @internal
+   */
   _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    const mesh = this._mesh;
+    if (mesh && this._rootBone) {
+      // const localBounds = mesh.bounds;
+      const localBounds = this._localBounds;
+      const worldMatrix = this._rootBone.transform.worldMatrix;
+      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+    } else {
+      worldBounds.min.set(0, 0, 0);
+      worldBounds.max.set(0, 0, 0);
+    }
   }
 
   private _createJointTexture(): void {
@@ -166,7 +220,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this.jointTexture.setPixelBuffer(this.matrixPalette);
   }
 
-  private _initJoints() {
+  private _initJoints(): void {
+    const rhi = this.entity.engine._hardwareRenderer;
+    if (!rhi) return;
+
     const { _skin: skin, shaderData } = this;
     if (!skin) {
       shaderData.disableMacro("O3_HAS_SKIN");
@@ -174,16 +231,20 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
 
     const joints = skin.joints;
+
     const jointNodes = [];
     for (let i = joints.length - 1; i >= 0; i--) {
-      jointNodes[i] = this.findByNodeName(this.entity, joints[i]);
-    } // end of for
-    this.matrixPalette = new Float32Array(jointNodes.length * 16);
+      jointNodes[i] = this._findByNodeName(this.entity, joints[i]);
+    }
     this.jointNodes = jointNodes;
+    this.matrixPalette = new Float32Array(jointNodes.length * 16);
 
-    /** Whether to use a skeleton texture */
-    const rhi = this.entity.engine._hardwareRenderer;
-    if (!rhi) return;
+    this._rootBone = this._findByNodeName(this.entity, skin.skeleton);
+
+    const rootBoneMatrix = this._rootBone.transform.worldMatrix;
+    const invertRootBoneMatrix = new Matrix();
+    Matrix.invert(rootBoneMatrix, invertRootBoneMatrix);
+    BoundingBox.transform(this._mesh.bounds, invertRootBoneMatrix, this._localBounds);
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
     const jointCount = jointNodes.length;
@@ -211,14 +272,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  private findByNodeName(entity: Entity, nodeName: string) {
+  private _findByNodeName(entity: Entity, nodeName: string): Entity {
     if (!entity) return null;
 
     const n = entity.findByName(nodeName);
 
     if (n) return n;
 
-    return this.findByNodeName(entity.parent, nodeName);
+    return this._findByNodeName(entity.parent, nodeName);
   }
 
   private _checkBlendShapeWeightLength(): void {
