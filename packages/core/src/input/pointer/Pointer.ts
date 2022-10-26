@@ -1,4 +1,5 @@
 import { Vector2 } from "@oasis-engine/math";
+import { DisorderedArray } from "../../DisorderedArray";
 import { Entity } from "../../Entity";
 import { PointerButton } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
@@ -26,6 +27,14 @@ export class Pointer {
   _events: PointerEvent[] = [];
   /** @internal */
   _uniqueID: number;
+  /** @internal */
+  _upMap: number[] = [];
+  /** @internal */
+  _downMap: number[] = [];
+  /** @internal */
+  _upList: DisorderedArray<PointerButton> = new DisorderedArray();
+  /** @internal */
+  _downList: DisorderedArray<PointerButton> = new DisorderedArray();
 
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;
