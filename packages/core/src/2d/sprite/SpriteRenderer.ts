@@ -188,10 +188,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   get bounds(): BoundingBox {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return Engine._defaultBoundingBox;
-    } else if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+    } else if (this._boundsTransformFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       this._assembler.updatePositions(this);
       this._dirtyFlag &= ~DirtyFlag.Position;
-      this._transformChangeFlag.flag = false;
+      this._boundsTransformFlag.flag = false;
     }
     return this._bounds;
   }
@@ -241,10 +241,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
 
     // Update position.
-    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+    if (this._boundsTransformFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       this._assembler.updatePositions(this);
       this._dirtyFlag &= ~DirtyFlag.Position;
-      this._transformChangeFlag.flag = false;
+      this._boundsTransformFlag.flag = false;
     }
 
     // Update uv.

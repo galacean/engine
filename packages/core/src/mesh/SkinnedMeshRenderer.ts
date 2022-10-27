@@ -108,19 +108,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @override
-   * The bounding volume of the renderer.
-   */
-  get bounds(): BoundingBox {
-    const changeFlag = this._transformChangeFlag;
-    if (changeFlag.flag || true) {
-      this._updateBounds(this._bounds);
-      changeFlag.flag = false;
-    }
-    return this._bounds;
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -169,6 +156,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       }
     }
   }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onAwake(): void {}
 
   /**
    * @internal
@@ -244,6 +237,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     this._rootBone = this._findByEntityName(this.entity, skin.skeleton);
     this._rootBoneIndex = joints.indexOf(skin.skeleton);
+
+    this._boundsTransformFlag && this._boundsTransformFlag.destroy();
+    this._boundsTransformFlag = this._rootBone.transform.registerWorldChangeFlag();
 
     BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[this._rootBoneIndex], this._localBounds);
 

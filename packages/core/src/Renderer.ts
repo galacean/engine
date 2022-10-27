@@ -47,9 +47,6 @@ export class Renderer extends Component {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @ignoreClone
-  _transformChangeFlag: BoolUpdateFlag;
-  /** @internal */
   @deepClone
   _bounds: BoundingBox = new BoundingBox();
 
@@ -57,6 +54,8 @@ export class Renderer extends Component {
   protected _overrideUpdate: boolean = false;
   @shallowClone
   protected _materials: Material[] = [];
+  @ignoreClone
+  protected _boundsTransformFlag: BoolUpdateFlag;
 
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -113,10 +112,10 @@ export class Renderer extends Component {
    * The bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    const changeFlag = this._transformChangeFlag;
-    if (changeFlag.flag) {
+    const transformFlag = this._boundsTransformFlag;
+    if (transformFlag?.flag) {
       this._updateBounds(this._bounds);
-      changeFlag.flag = false;
+      transformFlag.flag = false;
     }
     return this._bounds;
   }
@@ -139,7 +138,6 @@ export class Renderer extends Component {
     super(entity);
     const prototype = Renderer.prototype;
     this._overrideUpdate = this.update !== prototype.update;
-    this._transformChangeFlag = this.entity.transform.registerWorldChangeFlag();
     this.shaderData._addRefCount(1);
   }
 
@@ -272,6 +270,18 @@ export class Renderer extends Component {
     this._updateTransformShaderData(context, worldMatrix);
   }
 
+  /**
+   * @override
+   * @internal
+   */
+  _onAwake(): void {
+    this._boundsTransformFlag = this.entity.transform.registerWorldChangeFlag();
+  }
+
+  /**
+   * @override
+   * @internal
+   */
   _onEnable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
@@ -280,6 +290,10 @@ export class Renderer extends Component {
     componentsManager.addRenderer(this);
   }
 
+  /**
+   * @override
+   * @internal
+   */
   _onDisable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
@@ -299,12 +313,11 @@ export class Renderer extends Component {
    * @internal
    */
   _onDestroy(): void {
-    const flag = this._transformChangeFlag;
-    if (flag) {
-      flag.destroy();
-      this._transformChangeFlag = null;
+    const boundsTransformFlag = this._boundsTransformFlag;
+    if (boundsTransformFlag) {
+      this._boundsTransformFlag.destroy();
+      this._boundsTransformFlag = null;
     }
-
     this.shaderData._addRefCount(-1);
 
     const materials = this._materials;

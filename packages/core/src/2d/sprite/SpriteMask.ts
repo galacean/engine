@@ -158,10 +158,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
   get bounds(): Readonly<BoundingBox> {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return Engine._defaultBoundingBox;
-    } else if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+    } else if (this._boundsTransformFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       SimpleSpriteAssembler.updatePositions(this);
       this._dirtyFlag &= ~DirtyFlag.Position;
-      this._transformChangeFlag.flag = false;
+      this._boundsTransformFlag.flag = false;
     }
     return this._bounds;
   }
@@ -201,10 +201,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
       return;
     }
     // Update position.
-    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+    if (this._boundsTransformFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
       SimpleSpriteAssembler.updatePositions(this);
       this._dirtyFlag &= ~DirtyFlag.Position;
-      this._transformChangeFlag.flag = false;
+      this._boundsTransformFlag.flag = false;
     }
 
     // Update uv.
