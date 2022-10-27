@@ -40,8 +40,12 @@ export class SkinParser extends Parser {
       if (skeleton !== undefined) {
         skin.skeleton = entities[skeleton].name;
       } else {
-        const entity = this._findSkeletonRootNode(joints, entities);
-        skin.skeleton = entity.name;
+        const entity = this._findSkeletonRootBone(joints, entities);
+        if (entity) {
+          skin.skeleton = entity.name;
+        } else {
+          console.warn("Failed to find skeleton root bone.");
+        }
       }
 
       skins[i] = skin;
@@ -50,7 +54,7 @@ export class SkinParser extends Parser {
     glTFResource.skins = skins;
   }
 
-  private _findSkeletonRootNode(joints: number[], entities: Entity[]): Entity {
+  private _findSkeletonRootBone(joints: number[], entities: Entity[]): Entity {
     const paths = <Record<number, Entity[]>>{};
     for (const index of joints) {
       const path = new Array<Entity>();
