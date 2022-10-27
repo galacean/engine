@@ -36,15 +36,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _rootBone: Entity;
   @ignoreClone
-  private _rootBoneIndex: number;
-  @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
   @ignoreClone
-  private _matrixPalette: Float32Array;
+  private _jointMatrixs: Float32Array;
   @ignoreClone
   private _jointTexture: Texture2D;
   @ignoreClone
-  private _jointNodes: Entity[];
+  private _jointEntitys: Entity[];
 
   /** @internal */
   @ignoreClone
@@ -141,9 +139,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this._hasInitJoints = true;
     }
     if (this._skin) {
-      const joints = this._jointNodes;
+      const joints = this._jointEntitys;
       const ibms = this._skin.inverseBindMatrices;
-      const matrixPalette = this._matrixPalette;
+      const matrixPalette = this._jointMatrixs;
       const worldToLocal = this._rootBone.getInvModelMatrix();
 
       const mat = this._mat;
@@ -178,8 +176,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._updateTransformShaderData(context, worldMatrix);
 
     const shaderData = this.shaderData;
-    if (!this._useJointTexture && this._matrixPalette) {
-      shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._matrixPalette);
+    if (!this._useJointTexture && this._jointMatrixs) {
+      shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._jointMatrixs);
     }
 
     const mesh = <ModelMesh>this.mesh;
@@ -212,12 +210,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       const engine = this.engine;
       const rhi = engine._hardwareRenderer;
       if (!rhi) return;
-      this._jointTexture = new Texture2D(engine, 4, this._jointNodes.length, TextureFormat.R32G32B32A32, false);
+      this._jointTexture = new Texture2D(engine, 4, this._jointEntitys.length, TextureFormat.R32G32B32A32, false);
       this._jointTexture.filterMode = TextureFilterMode.Point;
       this.shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
       this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
     }
-    this._jointTexture.setPixelBuffer(this._matrixPalette);
+    this._jointTexture.setPixelBuffer(this._jointMatrixs);
   }
 
   private _initJoints(): void {
@@ -232,19 +230,20 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const joints = skin.joints;
     const jointCount = joints.length;
-    const jointNodes = new Array<Entity>(jointCount);
+    const jointEntitys = new Array<Entity>(jointCount);
     for (let i = jointCount - 1; i >= 0; i--) {
-      jointNodes[i] = this._findByEntityName(this.entity, joints[i]);
+      jointEntitys[i] = this._findByEntityName(this.entity, joints[i]);
     }
-    this._jointNodes = jointNodes;
-    this._matrixPalette = new Float32Array(jointNodes.length * 16);
+    this._jointEntitys = jointEntitys;
+    this._jointMatrixs = new Float32Array(jointCount * 16);
 
-    this._rootBone = this._findByEntityName(this.entity, skin.skeleton);
-    this._rootBoneIndex = joints.indexOf(skin.skeleton);
-    BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[this._rootBoneIndex], this._localBounds);
+    const rootBone = this._findByEntityName(this.entity, skin.skeleton);
+    const rootInddex = joints.indexOf(skin.skeleton);
+    this._rootBone = rootBone;
+    BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootInddex], this._localBounds);
 
     this._boundsTransformFlag && this._boundsTransformFlag.destroy();
-    this._boundsTransformFlag = this._rootBone.transform.registerWorldChangeFlag();
+    this._boundsTransformFlag = rootBone.transform.registerWorldChangeFlag();
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
 
