@@ -212,7 +212,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         if (joint) {
           SkinnedMeshRenderer._matrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrixs, offset);
         } else {
-          jointMatrixs.set(ibms[i].elements, i * 16);
+          jointMatrixs.set(ibms[i].elements, offset);
         }
         SkinnedMeshRenderer._matrixMultiply(worldToLocal, jointMatrixs, offset, jointMatrixs, offset);
       }
