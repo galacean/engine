@@ -1,4 +1,4 @@
-import { Skin } from "@oasis-engine/core";
+import { Entity, Skin } from "@oasis-engine/core";
 import { Matrix } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
 import { Parser } from "./Parser";
@@ -12,9 +12,10 @@ export class SkinParser extends Parser {
 
     if (!gltfSkins) return;
 
-    const skins: Skin[] = [];
+    const count = gltfSkins.length;
+    const skins = new Array<Skin>(count);
 
-    for (let i = 0; i < gltfSkins.length; i++) {
+    for (let i = 0; i < count; i++) {
       const { inverseBindMatrices, skeleton, joints, name = `SKIN_${i}` } = gltfSkins[i];
       const jointCount = joints.length;
 
@@ -39,12 +40,44 @@ export class SkinParser extends Parser {
       if (skeleton !== undefined) {
         skin.skeleton = entities[skeleton].name;
       } else {
-        skin.skeleton = defaultSceneRoot.name;
+        const entity = this._findSkeletonRootNode(joints, entities);
+        skin.skeleton = entity.name;
       }
 
       skins[i] = skin;
     }
 
     glTFResource.skins = skins;
+  }
+
+  private _findSkeletonRootNode(joints: number[], entities: Entity[]): Entity {
+    const paths = <Record<number, Entity[]>>{};
+    for (const index of joints) {
+      const path = new Array<Entity>();
+      let entity = entities[index];
+      while (entity.parent !== null) {
+        path.unshift(entity);
+        entity = entity.parent!;
+      }
+      paths[index] = path;
+    }
+
+    let rootNode = <Entity>null;
+    for (let i = 0; ; i++) {
+      let path = paths[joints[0]];
+      if (i >= path.length) {
+        return rootNode;
+      }
+
+      const entity = path[i];
+      for (let j = 1, m = joints.length; j < m; j++) {
+        path = paths[joints[j]];
+        if (i >= path.length || entity !== path[i]) {
+          return rootNode;
+        }
+      }
+
+      rootNode = entity;
+    }
   }
 }

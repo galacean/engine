@@ -21,12 +21,12 @@ import { Transform } from "./Transform";
 export class Renderer extends Component {
   private static _receiveShadowMacro = Shader.getMacroByName("OASIS_RECEIVE_SHADOWS");
 
-  private static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
-  private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
-  private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
-  private static _mvpMatrixProperty = Shader.getPropertyByName("u_MVPMat");
-  private static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");
-  private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
+  protected static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
+  protected static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
+  protected static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
+  protected static _mvpMatrixProperty = Shader.getPropertyByName("u_MVPMat");
+  protected static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");
+  protected static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
 
   /** ShaderData related to renderer. */
   @deepClone
@@ -60,13 +60,13 @@ export class Renderer extends Component {
   protected _materials: Material[] = [];
 
   @ignoreClone
-  private _mvMatrix: Matrix = new Matrix();
+  protected _mvMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _mvpMatrix: Matrix = new Matrix();
+  protected _mvpMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _mvInvMatrix: Matrix = new Matrix();
+  protected _mvInvMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _normalMatrix: Matrix = new Matrix();
+  protected _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
   @ignoreClone

@@ -2,6 +2,7 @@ import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
+import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -42,6 +43,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _maxVertexUniformVectors: number;
   @ignoreClone
   private _rootBone: Entity;
+  @ignoreClone
+  private _rootBoneIndex: number;
   @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
 
@@ -149,13 +152,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       const joints = this.jointNodes;
       const ibms = this._skin.inverseBindMatrices;
       const matrixPalette = this.matrixPalette;
-      const worldToLocal = this.entity.getInvModelMatrix();
+      const worldToLocal = this._rootBone.getInvModelMatrix();
 
       const mat = this._mat;
       for (let i = joints.length - 1; i >= 0; i--) {
         mat.identity();
-        if (joints[i]) {
-          Matrix.multiply(joints[i].transform.worldMatrix, ibms[i], mat);
+        const Joint = joints[i];
+        if (Joint) {
+          Matrix.multiply(Joint.transform.worldMatrix, ibms[i], mat);
         } else {
           mat.copyFrom(ibms[i]);
         }
@@ -172,9 +176,26 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   _updateShaderData(context: RenderContext): void {
-    super._updateShaderData(context);
-
     const shaderData = this.shaderData;
+    const worldMatrix = this._rootBone.transform.worldMatrix;
+    const mvMatrix = this._mvMatrix;
+    const mvpMatrix = this._mvpMatrix;
+    const mvInvMatrix = this._mvInvMatrix;
+    const normalMatrix = this._normalMatrix;
+
+    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
+    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
+    Matrix.invert(mvMatrix, mvInvMatrix);
+    Matrix.invert(worldMatrix, normalMatrix);
+    normalMatrix.transpose();
+
+    shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
+    shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
+    shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
+    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+    shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
+    shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+
     if (!this._useJointTexture && this.matrixPalette) {
       shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
     }
@@ -240,11 +261,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this.matrixPalette = new Float32Array(jointNodes.length * 16);
 
     this._rootBone = this._findByNodeName(this.entity, skin.skeleton);
+    this._rootBoneIndex = joints.indexOf(skin.skeleton);
 
-    const rootBoneMatrix = this._rootBone.transform.worldMatrix;
-    const invertRootBoneMatrix = new Matrix();
-    Matrix.invert(rootBoneMatrix, invertRootBoneMatrix);
-    BoundingBox.transform(this._mesh.bounds, invertRootBoneMatrix, this._localBounds);
+    const ibms = this._skin.inverseBindMatrices;
+    BoundingBox.transform(this._mesh.bounds, ibms[this._rootBoneIndex], this._localBounds);
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
     const jointCount = jointNodes.length;
