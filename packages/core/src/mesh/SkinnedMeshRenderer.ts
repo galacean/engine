@@ -107,7 +107,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set rootBone(value: Entity) {
     this._rootBone = value;
-    this._boundsTransformFlag.flag = true;
+    this._boundsTransformFlag && (this._boundsTransformFlag.flag = true);
   }
 
   /**
@@ -306,6 +306,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   private _onLocalBoundsChanged(): void {
-    this._boundsTransformFlag.flag = true;
+    this._boundsTransformFlag && (this._boundsTransformFlag.flag = true);
   }
 }
