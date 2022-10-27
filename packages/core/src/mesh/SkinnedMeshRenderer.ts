@@ -94,6 +94,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set localBounds(value: BoundingBox) {
     this._localBounds = value;
+    this._boundsTransformFlag.flag = true;
   }
 
   /**
@@ -105,6 +106,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set rootBone(value: Entity) {
     this._rootBone = value;
+    this._boundsTransformFlag.flag = true;
   }
 
   /**
@@ -191,15 +193,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const mesh = this._mesh;
-    if (mesh && this._rootBone) {
-      // const localBounds = mesh.bounds;
+    if (this._rootBone) {
       const localBounds = this._localBounds;
       const worldMatrix = this._rootBone.transform.worldMatrix;
       BoundingBox.transform(localBounds, worldMatrix, worldBounds);
     } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
+      super._updateBounds(worldBounds);
     }
   }
 
@@ -237,11 +236,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     this._rootBone = this._findByEntityName(this.entity, skin.skeleton);
     this._rootBoneIndex = joints.indexOf(skin.skeleton);
+    BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[this._rootBoneIndex], this._localBounds);
 
     this._boundsTransformFlag && this._boundsTransformFlag.destroy();
     this._boundsTransformFlag = this._rootBone.transform.registerWorldChangeFlag();
-
-    BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[this._rootBoneIndex], this._localBounds);
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
 
