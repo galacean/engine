@@ -208,12 +208,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
       for (let i = joints.length - 1; i >= 0; i--) {
         const joint = joints[i];
+        const offset = i * 16;
         if (joint) {
-          SkinnedMeshRenderer._matrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrixs, i * 16);
+          SkinnedMeshRenderer._matrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrixs, offset);
         } else {
           jointMatrixs.set(ibms[i].elements, i * 16);
         }
-        const offset = i * 16;
         SkinnedMeshRenderer._matrixMultiply(worldToLocal, jointMatrixs, offset, jointMatrixs, offset);
       }
       if (this._useJointTexture) {
