@@ -19,12 +19,74 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
 
+  private static _matrixMultiply(
+    left: Matrix,
+    re: Float32Array,
+    rOffset: number,
+    oe: Float32Array,
+    offset: number
+  ): void {
+    const le = left.elements;
+
+    const l11 = le[0],
+      l12 = le[1],
+      l13 = le[2],
+      l14 = le[3];
+    const l21 = le[4],
+      l22 = le[5],
+      l23 = le[6],
+      l24 = le[7];
+    const l31 = le[8],
+      l32 = le[9],
+      l33 = le[10],
+      l34 = le[11];
+    const l41 = le[12],
+      l42 = le[13],
+      l43 = le[14],
+      l44 = le[15];
+
+    const r11 = re[rOffset],
+      r12 = re[rOffset + 1],
+      r13 = re[rOffset + 2],
+      r14 = re[rOffset + 3];
+    const r21 = re[rOffset + 4],
+      r22 = re[rOffset + 5],
+      r23 = re[rOffset + 6],
+      r24 = re[rOffset + 7];
+    const r31 = re[rOffset + 8],
+      r32 = re[rOffset + 9],
+      r33 = re[rOffset + 10],
+      r34 = re[rOffset + 11];
+    const r41 = re[rOffset + 12],
+      r42 = re[rOffset + 13],
+      r43 = re[rOffset + 14],
+      r44 = re[rOffset + 15];
+
+    oe[offset] = l11 * r11 + l21 * r12 + l31 * r13 + l41 * r14;
+    oe[offset + 1] = l12 * r11 + l22 * r12 + l32 * r13 + l42 * r14;
+    oe[offset + 2] = l13 * r11 + l23 * r12 + l33 * r13 + l43 * r14;
+    oe[offset + 3] = l14 * r11 + l24 * r12 + l34 * r13 + l44 * r14;
+
+    oe[offset + 4] = l11 * r21 + l21 * r22 + l31 * r23 + l41 * r24;
+    oe[offset + 5] = l12 * r21 + l22 * r22 + l32 * r23 + l42 * r24;
+    oe[offset + 6] = l13 * r21 + l23 * r22 + l33 * r23 + l43 * r24;
+    oe[offset + 7] = l14 * r21 + l24 * r22 + l34 * r23 + l44 * r24;
+
+    oe[offset + 8] = l11 * r31 + l21 * r32 + l31 * r33 + l41 * r34;
+    oe[offset + 9] = l12 * r31 + l22 * r32 + l32 * r33 + l42 * r34;
+    oe[offset + 10] = l13 * r31 + l23 * r32 + l33 * r33 + l43 * r34;
+    oe[offset + 11] = l14 * r31 + l24 * r32 + l34 * r33 + l44 * r34;
+
+    oe[offset + 12] = l11 * r41 + l21 * r42 + l31 * r43 + l41 * r44;
+    oe[offset + 13] = l12 * r41 + l22 * r42 + l32 * r43 + l42 * r44;
+    oe[offset + 14] = l13 * r41 + l23 * r42 + l33 * r43 + l43 * r44;
+    oe[offset + 15] = l14 * r41 + l24 * r42 + l34 * r43 + l44 * r44;
+  }
+
   private static _maxJoints: number = 0;
 
   @ignoreClone
   private _hasInitJoints: boolean = false;
-  @ignoreClone
-  private _mat: Matrix;
   @ignoreClone
   /** Whether to use joint texture. Automatically used when the device can't support the maximum number of bones. */
   private _useJointTexture: boolean = false;
@@ -144,17 +206,15 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       const jointMatrixs = this._jointMatrixs;
       const worldToLocal = this._rootBone.getInvModelMatrix();
 
-      const mat = this._mat;
       for (let i = joints.length - 1; i >= 0; i--) {
-        mat.identity();
         const joint = joints[i];
         if (joint) {
-          Matrix.multiply(joint.transform.worldMatrix, ibms[i], mat);
+          SkinnedMeshRenderer._matrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrixs, i * 16);
         } else {
-          mat.copyFrom(ibms[i]);
+          jointMatrixs.set(ibms[i].elements, i * 16);
         }
-        Matrix.multiply(worldToLocal, mat, mat);
-        jointMatrixs.set(mat.elements, i * 16);
+        const offset = i * 16;
+        SkinnedMeshRenderer._matrixMultiply(worldToLocal, jointMatrixs, offset, jointMatrixs, offset);
       }
       if (this._useJointTexture) {
         this._createJointTexture();
