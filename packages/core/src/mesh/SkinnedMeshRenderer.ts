@@ -176,6 +176,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   _updateShaderData(context: RenderContext): void {
     const worldMatrix = this._rootBone.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
+
+    const shaderData = this.shaderData;
+    if (!this._useJointTexture && this._matrixPalette) {
+      shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._matrixPalette);
+    }
+
+    const mesh = <ModelMesh>this.mesh;
+    mesh._blendShapeManager._updateShaderData(shaderData, this);
   }
 
   /**
