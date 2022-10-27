@@ -43,8 +43,15 @@ export class ReflectionParser {
     // @ts-ignore
     const assetRefId: string = entityConfig.assetRefId;
     if (assetRefId) {
-      // @ts-ignore
-      return engine.resourceManager.getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key });
+      return (
+        engine.resourceManager
+          // @ts-ignore
+          .getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key, isClone: entityConfig.isClone })
+          .then((entity) => {
+            entity.name = entityConfig.name;
+            return entity;
+          })
+      );
     } else {
       const entity = new Entity(engine, entityConfig.name);
       return Promise.resolve(entity);
