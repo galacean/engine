@@ -90,8 +90,7 @@ export class PointerManager implements IInput {
     }
 
     /** Pointer handles its own events. */
-    this._upList.length = 0;
-    this._downList.length = 0;
+    this._upList.length = this._downList.length = 0;
     this._buttons = PointerButton.None;
     lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
@@ -102,6 +101,7 @@ export class PointerManager implements IInput {
       const { width, height } = this._canvas;
       for (let i = lastIndex; i >= 0; i--) {
         const pointer = pointers[i];
+        pointer._upList.length = pointer._downList.length = 0;
         updatePointer(frameCount, pointer, clientWidth, clientHeight, width, height);
         this._buttons |= pointer.pressedButtons;
       }
@@ -266,18 +266,23 @@ export class PointerManager implements IInput {
       pointer._firePointerExitAndEnter(rayCastEntity);
       for (let i = 0; i < length; i++) {
         const event = events[i];
-        pointer.button = _pointerDec2BinMap[event.button] || PointerButton.None;
+        const { button } = event;
+        pointer.button = _pointerDec2BinMap[button] || PointerButton.None;
         pointer.pressedButtons = event.buttons;
         switch (event.type) {
           case "pointerdown":
-            _downList.add(event.button);
-            _downMap[event.button] = frameCount;
+            _downList.add(button);
+            _downMap[button] = frameCount;
+            pointer._downList.add(button);
+            pointer._downMap[button] = frameCount;
             pointer.phase = PointerPhase.Down;
             pointer._firePointerDown(rayCastEntity);
             break;
           case "pointerup":
-            _upList.add(event.button);
-            _upMap[event.button] = frameCount;
+            _upList.add(button);
+            _upMap[button] = frameCount;
+            pointer._upList.add(button);
+            pointer._upMap[button] = frameCount;
             pointer.phase = PointerPhase.Up;
             pointer._firePointerUpAndClick(rayCastEntity);
             break;
@@ -318,16 +323,20 @@ export class PointerManager implements IInput {
       pointer.pressedButtons = latestEvent.buttons;
       const { _upList, _upMap, _downList, _downMap } = this;
       for (let i = 0; i < length; i++) {
-        const event = events[i];
-        switch (event.type) {
+        const { button } = events[i];
+        switch (events[i].type) {
           case "pointerdown":
-            _downList.add(event.button);
-            _downMap[event.button] = frameCount;
+            _downList.add(button);
+            _downMap[button] = frameCount;
+            pointer._downList.add(button);
+            pointer._downMap[button] = frameCount;
             pointer.phase = PointerPhase.Down;
             break;
           case "pointerup":
-            _upList.add(event.button);
-            _upMap[event.button] = frameCount;
+            _upList.add(button);
+            _upMap[button] = frameCount;
+            pointer._upList.add(button);
+            pointer._upMap[button] = frameCount;
             pointer.phase = PointerPhase.Up;
             break;
           case "pointermove":

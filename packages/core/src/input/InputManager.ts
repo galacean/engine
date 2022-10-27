@@ -5,7 +5,7 @@ import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
 import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * InputManager manages device input such as mouse, touch, keyboard, etc.
@@ -21,8 +21,8 @@ export class InputManager {
   /**
    * Pointer list.
    */
-  get pointers(): Readonly<Pointer[] | null> {
-    return this._initialized ? this._pointerManager._pointers : null;
+  get pointers(): Readonly<Pointer[]> {
+    return this._initialized ? this._pointerManager._pointers : [];
   }
 
   /**
