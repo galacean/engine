@@ -175,7 +175,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._mat = new Matrix();
     this._skin = null;
 
     const rhi = this.entity.engine._hardwareRenderer;
