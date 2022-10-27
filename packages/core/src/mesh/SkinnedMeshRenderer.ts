@@ -86,19 +86,20 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   *  Local bounds.
+   * Local bounds.
    */
   get localBounds(): BoundingBox {
     return this._localBounds;
   }
 
   set localBounds(value: BoundingBox) {
-    this._localBounds = value;
-    this._boundsTransformFlag.flag = true;
+    if (this._localBounds !== value) {
+      this._localBounds.copyFrom(value);
+    }
   }
 
   /**
-   *  Root bone.
+   * Root bone.
    */
   get rootBone(): Entity {
     return this._rootBone;
@@ -125,6 +126,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
     }
     this._maxVertexUniformVectors = maxVertexUniformVectors;
+
+    this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
+    // @ts-ignore
+    this._localBounds._onValueChanged = this._onLocalBoundsChanged;
   }
 
   /**
@@ -298,5 +303,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     } else {
       this._blendShapeWeights = new Float32Array(newBlendShapeCount);
     }
+  }
+
+  private _onLocalBoundsChanged(): void {
+    this._boundsTransformFlag.flag = true;
   }
 }
