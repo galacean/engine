@@ -141,20 +141,20 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (this._skin) {
       const joints = this._jointEntitys;
       const ibms = this._skin.inverseBindMatrices;
-      const matrixPalette = this._jointMatrixs;
+      const jointMatrixs = this._jointMatrixs;
       const worldToLocal = this._rootBone.getInvModelMatrix();
 
       const mat = this._mat;
       for (let i = joints.length - 1; i >= 0; i--) {
         mat.identity();
-        const Joint = joints[i];
-        if (Joint) {
-          Matrix.multiply(Joint.transform.worldMatrix, ibms[i], mat);
+        const joint = joints[i];
+        if (joint) {
+          Matrix.multiply(joint.transform.worldMatrix, ibms[i], mat);
         } else {
           mat.copyFrom(ibms[i]);
         }
         Matrix.multiply(worldToLocal, mat, mat);
-        matrixPalette.set(mat.elements, i * 16);
+        jointMatrixs.set(mat.elements, i * 16);
       }
       if (this._useJointTexture) {
         this._createJointTexture();
