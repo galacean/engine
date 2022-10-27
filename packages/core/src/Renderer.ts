@@ -269,25 +269,8 @@ export class Renderer extends Component {
    * @internal
    */
   _updateShaderData(context: RenderContext): void {
-    const shaderData = this.shaderData;
     const worldMatrix = this.entity.transform.worldMatrix;
-    const mvMatrix = this._mvMatrix;
-    const mvpMatrix = this._mvpMatrix;
-    const mvInvMatrix = this._mvInvMatrix;
-    const normalMatrix = this._normalMatrix;
-
-    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
-    Matrix.invert(mvMatrix, mvInvMatrix);
-    Matrix.invert(worldMatrix, normalMatrix);
-    normalMatrix.transpose();
-
-    shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
-    shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
-    shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
-    shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
-    shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+    this._updateTransformShaderData(context, worldMatrix);
   }
 
   _onEnable(): void {
@@ -329,6 +312,28 @@ export class Renderer extends Component {
     for (let i = 0, n = materials.length; i < n; i++) {
       materials[i]?._addRefCount(-1);
     }
+  }
+
+  protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
+    const shaderData = this.shaderData;
+
+    const mvMatrix = this._mvMatrix;
+    const mvpMatrix = this._mvpMatrix;
+    const mvInvMatrix = this._mvInvMatrix;
+    const normalMatrix = this._normalMatrix;
+
+    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
+    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
+    Matrix.invert(mvMatrix, mvInvMatrix);
+    Matrix.invert(worldMatrix, normalMatrix);
+    normalMatrix.transpose();
+
+    shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
+    shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
+    shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
+    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+    shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
+    shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
   }
 
   protected _updateBounds(worldBounds: BoundingBox): void {}

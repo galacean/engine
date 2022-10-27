@@ -2,7 +2,6 @@ import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
-import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -23,13 +22,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _maxJoints: number = 0;
 
   @ignoreClone
-  public matrixPalette: Float32Array;
-  @ignoreClone
-  public jointNodes: Entity[];
-  @ignoreClone
-  public jointTexture: Texture2D;
-
-  @ignoreClone
   private _hasInitJoints: boolean = false;
   @ignoreClone
   private _mat: Matrix;
@@ -47,6 +39,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private _rootBoneIndex: number;
   @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
+  @ignoreClone
+  private _matrixPalette: Float32Array;
+  @ignoreClone
+  private _jointTexture: Texture2D;
+  @ignoreClone
+  private _jointNodes: Entity[];
 
   /** @internal */
   @ignoreClone
@@ -149,9 +147,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this._hasInitJoints = true;
     }
     if (this._skin) {
-      const joints = this.jointNodes;
+      const joints = this._jointNodes;
       const ibms = this._skin.inverseBindMatrices;
-      const matrixPalette = this.matrixPalette;
+      const matrixPalette = this._matrixPalette;
       const worldToLocal = this._rootBone.getInvModelMatrix();
 
       const mat = this._mat;
@@ -176,32 +174,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   _updateShaderData(context: RenderContext): void {
-    const shaderData = this.shaderData;
     const worldMatrix = this._rootBone.transform.worldMatrix;
-    const mvMatrix = this._mvMatrix;
-    const mvpMatrix = this._mvpMatrix;
-    const mvInvMatrix = this._mvInvMatrix;
-    const normalMatrix = this._normalMatrix;
-
-    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
-    Matrix.invert(mvMatrix, mvInvMatrix);
-    Matrix.invert(worldMatrix, normalMatrix);
-    normalMatrix.transpose();
-
-    shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
-    shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
-    shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
-    shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
-    shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
-
-    if (!this._useJointTexture && this.matrixPalette) {
-      shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this.matrixPalette);
-    }
-
-    const mesh = <ModelMesh>this.mesh;
-    mesh._blendShapeManager._updateShaderData(shaderData, this);
+    this._updateTransformShaderData(context, worldMatrix);
   }
 
   /**
@@ -229,16 +203,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   private _createJointTexture(): void {
-    if (!this.jointTexture) {
+    if (!this._jointTexture) {
       const engine = this.engine;
       const rhi = engine._hardwareRenderer;
       if (!rhi) return;
-      this.jointTexture = new Texture2D(engine, 4, this.jointNodes.length, TextureFormat.R32G32B32A32, false);
-      this.jointTexture.filterMode = TextureFilterMode.Point;
+      this._jointTexture = new Texture2D(engine, 4, this._jointNodes.length, TextureFormat.R32G32B32A32, false);
+      this._jointTexture.filterMode = TextureFilterMode.Point;
       this.shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
-      this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this.jointTexture);
+      this.shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
     }
-    this.jointTexture.setPixelBuffer(this.matrixPalette);
+    this._jointTexture.setPixelBuffer(this._matrixPalette);
   }
 
   private _initJoints(): void {
@@ -252,22 +226,20 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
 
     const joints = skin.joints;
-
-    const jointNodes = [];
-    for (let i = joints.length - 1; i >= 0; i--) {
-      jointNodes[i] = this._findByNodeName(this.entity, joints[i]);
+    const jointCount = joints.length;
+    const jointNodes = new Array<Entity>(jointCount);
+    for (let i = jointCount - 1; i >= 0; i--) {
+      jointNodes[i] = this._findByEntityName(this.entity, joints[i]);
     }
-    this.jointNodes = jointNodes;
-    this.matrixPalette = new Float32Array(jointNodes.length * 16);
+    this._jointNodes = jointNodes;
+    this._matrixPalette = new Float32Array(jointNodes.length * 16);
 
-    this._rootBone = this._findByNodeName(this.entity, skin.skeleton);
+    this._rootBone = this._findByEntityName(this.entity, skin.skeleton);
     this._rootBoneIndex = joints.indexOf(skin.skeleton);
 
-    const ibms = this._skin.inverseBindMatrices;
-    BoundingBox.transform(this._mesh.bounds, ibms[this._rootBoneIndex], this._localBounds);
+    BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[this._rootBoneIndex], this._localBounds);
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
-    const jointCount = jointNodes.length;
 
     if (jointCount) {
       shaderData.enableMacro("O3_HAS_SKIN");
@@ -292,14 +264,17 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  private _findByNodeName(entity: Entity, nodeName: string): Entity {
-    if (!entity) return null;
+  private _findByEntityName(rootEnitity: Entity, name: string): Entity {
+    if (!rootEnitity) {
+      return null;
+    }
 
-    const n = entity.findByName(nodeName);
+    const result = rootEnitity.findByName(name);
+    if (result) {
+      return result;
+    }
 
-    if (n) return n;
-
-    return this._findByNodeName(entity.parent, nodeName);
+    return this._findByEntityName(rootEnitity.parent, name);
   }
 
   private _checkBlendShapeWeightLength(): void {
