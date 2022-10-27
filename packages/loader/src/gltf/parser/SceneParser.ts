@@ -142,16 +142,6 @@ export class SceneParser extends Parser {
         skinRenderer.mesh = mesh;
         if (skinID !== undefined) {
           skinRenderer.skin = skins[skinID];
-
-          // const rootEntity=skinRenderer._
-
-          // // const entityMatrxix = entity.transform.worldMatrix;
-          // // const rootBoneMatrix = this._rootBone.transform.worldMatrix;
-          // // const invertRootBoneMatrix = new Matrix();
-          // // const out = new Matrix();
-          // // Matrix.invert(rootBoneMatrix, invertRootBoneMatrix);
-          // // Matrix.multiply(entityMatrxix, invertRootBoneMatrix, out);
-          // // BoundingBox.transform(this._mesh.bounds, out, this._localBounds);
         }
         if (blendShapeWeights) {
           skinRenderer.blendShapeWeights = new Float32Array(blendShapeWeights);
