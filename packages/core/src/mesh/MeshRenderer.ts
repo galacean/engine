@@ -6,7 +6,7 @@ import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
 import { Mesh, MeshChangeType } from "../graphic/Mesh";
 import { ListenerUpdateFlag } from "../ListenerUpdateFlag";
-import { Renderer } from "../Renderer";
+import { Renderer, RendererUpdateFlag } from "../Renderer";
 import { Shader } from "../shader/Shader";
 
 /**
@@ -23,8 +23,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _mesh: Mesh;
 
-  @ignoreClone
-  private _vertexElementsChange: boolean = false;
   private _meshUpdateFlag: ListenerUpdateFlag;
 
   /**
@@ -54,7 +52,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   _render(camera: Camera): void {
     const mesh = this._mesh;
     if (mesh) {
-      if (this._vertexElementsChange) {
+      if (this._dirtyUpdateFlag.flags & MeshRendererUpdateFlag.VertexElements) {
         const shaderData = this.shaderData;
         const vertexElements = mesh._vertexElements;
 
@@ -84,7 +82,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
           }
         }
-        this._vertexElementsChange = false;
+        this._dirtyUpdateFlag.flags &= ~MeshRendererUpdateFlag.VertexElements;
       }
 
       const subMeshes = mesh.subMeshes;
@@ -158,7 +156,12 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   }
 
   private _onMeshChange(type: MeshChangeType): void {
-    type & MeshChangeType.VertexElements && (this._vertexElementsChange = true);
-    type & MeshChangeType.Bounds && (this._worldVolumeUpdateFlag.flag = true);
+    type & MeshChangeType.VertexElements && (this._dirtyUpdateFlag.flags |= MeshRendererUpdateFlag.VertexElements);
+    type & MeshChangeType.Bounds && (this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume);
   }
+}
+
+enum MeshRendererUpdateFlag {
+  VertexElements = 0x2,
+  All = 0x3
 }

@@ -1,5 +1,5 @@
 import { BoundingBox, Matrix } from "@oasis-engine/math";
-import { BoolUpdateFlag } from "./BoolUpdateFlag";
+import { BitUpdateFlag } from "./BitUpdateFlag";
 import { Camera } from "./Camera";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
@@ -54,10 +54,8 @@ export class Renderer extends Component {
   protected _overrideUpdate: boolean = false;
   @shallowClone
   protected _materials: Material[] = [];
-
-  /** Include world position or bounds. */
   @ignoreClone
-  protected _worldVolumeUpdateFlag: BoolUpdateFlag = new BoolUpdateFlag();
+  protected _dirtyUpdateFlag: BitUpdateFlag = new BitUpdateFlag();
 
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -114,10 +112,10 @@ export class Renderer extends Component {
    * The bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    const transformFlag = this._worldVolumeUpdateFlag;
-    if (transformFlag.flag) {
+    const transformFlag = this._dirtyUpdateFlag;
+    if (transformFlag.flags & RendererUpdateFlag.WorldVolume) {
       this._updateBounds(this._bounds);
-      transformFlag.flag = false;
+      transformFlag.flags &= ~RendererUpdateFlag.WorldVolume;
     }
     return this._bounds;
   }
@@ -277,7 +275,7 @@ export class Renderer extends Component {
    * @internal
    */
   _onAwake(): void {
-    this.entity.transform._updateFlagManager.addFlag(this._worldVolumeUpdateFlag);
+    this.entity.transform._updateFlagManager.addFlag(this._dirtyUpdateFlag);
   }
 
   /**
@@ -315,8 +313,8 @@ export class Renderer extends Component {
    * @internal
    */
   _onDestroy(): void {
-    this._worldVolumeUpdateFlag.destroy();
-    this._worldVolumeUpdateFlag = null;
+    this._dirtyUpdateFlag.destroy();
+    this._dirtyUpdateFlag = null;
 
     this.shaderData._addRefCount(-1);
 
@@ -376,4 +374,14 @@ export class Renderer extends Component {
       materials[index] = material;
     }
   }
+}
+
+/**
+ * @internal
+ */
+export enum RendererUpdateFlag {
+  /** None. */
+  None = 0,
+  /** Include world position and world bounds. */
+  WorldVolume = 0x1
 }

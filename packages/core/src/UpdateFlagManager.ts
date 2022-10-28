@@ -1,5 +1,5 @@
-import { UpdateFlag } from "./UpdateFlag";
 import { removeFromArray } from "./base/Util";
+import { UpdateFlag } from "./UpdateFlag";
 
 /**
  * @internal
@@ -41,10 +41,10 @@ export class UpdateFlagManager {
   /**
    * Dispatch.
    */
-  dispatch(param?: Object): void {
+  dispatch(bit?: number, param?: Object): void {
     const updateFlags = this._updateFlags;
     for (let i = updateFlags.length - 1; i >= 0; i--) {
-      updateFlags[i].dispatch(param);
+      updateFlags[i].dispatch(bit, param);
     }
   }
 }

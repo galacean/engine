@@ -2,6 +2,7 @@ import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
+import { RendererUpdateFlag } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -166,7 +167,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set rootBone(value: Entity) {
     this._rootBone = value;
-    this._worldVolumeUpdateFlag.flag = true;
+    this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
   }
 
   /**
@@ -303,11 +304,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const rootBone = this._findByEntityName(this.entity, skin.skeleton);
     const rootInddex = joints.indexOf(skin.skeleton);
 
-    lastRootBone && lastRootBone.transform._updateFlagManager.removeFlag(this._worldVolumeUpdateFlag);
+    lastRootBone && lastRootBone.transform._updateFlagManager.removeFlag(this._dirtyUpdateFlag);
 
     BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootInddex], this._localBounds);
 
-    rootBone.transform._updateFlagManager.addFlag(this._worldVolumeUpdateFlag);
+    rootBone.transform._updateFlagManager.addFlag(this._dirtyUpdateFlag);
 
     this._rootBone = rootBone;
 
@@ -371,6 +372,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   private _onLocalBoundsChanged(): void {
-    this._worldVolumeUpdateFlag.flag = true;
+    this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
   }
 }

@@ -1,10 +1,10 @@
 import { UpdateFlag } from "./UpdateFlag";
 
 /**
- * Used to update tags.
+ * Bool update flag.
  */
 export class BoolUpdateFlag extends UpdateFlag {
-  /** Flag. */
+  /** Bool flag. */
   flag: boolean = true;
 
   /**

@@ -1,16 +1,17 @@
-import { UpdateFlag } from "./UpdateFlag";
+import { BitUpdateFlag } from "./BitUpdateFlag";
 
 /**
- * Used to update tags.
+ * Listener update flag.
  */
-export class ListenerUpdateFlag extends UpdateFlag {
+export class ListenerUpdateFlag extends BitUpdateFlag {
   /** Listener. */
   listener: Function;
 
   /**
    * @inheritdoc
    */
-  dispatch(param?: Object): void {
+  dispatch(bit?: number, param?: Object): void {
+    super.dispatch(bit);
     this.listener && this.listener(param);
   }
 }

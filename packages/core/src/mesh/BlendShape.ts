@@ -118,7 +118,7 @@ export class BlendShape {
     if (this._useBlendShapeNormal !== useBlendShapeNormal || this._useBlendShapeTangent !== useBlendShapeTangent) {
       this._useBlendShapeNormal = useBlendShapeNormal;
       this._useBlendShapeTangent = useBlendShapeTangent;
-      this._layoutChangeManager.dispatch(this);
+      this._layoutChangeManager.dispatch(0, this);
     }
   }
 }

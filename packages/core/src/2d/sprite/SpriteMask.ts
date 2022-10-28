@@ -4,7 +4,7 @@ import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
-import { Renderer } from "../../Renderer";
+import { Renderer, RendererUpdateFlag } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -48,8 +48,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   private _alphaCutoff: number = 0.5;
 
   @ignoreClone
-  private _dirtyFlag: number = 0;
-  @ignoreClone
   private _spriteChangeFlag: ListenerUpdateFlag = null;
 
   /**
@@ -65,7 +63,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._worldVolumeUpdateFlag.flag = true;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
     }
   }
 
@@ -82,7 +80,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._worldVolumeUpdateFlag.flag = true;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
     }
   }
 
@@ -96,7 +94,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._worldVolumeUpdateFlag.flag = true;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
     }
   }
 
@@ -110,7 +108,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._worldVolumeUpdateFlag.flag = true;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
     }
   }
 
@@ -128,7 +126,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
-        this._dirtyFlag |= DirtyFlag.All;
+        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlag.All;
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
         this._spriteChangeFlag = null;
@@ -185,16 +183,18 @@ export class SpriteMask extends Renderer implements ICustomClone {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
+
+    const dirtyUpdateFlag = this._dirtyUpdateFlag;
     // Update position.
-    if (this._worldVolumeUpdateFlag.flag) {
+    if (dirtyUpdateFlag.flags & RendererUpdateFlag.WorldVolume) {
       SimpleSpriteAssembler.updatePositions(this);
-      this._worldVolumeUpdateFlag.flag = false;
+      dirtyUpdateFlag.flags &= ~RendererUpdateFlag.WorldVolume;
     }
 
     // Update uv.
-    if (this._dirtyFlag & DirtyFlag.UV) {
+    if (dirtyUpdateFlag.flags & SpriteMaskUpdateFlag.UV) {
       SimpleSpriteAssembler.updateUVs(this);
-      this._dirtyFlag &= ~DirtyFlag.UV;
+      dirtyUpdateFlag.flags &= ~SpriteMaskUpdateFlag.UV;
     }
 
     const spriteMaskElementPool = this._engine._spriteMaskElementPool;
@@ -230,10 +230,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlasRegionOffset:
-        this._dirtyFlag |= DirtyFlag.All;
+        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlag.All;
         break;
       case SpritePropertyDirtyFlag.atlasRegion:
-        this._dirtyFlag |= DirtyFlag.UV;
+        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlag.UV;
         break;
       default:
         break;
@@ -241,7 +241,12 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 }
 
-enum DirtyFlag {
+/**
+ * @internal
+ */
+enum SpriteMaskUpdateFlag {
+  /** UV. */
   UV = 0x2,
+  /** All. */
   All = 0x3
 }
