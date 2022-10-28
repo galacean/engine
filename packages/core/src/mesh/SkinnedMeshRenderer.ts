@@ -30,39 +30,17 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   ): void {
     const le = left.elements;
 
-    const l11 = le[0],
-      l12 = le[1],
-      l13 = le[2],
-      l14 = le[3];
-    const l21 = le[4],
-      l22 = le[5],
-      l23 = le[6],
-      l24 = le[7];
-    const l31 = le[8],
-      l32 = le[9],
-      l33 = le[10],
-      l34 = le[11];
-    const l41 = le[12],
-      l42 = le[13],
-      l43 = le[14],
-      l44 = le[15];
+    // prettier-ignore
+    const l11 = le[0], l12 = le[1], l13 = le[2], l14 = le[3],
+    l21 = le[4], l22 = le[5], l23 = le[6], l24 = le[7],
+    l31 = le[8], l32 = le[9], l33 = le[10], l34 = le[11],
+    l41 = le[12], l42 = le[13], l43 = le[14], l44 = le[15];
 
-    const r11 = re[rOffset],
-      r12 = re[rOffset + 1],
-      r13 = re[rOffset + 2],
-      r14 = re[rOffset + 3];
-    const r21 = re[rOffset + 4],
-      r22 = re[rOffset + 5],
-      r23 = re[rOffset + 6],
-      r24 = re[rOffset + 7];
-    const r31 = re[rOffset + 8],
-      r32 = re[rOffset + 9],
-      r33 = re[rOffset + 10],
-      r34 = re[rOffset + 11];
-    const r41 = re[rOffset + 12],
-      r42 = re[rOffset + 13],
-      r43 = re[rOffset + 14],
-      r44 = re[rOffset + 15];
+    // prettier-ignore
+    const r11 = re[rOffset], r12 = re[rOffset + 1], r13 = re[rOffset + 2], r14 = re[rOffset + 3],
+    r21 = re[rOffset + 4], r22 = re[rOffset + 5], r23 = re[rOffset + 6], r24 = re[rOffset + 7],
+    r31 = re[rOffset + 8], r32 = re[rOffset + 9], r33 = re[rOffset + 10], r34 = re[rOffset + 11],
+    r41 = re[rOffset + 12], r42 = re[rOffset + 13], r43 = re[rOffset + 14], r44 = re[rOffset + 15];
 
     oe[offset] = l11 * r11 + l21 * r12 + l31 * r13 + l41 * r14;
     oe[offset + 1] = l12 * r11 + l22 * r12 + l32 * r13 + l42 * r14;
