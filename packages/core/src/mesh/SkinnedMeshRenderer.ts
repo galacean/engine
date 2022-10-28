@@ -18,6 +18,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
+  private static _maxJoints: number = 0;
 
   private static _matrixMultiply(
     left: Matrix,
@@ -82,8 +83,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     oe[offset + 14] = l13 * r41 + l23 * r42 + l33 * r43 + l43 * r44;
     oe[offset + 15] = l14 * r41 + l24 * r42 + l34 * r43 + l44 * r44;
   }
-
-  private static _maxJoints: number = 0;
 
   @ignoreClone
   private _hasInitJoints: boolean = false;
@@ -167,7 +166,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set rootBone(value: Entity) {
     this._rootBone = value;
-    this._boundsTransformFlag && (this._boundsTransformFlag.flag = true);
+    this._worldVolumeUpdateFlag && (this._worldVolumeUpdateFlag.flag = true);
   }
 
   /**
@@ -301,8 +300,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._rootBone = rootBone;
     BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootInddex], this._localBounds);
 
-    this._boundsTransformFlag && this._boundsTransformFlag.destroy();
-    this._boundsTransformFlag = rootBone.transform.registerWorldChangeFlag();
+    this._worldVolumeUpdateFlag && this._worldVolumeUpdateFlag.destroy();
+    this._worldVolumeUpdateFlag = rootBone.transform.registerWorldChangeFlag();
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
 
@@ -364,6 +363,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   private _onLocalBoundsChanged(): void {
-    this._boundsTransformFlag && (this._boundsTransformFlag.flag = true);
+    this._worldVolumeUpdateFlag && (this._worldVolumeUpdateFlag.flag = true);
   }
 }

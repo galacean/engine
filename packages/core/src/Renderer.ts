@@ -54,8 +54,10 @@ export class Renderer extends Component {
   protected _overrideUpdate: boolean = false;
   @shallowClone
   protected _materials: Material[] = [];
+
+  /** Include world position or bounds. */
   @ignoreClone
-  protected _boundsTransformFlag: BoolUpdateFlag;
+  protected _worldVolumeUpdateFlag: BoolUpdateFlag;
 
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -90,7 +92,7 @@ export class Renderer extends Component {
     }
   }
 
-  /** whether cast shadow */
+  /** Whether cast shadow. */
   castShadows: boolean = false;
 
   /**
@@ -112,7 +114,7 @@ export class Renderer extends Component {
    * The bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    const transformFlag = this._boundsTransformFlag;
+    const transformFlag = this._worldVolumeUpdateFlag;
     if (transformFlag?.flag) {
       this._updateBounds(this._bounds);
       transformFlag.flag = false;
@@ -275,7 +277,7 @@ export class Renderer extends Component {
    * @internal
    */
   _onAwake(): void {
-    this._boundsTransformFlag = this.entity.transform.registerWorldChangeFlag();
+    this._worldVolumeUpdateFlag = this.entity.transform.registerWorldChangeFlag();
   }
 
   /**
@@ -313,10 +315,10 @@ export class Renderer extends Component {
    * @internal
    */
   _onDestroy(): void {
-    const boundsTransformFlag = this._boundsTransformFlag;
+    const boundsTransformFlag = this._worldVolumeUpdateFlag;
     if (boundsTransformFlag) {
-      this._boundsTransformFlag.destroy();
-      this._boundsTransformFlag = null;
+      this._worldVolumeUpdateFlag.destroy();
+      this._worldVolumeUpdateFlag = null;
     }
     this.shaderData._addRefCount(-1);
 

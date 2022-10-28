@@ -2,7 +2,6 @@ import { BoundingBox, Color } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
-import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
@@ -133,7 +132,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._worldVolumeUpdateFlag.flag = true;
     }
   }
 
@@ -150,7 +149,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._worldVolumeUpdateFlag.flag = true;
     }
   }
 
@@ -164,7 +163,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._worldVolumeUpdateFlag.flag = true;
     }
   }
 
@@ -178,22 +177,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._worldVolumeUpdateFlag.flag = true;
     }
-  }
-
-  /**
-   * The bounding volume of the spriteRenderer.
-   */
-  get bounds(): BoundingBox {
-    if (!this.sprite?.texture || !this.width || !this.height) {
-      return Engine._defaultBoundingBox;
-    } else if (this._boundsTransformFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
-      this._assembler.updatePositions(this);
-      this._dirtyFlag &= ~DirtyFlag.Position;
-      this._boundsTransformFlag.flag = false;
-    }
-    return this._bounds;
   }
 
   /**
@@ -241,10 +226,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
 
     // Update position.
-    if (this._boundsTransformFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+    if (this._worldVolumeUpdateFlag.flag) {
       this._assembler.updatePositions(this);
-      this._dirtyFlag &= ~DirtyFlag.Position;
-      this._boundsTransformFlag.flag = false;
+      this._worldVolumeUpdateFlag.flag = false;
     }
 
     // Update uv.
@@ -287,6 +271,18 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     super._onDestroy();
   }
 
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    if (!this.sprite?.texture || !this.width || !this.height) {
+      worldBounds.min.set(0, 0, 0);
+      worldBounds.max.set(0, 0, 0);
+    } else {
+      this._assembler.updatePositions(this);
+    }
+  }
+
   private _updateStencilState(): void {
     // Update stencil.
     const material = this.getInstanceMaterial();
@@ -316,7 +312,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpritePropertyDirtyFlag.size:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.Position);
+        this._drawMode === SpriteDrawMode.Sliced && (this._worldVolumeUpdateFlag.flag = true);
         break;
       case SpritePropertyDirtyFlag.border:
         this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.All);
@@ -329,7 +325,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this._dirtyFlag |= DirtyFlag.UV;
         break;
       case SpritePropertyDirtyFlag.pivot:
-        this._dirtyFlag |= DirtyFlag.Position;
+        this._worldVolumeUpdateFlag.flag = true;
         break;
       default:
         break;
@@ -338,7 +334,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 }
 
 enum DirtyFlag {
-  Position = 0x1,
   UV = 0x2,
   All = 0x3
 }

@@ -1,4 +1,4 @@
-import { BoundingBox, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 import { Color } from "@oasis-engine/math/src/Color";
 import { Font } from "./2d/text/Font";
 import { ResourceManager } from "./asset/ResourceManager";
@@ -53,8 +53,6 @@ export class Engine extends EventDispatcher {
   static _noDepthTextureMacro: ShaderMacro = Shader.getMacroByName("OASIS_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
-  /** @internal */
-  static _defaultBoundingBox: BoundingBox = new BoundingBox(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
 
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;

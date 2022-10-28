@@ -2,7 +2,6 @@ import { BoundingBox } from "@oasis-engine/math";
 import { Camera } from "../../Camera";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
-import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
@@ -66,7 +65,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._worldVolumeUpdateFlag.flag = true;
     }
   }
 
@@ -83,7 +82,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._worldVolumeUpdateFlag.flag = true;
     }
   }
 
@@ -97,7 +96,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._worldVolumeUpdateFlag.flag = true;
     }
   }
 
@@ -111,7 +110,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._worldVolumeUpdateFlag.flag = true;
     }
   }
 
@@ -153,20 +152,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * The bounding volume of the spriteRenderer.
-   */
-  get bounds(): Readonly<BoundingBox> {
-    if (!this.sprite?.texture || !this.width || !this.height) {
-      return Engine._defaultBoundingBox;
-    } else if (this._boundsTransformFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
-      SimpleSpriteAssembler.updatePositions(this);
-      this._dirtyFlag &= ~DirtyFlag.Position;
-      this._boundsTransformFlag.flag = false;
-    }
-    return this._bounds;
-  }
-
-  /**
    * @internal
    */
   constructor(entity: Entity) {
@@ -201,10 +186,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
       return;
     }
     // Update position.
-    if (this._boundsTransformFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+    if (this._worldVolumeUpdateFlag.flag) {
       SimpleSpriteAssembler.updatePositions(this);
-      this._dirtyFlag &= ~DirtyFlag.Position;
-      this._boundsTransformFlag.flag = false;
+      this._worldVolumeUpdateFlag.flag = false;
     }
 
     // Update uv.
@@ -227,6 +211,18 @@ export class SpriteMask extends Renderer implements ICustomClone {
     target.sprite = this._sprite;
   }
 
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    if (!this.sprite?.texture || !this.width || !this.height) {
+      worldBounds.min.set(0, 0, 0);
+      worldBounds.max.set(0, 0, 0);
+    } else {
+      SimpleSpriteAssembler.updatePositions(this);
+    }
+  }
+
   private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag): void {
     switch (dirtyFlag) {
       case SpritePropertyDirtyFlag.texture:
@@ -246,7 +242,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
 }
 
 enum DirtyFlag {
-  Position = 0x1,
   UV = 0x2,
   All = 0x3
 }
