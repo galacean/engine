@@ -3,7 +3,7 @@ import { Camera } from "../../Camera";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { Renderer, RendererModifyFlags } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -62,7 +62,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
     }
   }
 
@@ -79,7 +79,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
     }
   }
 
@@ -93,7 +93,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
     }
   }
 
@@ -107,7 +107,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
     }
   }
 
@@ -124,7 +124,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
       lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       if (value) {
         value._updateFlagManager.addListener(this._onSpriteChange);
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
+        this._dirtyUpdateFlag |= SpriteMaskModifyFlags.All;
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
         this._spriteChangeFlag = 0;
@@ -181,15 +181,15 @@ export class SpriteMask extends Renderer implements ICustomClone {
     }
 
     // Update position.
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
+    if (this._dirtyUpdateFlag & RendererModifyFlags.WorldVolume) {
       SimpleSpriteAssembler.updatePositions(this);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag &= ~RendererModifyFlags.WorldVolume;
     }
 
     // Update uv.
-    if (this._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV) {
+    if (this._dirtyUpdateFlag & SpriteMaskModifyFlags.UV) {
       SimpleSpriteAssembler.updateUVs(this);
-      this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
+      this._dirtyUpdateFlag &= ~SpriteMaskModifyFlags.UV;
     }
 
     const spriteMaskElementPool = this._engine._spriteMaskElementPool;
@@ -225,10 +225,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
+        this._dirtyUpdateFlag |= SpriteMaskModifyFlags.All;
         break;
       case SpritePropertyDirtyFlag.atlasRegion:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
+        this._dirtyUpdateFlag |= SpriteMaskModifyFlags.UV;
         break;
       default:
         break;
@@ -239,7 +239,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
 /**
  * @remarks Extends `RendererUpdateFlag`.
  */
-enum SpriteMaskUpdateFlags {
+enum SpriteMaskModifyFlags {
   /** UV. */
   UV = 0x2,
   /** All. */

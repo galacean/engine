@@ -5,7 +5,7 @@ import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
-import { Renderer, RendererUpdateFlags } from "../Renderer";
+import { Renderer, RendererModifyFlags } from "../Renderer";
 import { Shader } from "../shader/Shader";
 
 /**
@@ -50,7 +50,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   _render(camera: Camera): void {
     const mesh = this._mesh;
     if (mesh) {
-      if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
+      if (this._dirtyUpdateFlag & MeshRendererModifyFlags.VertexElementMacro) {
         const shaderData = this.shaderData;
         const vertexElements = mesh._vertexElements;
 
@@ -80,7 +80,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
           }
         }
-        this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
+        this._dirtyUpdateFlag &= ~MeshRendererModifyFlags.VertexElementMacro;
       }
 
       const subMeshes = mesh.subMeshes;
@@ -147,21 +147,21 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     if (mesh) {
       mesh._addRefCount(1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
-      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
+      this._dirtyUpdateFlag |= MeshRendererModifyFlags.All;
     }
     this._mesh = mesh;
   }
 
   private _onMeshChanged(bit?: number, param?: Object): void {
-    bit & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
-    bit & MeshModifyFlags.VertexElements && (this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro);
+    bit & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume);
+    bit & MeshModifyFlags.VertexElements && (this._dirtyUpdateFlag |= MeshRendererModifyFlags.VertexElementMacro);
   }
 }
 
 /**
  * @remarks Extends `RendererUpdateFlag`.
  */
-enum MeshRendererUpdateFlags {
+enum MeshRendererModifyFlags {
   /** VertexElementMacro. */
   VertexElementMacro = 0x2,
   /** All. */

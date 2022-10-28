@@ -111,9 +111,9 @@ export class Renderer extends Component {
    * The bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
+    if (this._dirtyUpdateFlag & RendererModifyFlags.WorldVolume) {
       this._updateBounds(this._bounds);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag &= ~RendererModifyFlags.WorldVolume;
     }
     return this._bounds;
   }
@@ -374,14 +374,14 @@ export class Renderer extends Component {
   }
 
   protected _onTransformChanged(bit?: number, param?: Object): void {
-    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+    this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
   }
 }
 
 /**
  * @internal
  */
-export enum RendererUpdateFlags {
+export enum RendererModifyFlags {
   /** Include world position and world bounds. */
   WorldVolume = 0x1
 }

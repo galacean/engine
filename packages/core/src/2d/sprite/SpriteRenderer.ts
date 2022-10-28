@@ -3,7 +3,7 @@ import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { Renderer, RendererModifyFlags } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -76,7 +76,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+      this._dirtyUpdateFlag |= SpriteRendererModifyFlags.All;
     }
   }
 
@@ -94,7 +94,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
       if (value) {
         value._updateFlagManager.addListener(this._onSpriteChange);
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        this._dirtyUpdateFlag |= SpriteRendererModifyFlags.All;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
         this._spriteChangeFlag = 0;
@@ -130,7 +130,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
     }
   }
 
@@ -147,7 +147,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
     }
   }
 
@@ -161,7 +161,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
     }
   }
 
@@ -175,7 +175,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
     }
   }
 
@@ -224,15 +224,15 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
 
     // Update position.
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
+    if (this._dirtyUpdateFlag & RendererModifyFlags.WorldVolume) {
       this._assembler.updatePositions(this);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag &= ~RendererModifyFlags.WorldVolume;
     }
 
     // Update uv.
-    if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.UV) {
+    if (this._dirtyUpdateFlag & SpriteRendererModifyFlags.UV) {
       this._assembler.updateUVs(this);
-      this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
+      this._dirtyUpdateFlag &= ~SpriteRendererModifyFlags.UV;
     }
 
     // Push primitive.
@@ -307,20 +307,20 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpritePropertyDirtyFlag.size:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume);
         break;
       case SpritePropertyDirtyFlag.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All);
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererModifyFlags.All);
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        this._dirtyUpdateFlag |= SpriteRendererModifyFlags.All;
         break;
       case SpritePropertyDirtyFlag.atlasRegion:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
+        this._dirtyUpdateFlag |= SpriteRendererModifyFlags.UV;
         break;
       case SpritePropertyDirtyFlag.pivot:
-        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
         break;
     }
   }
@@ -329,7 +329,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 /**
  * @remarks Extends `RendererUpdateFlag`.
  */
-enum SpriteRendererUpdateFlags {
+enum SpriteRendererModifyFlags {
   /** UV. */
   UV = 0x2,
   /** All. */
