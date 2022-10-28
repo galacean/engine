@@ -138,7 +138,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  protected _setMesh(mesh: Mesh): void {
+  private _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
       lastMesh._addRefCount(-1);
