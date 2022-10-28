@@ -213,7 +213,6 @@ export class Sprite extends RefObject {
     cloneSprite._atlasRegionOffset.copyFrom(this._atlasRegionOffset);
     return cloneSprite;
   }
-  ƒ;
 
   /**
    * @internal
