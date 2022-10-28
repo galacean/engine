@@ -15,8 +15,9 @@ export class BlendShape {
   _useBlendShapeNormal: boolean = true;
   /** @internal */
   _useBlendShapeTangent: boolean = true;
+  /** @internal */
+  _layoutChangeManager: UpdateFlagManager = new UpdateFlagManager();
 
-  private _layoutChangeManager: UpdateFlagManager = new UpdateFlagManager();
   private _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
   private _frames: BlendShapeFrame[] = [];
 
@@ -77,13 +78,6 @@ export class BlendShape {
     this._frames.length = 0;
     this._updateUseNormalAndTangent(true, true);
     this._dataChangeManager.dispatch();
-  }
-
-  /**
-   * @internal
-   */
-  _addLayoutChangeFlag(flag: UpdateFlag): void {
-    this._layoutChangeManager.addFlag(flag);
   }
 
   /**
