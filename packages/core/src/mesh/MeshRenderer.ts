@@ -4,9 +4,8 @@ import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { RendererUpdateFlags } from "../enums/RendererUpdateFlags";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
-import { Renderer } from "../Renderer";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Shader } from "../shader/Shader";
 
 /**

@@ -4,7 +4,6 @@ import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/C
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { RendererUpdateFlags } from "./enums/RendererUpdateFlags";
 import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Shader } from "./shader";
@@ -377,4 +376,12 @@ export class Renderer extends Component {
   protected _onTransformChanged(bit?: number, param?: Object): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
+}
+
+/**
+ * @internal
+ */
+export enum RendererUpdateFlags {
+  /** Include world position and world bounds. */
+  WorldVolume = 0x1
 }
