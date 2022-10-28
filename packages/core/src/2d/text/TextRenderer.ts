@@ -4,7 +4,6 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { FontStyle } from "../enums/FontStyle";
@@ -35,8 +34,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _dirtyFlag: number = DirtyFlag.Font;
   /** @internal */
-  @ignoreClone
-  _isWorldMatrixDirty: ListenerUpdateFlag;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -281,10 +278,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    this._isWorldMatrixDirty = entity.transform._registerWorldChangeListener();
-    this._isWorldMatrixDirty.listener = () => {
-      this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
-    };
     this._font = engine._textDefaultFont;
     this._font._addRefCount(1);
     this.setMaterial(engine._spriteDefaultMaterial);
@@ -369,7 +362,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
     this._subFont && (this._subFont = null);
 
-    this._isWorldMatrixDirty.destroy();
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
     super._onDestroy();
   }
 
@@ -590,6 +583,11 @@ export class TextRenderer extends Renderer implements ICustomClone {
       charRenderDatas.sort((a, b) => {
         return a.texture.instanceId - b.texture.instanceId;
       });
+  }
+
+  protected _onTransformChanged(bit?: number, param?: Object): void {
+    super._onTransformChanged(bit, param);
+    this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
   }
 }
 
