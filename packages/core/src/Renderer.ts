@@ -5,7 +5,7 @@ import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/C
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { RendererUpdateFlag } from "./enums/RendererUpdateFlag";
+import { RendererUpdateFlags } from "./enums/RendererUpdateFlags";
 import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Shader } from "./shader";
@@ -114,9 +114,9 @@ export class Renderer extends Component {
    */
   get bounds(): BoundingBox {
     const transformFlag = this._dirtyUpdateFlag;
-    if (transformFlag.flags & RendererUpdateFlag.WorldVolume) {
+    if (transformFlag.flags & RendererUpdateFlags.WorldVolume) {
       this._updateBounds(this._bounds);
-      transformFlag.flags &= ~RendererUpdateFlag.WorldVolume;
+      transformFlag.flags &= ~RendererUpdateFlags.WorldVolume;
     }
     return this._bounds;
   }

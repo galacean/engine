@@ -1,7 +1,7 @@
 /**
  * @internal
  */
-export enum RendererUpdateFlag {
+export enum RendererUpdateFlags {
   /** None. */
   None = 0,
   /** Include world position and world bounds. */

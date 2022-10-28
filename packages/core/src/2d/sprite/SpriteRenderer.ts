@@ -3,7 +3,7 @@ import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { RendererUpdateFlag } from "../../enums/RendererUpdateFlag";
+import { RendererUpdateFlags } from "../../enums/RendererUpdateFlags";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
@@ -78,7 +78,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlag.All;
+      this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlags.All;
     }
   }
 
@@ -96,7 +96,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
-        this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlag.All;
+        this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlags.All;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
         this._spriteChangeFlag = null;
@@ -131,7 +131,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -148,7 +148,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -162,7 +162,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -176,7 +176,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -226,15 +226,15 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
     const dirtyUpdateFlag = this._dirtyUpdateFlag;
     // Update position.
-    if (dirtyUpdateFlag.flags & RendererUpdateFlag.WorldVolume) {
+    if (dirtyUpdateFlag.flags & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(this);
-      dirtyUpdateFlag.flags &= ~RendererUpdateFlag.WorldVolume;
+      dirtyUpdateFlag.flags &= ~RendererUpdateFlags.WorldVolume;
     }
 
     // Update uv.
-    if (dirtyUpdateFlag.flags & SpriteRendererUpdateFlag.UV) {
+    if (dirtyUpdateFlag.flags & SpriteRendererUpdateFlags.UV) {
       this._assembler.updateUVs(this);
-      dirtyUpdateFlag.flags &= ~SpriteRendererUpdateFlag.UV;
+      dirtyUpdateFlag.flags &= ~SpriteRendererUpdateFlags.UV;
     }
 
     // Push primitive.
@@ -312,20 +312,20 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpritePropertyDirtyFlag.size:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume);
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume);
         break;
       case SpritePropertyDirtyFlag.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlag.All);
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlags.All);
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlasRegionOffset:
-        this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlag.All;
+        this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlags.All;
         break;
       case SpritePropertyDirtyFlag.atlasRegion:
-        this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlag.UV;
+        this._dirtyUpdateFlag.flags |= SpriteRendererUpdateFlags.UV;
         break;
       case SpritePropertyDirtyFlag.pivot:
-        this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+        this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
         break;
       default:
         break;

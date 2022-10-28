@@ -2,14 +2,14 @@ import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardware
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
-import { RendererUpdateFlag } from "../enums/RendererUpdateFlag";
+import { RendererUpdateFlags } from "../enums/RendererUpdateFlags";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { MeshRendererUpdateFlag } from "../mesh/enums/MeshRendererUpdateFlag";
+import { MeshRendererUpdateFlags } from "../mesh/enums/MeshRendererUpdateFlags";
 import { ShaderProgram } from "../shader/ShaderProgram";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 
@@ -151,7 +151,7 @@ export abstract class Mesh extends RefObject {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-    this._updateFlagManager.dispatch(MeshRendererUpdateFlag.VertexElements);
+    this._updateFlagManager.dispatch(MeshRendererUpdateFlags.VertexElements);
   }
 
   /**
@@ -215,6 +215,6 @@ export abstract class Mesh extends RefObject {
   }
 
   private _onBoundsChanged(): void {
-    this._updateFlagManager.dispatch(RendererUpdateFlag.WorldVolume);
+    this._updateFlagManager.dispatch(RendererUpdateFlags.WorldVolume);
   }
 }

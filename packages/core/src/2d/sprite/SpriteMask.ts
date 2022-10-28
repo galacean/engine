@@ -3,7 +3,7 @@ import { Camera } from "../../Camera";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { RendererUpdateFlag } from "../../enums/RendererUpdateFlag";
+import { RendererUpdateFlags } from "../../enums/RendererUpdateFlags";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
@@ -13,7 +13,7 @@ import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { RenderData2D } from "../data/RenderData2D";
 import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
-import { SpriteMaskUpdateFlag } from "./enums/SpriteMaskUpdateFlag";
+import { SpriteMaskUpdateFlags } from "./enums/SpriteMaskUpdateFlags";
 import { Sprite } from "./Sprite";
 
 /**
@@ -65,7 +65,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -82,7 +82,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -96,7 +96,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -110,7 +110,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume;
+      this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -128,7 +128,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
       if (value) {
         this._spriteChangeFlag = value._registerUpdateFlag();
         this._spriteChangeFlag.listener = this._onSpriteChange;
-        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlag.All;
+        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlags.All;
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
         this._spriteChangeFlag = null;
@@ -188,15 +188,15 @@ export class SpriteMask extends Renderer implements ICustomClone {
 
     const dirtyUpdateFlag = this._dirtyUpdateFlag;
     // Update position.
-    if (dirtyUpdateFlag.flags & RendererUpdateFlag.WorldVolume) {
+    if (dirtyUpdateFlag.flags & RendererUpdateFlags.WorldVolume) {
       SimpleSpriteAssembler.updatePositions(this);
-      dirtyUpdateFlag.flags &= ~RendererUpdateFlag.WorldVolume;
+      dirtyUpdateFlag.flags &= ~RendererUpdateFlags.WorldVolume;
     }
 
     // Update uv.
-    if (dirtyUpdateFlag.flags & SpriteMaskUpdateFlag.UV) {
+    if (dirtyUpdateFlag.flags & SpriteMaskUpdateFlags.UV) {
       SimpleSpriteAssembler.updateUVs(this);
-      dirtyUpdateFlag.flags &= ~SpriteMaskUpdateFlag.UV;
+      dirtyUpdateFlag.flags &= ~SpriteMaskUpdateFlags.UV;
     }
 
     const spriteMaskElementPool = this._engine._spriteMaskElementPool;
@@ -232,10 +232,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
         break;
       case SpritePropertyDirtyFlag.region:
       case SpritePropertyDirtyFlag.atlasRegionOffset:
-        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlag.All;
+        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlags.All;
         break;
       case SpritePropertyDirtyFlag.atlasRegion:
-        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlag.UV;
+        this._dirtyUpdateFlag.flags |= SpriteMaskUpdateFlags.UV;
         break;
       default:
         break;

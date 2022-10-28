@@ -7,7 +7,7 @@ import { Entity } from "../Entity";
 import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
-import { MeshRendererUpdateFlag } from "./enums/MeshRendererUpdateFlag";
+import { MeshRendererUpdateFlags } from "./enums/MeshRendererUpdateFlags";
 
 /**
  * MeshRenderer Component.
@@ -50,7 +50,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   _render(camera: Camera): void {
     const mesh = this._mesh;
     if (mesh) {
-      if (this._dirtyUpdateFlag.flags & MeshRendererUpdateFlag.VertexElements) {
+      if (this._dirtyUpdateFlag.flags & MeshRendererUpdateFlags.VertexElements) {
         const shaderData = this.shaderData;
         const vertexElements = mesh._vertexElements;
 
@@ -80,7 +80,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
           }
         }
-        this._dirtyUpdateFlag.flags &= ~MeshRendererUpdateFlag.VertexElements;
+        this._dirtyUpdateFlag.flags &= ~MeshRendererUpdateFlags.VertexElements;
       }
 
       const subMeshes = mesh.subMeshes;
@@ -147,7 +147,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     if (mesh) {
       mesh._addRefCount(1);
       mesh._updateFlagManager.addFlag(this._dirtyUpdateFlag);
-      this._dirtyUpdateFlag.flags |= MeshRendererUpdateFlag.All;
+      this._dirtyUpdateFlag.flags |= MeshRendererUpdateFlags.All;
     }
     this._mesh = mesh;
   }
