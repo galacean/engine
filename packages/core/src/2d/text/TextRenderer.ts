@@ -362,7 +362,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
     this._subFont && (this._subFont = null);
 
-    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
     super._onDestroy();
   }
 
@@ -436,11 +435,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const charRenderDatas = this._charRenderDatas;
 
     // prettier-ignore
-    const e0 = e[0], e1 = e[1], e2 = e[2];
-    // prettier-ignore
-    const e4 = e[4], e5 = e[5], e6 = e[6];
-    // prettier-ignore
-    const e12 = e[12], e13 = e[13], e14 = e[14];
+    const e0 = e[0], e1 = e[1], e2 = e[2],
+    e4 = e[4], e5 = e[5], e6 = e[6],
+    e12 = e[12], e13 = e[13], e14 = e[14];
 
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);
