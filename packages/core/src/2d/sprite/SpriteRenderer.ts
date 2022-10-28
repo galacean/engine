@@ -3,8 +3,9 @@ import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
+import { RendererUpdateFlag } from "../../enums/RendererUpdateFlag";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
-import { Renderer, RendererUpdateFlag } from "../../Renderer";
+import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -330,14 +331,4 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         break;
     }
   }
-}
-
-/**
- * @internal
- */
-enum SpriteRendererUpdateFlag {
-  /** UV. */
-  UV = 0x2,
-  /** All. */
-  All = 0x3
 }

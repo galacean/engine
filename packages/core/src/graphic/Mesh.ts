@@ -2,14 +2,14 @@ import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardware
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
+import { RendererUpdateFlag } from "../enums/RendererUpdateFlag";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { MeshRendererUpdateFlag } from "../mesh/MeshRenderer";
-import { RendererUpdateFlag } from "../Renderer";
+import { MeshRendererUpdateFlag } from "../mesh/enums/MeshRendererUpdateFlag";
 import { ShaderProgram } from "../shader/ShaderProgram";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 

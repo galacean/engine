@@ -2,7 +2,7 @@ import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
-import { RendererUpdateFlag } from "../Renderer";
+import { RendererUpdateFlag } from "../enums/RendererUpdateFlag";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";

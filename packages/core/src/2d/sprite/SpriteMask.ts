@@ -3,8 +3,9 @@ import { Camera } from "../../Camera";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
+import { RendererUpdateFlag } from "../../enums/RendererUpdateFlag";
 import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
-import { Renderer, RendererUpdateFlag } from "../../Renderer";
+import { Renderer } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -12,6 +13,7 @@ import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { RenderData2D } from "../data/RenderData2D";
 import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
+import { SpriteMaskUpdateFlag } from "./enums/SpriteMaskUpdateFlag";
 import { Sprite } from "./Sprite";
 
 /**
@@ -241,12 +243,4 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 }
 
-/**
- * @internal
- */
-enum SpriteMaskUpdateFlag {
-  /** UV. */
-  UV = 0x2,
-  /** All. */
-  All = 0x3
-}
+

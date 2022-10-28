@@ -7,6 +7,7 @@ import { Entity } from "../Entity";
 import { Mesh } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
+import { MeshRendererUpdateFlag } from "./enums/MeshRendererUpdateFlag";
 
 /**
  * MeshRenderer Component.
@@ -150,9 +151,4 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     }
     this._mesh = mesh;
   }
-}
-
-export enum MeshRendererUpdateFlag {
-  VertexElements = 0x2,
-  All = 0x3
 }
