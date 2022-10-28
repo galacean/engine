@@ -3,7 +3,6 @@ import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Shader } from "../../shader/Shader";
@@ -54,7 +53,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
 
   @ignoreClone
-  private _spriteChangeFlag: ListenerUpdateFlag = null;
+  private _spriteChangeFlag: number = 0;
 
   /**
    * The draw mode of the sprite renderer.
@@ -89,18 +88,19 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   set sprite(value: Sprite | null) {
-    if (this._sprite !== value) {
-      this._sprite = value;
-      this._spriteChangeFlag && this._spriteChangeFlag.destroy();
+    const lastSprite = this._sprite;
+    if (lastSprite !== value) {
+      lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+
       if (value) {
-        this._spriteChangeFlag = value._registerUpdateFlag();
-        this._spriteChangeFlag.listener = this._onSpriteChange;
+        value._updateFlagManager.addListener(this._onSpriteChange);
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
-        this._spriteChangeFlag = null;
+        this._spriteChangeFlag = 0;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
+      this._sprite = value;
     }
   }
 
@@ -262,10 +262,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     this._sprite = null;
     this._assembler = null;
     this._renderData = null;
-    if (this._spriteChangeFlag) {
-      this._spriteChangeFlag.destroy();
-      this._spriteChangeFlag = null;
-    }
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     super._onDestroy();
   }
 

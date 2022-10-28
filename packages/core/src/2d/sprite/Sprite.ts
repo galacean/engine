@@ -1,7 +1,6 @@
 import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
@@ -33,7 +32,9 @@ export class Sprite extends RefObject {
   private _border: Vector4 = new Vector4(0, 0, 0, 0);
 
   private _dirtyFlag: DirtyFlag = DirtyFlag.all;
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * The reference to the used texture.
@@ -212,13 +213,7 @@ export class Sprite extends RefObject {
     cloneSprite._atlasRegionOffset.copyFrom(this._atlasRegionOffset);
     return cloneSprite;
   }
-
-  /**
-   * @internal
-   */
-  _registerUpdateFlag(): ListenerUpdateFlag {
-    return this._updateFlagManager.createFlag(ListenerUpdateFlag);
-  }
+  ƒ;
 
   /**
    * @internal

@@ -3,7 +3,6 @@ import { Camera } from "../../Camera";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
 import { Shader } from "../../shader/Shader";
@@ -48,7 +47,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   private _alphaCutoff: number = 0.5;
 
   @ignoreClone
-  private _spriteChangeFlag: ListenerUpdateFlag = null;
+  private _spriteChangeFlag: number = 0;
 
   /**
    * Render width.
@@ -120,18 +119,18 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   set sprite(value: Sprite | null) {
-    if (this._sprite !== value) {
-      this._sprite = value;
-      this._spriteChangeFlag && this._spriteChangeFlag.destroy();
+    const lastSprite = this._sprite;
+    if (lastSprite !== value) {
+      lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
       if (value) {
-        this._spriteChangeFlag = value._registerUpdateFlag();
-        this._spriteChangeFlag.listener = this._onSpriteChange;
+        value._updateFlagManager.addListener(this._onSpriteChange);
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
-        this._spriteChangeFlag = null;
+        this._spriteChangeFlag = 0;
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
       }
+      this._sprite = value;
     }
   }
 
@@ -168,10 +167,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   _onDestroy(): void {
     this._sprite = null;
     this._renderData = null;
-    if (this._spriteChangeFlag) {
-      this._spriteChangeFlag.destroy();
-      this._spriteChangeFlag = null;
-    }
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     super._onDestroy();
   }
 
