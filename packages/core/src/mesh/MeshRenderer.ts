@@ -1,11 +1,11 @@
 import { BoundingBox } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
-import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { Mesh } from "../graphic/Mesh";
+import { Mesh, MeshChangeType } from "../graphic/Mesh";
+import { ListenerUpdateFlag } from "../ListenerUpdateFlag";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
 
@@ -22,8 +22,10 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   /** @internal */
   @ignoreClone
   _mesh: Mesh;
+
   @ignoreClone
-  private _meshUpdateFlag: BoolUpdateFlag;
+  private _vertexElementsChange: boolean = false;
+  private _meshUpdateFlag: ListenerUpdateFlag;
 
   /**
    * @internal
@@ -35,13 +37,13 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   /**
    * Mesh assigned to the renderer.
    */
-  get mesh() {
+  get mesh(): Mesh {
     return this._mesh;
   }
 
-  set mesh(mesh: Mesh) {
-    if (this._mesh !== mesh) {
-      this._setMesh(mesh);
+  set mesh(value: Mesh) {
+    if (this._mesh !== value) {
+      this._setMesh(value);
     }
   }
 
@@ -52,7 +54,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   _render(camera: Camera): void {
     const mesh = this._mesh;
     if (mesh) {
-      if (this._meshUpdateFlag.flag) {
+      if (this._vertexElementsChange) {
         const shaderData = this.shaderData;
         const vertexElements = mesh._vertexElements;
 
@@ -82,7 +84,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
           }
         }
-        this._meshUpdateFlag.flag = false;
+        this._vertexElementsChange = false;
       }
 
       const subMeshes = mesh.subMeshes;
@@ -148,8 +150,15 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     }
     if (mesh) {
       mesh._addRefCount(1);
-      this._meshUpdateFlag = mesh.registerUpdateFlag();
+      this._meshUpdateFlag = mesh._updateFlagManager.createFlag(ListenerUpdateFlag);
+      this._meshUpdateFlag.listener = this._onMeshChange.bind(this);
+      this._onMeshChange(MeshChangeType.All);
     }
     this._mesh = mesh;
+  }
+
+  private _onMeshChange(type: MeshChangeType): void {
+    type & MeshChangeType.VertexElements && (this._vertexElementsChange = true);
+    type & MeshChangeType.Bounds && (this._worldVolumeUpdateFlag.flag = true);
   }
 }

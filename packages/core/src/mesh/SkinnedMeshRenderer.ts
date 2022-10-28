@@ -166,7 +166,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set rootBone(value: Entity) {
     this._rootBone = value;
-    this._worldVolumeUpdateFlag && (this._worldVolumeUpdateFlag.flag = true);
+    this._worldVolumeUpdateFlag.flag = true;
   }
 
   /**
@@ -186,8 +186,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
     this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
+
+    const localBounds = this._localBounds;
     // @ts-ignore
-    this._localBounds._onValueChanged = this._onLocalBoundsChanged;
+    localBounds.min._onValueChanged = this._onLocalBoundsChanged;
+    // @ts-ignore
+    localBounds.max._onValueChanged = this._onLocalBoundsChanged;
   }
 
   /**
@@ -295,13 +299,17 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._jointEntitys = jointEntitys;
     this._jointMatrixs = new Float32Array(jointCount * 16);
 
+    const lastRootBone = this._rootBone;
     const rootBone = this._findByEntityName(this.entity, skin.skeleton);
     const rootInddex = joints.indexOf(skin.skeleton);
-    this._rootBone = rootBone;
+
+    lastRootBone && lastRootBone.transform._updateFlagManager.removeFlag(this._worldVolumeUpdateFlag);
+
     BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootInddex], this._localBounds);
 
-    this._worldVolumeUpdateFlag && this._worldVolumeUpdateFlag.destroy();
-    this._worldVolumeUpdateFlag = rootBone.transform.registerWorldChangeFlag();
+    rootBone.transform._updateFlagManager.addFlag(this._worldVolumeUpdateFlag);
+
+    this._rootBone = rootBone;
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
 
@@ -363,6 +371,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   private _onLocalBoundsChanged(): void {
-    this._worldVolumeUpdateFlag && (this._worldVolumeUpdateFlag.flag = true);
+    this._worldVolumeUpdateFlag.flag = true;
   }
 }

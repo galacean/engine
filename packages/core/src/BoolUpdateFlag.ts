@@ -5,7 +5,7 @@ import { UpdateFlag } from "./UpdateFlag";
  */
 export class BoolUpdateFlag extends UpdateFlag {
   /** Flag. */
-  flag = true;
+  flag: boolean = true;
 
   /**
    * @inheritdoc

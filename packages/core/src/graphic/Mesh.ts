@@ -1,7 +1,6 @@
 import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
-import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
@@ -18,8 +17,6 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 export abstract class Mesh extends RefObject {
   /** Name. */
   name: string;
-  /** The bounding volume of the mesh. */
-  readonly bounds: BoundingBox = new BoundingBox();
 
   _vertexElementMap: Record<string, VertexElement> = {};
   _glIndexType: number;
@@ -36,9 +33,24 @@ export abstract class Mesh extends RefObject {
   _vertexElements: VertexElement[] = [];
   /** @internal */
   _enableVAO: boolean = true;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
+  private _bounds: BoundingBox = new BoundingBox();
   private _subMeshes: SubMesh[] = [];
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+
+  /**
+   * The bounding volume of the mesh.
+   */
+  get bounds(): BoundingBox {
+    return this._bounds;
+  }
+
+  set bounds(value: BoundingBox) {
+    if (this._bounds !== value) {
+      this._bounds.copyFrom(value);
+    }
+  }
 
   /**
    * First sub-mesh. Rendered using the first material.
@@ -63,6 +75,13 @@ export abstract class Mesh extends RefObject {
     super(engine);
     this.name = name;
     this._platformPrimitive = this._engine._hardwareRenderer.createPlatformPrimitive(this);
+    this._onBoundsChanged = this._onBoundsChanged.bind(this);
+
+    const bounds = this._bounds;
+    // @ts-ignore
+    bounds.min._onValueChanged = this._onBoundsChanged;
+    // @ts-ignore
+    bounds.max._onValueChanged = this._onBoundsChanged;
   }
 
   /**
@@ -113,14 +132,6 @@ export abstract class Mesh extends RefObject {
   }
 
   /**
-   * Register update flag, update flag will be true if the vertex element changes.
-   * @returns Update flag
-   */
-  registerUpdateFlag(): BoolUpdateFlag {
-    return this._updateFlagManager.createFlag(BoolUpdateFlag);
-  }
-
-  /**
    * @internal
    */
   _clearVertexElements(): void {
@@ -138,7 +149,7 @@ export abstract class Mesh extends RefObject {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-    this._updateFlagManager.dispatch();
+    this._updateFlagManager.dispatch(MeshChangeType.VertexElements);
   }
 
   /**
@@ -200,4 +211,15 @@ export abstract class Mesh extends RefObject {
       this._glIndexType = undefined;
     }
   }
+
+  private _onBoundsChanged(): void {
+    this._updateFlagManager.dispatch(MeshChangeType.Bounds);
+  }
+}
+
+export enum MeshChangeType {
+  None = 0,
+  Bounds = 0x1,
+  VertexElements = 0x2,
+  All = Bounds | VertexElements
 }

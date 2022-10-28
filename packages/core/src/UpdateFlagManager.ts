@@ -1,4 +1,5 @@
 import { UpdateFlag } from "./UpdateFlag";
+import { removeFromArray } from "./base/Util";
 
 /**
  * @internal
@@ -24,6 +25,17 @@ export class UpdateFlagManager {
   addFlag(flag: UpdateFlag): void {
     this._updateFlags.push(flag);
     flag._flagManagers.push(this);
+  }
+
+  /**
+   * Remove a UpdateFlag.
+   * @param flag - The UpdateFlag.
+   */
+  removeFlag(flag: UpdateFlag): void {
+    const success = removeFromArray(this._updateFlags, flag);
+    if (success) {
+      removeFromArray(flag._flagManagers, this);
+    }
   }
 
   /**

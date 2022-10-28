@@ -41,13 +41,14 @@ export class Transform extends Component {
   @deepClone
   private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
-  @ignoreClone
   private _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
 
   private _dirtyFlag: number = TransformFlag.WmWpWeWqWs;
+
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * Local position.

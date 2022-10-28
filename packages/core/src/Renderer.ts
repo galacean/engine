@@ -57,7 +57,7 @@ export class Renderer extends Component {
 
   /** Include world position or bounds. */
   @ignoreClone
-  protected _worldVolumeUpdateFlag: BoolUpdateFlag;
+  protected _worldVolumeUpdateFlag: BoolUpdateFlag = new BoolUpdateFlag();
 
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -115,7 +115,7 @@ export class Renderer extends Component {
    */
   get bounds(): BoundingBox {
     const transformFlag = this._worldVolumeUpdateFlag;
-    if (transformFlag?.flag) {
+    if (transformFlag.flag) {
       this._updateBounds(this._bounds);
       transformFlag.flag = false;
     }
@@ -277,7 +277,7 @@ export class Renderer extends Component {
    * @internal
    */
   _onAwake(): void {
-    this._worldVolumeUpdateFlag = this.entity.transform.registerWorldChangeFlag();
+    this.entity.transform._updateFlagManager.addFlag(this._worldVolumeUpdateFlag);
   }
 
   /**
@@ -315,11 +315,9 @@ export class Renderer extends Component {
    * @internal
    */
   _onDestroy(): void {
-    const boundsTransformFlag = this._worldVolumeUpdateFlag;
-    if (boundsTransformFlag) {
-      this._worldVolumeUpdateFlag.destroy();
-      this._worldVolumeUpdateFlag = null;
-    }
+    this._worldVolumeUpdateFlag.destroy();
+    this._worldVolumeUpdateFlag = null;
+
     this.shaderData._addRefCount(-1);
 
     const materials = this._materials;
