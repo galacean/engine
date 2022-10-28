@@ -3,6 +3,7 @@ import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
+import { RendererUpdateFlags } from "./enums/RendererUpdateFlags";
 import { ListenerUpdateFlag } from "./ListenerUpdateFlag";
 import { UpdateFlagManager } from "./UpdateFlagManager";
 
@@ -717,7 +718,7 @@ export class Transform extends Component {
 
   private _worldAssociatedChange(type: number): void {
     this._dirtyFlag |= type;
-    this._updateFlagManager.dispatch();
+    this._updateFlagManager.dispatch(RendererUpdateFlags.WorldVolume);
   }
 
   private _rotateByQuat(rotateQuat: Quaternion, relativeToLocal: boolean): void {
