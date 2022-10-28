@@ -8,6 +8,8 @@ import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { MeshRendererUpdateFlag } from "../mesh/MeshRenderer";
+import { RendererUpdateFlag } from "../Renderer";
 import { ShaderProgram } from "../shader/ShaderProgram";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 
@@ -149,7 +151,7 @@ export abstract class Mesh extends RefObject {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-    this._updateFlagManager.dispatch(MeshChangeType.VertexElements);
+    this._updateFlagManager.dispatch(MeshRendererUpdateFlag.VertexElements);
   }
 
   /**
@@ -213,13 +215,6 @@ export abstract class Mesh extends RefObject {
   }
 
   private _onBoundsChanged(): void {
-    this._updateFlagManager.dispatch(MeshChangeType.Bounds);
+    this._updateFlagManager.dispatch(RendererUpdateFlag.WorldVolume);
   }
-}
-
-export enum MeshChangeType {
-  None = 0,
-  Bounds = 0x1,
-  VertexElements = 0x2,
-  All = Bounds | VertexElements
 }

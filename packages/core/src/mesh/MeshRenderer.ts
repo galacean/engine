@@ -4,9 +4,8 @@ import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { Mesh, MeshChangeType } from "../graphic/Mesh";
-import { ListenerUpdateFlag } from "../ListenerUpdateFlag";
-import { Renderer, RendererUpdateFlag } from "../Renderer";
+import { Mesh } from "../graphic/Mesh";
+import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
 
 /**
@@ -22,8 +21,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   /** @internal */
   @ignoreClone
   _mesh: Mesh;
-
-  private _meshUpdateFlag: ListenerUpdateFlag;
 
   /**
    * @internal
@@ -144,24 +141,18 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     const lastMesh = this._mesh;
     if (lastMesh) {
       lastMesh._addRefCount(-1);
-      this._meshUpdateFlag.destroy();
+      lastMesh._updateFlagManager.removeFlag(this._dirtyUpdateFlag);
     }
     if (mesh) {
       mesh._addRefCount(1);
-      this._meshUpdateFlag = mesh._updateFlagManager.createFlag(ListenerUpdateFlag);
-      this._meshUpdateFlag.listener = this._onMeshChange.bind(this);
-      this._onMeshChange(MeshChangeType.All);
+      mesh._updateFlagManager.addFlag(this._dirtyUpdateFlag);
+      this._dirtyUpdateFlag.flags |= MeshRendererUpdateFlag.All;
     }
     this._mesh = mesh;
   }
-
-  private _onMeshChange(type: MeshChangeType): void {
-    type & MeshChangeType.VertexElements && (this._dirtyUpdateFlag.flags |= MeshRendererUpdateFlag.VertexElements);
-    type & MeshChangeType.Bounds && (this._dirtyUpdateFlag.flags |= RendererUpdateFlag.WorldVolume);
-  }
 }
 
-enum MeshRendererUpdateFlag {
+export enum MeshRendererUpdateFlag {
   VertexElements = 0x2,
   All = 0x3
 }
