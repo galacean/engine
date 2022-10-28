@@ -4,10 +4,10 @@ import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { Mesh } from "../graphic/Mesh";
+import { RendererUpdateFlags } from "../enums/RendererUpdateFlags";
+import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { Renderer } from "../Renderer";
 import { Shader } from "../shader/Shader";
-import { MeshRendererUpdateFlags } from "./enums/MeshRendererUpdateFlags";
 
 /**
  * MeshRenderer Component.
@@ -24,13 +24,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   _mesh: Mesh;
 
   /**
-   * @internal
-   */
-  constructor(entity: Entity) {
-    super(entity);
-  }
-
-  /**
    * Mesh assigned to the renderer.
    */
   get mesh(): Mesh {
@@ -45,12 +38,20 @@ export class MeshRenderer extends Renderer implements ICustomClone {
 
   /**
    * @internal
+   */
+  constructor(entity: Entity) {
+    super(entity);
+    this._onMeshChanged = this._onMeshChanged.bind(this);
+  }
+
+  /**
+   * @internal
    * @override
    */
   _render(camera: Camera): void {
     const mesh = this._mesh;
     if (mesh) {
-      if (this._dirtyUpdateFlag.flags & MeshRendererUpdateFlags.VertexElements) {
+      if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
         const shaderData = this.shaderData;
         const vertexElements = mesh._vertexElements;
 
@@ -80,7 +81,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
           }
         }
-        this._dirtyUpdateFlag.flags &= ~MeshRendererUpdateFlags.VertexElements;
+        this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
       }
 
       const subMeshes = mesh.subMeshes;
@@ -142,13 +143,28 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     const lastMesh = this._mesh;
     if (lastMesh) {
       lastMesh._addRefCount(-1);
-      lastMesh._updateFlagManager.removeFlag(this._dirtyUpdateFlag);
+      lastMesh._updateFlagManager.removeListener(this._onMeshChanged);
     }
     if (mesh) {
       mesh._addRefCount(1);
-      mesh._updateFlagManager.addFlag(this._dirtyUpdateFlag);
-      this._dirtyUpdateFlag.flags |= MeshRendererUpdateFlags.All;
+      mesh._updateFlagManager.addListener(this._onMeshChanged);
+      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }
     this._mesh = mesh;
   }
+
+  private _onMeshChanged(bit?: number, param?: Object): void {
+    bit & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
+    bit & MeshModifyFlags.VertexElements && (this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro);
+  }
+}
+
+/**
+ * @remarks Extends `RendererUpdateFlag`.
+ */
+enum MeshRendererUpdateFlags {
+  /** VertexElementMacro. */
+  VertexElementMacro = 0x2,
+  /** All. */
+  All = 0x3
 }

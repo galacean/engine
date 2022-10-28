@@ -2,14 +2,12 @@ import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardware
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
 import { Engine } from "../Engine";
-import { RendererUpdateFlags } from "../enums/RendererUpdateFlags";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { MeshRendererUpdateFlags } from "../mesh/enums/MeshRendererUpdateFlags";
 import { ShaderProgram } from "../shader/ShaderProgram";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 
@@ -151,7 +149,7 @@ export abstract class Mesh extends RefObject {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-    this._updateFlagManager.dispatch(MeshRendererUpdateFlags.VertexElements);
+    this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
   }
 
   /**
@@ -215,6 +213,14 @@ export abstract class Mesh extends RefObject {
   }
 
   private _onBoundsChanged(): void {
-    this._updateFlagManager.dispatch(RendererUpdateFlags.WorldVolume);
+    this._updateFlagManager.dispatch(MeshModifyFlags.Bounds);
   }
+}
+
+/**
+ * @internal
+ */
+export enum MeshModifyFlags {
+  Bounds = 0x1,
+  VertexElements = 0x2
 }

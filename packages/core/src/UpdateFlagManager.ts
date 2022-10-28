@@ -8,6 +8,8 @@ export class UpdateFlagManager {
   /** @internal */
   _updateFlags: UpdateFlag[] = [];
 
+  private _listensers: ((bit?: number, param?: Object) => void)[] = [];
+
   /**
    * Create a UpdateFlag.
    * @returns - The UpdateFlag.
@@ -39,12 +41,33 @@ export class UpdateFlagManager {
   }
 
   /**
+   * Add a listener.
+   * @param listener - The listener
+   */
+  addListener(listener: (bit?: number, param?: Object) => void): void {
+    this._listensers.push(listener);
+  }
+
+  /**
+   * Remove a listener.
+   * @param listener - The listener
+   */
+  removeListener(listener: (bit?: number, param?: Object) => void): void {
+    removeFromArray(this._listensers, listener);
+  }
+
+  /**
    * Dispatch.
    */
   dispatch(bit?: number, param?: Object): void {
     const updateFlags = this._updateFlags;
     for (let i = updateFlags.length - 1; i >= 0; i--) {
       updateFlags[i].dispatch(bit, param);
+    }
+
+    const listeners = this._listensers;
+    for (let i = listeners.length - 1; i >= 0; i--) {
+      listeners[i](bit, param);
     }
   }
 }

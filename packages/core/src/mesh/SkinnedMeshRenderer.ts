@@ -167,7 +167,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set rootBone(value: Entity) {
     this._rootBone = value;
-    this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -304,12 +304,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const rootBone = this._findByEntityName(this.entity, skin.skeleton);
     const rootInddex = joints.indexOf(skin.skeleton);
 
-    lastRootBone && lastRootBone.transform._updateFlagManager.removeFlag(this._dirtyUpdateFlag);
-
+    lastRootBone && lastRootBone.transform._updateFlagManager.removeListener(this._onTransformChanged);
+    rootBone.transform._updateFlagManager.addListener(this._onTransformChanged);
     BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootInddex], this._localBounds);
-
-    rootBone.transform._updateFlagManager.addFlag(this._dirtyUpdateFlag);
-
     this._rootBone = rootBone;
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
@@ -372,6 +369,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   private _onLocalBoundsChanged(): void {
-    this._dirtyUpdateFlag.flags |= RendererUpdateFlags.WorldVolume;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }

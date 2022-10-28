@@ -1,5 +1,4 @@
 import { BoundingBox, Matrix } from "@oasis-engine/math";
-import { BitUpdateFlag } from "./BitUpdateFlag";
 import { Camera } from "./Camera";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
@@ -56,7 +55,7 @@ export class Renderer extends Component {
   @shallowClone
   protected _materials: Material[] = [];
   @ignoreClone
-  protected _dirtyUpdateFlag: BitUpdateFlag = new BitUpdateFlag();
+  protected _dirtyUpdateFlag: number = 0;
 
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -113,10 +112,9 @@ export class Renderer extends Component {
    * The bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    const transformFlag = this._dirtyUpdateFlag;
-    if (transformFlag.flags & RendererUpdateFlags.WorldVolume) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._updateBounds(this._bounds);
-      transformFlag.flags &= ~RendererUpdateFlags.WorldVolume;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
     return this._bounds;
   }
@@ -140,6 +138,7 @@ export class Renderer extends Component {
     const prototype = Renderer.prototype;
     this._overrideUpdate = this.update !== prototype.update;
     this.shaderData._addRefCount(1);
+    this._onTransformChanged = this._onTransformChanged.bind(this);
   }
 
   /**
@@ -276,7 +275,7 @@ export class Renderer extends Component {
    * @internal
    */
   _onAwake(): void {
-    this.entity.transform._updateFlagManager.addFlag(this._dirtyUpdateFlag);
+    this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
   }
 
   /**
@@ -314,8 +313,7 @@ export class Renderer extends Component {
    * @internal
    */
   _onDestroy(): void {
-    this._dirtyUpdateFlag.destroy();
-    this._dirtyUpdateFlag = null;
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 
     this.shaderData._addRefCount(-1);
 
@@ -374,5 +372,9 @@ export class Renderer extends Component {
       material && material._addRefCount(1);
       materials[index] = material;
     }
+  }
+
+  protected _onTransformChanged(bit?: number, param?: Object): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }
