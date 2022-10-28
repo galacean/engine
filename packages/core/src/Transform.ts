@@ -799,7 +799,7 @@ export class Transform extends Component {
 /**
  * @internal
  */
-export enum TransformModifyFlags {
+enum TransformModifyFlags {
   LocalEuler = 0x1,
   LocalQuat = 0x2,
   WorldPosition = 0x4,
