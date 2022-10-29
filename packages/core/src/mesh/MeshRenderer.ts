@@ -60,9 +60,8 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         shaderData.disableMacro(MeshRenderer._tangentMacro);
         shaderData.disableMacro(MeshRenderer._vertexColorMacro);
 
-        for (let i = 0, n = vertexElements.length; i < n; i++) {
-          const { semantic } = vertexElements[i];
-          switch (semantic) {
+        for (let i = 0, n = vertexElements.length; i < n; i++) {ƒ
+          switch ( vertexElements[i].semantic) {
             case "TEXCOORD_0":
               shaderData.enableMacro(MeshRenderer._uvMacro);
               break;
@@ -107,7 +106,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    * @override
    */
-  _onDestroy() {
+  _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
     if (mesh && !mesh.destroyed) {
