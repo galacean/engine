@@ -44,7 +44,7 @@ export class SkinParser extends Parser {
         if (entity) {
           skin.skeleton = entity.name;
         } else {
-          console.warn("Failed to find skeleton root bone.");
+          throw "Failed to find skeleton root bone.";
         }
       }
 
