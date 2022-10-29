@@ -40,9 +40,9 @@ export class SkinParser extends Parser {
       if (skeleton !== undefined) {
         skin.skeleton = entities[skeleton].name;
       } else {
-        const entity = this._findSkeletonRootBone(joints, entities);
-        if (entity) {
-          skin.skeleton = entity.name;
+        const rootBone = this._findSkeletonRootBone(joints, entities);
+        if (rootBone) {
+          skin.skeleton = rootBone.name;
         } else {
           throw "Failed to find skeleton root bone.";
         }
