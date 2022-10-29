@@ -34,7 +34,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   _charRenderDatas: CharRenderData[] = [];
   @ignoreClone
   _dirtyFlag: number = DirtyFlag.Font;
-  /** @internal */
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -403,7 +402,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _updateStencilState(): void {
-    // Update stencil.
     const material = this.getInstanceMaterial();
     const stencilState = material.renderState.stencilState;
     const maskInteraction = this._maskInteraction;
