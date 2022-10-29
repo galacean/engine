@@ -204,12 +204,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @override
-   * @internal
-   */
-  _onAwake(): void {}
-
-  /**
    * @internal
    */
   _updateShaderData(context: RenderContext): void {
@@ -231,6 +225,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
+  }
+
+  /**
+   * @override
+   */
+  protected _registerEntityTransformListener(): void {
+    // Cancle register listener to entity transform.
   }
 
   /**

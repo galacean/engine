@@ -138,6 +138,7 @@ export class Renderer extends Component {
     this._overrideUpdate = this.update !== prototype.update;
     this.shaderData._addRefCount(1);
     this._onTransformChanged = this._onTransformChanged.bind(this);
+    this._registerEntityTransformListener();
   }
 
   /**
@@ -273,14 +274,6 @@ export class Renderer extends Component {
    * @override
    * @internal
    */
-  _onAwake(): void {
-    this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
-  }
-
-  /**
-   * @override
-   * @internal
-   */
   _onEnable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
@@ -342,6 +335,10 @@ export class Renderer extends Component {
     shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
     shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
     shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+  }
+
+  protected _registerEntityTransformListener(): void {
+    this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
   }
 
   protected _updateBounds(worldBounds: BoundingBox): void {}

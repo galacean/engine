@@ -60,8 +60,8 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         shaderData.disableMacro(MeshRenderer._tangentMacro);
         shaderData.disableMacro(MeshRenderer._vertexColorMacro);
 
-        for (let i = 0, n = vertexElements.length; i < n; i++) {ƒ
-          switch ( vertexElements[i].semantic) {
+        for (let i = 0, n = vertexElements.length; i < n; i++) {
+          switch (vertexElements[i].semantic) {
             case "TEXCOORD_0":
               shaderData.enableMacro(MeshRenderer._uvMacro);
               break;
