@@ -9,7 +9,7 @@ export class SkinParser extends Parser {
     const glTFResource = context.glTFResource;
     const { gltf, buffers, entities } = glTFResource;
     const gltfSkins = gltf.skins;
-    ƒ;
+
     if (!gltfSkins) return;
 
     const count = gltfSkins.length;
