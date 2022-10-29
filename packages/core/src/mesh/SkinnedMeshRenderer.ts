@@ -2,7 +2,7 @@ import { BoundingBox, Matrix } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
-import { RendererModifyFlags } from "../Renderer";
+import { RendererUpdateFlags } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
@@ -145,7 +145,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   set rootBone(value: Entity) {
     this._rootBone = value;
-    this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
   /**
@@ -347,6 +347,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   private _onLocalBoundsChanged(): void {
-    this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }

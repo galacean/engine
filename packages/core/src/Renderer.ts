@@ -10,7 +10,7 @@ import { Shader } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { Transform } from "./Transform";
+import { Transform, TransformModifyFlags } from "./Transform";
 
 /**
  * Basis for all renderers.
@@ -111,9 +111,9 @@ export class Renderer extends Component {
    * The bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    if (this._dirtyUpdateFlag & RendererModifyFlags.WorldVolume) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._updateBounds(this._bounds);
-      this._dirtyUpdateFlag &= ~RendererModifyFlags.WorldVolume;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
     return this._bounds;
   }
@@ -373,15 +373,15 @@ export class Renderer extends Component {
     }
   }
 
-  protected _onTransformChanged(bit?: number, param?: Object): void {
-    this._dirtyUpdateFlag |= RendererModifyFlags.WorldVolume;
+  protected _onTransformChanged(bit: TransformModifyFlags): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }
 
 /**
  * @internal
  */
-export enum RendererModifyFlags {
+export enum RendererUpdateFlags {
   /** Include world position and world bounds. */
   WorldVolume = 0x1
 }

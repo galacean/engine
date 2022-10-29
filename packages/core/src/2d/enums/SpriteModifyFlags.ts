@@ -1,7 +1,7 @@
 /**
  * Sprite Property Dirty Flag.
  */
-export enum SpritePropertyDirtyFlag {
+export enum SpriteModifyFlags {
   texture = 0x1,
   size = 0x2,
   atlasRotate = 0x4,

@@ -6,6 +6,7 @@ import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { TransformModifyFlags } from "../../Transform";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -582,13 +583,13 @@ export class TextRenderer extends Renderer implements ICustomClone {
       });
   }
 
-  protected _onTransformChanged(bit?: number, param?: Object): void {
-    super._onTransformChanged(bit, param);
+  protected _onTransformChanged(bit: TransformModifyFlags): void {
+    super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
   }
 }
 
-export enum DirtyFlag {
+enum DirtyFlag {
   SubFont = 0x1,
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,
