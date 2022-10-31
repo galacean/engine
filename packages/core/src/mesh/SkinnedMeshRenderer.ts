@@ -39,6 +39,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _blendShapeWeights: Float32Array;
 
+  private _maxVertexUniformVectors: number;
+
   /** @internal */
   @ignoreClone
   _condensedBlendShapeWeights: Float32Array;
@@ -86,6 +88,15 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     super(entity);
     this._mat = new Matrix();
     this._skin = null;
+
+    const rhi = this.entity.engine._hardwareRenderer;
+    let maxVertexUniformVectors = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
+    if (rhi.renderer === "Apple GPU") {
+      // When uniform is large than 256, the skeleton matrix array access in shader very slow in Safari or WKWebview.
+      // This may be a apple bug, Chrome and Firefox is OK!
+      maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
+    }
+    this._maxVertexUniformVectors = maxVertexUniformVectors;
   }
 
   /**
@@ -173,8 +184,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     /** Whether to use a skeleton texture */
     const rhi = this.entity.engine._hardwareRenderer;
     if (!rhi) return;
-    const maxAttribUniformVec4 = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    const maxJoints = Math.floor((maxAttribUniformVec4 - 30) / 4);
+
+    const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
     const jointCount = jointNodes.length;
 
     if (jointCount) {
@@ -185,7 +196,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           this._useJointTexture = true;
         } else {
           Logger.error(
-            `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${maxAttribUniformVec4}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
+            `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${maxJoints}.`,
             this
           );
         }

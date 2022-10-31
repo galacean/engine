@@ -118,5 +118,43 @@ describe("Scene", () => {
       expect(childScript.onEnable).to.have.been.called.exactly(0);
       expect(childScript.onDisable).to.have.been.called.exactly(0);
     });
+
+    it("Entity isActive = true after script call enabled = false", () => {
+      class TestScript extends Script {
+        onAwake() {
+          console.log("TestScript___onAwake");
+        }
+        onEnable() {
+          console.log("TestScript___onEnable");
+        }
+
+        onDisable() {
+          console.log("TestScript___onDisable");
+        }
+
+        onDestroy() {
+          console.log("TestScript___onDestroy");
+        }
+      }
+      TestScript.prototype.onAwake = chai.spy(TestScript.prototype.onAwake);
+      TestScript.prototype.onEnable = chai.spy(TestScript.prototype.onEnable);
+      TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
+
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity();
+
+      const entity = rootEntity.createChild("entity");
+      const script = entity.addComponent(TestScript);
+
+      entity.isActive = false;
+      script.enabled = false;
+      entity.isActive = true;
+      script.enabled = true;
+      entity.isActive = false;
+
+      expect(script.onAwake).to.have.been.called.exactly(1);
+      expect(script.onEnable).to.have.been.called.exactly(2);
+      expect(script.onDisable).to.have.been.called.exactly(2);
+    });
   });
 });
