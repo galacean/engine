@@ -370,7 +370,7 @@ export class Renderer extends Component {
     }
   }
 
-  protected _onTransformChanged(bit: TransformModifyFlags): void {
+  protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 }

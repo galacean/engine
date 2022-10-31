@@ -8,7 +8,7 @@ export class UpdateFlagManager {
   /** @internal */
   _updateFlags: UpdateFlag[] = [];
 
-  private _listensers: ((bit?: number, param?: Object) => void)[] = [];
+  private _listensers: ((type?: number, param?: Object) => void)[] = [];
 
   /**
    * Create a UpdateFlag.
@@ -44,7 +44,7 @@ export class UpdateFlagManager {
    * Add a listener.
    * @param listener - The listener
    */
-  addListener(listener: (bit?: number, param?: Object) => void): void {
+  addListener(listener: (type?: number, param?: Object) => void): void {
     this._listensers.push(listener);
   }
 
@@ -52,22 +52,24 @@ export class UpdateFlagManager {
    * Remove a listener.
    * @param listener - The listener
    */
-  removeListener(listener: (bit?: number, param?: Object) => void): void {
+  removeListener(listener: (type?: number, param?: Object) => void): void {
     removeFromArray(this._listensers, listener);
   }
 
   /**
-   * Dispatch.
+   * Dispatch a event.
+   * @param type - Event type, usually in the form of enumeration
+   * @param param - Event param
    */
-  dispatch(bit?: number, param?: Object): void {
+  dispatch(type?: number, param?: Object): void {
     const updateFlags = this._updateFlags;
     for (let i = updateFlags.length - 1; i >= 0; i--) {
-      updateFlags[i].dispatch(bit, param);
+      updateFlags[i].dispatch(type, param);
     }
 
     const listeners = this._listensers;
     for (let i = listeners.length - 1; i >= 0; i--) {
-      listeners[i](bit, param);
+      listeners[i](type, param);
     }
   }
 }

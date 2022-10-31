@@ -297,8 +297,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _onSpriteChange(dirtyFlag: SpriteModifyFlags): void {
-    switch (dirtyFlag) {
+  private _onSpriteChange(type: SpriteModifyFlags): void {
+    switch (type) {
       case SpriteModifyFlags.texture:
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
