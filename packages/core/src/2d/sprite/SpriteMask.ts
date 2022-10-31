@@ -81,7 +81,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
       this._height = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
-    Promise
   }
 
   /**
@@ -166,9 +165,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
    * @inheritdoc
    */
   _onDestroy(): void {
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._sprite = null;
     this._renderData = null;
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     super._onDestroy();
   }
 
