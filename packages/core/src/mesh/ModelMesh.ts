@@ -517,11 +517,10 @@ export class ModelMesh extends Mesh {
     if (!this._normals || !this._uv) {
       throw "Set normal and uv before calculation.";
     }
-    this._tangents = new Array(this._vertexCount);
-    const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _tangents: tangents } = this;
+    const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _vertexCount: vertexCount } = this;
     const { _tempVec0: e1, _tempVec1: e2, _tempVec2: t, _tempVec3: b, _tempVec4: temp } = ModelMesh;
     const triangleCount = indices ? indices.length / 3 : positions.length / 3;
-    const vertexCount = positions.length;
+    const tangents = new Array<Vector4>(vertexCount);
     const biTangents = new Array<Vector3>(vertexCount);
     for (let i = 0; i < vertexCount; i++) {
       tangents[i] = new Vector4();
@@ -562,22 +561,13 @@ export class ModelMesh extends Mesh {
       Vector3.subtract(b, temp, b);
 
       let tangent = tangents[i0];
-      let x = tangent.x;
-      let y = tangent.y;
-      let z = tangent.z;
-      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
+      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
 
       tangent = tangents[i1];
-      x = tangent.x;
-      y = tangent.y;
-      z = tangent.z;
-      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
+      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
 
       tangent = tangents[i2];
-      x = tangent.x;
-      y = tangent.y;
-      z = tangent.z;
-      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
+      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
 
       biTangents[i0].add(b);
       biTangents[i1].add(b);
@@ -598,8 +588,7 @@ export class ModelMesh extends Mesh {
       t.normalize();
       tangent.set(t.x, t.y, t.z, w);
     }
-    this._vertexSlotChanged = true;
-    this._vertexChangeFlag |= ValueChanged.Tangent;
+    this.setTangents(tangents);
   }
 
   /**
