@@ -510,32 +510,41 @@ export class ModelMesh extends Mesh {
 
   /**
    * Calculate mesh tangent.
-   * @remark need to set indices, positions, normals, uv before calculation.
+   * @remark need to set positions(with or not with indices), normals, uv before calculation.
    * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
    */
   calculateTangents(): void {
+    if (!this._normals || !this._uv) {
+      throw "Set normal and uv before calculation.";
+    }
     this._tangents = new Array(this._vertexCount);
     const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _tangents: tangents } = this;
     const { _e1: e1, _e2: e2, _t: t, _b: b, _temp: temp } = ModelMesh;
-    const triangleCount = indices.length / 3;
+    const triangleCount = indices ? indices.length / 3 : positions.length / 3;
     const vertexCount = positions.length;
-    const biTangents: Vector3[] = new Array(vertexCount);
+    const biTangents = new Array<Vector3>(vertexCount);
     for (let i = 0; i < vertexCount; i++) {
       tangents[i] = new Vector4();
       biTangents[i] = new Vector3();
     }
 
-    // Calculate tangent and bitangent for each triangle and add to all three vertices.
+    // Calculate tangent and bi-tangent for each triangle and add to all three vertices.
     for (let k = 0; k < triangleCount; k++) {
-      const i0 = indices[k * 3];
-      const i1 = indices[k * 3 + 1];
-      const i2 = indices[k * 3 + 2];
-      const p0: Vector3 = positions[i0];
-      const p1: Vector3 = positions[i1];
-      const p2: Vector3 = positions[i2];
-      const w0: Vector2 = uvs[i0];
-      const w1: Vector2 = uvs[i1];
-      const w2: Vector2 = uvs[i2];
+      let i0 = 3 * k;
+      let i1 = 3 * k + 1;
+      let i2 = 3 * k + 2;
+      if (indices) {
+        i0 = indices[i0];
+        i1 = indices[i1];
+        i2 = indices[i2];
+      }
+
+      const p0 = positions[i0];
+      const p1 = positions[i1];
+      const p2 = positions[i2];
+      const w0 = uvs[i0];
+      const w1 = uvs[i1];
+      const w2 = uvs[i2];
 
       Vector3.subtract(p1, p0, e1);
       Vector3.subtract(p2, p0, e2);
