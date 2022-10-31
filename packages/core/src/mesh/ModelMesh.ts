@@ -16,6 +16,12 @@ import { BlendShapeManager } from "./BlendShapeManager";
  * Mesh containing common vertex elements of the model.
  */
 export class ModelMesh extends Mesh {
+  private static _e1 = new Vector3();
+  private static _e2 = new Vector3();
+  private static _t = new Vector3();
+  private static _b = new Vector3();
+  private static _temp = new Vector3();
+
   /** @internal */
   _blendShapeManager: BlendShapeManager;
 
@@ -503,6 +509,90 @@ export class ModelMesh extends Mesh {
   }
 
   /**
+   * Calculate mesh tangent.
+   * @remark need to set indices, positions, normals, uv before calculation.
+   * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
+   */
+  calculateTangents(): void {
+    this._tangents = new Array(this._normals.length);
+    const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _tangents: tangents } = this;
+    const { _e1: e1, _e2: e2, _t: t, _b: b, _temp: temp } = ModelMesh;
+    const triangleCount = indices.length / 3;
+    const vertexCount = positions.length;
+    const biTangents: Vector3[] = new Array(vertexCount);
+    for (let i = 0; i < vertexCount; i++) {
+      tangents[i] = new Vector4();
+      biTangents[i] = new Vector3();
+    }
+
+    // Calculate tangent and bitangent for each triangle and add to all three vertices.
+    for (let k = 0; k < triangleCount; k++) {
+      const i0 = indices[k * 3];
+      const i1 = indices[k * 3 + 1];
+      const i2 = indices[k * 3 + 2];
+      const p0: Vector3 = positions[i0];
+      const p1: Vector3 = positions[i1];
+      const p2: Vector3 = positions[i2];
+      const w0: Vector2 = uvs[i0];
+      const w1: Vector2 = uvs[i1];
+      const w2: Vector2 = uvs[i2];
+
+      Vector3.subtract(p1, p0, e1);
+      Vector3.subtract(p2, p0, e2);
+      const x1 = w1.x - w0.x;
+      const x2 = w2.x - w0.x;
+      const y1 = w1.y - w0.y;
+      const y2 = w2.y - w0.y;
+      const r = 1.0 / (x1 * y2 - x2 * y1);
+
+      Vector3.scale(e1, y2 * r, t);
+      Vector3.scale(e2, y1 * r, temp);
+      Vector3.subtract(t, temp, t);
+      Vector3.scale(e2, x1 * r, b);
+      Vector3.scale(e1, x2 * r, temp);
+      Vector3.subtract(b, temp, b);
+
+      let tangent = tangents[i0];
+      let x = tangent.x;
+      let y = tangent.y;
+      let z = tangent.z;
+      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
+
+      tangent = tangents[i1];
+      x = tangent.x;
+      y = tangent.y;
+      z = tangent.z;
+      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
+
+      tangent = tangents[i2];
+      x = tangent.x;
+      y = tangent.y;
+      z = tangent.z;
+      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
+
+      biTangents[i0].add(b);
+      biTangents[i1].add(b);
+      biTangents[i2].add(b);
+    }
+
+    // Orthonormalize each tangent and calculate the handedness.
+    for (let i = 0; i < vertexCount; i++) {
+      const n = normals[i];
+      const b = biTangents[i];
+      const tangent = tangents[i];
+      t.set(tangent.x, tangent.y, tangent.z);
+
+      Vector3.cross(t, b, temp);
+      const w = Vector3.dot(temp, n) > 0.0 ? 1 : -1;
+      Vector3.scale(n, Vector3.dot(t, n), temp);
+      Vector3.subtract(t, temp, t);
+      t.normalize();
+      tangent.set(t.x, t.y, t.z, w);
+    }
+    this.setTangents(tangents);
+  }
+
+  /**
    * @override
    * @internal
    */
@@ -598,7 +688,25 @@ export class ModelMesh extends Mesh {
 
   private _updateVertices(vertices: Float32Array, force: boolean): void {
     // prettier-ignore
-    const { _vertexStrideFloat,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const {
+      _vertexStrideFloat,
+      _vertexCount,
+      _positions,
+      _normals,
+      _colors,
+      _vertexChangeFlag,
+      _boneWeights,
+      _boneIndices,
+      _tangents,
+      _uv,
+      _uv1,
+      _uv2,
+      _uv3,
+      _uv4,
+      _uv5,
+      _uv6,
+      _uv7
+    } = this;
 
     force && (this._vertexChangeFlag = ValueChanged.All);
 

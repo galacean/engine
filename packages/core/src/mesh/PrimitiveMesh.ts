@@ -7,105 +7,6 @@ import { ModelMesh } from "./ModelMesh";
  * Used to generate common primitive meshes.
  */
 export class PrimitiveMesh {
-  private static _e1 = new Vector3();
-  private static _e2 = new Vector3();
-  private static _t = new Vector3();
-  private static _b = new Vector3();
-  private static _temp = new Vector3();
-
-  /**
-   * Calculate mesh tangent
-   * @param indices - The triangle indices
-   * @param positions - The triangle positions
-   * @param normals - The triangle normal
-   * @param uvs - The trangle UV
-   * @param tangents - The tangent result
-   * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
-   * When using a tangent space normal map, prefer the MikkTSpace algorithm
-   * provided by https://github.com/donmccurdy/mikktspace-wasm
-   */
-  static calculateTangents(
-    indices: Uint16Array | Uint32Array,
-    positions: Array<Vector3>,
-    normals: Array<Vector3>,
-    uvs: Array<Vector2>,
-    tangents: Array<Vector4>
-  ): void {
-    const { _e1: e1, _e2: e2, _t: t, _b: b, _temp: temp } = PrimitiveMesh;
-    const triangleCount = indices.length / 3;
-    const vertexCount = positions.length;
-    const biTangents: Vector3[] = new Array(vertexCount);
-    for (let i = 0; i < vertexCount; i++) {
-      tangents[i] = new Vector4();
-      biTangents[i] = new Vector3();
-    }
-
-    // Calculate tangent and bitangent for each triangle and add to all three vertices.
-    for (let k = 0; k < triangleCount; k++) {
-      const i0 = indices[k * 3];
-      const i1 = indices[k * 3 + 1];
-      const i2 = indices[k * 3 + 2];
-      const p0: Vector3 = positions[i0];
-      const p1: Vector3 = positions[i1];
-      const p2: Vector3 = positions[i2];
-      const w0: Vector2 = uvs[i0];
-      const w1: Vector2 = uvs[i1];
-      const w2: Vector2 = uvs[i2];
-
-      Vector3.subtract(p1, p0, e1);
-      Vector3.subtract(p2, p0, e2);
-      const x1 = w1.x - w0.x;
-      const x2 = w2.x - w0.x;
-      const y1 = w1.y - w0.y;
-      const y2 = w2.y - w0.y;
-      const r = 1.0 / (x1 * y2 - x2 * y1);
-
-      Vector3.scale(e1, y2 * r, t);
-      Vector3.scale(e2, y1 * r, temp);
-      Vector3.subtract(t, temp, t);
-      Vector3.scale(e2, x1 * r, b);
-      Vector3.scale(e1, x2 * r, temp);
-      Vector3.subtract(b, temp, b);
-
-      let tangent = tangents[i0];
-      let x = tangent.x;
-      let y = tangent.y;
-      let z = tangent.z;
-      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
-
-      tangent = tangents[i1];
-      x = tangent.x;
-      y = tangent.y;
-      z = tangent.z;
-      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
-
-      tangent = tangents[i2];
-      x = tangent.x;
-      y = tangent.y;
-      z = tangent.z;
-      tangent.set(x + t.x, y + t.y, z + t.z, 1.0);
-
-      biTangents[i0].add(b);
-      biTangents[i1].add(b);
-      biTangents[i2].add(b);
-    }
-
-    // Orthonormalize each tangent and calculate the handedness.
-    for (let i = 0; i < vertexCount; i++) {
-      const n = normals[i];
-      const b = biTangents[i];
-      const tangent = tangents[i];
-      t.set(tangent.x, tangent.y, tangent.z);
-
-      Vector3.cross(t, b, temp);
-      const w = Vector3.dot(temp, n) > 0.0 ? 1 : -1;
-      Vector3.scale(n, Vector3.dot(t, n), temp);
-      Vector3.subtract(t, temp, t);
-      t.normalize();
-      tangent.set(t.x, t.y, t.z, w);
-    }
-  }
-
   /**
    * Create a sphere mesh.
    * @param engine - Engine
@@ -135,7 +36,6 @@ export class PrimitiveMesh {
     const positions: Vector3[] = new Array(vertexCount);
     const normals: Vector3[] = new Array(vertexCount);
     const uvs: Vector2[] = new Array(vertexCount);
-    const tangents: Vector4[] = new Array(vertexCount);
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % count;
@@ -180,8 +80,7 @@ export class PrimitiveMesh {
     bounds.min.set(-radius, -radius, -radius);
     bounds.max.set(radius, radius, radius);
 
-    PrimitiveMesh.calculateTangents(indices, positions, normals, uvs, tangents);
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, tangents, indices, noLongerAccessible);
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
   }
 
@@ -210,7 +109,6 @@ export class PrimitiveMesh {
     const positions: Vector3[] = new Array(24);
     const normals: Vector3[] = new Array(24);
     const uvs: Vector2[] = new Array(24);
-    const tangents: Vector4[] = new Array(24);
 
     // Up
     positions[0] = new Vector3(-halfWidth, halfHeight, -halfDepth);
@@ -311,8 +209,7 @@ export class PrimitiveMesh {
     bounds.min.set(-halfWidth, -halfHeight, -halfDepth);
     bounds.max.set(halfWidth, halfHeight, halfDepth);
 
-    PrimitiveMesh.calculateTangents(indices, positions, normals, uvs, tangents);
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, tangents, indices, noLongerAccessible);
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
   }
 
@@ -354,7 +251,6 @@ export class PrimitiveMesh {
     const positions: Vector3[] = new Array(vertexCount);
     const normals: Vector3[] = new Array(vertexCount);
     const uvs: Vector2[] = new Array(vertexCount);
-    const tangents: Vector4[] = new Array(vertexCount);
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;
@@ -390,8 +286,7 @@ export class PrimitiveMesh {
     bounds.min.set(-halfWidth, 0, -halfHeight);
     bounds.max.set(halfWidth, 0, halfHeight);
 
-    PrimitiveMesh.calculateTangents(indices, positions, normals, uvs, tangents);
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, tangents, indices, noLongerAccessible);
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
   }
 
@@ -439,7 +334,6 @@ export class PrimitiveMesh {
     const positions: Vector3[] = new Array(totalVertexCount);
     const normals: Vector3[] = new Array(totalVertexCount);
     const uvs: Vector2[] = new Array(totalVertexCount);
-    const tangents: Vector4[] = new Array(totalVertexCount);
 
     let indicesOffset = 0;
 
@@ -557,8 +451,7 @@ export class PrimitiveMesh {
     bounds.min.set(-radiusMax, -halfHeight, -radiusMax);
     bounds.max.set(radiusMax, halfHeight, radiusMax);
 
-    PrimitiveMesh.calculateTangents(indices, positions, normals, uvs, tangents);
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, tangents, indices, noLongerAccessible);
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
   }
 
@@ -593,7 +486,6 @@ export class PrimitiveMesh {
     const positions: Vector3[] = new Array(vertexCount);
     const normals: Vector3[] = new Array(vertexCount);
     const uvs: Vector2[] = new Array(vertexCount);
-    const tangents: Vector4[] = new Array(vertexCount);
 
     arc = (arc / 180) * Math.PI;
 
@@ -646,8 +538,7 @@ export class PrimitiveMesh {
     bounds.min.set(-outerRadius, -outerRadius, -tubeRadius);
     bounds.max.set(outerRadius, outerRadius, tubeRadius);
 
-    PrimitiveMesh.calculateTangents(indices, positions, normals, uvs, tangents);
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, tangents, indices, noLongerAccessible);
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
   }
 
@@ -692,7 +583,6 @@ export class PrimitiveMesh {
     const positions: Vector3[] = new Array(totalVertexCount);
     const normals: Vector3[] = new Array(totalVertexCount);
     const uvs: Vector2[] = new Array(totalVertexCount);
-    const tangents: Vector4[] = new Array(totalVertexCount);
 
     let indicesOffset = 0;
 
@@ -778,8 +668,7 @@ export class PrimitiveMesh {
     bounds.min.set(-radius, -halfHeight, -radius);
     bounds.max.set(radius, halfHeight, radius);
 
-    PrimitiveMesh.calculateTangents(indices, positions, normals, uvs, tangents);
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, tangents, indices, noLongerAccessible);
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
   }
 
@@ -833,7 +722,6 @@ export class PrimitiveMesh {
     const positions = new Array<Vector3>(totalVertexCount);
     const normals = new Array<Vector3>(totalVertexCount);
     const uvs = new Array<Vector2>(totalVertexCount);
-    const tangents = new Array<Vector4>(totalVertexCount);
 
     let indicesOffset = 0;
 
@@ -901,8 +789,7 @@ export class PrimitiveMesh {
     bounds.min.set(-radius, -radius - halfHeight, -radius);
     bounds.max.set(radius, radius + halfHeight, radius);
 
-    PrimitiveMesh.calculateTangents(indices, positions, normals, uvs, tangents);
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, tangents, indices, noLongerAccessible);
+    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
     return mesh;
   }
 
@@ -911,15 +798,14 @@ export class PrimitiveMesh {
     positions: Vector3[],
     normals: Vector3[],
     uvs: Vector2[],
-    tangents: Vector4[],
     indices: Uint16Array | Uint32Array,
     noLongerAccessible: boolean
   ) {
     mesh.setPositions(positions);
     mesh.setNormals(normals);
     mesh.setUVs(uvs);
-    mesh.setTangents(tangents);
     mesh.setIndices(indices);
+    mesh.calculateTangents();
 
     mesh.uploadData(noLongerAccessible);
     mesh.addSubMesh(0, indices.length);
