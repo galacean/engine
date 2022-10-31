@@ -514,7 +514,7 @@ export class ModelMesh extends Mesh {
    * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
    */
   calculateTangents(): void {
-    this._tangents = new Array(this._normals.length);
+    this._tangents = new Array(this._vertexCount);
     const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _tangents: tangents } = this;
     const { _e1: e1, _e2: e2, _t: t, _b: b, _temp: temp } = ModelMesh;
     const triangleCount = indices.length / 3;
@@ -589,7 +589,8 @@ export class ModelMesh extends Mesh {
       t.normalize();
       tangent.set(t.x, t.y, t.z, w);
     }
-    this.setTangents(tangents);
+    this._vertexSlotChanged = true;
+    this._vertexChangeFlag |= ValueChanged.Tangent;
   }
 
   /**
