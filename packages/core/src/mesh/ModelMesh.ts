@@ -16,11 +16,11 @@ import { BlendShapeManager } from "./BlendShapeManager";
  * Mesh containing common vertex elements of the model.
  */
 export class ModelMesh extends Mesh {
-  private static _e1 = new Vector3();
-  private static _e2 = new Vector3();
-  private static _t = new Vector3();
-  private static _b = new Vector3();
-  private static _temp = new Vector3();
+  private static _tempVec0 = new Vector3();
+  private static _tempVec1 = new Vector3();
+  private static _tempVec2 = new Vector3();
+  private static _tempVec3 = new Vector3();
+  private static _tempVec4 = new Vector3();
 
   /** @internal */
   _blendShapeManager: BlendShapeManager;
@@ -519,7 +519,7 @@ export class ModelMesh extends Mesh {
     }
     this._tangents = new Array(this._vertexCount);
     const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _tangents: tangents } = this;
-    const { _e1: e1, _e2: e2, _t: t, _b: b, _temp: temp } = ModelMesh;
+    const { _tempVec0: e1, _tempVec1: e2, _tempVec2: t, _tempVec3: b, _tempVec4: temp } = ModelMesh;
     const triangleCount = indices ? indices.length / 3 : positions.length / 3;
     const vertexCount = positions.length;
     const biTangents = new Array<Vector3>(vertexCount);
@@ -698,25 +698,7 @@ export class ModelMesh extends Mesh {
 
   private _updateVertices(vertices: Float32Array, force: boolean): void {
     // prettier-ignore
-    const {
-      _vertexStrideFloat,
-      _vertexCount,
-      _positions,
-      _normals,
-      _colors,
-      _vertexChangeFlag,
-      _boneWeights,
-      _boneIndices,
-      _tangents,
-      _uv,
-      _uv1,
-      _uv2,
-      _uv3,
-      _uv4,
-      _uv5,
-      _uv6,
-      _uv7
-    } = this;
+    const { _vertexStrideFloat,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     force && (this._vertexChangeFlag = ValueChanged.All);
 
