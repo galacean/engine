@@ -1,12 +1,11 @@
 import { BoundingBox } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
-import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
-import { Mesh } from "../graphic/Mesh";
-import { Renderer } from "../Renderer";
+import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Shader } from "../shader/Shader";
 
 /**
@@ -22,27 +21,26 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   /** @internal */
   @ignoreClone
   _mesh: Mesh;
-  @ignoreClone
-  private _meshUpdateFlag: BoolUpdateFlag;
+
+  /**
+   * Mesh assigned to the renderer.
+   */
+  get mesh(): Mesh {
+    return this._mesh;
+  }
+
+  set mesh(value: Mesh) {
+    if (this._mesh !== value) {
+      this._setMesh(value);
+    }
+  }
 
   /**
    * @internal
    */
   constructor(entity: Entity) {
     super(entity);
-  }
-
-  /**
-   * Mesh assigned to the renderer.
-   */
-  get mesh() {
-    return this._mesh;
-  }
-
-  set mesh(mesh: Mesh) {
-    if (this._mesh !== mesh) {
-      this._setMesh(mesh);
-    }
+    this._onMeshChanged = this._onMeshChanged.bind(this);
   }
 
   /**
@@ -52,7 +50,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   _render(camera: Camera): void {
     const mesh = this._mesh;
     if (mesh) {
-      if (this._meshUpdateFlag.flag) {
+      if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
         const shaderData = this.shaderData;
         const vertexElements = mesh._vertexElements;
 
@@ -63,8 +61,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         shaderData.disableMacro(MeshRenderer._vertexColorMacro);
 
         for (let i = 0, n = vertexElements.length; i < n; i++) {
-          const { semantic } = vertexElements[i];
-          switch (semantic) {
+          switch (vertexElements[i].semantic) {
             case "TEXCOORD_0":
               shaderData.enableMacro(MeshRenderer._uvMacro);
               break;
@@ -82,7 +79,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
           }
         }
-        this._meshUpdateFlag.flag = false;
+        this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
       }
 
       const subMeshes = mesh.subMeshes;
@@ -109,7 +106,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    * @override
    */
-  _onDestroy() {
+  _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
     if (mesh && !mesh.destroyed) {
@@ -140,16 +137,32 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  protected _setMesh(mesh: Mesh): void {
+  private _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
       lastMesh._addRefCount(-1);
-      this._meshUpdateFlag.destroy();
+      lastMesh._updateFlagManager.removeListener(this._onMeshChanged);
     }
     if (mesh) {
       mesh._addRefCount(1);
-      this._meshUpdateFlag = mesh.registerUpdateFlag();
+      mesh._updateFlagManager.addListener(this._onMeshChanged);
+      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }
     this._mesh = mesh;
   }
+
+  private _onMeshChanged(type: MeshModifyFlags): void {
+    type & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
+    type & MeshModifyFlags.VertexElements && (this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro);
+  }
+}
+
+/**
+ * @remarks Extends `RendererUpdateFlag`.
+ */
+enum MeshRendererUpdateFlags {
+  /** VertexElementMacro. */
+  VertexElementMacro = 0x2,
+  /** All. */
+  All = 0x3
 }

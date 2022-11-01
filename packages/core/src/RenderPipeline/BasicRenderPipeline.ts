@@ -248,41 +248,41 @@ export class BasicRenderPipeline {
     const camera = context._camera;
     const elements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
-      const element = elements[i];
+      const renderer = elements[i];
 
       // filter by camera culling mask.
-      if (!(camera.cullingMask & element._entity.layer)) {
+      if (!(camera.cullingMask & renderer._entity.layer)) {
         continue;
       }
 
       // filter by camera frustum.
       if (camera.enableFrustumCulling) {
-        element.isCulled = !camera._frustum.intersectsBox(element.bounds);
-        if (element.isCulled) {
+        renderer.isCulled = !camera._frustum.intersectsBox(renderer.bounds);
+        if (renderer.isCulled) {
           continue;
         }
       }
 
       const transform = camera.entity.transform;
       const position = transform.worldPosition;
-      const center = element.bounds.getCenter(BasicRenderPipeline._tempVector0);
+      const center = renderer.bounds.getCenter(BasicRenderPipeline._tempVector0);
       if (camera.isOrthographic) {
         const forward = transform.getWorldForward(BasicRenderPipeline._tempVector1);
         Vector3.subtract(center, position, center);
-        element._distanceForSort = Vector3.dot(center, forward);
+        renderer._distanceForSort = Vector3.dot(center, forward);
       } else {
-        element._distanceForSort = Vector3.distanceSquared(center, position);
+        renderer._distanceForSort = Vector3.distanceSquared(center, position);
       }
 
-      element._updateShaderData(context);
+      renderer._updateShaderData(context);
 
-      element._render(camera);
+      renderer._render(camera);
 
       // union camera global macro and renderer macro.
       ShaderMacroCollection.unionCollection(
         camera._globalShaderMacro,
-        element.shaderData._macroCollection,
-        element._globalShaderMacro
+        renderer.shaderData._macroCollection,
+        renderer._globalShaderMacro
       );
     }
   }

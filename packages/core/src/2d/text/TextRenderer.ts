@@ -4,9 +4,9 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { TransformModifyFlags } from "../../Transform";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -34,9 +34,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   _charRenderDatas: CharRenderData[] = [];
   @ignoreClone
   _dirtyFlag: number = DirtyFlag.Font;
-  /** @internal */
-  @ignoreClone
-  _isWorldMatrixDirty: ListenerUpdateFlag;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -281,10 +278,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    this._isWorldMatrixDirty = entity.transform._registerWorldChangeListener();
-    this._isWorldMatrixDirty.listener = () => {
-      this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
-    };
     this._font = engine._textDefaultFont;
     this._font._addRefCount(1);
     this.setMaterial(engine._spriteDefaultMaterial);
@@ -369,7 +362,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
     this._subFont && (this._subFont = null);
 
-    this._isWorldMatrixDirty.destroy();
     super._onDestroy();
   }
 
@@ -410,7 +402,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _updateStencilState(): void {
-    // Update stencil.
     const material = this.getInstanceMaterial();
     const stencilState = material.renderState.stencilState;
     const maskInteraction = this._maskInteraction;
@@ -443,11 +434,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const charRenderDatas = this._charRenderDatas;
 
     // prettier-ignore
-    const e0 = e[0], e1 = e[1], e2 = e[2];
-    // prettier-ignore
-    const e4 = e[4], e5 = e[5], e6 = e[6];
-    // prettier-ignore
-    const e12 = e[12], e13 = e[13], e14 = e[14];
+    const e0 = e[0], e1 = e[1], e2 = e[2],
+    e4 = e[4], e5 = e[5], e6 = e[6],
+    e12 = e[12], e13 = e[13], e14 = e[14];
 
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);
@@ -591,9 +580,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
         return a.texture.instanceId - b.texture.instanceId;
       });
   }
+
+  protected _onTransformChanged(bit: TransformModifyFlags): void {
+    super._onTransformChanged(bit);
+    this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
+  }
 }
 
-export enum DirtyFlag {
+enum DirtyFlag {
   SubFont = 0x1,
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,

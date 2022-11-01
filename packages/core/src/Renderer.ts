@@ -1,5 +1,4 @@
 import { BoundingBox, Matrix } from "@oasis-engine/math";
-import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { Camera } from "./Camera";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
@@ -11,7 +10,7 @@ import { Shader } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { Transform } from "./Transform";
+import { Transform, TransformModifyFlags } from "./Transform";
 
 /**
  * Basis for all renderers.
@@ -20,7 +19,6 @@ import { Transform } from "./Transform";
 @dependentComponents(Transform)
 export class Renderer extends Component {
   private static _receiveShadowMacro = Shader.getMacroByName("OASIS_RECEIVE_SHADOWS");
-
   private static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
   private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
   private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
@@ -48,9 +46,6 @@ export class Renderer extends Component {
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
-  @ignoreClone
-  _transformChangeFlag: BoolUpdateFlag;
-  /** @internal */
   @deepClone
   _bounds: BoundingBox = new BoundingBox();
 
@@ -58,6 +53,8 @@ export class Renderer extends Component {
   protected _overrideUpdate: boolean = false;
   @shallowClone
   protected _materials: Material[] = [];
+  @ignoreClone
+  protected _dirtyUpdateFlag: number = 0;
 
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
@@ -92,7 +89,7 @@ export class Renderer extends Component {
     }
   }
 
-  /** whether cast shadow */
+  /** Whether cast shadow. */
   castShadows: boolean = false;
 
   /**
@@ -114,10 +111,9 @@ export class Renderer extends Component {
    * The bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    const changeFlag = this._transformChangeFlag;
-    if (changeFlag.flag) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._updateBounds(this._bounds);
-      changeFlag.flag = false;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
     return this._bounds;
   }
@@ -140,8 +136,9 @@ export class Renderer extends Component {
     super(entity);
     const prototype = Renderer.prototype;
     this._overrideUpdate = this.update !== prototype.update;
-    this._transformChangeFlag = this.entity.transform.registerWorldChangeFlag();
     this.shaderData._addRefCount(1);
+    this._onTransformChanged = this._onTransformChanged.bind(this);
+    this._registerEntityTransformListener();
   }
 
   /**
@@ -269,27 +266,14 @@ export class Renderer extends Component {
    * @internal
    */
   _updateShaderData(context: RenderContext): void {
-    const shaderData = this.shaderData;
     const worldMatrix = this.entity.transform.worldMatrix;
-    const mvMatrix = this._mvMatrix;
-    const mvpMatrix = this._mvpMatrix;
-    const mvInvMatrix = this._mvInvMatrix;
-    const normalMatrix = this._normalMatrix;
-
-    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
-    Matrix.invert(mvMatrix, mvInvMatrix);
-    Matrix.invert(worldMatrix, normalMatrix);
-    normalMatrix.transpose();
-
-    shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
-    shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
-    shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
-    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
-    shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
-    shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+    this._updateTransformShaderData(context, worldMatrix);
   }
 
+  /**
+   * @override
+   * @internal
+   */
   _onEnable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
@@ -298,6 +282,10 @@ export class Renderer extends Component {
     componentsManager.addRenderer(this);
   }
 
+  /**
+   * @override
+   * @internal
+   */
   _onDisable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
@@ -317,11 +305,7 @@ export class Renderer extends Component {
    * @internal
    */
   _onDestroy(): void {
-    const flag = this._transformChangeFlag;
-    if (flag) {
-      flag.destroy();
-      this._transformChangeFlag = null;
-    }
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 
     this.shaderData._addRefCount(-1);
 
@@ -329,6 +313,32 @@ export class Renderer extends Component {
     for (let i = 0, n = materials.length; i < n; i++) {
       materials[i]?._addRefCount(-1);
     }
+  }
+
+  protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
+    const shaderData = this.shaderData;
+
+    const mvMatrix = this._mvMatrix;
+    const mvpMatrix = this._mvpMatrix;
+    const mvInvMatrix = this._mvInvMatrix;
+    const normalMatrix = this._normalMatrix;
+
+    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
+    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
+    Matrix.invert(mvMatrix, mvInvMatrix);
+    Matrix.invert(worldMatrix, normalMatrix);
+    normalMatrix.transpose();
+
+    shaderData.setMatrix(Renderer._localMatrixProperty, this.entity.transform.localMatrix);
+    shaderData.setMatrix(Renderer._worldMatrixProperty, worldMatrix);
+    shaderData.setMatrix(Renderer._mvMatrixProperty, mvMatrix);
+    shaderData.setMatrix(Renderer._mvpMatrixProperty, mvpMatrix);
+    shaderData.setMatrix(Renderer._mvInvMatrixProperty, mvInvMatrix);
+    shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
+  }
+
+  protected _registerEntityTransformListener(): void {
+    this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
   }
 
   protected _updateBounds(worldBounds: BoundingBox): void {}
@@ -359,4 +369,16 @@ export class Renderer extends Component {
       materials[index] = material;
     }
   }
+
+  protected _onTransformChanged(type: TransformModifyFlags): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  }
+}
+
+/**
+ * @internal
+ */
+export enum RendererUpdateFlags {
+  /** Include world position and world bounds. */
+  WorldVolume = 0x1
 }
