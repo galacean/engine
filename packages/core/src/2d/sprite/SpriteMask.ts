@@ -46,9 +46,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @assignmentClone
   private _alphaCutoff: number = 0.5;
 
-  @ignoreClone
-  private _spriteChangeFlag: number = 0;
-
   /**
    * Render width.
    */
