@@ -61,7 +61,7 @@ export class SkinParser extends Parser {
       let entity = entities[index];
       while (entity.parent !== null) {
         path.unshift(entity);
-        entity = entity.parent!;
+        entity = entity.parent;
       }
       paths[index] = path;
     }
