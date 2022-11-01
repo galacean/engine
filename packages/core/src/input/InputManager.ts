@@ -3,9 +3,9 @@ import { KeyboardManager } from "./keyboard/KeyboardManager";
 import { Keys } from "./enums/Keys";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
-import { PointerButton } from "./enums/PointerButton";
+import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@oasis-engine/math";
 
 /**
  * InputManager manages device input such as mouse, touch, keyboard, etc.
@@ -19,10 +19,10 @@ export class InputManager {
   private _keyboardManager: KeyboardManager;
 
   /**
-   * Pointer List.
+   * Pointer list.
    */
-  get pointers(): Readonly<Pointer[] | null> {
-    return this._initialized ? this._pointerManager._pointers : null;
+  get pointers(): Readonly<Pointer[]> {
+    return this._initialized ? this._pointerManager._pointers : [];
   }
 
   /**
@@ -42,24 +42,6 @@ export class InputManager {
    */
   get wheelDelta(): Readonly<Vector3 | null> {
     return this._initialized ? this._wheelManager._delta : null;
-  }
-
-  /**
-   * Get the change of the pointer.
-   * @returns Change value
-   */
-  get pointerMovingDelta(): Readonly<Vector2 | null> {
-    return this._initialized ? this._pointerManager._movingDelta : null;
-  }
-
-  /**
-   * Get the position of the pointer.
-   * @returns The position of the pointer
-   */
-  get pointerPosition(): Readonly<Vector2> {
-    return this._initialized && this._pointerManager._pointers.length > 0
-      ? this._pointerManager._currentPosition
-      : null;
   }
 
   /**
@@ -123,7 +105,7 @@ export class InputManager {
       if (pointerButton === undefined) {
         return this._pointerManager._buttons !== 0;
       } else {
-        return (this._pointerManager._buttons & PointerManager.Buttons[pointerButton]) !== 0;
+        return (this._pointerManager._buttons & pointerButton) !== 0;
       }
     } else {
       return false;
@@ -135,12 +117,12 @@ export class InputManager {
    * @param pointerButton - The pointerButton on a pointer device
    * @returns Whether the pointer starts to be pressed down during the current frame
    */
-  isPointerDown(pointerButton: PointerButton): boolean {
+  isPointerDown(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
       if (pointerButton === undefined) {
         return this._pointerManager._downList.length > 0;
       } else {
-        return this._pointerManager._downMap[pointerButton] === this._curFrameCount;
+        return this._pointerManager._downMap[_pointerBin2DecMap[pointerButton]] === this._curFrameCount;
       }
     } else {
       return false;
@@ -152,12 +134,12 @@ export class InputManager {
    * @param pointerButton - The pointerButtons on a mouse device
    * @returns Whether the pointer is released during the current frame
    */
-  isPointerUp(pointerButton: PointerButton): boolean {
+  isPointerUp(pointerButton?: PointerButton): boolean {
     if (this._initialized) {
       if (pointerButton === undefined) {
         return this._pointerManager._upList.length > 0;
       } else {
-        return this._pointerManager._upMap[pointerButton] === this._curFrameCount;
+        return this._pointerManager._upMap[_pointerBin2DecMap[pointerButton]] === this._curFrameCount;
       }
     } else {
       return false;

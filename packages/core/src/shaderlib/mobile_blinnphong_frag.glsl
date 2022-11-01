@@ -79,7 +79,7 @@
 
         vec3 direction = spotLight.position - v_pos;
         float lightDistance = length( direction );
-        direction/ = lightDistance;
+        direction /= lightDistance;
         float angleCos = dot( direction, -spotLight.direction );
         float decay = clamp(1.0 - pow(lightDistance/spotLight.distance, 4.0), 0.0, 1.0);
         float spotEffect = smoothstep( spotLight.penumbraCos, spotLight.angleCos, angleCos );

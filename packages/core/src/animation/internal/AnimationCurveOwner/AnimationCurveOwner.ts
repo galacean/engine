@@ -101,37 +101,23 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     layerWeight: number,
     additive: boolean
   ): void {
-    const srcCount = srcCurve.keys.length;
-    const destCount = destCurve.keys.length;
-    if (srcCount || destCount) {
-      const srcValue =
-        srcCurve && srcCount
-          ? additive
-            ? srcCurve._evaluateAdditive(srcTime, this._baseCurveCurrentKeyframeIndex, this.baseTempValue)
-            : srcCurve._evaluate(srcTime, this._baseCurveCurrentKeyframeIndex, this.baseTempValue)
-          : additive
-          ? this._cureType._getZeroValue(this.baseTempValue)
-          : this.defaultValue;
-
-      if (srcCurve && srcCount && additive) {
-        this._baseCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
-      }
-
-      const destValue =
-        destCurve && destCount
-          ? additive
-            ? destCurve._evaluateAdditive(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
-            : destCurve._evaluate(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
-          : additive
-          ? this._cureType._getZeroValue(this.crossTempValue)
-          : this.defaultValue;
-
-      if (destCurve && destCount && additive) {
-        this._crossCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
-      }
-
-      this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
-    }
+    const srcValue =
+      srcCurve && srcCurve.keys.length
+        ? additive
+          ? srcCurve._evaluateAdditive(srcTime, this.baseTempValue)
+          : srcCurve._evaluate(srcTime, this.baseTempValue)
+        : additive
+        ? this._cureType._getZeroValue(this.baseTempValue)
+        : this.defaultValue;
+    const destValue =
+      destCurve && destCurve.keys.length
+        ? additive
+          ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
+          : destCurve._evaluate(destTime, this.crossTempValue)
+        : additive
+        ? this._cureType._getZeroValue(this.crossTempValue)
+        : this.defaultValue;
+    this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 
   crossFadeFromPoseAndApplyValue(
