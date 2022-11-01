@@ -127,12 +127,11 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     layerWeight: number,
     additive: boolean
   ): void {
-    const destCount = destCurve.keys.length;
     const srcValue = additive
       ? this._cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseTempValue)
       : this.fixedPoseValue;
     const destValue =
-      destCurve && destCount
+      destCurve && destCurve.keys.length
         ? additive
           ? destCurve._evaluateAdditive(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
           : destCurve._evaluate(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
@@ -140,7 +139,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
         ? this._cureType._getZeroValue(this.crossTempValue)
         : this.defaultValue;
 
-    if (destCurve && destCount && additive) {
+    if (destCurve && destCurve.keys.length && additive) {
       this._crossCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
     }
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
