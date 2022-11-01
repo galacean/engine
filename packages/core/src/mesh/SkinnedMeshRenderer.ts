@@ -280,11 +280,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const lastRootBone = this._rootBone;
     const rootBone = this._findByEntityName(this.entity, skin.skeleton);
-    const rootInddex = joints.indexOf(skin.skeleton);
+    const rootIndex = joints.indexOf(skin.skeleton);
 
     lastRootBone && lastRootBone.transform._updateFlagManager.removeListener(this._onTransformChanged);
     rootBone.transform._updateFlagManager.addListener(this._onTransformChanged);
-    BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootInddex], this._localBounds);
+    BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootIndex], this._localBounds);
     this._rootBone = rootBone;
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
