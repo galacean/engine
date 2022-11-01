@@ -1,4 +1,5 @@
 import { Engine } from "../../Engine";
+import { RenderQueueType } from "../enums/RenderQueueType";
 import { BlendState } from "./BlendState";
 import { DepthState } from "./DepthState";
 import { RasterState } from "./RasterState";
@@ -16,6 +17,9 @@ export class RenderState {
   readonly stencilState: StencilState = new StencilState();
   /** Raster state. */
   readonly rasterState: RasterState = new RasterState();
+
+  /** Render queue type. */
+  renderQueueType: RenderQueueType = RenderQueueType.Opaque;
 
   /**
    * @internal

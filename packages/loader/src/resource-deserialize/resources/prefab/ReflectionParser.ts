@@ -2,6 +2,12 @@ import { Engine, Entity, Loader } from "@oasis-engine/core";
 import { IBasicType, IClassObject, IEntity, IReferenceType } from "./PrefabDesign";
 
 export class ReflectionParser {
+  static customParseComponentHandles = new Map<string, Function>();
+
+  static registerCustomParseComponent(componentType: string, handle: Function) {
+    this.customParseComponentHandles[componentType] = handle;
+  }
+
   static parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
       entity.isActive = entityConfig.isActive ?? true;
@@ -37,8 +43,15 @@ export class ReflectionParser {
     // @ts-ignore
     const assetRefId: string = entityConfig.assetRefId;
     if (assetRefId) {
-      // @ts-ignore
-      return engine.resourceManager.getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key });
+      return (
+        engine.resourceManager
+          // @ts-ignore
+          .getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key, isClone: entityConfig.isClone })
+          .then((entity) => {
+            entity.name = entityConfig.name;
+            return entity;
+          })
+      );
     } else {
       const entity = new Entity(engine, entityConfig.name);
       return Promise.resolve(entity);
@@ -107,8 +120,17 @@ export class ReflectionParser {
       }
     }
 
-    return Promise.all(promises).then(() => {
-      return instance;
+    return new Promise((resolve) => {
+      Promise.all(promises).then(() => {
+        const handle = this.customParseComponentHandles[instance.constructor.name];
+        if (handle) {
+          handle(instance, item, engine).then(() => {
+            resolve(instance);
+          });
+        } else {
+          resolve(instance);
+        }
+      });
     });
   }
 

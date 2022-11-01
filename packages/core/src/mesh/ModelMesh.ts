@@ -16,6 +16,12 @@ import { BlendShapeManager } from "./BlendShapeManager";
  * Mesh containing common vertex elements of the model.
  */
 export class ModelMesh extends Mesh {
+  private static _tempVec0 = new Vector3();
+  private static _tempVec1 = new Vector3();
+  private static _tempVec2 = new Vector3();
+  private static _tempVec3 = new Vector3();
+  private static _tempVec4 = new Vector3();
+
   /** @internal */
   _blendShapeManager: BlendShapeManager;
 
@@ -500,6 +506,89 @@ export class ModelMesh extends Mesh {
       this._accessible = false;
       this._releaseCache();
     }
+  }
+
+  /**
+   * Calculate mesh tangent.
+   * @remark need to set positions(with or not with indices), normals, uv before calculation.
+   * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
+   */
+  calculateTangents(): void {
+    if (!this._normals || !this._uv) {
+      throw "Set normal and uv before calculation.";
+    }
+    const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _vertexCount: vertexCount } = this;
+    const { _tempVec0: e1, _tempVec1: e2, _tempVec2: t, _tempVec3: b, _tempVec4: temp } = ModelMesh;
+    const triangleCount = indices ? indices.length / 3 : positions.length / 3;
+    const tangents = new Array<Vector4>(vertexCount);
+    const biTangents = new Array<Vector3>(vertexCount);
+    for (let i = 0; i < vertexCount; i++) {
+      tangents[i] = new Vector4();
+      biTangents[i] = new Vector3();
+    }
+
+    // Calculate tangent and bi-tangent for each triangle and add to all three vertices.
+    for (let k = 0; k < triangleCount; k++) {
+      let i0 = 3 * k;
+      let i1 = 3 * k + 1;
+      let i2 = 3 * k + 2;
+      if (indices) {
+        i0 = indices[i0];
+        i1 = indices[i1];
+        i2 = indices[i2];
+      }
+
+      const p0 = positions[i0];
+      const p1 = positions[i1];
+      const p2 = positions[i2];
+      const w0 = uvs[i0];
+      const w1 = uvs[i1];
+      const w2 = uvs[i2];
+
+      Vector3.subtract(p1, p0, e1);
+      Vector3.subtract(p2, p0, e2);
+      const x1 = w1.x - w0.x;
+      const x2 = w2.x - w0.x;
+      const y1 = w1.y - w0.y;
+      const y2 = w2.y - w0.y;
+      const r = 1.0 / (x1 * y2 - x2 * y1);
+
+      Vector3.scale(e1, y2 * r, t);
+      Vector3.scale(e2, y1 * r, temp);
+      Vector3.subtract(t, temp, t);
+      Vector3.scale(e2, x1 * r, b);
+      Vector3.scale(e1, x2 * r, temp);
+      Vector3.subtract(b, temp, b);
+
+      let tangent = tangents[i0];
+      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
+
+      tangent = tangents[i1];
+      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
+
+      tangent = tangents[i2];
+      tangent.set(tangent.x + t.x, tangent.y + t.y, tangent.z + t.z, 1.0);
+
+      biTangents[i0].add(b);
+      biTangents[i1].add(b);
+      biTangents[i2].add(b);
+    }
+
+    // Orthonormalize each tangent and calculate the handedness.
+    for (let i = 0; i < vertexCount; i++) {
+      const n = normals[i];
+      const b = biTangents[i];
+      const tangent = tangents[i];
+      t.set(tangent.x, tangent.y, tangent.z);
+
+      Vector3.cross(t, b, temp);
+      const w = Vector3.dot(temp, n) > 0.0 ? 1 : -1;
+      Vector3.scale(n, Vector3.dot(t, n), temp);
+      Vector3.subtract(t, temp, t);
+      t.normalize();
+      tangent.set(t.x, t.y, t.z, w);
+    }
+    this.setTangents(tangents);
   }
 
   /**

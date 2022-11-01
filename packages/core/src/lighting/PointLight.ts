@@ -1,6 +1,5 @@
-import { Color, Vector3 } from "@oasis-engine/math";
-import { Shader } from "../shader";
-import { ShaderData } from "../shader/ShaderData";
+import { Matrix, Vector3 } from "@oasis-engine/math";
+import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -28,14 +27,9 @@ export class PointLight extends Light {
     shaderData.setFloatArray(PointLight._positionProperty, data.position);
     shaderData.setFloatArray(PointLight._distanceProperty, data.distance);
   }
-  /** Light color. */
-  color: Color = new Color(1, 1, 1, 1);
-  /** Light intensity. */
-  intensity: number = 1.0;
+
   /** Defines a distance cutoff at which the light's intensity must be considered zero. */
   distance: number = 100;
-
-  private _lightColor: Color = new Color(1, 1, 1, 1);
 
   /**
    * Get light position.
@@ -45,14 +39,11 @@ export class PointLight extends Light {
   }
 
   /**
-   * Get the final light color.
+   * @internal
+   * @override
    */
-  get lightColor(): Color {
-    this._lightColor.r = this.color.r * this.intensity;
-    this._lightColor.g = this.color.g * this.intensity;
-    this._lightColor.b = this.color.b * this.intensity;
-    this._lightColor.a = this.color.a * this.intensity;
-    return this._lightColor;
+  get _shadowProjectionMatrix(): Matrix {
+    throw "Unknown!";
   }
 
   /**
@@ -63,7 +54,7 @@ export class PointLight extends Light {
     const positionStart = lightIndex * 3;
     const distanceStart = lightIndex;
 
-    const lightColor = this.lightColor;
+    const lightColor = this._getLightColor();
     const lightPosition = this.position;
 
     const data = PointLight._combinedData;
@@ -75,5 +66,23 @@ export class PointLight extends Light {
     data.position[positionStart + 1] = lightPosition.y;
     data.position[positionStart + 2] = lightPosition.z;
     data.distance[distanceStart] = this.distance;
+  }
+
+  /**
+   * Mount to the current Scene.
+   * @internal
+   * @override
+   */
+  _onEnable(): void {
+    this.engine._lightManager._attachPointLight(this);
+  }
+
+  /**
+   * Unmount from the current Scene.
+   * @internal
+   * @override
+   */
+  _onDisable(): void {
+    this.engine._lightManager._detachPointLight(this);
   }
 }

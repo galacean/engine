@@ -7,7 +7,6 @@ import pbrSpecularFs from "../shaderlib/extra/pbr-specular.fs.glsl";
 import pbrVs from "../shaderlib/extra/pbr.vs.glsl";
 import shadowMapFs from "../shaderlib/extra/shadow-map.fs.glsl";
 import shadowMapVs from "../shaderlib/extra/shadow-map.vs.glsl";
-import shadowFs from "../shaderlib/extra/shadow.fs.glsl";
 import skyboxFs from "../shaderlib/extra/skybox.fs.glsl";
 import skyboxVs from "../shaderlib/extra/skybox.vs.glsl";
 import spriteMaskFs from "../shaderlib/extra/sprite-mask.fs.glsl";
@@ -31,7 +30,6 @@ export class ShaderPool {
     Shader.create("pbr-specular", pbrVs, pbrSpecularFs);
     Shader.create("unlit", unlitVs, unlitFs);
     Shader.create("shadow-map", shadowMapVs, shadowMapFs);
-    Shader.create("shadow", shadowMapVs, shadowFs);
     Shader.create("skybox", skyboxVs, skyboxFs);
     Shader.create("particle-shader", particleVs, particleFs);
     Shader.create("SpriteMask", spriteMaskVs, spriteMaskFs);

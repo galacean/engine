@@ -17,6 +17,7 @@ export class ShaderUniform {
   cacheValue: number | Vector2 | Vector3 | Vector4;
   textureIndex: GLenum | GLenum[];
   textureDefault: Texture | Texture[];
+  textureUseComporeMode: boolean = false;
 
   private _rhi: IHardwareRenderer;
   private _gl: WebGLRenderingContext;
@@ -278,6 +279,8 @@ export class ShaderUniform {
     const rhi = this._rhi;
     rhi.activeTexture(shaderUniform.textureIndex as GLenum);
     rhi.bindTexture(value._platformTexture);
+
+    value._setUseDepthCompareMode(shaderUniform.textureUseComporeMode);
   }
 
   uploadTextureArray(shaderUniform: ShaderUniform, value: Texture[]): void {
@@ -287,6 +290,7 @@ export class ShaderUniform {
       const texture = value[i];
       rhi.activeTexture(textureIndices[i]);
       rhi.bindTexture(texture._platformTexture);
+      texture._setUseDepthCompareMode(shaderUniform.textureUseComporeMode);
     }
   }
 }
