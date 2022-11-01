@@ -117,7 +117,7 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     if (!tempValue) {
       const size = this.keys[0]?.value?.length;
       if (size) {
-        tempValue = new Float32Array(this.keys[0]?.value?.length);
+        tempValue = new Float32Array(size);
         this._tempValue = tempValue;
       } else {
         tempValue = new Float32Array();
