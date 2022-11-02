@@ -385,10 +385,9 @@ export class Entity extends EngineObject {
     this._components.length = 0;
 
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      children[i].destroy();
+    while (children.length > 0) {
+      children[0].destroy();
     }
-    this._children.length = 0;
 
     if (this._isRoot) {
       this._scene._removeFromEntityList(this);

@@ -288,10 +288,9 @@ export class Scene extends EngineObject {
    */
   _destroy(): void {
     this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
-    for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
-      this._rootEntities[i].destroy();
+    while (this.rootEntitiesCount > 0) {
+      this._rootEntities[0].destroy();
     }
-    this._rootEntities.length = 0;
     this._activeCameras.length = 0;
     this.shaderData._addRefCount(-1);
   }
