@@ -71,4 +71,16 @@ describe("Scene", () => {
       expect(scene.rootEntities.length).eq(3);
     });
   });
+
+  describe("destroy", () => {
+    it("all destroy", () => {
+      scene.createRootEntity("root1");
+      scene.createRootEntity("root2");
+      scene.createRootEntity("root3");
+      scene.createRootEntity("root4");
+      scene.createRootEntity("root5");
+      scene.destroy();
+      expect(scene.rootEntitiesCount).eq(0);
+    });
+  });
 });

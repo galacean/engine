@@ -295,8 +295,8 @@ export class Scene extends EngineObject {
   _destroy(): void {
     this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
     Scene.sceneFeatureManager.callFeatureMethod(this, "destroy", [this]);
-    for (let i = 0, n = this.rootEntitiesCount; i < n; i++) {
-      this._rootEntities[i].destroy();
+    while (this.rootEntitiesCount > 0) {
+      this._rootEntities[0].destroy();
     }
     this._rootEntities.length = 0;
     this._activeCameras.length = 0;
