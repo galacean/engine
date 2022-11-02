@@ -1,41 +1,56 @@
-import { Matrix } from "@oasis-engine/math";
+import { Color, Matrix } from "@oasis-engine/math";
+import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
-import { LightFeature } from "./LightFeature";
 
 /**
  * Light base class.
  */
-export class Light extends Component {
+export abstract class Light extends Component {
   /**
    * Each type of light source is at most 10, beyond which it will not take effect.
    * */
   protected static _maxLight: number = 10;
 
+  /** Light Intensity */
+  intensity: number = 1;
+
+  /** whether enable shadow */
+  enableShadow: boolean = false;
+  /** Shadow bias.*/
+  shadowBias: number = 1;
+  /** Shadow mapping normal-based bias. */
+  shadowNormalBias: number = 0;
+  /** Near plane value to use for shadow frustums. */
+  shadowNearPlane: number = 0.1;
+  /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
+  shadowStrength: number = 1.0;
+
+  /** @internal */
+  @ignoreClone
+  _lightIndex: number = -1;
+
+  private _color: Color = new Color(1, 1, 1, 1);
   private _viewMat: Matrix;
   private _inverseViewMat: Matrix;
+  private _lightColor: Color = new Color();
 
   /**
-   * Mount to the current Scene.
-   * @internal
-   * @override
+   * Light Color.
    */
-  _onEnable() {
-    this.scene.findFeature(LightFeature).attachRenderLight(this);
+  get color(): Color {
+    return this._color;
   }
 
-  /**
-   * Unmount from the current Scene.
-   * @internal
-   * @override
-   */
-  _onDisable() {
-    this.scene.findFeature(LightFeature).detachRenderLight(this);
+  set color(value: Color) {
+    if (this._color !== value) {
+      this._color.copyFrom(value);
+    }
   }
 
   /**
    * View matrix.
    */
-  get viewMatrix() {
+  get viewMatrix(): Matrix {
     if (!this._viewMat) this._viewMat = new Matrix();
     Matrix.invert(this.entity.transform.worldMatrix, this._viewMat);
     return this._viewMat;
@@ -44,9 +59,22 @@ export class Light extends Component {
   /**
    * Inverse view matrix.
    */
-  get inverseViewMatrix() {
+  get inverseViewMatrix(): Matrix {
     if (!this._inverseViewMat) this._inverseViewMat = new Matrix();
     Matrix.invert(this.viewMatrix, this._inverseViewMat);
     return this._inverseViewMat;
+  }
+
+  /**
+   * @internal
+   */
+  abstract get _shadowProjectionMatrix(): Matrix;
+
+  protected _getLightColor(): Color {
+    this._lightColor.r = this.color.r * this.intensity;
+    this._lightColor.g = this.color.g * this.intensity;
+    this._lightColor.b = this.color.b * this.intensity;
+    this._lightColor.a = this.color.a * this.intensity;
+    return this._lightColor;
   }
 }

@@ -29,6 +29,13 @@ export abstract class LiteColliderShape implements IColliderShape {
   }
 
   /**
+   * {@inheritDoc IColliderShape.setRotation }
+   */
+  setRotation(rotation: Vector3): void {
+    console.log("Physics-lite don't support setRotation. Use Physics-PhysX instead!");
+  }
+
+  /**
    * {@inheritDoc IColliderShape.setPosition }
    */
   setPosition(position: Vector3): void {

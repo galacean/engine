@@ -7,6 +7,7 @@
 #include <worldpos_share>
 
 #include <light_frag_define>
+#include <shadow_frag_share>
 #include <mobile_material_frag>
 
 #include <fog_share>

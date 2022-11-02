@@ -1,10 +1,9 @@
 import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
-import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
+import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 
 /**
  * 2D sprite.
@@ -32,8 +31,10 @@ export class Sprite extends RefObject {
   private _pivot: Vector2 = new Vector2(0.5, 0.5);
   private _border: Vector4 = new Vector4(0, 0, 0, 0);
 
-  private _dirtyFlag: DirtyFlag = DirtyFlag.all;
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+  private _dirtyUpdateFlag: SpriteUpdateFlags = SpriteUpdateFlags.all;
+
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
    * The reference to the used texture.
@@ -45,7 +46,7 @@ export class Sprite extends RefObject {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.texture);
+      this._dispatchSpriteChange(SpriteModifyFlags.texture);
     }
   }
 
@@ -60,7 +61,7 @@ export class Sprite extends RefObject {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.size);
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
     }
   }
 
@@ -75,7 +76,7 @@ export class Sprite extends RefObject {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.size);
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
     }
   }
 
@@ -103,7 +104,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlasRegion);
+    this._dispatchSpriteChange(SpriteModifyFlags.atlasRegion);
   }
 
   /**
@@ -117,7 +118,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.atlasRegionOffset);
+    this._dispatchSpriteChange(SpriteModifyFlags.atlasRegionOffset);
   }
 
   /**
@@ -132,7 +133,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.region);
+    this._dispatchSpriteChange(SpriteModifyFlags.region);
   }
 
   /**
@@ -146,12 +147,12 @@ export class Sprite extends RefObject {
   set pivot(value: Vector2) {
     const pivot = this._pivot;
     if (pivot === value) {
-      this._dispatchSpriteChange(SpritePropertyDirtyFlag.pivot);
+      this._dispatchSpriteChange(SpriteModifyFlags.pivot);
     } else {
       const { x, y } = value;
       if (pivot.x !== x || pivot.y !== y) {
         pivot.set(x, y);
-        this._dispatchSpriteChange(SpritePropertyDirtyFlag.pivot);
+        this._dispatchSpriteChange(SpriteModifyFlags.pivot);
       }
     }
   }
@@ -172,7 +173,7 @@ export class Sprite extends RefObject {
     const x = MathUtil.clamp(value.x, 0, 1);
     const y = MathUtil.clamp(value.y, 0, 1);
     border.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
-    this._dispatchSpriteChange(SpritePropertyDirtyFlag.border);
+    this._dispatchSpriteChange(SpriteModifyFlags.border);
   }
 
   /**
@@ -216,15 +217,8 @@ export class Sprite extends RefObject {
   /**
    * @internal
    */
-  _registerUpdateFlag(): ListenerUpdateFlag {
-    return this._updateFlagManager.createFlag(ListenerUpdateFlag);
-  }
-
-  /**
-   * @internal
-   */
   _getPositions(): Vector2[] {
-    this._dirtyFlag & DirtyFlag.positions && this._updatePositions();
+    this._dirtyUpdateFlag & SpriteUpdateFlags.positions && this._updatePositions();
     return this._positions;
   }
 
@@ -232,7 +226,7 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getUVs(): Vector2[] {
-    this._dirtyFlag & DirtyFlag.uvs && this._updateUVs();
+    this._dirtyUpdateFlag & SpriteUpdateFlags.uvs && this._updateUVs();
     return this._uvs;
   }
 
@@ -240,7 +234,7 @@ export class Sprite extends RefObject {
    * @internal
    */
   _getBounds(): BoundingBox {
-    this._dirtyFlag & DirtyFlag.positions && this._updatePositions();
+    this._dirtyUpdateFlag & SpriteUpdateFlags.positions && this._updatePositions();
     return this._bounds;
   }
 
@@ -293,7 +287,7 @@ export class Sprite extends RefObject {
     const { min, max } = this._bounds;
     min.set(left, bottom, 0);
     max.set(right, top, 0);
-    this._dirtyFlag &= ~DirtyFlag.positions;
+    this._dirtyUpdateFlag &= ~SpriteUpdateFlags.positions;
   }
 
   private _updateUVs(): void {
@@ -325,27 +319,25 @@ export class Sprite extends RefObject {
     );
     // Right-Top
     uv[3].set(right, top);
-    this._dirtyFlag &= ~DirtyFlag.uvs;
+    this._dirtyUpdateFlag &= ~SpriteUpdateFlags.uvs;
   }
 
-  private _dispatchSpriteChange(type: SpritePropertyDirtyFlag): void {
+  private _dispatchSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
-      case SpritePropertyDirtyFlag.atlasRegionOffset:
-      case SpritePropertyDirtyFlag.region:
-        this._dirtyFlag |= DirtyFlag.all;
+      case SpriteModifyFlags.atlasRegionOffset:
+      case SpriteModifyFlags.region:
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.all;
         break;
-      case SpritePropertyDirtyFlag.atlasRegion:
-      case SpritePropertyDirtyFlag.border:
-        this._dirtyFlag |= DirtyFlag.uvs;
-        break;
-      default:
+      case SpriteModifyFlags.atlasRegion:
+      case SpriteModifyFlags.border:
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.uvs;
         break;
     }
     this._updateFlagManager.dispatch(type);
   }
 }
 
-enum DirtyFlag {
+enum SpriteUpdateFlags {
   positions = 0x1,
   uvs = 0x2,
   all = 0x3

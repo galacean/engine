@@ -3,10 +3,7 @@ import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
-import { FeatureManager } from "./FeatureManager";
 import { AmbientLight } from "./lighting/AmbientLight";
-import { LightFeature } from "./lighting/LightFeature";
-import { SceneFeature } from "./SceneFeature";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -15,8 +12,6 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
  * Scene.
  */
 export class Scene extends EngineObject {
-  static sceneFeatureManager = new FeatureManager<SceneFeature>();
-
   /** Scene name. */
   name: string;
 
@@ -82,7 +77,6 @@ export class Scene extends EngineObject {
     this.name = name || "";
 
     const shaderData = this.shaderData;
-    Scene.sceneFeatureManager.addObject(this);
     shaderData._addRefCount(1);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
@@ -267,7 +261,7 @@ export class Scene extends EngineObject {
    * @internal
    */
   _updateShaderData(): void {
-    this.findFeature(LightFeature)._updateShaderData(this.shaderData);
+    this._engine._lightManager._updateShaderData(this.shaderData);
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
       this.engine._macroCollection,
@@ -300,7 +294,6 @@ export class Scene extends EngineObject {
     }
     this._rootEntities.length = 0;
     this._activeCameras.length = 0;
-    (Scene.sceneFeatureManager as any)._objects = [];
     this.shaderData._addRefCount(-1);
   }
 
@@ -321,15 +314,4 @@ export class Scene extends EngineObject {
       }
     }
   }
-
-  //-----------------------------------------@deprecated-----------------------------------
-  static registerFeature(Feature: new () => SceneFeature) {
-    Scene.sceneFeatureManager.registerFeature(Feature);
-  }
-
-  findFeature<T extends SceneFeature>(Feature: { new (): T }): T {
-    return Scene.sceneFeatureManager.findFeature(this, Feature) as T;
-  }
-
-  features: SceneFeature[] = [];
 }

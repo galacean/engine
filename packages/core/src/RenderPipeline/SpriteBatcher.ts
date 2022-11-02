@@ -1,7 +1,6 @@
 import { SpriteMaskInteraction } from "../2d/enums/SpriteMaskInteraction";
 import { SpriteRenderer } from "../2d/sprite/SpriteRenderer";
 import { Camera } from "../Camera";
-import { Engine } from "../Engine";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { Material } from "../material";
@@ -107,7 +106,7 @@ export class SpriteBatcher extends Basic2DBatcher {
 
       // @todo: temporary solution
       (replaceMaterial || material)._preRender(spriteElement);
-      const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
+      const program = spriteElement.shaderPass._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
       }
@@ -121,8 +120,7 @@ export class SpriteBatcher extends Basic2DBatcher {
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 
-      material.renderState._apply(engine, false);
-
+      spriteElement.renderState._apply(engine, false);
       engine._hardwareRenderer.drawPrimitive(mesh, subMesh, program);
 
       maskManager.postRender(renderer);

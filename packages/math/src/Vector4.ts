@@ -479,7 +479,7 @@ export class Vector4 implements IClone<Vector4>, ICopy<Vector4Like, Vector4> {
 
   /**
    * Copy the value of this vector by an array.
-   * @param array - The arrayƒ
+   * @param array - The array
    * @param offset - The start offset of the array
    * @returns This vector
    */

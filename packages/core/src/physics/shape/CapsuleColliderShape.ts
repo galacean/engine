@@ -55,6 +55,5 @@ export class CapsuleColliderShape extends ColliderShape {
       this._height,
       this._material._nativeMaterial
     );
-    (<ICapsuleColliderShape>this._nativeShape).setUpAxis(ColliderShapeUpAxis.Y);
   }
 }

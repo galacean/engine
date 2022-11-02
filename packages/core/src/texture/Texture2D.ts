@@ -31,6 +31,15 @@ export class Texture2D extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
+    this._isDepthTexture =
+      format == TextureFormat.Depth ||
+      format == TextureFormat.DepthStencil ||
+      format == TextureFormat.Depth16 ||
+      format == TextureFormat.Depth24 ||
+      format == TextureFormat.Depth32 ||
+      format == TextureFormat.Depth24Stencil8 ||
+      format == TextureFormat.Depth32Stencil8;
+
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
 
     this.filterMode = TextureFilterMode.Bilinear;

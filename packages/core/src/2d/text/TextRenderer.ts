@@ -4,9 +4,9 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
 import { Renderer } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { TransformModifyFlags } from "../../Transform";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -15,6 +15,7 @@ import { OverflowMode } from "../enums/TextOverflow";
 import { CharRenderData } from "./CharRenderData";
 import { CharRenderDataPool } from "./CharRenderDataPool";
 import { Font } from "./Font";
+import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 
 /**
@@ -27,15 +28,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   /** @internal */
   @assignmentClone
-  _styleFont: Font = null;
+  _subFont: SubFont = null;
   /** @internal */
   @ignoreClone
   _charRenderDatas: CharRenderData[] = [];
   @ignoreClone
   _dirtyFlag: number = DirtyFlag.Font;
-  /** @internal */
-  @ignoreClone
-  _isWorldMatrixDirty: ListenerUpdateFlag;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -132,7 +130,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   set font(value: Font) {
-    if (this._font !== value) {
+    const lastFont = this._font;
+    if (lastFont !== value) {
+      lastFont && lastFont._addRefCount(-1);
+      value && value._addRefCount(1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -265,7 +266,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * The bounding volume of the TextRenderer.
    */
   get bounds(): BoundingBox {
-    this._isContainDirtyFlag(DirtyFlag.StyleFont) && this._resetStyleFont();
+    this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
     this._isContainDirtyFlag(DirtyFlag.WorldBounds) && this._updateBounds(this._bounds);
@@ -277,11 +278,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    this._isWorldMatrixDirty = entity.transform._registerWorldChangeListener();
-    this._isWorldMatrixDirty.listener = () => {
-      this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
-    };
-    this.font = Font.createFromOS(engine);
+    this._font = engine._textDefaultFont;
+    this._font._addRefCount(1);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
@@ -302,9 +300,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
 
-    if (this._isContainDirtyFlag(DirtyFlag.StyleFont)) {
-      this._resetStyleFont();
-      this._setDirtyFlagFalse(DirtyFlag.StyleFont);
+    if (this._isContainDirtyFlag(DirtyFlag.SubFont)) {
+      this._resetSubFont();
+      this._setDirtyFlagFalse(DirtyFlag.SubFont);
     }
 
     if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
@@ -323,15 +321,25 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const material = this.getMaterial();
     const charRenderDatas = this._charRenderDatas;
     const charCount = charRenderDatas.length;
+    const passes = material.shader.passes;
+    const renderStates = material.renderStates;
 
     textElement.component = this;
     textElement.material = material;
     charElements.length = charCount;
+    textElement.renderState = renderStates[0];
 
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
       const spriteElement = spriteElementPool.getFromPool();
-      spriteElement.setValue(this, charRenderData.renderData, material, charRenderData.texture);
+      spriteElement.setValue(
+        this,
+        charRenderData.renderData,
+        material,
+        charRenderData.texture,
+        renderStates[0],
+        passes[0]
+      );
       charElements[i] = spriteElement;
     }
     camera._renderPipeline.pushPrimitive(textElement);
@@ -348,7 +356,12 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
     charRenderDatas.length = 0;
 
-    this._isWorldMatrixDirty.destroy();
+    if (this._font) {
+      this._font._addRefCount(-1);
+      this._font = null;
+    }
+    this._subFont && (this._subFont = null);
+
     super._onDestroy();
   }
 
@@ -357,6 +370,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
    */
   _cloneTo(target: TextRenderer): void {
     target.font = this._font;
+    target._subFont = this._subFont;
   }
 
   /**
@@ -388,7 +402,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _updateStencilState(): void {
-    // Update stencil.
     const material = this.getInstanceMaterial();
     const stencilState = material.renderState.stencilState;
     const maskInteraction = this._maskInteraction;
@@ -411,17 +424,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _resetStyleFont(): void {
-    const lastStyleFont = this._styleFont;
-    if (lastStyleFont) {
-      lastStyleFont._addRefCount(-1);
-      lastStyleFont.destroy();
-    }
-    this._styleFont = Font.createFromOS(
-      this.engine,
-      TextUtils.getNativeFontHash(this.font.name, this.fontSize, this.fontStyle)
-    );
-    this._styleFont._addRefCount(1);
+  private _resetSubFont(): void {
+    this._subFont = this._font._getSubFont(this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {
@@ -430,11 +434,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const charRenderDatas = this._charRenderDatas;
 
     // prettier-ignore
-    const e0 = e[0], e1 = e[1], e2 = e[2];
-    // prettier-ignore
-    const e4 = e[4], e5 = e[5], e6 = e[6];
-    // prettier-ignore
-    const e12 = e[12], e13 = e[13], e14 = e[14];
+    const e0 = e[0], e1 = e[1], e2 = e[2],
+    e4 = e[4], e5 = e[5], e6 = e[6],
+    e12 = e[12], e13 = e[13], e14 = e[14];
 
     const up = TextRenderer._tempVec31.set(e4, e5, e6);
     const right = TextRenderer._tempVec30.set(e0, e1, e2);
@@ -477,7 +479,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     max.set(0, 0, 0);
     const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-    const charFont = this._styleFont;
+    const charFont = this._subFont;
     const rendererWidth = this.width * _pixelsPerUnit;
     const halfRendererWidth = rendererWidth * 0.5;
     const rendererHeight = this.height * _pixelsPerUnit;
@@ -578,15 +580,20 @@ export class TextRenderer extends Renderer implements ICustomClone {
         return a.texture.instanceId - b.texture.instanceId;
       });
   }
+
+  protected _onTransformChanged(bit: TransformModifyFlags): void {
+    super._onTransformChanged(bit);
+    this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
+  }
 }
 
-export enum DirtyFlag {
-  StyleFont = 0x1,
+enum DirtyFlag {
+  SubFont = 0x1,
   LocalPositionBounds = 0x2,
   WorldPosition = 0x4,
   WorldBounds = 0x8,
   MaskInteraction = 0x10,
 
   Position = LocalPositionBounds | WorldPosition | WorldBounds,
-  Font = StyleFont | Position
+  Font = SubFont | Position
 }

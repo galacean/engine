@@ -805,6 +805,7 @@ export class PrimitiveMesh {
     mesh.setNormals(normals);
     mesh.setUVs(uvs);
     mesh.setIndices(indices);
+    mesh.calculateTangents();
 
     mesh.uploadData(noLongerAccessible);
     mesh.addSubMesh(0, indices.length);

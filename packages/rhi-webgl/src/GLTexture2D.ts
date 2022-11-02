@@ -16,6 +16,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     const { format, _mipmap, width, height } = texture2D;
     const isWebGL2 = this._isWebGL2;
 
+    /** @ts-ignore */
     if (!GLTexture._supportTextureFormat(format, rhi)) {
       throw new Error(`Texture format is not supported:${TextureFormat[format]}`);
     }
@@ -32,7 +33,7 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     }
 
     this._formatDetail = GLTexture._getFormatDetail(format, this._gl, isWebGL2);
-    (this._formatDetail.isCompressed && !isWebGL2) || this._initMipmap(false);
+    (this._formatDetail.isCompressed && !isWebGL2) || this._init(false);
   }
 
   /**

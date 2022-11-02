@@ -26,6 +26,7 @@ export type IEntity = IBasicEntity | IRefEntity;
 export interface IRefEntity extends IBasicEntity {
   assetRefId: string;
   key?: string;
+  isClone?: boolean;
 }
 
 export type IComponent = { id: string; refId?: string } & IClassObject;

@@ -3,21 +3,19 @@ import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { Renderer } from "../../Renderer";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { IAssembler } from "../assembler/IAssembler";
+import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
+import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { RenderData2D } from "../data/RenderData2D";
+import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
+import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
-import { IAssembler } from "../assembler/IAssembler";
-import { SpritePropertyDirtyFlag } from "../enums/SpriteDirtyFlag";
-import { SpriteDrawMode } from "../enums/SpriteDrawMode";
-import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { ListenerUpdateFlag } from "../../ListenerUpdateFlag";
-import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
-import { Engine } from "../../Engine";
 
 /**
  * Renders a Sprite for 2D graphics.
@@ -54,11 +52,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @assignmentClone
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
 
-  @ignoreClone
-  private _dirtyFlag: number = 0;
-  @ignoreClone
-  private _spriteChangeFlag: ListenerUpdateFlag = null;
-
   /**
    * The draw mode of the sprite renderer.
    */
@@ -80,7 +73,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyFlag |= DirtyFlag.All;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
     }
   }
 
@@ -92,18 +85,18 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   set sprite(value: Sprite | null) {
-    if (this._sprite !== value) {
-      this._sprite = value;
-      this._spriteChangeFlag && this._spriteChangeFlag.destroy();
+    const lastSprite = this._sprite;
+    if (lastSprite !== value) {
+      lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+
       if (value) {
-        this._spriteChangeFlag = value._registerUpdateFlag();
-        this._spriteChangeFlag.listener = this._onSpriteChange;
-        this._dirtyFlag |= DirtyFlag.All;
+        value._updateFlagManager.addListener(this._onSpriteChange);
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
-        this._spriteChangeFlag = null;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
       }
+      this._sprite = value;
     }
   }
 
@@ -133,7 +126,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -150,7 +143,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -164,7 +157,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipX(value: boolean) {
     if (this._flipX !== value) {
       this._flipX = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
 
@@ -178,22 +171,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set flipY(value: boolean) {
     if (this._flipY !== value) {
       this._flipY = value;
-      this._dirtyFlag |= DirtyFlag.Position;
+      this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
-  }
-
-  /**
-   * The bounding volume of the spriteRenderer.
-   */
-  get bounds(): BoundingBox {
-    if (!this.sprite?.texture || !this.width || !this.height) {
-      return Engine._defaultBoundingBox;
-    } else if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
-      this._assembler.updatePositions(this);
-      this._dirtyFlag &= ~DirtyFlag.Position;
-      this._transformChangeFlag.flag = false;
-    }
-    return this._bounds;
   }
 
   /**
@@ -241,22 +220,27 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
 
     // Update position.
-    if (this._transformChangeFlag.flag || this._dirtyFlag & DirtyFlag.Position) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(this);
-      this._dirtyFlag &= ~DirtyFlag.Position;
-      this._transformChangeFlag.flag = false;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
     // Update uv.
-    if (this._dirtyFlag & DirtyFlag.UV) {
+    if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.UV) {
       this._assembler.updateUVs(this);
-      this._dirtyFlag &= ~DirtyFlag.UV;
+      this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
     }
 
     // Push primitive.
-    const spriteElement = this._engine._spriteElementPool.getFromPool();
-    spriteElement.setValue(this, this._renderData, this.getMaterial(), this.sprite.texture);
-    camera._renderPipeline.pushPrimitive(spriteElement);
+    const material = this.getMaterial();
+    const passes = material.shader.passes;
+    const renderStates = material.renderStates;
+    const texture = this.sprite.texture;
+    for (let i = 0, n = passes.length; i < n; i++) {
+      const spriteElement = this._engine._spriteElementPool.getFromPool();
+      spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
+      camera._renderPipeline.pushPrimitive(spriteElement);
+    }
   }
 
   /**
@@ -270,15 +254,24 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _onDestroy(): void {
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._color = null;
     this._sprite = null;
     this._assembler = null;
     this._renderData = null;
-    if (this._spriteChangeFlag) {
-      this._spriteChangeFlag.destroy();
-      this._spriteChangeFlag = null;
-    }
     super._onDestroy();
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    if (!this.sprite?.texture || !this.width || !this.height) {
+      worldBounds.min.set(0, 0, 0);
+      worldBounds.max.set(0, 0, 0);
+    } else {
+      this._assembler.updatePositions(this);
+    }
   }
 
   private _updateStencilState(): void {
@@ -304,35 +297,37 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _onSpriteChange(dirtyFlag: SpritePropertyDirtyFlag): void {
-    switch (dirtyFlag) {
-      case SpritePropertyDirtyFlag.texture:
+  private _onSpriteChange(type: SpriteModifyFlags): void {
+    switch (type) {
+      case SpriteModifyFlags.texture:
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
-      case SpritePropertyDirtyFlag.size:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.Position);
+      case SpriteModifyFlags.size:
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
         break;
-      case SpritePropertyDirtyFlag.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyFlag |= DirtyFlag.All);
+      case SpriteModifyFlags.border:
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All);
         break;
-      case SpritePropertyDirtyFlag.region:
-      case SpritePropertyDirtyFlag.atlasRegionOffset:
-        this._dirtyFlag |= DirtyFlag.All;
+      case SpriteModifyFlags.region:
+      case SpriteModifyFlags.atlasRegionOffset:
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
         break;
-      case SpritePropertyDirtyFlag.atlasRegion:
-        this._dirtyFlag |= DirtyFlag.UV;
+      case SpriteModifyFlags.atlasRegion:
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
         break;
-      case SpritePropertyDirtyFlag.pivot:
-        this._dirtyFlag |= DirtyFlag.Position;
-        break;
-      default:
+      case SpriteModifyFlags.pivot:
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         break;
     }
   }
 }
 
-enum DirtyFlag {
-  Position = 0x1,
+/**
+ * @remarks Extends `RendererUpdateFlag`.
+ */
+enum SpriteRendererUpdateFlags {
+  /** UV. */
   UV = 0x2,
+  /** All. */
   All = 0x3
 }
