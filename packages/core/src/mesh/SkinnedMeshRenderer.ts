@@ -16,6 +16,7 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
+  private static _tempMatrix = new Matrix();
   private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
@@ -280,11 +281,21 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const lastRootBone = this._rootBone;
     const rootBone = this._findByEntityName(this.entity, skin.skeleton);
-    const rootIndex = joints.indexOf(skin.skeleton);
-
+   
     lastRootBone && lastRootBone.transform._updateFlagManager.removeListener(this._onTransformChanged);
     rootBone.transform._updateFlagManager.addListener(this._onTransformChanged);
-    BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootIndex], this._localBounds);
+
+    const rootIndex = joints.indexOf(skin.skeleton);
+    if (rootIndex !== -1) {
+      BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootIndex], this._localBounds);
+    } else {
+      // Root bone is not in joints list,we can only use rootBone inverse matrix
+      // This is default pose, slightly less accurate than Bind pose
+      const inverseRootBone = SkinnedMeshRenderer._tempMatrix;
+      Matrix.invert(rootBone.transform.worldMatrix, inverseRootBone);
+      BoundingBox.transform(this._mesh.bounds, inverseRootBone, this._localBounds);
+    }
+
     this._rootBone = rootBone;
 
     const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
