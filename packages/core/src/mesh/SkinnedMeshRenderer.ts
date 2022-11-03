@@ -207,7 +207,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @internal
    */
   _updateShaderData(context: RenderContext): void {
-    const worldMatrix = this._rootBone.transform.worldMatrix;
+    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : this.entity.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
 
     const shaderData = this.shaderData;
@@ -281,7 +281,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const lastRootBone = this._rootBone;
     const rootBone = this._findByEntityName(this.entity, skin.skeleton);
-   
+
     lastRootBone && lastRootBone.transform._updateFlagManager.removeListener(this._onTransformChanged);
     rootBone.transform._updateFlagManager.addListener(this._onTransformChanged);
 
