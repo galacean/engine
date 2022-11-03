@@ -1,6 +1,5 @@
-import { Engine, EngineObject } from "..";
+import { Engine, EngineObject, Logger } from "..";
 import { ObjectValues } from "../base/Util";
-import { Utils } from "../Utils";
 import { AssetPromise } from "./AssetPromise";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
@@ -153,14 +152,20 @@ export class ResourceManager {
     const obj = this._objectPool[refId];
     let promise;
     if (obj) {
-      promise = Promise.resolve(obj)
+      promise = Promise.resolve(obj);
     } else {
-      const url = this._editorResourceConfig[refId].path;
+      const url = this._editorResourceConfig[refId]?.path;
+      if (!url) {
+        Logger.error(
+          `refId:${refId} is not find in this._editorResourceConfig:${JSON.stringify(this._editorResourceConfig)}`
+        );
+        return;
+      }
       promise = this.load<any>({
         type: this._editorResourceConfig[refId].type,
         url: `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}`
       });
-    } 
+    }
     return promise.then((item) => (isClone ? item.clone() : item));
   }
 
