@@ -104,16 +104,16 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     const srcValue =
       srcCurve && srcCurve.keys.length
         ? additive
-          ? srcCurve._evaluateAdditive(srcTime, this.baseTempValue)
-          : srcCurve._evaluate(srcTime, this.baseTempValue)
+          ? srcCurve._evaluateAdditive(srcTime, this._baseCurveCurrentKeyframeIndex, this.baseTempValue)
+          : srcCurve._evaluate(srcTime, this._baseCurveCurrentKeyframeIndex, this.baseTempValue)
         : additive
         ? this._cureType._getZeroValue(this.baseTempValue)
         : this.defaultValue;
     const destValue =
       destCurve && destCurve.keys.length
         ? additive
-          ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
-          : destCurve._evaluate(destTime, this.crossTempValue)
+          ? destCurve._evaluateAdditive(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
+          : destCurve._evaluate(destTime, this._crossCurveCurrentKeyframeIndex, this.crossTempValue)
         : additive
         ? this._cureType._getZeroValue(this.crossTempValue)
         : this.defaultValue;
