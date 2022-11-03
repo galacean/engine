@@ -130,7 +130,6 @@ export class KeyboardManager implements IInput {
   }
 
   private _onKeyEvent(evt: KeyboardEvent): void {
-    evt.cancelable && evt.preventDefault();
     this._nativeEvents.push(evt);
   }
 }
