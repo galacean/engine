@@ -1,5 +1,6 @@
 import { Color, MathUtil, Matrix, Vector3 } from "@oasis-engine/math";
 import { Vector2 } from "@oasis-engine/math/src";
+import { GLCapabilityType } from "../base/Constant";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
@@ -17,7 +18,6 @@ import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
 import { ShadowMode } from "./enum/ShadowMode";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
-import { GLCapabilityType } from "../base/Constant";
 
 /**
  * Cascade shadow caster.
@@ -121,10 +121,11 @@ export class CascadedShadowCasterPass {
     const lights = engine._lightManager._directLights;
     const sunLightIndex = engine._lightManager._getSunLightIndex();
 
-    this._getCascadesSplitDistance();
     if (sunLightIndex !== -1) {
       const light = lights.get(sunLightIndex);
       if (light.enableShadow) {
+        const shadowFar = Math.min(light.shadowDistance, camera.farClipPlane);
+        this._getCascadesSplitDistance(shadowFar);
         // prepare render target
         const renderTarget = this._getAvailableRenderTarget();
         rhi.activeRenderTarget(renderTarget, null, 0);
@@ -159,6 +160,7 @@ export class CascadedShadowCasterPass {
             lightForward,
             shadowSliceData
           );
+
           ShadowUtils.getDirectionalLightMatrices(
             lightUp,
             lightSide,
@@ -217,42 +219,37 @@ export class CascadedShadowCasterPass {
     shaderData.setFloatArray(CascadedShadowCasterPass._shadowSplitSpheresProperty, this._splitBoundSpheres);
   }
 
-  private _getCascadesSplitDistance(): void {
+  private _getCascadesSplitDistance(shadowFar: number): void {
+    const cascadesSplitDistance = CascadedShadowCasterPass._cascadesSplitDistance;
     const { shadowTwoCascadeSplits, shadowFourCascadeSplits, shadowCascades } = this._engine.settings;
-    const camera = this._camera;
-    const { nearClipPlane, farClipPlane, aspectRatio, fieldOfView } = camera;
+    const { nearClipPlane, aspectRatio, fieldOfView } = this._camera;
 
-    CascadedShadowCasterPass._cascadesSplitDistance[0] = nearClipPlane;
-    const range = farClipPlane - nearClipPlane;
+    cascadesSplitDistance[0] = nearClipPlane;
+    const range = shadowFar - nearClipPlane;
     const tFov = Math.tan(MathUtil.degreeToRadian(fieldOfView) * 0.5);
     const denominator = 1.0 + tFov * tFov * (aspectRatio * aspectRatio + 1.0);
     switch (shadowCascades) {
       case ShadowCascadesMode.NoCascades:
-        CascadedShadowCasterPass._cascadesSplitDistance[1] = this._getFarWithRadius(farClipPlane, denominator);
+        cascadesSplitDistance[1] = this._getFarWithRadius(shadowFar, denominator);
         break;
-
       case ShadowCascadesMode.TwoCascades:
-        CascadedShadowCasterPass._cascadesSplitDistance[1] = this._getFarWithRadius(
-          nearClipPlane + range * shadowTwoCascadeSplits,
-          denominator
-        );
-        CascadedShadowCasterPass._cascadesSplitDistance[2] = this._getFarWithRadius(farClipPlane, denominator);
+        cascadesSplitDistance[1] = this._getFarWithRadius(nearClipPlane + range * shadowTwoCascadeSplits, denominator);
+        cascadesSplitDistance[2] = this._getFarWithRadius(shadowFar, denominator);
         break;
-
       case ShadowCascadesMode.FourCascades:
-        CascadedShadowCasterPass._cascadesSplitDistance[1] = this._getFarWithRadius(
+        cascadesSplitDistance[1] = this._getFarWithRadius(
           nearClipPlane + range * shadowFourCascadeSplits.x,
           denominator
         );
-        CascadedShadowCasterPass._cascadesSplitDistance[2] = this._getFarWithRadius(
+        cascadesSplitDistance[2] = this._getFarWithRadius(
           nearClipPlane + range * shadowFourCascadeSplits.y,
           denominator
         );
-        CascadedShadowCasterPass._cascadesSplitDistance[3] = this._getFarWithRadius(
+        cascadesSplitDistance[3] = this._getFarWithRadius(
           nearClipPlane + range * shadowFourCascadeSplits.z,
           denominator
         );
-        CascadedShadowCasterPass._cascadesSplitDistance[4] = this._getFarWithRadius(farClipPlane, denominator);
+        cascadesSplitDistance[4] = this._getFarWithRadius(shadowFar, denominator);
         break;
     }
   }

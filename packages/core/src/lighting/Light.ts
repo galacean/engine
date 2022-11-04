@@ -24,6 +24,8 @@ export abstract class Light extends Component {
   shadowNearPlane: number = 0.1;
   /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
   shadowStrength: number = 1.0;
+  /** Max Shadow distance. */
+  shadowDistance: number = 50.0;
 
   /** @internal */
   @ignoreClone

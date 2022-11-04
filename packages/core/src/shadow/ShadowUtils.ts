@@ -176,21 +176,19 @@ export class ShadowUtils {
   static cullingRenderBounds(bounds: BoundingBox, cullPlaneCount: number, cullPlanes: Plane[]): boolean {
     const { min, max } = bounds;
 
-    let pass = true;
     for (let i = 0; i < cullPlaneCount; i++) {
       const plane = cullPlanes[i];
       const normal = plane.normal;
       if (
-        normal.x * (normal.x > 0.0 ? min.x : max.x) +
-          normal.y * (normal.y > 0.0 ? min.y : max.y) +
-          normal.z * (normal.z > 0.0 ? min.z : max.z) >
+        normal.x * (normal.x >= 0.0 ? max.x : min.x) +
+          normal.y * (normal.y >= 0.0 ? max.y : min.y) +
+          normal.z * (normal.z >= 0.0 ? max.z : min.z) <
         -plane.distance
       ) {
-        pass = false;
-        break;
+        return false;
       }
     }
-    return pass;
+    return true;
   }
 
   static shadowCullFrustum(camera: Camera, renderer: Renderer, shadowSliceData: ShadowSliceData) {
@@ -266,10 +264,10 @@ export class ShadowUtils {
     const splitFar = ShadowUtils._adjustFarPlane;
     splitNear.normal.copyFrom(near.normal);
     splitFar.normal.copyFrom(far.normal);
-    splitNear.distance = near.distance + splitNearDistance;
-    //do a clamp is the sphere is out of range the far plane
-    splitFar.distance = Math.max(
-      -near.distance - shadowSliceData.sphereCenterZ - shadowSliceData.splitBoundSphere.radius,
+    splitNear.distance = near.distance - splitNearDistance;
+    // do a clamp if the sphere is out of range the far plane
+    splitFar.distance = Math.min(
+      -near.distance + shadowSliceData.sphereCenterZ + shadowSliceData.splitBoundSphere.radius,
       far.distance
     );
 
@@ -304,7 +302,7 @@ export class ShadowUtils {
       }
     }
 
-    let edgeIndex: number = backIndex;
+    let edgeIndex = backIndex;
     for (let i = 0; i < backIndex; i++) {
       const backFace = backPlaneFaces[i];
       const neighborFaces = planeNeighbors[backFace];
