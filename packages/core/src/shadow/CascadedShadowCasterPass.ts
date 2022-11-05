@@ -83,9 +83,6 @@ export class CascadedShadowCasterPass {
 
     if (this._existShadowMap) {
       this._updateReceiversShaderData();
-      this._camera.scene.shaderData.enableMacro("CASCADED_SHADOW_MAP");
-    } else {
-      this._camera.scene.shaderData.disableMacro("CASCADED_SHADOW_MAP");
     }
   }
 

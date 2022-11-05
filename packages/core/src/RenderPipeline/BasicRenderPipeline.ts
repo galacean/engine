@@ -147,7 +147,10 @@ export class BasicRenderPipeline {
 
     camera.engine._spriteMaskManager.clear();
     if (camera.engine.settings.shadowMode !== ShadowMode.None) {
+      camera.scene.shaderData.enableMacro("CASCADED_SHADOW_MAP");
       this._cascadedShadowCaster._render(context);
+    } else {
+      camera.scene.shaderData.disableMacro("CASCADED_SHADOW_MAP");
     }
 
     opaqueQueue.clear();
