@@ -297,7 +297,7 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  _render(context: RenderContext): void {
     throw "not implement";
   }
 
@@ -323,8 +323,8 @@ export class Renderer extends Component {
     const mvInvMatrix = this._mvInvMatrix;
     const normalMatrix = this._normalMatrix;
 
-    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
+    Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
+    Matrix.multiply(context.viewProjectMatrix, worldMatrix, mvpMatrix);
     Matrix.invert(mvMatrix, mvInvMatrix);
     Matrix.invert(worldMatrix, normalMatrix);
     normalMatrix.transpose();

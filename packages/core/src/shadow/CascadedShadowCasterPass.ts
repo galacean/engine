@@ -6,7 +6,7 @@ import { Engine } from "../Engine";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
 import { DirectLight } from "../lighting";
-import { Material } from "../material";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
 import { Shader } from "../shader";
 import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
@@ -23,7 +23,6 @@ import { ShadowUtils } from "./ShadowUtils";
  * Cascade shadow caster.
  */
 export class CascadedShadowCasterPass {
-  private static _lightViewProjMatProperty = Shader.getPropertyByName("u_lightViewProjMat");
   private static _lightShadowBiasProperty = Shader.getPropertyByName("u_shadowBias");
   private static _lightDirectionProperty = Shader.getPropertyByName("u_lightDirection");
 
@@ -41,7 +40,7 @@ export class CascadedShadowCasterPass {
 
   private readonly _camera: Camera;
   private readonly _engine: Engine;
-  private readonly _shadowMapMaterial: Material;
+  private readonly _shadowCasterShader: Shader;
   private readonly _supportDepthTexture: boolean;
 
   private _shadowMode: ShadowMode;
@@ -71,16 +70,16 @@ export class CascadedShadowCasterPass {
     this._engine = camera.engine;
 
     this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
-    this._shadowMapMaterial = new Material(this._engine, Shader.find("shadow-map"));
+    this._shadowCasterShader = Shader.find("shadow-map");
   }
 
   /**
    * @internal
    */
-  _render(): void {
+  _render(context: RenderContext): void {
     this._updateShadowSettings();
     this._existShadowMap = false;
-    this._renderDirectShadowMap();
+    this._renderDirectShadowMap(context);
 
     if (this._existShadowMap) {
       this._updateReceiversShaderData();
@@ -90,11 +89,11 @@ export class CascadedShadowCasterPass {
     }
   }
 
-  private _renderDirectShadowMap(): void {
+  private _renderDirectShadowMap(context: RenderContext): void {
     const {
       _engine: engine,
       _camera: camera,
-      _shadowMapMaterial: shadowMapMaterial,
+      _shadowCasterShader: shadowCasterShader,
       _viewportOffsets: viewports,
       _shadowSliceData: shadowSliceData,
       _splitBoundSpheres: splitBoundSpheres,
@@ -170,7 +169,7 @@ export class CascadedShadowCasterPass {
             this._shadowTileResolution,
             shadowSliceData
           );
-          this._updateSingleShadowCasterShaderData(<DirectLight>light, shadowSliceData);
+          this._updateSingleShadowCasterShaderData(<DirectLight>light, shadowSliceData, context);
 
           // upload pre-cascade infos.
           const center = boundSphere.center;
@@ -188,7 +187,7 @@ export class CascadedShadowCasterPass {
           const renderers = componentsManager._renderers;
           const elements = renderers._elements;
           for (let k = renderers.length - 1; k >= 0; --k) {
-            ShadowUtils.shadowCullFrustum(camera, elements[k], shadowSliceData);
+            ShadowUtils.shadowCullFrustum(context, elements[k], shadowSliceData);
           }
           opaqueQueue.sort(RenderQueue._compareFromNearToFar);
           alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
@@ -197,8 +196,8 @@ export class CascadedShadowCasterPass {
           rhi.viewport(viewport.x, viewport.y, this._shadowTileResolution, this._shadowTileResolution);
           engine._renderCount++;
 
-          opaqueQueue.render(camera, shadowMapMaterial, Layer.Everything);
-          alphaTestQueue.render(camera, shadowMapMaterial, Layer.Everything);
+          opaqueQueue.render(camera, null, Layer.Everything, shadowCasterShader);
+          alphaTestQueue.render(camera, null, Layer.Everything, shadowCasterShader);
         }
         this._existShadowMap = true;
       }
@@ -349,7 +348,11 @@ export class CascadedShadowCasterPass {
     }
   }
 
-  private _updateSingleShadowCasterShaderData(light: DirectLight, shadowSliceData: ShadowSliceData): void {
+  private _updateSingleShadowCasterShaderData(
+    light: DirectLight,
+    shadowSliceData: ShadowSliceData,
+    context: RenderContext
+  ): void {
     // Frustum size is guaranteed to be a cube as we wrap shadow frustum around a sphere
     // elements[0] = 2.0 / (right - left)
     const frustumSize = 2.0 / shadowSliceData.projectionMatrix.elements[0];
@@ -360,6 +363,11 @@ export class CascadedShadowCasterPass {
     const sceneShaderData = this._camera.scene.shaderData;
     sceneShaderData.setVector2(CascadedShadowCasterPass._lightShadowBiasProperty, this._shadowBias);
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
-    sceneShaderData.setMatrix(CascadedShadowCasterPass._lightViewProjMatProperty, shadowSliceData.viewProjectMatrix);
+
+    context.applyViewProjectMatrix(
+      shadowSliceData.viewMatrix,
+      shadowSliceData.projectionMatrix,
+      shadowSliceData.viewProjectMatrix
+    );
   }
 }

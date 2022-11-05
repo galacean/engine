@@ -41,7 +41,7 @@ export class RenderQueue {
     this.items.push(element);
   }
 
-  render(camera: Camera, replaceMaterial: Material, mask: Layer) {
+  render(camera: Camera, replaceMaterial: Material, mask: Layer, customShader: Shader): void {
     const items = this.items;
     if (items.length === 0) {
       return;
@@ -82,10 +82,11 @@ export class RenderQueue {
         );
 
         // @todo: temporary solution
-        const program = (replaceMaterial?.shader.passes[0] || element.shaderPass)._getShaderProgram(
-          engine,
-          compileMacros
-        );
+        const program = (
+          customShader?.passes[0] ||
+          replaceMaterial?.shader.passes[0] ||
+          element.shaderPass
+        )._getShaderProgram(engine, compileMacros);
 
         if (!program.isValid) {
           continue;

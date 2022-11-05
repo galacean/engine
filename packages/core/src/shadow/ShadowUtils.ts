@@ -10,6 +10,7 @@ import {
 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Renderer } from "../Renderer";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { TextureFormat } from "../texture";
 import { ShadowResolution } from "./enum/ShadowResolution";
 import { ShadowSliceData } from "./ShadowSliceData";
@@ -191,7 +192,7 @@ export class ShadowUtils {
     return true;
   }
 
-  static shadowCullFrustum(camera: Camera, renderer: Renderer, shadowSliceData: ShadowSliceData) {
+  static shadowCullFrustum(context: RenderContext, renderer: Renderer, shadowSliceData: ShadowSliceData): void {
     const center = ShadowUtils._edgePlanePoint2;
     if (
       renderer.castShadows &&
@@ -199,7 +200,8 @@ export class ShadowUtils {
     ) {
       renderer.bounds.getCenter(center);
       renderer._distanceForSort = Vector3.distance(center, shadowSliceData.position);
-      renderer._render(camera);
+      renderer._updateShaderData(context);
+      renderer._render(context);
     }
   }
 
