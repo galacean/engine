@@ -1,5 +1,4 @@
 import { BoundingBox, Matrix } from "@oasis-engine/math";
-import { Camera } from "./Camera";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
@@ -69,7 +68,7 @@ export class Renderer extends Component {
   @ignoreClone
   private _priority: number = 0;
   @assignmentClone
-  private _receiveShadows: boolean = false;
+  private _receiveShadows: boolean = true;
 
   /**
    * Whether receive shadow.
@@ -90,7 +89,7 @@ export class Renderer extends Component {
   }
 
   /** Whether cast shadow. */
-  castShadows: boolean = false;
+  castShadows: boolean = true;
 
   /**
    * Material count.
@@ -139,6 +138,8 @@ export class Renderer extends Component {
     this.shaderData._addRefCount(1);
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
+
+    this.shaderData.enableMacro(Renderer._receiveShadowMacro);
   }
 
   /**
