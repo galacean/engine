@@ -29,7 +29,7 @@ export class Scene extends EngineObject {
   /** The resolution of the shadow maps. */
   shadowResolution: ShadowResolution = ShadowResolution.Medium;
   /** Number of cascades to use for directional light shadows. */
-  shadowCascades?: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
+  shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   /** The splits of two cascade distribution. */
   shadowTwoCascadeSplits: number = 1.0 / 3.0;
   /** The splits of four cascade distribution. */
