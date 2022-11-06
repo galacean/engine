@@ -51,7 +51,7 @@ export class CollisionUtil {
    * @returns The distance from a point to a plane
    */
   static distancePlaneAndPoint(plane: Plane, point: Vector3): number {
-    return Vector3.dot(plane.normal, point) - plane.distance;
+    return Vector3.dot(plane.normal, point) + plane.distance;
   }
 
   /**
@@ -423,7 +423,7 @@ export class CollisionUtil {
     for (let i = 0; i < 6; ++i) {
       const plane = frustum.getPlane(i);
       const intersectionType = CollisionUtil.intersectsPlaneAndSphere(plane, sphere);
-      if (intersectionType === PlaneIntersectionType.Front) {
+      if (intersectionType === PlaneIntersectionType.Back) {
         return ContainmentType.Disjoint;
       } else if (intersectionType === PlaneIntersectionType.Intersecting) {
         result = ContainmentType.Intersects;
