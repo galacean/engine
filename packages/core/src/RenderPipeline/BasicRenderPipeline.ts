@@ -141,18 +141,15 @@ export class BasicRenderPipeline {
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number) {
     const camera = this._camera;
+    const scene = camera.scene;
     const opaqueQueue = this._opaqueQueue;
     const alphaTestQueue = this._alphaTestQueue;
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
-    if (camera.scene.shadowMode !== ShadowMode.None) {
-      camera.scene.shaderData.enableMacro("CASCADED_SHADOW_MAP");
+    if (scene.shadowMode !== ShadowMode.None && scene._sunLight?.enableShadow) {
       this._cascadedShadowCaster._render(context);
-    } else {
-      camera.scene.shaderData.disableMacro("CASCADED_SHADOW_MAP");
     }
-
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();

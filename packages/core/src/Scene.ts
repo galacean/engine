@@ -4,6 +4,7 @@ import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
@@ -45,6 +46,8 @@ export class Scene extends EngineObject {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
+  /** @internal */
+  _sunLight: Light;
 
   private _ambientLight: AmbientLight;
 
@@ -277,7 +280,20 @@ export class Scene extends EngineObject {
    * @internal
    */
   _updateShaderData(): void {
-    this._engine._lightManager._updateShaderData(this.shaderData);
+    const lightManager = this._engine._lightManager;
+    lightManager._updateShaderData(this.shaderData);
+
+    const sunLightIndex = lightManager._getSunLightIndex();
+    if (sunLightIndex !== -1) {
+      this._sunLight = lightManager._directLights.get(sunLightIndex);
+    }
+
+    if (this.shadowMode !== ShadowMode.None && this._sunLight?.enableShadow) {
+      this.shaderData.enableMacro("CASCADED_SHADOW_MAP");
+    } else {
+      this.shaderData.disableMacro("CASCADED_SHADOW_MAP");
+    }
+
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
       this.engine._macroCollection,
