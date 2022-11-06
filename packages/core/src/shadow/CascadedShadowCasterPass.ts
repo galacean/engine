@@ -114,90 +114,87 @@ export class CascadedShadowCasterPass {
     const lightSide = this._lightSide;
     const lightForward = this._lightForward;
 
-    const lights = engine._lightManager._directLights;
     const sunLightIndex = engine._lightManager._getSunLightIndex();
 
     if (sunLightIndex !== -1) {
-      const light = lights.get(sunLightIndex);
-      if (light.enableShadow) {
-        const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
-        this._getCascadesSplitDistance(shadowFar);
-        // prepare render target
-        const renderTarget = this._getAvailableRenderTarget();
-        rhi.activeRenderTarget(renderTarget, null, 0);
-        if (this._supportDepthTexture) {
-          rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
-        } else {
-          rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
-        }
-        this._shadowInfos.x = light.shadowStrength;
-        this._shadowInfos.y = this._shadowTileResolution;
-        this._shadowInfos.z = sunLightIndex;
-
-        // prepare light and camera direction
-        Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
-        lightSide.set(lightWorldE[0], lightWorldE[1], lightWorldE[2]);
-        lightUp.set(lightWorldE[4], lightWorldE[5], lightWorldE[6]);
-        lightForward.set(-lightWorldE[8], -lightWorldE[9], -lightWorldE[10]);
-        camera.entity.transform.getWorldForward(CascadedShadowCasterPass._tempVector);
-
-        for (let j = 0; j < shadowCascades; j++) {
-          ShadowUtils.getBoundSphereByFrustum(
-            splitDistance[j],
-            splitDistance[j + 1],
-            camera,
-            CascadedShadowCasterPass._tempVector.normalize(),
-            shadowSliceData
-          );
-          ShadowUtils.getDirectionLightShadowCullPlanes(
-            camera._frustum,
-            splitDistance[j],
-            camera.nearClipPlane,
-            lightForward,
-            shadowSliceData
-          );
-
-          ShadowUtils.getDirectionalLightMatrices(
-            lightUp,
-            lightSide,
-            lightForward,
-            j,
-            light.shadowNearPlane,
-            this._shadowTileResolution,
-            shadowSliceData
-          );
-          this._updateSingleShadowCasterShaderData(<DirectLight>light, shadowSliceData, context);
-
-          // upload pre-cascade infos.
-          const center = boundSphere.center;
-          const radius = boundSphere.radius;
-          const offset = j * 4;
-          splitBoundSpheres[offset] = center.x;
-          splitBoundSpheres[offset + 1] = center.y;
-          splitBoundSpheres[offset + 2] = center.z;
-          splitBoundSpheres[offset + 3] = radius * radius;
-          vpMatrix.set(shadowSliceData.viewProjectMatrix.elements, 16 * j);
-
-          opaqueQueue.clear();
-          alphaTestQueue.clear();
-          transparentQueue.clear();
-          const renderers = componentsManager._renderers;
-          const elements = renderers._elements;
-          for (let k = renderers.length - 1; k >= 0; --k) {
-            ShadowUtils.shadowCullFrustum(context, elements[k], shadowSliceData);
-          }
-          opaqueQueue.sort(RenderQueue._compareFromNearToFar);
-          alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
-
-          const viewport = viewports[j];
-          rhi.viewport(viewport.x, viewport.y, this._shadowTileResolution, this._shadowTileResolution);
-          engine._renderCount++;
-
-          opaqueQueue.render(camera, null, Layer.Everything, shadowCasterShader);
-          alphaTestQueue.render(camera, null, Layer.Everything, shadowCasterShader);
-        }
-        this._existShadowMap = true;
+      const light = camera.scene._sunLight;
+      const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
+      this._getCascadesSplitDistance(shadowFar);
+      // prepare render target
+      const renderTarget = this._getAvailableRenderTarget();
+      rhi.activeRenderTarget(renderTarget, null, 0);
+      if (this._supportDepthTexture) {
+        rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
+      } else {
+        rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
       }
+      this._shadowInfos.x = light.shadowStrength;
+      this._shadowInfos.y = this._shadowTileResolution;
+      this._shadowInfos.z = sunLightIndex;
+
+      // prepare light and camera direction
+      Matrix.rotationQuaternion(light.entity.transform.worldRotationQuaternion, lightWorld);
+      lightSide.set(lightWorldE[0], lightWorldE[1], lightWorldE[2]);
+      lightUp.set(lightWorldE[4], lightWorldE[5], lightWorldE[6]);
+      lightForward.set(-lightWorldE[8], -lightWorldE[9], -lightWorldE[10]);
+      camera.entity.transform.getWorldForward(CascadedShadowCasterPass._tempVector);
+
+      for (let j = 0; j < shadowCascades; j++) {
+        ShadowUtils.getBoundSphereByFrustum(
+          splitDistance[j],
+          splitDistance[j + 1],
+          camera,
+          CascadedShadowCasterPass._tempVector.normalize(),
+          shadowSliceData
+        );
+        ShadowUtils.getDirectionLightShadowCullPlanes(
+          camera._frustum,
+          splitDistance[j],
+          camera.nearClipPlane,
+          lightForward,
+          shadowSliceData
+        );
+
+        ShadowUtils.getDirectionalLightMatrices(
+          lightUp,
+          lightSide,
+          lightForward,
+          j,
+          light.shadowNearPlane,
+          this._shadowTileResolution,
+          shadowSliceData
+        );
+        this._updateSingleShadowCasterShaderData(<DirectLight>light, shadowSliceData, context);
+
+        // upload pre-cascade infos.
+        const center = boundSphere.center;
+        const radius = boundSphere.radius;
+        const offset = j * 4;
+        splitBoundSpheres[offset] = center.x;
+        splitBoundSpheres[offset + 1] = center.y;
+        splitBoundSpheres[offset + 2] = center.z;
+        splitBoundSpheres[offset + 3] = radius * radius;
+        vpMatrix.set(shadowSliceData.viewProjectMatrix.elements, 16 * j);
+
+        opaqueQueue.clear();
+        alphaTestQueue.clear();
+        transparentQueue.clear();
+        const renderers = componentsManager._renderers;
+        const elements = renderers._elements;
+        for (let k = renderers.length - 1; k >= 0; --k) {
+          ShadowUtils.shadowCullFrustum(context, elements[k], shadowSliceData);
+        }
+        opaqueQueue.sort(RenderQueue._compareFromNearToFar);
+        alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
+
+        const viewport = viewports[j];
+        rhi.viewport(viewport.x, viewport.y, this._shadowTileResolution, this._shadowTileResolution);
+        engine._renderCount++;
+
+        opaqueQueue.render(camera, null, Layer.Everything, shadowCasterShader);
+        alphaTestQueue.render(camera, null, Layer.Everything, shadowCasterShader);
+      }
+      this._existShadowMap = true;
     }
   }
 
