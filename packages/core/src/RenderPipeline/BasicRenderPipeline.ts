@@ -146,7 +146,7 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
-    if (camera.engine.settings.shadowMode !== ShadowMode.None) {
+    if (camera.scene.shadowMode !== ShadowMode.None) {
       camera.scene.shaderData.enableMacro("CASCADED_SHADOW_MAP");
       this._cascadedShadowCaster._render(context);
     } else {

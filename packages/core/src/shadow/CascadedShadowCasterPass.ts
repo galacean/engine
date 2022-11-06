@@ -105,7 +105,7 @@ export class CascadedShadowCasterPass {
 
     const componentsManager = engine._componentsManager;
     const rhi = engine._hardwareRenderer;
-    const shadowCascades = engine.settings.shadowCascades;
+    const shadowCascades = camera.scene.shadowCascades;
     const splitDistance = CascadedShadowCasterPass._cascadesSplitDistance;
     const boundSphere = shadowSliceData.splitBoundSphere;
     const lightWorld = CascadedShadowCasterPass._tempMatrix0;
@@ -120,7 +120,7 @@ export class CascadedShadowCasterPass {
     if (sunLightIndex !== -1) {
       const light = lights.get(sunLightIndex);
       if (light.enableShadow) {
-        const shadowFar = Math.min(light.shadowDistance, camera.farClipPlane);
+        const shadowFar = Math.min(camera.scene.shadowDistance, camera.farClipPlane);
         this._getCascadesSplitDistance(shadowFar);
         // prepare render target
         const renderTarget = this._getAvailableRenderTarget();
@@ -203,12 +203,13 @@ export class CascadedShadowCasterPass {
 
   private _updateReceiversShaderData(): void {
     const splitBoundSpheres = this._splitBoundSpheres;
-    const shadowCascades = this._engine.settings.shadowCascades;
+    const scene = this._camera.scene;
+    const shadowCascades = scene.shadowCascades;
     for (let i = shadowCascades * 4, n = 4 * 4; i < n; i++) {
       splitBoundSpheres[i] = 0.0;
     }
 
-    const shaderData = this._camera.scene.shaderData;
+    const shaderData = scene.shaderData;
     shaderData.setFloatArray(CascadedShadowCasterPass._viewProjMatFromLightProperty, this._vpMatrix);
     shaderData.setVector3(CascadedShadowCasterPass._shadowInfosProperty, this._shadowInfos);
     shaderData.setTexture(CascadedShadowCasterPass._shadowMapsProperty, this._depthTexture);
@@ -217,7 +218,7 @@ export class CascadedShadowCasterPass {
 
   private _getCascadesSplitDistance(shadowFar: number): void {
     const cascadesSplitDistance = CascadedShadowCasterPass._cascadesSplitDistance;
-    const { shadowTwoCascadeSplits, shadowFourCascadeSplits, shadowCascades } = this._engine.settings;
+    const { shadowTwoCascadeSplits, shadowFourCascadeSplits, shadowCascades } = this._camera.scene;
     const { nearClipPlane, aspectRatio, fieldOfView } = this._camera;
 
     cascadesSplitDistance[0] = nearClipPlane;
@@ -286,14 +287,14 @@ export class CascadedShadowCasterPass {
 
   private _updateShadowSettings(): void {
     const sceneShaderData = this._camera.scene.shaderData;
-    const settings = this._engine.settings;
-    const shadowFormat = ShadowUtils.shadowDepthFormat(settings.shadowResolution, this._supportDepthTexture);
-    const shadowResolution = ShadowUtils.shadowResolution(settings.shadowResolution);
-    const shadowCascades = settings.shadowCascades;
+    const scene = this._camera.scene;
+    const shadowFormat = ShadowUtils.shadowDepthFormat(scene.shadowResolution, this._supportDepthTexture);
+    const shadowResolution = ShadowUtils.shadowResolution(scene.shadowResolution);
+    const shadowCascades = scene.shadowCascades;
     if (shadowCascades !== this._shadowCascadeMode) {
       sceneShaderData.enableMacro("CASCADED_COUNT", shadowCascades.toString());
     }
-    const shadowMode = settings.shadowMode;
+    const shadowMode = scene.shadowMode;
     if (shadowMode !== this._shadowMode) {
       sceneShaderData.enableMacro("SHADOW_MODE", shadowMode.toString());
       this._shadowMode = shadowMode;

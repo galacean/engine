@@ -1,3 +1,4 @@
+import { Vector3 } from "@oasis-engine/math";
 import { Background } from "./Background";
 import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
@@ -7,6 +8,9 @@ import { AmbientLight } from "./lighting/AmbientLight";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
+import { ShadowMode } from "./shadow/enum/ShadowMode";
+import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 
 /**
  * Scene.
@@ -17,9 +21,21 @@ export class Scene extends EngineObject {
 
   /** The background of the scene. */
   readonly background: Background = new Background(this._engine);
-
   /** Scene-related shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
+
+  /**  How this light casts shadows. */
+  shadowMode: ShadowMode = ShadowMode.SoftLow;
+  /** The resolution of the shadow maps. */
+  shadowResolution: ShadowResolution = ShadowResolution.Medium;
+  /** Number of cascades to use for directional light shadows. */
+  shadowCascades?: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
+  /** The splits of two cascade distribution. */
+  shadowTwoCascadeSplits: number = 1.0 / 3.0;
+  /** The splits of four cascade distribution. */
+  shadowFourCascadeSplits: Vector3 = new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
+  /** Max Shadow distance. */
+  shadowDistance: number = 50;
 
   /** @internal */
   _activeCameras: Camera[] = [];
