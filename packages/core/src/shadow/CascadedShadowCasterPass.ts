@@ -43,7 +43,6 @@ export class CascadedShadowCasterPass {
   private readonly _shadowCasterShader: Shader;
   private readonly _supportDepthTexture: boolean;
 
-  private _shadowMode: ShadowMode;
   private _shadowMapResolution: number;
   private _shadowMapSize: Vector2 = new Vector2();
   private _shadowTileResolution: number;
@@ -283,19 +282,10 @@ export class CascadedShadowCasterPass {
   }
 
   private _updateShadowSettings(): void {
-    const sceneShaderData = this._camera.scene.shaderData;
     const scene = this._camera.scene;
     const shadowFormat = ShadowUtils.shadowDepthFormat(scene.shadowResolution, this._supportDepthTexture);
     const shadowResolution = ShadowUtils.shadowResolution(scene.shadowResolution);
     const shadowCascades = scene.shadowCascades;
-    if (shadowCascades !== this._shadowCascadeMode) {
-      sceneShaderData.enableMacro("CASCADED_COUNT", shadowCascades.toString());
-    }
-    const shadowMode = scene.shadowMode;
-    if (shadowMode !== this._shadowMode) {
-      sceneShaderData.enableMacro("SHADOW_MODE", shadowMode.toString());
-      this._shadowMode = shadowMode;
-    }
 
     if (
       shadowFormat !== this._shadowMapFormat ||

@@ -25,12 +25,8 @@ export class Scene extends EngineObject {
   /** Scene-related shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
 
-  /**  How this light casts shadows. */
-  shadowMode: ShadowMode = ShadowMode.SoftLow;
   /** The resolution of the shadow maps. */
   shadowResolution: ShadowResolution = ShadowResolution.Medium;
-  /** Number of cascades to use for directional light shadows. */
-  shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   /** The splits of two cascade distribution. */
   shadowTwoCascadeSplits: number = 1.0 / 3.0;
   /** The splits of four cascade distribution. */
@@ -49,7 +45,37 @@ export class Scene extends EngineObject {
   /** @internal */
   _sunLight: Light;
 
+  private _shadowMode: ShadowMode = ShadowMode.SoftLow;
+  private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
+
+  /**
+   *  How this light casts shadows.
+   */
+  get shadowMode(): ShadowMode {
+    return this._shadowMode;
+  }
+
+  set shadowMode(value: ShadowMode) {
+    if (this._shadowMode !== value) {
+      this.shaderData.enableMacro("SHADOW_MODE", this.shadowMode.toString());
+      this._shadowMode = value;
+    }
+  }
+
+  /**
+   *  Number of cascades to use for directional light shadows.
+   */
+  get shadowCascades(): ShadowCascadesMode {
+    return this._shadowCascades;
+  }
+
+  set shadowCascades(value: ShadowCascadesMode) {
+    if (this._shadowCascades !== value) {
+      this.shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
+      this._shadowCascades = value;
+    }
+  }
 
   /**
    * Ambient light.
@@ -99,6 +125,9 @@ export class Scene extends EngineObject {
     shaderData._addRefCount(1);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
+
+    this.shaderData.enableMacro("SHADOW_MODE", this.shadowMode.toString());
+    this.shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
   }
 
   /**
@@ -280,24 +309,25 @@ export class Scene extends EngineObject {
    * @internal
    */
   _updateShaderData(): void {
+    const shaderData = this.shaderData;
     const lightManager = this._engine._lightManager;
-    lightManager._updateShaderData(this.shaderData);
 
+    lightManager._updateShaderData(this.shaderData);
     const sunLightIndex = lightManager._getSunLightIndex();
     if (sunLightIndex !== -1) {
       this._sunLight = lightManager._directLights.get(sunLightIndex);
     }
 
     if (this.shadowMode !== ShadowMode.None && this._sunLight?.enableShadow) {
-      this.shaderData.enableMacro("CASCADED_SHADOW_MAP");
+      shaderData.enableMacro("CASCADED_SHADOW_MAP");
     } else {
-      this.shaderData.disableMacro("CASCADED_SHADOW_MAP");
+      shaderData.disableMacro("CASCADED_SHADOW_MAP");
     }
 
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
       this.engine._macroCollection,
-      this.shaderData._macroCollection,
+      shaderData._macroCollection,
       this._globalShaderMacro
     );
   }
