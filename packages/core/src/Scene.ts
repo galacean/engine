@@ -58,7 +58,7 @@ export class Scene extends EngineObject {
 
   set shadowMode(value: ShadowMode) {
     if (this._shadowMode !== value) {
-      this.shaderData.enableMacro("SHADOW_MODE", this.shadowMode.toString());
+      this.shaderData.enableMacro("SHADOW_MODE", value.toString());
       this._shadowMode = value;
     }
   }
@@ -72,7 +72,7 @@ export class Scene extends EngineObject {
 
   set shadowCascades(value: ShadowCascadesMode) {
     if (this._shadowCascades !== value) {
-      this.shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
+      this.shaderData.enableMacro("CASCADED_COUNT", value.toString());
       this._shadowCascades = value;
     }
   }
