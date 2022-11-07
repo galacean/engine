@@ -13,6 +13,7 @@ import { Texture } from "../texture";
 import { MeshRenderer } from "../mesh/MeshRenderer";
 import { GLCapabilityType } from "../base/Constant";
 import { BufferMesh } from "../mesh/BufferMesh";
+import { ignoreClone } from "../clone/CloneManager";
 
 enum DirtyFlagType {
   Position = 0x1,
@@ -931,6 +932,7 @@ export class ParticleRenderer extends MeshRenderer {
     vertices[k3 + 23] = 0.5;
   }
 
+  @ignoreClone
   private _onColorChanged(): void {
     this._updateDirtyFlag |= DirtyFlagType.Color;
   }

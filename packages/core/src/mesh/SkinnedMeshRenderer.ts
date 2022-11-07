@@ -357,6 +357,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
+  @ignoreClone
   private _onLocalBoundsChanged(): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }

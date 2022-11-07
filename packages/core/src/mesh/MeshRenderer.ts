@@ -151,6 +151,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     this._mesh = mesh;
   }
 
+  @ignoreClone
   private _onMeshChanged(type: MeshModifyFlags): void {
     type & MeshModifyFlags.Bounds && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
     type & MeshModifyFlags.VertexElements && (this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro);

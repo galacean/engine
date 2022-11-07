@@ -1,5 +1,4 @@
 import { BoundingBox, Color } from "@oasis-engine/math";
-import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
@@ -298,6 +297,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
+  @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
