@@ -214,6 +214,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
     }
   }
 
+  @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:

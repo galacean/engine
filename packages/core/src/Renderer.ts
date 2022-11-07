@@ -371,6 +371,7 @@ export class Renderer extends Component {
     }
   }
 
+  @ignoreClone
   protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
