@@ -304,7 +304,7 @@ export class Scene extends EngineObject {
       this._sunLight = lightManager._directLights.get(sunLightIndex);
     }
 
-    if (this.castShadows && this._sunLight?.shadowType !== ShadowType.None) {
+    if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
       shaderData.enableMacro("CASCADED_SHADOW_MAP");
       this.shaderData.enableMacro("SHADOW_MODE", this._sunLight.shadowType.toString());
     } else {

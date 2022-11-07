@@ -16,7 +16,7 @@ export abstract class Light extends Component {
   intensity: number = 1;
 
   /** How this light casts shadows. */
-  shadowType: ShadowType = ShadowType.SoftLow;
+  shadowType: ShadowType = ShadowType.None;
   /** Shadow bias.*/
   shadowBias: number = 1;
   /** Shadow mapping normal-based bias. */
