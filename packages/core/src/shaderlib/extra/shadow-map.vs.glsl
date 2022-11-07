@@ -2,7 +2,7 @@
 #include <common_vert>
 #include <blendShape_input>
 #include <normal_share>
-uniform mat4 u_lightViewProjMat;
+uniform mat4 u_VPMat;
 uniform vec2 u_shadowBias; // x: depth bias, y: normal bias
 uniform vec3 u_lightDirection;
 
@@ -35,6 +35,10 @@ void main() {
         #endif
     #endif
 
-    gl_Position = u_lightViewProjMat * vec4(v_pos, 1.0);
+
+    vec4 positionCS = u_VPMat * vec4(v_pos, 1.0);
+    positionCS.z = max(positionCS.z, -1.0);// clamp to min ndc z
+
+    gl_Position = positionCS;
 
 }

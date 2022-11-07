@@ -4,6 +4,7 @@ import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManage
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
@@ -214,7 +215,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
@@ -239,7 +240,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     for (let i = 0, n = passes.length; i < n; i++) {
       const spriteElement = this._engine._spriteElementPool.getFromPool();
       spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
-      camera._renderPipeline.pushPrimitive(spriteElement);
+      context.camera._renderPipeline.pushPrimitive(spriteElement);
     }
   }
 

@@ -8,7 +8,6 @@ import { Entity } from "./Entity";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-import { RenderContext } from "./RenderPipeline/RenderContext";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -30,12 +29,8 @@ class MathTemp {
 @dependentComponents(Transform)
 export class Camera extends Component {
   /** @internal */
-  static _vpMatrixProperty = Shader.getPropertyByName("u_VPMat");
-
-  private static _viewMatrixProperty = Shader.getPropertyByName("u_viewMat");
-  private static _projectionMatrixProperty = Shader.getPropertyByName("u_projMat");
   private static _inverseViewMatrixProperty = Shader.getPropertyByName("u_viewInvMat");
-  private static _inverseProjectionMatrixProperty = Shader.getPropertyByName("u_projInvMat");
+  /** @internal */
   private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
 
   /** Shader data. */
@@ -67,6 +62,9 @@ export class Camera extends Component {
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
+  /** @internal */
+  @deepClone
+  _viewProjectionMatrix: Matrix = new Matrix();
 
   private _isOrthographic: boolean = false;
   private _isProjMatSetting = false;
@@ -432,16 +430,19 @@ export class Camera extends Component {
    * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
-    // compute cull frustum.
     const context = this.engine._renderContext;
-    context._setContext(this);
+    context.camera = this;
+
+    Matrix.multiply(this.projectionMatrix, this.viewMatrix, this._viewProjectionMatrix);
+    
+    // compute cull frustum.
     if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {
-      this._frustum.calculateFromMatrix(context._viewProjectMatrix);
+      this._frustum.calculateFromMatrix(this._viewProjectionMatrix);
       this._frustumViewChangeFlag.flag = false;
       this._isFrustumProjectDirty = false;
     }
 
-    this._updateShaderData(context);
+    this._updateShaderData();
 
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
@@ -501,13 +502,9 @@ export class Camera extends Component {
     return out;
   }
 
-  private _updateShaderData(context: RenderContext): void {
+  private _updateShaderData(): void {
     const shaderData = this.shaderData;
-    shaderData.setMatrix(Camera._viewMatrixProperty, this.viewMatrix);
-    shaderData.setMatrix(Camera._projectionMatrixProperty, this.projectionMatrix);
-    shaderData.setMatrix(Camera._vpMatrixProperty, context._viewProjectMatrix);
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
-    shaderData.setMatrix(Camera._inverseProjectionMatrixProperty, this._getInverseProjectionMatrix());
     shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
   }
 

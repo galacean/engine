@@ -1,5 +1,4 @@
 import { BoundingBox, Matrix } from "@oasis-engine/math";
-import { Camera } from "./Camera";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
@@ -69,7 +68,7 @@ export class Renderer extends Component {
   @ignoreClone
   private _priority: number = 0;
   @assignmentClone
-  private _receiveShadows: boolean = false;
+  private _receiveShadows: boolean = true;
 
   /**
    * Whether receive shadow.
@@ -90,7 +89,7 @@ export class Renderer extends Component {
   }
 
   /** Whether cast shadow. */
-  castShadows: boolean = false;
+  castShadows: boolean = true;
 
   /**
    * Material count.
@@ -139,6 +138,8 @@ export class Renderer extends Component {
     this.shaderData._addRefCount(1);
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
+
+    this.shaderData.enableMacro(Renderer._receiveShadowMacro);
   }
 
   /**
@@ -297,7 +298,7 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  _render(context: RenderContext): void {
     throw "not implement";
   }
 
@@ -323,8 +324,8 @@ export class Renderer extends Component {
     const mvInvMatrix = this._mvInvMatrix;
     const normalMatrix = this._normalMatrix;
 
-    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
+    Matrix.multiply(context.viewMatrix, worldMatrix, mvMatrix);
+    Matrix.multiply(context.viewProjectMatrix, worldMatrix, mvpMatrix);
     Matrix.invert(mvMatrix, mvInvMatrix);
     Matrix.invert(worldMatrix, normalMatrix);
     normalMatrix.transpose();

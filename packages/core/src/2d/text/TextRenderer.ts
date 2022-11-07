@@ -1,10 +1,10 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
-import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { Renderer } from "../../Renderer";
+import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { TransformModifyFlags } from "../../Transform";
 import { FontStyle } from "../enums/FontStyle";
@@ -286,7 +286,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  _render(context: RenderContext): void {
     if (
       this._text === "" ||
       (this.enableWrapping && this.width <= 0) ||
@@ -342,7 +342,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       );
       charElements[i] = spriteElement;
     }
-    camera._renderPipeline.pushPrimitive(textElement);
+    context.camera._renderPipeline.pushPrimitive(textElement);
   }
 
   /**

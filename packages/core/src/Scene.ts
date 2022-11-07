@@ -1,12 +1,17 @@
+import { Vector3 } from "@oasis-engine/math";
 import { Background } from "./Background";
 import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
+import { ShadowType } from "./shadow/enum/ShadowType";
+import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 
 /**
  * Scene.
@@ -17,9 +22,19 @@ export class Scene extends EngineObject {
 
   /** The background of the scene. */
   readonly background: Background = new Background(this._engine);
-
   /** Scene-related shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
+
+  /** If cast shadows. */
+  castShadows: boolean = true;
+  /** The resolution of the shadow maps. */
+  shadowResolution: ShadowResolution = ShadowResolution.Medium;
+  /** The splits of two cascade distribution. */
+  shadowTwoCascadeSplits: number = 1.0 / 3.0;
+  /** The splits of four cascade distribution. */
+  shadowFourCascadeSplits: Vector3 = new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
+  /** Max Shadow distance. */
+  shadowDistance: number = 50;
 
   /** @internal */
   _activeCameras: Camera[] = [];
@@ -29,8 +44,25 @@ export class Scene extends EngineObject {
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
   /** @internal */
   _rootEntities: Entity[] = [];
+  /** @internal */
+  _sunLight: Light;
 
+  private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
+
+  /**
+   *  Number of cascades to use for directional light shadows.
+   */
+  get shadowCascades(): ShadowCascadesMode {
+    return this._shadowCascades;
+  }
+
+  set shadowCascades(value: ShadowCascadesMode) {
+    if (this._shadowCascades !== value) {
+      this.shaderData.enableMacro("CASCADED_COUNT", value.toString());
+      this._shadowCascades = value;
+    }
+  }
 
   /**
    * Ambient light.
@@ -80,6 +112,8 @@ export class Scene extends EngineObject {
     shaderData._addRefCount(1);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
+
+    this.shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
   }
 
   /**
@@ -261,11 +295,26 @@ export class Scene extends EngineObject {
    * @internal
    */
   _updateShaderData(): void {
-    this._engine._lightManager._updateShaderData(this.shaderData);
+    const shaderData = this.shaderData;
+    const lightManager = this._engine._lightManager;
+
+    lightManager._updateShaderData(this.shaderData);
+    const sunLightIndex = lightManager._getSunLightIndex();
+    if (sunLightIndex !== -1) {
+      this._sunLight = lightManager._directLights.get(sunLightIndex);
+    }
+
+    if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
+      shaderData.enableMacro("CASCADED_SHADOW_MAP");
+      this.shaderData.enableMacro("SHADOW_MODE", this._sunLight.shadowType.toString());
+    } else {
+      shaderData.disableMacro("CASCADED_SHADOW_MAP");
+    }
+
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
       this.engine._macroCollection,
-      this.shaderData._macroCollection,
+      shaderData._macroCollection,
       this._globalShaderMacro
     );
   }

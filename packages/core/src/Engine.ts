@@ -1,4 +1,3 @@
-import { Vector3 } from "@oasis-engine/math";
 import { Color } from "@oasis-engine/math/src/Color";
 import { Font } from "./2d/text/Font";
 import { ResourceManager } from "./asset/ResourceManager";
@@ -36,9 +35,6 @@ import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
-import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
-import { ShadowMode } from "./shadow/enum/ShadowMode";
-import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
 ShaderPool.init();
@@ -271,12 +267,6 @@ export class Engine extends EventDispatcher {
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
-    innerSettings.shadowMode = settings?.shadowMode || ShadowMode.SoftLow;
-    innerSettings.shadowResolution = settings?.shadowResolution || ShadowResolution.Medium;
-    innerSettings.shadowCascades = settings?.shadowCascades || ShadowCascadesMode.NoCascades;
-    innerSettings.shadowTwoCascadeSplits = settings?.shadowTwoCascadeSplits || 1.0 / 3.0;
-    innerSettings.shadowFourCascadeSplits =
-      settings?.shadowFourCascadeSplits || new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
   }
 
   /**

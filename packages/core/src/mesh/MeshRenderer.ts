@@ -1,11 +1,11 @@
 import { BoundingBox } from "@oasis-engine/math";
 import { Logger } from "../base/Logger";
-import { Camera } from "../Camera";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader/Shader";
 
 /**
@@ -47,7 +47,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    * @override
    */
-  _render(camera: Camera): void {
+  _render(context: RenderContext): void {
     const mesh = this._mesh;
     if (mesh) {
       if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
@@ -83,7 +83,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       }
 
       const subMeshes = mesh.subMeshes;
-      const renderPipeline = camera._renderPipeline;
+      const renderPipeline = context.camera._renderPipeline;
       const renderElementPool = this._engine._renderElementPool;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = this._materials[i];

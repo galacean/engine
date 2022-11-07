@@ -1,6 +1,7 @@
 import { Color, Matrix } from "@oasis-engine/math";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
+import { ShadowType } from "../shadow";
 
 /**
  * Light base class.
@@ -14,12 +15,12 @@ export abstract class Light extends Component {
   /** Light Intensity */
   intensity: number = 1;
 
-  /** whether enable shadow */
-  enableShadow: boolean = false;
+  /** How this light casts shadows. */
+  shadowType: ShadowType = ShadowType.None;
   /** Shadow bias.*/
   shadowBias: number = 1;
   /** Shadow mapping normal-based bias. */
-  shadowNormalBias: number = 0;
+  shadowNormalBias: number = 1;
   /** Near plane value to use for shadow frustums. */
   shadowNearPlane: number = 0.1;
   /** Shadow intensity, the larger the value, the clearer and darker the shadow. */
