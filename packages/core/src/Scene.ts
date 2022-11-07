@@ -10,7 +10,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
-import { ShadowMode } from "./shadow/enum/ShadowMode";
+import { ShadowType } from "./shadow/enum/ShadowType";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 
 /**
@@ -25,6 +25,8 @@ export class Scene extends EngineObject {
   /** Scene-related shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Scene);
 
+  /** If cast shadows. */
+  castShadows: boolean = true;
   /** The resolution of the shadow maps. */
   shadowResolution: ShadowResolution = ShadowResolution.Medium;
   /** The splits of two cascade distribution. */
@@ -45,23 +47,8 @@ export class Scene extends EngineObject {
   /** @internal */
   _sunLight: Light;
 
-  private _shadowMode: ShadowMode = ShadowMode.SoftLow;
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
-
-  /**
-   *  How this light casts shadows.
-   */
-  get shadowMode(): ShadowMode {
-    return this._shadowMode;
-  }
-
-  set shadowMode(value: ShadowMode) {
-    if (this._shadowMode !== value) {
-      this.shaderData.enableMacro("SHADOW_MODE", value.toString());
-      this._shadowMode = value;
-    }
-  }
 
   /**
    *  Number of cascades to use for directional light shadows.
@@ -126,7 +113,6 @@ export class Scene extends EngineObject {
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
 
-    this.shaderData.enableMacro("SHADOW_MODE", this.shadowMode.toString());
     this.shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
   }
 
@@ -318,8 +304,9 @@ export class Scene extends EngineObject {
       this._sunLight = lightManager._directLights.get(sunLightIndex);
     }
 
-    if (this.shadowMode !== ShadowMode.None && this._sunLight?.enableShadow) {
+    if (this.castShadows && this._sunLight?.shadowType !== ShadowType.None) {
       shaderData.enableMacro("CASCADED_SHADOW_MAP");
+      this.shaderData.enableMacro("SHADOW_MODE", this._sunLight.shadowType.toString());
     } else {
       shaderData.disableMacro("CASCADED_SHADOW_MAP");
     }

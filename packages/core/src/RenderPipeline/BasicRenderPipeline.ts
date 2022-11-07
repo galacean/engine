@@ -13,7 +13,7 @@ import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
-import { ShadowMode } from "../shadow/enum/ShadowMode";
+import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, TextureCubeFace } from "../texture";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
@@ -147,7 +147,7 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
-    if (scene.shadowMode !== ShadowMode.None && scene._sunLight?.enableShadow) {
+    if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster._render(context);
     }
     opaqueQueue.clear();

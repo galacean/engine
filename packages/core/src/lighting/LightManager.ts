@@ -1,5 +1,6 @@
 import { DisorderedArray } from "../DisorderedArray";
 import { ShaderData } from "../shader";
+import { ShadowType } from "../shadow";
 import { DirectLight } from "./DirectLight";
 import { PointLight } from "./PointLight";
 import { SpotLight } from "./SpotLight";
@@ -77,13 +78,13 @@ export class LightManager {
     let hasShadowLight = false;
     for (let i = 0, n = directLights.length; i < n; i++) {
       const directLight = directLights.get(i);
-      if (directLight.enableShadow && !hasShadowLight) {
+      if (directLight.shadowType !== ShadowType.None && !hasShadowLight) {
         maxIntensity = Number.NEGATIVE_INFINITY;
         hasShadowLight = true;
       }
       const intensity = directLight.intensity * directLight.color.getBrightness();
       if (hasShadowLight) {
-        if (directLight.enableShadow && maxIntensity < intensity) {
+        if (directLight.shadowType !== ShadowType.None && maxIntensity < intensity) {
           maxIntensity = intensity;
           sunLightIndex = i;
         }

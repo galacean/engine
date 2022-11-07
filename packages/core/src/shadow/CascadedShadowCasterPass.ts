@@ -15,7 +15,6 @@ import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
 import { RenderTarget } from "../texture/RenderTarget";
 import { Texture2D } from "../texture/Texture2D";
 import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
-import { ShadowMode } from "./enum/ShadowMode";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
 
