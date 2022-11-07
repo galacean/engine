@@ -289,8 +289,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (rootIndex !== -1) {
       BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootIndex], this._localBounds);
     } else {
-      // Root bone is not in joints list,we can only use rootBone inverse matrix
-      // This is default pose, slightly less accurate than Bind pose
+      // Root bone is not in joints list,we can only use default pose compute local bounds
+      // Default pose is slightly less accurate than bind pose
       const inverseRootBone = SkinnedMeshRenderer._tempMatrix;
       Matrix.invert(rootBone.transform.worldMatrix, inverseRootBone);
       BoundingBox.transform(this._mesh.bounds, inverseRootBone, this._localBounds);
