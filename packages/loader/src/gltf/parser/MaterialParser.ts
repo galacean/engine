@@ -8,14 +8,13 @@ import {
   UnlitMaterial
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
-import { GLTFResource } from "../GLTFResource";
 import { MaterialAlphaMode } from "../Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
 export class MaterialParser extends Parser {
   /** @internal */
-  static _parseTextureTransform(material: Material, extensions: any = {}, context: GLTFResource): void {
+  static _parseTextureTransform(material: Material, extensions: any = {}, context: ParserContext): void {
     const schema = extensions.KHR_texture_transform;
     if (schema) {
       Parser.parseEngineResource("KHR_texture_transform", schema, material, context);
@@ -23,9 +22,9 @@ export class MaterialParser extends Parser {
   }
 
   parse(context: ParserContext) {
-    const { glTFResource, materialIndex } = context;
+    const { gltf, glTFResource, materialIndex } = context;
 
-    const { gltf, engine, textures } = glTFResource;
+    const { engine, textures } = glTFResource;
     if (!gltf.materials) return;
 
     const materials: Material[] = [];
@@ -57,13 +56,13 @@ export class MaterialParser extends Parser {
       let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
 
       if (KHR_materials_unlit) {
-        material = <UnlitMaterial>Parser.createEngineResource("KHR_materials_unlit", KHR_materials_unlit, glTFResource);
+        material = <UnlitMaterial>Parser.createEngineResource("KHR_materials_unlit", KHR_materials_unlit, context);
       } else if (KHR_materials_pbrSpecularGlossiness) {
         material = <PBRSpecularMaterial>(
           Parser.createEngineResource(
             "KHR_materials_pbrSpecularGlossiness",
             KHR_materials_pbrSpecularGlossiness,
-            glTFResource
+            context
           )
         );
       } else {
@@ -73,7 +72,7 @@ export class MaterialParser extends Parser {
       material.name = name;
 
       if (KHR_materials_clearcoat) {
-        Parser.parseEngineResource("KHR_materials_clearcoat", KHR_materials_clearcoat, material, glTFResource);
+        Parser.parseEngineResource("KHR_materials_clearcoat", KHR_materials_clearcoat, material, context);
       }
 
       if (pbrMetallicRoughness) {
@@ -90,7 +89,7 @@ export class MaterialParser extends Parser {
         }
         if (baseColorTexture) {
           material.baseTexture = textures[baseColorTexture.index];
-          MaterialParser._parseTextureTransform(material, baseColorTexture.extensions, glTFResource);
+          MaterialParser._parseTextureTransform(material, baseColorTexture.extensions, context);
         }
 
         if (!KHR_materials_unlit && !KHR_materials_pbrSpecularGlossiness) {
@@ -99,7 +98,7 @@ export class MaterialParser extends Parser {
           m.roughness = roughnessFactor ?? 1;
           if (metallicRoughnessTexture) {
             m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
-            MaterialParser._parseTextureTransform(material, metallicRoughnessTexture.extensions, glTFResource);
+            MaterialParser._parseTextureTransform(material, metallicRoughnessTexture.extensions, context);
           }
         }
       }
@@ -109,7 +108,7 @@ export class MaterialParser extends Parser {
 
         if (emissiveTexture) {
           m.emissiveTexture = textures[emissiveTexture.index];
-          MaterialParser._parseTextureTransform(material, emissiveTexture.extensions, glTFResource);
+          MaterialParser._parseTextureTransform(material, emissiveTexture.extensions, context);
         }
 
         if (emissiveFactor) {
@@ -123,7 +122,7 @@ export class MaterialParser extends Parser {
         if (normalTexture) {
           const { index, scale } = normalTexture;
           m.normalTexture = textures[index];
-          MaterialParser._parseTextureTransform(material, normalTexture.extensions, glTFResource);
+          MaterialParser._parseTextureTransform(material, normalTexture.extensions, context);
           if (scale !== undefined) {
             m.normalTextureIntensity = scale;
           }
@@ -132,7 +131,7 @@ export class MaterialParser extends Parser {
         if (occlusionTexture) {
           const { index, strength, texCoord } = occlusionTexture;
           m.occlusionTexture = textures[index];
-          MaterialParser._parseTextureTransform(material, occlusionTexture.extensions, glTFResource);
+          MaterialParser._parseTextureTransform(material, occlusionTexture.extensions, context);
           if (strength !== undefined) {
             m.occlusionTextureIntensity = strength;
           }
@@ -145,13 +144,12 @@ export class MaterialParser extends Parser {
       }
 
       if (OASIS_materials_remap) {
-        glTFResource.gltf.extensions = glTFResource.gltf.extensions ?? {};
-        glTFResource.gltf.extensions["OASIS_materials_remap"] =
-          glTFResource.gltf.extensions["OASIS_materials_remap"] ?? {};
-        glTFResource.gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
+        gltf.extensions = gltf.extensions ?? {};
+        gltf.extensions["OASIS_materials_remap"] = gltf.extensions["OASIS_materials_remap"] ?? {};
+        gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
           "OASIS_materials_remap",
           OASIS_materials_remap,
-          glTFResource
+          context
         );
       }
 

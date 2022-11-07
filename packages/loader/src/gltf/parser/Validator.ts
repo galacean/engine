@@ -5,12 +5,10 @@ import { ParserContext } from "./ParserContext";
 export class Validator extends Parser {
   parse(context: ParserContext): void {
     const {
-      gltf: {
-        asset: { version },
-        extensionsUsed,
-        extensionsRequired
-      }
-    } = context.glTFResource;
+      asset: { version },
+      extensionsUsed,
+      extensionsRequired
+    } = context.gltf;
 
     const gltfVersion = Number(version);
     if (!(gltfVersion >= 2 && gltfVersion < 3)) {
