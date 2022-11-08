@@ -433,5 +433,3 @@ export class GLTFUtil {
     return parts.join("/");
   }
 }
-
-window['gltfUtil'] = GLTFUtil;
