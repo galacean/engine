@@ -1,17 +1,13 @@
 import { BoundingSphere, Matrix, Plane, Vector3 } from "@oasis-engine/math";
+import { VirtualCamera } from "../VirtualCamera";
 
 /**
  * @internal
  */
 export class ShadowSliceData {
-  // center
-  position: Vector3 = new Vector3();
   resolution: number;
 
-  // light view projection matrix
-  viewMatrix: Matrix = new Matrix();
-  projectionMatrix: Matrix = new Matrix();
-  viewProjectMatrix: Matrix = new Matrix();
+  virtualCamera: VirtualCamera = new VirtualCamera();
 
   // cull info
   cullPlanes: Plane[] = [

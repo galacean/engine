@@ -204,9 +204,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @internal
+   * @override
    */
-  _updateShaderData(context: RenderContext): void {
+  protected _updateShaderData(context: RenderContext): void {
     const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : this.entity.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
 

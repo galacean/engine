@@ -214,38 +214,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _render(context: RenderContext): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
-      return;
-    }
-
-    // Update position.
-    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
-      this._assembler.updatePositions(this);
-      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
-    }
-
-    // Update uv.
-    if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.UV) {
-      this._assembler.updateUVs(this);
-      this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
-    }
-
-    // Push primitive.
-    const material = this.getMaterial();
-    const passes = material.shader.passes;
-    const renderStates = material.renderStates;
-    const texture = this.sprite.texture;
-    for (let i = 0, n = passes.length; i < n; i++) {
-      const spriteElement = this._engine._spriteElementPool.getFromPool();
-      spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
-      context.camera._renderPipeline.pushPrimitive(spriteElement);
-    }
-  }
-
-  /**
-   * @internal
-   */
   _cloneTo(target: SpriteRenderer): void {
     target.sprite = this._sprite;
   }
@@ -271,6 +239,38 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       worldBounds.max.set(0, 0, 0);
     } else {
       this._assembler.updatePositions(this);
+    }
+  }
+
+  /**
+   * @override
+   */
+  protected _render(context: RenderContext): void {
+    if (!this.sprite?.texture || !this.width || !this.height) {
+      return;
+    }
+
+    // Update position.
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
+      this._assembler.updatePositions(this);
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
+    }
+
+    // Update uv.
+    if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.UV) {
+      this._assembler.updateUVs(this);
+      this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
+    }
+
+    // Push primitive.
+    const material = this.getMaterial();
+    const passes = material.shader.passes;
+    const renderStates = material.renderStates;
+    const texture = this.sprite.texture;
+    for (let i = 0, n = passes.length; i < n; i++) {
+      const spriteElement = this._engine._spriteElementPool.getFromPool();
+      spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
+      context.camera._renderPipeline.pushPrimitive(spriteElement);
     }
   }
 
