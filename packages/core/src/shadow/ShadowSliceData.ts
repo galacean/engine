@@ -6,10 +6,7 @@ import { VirtualCamera } from "../VirtualCamera";
  */
 export class ShadowSliceData {
   resolution: number;
-
   virtualCamera: VirtualCamera = new VirtualCamera();
-
-  // cull info
   cullPlanes: Plane[] = [
     new Plane(new Vector3()),
     new Plane(new Vector3()),
