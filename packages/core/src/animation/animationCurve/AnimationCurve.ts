@@ -89,13 +89,18 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    * @internal
    */
   _evaluate(time: number, evaluateData: IEvaluateData<V>): V {
+    const { length } = this.keys;
+    if (!length) {
+      console.warn(`This curve don't have any keyframes: `, this);
+      return;
+    }
+
     const { keys, interpolation } = this;
 
-    const { length } = this.keys;
     // Compute curIndex and nextIndex.
     let curIndex = evaluateData.curKeyframeIndex;
 
-    // Reset loop.
+    // Reset loop,if delete keyfranme may cause `curIndex >= length`
     if (curIndex !== -1 && (curIndex >= length || time < keys[curIndex].time)) {
       curIndex = -1;
     }
@@ -108,27 +113,19 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       curIndex++;
       nextIndex++;
     }
-    const curFrameTime = keys[curIndex]?.time;
-    const duration = keys[nextIndex]?.time - curFrameTime;
-    const t = (time - curFrameTime) / duration;
-    evaluateData.curKeyframeIndex = curIndex;
-
-    if (!length) {
-      console.warn(`This curve don't have any keyframes: `, this);
-      return;
-    }
-
-    const curFrame = keys[curIndex];
-    const nextFrame = keys[curIndex + 1];
-
+    // Evaluate value.
     let value: V;
     if (curIndex === -1) {
-      value = this._type._copyValue(nextFrame.value, evaluateData.value);
+      value = this._type._copyValue(keys[0].value, evaluateData.value);
     } else if (curIndex + 1 === length) {
-      value = this._type._copyValue(curFrame.value, evaluateData.value);
+      value = this._type._copyValue(keys[curIndex].value, evaluateData.value);
     } else {
+      // Time between first frame and end frame.
       const curFrame = keys[curIndex];
-      const nextFrame = keys[curIndex + 1];
+      const nextFrame = keys[nextIndex];
+      const curFrameTime = curFrame.time;
+      const duration = nextFrame.time - curFrameTime;
+      const t = (time - curFrameTime) / duration;
 
       switch (interpolation) {
         case InterpolationType.Linear:
