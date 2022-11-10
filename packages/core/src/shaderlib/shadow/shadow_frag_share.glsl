@@ -3,10 +3,9 @@
 #endif
 
 #ifdef OASIS_CALCULATE_SHADOWS
-
         // intensity, resolution, sunIndex
         uniform vec3 u_shadowInfo;
-        uniform vec4 u_ShadowMapSize;
+        uniform vec4 u_shadowMapSize;
         uniform mat4 u_viewProjMatFromLight[4];
         uniform vec4 u_shadowSplitSpheres[4];
 
@@ -108,7 +107,7 @@
         }
 
         #if SHADOW_MODE == 2
-        float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, float shadowMapSize) {
+        float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowMapSize) {
             float attenuation;
             vec4 attenuation4;
             vec2 offset=shadowMapSize.xy/2.0;
@@ -150,17 +149,17 @@
             vec3 shadowCoord = getShadowCoord();
             float attenuation = 1.0;
             if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
-        #if SHADOW_MODE == 1
+            #if SHADOW_MODE == 1
                 attenuation = SAMPLE_TEXTURE2D_SHADOW(u_shadowMap, shadowCoord);
-        #endif
+            #endif
 
-        #if SHADOW_MODE == 2
-                attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_ShadowMapSize);
-        #endif
+            #if SHADOW_MODE == 2
+                attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_shadowMapSize);
+            #endif
 
-        #if SHADOW_MODE == 3
-                attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_ShadowMapSize);
-        #endif
+            #if SHADOW_MODE == 3
+                attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_shadowMapSize);
+            #endif
                 attenuation = mix(1.0, attenuation, u_shadowInfo.x);
             }
             return attenuation;

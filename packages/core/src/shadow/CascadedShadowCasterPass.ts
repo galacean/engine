@@ -26,7 +26,7 @@ export class CascadedShadowCasterPass {
   private static _lightDirectionProperty = Shader.getPropertyByName("u_lightDirection");
 
   private static _viewProjMatFromLightProperty = Shader.getPropertyByName("u_viewProjMatFromLight");
-  private static _shadowMapSize = Shader.getPropertyByName("u_ShadowMapSize");
+  private static _shadowMapSize = Shader.getPropertyByName("u_shadowMapSize");
   private static _shadowInfosProperty = Shader.getPropertyByName("u_shadowInfo");
   private static _shadowMapsProperty = Shader.getPropertyByName("u_shadowMap");
   private static _shadowSplitSpheresProperty = Shader.getPropertyByName("u_shadowSplitSpheres");
