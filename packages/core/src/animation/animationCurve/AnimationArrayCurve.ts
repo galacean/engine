@@ -108,6 +108,7 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   }
 
   constructor() {
-    super(Array);
+    super();
+    this._evaluateData.value = [];
   }
 }

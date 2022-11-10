@@ -120,6 +120,7 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
   }
 
   constructor() {
-    super(Vector4);
+    super();
+    this._evaluateData.value = new Vector4();
   }
 }

@@ -121,6 +121,7 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   }
 
   constructor() {
-    super(Color);
+    super();
+    this._evaluateData.value = new Color();
   }
 }
