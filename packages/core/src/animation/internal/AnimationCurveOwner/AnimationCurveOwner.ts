@@ -36,9 +36,12 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   crossCurveDataIndex: number;
   defaultValue: V;
   fixedPoseValue: V;
-  baseTempValue: V;
-  crossTempValue: V;
   hasSavedDefaultValue: boolean = false;
+  baseEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
+
+  crossEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
+  crossSrcCurveIndex: number;
+  crossDestCurveIndex: number;
 
   referenceTargetValue: V;
 
@@ -69,7 +72,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number, additive: boolean): void {
     if (curve.keys.length) {
       if (additive) {
-        const value = curve._evaluateAdditive(time, this.baseTempValue);
+        const value = curve._evaluateAdditive(time, this.baseEvaluateData);
 
         const cureType = this._cureType;
         if (cureType._isReferenceType) {
@@ -81,7 +84,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           assembler.setTargetValue(additiveValue);
         }
       } else {
-        const value = curve._evaluate(time, this.baseTempValue);
+        const value = curve._evaluate(time, this.baseEvaluateData);
 
         this._applyValue(value, layerWeight);
       }
@@ -100,19 +103,21 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     const srcValue =
       srcCurve && srcCurve.keys.length
         ? additive
-          ? srcCurve._evaluateAdditive(srcTime, this.baseTempValue)
-          : srcCurve._evaluate(srcTime, this.baseTempValue)
+          ? srcCurve._evaluateAdditive(srcTime, this.baseEvaluateData)
+          : srcCurve._evaluate(srcTime, this.baseEvaluateData)
         : additive
-        ? this._cureType._getZeroValue(this.baseTempValue)
+        ? this._cureType._getZeroValue(this.baseEvaluateData.value)
         : this.defaultValue;
+
     const destValue =
       destCurve && destCurve.keys.length
         ? additive
-          ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
-          : destCurve._evaluate(destTime, this.crossTempValue)
+          ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
+          : destCurve._evaluate(destTime, this.crossEvaluateData)
         : additive
-        ? this._cureType._getZeroValue(this.crossTempValue)
+        ? this._cureType._getZeroValue(this.crossEvaluateData.value)
         : this.defaultValue;
+
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 
@@ -124,16 +129,17 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     additive: boolean
   ): void {
     const srcValue = additive
-      ? this._cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseTempValue)
+      ? this._cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseEvaluateData.value)
       : this.fixedPoseValue;
     const destValue =
       destCurve && destCurve.keys.length
         ? additive
-          ? destCurve._evaluateAdditive(destTime, this.crossTempValue)
-          : destCurve._evaluate(destTime, this.crossTempValue)
+          ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
+          : destCurve._evaluate(destTime, this.crossEvaluateData)
         : additive
-        ? this._cureType._getZeroValue(this.crossTempValue)
+        ? this._cureType._getZeroValue(this.crossEvaluateData.value)
         : this.defaultValue;
+
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
 
@@ -186,7 +192,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   ): void {
     let out: V;
     if (this._cureType._isReferenceType) {
-      out = this.baseTempValue;
+      out = this.baseEvaluateData.value;
       this._cureType._lerpValue(srcValue, destValue, crossWeight, out);
     } else {
       out = this._cureType._lerpValue(srcValue, destValue, crossWeight);
@@ -208,3 +214,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
 type ComponentType = new (entity: Entity) => Component;
 type AssemblerType = new () => IAnimationCurveOwnerAssembler<KeyframeValueType>;
+
+export interface IEvaluateData<V extends KeyframeValueType> {
+  curKeyframeIndex: number;
+  value: V;
+}

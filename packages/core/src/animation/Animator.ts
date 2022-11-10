@@ -9,13 +9,12 @@ import { AnimatorStateTransition } from "./AnimatorTransition";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
-import { AnimationCurveOwner } from "./internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
 import { AnimationEventHandler } from "./internal/AnimationEventHandler";
 import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
-import { CrossCurveData } from "./internal/CrossCurveData";
 import { KeyframeValueType } from "./Keyframe";
 /**
  * The controller of the animation system.
@@ -32,11 +31,9 @@ export class Animator extends Component {
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
-  private _crossCurveDataCollection: CrossCurveData[] = [];
+  private _crossOwnerCollection: AnimationCurveOwner<KeyframeValueType>[] = [];
   @ignoreClone
   private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeValueType>>[] = [];
-  @ignoreClone
-  private _crossCurveDataPool: ClassPool<CrossCurveData> = new ClassPool(CrossCurveData);
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
 
@@ -305,25 +302,22 @@ export class Animator extends Component {
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
     animatorLayerData.crossCurveMark++;
-    this._crossCurveDataCollection.length = 0;
-    this._crossCurveDataPool.resetPool();
+    this._crossOwnerCollection.length = 0;
   }
 
   private _addCrossCurveData(
-    crossCurveData: CrossCurveData[],
+    crossCurveData: AnimationCurveOwner<KeyframeValueType>[],
     owner: AnimationCurveOwner<KeyframeValueType>,
     curCurveIndex: number,
     nextCurveIndex: number
   ): void {
-    const dataItem = this._crossCurveDataPool.getFromPool();
-    dataItem.curveOwner = owner;
-    dataItem.srcCurveIndex = curCurveIndex;
-    dataItem.destCurveIndex = nextCurveIndex;
-    crossCurveData.push(dataItem);
+    owner.crossSrcCurveIndex = curCurveIndex;
+    owner.crossDestCurveIndex = nextCurveIndex;
+    crossCurveData.push(owner);
   }
 
   private _prepareCrossFading(animatorLayerData: AnimatorLayerData): void {
-    const crossCurveData = this._crossCurveDataCollection;
+    const crossCurveData = this._crossOwnerCollection;
     const { crossCurveMark } = animatorLayerData;
 
     // Add src cross curve data.
@@ -333,31 +327,36 @@ export class Animator extends Component {
   }
 
   private _prepareStandbyCrossFading(animatorLayerData: AnimatorLayerData): void {
-    const crossCurveData = this._crossCurveDataCollection;
+    const crossOwnerCollection = this._crossOwnerCollection;
     const { srcPlayData, crossCurveMark } = animatorLayerData;
 
     // Standby have two sub state, one is never play, one is finished, never play srcPlayData.state is null.
-    srcPlayData.state && this._prepareSrcCrossData(crossCurveData, srcPlayData, crossCurveMark, true);
+    srcPlayData.state && this._prepareSrcCrossData(crossOwnerCollection, srcPlayData, crossCurveMark, true);
     // Add dest cross curve data.
-    this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, crossCurveMark, true);
+    this._prepareDestCrossData(crossOwnerCollection, animatorLayerData.destPlayData, crossCurveMark, true);
   }
 
   private _prepareFixedPoseCrossFading(animatorLayerData: AnimatorLayerData): void {
-    const crossCurveData = this._crossCurveDataCollection;
+    const crossOwnerCollection = this._crossOwnerCollection;
 
     // Save current cross curve data owner fixed pose.
-    for (let i = crossCurveData.length - 1; i >= 0; i--) {
-      const item = crossCurveData[i];
-      item.curveOwner.saveFixedPoseValue();
+    for (let i = crossOwnerCollection.length - 1; i >= 0; i--) {
+      const item = crossOwnerCollection[i];
+      item.saveFixedPoseValue();
       // Reset destCurveIndex When fixed pose crossFading again.
-      item.destCurveIndex = -1;
+      item.crossDestCurveIndex = -1;
     }
     // prepare dest AnimatorState cross data.
-    this._prepareDestCrossData(crossCurveData, animatorLayerData.destPlayData, animatorLayerData.crossCurveMark, true);
+    this._prepareDestCrossData(
+      crossOwnerCollection,
+      animatorLayerData.destPlayData,
+      animatorLayerData.crossCurveMark,
+      true
+    );
   }
 
   private _prepareSrcCrossData(
-    crossCurveData: CrossCurveData[],
+    crossCurveData: AnimationCurveOwner<KeyframeValueType>[],
     srcPlayData: AnimatorStatePlayData,
     crossCurveMark: number,
     saveFixed: boolean
@@ -374,7 +373,7 @@ export class Animator extends Component {
   }
 
   private _prepareDestCrossData(
-    crossCurveData: CrossCurveData[],
+    crossCurveData: AnimationCurveOwner<KeyframeValueType>[],
     destPlayData: AnimatorStatePlayData,
     crossCurveMark: number,
     saveFixed: boolean
@@ -384,7 +383,7 @@ export class Animator extends Component {
       const owner = curveOwners[i];
       if (!owner) continue;
       if (owner.crossCurveMark === crossCurveMark) {
-        crossCurveData[owner.crossCurveDataIndex].destCurveIndex = i;
+        crossCurveData[owner.crossCurveDataIndex].crossDestCurveIndex = i;
       } else {
         owner.saveDefaultValue();
         saveFixed && owner.saveFixedPoseValue();
@@ -480,7 +479,7 @@ export class Animator extends Component {
     delta: number,
     additive: boolean
   ) {
-    const { _crossCurveDataCollection: crossCurveDataCollection } = this;
+    const { _crossOwnerCollection: crossCurveDataCollection } = this;
     const { _curveBindings: srcCurves } = srcPlayData.state.clip;
     const { state: srcState, stateData: srcStateData, playState: lastSrcPlayState } = srcPlayData;
     const { eventHandlers: srcEventHandlers } = srcStateData;
@@ -529,10 +528,10 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const crossCurveData = crossCurveDataCollection[i];
-      const { srcCurveIndex, destCurveIndex } = crossCurveData;
-      crossCurveData.curveOwner.crossFadeAndApplyValue(
-        srcCurveIndex >= 0 ? srcCurves[srcCurveIndex].curve : null,
-        destCurveIndex >= 0 ? destCurves[destCurveIndex].curve : null,
+      const { crossSrcCurveIndex, crossDestCurveIndex } = crossCurveData;
+      crossCurveData.crossFadeAndApplyValue(
+        crossSrcCurveIndex >= 0 ? srcCurves[crossSrcCurveIndex].curve : null,
+        crossDestCurveIndex >= 0 ? destCurves[crossDestCurveIndex].curve : null,
         srcClipTime,
         destClipTime,
         crossWeight,
@@ -550,7 +549,7 @@ export class Animator extends Component {
     delta: number,
     additive: boolean
   ) {
-    const crossCurveDataCollection = this._crossCurveDataCollection;
+    const crossCurveDataCollection = this._crossOwnerCollection;
     const { state, stateData, playState: lastPlayState } = destPlayData;
     const { eventHandlers } = stateData;
     const { _curveBindings: curveBindings } = state.clip;
@@ -581,9 +580,9 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const crossCurveData = crossCurveDataCollection[i];
-      const { destCurveIndex } = crossCurveData;
-      crossCurveData.curveOwner.crossFadeFromPoseAndApplyValue(
-        destCurveIndex >= 0 ? curveBindings[destCurveIndex].curve : null,
+      const { crossDestCurveIndex } = crossCurveData;
+      crossCurveData.crossFadeFromPoseAndApplyValue(
+        crossDestCurveIndex >= 0 ? curveBindings[crossDestCurveIndex].curve : null,
         destClipTime,
         crossWeight,
         layerWeight,
@@ -795,7 +794,7 @@ export class Animator extends Component {
 
   private _clearPlayData(): void {
     this._animatorLayersData.length = 0;
-    this._crossCurveDataCollection.length = 0;
+    this._crossOwnerCollection.length = 0;
     this._animationCurveOwners.length = 0;
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;

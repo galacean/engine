@@ -1,5 +1,4 @@
-import { Color, MathUtil, Matrix, Vector3 } from "@oasis-engine/math";
-import { Vector2 } from "@oasis-engine/math/src";
+import { Color, MathUtil, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
 import { GLCapabilityType } from "../base/Constant";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
