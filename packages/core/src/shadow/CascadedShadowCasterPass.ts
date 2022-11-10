@@ -1,5 +1,4 @@
-import { Color, MathUtil, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
-import { Vector2 } from "@oasis-engine/math/src";
+import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { GLCapabilityType } from "../base/Constant";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
@@ -52,7 +51,6 @@ export class CascadedShadowCasterPass {
   private _shadowSliceData: ShadowSliceData = new ShadowSliceData();
   private _lightUp: Vector3 = new Vector3();
   private _lightSide: Vector3 = new Vector3();
-  private _lightForward: Vector3 = new Vector3();
   private _existShadowMap: boolean = false;
 
   private _splitBoundSpheres = new Float32Array(4 * CascadedShadowCasterPass._maxCascades);
@@ -70,6 +68,7 @@ export class CascadedShadowCasterPass {
 
     this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
     this._shadowCasterShader = Shader.find("shadow-map");
+    this._shadowSliceData.virtualCamera.isOrthographic = true;
   }
 
   /**
@@ -111,7 +110,7 @@ export class CascadedShadowCasterPass {
     const lightWorldE = lightWorld.elements;
     const lightUp = this._lightUp;
     const lightSide = this._lightSide;
-    const lightForward = this._lightForward;
+    const lightForward = shadowSliceData.virtualCamera.forward;
 
     const sunLightIndex = engine._lightManager._getSunLightIndex();
 
@@ -172,7 +171,7 @@ export class CascadedShadowCasterPass {
         splitBoundSpheres[offset + 1] = center.y;
         splitBoundSpheres[offset + 2] = center.z;
         splitBoundSpheres[offset + 3] = radius * radius;
-        vpMatrix.set(shadowSliceData.viewProjectMatrix.elements, 16 * j);
+        vpMatrix.set(shadowSliceData.virtualCamera.viewProjectionMatrix.elements, 16 * j);
 
         opaqueQueue.clear();
         alphaTestQueue.clear();
@@ -338,9 +337,10 @@ export class CascadedShadowCasterPass {
     shadowSliceData: ShadowSliceData,
     context: RenderContext
   ): void {
+    const virtualCamera = shadowSliceData.virtualCamera;
     // Frustum size is guaranteed to be a cube as we wrap shadow frustum around a sphere
     // elements[0] = 2.0 / (right - left)
-    const frustumSize = 2.0 / shadowSliceData.projectionMatrix.elements[0];
+    const frustumSize = 2.0 / virtualCamera.projectionMatrix.elements[0];
     // depth and normal bias scale is in shadowMap texel size in world space
     const texelSize = frustumSize / this._shadowTileResolution;
     this._shadowBias.set(-light.shadowBias * texelSize, -light.shadowNormalBias * texelSize);
@@ -349,10 +349,6 @@ export class CascadedShadowCasterPass {
     sceneShaderData.setVector2(CascadedShadowCasterPass._lightShadowBiasProperty, this._shadowBias);
     sceneShaderData.setVector3(CascadedShadowCasterPass._lightDirectionProperty, light.direction);
 
-    context.applyViewProjectMatrix(
-      shadowSliceData.viewMatrix,
-      shadowSliceData.projectionMatrix,
-      shadowSliceData.viewProjectMatrix
-    );
+    context.applyVirtualCamera(virtualCamera);
   }
 }

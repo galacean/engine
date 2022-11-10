@@ -1,4 +1,4 @@
-import { AnimationCurveOwner } from "../../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe, KeyframeValueType } from "../../Keyframe";
 
 /**
