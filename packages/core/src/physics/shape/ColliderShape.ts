@@ -88,6 +88,8 @@ export abstract class ColliderShape {
 
   /**
    * Whether raycast can select it
+   * @internal
+   * @beta
    */
   get isSceneQuery(): boolean {
     return this._isSceneQuery;
