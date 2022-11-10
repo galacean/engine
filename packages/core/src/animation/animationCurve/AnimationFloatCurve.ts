@@ -82,4 +82,9 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
       return frame.value;
     }
   }
+
+  constructor() {
+    super();
+    this._evaluateData.value = 0;
+  }
 }

@@ -1,6 +1,6 @@
 import { Vector4 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner, IEvaluateData } from "../internal/animationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -120,7 +120,6 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
   }
 
   constructor() {
-    super();
-    this._evaluateData.value = new Vector4();
+    super(Vector4);
   }
 }

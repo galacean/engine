@@ -129,7 +129,6 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   }
 
   constructor() {
-    super();
-    this._evaluateData.value = new Quaternion();
+    super(Quaternion);
   }
 }

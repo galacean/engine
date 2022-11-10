@@ -109,20 +109,14 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   }
 
   /**
-   * Evaluate the curve at time.
-   * @param time - The time within the curve you want to evaluate
+   * @inheritdoc
+   * @override
    */
-  evaluate(time: number): Float32Array {
-    let tempValue = this._evaluateData.value;
-    if (!tempValue) {
-      const size = this.keys[0]?.value?.length;
-      if (size) {
-        tempValue = new Float32Array(this.keys[0]?.value?.length);
-        this._evaluateData.value = tempValue;
-      } else {
-        tempValue = new Float32Array();
-      }
+  addKey(key: Keyframe<Float32Array>): void {
+    if (!this._evaluateData.value) {
+      const size = key.value.length;
+      this._evaluateData.value = new Float32Array(size);
     }
-    return this._evaluate(time, this._evaluateData);
+    super.addKey(key);
   }
 }

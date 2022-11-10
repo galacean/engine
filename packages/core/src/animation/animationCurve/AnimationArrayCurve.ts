@@ -106,4 +106,8 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     }
     return out;
   }
+
+  constructor() {
+    super(Array);
+  }
 }

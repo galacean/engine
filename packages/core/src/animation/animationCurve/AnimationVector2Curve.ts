@@ -107,7 +107,6 @@ export class AnimationVector2Curve extends AnimationCurve<Vector2> {
   }
 
   constructor() {
-    super();
-    this._evaluateData.value = new Vector2();
+    super(Vector2);
   }
 }

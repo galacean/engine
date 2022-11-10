@@ -39,7 +39,9 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
     return this._length;
   }
 
-  constructor() {
+  constructor(curveType?: new () => V) {
+    curveType && (this._evaluateData.value = new curveType());
+
     const type = (<unknown>this.constructor) as IAnimationCurveCalculator<V>;
     this._interpolation = type._isInterpolationType ? InterpolationType.Linear : InterpolationType.Step;
     this._type = type;
