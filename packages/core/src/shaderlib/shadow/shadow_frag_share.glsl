@@ -6,6 +6,7 @@
 
         // intensity, resolution, sunIndex
         uniform vec3 u_shadowInfo;
+        uniform vec4 u_ShadowMapSize;
         uniform mat4 u_viewProjMatFromLight[4];
         uniform vec4 u_shadowSplitSpheres[4];
 
@@ -129,11 +130,11 @@
         #if SHADOW_MODE == 3
         #include <shadow_sample_tent>
 
-        float sampleShadowMapFiltered9(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, float size) {
+        float sampleShadowMapFiltered9(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowmapSize) {
             float attenuation;
             float fetchesWeights[9];
             vec2 fetchesUV[9];
-            sampleShadowComputeSamplesTent5x5(size, shadowCoord.xy, fetchesWeights, fetchesUV);
+            sampleShadowComputeSamplesTent5x5(shadowmapSize, shadowCoord.xy, fetchesWeights, fetchesUV);
             attenuation = fetchesWeights[0] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[0].xy, shadowCoord.z));
             attenuation += fetchesWeights[1] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[1].xy, shadowCoord.z));
             attenuation += fetchesWeights[2] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[2].xy, shadowCoord.z));
@@ -160,7 +161,7 @@
         #endif
 
         #if SHADOW_MODE == 3
-                attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_shadowInfo.y);
+                attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_ShadowMapSize);
         #endif
                 attenuation = mix(1.0, attenuation, u_shadowInfo.x);
             }

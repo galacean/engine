@@ -1,4 +1,4 @@
-import { Color, MathUtil, Matrix, Vector3 } from "@oasis-engine/math";
+import { Color, MathUtil, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
 import { Vector2 } from "@oasis-engine/math/src";
 import { GLCapabilityType } from "../base/Constant";
 import { Camera } from "../Camera";
@@ -26,6 +26,7 @@ export class CascadedShadowCasterPass {
   private static _lightDirectionProperty = Shader.getPropertyByName("u_lightDirection");
 
   private static _viewProjMatFromLightProperty = Shader.getPropertyByName("u_viewProjMatFromLight");
+  private static _shadowMapSize = Shader.getPropertyByName("u_ShadowMapSize");
   private static _shadowInfosProperty = Shader.getPropertyByName("u_shadowInfo");
   private static _shadowMapsProperty = Shader.getPropertyByName("u_shadowMap");
   private static _shadowSplitSpheresProperty = Shader.getPropertyByName("u_shadowSplitSpheres");
@@ -43,7 +44,7 @@ export class CascadedShadowCasterPass {
   private readonly _supportDepthTexture: boolean;
 
   private _shadowMapResolution: number;
-  private _shadowMapSize: Vector2 = new Vector2();
+  private _shadowMapSize: Vector4 = new Vector4();
   private _shadowTileResolution: number;
   private _shadowBias: Vector2 = new Vector2();
   private _shadowMapFormat: TextureFormat;
@@ -209,6 +210,7 @@ export class CascadedShadowCasterPass {
     shaderData.setVector3(CascadedShadowCasterPass._shadowInfosProperty, this._shadowInfos);
     shaderData.setTexture(CascadedShadowCasterPass._shadowMapsProperty, this._depthTexture);
     shaderData.setFloatArray(CascadedShadowCasterPass._shadowSplitSpheresProperty, this._splitBoundSpheres);
+    shaderData.setVector4(CascadedShadowCasterPass._shadowMapSize, this._shadowMapSize);
   }
 
   private _getCascadesSplitDistance(shadowFar: number): void {
@@ -256,7 +258,7 @@ export class CascadedShadowCasterPass {
   private _getAvailableRenderTarget(): RenderTarget {
     const engine = this._engine;
     const format = this._shadowMapFormat;
-    const { x: width, y: height } = this._shadowMapSize;
+    const { z: width, w: height } = this._shadowMapSize;
     let depthTexture = this._depthTexture;
     let renderTarget = this._renderTargets;
     if (
@@ -297,7 +299,7 @@ export class CascadedShadowCasterPass {
 
       if (shadowCascades == ShadowCascadesMode.NoCascades) {
         this._shadowTileResolution = shadowResolution;
-        this._shadowMapSize.set(shadowResolution, shadowResolution);
+        this._shadowMapSize.set(1 / shadowResolution, 1 / shadowResolution, shadowResolution, shadowResolution);
       } else {
         const shadowTileResolution = ShadowUtils.getMaxTileResolutionInAtlas(
           shadowResolution,
@@ -305,10 +307,10 @@ export class CascadedShadowCasterPass {
           shadowCascades
         );
         this._shadowTileResolution = shadowTileResolution;
-        this._shadowMapSize.set(
-          shadowTileResolution * 2,
-          shadowCascades == ShadowCascadesMode.TwoCascades ? shadowTileResolution : shadowTileResolution * 2
-        );
+        const width = shadowTileResolution * 2;
+        const height =
+          shadowCascades == ShadowCascadesMode.TwoCascades ? shadowTileResolution : shadowTileResolution * 2;
+        this._shadowMapSize.set(1.0 / width, 1.0 / height, width, height);
       }
 
       this._renderTargets = null;
