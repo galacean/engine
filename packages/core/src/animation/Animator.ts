@@ -347,7 +347,12 @@ export class Animator extends Component {
       item.crossDestCurveIndex = -1;
     }
     // prepare dest AnimatorState cross data.
-    this._prepareDestCrossData(crossOwnerCollection, animatorLayerData.destPlayData, animatorLayerData.crossCurveMark, true);
+    this._prepareDestCrossData(
+      crossOwnerCollection,
+      animatorLayerData.destPlayData,
+      animatorLayerData.crossCurveMark,
+      true
+    );
   }
 
   private _prepareSrcCrossData(
@@ -575,9 +580,9 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const crossCurveData = crossCurveDataCollection[i];
-      const { crossDestCurveIndex: destCurveIndex } = crossCurveData;
+      const { crossDestCurveIndex } = crossCurveData;
       crossCurveData.crossFadeFromPoseAndApplyValue(
-        destCurveIndex >= 0 ? curveBindings[destCurveIndex].curve : null,
+        crossDestCurveIndex >= 0 ? curveBindings[crossDestCurveIndex].curve : null,
         destClipTime,
         crossWeight,
         layerWeight,
