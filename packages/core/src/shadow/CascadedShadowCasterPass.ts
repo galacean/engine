@@ -58,7 +58,7 @@ export class CascadedShadowCasterPass {
   private _splitBoundSpheres = new Float32Array(4 * CascadedShadowCasterPass._maxCascades);
   // 4 viewProj matrix for cascade shadow
   private _vpMatrix = new Float32Array(64);
-  // strength, resolution, lightIndex
+  // strength, null, lightIndex
   private _shadowInfos = new Vector3();
   private _depthTexture: Texture2D;
   private _renderTargets: RenderTarget;
@@ -128,7 +128,6 @@ export class CascadedShadowCasterPass {
         rhi.clearRenderTarget(engine, CameraClearFlags.All, CascadedShadowCasterPass._clearColor);
       }
       this._shadowInfos.x = light.shadowStrength;
-      this._shadowInfos.y = this._shadowTileResolution;
       this._shadowInfos.z = sunLightIndex;
 
       // prepare light and camera direction
