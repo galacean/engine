@@ -106,6 +106,4 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
     }
     return out;
   }
-
-  protected _tempValue: number[] = [];
 }
