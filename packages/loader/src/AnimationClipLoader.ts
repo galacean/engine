@@ -9,7 +9,7 @@ import {
 } from "@oasis-engine/core";
 import { decode } from "./resource-deserialize";
 
-@resourceLoader(AssetType.AnimationClip, ["bin"])
+@resourceLoader(AssetType.AnimationClip, ["ani"])
 class AnimationClipLoader extends Loader<AnimationClip> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<AnimationClip> {
     return new AssetPromise((resolve) => {
