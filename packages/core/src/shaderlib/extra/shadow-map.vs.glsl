@@ -24,7 +24,6 @@ void main() {
     #include <begin_normal_vert>
     #include <blendShape_vert>
     #include <skinning_vert>
-    #include <normal_vert>
     vec4 temp_pos = u_modelMat * position;
     vec3 v_pos = temp_pos.xyz / temp_pos.w;
 

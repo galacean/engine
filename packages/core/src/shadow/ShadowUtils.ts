@@ -193,15 +193,11 @@ export class ShadowUtils {
   }
 
   static shadowCullFrustum(context: RenderContext, renderer: Renderer, shadowSliceData: ShadowSliceData): void {
-    const center = ShadowUtils._edgePlanePoint2;
     if (
       renderer.castShadows &&
       ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
     ) {
-      renderer.bounds.getCenter(center);
-      renderer._distanceForSort = Vector3.distance(center, shadowSliceData.position);
-      renderer._updateShaderData(context);
-      renderer._render(context);
+      renderer._prepareRender(context);
     }
   }
 
@@ -358,14 +354,15 @@ export class ShadowUtils {
     center.z = lightUp.z * upLen + lightSide.z * sideLen + lightForward.z * forwardLen;
 
     // Direction light use shadow pancaking tech,do special dispose with nearPlane.
-    const origin = shadowSliceData.position;
-    const viewMatrix = shadowSliceData.viewMatrix;
-    const projectMatrix = shadowSliceData.projectionMatrix;
-    const viewProjectMatrix = shadowSliceData.viewProjectMatrix;
 
-    Vector3.scale(lightForward, radius + nearPlane, origin);
-    Vector3.subtract(center, origin, origin);
-    Matrix.lookAt(origin, center, lightUp, viewMatrix);
+    const virtualCamera = shadowSliceData.virtualCamera;
+    const position = virtualCamera.position;
+    const viewMatrix = virtualCamera.viewMatrix;
+    const projectMatrix = virtualCamera.projectionMatrix;
+
+    Vector3.scale(lightForward, radius + nearPlane, position);
+    Vector3.subtract(center, position, position);
+    Matrix.lookAt(position, center, lightUp, viewMatrix);
     Matrix.ortho(
       -borderRadius,
       borderRadius,
@@ -375,7 +372,7 @@ export class ShadowUtils {
       radius * 2.0 + nearPlane,
       projectMatrix
     );
-    Matrix.multiply(projectMatrix, viewMatrix, viewProjectMatrix);
+    Matrix.multiply(projectMatrix, viewMatrix, virtualCamera.viewProjectionMatrix);
   }
 
   static getMaxTileResolutionInAtlas(atlasWidth: number, atlasHeight: number, tileCount: number): number {
