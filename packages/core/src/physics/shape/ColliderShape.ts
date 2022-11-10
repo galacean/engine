@@ -89,11 +89,11 @@ export abstract class ColliderShape {
   /**
    * Whether raycast can select it
    */
-  get setIsSceneQuery(): boolean {
+  get isSceneQuery(): boolean {
     return this._isSceneQuery;
   }
 
-  set setIsSceneQuery(value: boolean) {
+  set isSceneQuery(value: boolean) {
     this._isSceneQuery = value;
     this._nativeShape.setIsSceneQuery(value);
   }
