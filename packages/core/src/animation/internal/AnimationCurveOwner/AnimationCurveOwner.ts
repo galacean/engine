@@ -128,12 +128,11 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     layerWeight: number,
     additive: boolean
   ): void {
-    const destCount = destCurve.keys.length;
     const srcValue = additive
       ? this._cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseEvaluateData.value)
       : this.fixedPoseValue;
     const destValue =
-      destCurve && destCount
+      destCurve && destCurve.keys.length
         ? additive
           ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
           : destCurve._evaluate(destTime, this.crossEvaluateData)
