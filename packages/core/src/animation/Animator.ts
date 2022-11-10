@@ -528,10 +528,10 @@ export class Animator extends Component {
 
     for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
       const crossCurveData = crossCurveDataCollection[i];
-      const { crossSrcCurveIndex: srcCurveIndex, crossDestCurveIndex: destCurveIndex } = crossCurveData;
+      const { crossSrcCurveIndex, crossDestCurveIndex } = crossCurveData;
       crossCurveData.crossFadeAndApplyValue(
-        srcCurveIndex >= 0 ? srcCurves[srcCurveIndex].curve : null,
-        destCurveIndex >= 0 ? destCurves[destCurveIndex].curve : null,
+        crossSrcCurveIndex >= 0 ? srcCurves[crossSrcCurveIndex].curve : null,
+        crossDestCurveIndex >= 0 ? destCurves[crossDestCurveIndex].curve : null,
         srcClipTime,
         destClipTime,
         crossWeight,
