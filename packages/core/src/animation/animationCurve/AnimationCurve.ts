@@ -113,11 +113,13 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       curIndex++;
       nextIndex++;
     }
+    evaluateData.curKeyframeIndex = curIndex;
+
     // Evaluate value.
     let value: V;
     if (curIndex === -1) {
       value = this._type._copyValue(keys[0].value, evaluateData.value);
-    } else if (curIndex + 1 === length) {
+    } else if (nextIndex === length) {
       value = this._type._copyValue(keys[curIndex].value, evaluateData.value);
     } else {
       // Time between first frame and end frame.
