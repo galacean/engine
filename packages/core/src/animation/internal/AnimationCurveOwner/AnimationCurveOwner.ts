@@ -100,21 +100,23 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     layerWeight: number,
     additive: boolean
   ): void {
-    const srcValue = srcCurve.keys.length
-      ? additive
-        ? srcCurve._evaluateAdditive(srcTime, this.baseEvaluateData)
-        : srcCurve._evaluate(srcTime, this.baseEvaluateData)
-      : additive
-      ? this._cureType._getZeroValue(this.baseEvaluateData.value)
-      : this.defaultValue;
+    const srcValue =
+      srcCurve && srcCurve.keys.length
+        ? additive
+          ? srcCurve._evaluateAdditive(srcTime, this.baseEvaluateData)
+          : srcCurve._evaluate(srcTime, this.baseEvaluateData)
+        : additive
+        ? this._cureType._getZeroValue(this.baseEvaluateData.value)
+        : this.defaultValue;
 
-    const destValue = destCurve.keys.length
-      ? additive
-        ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
-        : destCurve._evaluate(destTime, this.crossEvaluateData)
-      : additive
-      ? this._cureType._getZeroValue(this.crossEvaluateData.value)
-      : this.defaultValue;
+    const destValue =
+      destCurve && destCurve.keys.length
+        ? additive
+          ? destCurve._evaluateAdditive(destTime, this.crossEvaluateData)
+          : destCurve._evaluate(destTime, this.crossEvaluateData)
+        : additive
+        ? this._cureType._getZeroValue(this.crossEvaluateData.value)
+        : this.defaultValue;
 
     this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
   }
