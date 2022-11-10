@@ -113,10 +113,12 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
    * @override
    */
   addKey(key: Keyframe<Float32Array>): void {
-    if (!this._evaluateData.value) {
-      const size = key.value.length;
-      this._evaluateData.value = new Float32Array(size);
-    }
     super.addKey(key);
+
+    const evaluateData = this._evaluateData;
+    if (!evaluateData.value || evaluateData.value.length !== key.value.length) {
+      const size = key.value.length;
+      evaluateData.value = new Float32Array(size);
+    }
   }
 }
