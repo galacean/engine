@@ -394,5 +394,16 @@ describe("Entity", () => {
       child.destroy();
       expect(parent.children.length).eq(0);
     });
+
+    it("children", () => {
+      const entity = new Entity(engine, "entity");
+      entity.createChild("child0");
+      entity.createChild("child1");
+      entity.createChild("child2");
+      entity.createChild("child3");
+      entity.createChild("child4");
+      entity.destroy();
+      expect(entity.children.length).eq(0);
+    });
   });
 });

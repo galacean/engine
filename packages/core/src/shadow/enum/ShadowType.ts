@@ -1,7 +1,7 @@
 /**
  * Determines which type of shadows should be used.
  */
-export enum ShadowMode {
+export enum ShadowType {
   /** Disable Shadows. */
   None,
   /** Hard Shadows Only. */

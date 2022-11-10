@@ -13,7 +13,7 @@ import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
-import { ShadowMode } from "../shadow/enum/ShadowMode";
+import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, TextureCubeFace } from "../texture";
 import { RenderContext } from "./RenderContext";
 import { RenderElement } from "./RenderElement";
@@ -141,19 +141,21 @@ export class BasicRenderPipeline {
    */
   render(context: RenderContext, cubeFace?: TextureCubeFace, mipLevel?: number) {
     const camera = this._camera;
+    const scene = camera.scene;
     const opaqueQueue = this._opaqueQueue;
     const alphaTestQueue = this._alphaTestQueue;
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
-    if (camera.engine.settings.shadowMode !== ShadowMode.None) {
-      this._cascadedShadowCaster._render();
+    if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
+      this._cascadedShadowCaster._render(context);
     }
-
     opaqueQueue.clear();
     alphaTestQueue.clear();
     transparentQueue.clear();
     this._allSpriteMasks.length = 0;
+
+    context.applyViewProjectMatrix(camera.viewMatrix, camera.projectionMatrix, camera._viewProjectionMatrix);
 
     this._callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
@@ -161,11 +163,17 @@ export class BasicRenderPipeline {
     transparentQueue.sort(RenderQueue._compareFromFarToNear);
 
     for (let i = 0, len = this._renderPassArray.length; i < len; i++) {
-      this._drawRenderPass(this._renderPassArray[i], camera, cubeFace, mipLevel);
+      this._drawRenderPass(context, this._renderPassArray[i], camera, cubeFace, mipLevel);
     }
   }
 
-  private _drawRenderPass(pass: RenderPass, camera: Camera, cubeFace?: TextureCubeFace, mipLevel?: number) {
+  private _drawRenderPass(
+    context: RenderContext,
+    pass: RenderPass,
+    camera: Camera,
+    cubeFace?: TextureCubeFace,
+    mipLevel?: number
+  ) {
     pass.preRender(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
 
     if (pass.enabled) {
@@ -184,16 +192,16 @@ export class BasicRenderPipeline {
       if (pass.renderOverride) {
         pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
       } else {
-        this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
-        this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask, null);
+        this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask, null);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
-            background.sky._render(camera);
+            background.sky._render(context);
           } else if (background.mode === BackgroundMode.Texture && background.texture) {
             this._drawBackgroundTexture(engine, background);
           }
         }
-        this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask, null);
       }
 
       renderTarget?._blitRenderTarget();
@@ -245,7 +253,7 @@ export class BasicRenderPipeline {
 
   private _callRender(context: RenderContext): void {
     const renderers = this._camera.engine._componentsManager._renderers;
-    const camera = context._camera;
+    const camera = context.camera;
     const elements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
       const renderer = elements[i];
@@ -275,8 +283,7 @@ export class BasicRenderPipeline {
       }
 
       renderer._updateShaderData(context);
-
-      renderer._render(camera);
+      renderer._render(context);
 
       // union camera global macro and renderer macro.
       ShaderMacroCollection.unionCollection(

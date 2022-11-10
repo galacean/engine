@@ -1,6 +1,6 @@
 import { MathUtil, Matrix, Matrix3x3, Quaternion, Vector3 } from "@oasis-engine/math";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Entity } from "./Entity";
 import { UpdateFlagManager } from "./UpdateFlagManager";
@@ -43,10 +43,10 @@ export class Transform extends Component {
   private _isParentDirty: boolean = true;
   @ignoreClone
   private _parentTransformCache: Transform = null;
-
   private _dirtyFlag: number = TransformModifyFlags.WmWpWeWqWs;
 
   /** @internal */
+  @ignoreClone
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
@@ -737,11 +737,13 @@ export class Transform extends Component {
     this._rotateByQuat(rotQuat, relativeToLocal);
   }
 
+  @ignoreClone
   private _onPositionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     this._updateWorldPositionFlag();
   }
 
+  @ignoreClone
   private _onWorldPositionChanged(): void {
     const worldPosition = this._worldPosition;
     const parent = this._getParentTransform();
@@ -754,12 +756,14 @@ export class Transform extends Component {
     this._setDirtyFlagFalse(TransformModifyFlags.WorldPosition);
   }
 
+  @ignoreClone
   private _onRotationChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalEuler);
     this._updateWorldRotationFlag();
   }
 
+  @ignoreClone
   private _onWorldRotationChanged(): void {
     const worldRotation = this._worldRotation;
     Quaternion.rotationEuler(
@@ -771,12 +775,14 @@ export class Transform extends Component {
     this._setDirtyFlagFalse(TransformModifyFlags.WorldEuler);
   }
 
+  @ignoreClone
   private _onRotationQuaternionChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalEuler);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
     this._updateWorldRotationFlag();
   }
 
+  @ignoreClone
   private _onWorldRotationQuaternionChanged(): void {
     const worldRotationQuaternion = this._worldRotationQuaternion;
     const parent = this._getParentTransform();
@@ -790,6 +796,7 @@ export class Transform extends Component {
     this._setDirtyFlagFalse(TransformModifyFlags.WorldQuat);
   }
 
+  @ignoreClone
   private _onScaleChanged(): void {
     this._setDirtyFlagTrue(TransformModifyFlags.LocalMatrix);
     this._updateWorldScaleFlag();

@@ -1,8 +1,8 @@
 import { MathUtil, Matrix } from "@oasis-engine/math";
+import { Logger } from "../base/Logger";
 import { Mesh } from "../graphic/Mesh";
 import { Material } from "../material";
-import { Camera } from "../Camera";
-import { Logger } from "../base/Logger";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader/Shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 
@@ -22,7 +22,7 @@ export class Sky {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  _render(context: RenderContext): void {
     const { material, mesh } = this;
     if (!material) {
       Logger.warn("The material of sky is not defined.");
@@ -33,7 +33,7 @@ export class Sky {
       return;
     }
 
-    const { engine, aspectRatio, fieldOfView, viewMatrix, shaderData: cameraShaderData } = camera;
+    const { engine, aspectRatio, fieldOfView, viewMatrix, shaderData: cameraShaderData } = context.camera;
     const { _viewProjMatrix: viewProjMatrix, _projectionMatrix: projectionMatrix } = Sky;
     const rhi = engine._hardwareRenderer;
     const { shaderData: materialShaderData, shader, renderState } = material;
@@ -50,12 +50,12 @@ export class Sky {
 
     // view-proj matrix
     Matrix.multiply(projectionMatrix, viewProjMatrix, viewProjMatrix);
-    const originViewProjMatrix = cameraShaderData.getMatrix(Camera._vpMatrixProperty);
-    cameraShaderData.setMatrix(Camera._vpMatrixProperty, viewProjMatrix);
+    const originViewProjMatrix = cameraShaderData.getMatrix(RenderContext._vpMatrixProperty);
+    cameraShaderData.setMatrix(RenderContext._vpMatrixProperty, viewProjMatrix);
 
     const compileMacros = Shader._compileMacros;
     ShaderMacroCollection.unionCollection(
-      camera._globalShaderMacro,
+      context.camera._globalShaderMacro,
       materialShaderData._macroCollection,
       compileMacros
     );
@@ -68,6 +68,6 @@ export class Sky {
 
     renderState._apply(engine, false);
     rhi.drawPrimitive(mesh, mesh.subMesh, program);
-    cameraShaderData.setMatrix(Camera._vpMatrixProperty, originViewProjMatrix);
+    cameraShaderData.setMatrix(RenderContext._vpMatrixProperty, originViewProjMatrix);
   }
 }

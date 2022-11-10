@@ -1,6 +1,8 @@
-#ifdef CASCADED_SHADOW_MAP
-    #ifdef OASIS_RECEIVE_SHADOWS
-        #define OASIS_CALCULATE_SHADOWS
+#if defined(CASCADED_SHADOW_MAP)&&defined(OASIS_RECEIVE_SHADOWS)
+    #define OASIS_CALCULATE_SHADOWS
+#endif
+
+#ifdef OASIS_CALCULATE_SHADOWS
 
         // intensity, resolution, sunIndex
         uniform vec3 u_shadowInfo;
@@ -164,5 +166,4 @@
             }
             return attenuation;
         }
-    #endif
 #endif

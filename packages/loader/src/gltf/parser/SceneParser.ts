@@ -66,15 +66,15 @@ export class SceneParser extends Parser {
 
     glTFResource.gltf.extensions && delete glTFResource.gltf.extensions["OASIS_materials_remap"];
 
-    if (defaultSceneRootOnly) {
-      if (glTFResource.defaultSceneRoot) {
-        return glTFResource.defaultSceneRoot;
-      } else {
-        throw `defaultSceneRoot is not find in this gltf`;
+    return Promise.all(promises).then(() => {
+      if (defaultSceneRootOnly) {
+        if (glTFResource.defaultSceneRoot) {
+          return glTFResource.defaultSceneRoot;
+        } else {
+          throw `defaultSceneRoot is not find in this gltf`;
+        }
       }
-    }
-
-    return Promise.all(promises).then(() => null);
+    });
   }
 
   private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
