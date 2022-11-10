@@ -6,7 +6,7 @@ import { Scene } from "./Scene";
 /**
  * The base class of the components.
  */
-export abstract class Component extends EngineObject {
+export class Component extends EngineObject {
   /** @internal */
   @ignoreClone
   _entity: Entity;

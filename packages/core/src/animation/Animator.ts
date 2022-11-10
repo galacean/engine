@@ -57,10 +57,10 @@ export class Animator extends Component {
 
   set animatorController(animatorController: AnimatorController) {
     if (animatorController !== this._animatorController) {
+      this._reset();
       this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
       this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
-      this._reset();
     }
   }
 
@@ -184,7 +184,7 @@ export class Animator extends Component {
    */
   _onEnable(): void {
     this.engine._componentsManager.addOnUpdateAnimations(this);
-    this._checkAutoPlay();
+    this.animatorController && this._checkAutoPlay();
   }
 
   /**
@@ -235,7 +235,8 @@ export class Animator extends Component {
   private _saveDefaultValues(stateData: AnimatorStateData): void {
     const { curveOwners } = stateData;
     for (let i = curveOwners.length - 1; i >= 0; i--) {
-      curveOwners[i].saveDefaultValue();
+      const owner = curveOwners[i];
+      owner && owner.saveDefaultValue();
     }
   }
 
@@ -262,10 +263,15 @@ export class Animator extends Component {
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
-      const { property } = curve;
-      const { instanceId } = targetEntity;
-      const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = {});
-      curveOwners[i] = propertyOwners[property] || (propertyOwners[property] = curve._createCurveOwner(targetEntity));
+      if (targetEntity) {
+        const { property } = curve;
+        const { instanceId } = targetEntity;
+        const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = {});
+        curveOwners[i] = propertyOwners[property] || (propertyOwners[property] = curve._createCurveOwner(targetEntity));
+      } else {
+        curveOwners[i] = null;
+        console.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
+      }
     }
   }
 
@@ -353,6 +359,7 @@ export class Animator extends Component {
     const { curveOwners } = srcPlayData.stateData;
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
+      if (!owner) continue;
       owner.crossCurveMark = crossCurveMark;
       owner.crossCurveDataIndex = crossCurveData.length;
       saveFixed && owner.saveFixedPoseValue();
@@ -369,6 +376,7 @@ export class Animator extends Component {
     const { curveOwners } = destPlayData.stateData;
     for (let i = curveOwners.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
+      if (!owner) continue;
       if (owner.crossCurveMark === crossCurveMark) {
         crossCurveData[owner.crossCurveDataIndex].crossDestCurveIndex = i;
       } else {
@@ -437,7 +445,8 @@ export class Animator extends Component {
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
     for (let i = curveBindings.length - 1; i >= 0; i--) {
-      curveOwners[i].evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight, additive);
+      const owner = curveOwners[i];
+      owner && owner.evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight, additive);
     }
 
     playData.frameTime += state.speed * delta;
@@ -599,7 +608,7 @@ export class Animator extends Component {
       const { curveOwners } = stateData;
       for (let i = curves.length - 1; i >= 0; i--) {
         const owner = curveOwners[i];
-        owner.hasSavedDefaultValue && owner.revertDefaultValue();
+        owner?.hasSavedDefaultValue && owner.revertDefaultValue();
       }
     }
   }

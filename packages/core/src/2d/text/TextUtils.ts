@@ -2,9 +2,9 @@ import { Engine } from "../../Engine";
 import { CharInfo } from "./CharInfo";
 import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";
-import { Font } from "./Font";
 import { TextRenderer } from "./TextRenderer";
 import { Vector2 } from "@oasis-engine/math";
+import { SubFont } from "./SubFont";
 
 /**
  * @internal
@@ -91,10 +91,9 @@ export class TextUtils {
   }
 
   static measureTextWithWrap(renderer: TextRenderer): TextMetrics {
-    const { fontSize, fontStyle } = renderer;
+    const { fontSize, fontStyle, _subFont: subFont } = renderer;
     const { name } = renderer.font;
     const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
-    const charFont = renderer._styleFont;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lines = new Array<string>();
@@ -114,7 +113,7 @@ export class TextUtils {
 
       for (let j = 0, m = subText.length; j < m; ++j) {
         const char = subText[j];
-        const charInfo = TextUtils._getCharInfo(char, fontString, charFont);
+        const charInfo = TextUtils._getCharInfo(char, fontString, subFont);
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
@@ -176,10 +175,9 @@ export class TextUtils {
   }
 
   static measureTextWithoutWrap(renderer: TextRenderer): TextMetrics {
-    const { fontSize, fontStyle } = renderer;
+    const { fontSize, fontStyle, _subFont: subFont } = renderer;
     const { name } = renderer.font;
     const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
-    const charFont = renderer._styleFont;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lineCount = lines.length;
@@ -200,7 +198,7 @@ export class TextUtils {
       let maxDescent = -1;
 
       for (let j = 0, m = line.length; j < m; ++j) {
-        const charInfo = TextUtils._getCharInfo(line[j], fontString, charFont);
+        const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
         curWidth += charInfo.xAdvance;
         const { offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
@@ -329,7 +327,7 @@ export class TextUtils {
     }
   }
 
-  private static _getCharInfo(char: string, fontString: string, font: Font): CharInfo {
+  private static _getCharInfo(char: string, fontString: string, font: SubFont): CharInfo {
     let charInfo = font._getCharInfo(char);
     if (!charInfo) {
       charInfo = TextUtils.measureChar(char, fontString);

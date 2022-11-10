@@ -1,3 +1,7 @@
+import "./internal/AnimationCurveOwner/Assembler/PositionAnimationCurveOwnerAssembler";
+import "./internal/AnimationCurveOwner/Assembler/RotationAnimationCurveOwnerAssembler";
+import "./internal/AnimationCurveOwner/Assembler/ScaleAnimationCurveOwnerAssembler";
+
 export { AnimationClip } from "./AnimationClip";
 export { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
 export * from "./animationCurve";
@@ -14,3 +18,4 @@ export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
 export * from "./Keyframe";
 export { StateMachineScript } from "./StateMachineScript";
+

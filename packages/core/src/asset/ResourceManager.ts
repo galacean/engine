@@ -1,6 +1,5 @@
-import { Engine, EngineObject } from "..";
+import { Engine, EngineObject, Logger } from "..";
 import { ObjectValues } from "../base/Util";
-import { Utils } from "../Utils";
 import { AssetPromise } from "./AssetPromise";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
@@ -151,10 +150,23 @@ export class ResourceManager {
   getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
     const { refId, key, isClone } = ref;
     const obj = this._objectPool[refId];
-    const promise = obj
-      ? Promise.resolve(obj)
-      : this.load<any>({ type: this._editorResourceConfig[refId].type, url: this._editorResourceConfig[refId].path });
-    return promise.then((res) => (key ? Utils._reflectGet(res, key) : res)).then((item) => (isClone ? item.clone() : item));
+    let promise;
+    if (obj) {
+      promise = Promise.resolve(obj);
+    } else {
+      const url = this._editorResourceConfig[refId]?.path;
+      if (!url) {
+        Logger.error(
+          `refId:${refId} is not find in this._editorResourceConfig:${JSON.stringify(this._editorResourceConfig)}`
+        );
+        return;
+      }
+      promise = this.load<any>({
+        type: this._editorResourceConfig[refId].type,
+        url: `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}`
+      });
+    }
+    return promise.then((item) => (isClone ? item.clone() : item));
   }
 
   /**
