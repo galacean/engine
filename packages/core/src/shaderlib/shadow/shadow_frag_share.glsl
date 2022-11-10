@@ -155,7 +155,7 @@
         #endif
 
         #if SHADOW_MODE == 2
-                attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_shadowInfo.y);
+                attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_ShadowMapSize);
         #endif
 
         #if SHADOW_MODE == 3
