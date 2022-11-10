@@ -108,9 +108,7 @@
         }
 
         #if SHADOW_MODE == 2
-        float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, float size) {
-            vec2 shadowMapSize = vec2(0.5) / vec2(size, size);
-
+        float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, float shadowMapSize) {
             float attenuation;
             vec4 attenuation4;
             vec2 offset=shadowMapSize.xy/2.0;
