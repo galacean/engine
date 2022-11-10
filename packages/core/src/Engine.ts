@@ -1,5 +1,5 @@
-import { BoundingBox, Vector3 } from "@oasis-engine/math";
 import { Color } from "@oasis-engine/math/src/Color";
+import { Font } from "./2d/text/Font";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -35,9 +35,6 @@ import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
-import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
-import { ShadowMode } from "./shadow/enum/ShadowMode";
-import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
 ShaderPool.init();
@@ -52,8 +49,6 @@ export class Engine extends EventDispatcher {
   static _noDepthTextureMacro: ShaderMacro = Shader.getMacroByName("OASIS_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
-  /** @internal */
-  static _defaultBoundingBox: BoundingBox = new BoundingBox(new Vector3(0, 0, 0), new Vector3(0, 0, 0));
 
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
@@ -69,6 +64,7 @@ export class Engine extends EventDispatcher {
   _textElementPool: ClassPool<TextRenderElement> = new ClassPool(TextRenderElement);
   _spriteDefaultMaterial: Material;
   _spriteMaskDefaultMaterial: Material;
+  _textDefaultFont: Font;
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
@@ -220,6 +216,8 @@ export class Engine extends EventDispatcher {
     this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
+    this._textDefaultFont = Font.createFromOS(this, "Arial");
+    this._textDefaultFont.isGCIgnored = false;
 
     this.inputManager = new InputManager(this);
 
@@ -269,12 +267,6 @@ export class Engine extends EventDispatcher {
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
-    innerSettings.shadowMode = settings?.shadowMode || ShadowMode.SoftLow;
-    innerSettings.shadowResolution = settings?.shadowResolution || ShadowResolution.High;
-    innerSettings.shadowCascades = settings?.shadowCascades || ShadowCascadesMode.FourCascades;
-    innerSettings.shadowTwoCascadeSplits = settings?.shadowTwoCascadeSplits || 1.0 / 3.0;
-    innerSettings.shadowFourCascadeSplits =
-      settings?.shadowFourCascadeSplits || new Vector3(1.0 / 15, 3.0 / 15.0, 7.0 / 15.0);
   }
 
   /**
@@ -368,6 +360,8 @@ export class Engine extends EventDispatcher {
     this._resourceManager._destroy();
     this._magentaTexture2D.destroy(true);
     this._magentaTextureCube.destroy(true);
+    this._textDefaultFont.destroy(true);
+
     this.inputManager._destroy();
     this.trigger(new Event("shutdown", this));
 

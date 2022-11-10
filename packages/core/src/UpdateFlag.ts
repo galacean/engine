@@ -10,9 +10,10 @@ export abstract class UpdateFlag {
 
   /**
    * Dispatch.
+   * @param bit - Bit
    * @param param - Parameter
    */
-  abstract dispatch(param?: Object): void;
+  abstract dispatch(bit?: number, param?: Object): void;
 
   /**
    * Clear.

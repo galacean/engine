@@ -11,23 +11,19 @@
 
     #ifdef O3_DIRECT_LIGHT_COUNT
     shadowAttenuation = 1.0;
-#ifdef OASIS_CALCULATE_SHADOWS
-    #ifdef CASCADED_SHADOW_MAP
+    #ifdef OASIS_CALCULATE_SHADOWS
         shadowAttenuation *= sampleShadowMap();
         int sunIndex = int(u_shadowInfo.z);
     #endif
-#endif
 
     DirectLight directionalLight;
     for( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i++ ) {
         directionalLight.color = u_directLightColor[i];
-#ifdef OASIS_CALCULATE_SHADOWS
-    #ifdef CASCADED_SHADOW_MAP
+    #ifdef OASIS_CALCULATE_SHADOWS
         if (i == sunIndex) {
             directionalLight.color *= shadowAttenuation;
         }
     #endif
-#endif
         directionalLight.direction = u_directLightDirection[i];
 
         float d = max(dot(N, -directionalLight.direction), 0.0);
@@ -79,7 +75,7 @@
 
         vec3 direction = spotLight.position - v_pos;
         float lightDistance = length( direction );
-        direction/ = lightDistance;
+        direction /= lightDistance;
         float angleCos = dot( direction, -spotLight.direction );
         float decay = clamp(1.0 - pow(lightDistance/spotLight.distance, 4.0), 0.0, 1.0);
         float spotEffect = smoothstep( spotLight.penumbraCos, spotLight.angleCos, angleCos );

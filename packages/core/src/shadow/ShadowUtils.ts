@@ -10,6 +10,7 @@ import {
 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Renderer } from "../Renderer";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { TextureFormat } from "../texture";
 import { ShadowResolution } from "./enum/ShadowResolution";
 import { ShadowSliceData } from "./ShadowSliceData";
@@ -176,32 +177,27 @@ export class ShadowUtils {
   static cullingRenderBounds(bounds: BoundingBox, cullPlaneCount: number, cullPlanes: Plane[]): boolean {
     const { min, max } = bounds;
 
-    let pass = true;
     for (let i = 0; i < cullPlaneCount; i++) {
       const plane = cullPlanes[i];
       const normal = plane.normal;
       if (
-        normal.x * (normal.x > 0.0 ? min.x : max.x) +
-          normal.y * (normal.y > 0.0 ? min.y : max.y) +
-          normal.z * (normal.z > 0.0 ? min.z : max.z) >
+        normal.x * (normal.x >= 0.0 ? max.x : min.x) +
+          normal.y * (normal.y >= 0.0 ? max.y : min.y) +
+          normal.z * (normal.z >= 0.0 ? max.z : min.z) <
         -plane.distance
       ) {
-        pass = false;
-        break;
+        return false;
       }
     }
-    return pass;
+    return true;
   }
 
-  static shadowCullFrustum(camera: Camera, renderer: Renderer, shadowSliceData: ShadowSliceData) {
-    const center = ShadowUtils._edgePlanePoint2;
+  static shadowCullFrustum(context: RenderContext, renderer: Renderer, shadowSliceData: ShadowSliceData): void {
     if (
       renderer.castShadows &&
       ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
     ) {
-      renderer.bounds.getCenter(center);
-      renderer._distanceForSort = Vector3.distance(center, shadowSliceData.position);
-      renderer._render(camera);
+      renderer._prepareRender(context);
     }
   }
 
@@ -266,10 +262,10 @@ export class ShadowUtils {
     const splitFar = ShadowUtils._adjustFarPlane;
     splitNear.normal.copyFrom(near.normal);
     splitFar.normal.copyFrom(far.normal);
-    splitNear.distance = near.distance + splitNearDistance;
-    //do a clamp is the sphere is out of range the far plane
-    splitFar.distance = Math.max(
-      -near.distance - shadowSliceData.sphereCenterZ - shadowSliceData.splitBoundSphere.radius,
+    splitNear.distance = near.distance - splitNearDistance;
+    // do a clamp if the sphere is out of range the far plane
+    splitFar.distance = Math.min(
+      -near.distance + shadowSliceData.sphereCenterZ + shadowSliceData.splitBoundSphere.radius,
       far.distance
     );
 
@@ -304,7 +300,7 @@ export class ShadowUtils {
       }
     }
 
-    let edgeIndex: number = backIndex;
+    let edgeIndex = backIndex;
     for (let i = 0; i < backIndex; i++) {
       const backFace = backPlaneFaces[i];
       const neighborFaces = planeNeighbors[backFace];
@@ -358,14 +354,15 @@ export class ShadowUtils {
     center.z = lightUp.z * upLen + lightSide.z * sideLen + lightForward.z * forwardLen;
 
     // Direction light use shadow pancaking tech,do special dispose with nearPlane.
-    const origin = shadowSliceData.position;
-    const viewMatrix = shadowSliceData.viewMatrix;
-    const projectMatrix = shadowSliceData.projectionMatrix;
-    const viewProjectMatrix = shadowSliceData.viewProjectMatrix;
 
-    Vector3.scale(lightForward, radius + nearPlane, origin);
-    Vector3.subtract(center, origin, origin);
-    Matrix.lookAt(origin, center, lightUp, viewMatrix);
+    const virtualCamera = shadowSliceData.virtualCamera;
+    const position = virtualCamera.position;
+    const viewMatrix = virtualCamera.viewMatrix;
+    const projectMatrix = virtualCamera.projectionMatrix;
+
+    Vector3.scale(lightForward, radius + nearPlane, position);
+    Vector3.subtract(center, position, position);
+    Matrix.lookAt(position, center, lightUp, viewMatrix);
     Matrix.ortho(
       -borderRadius,
       borderRadius,
@@ -375,7 +372,7 @@ export class ShadowUtils {
       radius * 2.0 + nearPlane,
       projectMatrix
     );
-    Matrix.multiply(projectMatrix, viewMatrix, viewProjectMatrix);
+    Matrix.multiply(projectMatrix, viewMatrix, virtualCamera.viewProjectionMatrix);
   }
 
   static getMaxTileResolutionInAtlas(atlasWidth: number, atlasHeight: number, tileCount: number): number {

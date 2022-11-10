@@ -327,18 +327,19 @@ export class GLTFUtil {
     return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
   }
 
-  static getQuery(path: string): { [key: string]: string } {
-    const url = new URL(path);
-    const entries = url.searchParams.entries();
-    const data = {};
-
-    for (const i of entries) {
-      data[i[0]] = i[1];
-    }
-    return data;
+  static parseUrl(path: string): { query: string; baseUrl: string } {
+    return { query: this.getParameterByName("q", path), baseUrl: path.slice(0, path.indexOf("?")) };
   }
 
-  // "meshes[0][0]" => ["meshes","0","0"]
+  static getParameterByName(name, url = window.location.href) {
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+      results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return "";
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
   static stringToPath(string): string[] {
     const result = [];
     if (string.charCodeAt(0) === charCodeOfDot) {

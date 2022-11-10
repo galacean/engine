@@ -8,9 +8,11 @@ import {
   Scene,
   BackgroundMode,
   SkyBoxMaterial,
-  PrimitiveMesh
+  PrimitiveMesh,
+  Engine,
+  Font
 } from "@oasis-engine/core";
-import { SceneParser } from "./resource-deserialize";
+import { IClassObject, ReflectionParser, SceneParser } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["prefab"], true)
 class SceneLoader extends Loader<Scene> {
@@ -31,6 +33,10 @@ class SceneLoader extends Loader<Scene> {
                 scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
                 scene.ambientLight.specularIntensity = ambient.specularIntensity;
               });
+          } else {
+            scene.ambientLight.diffuseIntensity = ambient.diffuseIntensity;
+            scene.ambientLight.specularIntensity = ambient.specularIntensity;
+            scene.ambientLight.diffuseSolidColor.copyFrom(ambient.diffuseSolidColor);
           }
 
           const background = data.scene.background;
@@ -71,3 +77,15 @@ class SceneLoader extends Loader<Scene> {
     });
   }
 }
+
+ReflectionParser.registerCustomParseComponent(
+  "TextRenderer",
+  async (instance: any, item: Omit<IClassObject, "class">, engine: Engine) => {
+    const { props } = item;
+    if (!props.font) {
+      // @ts-ignore
+      instance.font = Font.createFromOS(engine, props.fontFamily || "Arial");
+    }
+    return instance;
+  }
+);

@@ -1,7 +1,7 @@
 import { Component } from "../../../Component";
 import { Entity } from "../../../Entity";
-import { AnimationCurve } from "../../animationCurve";
-import { IAnimationCurveCalculator } from "../../animationCurve/interfaces/IAnimationCurveCalculator";
+import { AnimationCurve } from "../../AnimationCurve";
+import { IAnimationCurveCalculator } from "../../AnimationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeValueType } from "../../Keyframe";
 import { IAnimationCurveOwnerAssembler } from "./Assembler/IAnimationCurveOwnerAssembler";
 import { UniversalAnimationCurveOwnerAssembler } from "./Assembler/UniversalAnimationCurveOwnerAssembler";
@@ -103,7 +103,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   ): void {
     const srcCount = srcCurve.keys.length;
     const destCount = destCurve.keys.length;
-    if (srcCount || destCount) {
       const srcValue =
         srcCurve && srcCount
           ? additive
@@ -113,9 +112,9 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? this._cureType._getZeroValue(this.baseTempValue)
           : this.defaultValue;
 
-      if (srcCurve && srcCount && additive) {
-        this._baseCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
-      }
+          if (srcCurve && srcCount && additive) {
+            this._baseCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
+          }
 
       const destValue =
         destCurve && destCount
@@ -126,12 +125,11 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           ? this._cureType._getZeroValue(this.crossTempValue)
           : this.defaultValue;
 
-      if (destCurve && destCount && additive) {
-        this._crossCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
-      }
-
+          if (destCurve && destCount && additive) {
+            this._crossCurveCurrentKeyframeIndex = AnimationCurve._tempProgress.curIndex;
+          }
+          
       this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
-    }
   }
 
   crossFadeFromPoseAndApplyValue(

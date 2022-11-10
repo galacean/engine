@@ -45,39 +45,17 @@ export class Matrix implements IClone<Matrix>, ICopy<Matrix, Matrix> {
     const re = right.elements;
     const oe = out.elements;
 
-    const l11 = le[0],
-      l12 = le[1],
-      l13 = le[2],
-      l14 = le[3];
-    const l21 = le[4],
-      l22 = le[5],
-      l23 = le[6],
-      l24 = le[7];
-    const l31 = le[8],
-      l32 = le[9],
-      l33 = le[10],
-      l34 = le[11];
-    const l41 = le[12],
-      l42 = le[13],
-      l43 = le[14],
-      l44 = le[15];
+    // prettier-ignore
+    const l11 = le[0], l12 = le[1], l13 = le[2], l14 = le[3],
+    l21 = le[4], l22 = le[5], l23 = le[6], l24 = le[7],
+    l31 = le[8], l32 = le[9], l33 = le[10], l34 = le[11],
+    l41 = le[12], l42 = le[13], l43 = le[14], l44 = le[15];
 
-    const r11 = re[0],
-      r12 = re[1],
-      r13 = re[2],
-      r14 = re[3];
-    const r21 = re[4],
-      r22 = re[5],
-      r23 = re[6],
-      r24 = re[7];
-    const r31 = re[8],
-      r32 = re[9],
-      r33 = re[10],
-      r34 = re[11];
-    const r41 = re[12],
-      r42 = re[13],
-      r43 = re[14],
-      r44 = re[15];
+    // prettier-ignore
+    const r11 = re[0], r12 = re[1], r13 = re[2], r14 = re[3],
+    r21 = re[4], r22 = re[5], r23 = re[6], r24 = re[7],
+    r31 = re[8], r32 = re[9], r33 = re[10], r34 = re[11],
+    r41 = re[12], r42 = re[13], r43 = re[14], r44 = re[15];
 
     oe[0] = l11 * r11 + l21 * r12 + l31 * r13 + l41 * r14;
     oe[1] = l12 * r11 + l22 * r12 + l32 * r13 + l42 * r14;

@@ -1,7 +1,7 @@
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
-import { AnimationCurve } from "./animationCurve";
+import { AnimationCurve } from "./animationCurve/AnimationCurve";
 import { AnimationEvent } from "./AnimationEvent";
 import { KeyframeValueType } from "./Keyframe";
 
