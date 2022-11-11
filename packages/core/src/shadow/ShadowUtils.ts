@@ -6,13 +6,16 @@ import {
   MathUtil,
   Matrix,
   Plane,
+  Vector2,
   Vector3
 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
+import { DirectLight } from "../lighting";
 import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { TextureFormat } from "../texture";
 import { ShadowResolution } from "./enum/ShadowResolution";
+import { ShadowType } from "./enum/ShadowType";
 import { ShadowSliceData } from "./ShadowSliceData";
 
 /**
@@ -385,5 +388,31 @@ export class ShadowUtils {
       currentTileCount = Math.floor(atlasWidth / resolution) * Math.floor(atlasHeight / resolution);
     }
     return resolution;
+  }
+
+  /**
+   * @internal
+   */
+  static getShadowBias(light: DirectLight, projectionMatrix: Matrix, shadowResolution: number, out: Vector2): void {
+    // Frustum size is guaranteed to be a cube as we wrap shadow frustum around a sphere
+    // elements[0] = 2.0 / (right - left)
+    const frustumSize = 2.0 / projectionMatrix.elements[0];
+
+    // depth and normal bias scale is in shadowmap texel size in world space
+    const texelSize = frustumSize / shadowResolution;
+    let depthBias = -light.shadowBias * texelSize;
+    let normalBias = -light.shadowNormalBias * texelSize;
+
+    if (light.shadowType == ShadowType.SoftHigh) {
+      // TODO: depth and normal bias assume sample is no more than 1 texel away from shadowmap
+      // This is not true with PCF. Ideally we need to do either
+      // cone base bias (based on distance to center sample)
+      // or receiver place bias based on derivatives.
+      // For now we scale it by the PCF kernel size (5x5)
+      const kernelRadius = 2.5;
+      depthBias *= kernelRadius;
+      normalBias *= kernelRadius;
+    }
+    out.set(depthBias, normalBias);
   }
 }

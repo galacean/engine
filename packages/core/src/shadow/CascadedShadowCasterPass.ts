@@ -338,12 +338,7 @@ export class CascadedShadowCasterPass {
     context: RenderContext
   ): void {
     const virtualCamera = shadowSliceData.virtualCamera;
-    // Frustum size is guaranteed to be a cube as we wrap shadow frustum around a sphere
-    // elements[0] = 2.0 / (right - left)
-    const frustumSize = 2.0 / virtualCamera.projectionMatrix.elements[0];
-    // depth and normal bias scale is in shadowMap texel size in world space
-    const texelSize = frustumSize / this._shadowTileResolution;
-    this._shadowBias.set(-light.shadowBias * texelSize, -light.shadowNormalBias * texelSize);
+    ShadowUtils.getShadowBias(light, virtualCamera.projectionMatrix, this._shadowTileResolution, this._shadowBias);
 
     const sceneShaderData = this._camera.scene.shaderData;
     sceneShaderData.setVector2(CascadedShadowCasterPass._lightShadowBiasProperty, this._shadowBias);
