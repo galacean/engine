@@ -64,106 +64,72 @@ export class ShadowUtils {
   private static _backPlaneFaces: FrustumFace[] = new Array(5);
   private static _edgePlanePoint2: Vector3 = new Vector3();
 
+  /** near, far, left, right, bottom, top  */
   private static _frustumPlaneNeighbors: FrustumFace[][] = [
-    // near
     [FrustumFace.Left, FrustumFace.Right, FrustumFace.Top, FrustumFace.Bottom],
-    // far
     [FrustumFace.Left, FrustumFace.Right, FrustumFace.Top, FrustumFace.Bottom],
-    // left
     [FrustumFace.Near, FrustumFace.Far, FrustumFace.Top, FrustumFace.Bottom],
-    // right
     [FrustumFace.Near, FrustumFace.Far, FrustumFace.Top, FrustumFace.Bottom],
-    // bottom
     [FrustumFace.Near, FrustumFace.Far, FrustumFace.Left, FrustumFace.Right],
-    // top
     [FrustumFace.Near, FrustumFace.Far, FrustumFace.Left, FrustumFace.Right]
   ];
 
+  /** near, far, left, right, bottom, top  */
   private static _frustumTwoPlaneCorners: FrustumCorner[][][] = [
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // far
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // left
       [FrustumCorner.nearBottomLeft, FrustumCorner.nearTopLeft],
-      // right
       [FrustumCorner.nearTopRight, FrustumCorner.nearBottomRight],
-      // bottom
       [FrustumCorner.nearBottomRight, FrustumCorner.nearBottomLeft],
-      // top
       [FrustumCorner.nearTopLeft, FrustumCorner.nearTopRight]
-    ], // near
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // far
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // left
       [FrustumCorner.FarTopLeft, FrustumCorner.FarBottomLeft],
-      // right
       [FrustumCorner.FarBottomRight, FrustumCorner.FarTopRight],
-      // bottom
       [FrustumCorner.FarBottomLeft, FrustumCorner.FarBottomRight],
-      // top
       [FrustumCorner.FarTopRight, FrustumCorner.FarTopLeft]
-    ], // far
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.nearTopLeft, FrustumCorner.nearBottomLeft],
-      // far
       [FrustumCorner.FarBottomLeft, FrustumCorner.FarTopLeft],
-      // left
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // right
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // bottom
       [FrustumCorner.nearBottomLeft, FrustumCorner.FarBottomLeft],
-      // top
       [FrustumCorner.FarTopLeft, FrustumCorner.nearTopLeft]
-    ], // left
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.nearBottomRight, FrustumCorner.nearTopRight],
-      // far
       [FrustumCorner.FarTopRight, FrustumCorner.FarBottomRight],
-      // left
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // right
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // bottom
       [FrustumCorner.FarBottomRight, FrustumCorner.nearBottomRight],
-      // top
       [FrustumCorner.nearTopRight, FrustumCorner.FarTopRight]
-    ], // right
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.nearBottomLeft, FrustumCorner.nearBottomRight],
-      // far
       [FrustumCorner.FarBottomRight, FrustumCorner.FarBottomLeft],
-      // left
       [FrustumCorner.FarBottomLeft, FrustumCorner.nearBottomLeft],
-      // right
       [FrustumCorner.nearBottomRight, FrustumCorner.FarBottomRight],
-      // bottom
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // top
       [FrustumCorner.unknown, FrustumCorner.unknown]
-    ], // bottom
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.nearTopRight, FrustumCorner.nearTopLeft],
-      // far
       [FrustumCorner.FarTopLeft, FrustumCorner.FarTopRight],
-      // left
       [FrustumCorner.nearTopLeft, FrustumCorner.FarTopLeft],
-      // right
       [FrustumCorner.FarTopRight, FrustumCorner.nearTopRight],
-      // bottom
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // top
       [FrustumCorner.unknown, FrustumCorner.unknown]
-    ] // top
+    ]
   ];
   //now max shadow sample tent is 5x5, atlas borderSize at least 3=ceil(2.5),and +1 pixel is for global border for no cascade mode.
   static readonly atlasBorderSize: number = 4.0;
