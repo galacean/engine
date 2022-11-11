@@ -16,12 +16,16 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStateInfo } from "./internal/AnimatorStateInfo";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { KeyframeValueType } from "./Keyframe";
+
+interface IAnimatorStateInfo {
+  layerIndex: number;
+  state: AnimatorState;
+}
+
 /**
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  private static _tempAnimatorInfo: AnimatorStateInfo = new AnimatorStateInfo();
-
   protected _animatorController: AnimatorController;
   @assignmentClone
   protected _speed: number = 1.0;
@@ -36,6 +40,8 @@ export class Animator extends Component {
   private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeValueType>>[] = [];
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
+  @ignoreClone
+  private _tempAnimatorInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
 
   /**
    * The playback speed of the Animator, 1.0 is normal playback speed.
@@ -82,7 +88,7 @@ export class Animator extends Component {
       this._clearPlayData();
     }
 
-    const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex, Animator._tempAnimatorInfo);
+    const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex);
     const { state } = animatorInfo;
 
     if (!state) {
@@ -125,7 +131,7 @@ export class Animator extends Component {
       this._clearPlayData();
     }
 
-    const { state } = this._getAnimatorStateInfo(stateName, layerIndex, Animator._tempAnimatorInfo);
+    const { state } = this._getAnimatorStateInfo(stateName, layerIndex);
     const { manuallyTransition } = this._getAnimatorLayerData(layerIndex);
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
@@ -175,7 +181,7 @@ export class Animator extends Component {
    * @param layerIndex - The layer index(default -1). If layer is -1, find the first state with the given state name
    */
   findAnimatorState(stateName: string, layerIndex: number = -1): AnimatorState {
-    return this._getAnimatorStateInfo(stateName, layerIndex, Animator._tempAnimatorInfo).state;
+    return this._getAnimatorStateInfo(stateName, layerIndex).state;
   }
 
   /**
@@ -210,8 +216,8 @@ export class Animator extends Component {
     this._clearPlayData();
   }
 
-  private _getAnimatorStateInfo(stateName: string, layerIndex: number, out: AnimatorStateInfo): AnimatorStateInfo {
-    const { _animatorController: animatorController } = this;
+  private _getAnimatorStateInfo(stateName: string, layerIndex: number): AnimatorStateInfo {
+    const { _animatorController: animatorController, _tempAnimatorInfo } = this;
     let state: AnimatorState = null;
     if (animatorController) {
       const layers = animatorController.layers;
@@ -227,9 +233,9 @@ export class Animator extends Component {
         state = layers[layerIndex].stateMachine.findStateByName(stateName);
       }
     }
-    out.layerIndex = layerIndex;
-    out.state = state;
-    return out;
+    _tempAnimatorInfo.layerIndex = layerIndex;
+    _tempAnimatorInfo.state = state;
+    return _tempAnimatorInfo;
   }
 
   private _saveDefaultValues(stateData: AnimatorStateData): void {
@@ -636,7 +642,7 @@ export class Animator extends Component {
 
   private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
     const { name } = transition.destinationState;
-    const animatorStateInfo = this._getAnimatorStateInfo(name, layerIndex, Animator._tempAnimatorInfo);
+    const animatorStateInfo = this._getAnimatorStateInfo(name, layerIndex);
     const { state: crossState } = animatorStateInfo;
     if (!crossState) {
       return;
