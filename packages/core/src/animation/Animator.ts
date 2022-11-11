@@ -215,7 +215,7 @@ export class Animator extends Component {
     this._clearPlayData();
   }
 
-  private _getAnimatorStateInfo(stateName: string, layerIndex: number): AnimatorStateInfo {
+  private _getAnimatorStateInfo(stateName: string, layerIndex: number): IAnimatorStateInfo {
     const { _animatorController: animatorController, _tempAnimatorInfo } = this;
     let state: AnimatorState = null;
     if (animatorController) {
