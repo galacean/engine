@@ -728,7 +728,6 @@ export class Animator extends Component {
       const { handlers } = eventHandler;
       if (time >= lastClipTime) {
         for (let j = handlers.length - 1; j >= 0; j--) {
-          console.log(123, playState, handlers[j]);
           handlers[j](parameter);
         }
         playState.currentEventIndex = Math.min(eventIndex + 1, n - 1);
