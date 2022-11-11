@@ -82,7 +82,7 @@ class MaterialLoader extends Loader<string> {
         }
 
         for (let key in renderState) {
-          materialShaderData[key] = renderState[key];
+          material[key] = renderState[key];
         }
 
         Promise.all(texturePromises).then(() => {
