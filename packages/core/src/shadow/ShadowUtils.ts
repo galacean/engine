@@ -14,6 +14,7 @@ import { DirectLight } from "../lighting";
 import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { TextureFormat } from "../texture";
+import { Utils } from "../Utils";
 import { ShadowResolution } from "./enum/ShadowResolution";
 import { ShadowType } from "./enum/ShadowType";
 import { ShadowSliceData } from "./ShadowSliceData";
@@ -37,6 +38,17 @@ enum FrustumCorner {
  * @internal
  */
 export class ShadowUtils {
+  private static _tempMatrix0: Matrix = new Matrix();
+
+  // prettier-ignore
+  /** @internal */
+  private static _shadowMapScaleOffsetMatrix: Matrix = new Matrix(
+    0.5, 0.0, 0.0, 0.0,
+    0.0, 0.5, 0.0, 0.0,
+    0.0, 0.0, 0.5, 0.0,
+    0.5, 0.5, 0.5, 1.0
+  );
+
   private static _frustumCorners: Vector3[] = [
     new Vector3(),
     new Vector3(),
@@ -334,7 +346,8 @@ export class ShadowUtils {
     cascadeIndex: number,
     nearPlane: number,
     shadowResolution: number,
-    shadowSliceData: ShadowSliceData
+    shadowSliceData: ShadowSliceData,
+    outShadowMatrices: Float32Array
   ): void {
     const boundSphere = shadowSliceData.splitBoundSphere;
     shadowSliceData.resolution = shadowResolution;
@@ -375,7 +388,16 @@ export class ShadowUtils {
       radius * 2.0 + nearPlane,
       projectMatrix
     );
-    Matrix.multiply(projectMatrix, viewMatrix, virtualCamera.viewProjectionMatrix);
+
+    const viewProjectionMatrix = virtualCamera.viewProjectionMatrix;
+    Matrix.multiply(projectMatrix, viewMatrix, viewProjectionMatrix);
+    Utils._floatMatrixMultiply(
+      ShadowUtils._shadowMapScaleOffsetMatrix.elements,
+      viewProjectionMatrix.elements,
+      0,
+      outShadowMatrices,
+      cascadeIndex * 16
+    );
   }
 
   static getMaxTileResolutionInAtlas(atlasWidth: number, atlasHeight: number, tileCount: number): number {
@@ -390,9 +412,6 @@ export class ShadowUtils {
     return resolution;
   }
 
-  /**
-   * @internal
-   */
   static getShadowBias(light: DirectLight, projectionMatrix: Matrix, shadowResolution: number, out: Vector2): void {
     // Frustum size is guaranteed to be a cube as we wrap shadow frustum around a sphere
     // elements[0] = 2.0 / (right - left)
@@ -414,5 +433,41 @@ export class ShadowUtils {
       normalBias *= kernelRadius;
     }
     out.set(depthBias, normalBias);
+  }
+
+  /**
+   * Apply shadow slice scale and offset
+   */
+  static applySliceTransform(
+    tileSize: number,
+    atlasWidth: number,
+    atlasHeight: number,
+    cascadeIndex: number,
+    atlasOffset: Vector2,
+    outShadowMatrices: Float32Array
+  ): void {
+    const slice = ShadowUtils._tempMatrix0.elements;
+    const oneOverAtlasWidth = 1.0 / atlasWidth;
+    const oneOverAtlasHeight = 1.0 / atlasHeight;
+
+    // Apply scale
+    slice[0] = tileSize * oneOverAtlasWidth;
+    slice[5] = tileSize * oneOverAtlasHeight;
+    // Apply offset
+    slice[12] = atlasOffset.x * oneOverAtlasWidth;
+    slice[13] = atlasOffset.y * oneOverAtlasHeight;
+    slice[1] = 0;
+    slice[2] = 0;
+    slice[2] = 0;
+    slice[4] = 0;
+    slice[6] = 0;
+    slice[7] = 0;
+    slice[8] = 0;
+    slice[9] = 0;
+    slice[11] = 0;
+    slice[14] = 0;
+    slice[10] = slice[15] = 1;
+    const offset = cascadeIndex * 16;
+    Utils._floatMatrixMultiply(slice, outShadowMatrices, offset, outShadowMatrices, offset);
   }
 }
