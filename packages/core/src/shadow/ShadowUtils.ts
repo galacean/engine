@@ -42,7 +42,7 @@ export class ShadowUtils {
 
   // prettier-ignore
   /** @internal */
-  private static _shadowMapScaleOffsetMatrix: Matrix = new Matrix(
+  private static _shadowMapCoordMatrix: Matrix = new Matrix(
     0.5, 0.0, 0.0, 0.0,
     0.0, 0.5, 0.0, 0.0,
     0.0, 0.0, 0.5, 0.0,
@@ -165,7 +165,7 @@ export class ShadowUtils {
       [FrustumCorner.unknown, FrustumCorner.unknown]
     ] // top
   ];
-  //now max shadow sample tent is 5x5,atlas borderSize at least 3=ceil(2.5),and +1 pixel is for global border for no cascade mode.
+  //now max shadow sample tent is 5x5, atlas borderSize at least 3=ceil(2.5),and +1 pixel is for global border for no cascade mode.
   static readonly atlasBorderSize: number = 4.0;
 
   static shadowResolution(value: ShadowResolution): number {
@@ -370,7 +370,6 @@ export class ShadowUtils {
     center.z = lightUp.z * upLen + lightSide.z * sideLen + lightForward.z * forwardLen;
 
     // Direction light use shadow pancaking tech,do special dispose with nearPlane.
-
     const virtualCamera = shadowSliceData.virtualCamera;
     const position = virtualCamera.position;
     const viewMatrix = virtualCamera.viewMatrix;
@@ -392,7 +391,7 @@ export class ShadowUtils {
     const viewProjectionMatrix = virtualCamera.viewProjectionMatrix;
     Matrix.multiply(projectMatrix, viewMatrix, viewProjectionMatrix);
     Utils._floatMatrixMultiply(
-      ShadowUtils._shadowMapScaleOffsetMatrix.elements,
+      ShadowUtils._shadowMapCoordMatrix,
       viewProjectionMatrix.elements,
       0,
       outShadowMatrices,
@@ -446,28 +445,22 @@ export class ShadowUtils {
     atlasOffset: Vector2,
     outShadowMatrices: Float32Array
   ): void {
-    const slice = ShadowUtils._tempMatrix0.elements;
+    const sliceMatrix = ShadowUtils._tempMatrix0;
+    const slice = sliceMatrix.elements;
+
     const oneOverAtlasWidth = 1.0 / atlasWidth;
     const oneOverAtlasHeight = 1.0 / atlasHeight;
+    const scaleX = tileSize * oneOverAtlasWidth;
+    const scaleY = tileSize * oneOverAtlasHeight;
+    const offsetX = atlasOffset.x * oneOverAtlasWidth;
+    const offsetY = atlasOffset.y * oneOverAtlasHeight;
 
-    // Apply scale
-    slice[0] = tileSize * oneOverAtlasWidth;
-    slice[5] = tileSize * oneOverAtlasHeight;
-    // Apply offset
-    slice[12] = atlasOffset.x * oneOverAtlasWidth;
-    slice[13] = atlasOffset.y * oneOverAtlasHeight;
-    slice[1] = 0;
-    slice[2] = 0;
-    slice[2] = 0;
-    slice[4] = 0;
-    slice[6] = 0;
-    slice[7] = 0;
-    slice[8] = 0;
-    slice[9] = 0;
-    slice[11] = 0;
-    slice[14] = 0;
-    slice[10] = slice[15] = 1;
+    (slice[0] = scaleX), (slice[1] = 0), (slice[2] = 0), (slice[3] = 0);
+    (slice[4] = 0), (slice[5] = scaleY), (slice[6] = 0), (slice[7] = 0);
+    (slice[8] = 0), (slice[9] = 0), (slice[10] = 1), (slice[11] = 0);
+    (slice[12] = offsetX), (slice[13] = offsetY), (slice[14] = 0), (slice[15] = 1);
+
     const offset = cascadeIndex * 16;
-    Utils._floatMatrixMultiply(slice, outShadowMatrices, offset, outShadowMatrices, offset);
+    Utils._floatMatrixMultiply(sliceMatrix, outShadowMatrices, offset, outShadowMatrices, offset);
   }
 }

@@ -150,11 +150,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         const joint = joints[i];
         const offset = i * 16;
         if (joint) {
-          Utils._floatMatrixMultiply(joint.transform.worldMatrix.elements, ibms[i].elements, 0, jointMatrixs, offset);
+          Utils._floatMatrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrixs, offset);
         } else {
           jointMatrixs.set(ibms[i].elements, offset);
         }
-        Utils._floatMatrixMultiply(worldToLocal.elements, jointMatrixs, offset, jointMatrixs, offset);
+        Utils._floatMatrixMultiply(worldToLocal, jointMatrixs, offset, jointMatrixs, offset);
       }
       if (this._useJointTexture) {
         this._createJointTexture();

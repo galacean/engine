@@ -1,14 +1,12 @@
+import { Matrix } from "@oasis-engine/math";
+
 export class Utils {
   /**
    * @internal
    */
-  static _floatMatrixMultiply(
-    le: Float32Array,
-    re: Float32Array,
-    rOffset: number,
-    oe: Float32Array,
-    offset: number
-  ): void {
+  static _floatMatrixMultiply(left: Matrix, re: Float32Array, rOffset: number, oe: Float32Array, offset: number): void {
+    const le = left.elements;
+
     // prettier-ignore
     const l11 = le[0], l12 = le[1], l13 = le[2], l14 = le[3],
     l21 = le[4], l22 = le[5], l23 = le[6], l24 = le[7],
