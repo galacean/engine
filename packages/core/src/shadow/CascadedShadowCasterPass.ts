@@ -199,6 +199,7 @@ export class CascadedShadowCasterPass {
 
         const { x, y } = viewports[j];
 
+        rhi.setGlobalDepthBias(1.0, 1.0);
         rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
         // for no cascade is for the edge,for cascade is for the beyond maxCascade pixel can use (0,0,0) trick sample the shadowMap
         rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
@@ -206,6 +207,7 @@ export class CascadedShadowCasterPass {
 
         opaqueQueue.render(camera, null, Layer.Everything, shadowCasterShader);
         alphaTestQueue.render(camera, null, Layer.Everything, shadowCasterShader);
+        rhi.setGlobalDepthBias(0, 0);
       }
       this._existShadowMap = true;
     }

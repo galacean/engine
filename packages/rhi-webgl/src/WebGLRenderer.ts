@@ -56,6 +56,8 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
 export class WebGLRenderer implements IHardwareRenderer {
   /** @internal */
   _readFrameBuffer: WebGLFramebuffer;
+  /** @internal */
+  _enableGlobalDepthBias: boolean = false;
 
   _currentBind: any;
 
@@ -295,8 +297,6 @@ export class WebGLRenderer implements IHardwareRenderer {
     }
   }
 
-  destroy() {}
-
   activeTexture(textureID: number): void {
     if (this._activeTextureID !== textureID) {
       this._gl.activeTexture(textureID);
@@ -311,4 +311,18 @@ export class WebGLRenderer implements IHardwareRenderer {
       this._activeTextures[index] = texture;
     }
   }
+
+  setGlobalDepthBias(bias: number, slopeBias: number): void {
+    const gl = this._gl;
+    const enable = bias !== 0 || slopeBias !== 0;
+    if (enable) {
+      gl.enable(gl.POLYGON_OFFSET_FILL);
+      gl.polygonOffset(slopeBias, bias);
+    } else {
+      gl.disable(gl.POLYGON_OFFSET_FILL);
+    }
+    this._enableGlobalDepthBias = enable;
+  }
+
+  destroy() {}
 }
