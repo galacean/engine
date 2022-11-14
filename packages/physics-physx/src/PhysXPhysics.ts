@@ -11,7 +11,8 @@ import {
   IStaticCollider,
   IFixedJoint,
   IHingeJoint,
-  ISpringJoint
+  ISpringJoint,
+  ISphericalJoint
 } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
@@ -27,6 +28,7 @@ import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
 import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
+import { PhysXSphericalJoint } from "./joint/PhysXSphericalJoint";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 import { PhysXCollider } from "./PhysXCollider";
 
@@ -212,6 +214,13 @@ export class PhysXPhysics {
    */
   static createSpringJoint(collider: PhysXCollider): ISpringJoint {
     return new PhysXSpringJoint(collider);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createSpringJoint }
+   */
+  static createSphericalJoint(collider: PhysXCollider): ISphericalJoint {
+    return new PhysXSphericalJoint(collider);
   }
 
   private static _init(PHYSX: any): void {
