@@ -282,7 +282,6 @@ export class Animator extends Component {
     const { eventHandlers } = animatorStateData;
     const { events } = state.clip;
 
-    eventHandlerPool.resetPool();
     eventHandlers.length = 0;
     for (let i = 0, n = events.length; i < n; i++) {
       const event = events[i];
@@ -796,6 +795,8 @@ export class Animator extends Component {
     this._animatorLayersData.length = 0;
     this._crossOwnerCollection.length = 0;
     this._animationCurveOwners.length = 0;
+    this._animationEventHandlerPool.resetPool();
+
     if (this._controllerUpdateFlag) {
       this._controllerUpdateFlag.flag = false;
     }
