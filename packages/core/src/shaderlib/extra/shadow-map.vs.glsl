@@ -24,12 +24,14 @@ void main() {
     #include <begin_normal_vert>
     #include <blendShape_vert>
     #include <skinning_vert>
+    
     vec4 positionWS = u_modelMat * position;
 
     positionWS.xyz = applyShadowBias(positionWS.xyz);
     #ifndef OMIT_NORMAL
         #ifdef O3_HAS_NORMAL
-            positionWS.xyz = applyShadowNormalBias(positionWS.xyz, v_normal);
+            vec3 normalWS = normalize( mat3(u_normalMat) * normal );
+            positionWS.xyz = applyShadowNormalBias(positionWS.xyz, normalWS);
         #endif
     #endif
 
