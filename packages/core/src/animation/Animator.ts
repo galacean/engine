@@ -16,11 +16,6 @@ import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { KeyframeValueType } from "./Keyframe";
 
-interface IAnimatorStateInfo {
-  layerIndex: number;
-  state: AnimatorState;
-}
-
 /**
  * The controller of the animation system.
  */
@@ -39,8 +34,9 @@ export class Animator extends Component {
   private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeValueType>>[] = [];
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
+
   @ignoreClone
-  private _tempAnimatorInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
+  private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
 
   /**
    * The playback speed of the Animator, 1.0 is normal playback speed.
@@ -87,8 +83,8 @@ export class Animator extends Component {
       this._clearPlayData();
     }
 
-    const animatorInfo = this._getAnimatorStateInfo(stateName, layerIndex);
-    const { state } = animatorInfo;
+    const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
+    const { state } = stateInfo;
 
     if (!state) {
       return;
@@ -97,7 +93,7 @@ export class Animator extends Component {
       console.warn(`The state named ${stateName} has no AnimationClip data.`);
       return;
     }
-    const animatorLayerData = this._getAnimatorLayerData(animatorInfo.layerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
     const { srcPlayData } = animatorLayerData;
     const { state: curState } = srcPlayData;
     if (curState && curState !== state) {
@@ -216,7 +212,7 @@ export class Animator extends Component {
   }
 
   private _getAnimatorStateInfo(stateName: string, layerIndex: number): IAnimatorStateInfo {
-    const { _animatorController: animatorController, _tempAnimatorInfo } = this;
+    const { _animatorController: animatorController, _tempAnimatorStateInfo: stateInfo } = this;
     let state: AnimatorState = null;
     if (animatorController) {
       const layers = animatorController.layers;
@@ -232,9 +228,9 @@ export class Animator extends Component {
         state = layers[layerIndex].stateMachine.findStateByName(stateName);
       }
     }
-    _tempAnimatorInfo.layerIndex = layerIndex;
-    _tempAnimatorInfo.state = state;
-    return _tempAnimatorInfo;
+    stateInfo.layerIndex = layerIndex;
+    stateInfo.state = state;
+    return stateInfo;
   }
 
   private _saveDefaultValues(stateData: AnimatorStateData): void {
@@ -641,8 +637,8 @@ export class Animator extends Component {
 
   private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
     const { name } = transition.destinationState;
-    const animatorStateInfo = this._getAnimatorStateInfo(name, layerIndex);
-    const { state: crossState } = animatorStateInfo;
+    const stateInfo = this._getAnimatorStateInfo(name, layerIndex);
+    const { state: crossState } = stateInfo;
     if (!crossState) {
       return;
     }
@@ -651,7 +647,7 @@ export class Animator extends Component {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(animatorStateInfo.layerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
     const layerState = animatorLayerData.layerState;
     const { destPlayData } = animatorLayerData;
 
@@ -805,4 +801,9 @@ export class Animator extends Component {
       this._controllerUpdateFlag.flag = false;
     }
   }
+}
+
+interface IAnimatorStateInfo {
+  layerIndex: number;
+  state: AnimatorState;
 }
