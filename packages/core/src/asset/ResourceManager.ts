@@ -159,7 +159,7 @@ export class ResourceManager {
         Logger.error(
           `refId:${refId} is not find in this._editorResourceConfig:${JSON.stringify(this._editorResourceConfig)}`
         );
-        return;
+        return Promise.resolve(null);
       }
       promise = this.load<any>({
         type: this._editorResourceConfig[refId].type,
