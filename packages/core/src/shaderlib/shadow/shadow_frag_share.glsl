@@ -3,22 +3,16 @@
 #endif
 
 #ifdef OASIS_CALCULATE_SHADOWS
-
         // intensity, resolution, sunIndex
         uniform vec3 u_shadowInfo;
-        uniform mat4 u_viewProjMatFromLight[4];
+        uniform vec4 u_shadowMapSize;
+        uniform mat4 u_shadowMatrices[5];
         uniform vec4 u_shadowSplitSpheres[4];
 
 
         varying vec3 view_pos;
 
         #ifdef GRAPHICS_API_WEBGL2
-            const vec2 offsets[4] = vec2[](
-                vec2(0, 0),
-                vec2(0.5, 0),
-                vec2(0, 0.5),
-                vec2(0.5, 0.5)
-            );
             uniform mediump sampler2DShadow u_shadowMap;
             #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureLod(textureName, coord3 , 0.0)
             #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
@@ -59,57 +53,29 @@
         vec3 getShadowCoord() {
             int cascadeIndex = computeCascadeIndex(v_pos);
 
-        #ifdef GRAPHICS_API_WEBGL2
-            vec2 offsets = offsets[cascadeIndex];
-            mat4 viewProjMatFromLight = u_viewProjMatFromLight[cascadeIndex];
-        #else
-            vec2 offsets = vec2(0.0);
-            mat4 viewProjMatFromLight;
+            #ifdef GRAPHICS_API_WEBGL2
+                mat4 shadowMatrix = u_shadowMatrices[cascadeIndex];
+            #else
+                mat4 shadowMatrix;
+                if (cascadeIndex == 0) {
+                    shadowMatrix = u_shadowMatrices[0];
+                } else if (cascadeIndex == 1) {
+                    shadowMatrix = u_shadowMatrices[1];
+                } else if (cascadeIndex == 2) {
+                    shadowMatrix = u_shadowMatrices[2];
+                } else if (cascadeIndex == 3) {
+                    shadowMatrix = u_shadowMatrices[3];
+                } else {
+                    shadowMatrix = u_shadowMatrices[4];
+                }
+            #endif
 
-            if (cascadeIndex == 0) {
-                viewProjMatFromLight = u_viewProjMatFromLight[0];
-                offsets = vec2(0.0, 0.0);
-            } else if (cascadeIndex == 1) {
-                viewProjMatFromLight = u_viewProjMatFromLight[1];
-                offsets = vec2(0.5, 0.0);
-            } else if (cascadeIndex == 2) {
-                viewProjMatFromLight = u_viewProjMatFromLight[2];
-                offsets = vec2(0.0, 0.5);
-            } else {
-                viewProjMatFromLight = u_viewProjMatFromLight[3];
-                offsets = vec2(0.5, 0.5);
-            }
-        #endif
-
-        #if CASCADED_COUNT == 1
-            float scaleX = 1.0;
-            float scaleY = 1.0;
-        #endif
-
-        #if CASCADED_COUNT == 2
-            float scaleX = 0.5;
-            float scaleY = 1.0;
-        #endif
-
-        #if CASCADED_COUNT == 4
-            float scaleX = 0.5;
-            float scaleY = 0.5;
-        #endif
-
-            vec4 positionFromLight = viewProjMatFromLight * vec4(v_pos, 1.0);
-            vec3 shadowCoord = positionFromLight.xyz / positionFromLight.w;
-            shadowCoord = shadowCoord * 0.5 + 0.5;
-            vec3 coord = shadowCoord.xyz;
-            coord.x *= scaleX;
-            coord.y *= scaleY;
-            coord.xy += offsets;
-            return coord;
+            vec4 shadowCoord = shadowMatrix * vec4(v_pos, 1.0);
+            return shadowCoord.xyz / shadowCoord.w;
         }
 
         #if SHADOW_MODE == 2
-        float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, float size) {
-            vec2 shadowMapSize = vec2(0.5) / vec2(size, size);
-
+        float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowMapSize) {
             float attenuation;
             vec4 attenuation4;
             vec2 offset=shadowMapSize.xy/2.0;
@@ -129,11 +95,11 @@
         #if SHADOW_MODE == 3
         #include <shadow_sample_tent>
 
-        float sampleShadowMapFiltered9(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, float size) {
+        float sampleShadowMapFiltered9(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowmapSize) {
             float attenuation;
             float fetchesWeights[9];
             vec2 fetchesUV[9];
-            sampleShadowComputeSamplesTent5x5(size, shadowCoord.xy, fetchesWeights, fetchesUV);
+            sampleShadowComputeSamplesTent5x5(shadowmapSize, shadowCoord.xy, fetchesWeights, fetchesUV);
             attenuation = fetchesWeights[0] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[0].xy, shadowCoord.z));
             attenuation += fetchesWeights[1] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[1].xy, shadowCoord.z));
             attenuation += fetchesWeights[2] * SAMPLE_TEXTURE2D_SHADOW(shadowMap, vec3(fetchesUV[2].xy, shadowCoord.z));
@@ -151,17 +117,17 @@
             vec3 shadowCoord = getShadowCoord();
             float attenuation = 1.0;
             if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
-        #if SHADOW_MODE == 1
+            #if SHADOW_MODE == 1
                 attenuation = SAMPLE_TEXTURE2D_SHADOW(u_shadowMap, shadowCoord);
-        #endif
+            #endif
 
-        #if SHADOW_MODE == 2
-                attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_shadowInfo.y);
-        #endif
+            #if SHADOW_MODE == 2
+                attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_shadowMapSize);
+            #endif
 
-        #if SHADOW_MODE == 3
-                attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_shadowInfo.y);
-        #endif
+            #if SHADOW_MODE == 3
+                attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_shadowMapSize);
+            #endif
                 attenuation = mix(1.0, attenuation, u_shadowInfo.x);
             }
             return attenuation;
