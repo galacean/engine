@@ -175,7 +175,7 @@ export class Entity extends EngineObject {
    * @returns	The first component which match type
    */
   getComponent<T extends Component>(type: new (entity: Entity) => T): T {
-    for (let i = this._components.length - 1; i >= 0; i--) {
+    for (let i = 0, len = this._components.length; i < len; i++) {
       const component = this._components[i];
       if (component instanceof type) {
         return component;
