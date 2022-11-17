@@ -326,10 +326,11 @@ export class Engine extends EventDispatcher {
       this._render(scene);
     }
 
+    if (!this._waittingDestroy) {
+      componentsManager.handlingInvalidScripts();
+    }
     if (this._waittingDestroy) {
       this._destroy();
-    } else {
-      componentsManager.handlingInvalidScripts();
     }
     this._frameInProcess = false;
   }
@@ -380,6 +381,7 @@ export class Engine extends EventDispatcher {
     if (this._destroyed) {
       return;
     }
+    
     if (this._frameInProcess) {
       this._waittingDestroy = true;
     } else {
