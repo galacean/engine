@@ -374,7 +374,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * Destroy engine.
-   * @remarks Calling Destroy during frame execution will delay until the end of the frame
+   * @remarks If call during frame execution will delay until the end of the frame
    */
   destroy(): void {
     if (this._destroyed) {
