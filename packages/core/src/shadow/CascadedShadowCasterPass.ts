@@ -53,9 +53,9 @@ export class CascadedShadowCasterPass {
   private _lightSide: Vector3 = new Vector3();
   private _existShadowMap: boolean = false;
 
-  private _splitBoundSpheres = new Float32Array(4 * CascadedShadowCasterPass._maxCascades);
+  private _splitBoundSpheres = new Float32Array(CascadedShadowCasterPass._maxCascades * 4);
   /** The end is project prcision problem in shader. */
-  private _shadowMatrices = new Float32Array((4 + 1) * 16);
+  private _shadowMatrices = new Float32Array((CascadedShadowCasterPass._maxCascades + 1) * 16);
   // strength, null, lightIndex
   private _shadowInfos = new Vector3();
   private _depthTexture: Texture2D;
@@ -214,11 +214,21 @@ export class CascadedShadowCasterPass {
   }
 
   private _updateReceiversShaderData(): void {
-    const splitBoundSpheres = this._splitBoundSpheres;
     const scene = this._camera.scene;
+    const splitBoundSpheres = this._splitBoundSpheres;
+    const shadowMatrices = this._shadowMatrices;
     const shadowCascades = scene.shadowCascades;
-    for (let i = shadowCascades * 4, n = 4 * 4; i < n; i++) {
-      splitBoundSpheres[i] = 0.0;
+
+    // set zero matrix to project the index out of max cascade
+    if (shadowCascades > 1) {
+      for (let i = shadowCascades * 4, n = splitBoundSpheres.length; i < n; i++) {
+        splitBoundSpheres[i] = 0.0;
+      }
+    }
+
+    // set zero matrix to project the index out of max cascade
+    for (var i = shadowCascades * 16, n = shadowMatrices.length; i < n; i++) {
+      shadowMatrices[i] = 0.0;
     }
 
     const shaderData = scene.shaderData;
