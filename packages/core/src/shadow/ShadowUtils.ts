@@ -174,11 +174,14 @@ export class ShadowUtils {
   }
 
   static shadowCullFrustum(context: RenderContext, renderer: Renderer, shadowSliceData: ShadowSliceData): void {
-    if (
-      renderer.castShadows &&
-      ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
-    ) {
-      renderer._prepareRender(context);
+    // filter by camera culling mask.
+    if (context.camera.cullingMask & renderer._entity.layer) {
+      if (
+        renderer.castShadows &&
+        ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
+      ) {
+        renderer._prepareRender(context);
+      }
     }
   }
 
