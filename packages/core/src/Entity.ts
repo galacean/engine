@@ -176,7 +176,8 @@ export class Entity extends EngineObject {
    */
   getComponent<T extends Component>(type: new (entity: Entity) => T): T {
     const components = this._components;
-    for (let i = 0, n = components.length; i < n; i++) {
+    // @todo: should inverse traversal
+    for (let i = components.length - 1; i >= 0; i--) {
       const component = components[i];
       if (component instanceof type) {
         return component;
