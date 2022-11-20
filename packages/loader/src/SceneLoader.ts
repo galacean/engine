@@ -1,8 +1,16 @@
 import {
-  AssetPromise, AssetType, BackgroundMode, Engine,
-  Font, Loader,
-  LoadItem, PrimitiveMesh, resourceLoader,
-  ResourceManager, Scene, SkyBoxMaterial
+  AssetPromise,
+  AssetType,
+  BackgroundMode,
+  Engine,
+  Font,
+  Loader,
+  LoadItem,
+  PrimitiveMesh,
+  resourceLoader,
+  ResourceManager,
+  Scene,
+  SkyBoxMaterial
 } from "@oasis-engine/core";
 import { IClassObject, ReflectionParser, SceneParser } from "./resource-deserialize";
 
