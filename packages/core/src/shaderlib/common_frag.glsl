@@ -1,4 +1,3 @@
-uniform mat4 u_localMat;
 uniform mat4 u_modelMat;
 uniform mat4 u_viewMat;
 uniform mat4 u_projMat;
