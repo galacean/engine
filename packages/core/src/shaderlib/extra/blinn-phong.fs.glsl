@@ -1,5 +1,5 @@
 #include <common>
-#include <common_frag>
+#include <camera_declare>
 
 #include <uv_share>
 #include <normal_share>
