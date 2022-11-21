@@ -306,7 +306,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           newBlendShapeWeights.set(lastBlendShapeWeights);
         } else {
           for (let i = 0, n = lastBlendShapeWeights.length; i < n; i++) {
-            lastBlendShapeWeights[i] = newBlendShapeWeights[i];
+            newBlendShapeWeights[i] = lastBlendShapeWeights[i];
           }
         }
         this._blendShapeWeights = newBlendShapeWeights;
