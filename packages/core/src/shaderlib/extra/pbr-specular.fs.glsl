@@ -1,5 +1,5 @@
 #include <common>
-#include <common_frag>
+#include <camera_declare>
 
 #include <fog_share>
 
