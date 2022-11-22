@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/core",
-  "version": "0.9.0-beta.26",
+  "version": "0.9.0-beta.27",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
