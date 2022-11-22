@@ -218,7 +218,7 @@ export class Script extends Component {
    * @override
    */
   _onDestroy(): void {
-    this._engine._componentsManager.addDestroyScript(this);
+    this._engine._componentsManager.addPendingDestroyScript(this);
   }
 
   /**
