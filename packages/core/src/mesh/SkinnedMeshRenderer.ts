@@ -300,13 +300,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const newBlendShapeCount = mesh ? mesh.blendShapeCount : 0;
     const lastBlendShapeWeights = this._blendShapeWeights;
     if (lastBlendShapeWeights) {
-      if (lastBlendShapeWeights.length !== newBlendShapeCount) {
+      const lastBlendShapeWeightsCount = lastBlendShapeWeights.length;
+      if (lastBlendShapeWeightsCount !== newBlendShapeCount) {
         const newBlendShapeWeights = new Float32Array(newBlendShapeCount);
-        if (newBlendShapeCount > lastBlendShapeWeights.length) {
+        if (newBlendShapeCount > lastBlendShapeWeightsCount) {
           newBlendShapeWeights.set(lastBlendShapeWeights);
         } else {
-          for (let i = 0, n = lastBlendShapeWeights.length; i < n; i++) {
-            lastBlendShapeWeights[i] = newBlendShapeWeights[i];
+          for (let i = 0; i < newBlendShapeCount; i++) {
+            newBlendShapeWeights[i] = lastBlendShapeWeights[i];
           }
         }
         this._blendShapeWeights = newBlendShapeWeights;

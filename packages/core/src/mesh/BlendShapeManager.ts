@@ -68,8 +68,8 @@ export class BlendShapeManager {
     this._blendShapes.push(blendShape);
     this._blendShapeCount++;
 
-    blendShape._layoutChangeManager.addListener(this._layoutOrCountChange);
-    this._updateLayoutChange(blendShape);
+    blendShape._layoutChangeManager.addListener(this._updateLayoutChange);
+    this._updateLayoutChange(0, blendShape);
 
     this._subDataDirtyFlags.push(blendShape._createSubDataDirtyFlag());
   }
@@ -80,7 +80,7 @@ export class BlendShapeManager {
   _clearBlendShapes(): void {
     const blendShapes = this._blendShapes;
     for (let i = 0, n = blendShapes.length; i < n; i++) {
-      blendShapes[i]._layoutChangeManager.removeListener(this._layoutOrCountChange);
+      blendShapes[i]._layoutChangeManager.removeListener(this._updateLayoutChange);
     }
     this._useBlendNormal = false;
     this._useBlendTangent = false;
@@ -246,7 +246,7 @@ export class BlendShapeManager {
     this._blendShapeNames = blendShapeNamesMap;
 
     for (let i = 0, n = blendShapes.length; i < n; i++) {
-      blendShapes[i]._layoutChangeManager.removeListener(this._layoutOrCountChange);
+      blendShapes[i]._layoutChangeManager.removeListener(this._updateLayoutChange);
     }
 
     const dataChangedFlags = this._subDataDirtyFlags;
@@ -459,7 +459,7 @@ export class BlendShapeManager {
     vertexTexture.setPixelBuffer(0, vertices);
   }
 
-  private _updateLayoutChange(blendShape: BlendShape): void {
+  private _updateLayoutChange(type: number, blendShape: BlendShape): void {
     const notFirst = this._blendShapeCount > 1;
     let vertexElementCount = 1;
     let useBlendNormal = blendShape._useBlendShapeNormal;
