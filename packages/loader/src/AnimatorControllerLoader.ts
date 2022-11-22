@@ -52,6 +52,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
                     resolve({
                       layerIndex,
                       stateIndex,
+                      // @ts-ignore
                       clip: await resourceManager.getResourceByRef(clipData)
                     });
                   })
