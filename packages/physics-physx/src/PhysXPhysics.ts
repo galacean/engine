@@ -54,17 +54,17 @@ export class PhysXPhysics {
       script.async = true;
       script.onload = resolve;
 
-      const supported = (() => {
-        try {
-          if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
-            const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
-            if (module instanceof WebAssembly.Module)
-              return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
-          }
-        } catch (e) {}
-        return false;
-      })();
       if (runtimeMode == PhysXRuntimeMode.Auto) {
+        const supported = (() => {
+          try {
+            if (typeof WebAssembly === "object" && typeof WebAssembly.instantiate === "function") {
+              const module = new WebAssembly.Module(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00));
+              if (module instanceof WebAssembly.Module)
+                return new WebAssembly.Instance(module) instanceof WebAssembly.Instance;
+            }
+          } catch (e) {}
+          return false;
+        })();
         if (supported) {
           runtimeMode = PhysXRuntimeMode.WebAssembly;
         } else {
@@ -74,10 +74,10 @@ export class PhysXPhysics {
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.13/libs/physx.release.js.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.27/libs/physx.release.js.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.13/libs/physx.release.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.27/libs/physx.release.js";
       }
     });
 
@@ -85,7 +85,6 @@ export class PhysXPhysics {
       scriptPromise.then(() => {
         (<any>window).PHYSX().then((PHYSX) => {
           PhysXPhysics._init(PHYSX);
-          PhysXPhysicsManager._init();
           console.log("PhysX loaded.");
           resolve();
         });
@@ -230,5 +229,6 @@ export class PhysXPhysics {
     );
 
     PhysXPhysics._physX.PxInitExtensions(this._pxPhysics, null);
+    PhysXPhysicsManager._init();
   }
 }
