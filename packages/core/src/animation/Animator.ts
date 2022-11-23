@@ -614,7 +614,7 @@ export class Animator extends Component {
     if (animatorLayerData.layerState === LayerState.Playing) {
       const srcPlayData = animatorLayerData.srcPlayData;
       const state = srcPlayData.state;
-      if (state && state !== newPlayState) {
+      if (state !== newPlayState) {
         const { curveOwners } = srcPlayData.stateData;
         for (let i = curveOwners.length - 1; i >= 0; i--) {
           const owner = curveOwners[i];
