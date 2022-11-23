@@ -611,27 +611,23 @@ export class Animator extends Component {
   }
 
   private _revertDefaultValue(animatorLayerData: AnimatorLayerData, newPlayState: AnimatorState): void {
-    switch (animatorLayerData.layerState) {
-      case LayerState.Playing:
-        const srcPlayData = animatorLayerData.srcPlayData;
-        const state = srcPlayData.state;
-        if (state && state !== newPlayState) {
-          const { curveOwners } = srcPlayData.stateData;
-          for (let i = curveOwners.length - 1; i >= 0; i--) {
-            const owner = curveOwners[i];
-            owner?.hasSavedDefaultValue && owner.revertDefaultValue();
-          }
-        }
-        break;
-      case LayerState.CrossFading:
-      case LayerState.FixedCrossFading:
-      case LayerState.Standby:
-        const crossCurveDataCollection = this._crossOwnerCollection;
-        for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
-          const owner = crossCurveDataCollection[i];
+    if (animatorLayerData.layerState === LayerState.Playing) {
+      const srcPlayData = animatorLayerData.srcPlayData;
+      const state = srcPlayData.state;
+      if (state && state !== newPlayState) {
+        const { curveOwners } = srcPlayData.stateData;
+        for (let i = curveOwners.length - 1; i >= 0; i--) {
+          const owner = curveOwners[i];
           owner?.hasSavedDefaultValue && owner.revertDefaultValue();
         }
-        break;
+      }
+    } else {
+      // layerState is CrossFading, FixedCrossFading, Standby
+      const crossCurveDataCollection = this._crossOwnerCollection;
+      for (let i = crossCurveDataCollection.length - 1; i >= 0; i--) {
+        const owner = crossCurveDataCollection[i];
+        owner.hasSavedDefaultValue && owner.revertDefaultValue();
+      }
     }
   }
 
