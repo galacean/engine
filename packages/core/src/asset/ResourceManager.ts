@@ -207,7 +207,7 @@ export class ResourceManager {
     }
     // loading
     if (this._loadingPromises[url]) {
-      return this._loadingPromises[info.url];
+      return this._loadingPromises[url];
     }
     const loader = ResourceManager._loaders[info.type];
     if (!loader) {
