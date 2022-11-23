@@ -615,9 +615,14 @@ export class Animator extends Component {
   }
 
   private _revertDefaultValue(srcPlayData: AnimatorStatePlayData, destPlayData: AnimatorStatePlayData) {
-    const curveOwners = (srcPlayData.stateData?.curveOwners || []).concat(destPlayData.stateData?.curveOwners || []);
-    for (let i = curveOwners.length - 1; i >= 0; i--) {
-      const owner = curveOwners[i];
+    const srcCurveOwner = srcPlayData.stateData?.curveOwners || [];
+    const destCurveOwner = destPlayData.stateData?.curveOwners || [];
+    for (let i = srcCurveOwner.length - 1; i >= 0; i--) {
+      const owner = srcCurveOwner[i];
+      owner?.hasSavedDefaultValue && owner.revertDefaultValue();
+    }
+    for (let i = destCurveOwner.length - 1; i >= 0; i--) {
+      const owner = destCurveOwner[i];
       owner?.hasSavedDefaultValue && owner.revertDefaultValue();
     }
   }
