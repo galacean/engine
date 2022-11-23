@@ -6,7 +6,7 @@
         // intensity, resolution, sunIndex
         uniform vec3 u_shadowInfo;
         uniform vec4 u_shadowMapSize;
-        uniform mat4 u_shadowMatrices[5];
+        uniform mat4 u_shadowMatrices[CASCADED_COUNT + 1];
         uniform vec4 u_shadowSplitSpheres[4];
 
 
@@ -51,23 +51,45 @@
         }
 
         vec3 getShadowCoord() {
-            int cascadeIndex = computeCascadeIndex(v_pos);
+            #if CASCADED_COUNT == 1
+                mediump int cascadeIndex = 0;
+            #else
+                mediump int cascadeIndex = computeCascadeIndex(v_pos);
+            #endif
 
             #ifdef GRAPHICS_API_WEBGL2
                 mat4 shadowMatrix = u_shadowMatrices[cascadeIndex];
             #else
                 mat4 shadowMatrix;
-                if (cascadeIndex == 0) {
-                    shadowMatrix = u_shadowMatrices[0];
-                } else if (cascadeIndex == 1) {
-                    shadowMatrix = u_shadowMatrices[1];
-                } else if (cascadeIndex == 2) {
-                    shadowMatrix = u_shadowMatrices[2];
-                } else if (cascadeIndex == 3) {
-                    shadowMatrix = u_shadowMatrices[3];
-                } else {
-                    shadowMatrix = u_shadowMatrices[4];
-                }
+                #if CASCADED_COUNT == 4
+                   if (cascadeIndex == 0) {
+                        shadowMatrix = u_shadowMatrices[0];
+                    } else if (cascadeIndex == 1) {
+                        shadowMatrix = u_shadowMatrices[1];
+                    } else if (cascadeIndex == 2) {
+                        shadowMatrix = u_shadowMatrices[2];
+                    } else if (cascadeIndex == 3) {
+                        shadowMatrix = u_shadowMatrices[3];
+                    } else {
+                        shadowMatrix = u_shadowMatrices[4];
+                    }
+                #endif
+                #if CASCADED_COUNT == 2
+                    if (cascadeIndex == 0) {
+                        shadowMatrix = u_shadowMatrices[0];
+                    } else if (cascadeIndex == 1) {
+                        shadowMatrix = u_shadowMatrices[1];
+                    } else {
+                        shadowMatrix = u_shadowMatrices[2];
+                    } 
+                #endif
+                #if CASCADED_COUNT == 1
+                    if (cascadeIndex == 0) {
+                        shadowMatrix = u_shadowMatrices[0];
+                    } else  {
+                        shadowMatrix = u_shadowMatrices[1];
+                    } 
+                #endif
             #endif
 
             vec4 shadowCoord = shadowMatrix * vec4(v_pos, 1.0);

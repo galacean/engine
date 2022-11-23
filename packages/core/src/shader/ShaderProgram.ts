@@ -281,7 +281,7 @@ export class ShaderProgram {
     const shader = gl.createShader(shaderType);
 
     if (!shader) {
-      Logger.error("Context lost while create shader.");
+      console.warn("Context lost while create shader.");
       return null;
     }
 
@@ -289,13 +289,13 @@ export class ShaderProgram {
     gl.compileShader(shader);
 
     if (gl.isContextLost()) {
-      Logger.error("Context lost while compiling shader.");
+      console.warn("Context lost while compiling shader.");
       gl.deleteShader(shader);
       return null;
     }
 
     if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      Logger.error(
+      console.warn(
         `Could not compile WebGL shader.\n${gl.getShaderInfoLog(shader)}`,
         ShaderProgram._addLineNum(shaderSource)
       );

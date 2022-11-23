@@ -59,7 +59,7 @@ export class SkinParser extends Parser {
     for (const index of joints) {
       const path = new Array<Entity>();
       let entity = entities[index];
-      while (entity.parent !== null) {
+      while (entity) {
         path.unshift(entity);
         entity = entity.parent;
       }
