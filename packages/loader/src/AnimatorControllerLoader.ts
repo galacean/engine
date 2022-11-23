@@ -49,6 +49,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
               if (clipData) {
                 promises.push(
                   new Promise((resolve) => {
+                    //@ts-ignore
                     resourceManager.getResourceByRef(clipData).then((clip) => {
                       resolve({
                         layerIndex,
