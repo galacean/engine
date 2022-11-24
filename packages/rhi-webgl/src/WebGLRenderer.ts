@@ -164,8 +164,6 @@ export class WebGLRenderer implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
-
-    this._options = null;
   }
 
   createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
