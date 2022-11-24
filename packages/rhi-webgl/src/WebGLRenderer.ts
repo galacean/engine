@@ -50,7 +50,7 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
   webGLMode?: WebGLMode;
   /**
    * @internal
-   * iOS 15 webgl implement has bug, maybe should force call flush command buffer.
+   * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for exmaple iPhone13(iOS 15.4.1).
    */
   _forceFlush?: boolean;
 }
