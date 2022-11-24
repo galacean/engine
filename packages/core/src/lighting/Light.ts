@@ -1,6 +1,7 @@
 import { Color, Matrix } from "@oasis-engine/math";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
+import { Layer } from "../Layer";
 import { ShadowType } from "../shadow";
 
 /**
@@ -14,6 +15,12 @@ export abstract class Light extends Component {
 
   /** Light Intensity */
   intensity: number = 1;
+
+  /**
+   * Culling mask - which layers the light affect.
+   * @remarks Support bit manipulation, corresponding to `Layer`.
+   */
+  cullingMask: Layer = Layer.Everything;
 
   /** How this light casts shadows. */
   shadowType: ShadowType = ShadowType.None;

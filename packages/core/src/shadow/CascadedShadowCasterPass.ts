@@ -192,7 +192,7 @@ export class CascadedShadowCasterPass {
         const renderers = componentsManager._renderers;
         const elements = renderers._elements;
         for (let k = renderers.length - 1; k >= 0; --k) {
-          ShadowUtils.shadowCullFrustum(context, elements[k], shadowSliceData);
+          ShadowUtils.shadowCullFrustum(context, light, elements[k], shadowSliceData);
         }
         opaqueQueue.sort(RenderQueue._compareFromNearToFar);
         alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
