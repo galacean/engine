@@ -17,6 +17,7 @@ export abstract class Light extends Component {
   intensity: number = 1;
 
   /**
+   * @beta
    * Culling mask - which layers the light affect.
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */
