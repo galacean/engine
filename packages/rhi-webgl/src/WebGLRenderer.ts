@@ -48,6 +48,11 @@ export enum WebGLMode {
 export interface WebGLRendererOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
+  /**
+   * @internal
+   * iOS 15 webgl implement has bug, maybe should force call flush command buffer.
+   */
+  _forceFlush?: boolean;
 }
 
 /**
@@ -115,6 +120,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     const option = this._options;
     option.alpha === undefined && (option.alpha = false);
     option.stencil === undefined && (option.stencil = true);
+    option._forceFlush === undefined && (option._forceFlush = false);
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
@@ -322,6 +328,10 @@ export class WebGLRenderer implements IHardwareRenderer {
       gl.disable(gl.POLYGON_OFFSET_FILL);
     }
     this._enableGlobalDepthBias = enable;
+  }
+
+  flush(): void {
+    this._gl.flush();
   }
 
   destroy() {}
