@@ -95,15 +95,13 @@ export class Animator extends Component {
     }
 
     const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
-    this._revertDefaultValue(animatorLayerData, state);
-
     //TODO CM: Not consider same stateName, but different animation
     const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData);
 
+    this._preparePlay(animatorLayerData, state, animatorStateData);
+
     animatorLayerData.layerState = LayerState.Playing;
     animatorLayerData.srcPlayData.reset(state, animatorStateData, state._getDuration() * normalizedTimeOffset);
-
-    this._saveDefaultValues(animatorStateData);
   }
 
   /**
@@ -610,16 +608,16 @@ export class Animator extends Component {
     }
   }
 
-  private _revertDefaultValue(animatorLayerData: AnimatorLayerData, newPlayState: AnimatorState): void {
-    if (animatorLayerData.layerState === LayerState.Playing) {
-      const srcPlayData = animatorLayerData.srcPlayData;
-      const state = srcPlayData.state;
-      if (state !== newPlayState) {
+  private _preparePlay(layerData: AnimatorLayerData, playState: AnimatorState, playStateData: AnimatorStateData): void {
+    if (layerData.layerState === LayerState.Playing) {
+      const srcPlayData = layerData.srcPlayData;
+      if (srcPlayData.state !== playState) {
         const { curveOwners } = srcPlayData.stateData;
         for (let i = curveOwners.length - 1; i >= 0; i--) {
           const owner = curveOwners[i];
           owner?.hasSavedDefaultValue && owner.revertDefaultValue();
         }
+        this._saveDefaultValues(playStateData);
       }
     } else {
       // layerState is CrossFading, FixedCrossFading, Standby
@@ -628,6 +626,7 @@ export class Animator extends Component {
         const owner = crossCurveDataCollection[i];
         owner.hasSavedDefaultValue && owner.revertDefaultValue();
       }
+      this._saveDefaultValues(playStateData);
     }
   }
 
