@@ -51,7 +51,7 @@ export class Camera extends Component {
 
   /**
    * Culling mask - which layers the camera renders.
-   * @remarks Support bit manipulation, corresponding to Entity's layer.
+   * @remarks Support bit manipulation, corresponding to `Layer`.
    */
   cullingMask: Layer = Layer.Everything;
 

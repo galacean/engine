@@ -381,7 +381,7 @@ export class Engine extends EventDispatcher {
     if (this._destroyed) {
       return;
     }
-    
+
     if (this._frameInProcess) {
       this._waittingDestroy = true;
     } else {
@@ -423,6 +423,11 @@ export class Engine extends EventDispatcher {
         componentsManager.callCameraOnBeginRender(camera);
         camera.render();
         componentsManager.callCameraOnEndRender(camera);
+
+        // temp solution for webgl implement bug
+        if (this._hardwareRenderer._options._forceFlush) {
+          this._hardwareRenderer.flush();
+        }
       }
     } else {
       Logger.debug("NO active camera.");

@@ -1,16 +1,16 @@
 import {
   AssetPromise,
+  AssetType,
+  BackgroundMode,
+  Engine,
+  Font,
   Loader,
   LoadItem,
+  PrimitiveMesh,
   resourceLoader,
   ResourceManager,
-  AssetType,
   Scene,
-  BackgroundMode,
-  SkyBoxMaterial,
-  PrimitiveMesh,
-  Engine,
-  Font
+  SkyBoxMaterial
 } from "@oasis-engine/core";
 import { IClassObject, ReflectionParser, SceneParser } from "./resource-deserialize";
 
@@ -27,6 +27,7 @@ class SceneLoader extends Loader<Scene> {
           let ambientLightPromise = Promise.resolve();
           if (ambient.ambientLight) {
             ambientLightPromise = resourceManager
+              // @ts-ignore
               .getResourceByRef<any>(data.scene.ambient.ambientLight)
               .then((light) => {
                 scene.ambientLight = light;
@@ -50,6 +51,7 @@ class SceneLoader extends Loader<Scene> {
               break;
             case BackgroundMode.Sky:
               if (background.sky) {
+                // @ts-ignore
                 backgroundPromise = resourceManager.getResourceByRef<any>(background.sky).then((light) => {
                   const sky = scene.background.sky;
                   const skyMaterial = new SkyBoxMaterial(engine);
@@ -62,6 +64,7 @@ class SceneLoader extends Loader<Scene> {
               break;
             case BackgroundMode.Texture:
               if (background.texture) {
+                // @ts-ignore
                 backgroundPromise = resourceManager.getResourceByRef<any>(background.texture).then((texture) => {
                   scene.background.texture = texture;
                 });

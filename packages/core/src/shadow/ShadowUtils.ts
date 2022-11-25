@@ -10,7 +10,7 @@ import {
   Vector3
 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
-import { DirectLight } from "../lighting";
+import { DirectLight, Light } from "../lighting";
 import { Renderer } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { TextureFormat } from "../texture";
@@ -173,9 +173,15 @@ export class ShadowUtils {
     return true;
   }
 
-  static shadowCullFrustum(context: RenderContext, renderer: Renderer, shadowSliceData: ShadowSliceData): void {
+  static shadowCullFrustum(
+    context: RenderContext,
+    light: Light,
+    renderer: Renderer,
+    shadowSliceData: ShadowSliceData
+  ): void {
     // filter by camera culling mask.
-    if (context.camera.cullingMask & renderer._entity.layer) {
+    const layer = renderer._entity.layer;
+    if (context.camera.cullingMask & layer && light.cullingMask & layer) {
       if (
         renderer.castShadows &&
         ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
