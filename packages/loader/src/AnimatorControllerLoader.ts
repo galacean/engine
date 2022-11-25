@@ -18,7 +18,7 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
       this.request<any>(item.url, {
         ...item,
         type: "json"
-      }).then(async (data) => {
+      }).then((data) => {
         const animatorController = new AnimatorController();
         const { layers } = data;
         const promises = [];
@@ -48,11 +48,14 @@ class AnimatorControllerLoader extends Loader<AnimatorController> {
               state.clipEndTime = clipEndNormalizedTime;
               if (clipData) {
                 promises.push(
-                  new Promise(async (resolve) => {
-                    resolve({
-                      layerIndex,
-                      stateIndex,
-                      clip: await resourceManager.getResourceByRef(clipData)
+                  new Promise((resolve) => {
+                    //@ts-ignore
+                    resourceManager.getResourceByRef(clipData).then((clip) => {
+                      resolve({
+                        layerIndex,
+                        stateIndex,
+                        clip
+                      });
                     });
                   })
                 );
