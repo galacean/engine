@@ -603,6 +603,7 @@ export class Animator extends Component {
         layerData.layerState = LayerState.Playing;
       }
       layerData.switchPlayData();
+      layerData.crossFadeTransition = null;
     } else {
       fixed || (layerData.srcPlayData.frameTime += layerData.srcPlayData.state.speed * delta);
     }
