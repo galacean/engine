@@ -32,16 +32,16 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   readonly property: string;
   readonly component: Component;
 
-  crossCurveMark: number = 0;
-  crossCurveDataIndex: number;
+  crossCurveMarks: number[] = [];
+  crossOwnerCollectionIndices: number[] = [];
   defaultValue: V;
   fixedPoseValue: V;
   hasSavedDefaultValue: boolean = false;
   baseEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
 
   crossEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
-  crossSrcCurveIndex: number;
-  crossDestCurveIndex: number;
+  crossSrcCurveIndices: number[] = [];
+  crossDestCurveIndices: number[] = [];
 
   referenceTargetValue: V;
 
