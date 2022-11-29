@@ -388,9 +388,13 @@ export class Camera extends Component {
 
   /**
    * Transform a point from world space to screen space.
+   *
+   * @remarks
+   * Screen space is defined in pixels, the left-top of the screen is (0,0), the right-top is (canvasPixelWidth,canvasPixelHeight).
+   *
    * @param point - Point in world space
-   * @param out - Point of screen space
-   * @returns Point of screen space
+   * @param out - The result will be stored
+   * @returns X and Y are the coordinates of the point in screen space, Z is the distance from the camera in world space
    */
   worldToScreenPoint(point: Vector3, out: Vector3): Vector3 {
     this.worldToViewportPoint(point, out);
