@@ -762,28 +762,14 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
     const { _x, _y, _z, _w } = this;
     const xx = _x * _x;
-    const yy = _y * _y;
-    const zz = _z * _z;
-    const xy = _x * _y;
-    const zw = _z * _w;
-    const zx = _z * _x;
-    const yw = _y * _w;
-    const yz = _y * _z;
-    const xw = _x * _w;
+    const sinP = 2.0 * (_x * _w - _y * _z);
 
-    const sinP = 2.0 * (xw - yz);
-
-    if (Math.abs(sinP) >= 1) {
+    out.set(
+      Math.atan2(2.0 * (_z * _x + _y * _w), 1.0 - 2.0 * (_y * _y + xx)),
       // use 90 degrees if out of range
-      const sign = Math.sign(sinP);
-      out._x = 0.0;
-      out._y = sign * (Math.PI / 2);
-      out._z = sign *Math.atan2(-2.0 * (xy - zw), 1.0 - 2.0 * (yy + zz));
-    } else {
-      out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
-      out._y = Math.asin(sinP);
-      out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
-    }
+      Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP),
+      Math.atan2(2.0 * (_x * _y + _z * _w), 1.0 - 2.0 * (_z * _z + xx))
+    );
     return out;
   }
 }
