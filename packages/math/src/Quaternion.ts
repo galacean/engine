@@ -784,7 +784,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     return out;
   }
 
-  // @todo: convert to YawPitchRoll order
+  // @todo: this is yaw roll pitch, we need to waw pitch roll order
   // private _toYawRollPitch(out: Vector3): Vector3 {
   //   // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
   //   const { _x: x, _y: y, _z: z, _w: w } = this;
