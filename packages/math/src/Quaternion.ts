@@ -760,15 +760,15 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   private _toYawPitchRoll(out: Vector3): Vector3 {
     // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
-    const { _x, _y, _z, _w } = this;
-    const xx = _x * _x;
-    const sinP = 2.0 * (_x * _w - _y * _z);
+    const { _x: x, _y: y, _z: z, _w: w } = this;
+    const xx = x * x;
+    const sinP = 2.0 * (x * w - y * z);
 
     out.set(
-      Math.atan2(2.0 * (_z * _x + _y * _w), 1.0 - 2.0 * (_y * _y + xx)),
+      Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (y * y + xx)),
       // use 90 degrees if out of range
       Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP),
-      Math.atan2(2.0 * (_x * _y + _z * _w), 1.0 - 2.0 * (_z * _z + xx))
+      Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (z * z + xx))
     );
     return out;
   }
