@@ -785,33 +785,33 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   }
 
   // @todo: convert to YawPitchRoll order
-  private _toYawRollPitch(out: Vector3): Vector3 {
-    // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
-    const { _x: x, _y: y, _z: z, _w: w } = this;
-    const sqw = w * w;
-    const sqx = x * x;
-    const sqy = y * y;
-    const sqz = z * z;
-    const unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
-    const test = x * y + z * w;
-    if (test > 0.499 * unit) {
-      // singularity at north pole
-      out._x = 2 * Math.atan2(x, w);
-      out._y = Math.PI / 2;
-      out._z = 0;
-      return;
-    }
-    if (test < -0.499 * unit) {
-      // singularity at south pole
-      out._x = -2 * Math.atan2(x, w);
-      out._y = -Math.PI / 2;
-      out._z = 0;
-      return;
-    }
-    out._x = Math.atan2(2 * y * w - 2 * x * z, sqx - sqy - sqz + sqw);
-    out._y = Math.asin((2 * test) / unit);
-    out._z = Math.atan2(2 * x * w - 2 * y * z, -sqx + sqy - sqz + sqw);
-  }
+  // private _toYawRollPitch(out: Vector3): Vector3 {
+  //   // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+  //   const { _x: x, _y: y, _z: z, _w: w } = this;
+  //   const sqw = w * w;
+  //   const sqx = x * x;
+  //   const sqy = y * y;
+  //   const sqz = z * z;
+  //   const unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
+  //   const test = x * y + z * w;
+  //   if (test > 0.499 * unit) {
+  //     // singularity at north pole
+  //     out._x = 2 * Math.atan2(x, w);
+  //     out._y = Math.PI / 2;
+  //     out._z = 0;
+  //     return;
+  //   }
+  //   if (test < -0.499 * unit) {
+  //     // singularity at south pole
+  //     out._x = -2 * Math.atan2(x, w);
+  //     out._y = -Math.PI / 2;
+  //     out._z = 0;
+  //     return;
+  //   }
+  //   out._x = Math.atan2(2 * y * w - 2 * x * z, sqx - sqy - sqz + sqw);
+  //   out._y = Math.asin((2 * test) / unit);
+  //   out._z = Math.atan2(2 * x * w - 2 * y * z, -sqx + sqy - sqz + sqw);
+  // }
 }
 
 interface QuaternionLike {
