@@ -758,19 +758,58 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   }
 
   private _toYawPitchRoll(out: Vector3): Vector3 {
-    // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+    let { _x: x, _y: y, _z: z, _w: w } = this;
+    let l = Math.sqrt(x * x + y * y + z * z + w * w);
+    if (l > MathUtil.zeroTolerance) {
+      l = 1.0 / l;
+      x *= l;
+      y *= l;
+      z *= l;
+      w *= l;
+    }
+
+    const xx = x * x;
+    const yy = y * y;
+    const zz = z * z;
+
+    const pitch = Math.asin(2.0 * (x * w - y * z));
+    if (Math.cos(pitch) > MathUtil.zeroTolerance) {
+      out._z = Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (zz + xx));
+      out._x = Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (yy + xx));
+    } else {
+      out._z = Math.atan2(-2.0 * (x * y - z * w), 1.0 - 2.0 * (yy + zz));
+      out._x = 0.0;
+    }
+    out._y = pitch;
+    return out;
+  }
+
+  private _toYawRollPitch(out: Vector3): Vector3 {
     // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
     const { _x: x, _y: y, _z: z, _w: w } = this;
-    const xx = x * x;
-    const sinP = 2.0 * (x * w - y * z);
-
-    out.set(
-      Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (y * y + xx)),
-      // use 90 degrees if out of range
-      Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP),
-      Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (z * z + xx))
-    );
-    return out;
+    const sqw = w * w;
+    const sqx = x * x;
+    const sqy = y * y;
+    const sqz = z * z;
+    const unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
+    const test = x * y + z * w;
+    if (test > 0.499 * unit) {
+      // singularity at north pole
+      out._x = 2 * Math.atan2(x, w);
+      out._y = Math.PI / 2;
+      out._z = 0;
+      return;
+    }
+    if (test < -0.499 * unit) {
+      // singularity at south pole
+      out._x = -2 * Math.atan2(x, w);
+      out._y = -Math.PI / 2;
+      out._z = 0;
+      return;
+    }
+    out._x = Math.atan2(2 * y * w - 2 * x * z, sqx - sqy - sqz + sqw);
+    out._y = Math.asin((2 * test) / unit);
+    out._z = Math.atan2(2 * x * w - 2 * y * z, -sqx + sqy - sqz + sqw);
   }
 }
 
