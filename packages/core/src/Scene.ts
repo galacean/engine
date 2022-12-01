@@ -10,8 +10,8 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
-import { ShadowType } from "./shadow/enum/ShadowType";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
+import { ShadowType } from "./shadow/enum/ShadowType";
 
 /**
  * Scene.
@@ -205,14 +205,7 @@ export class Scene extends EngineObject {
    */
   findEntityByName(name: string): Entity | null {
     const children = this._rootEntities;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child.name === name) {
-        return child;
-      }
-    }
-
-    for (let i = children.length - 1; i >= 0; i--) {
+    for (let i = 0, n = children.length; i < n; i++) {
       const child = children[i];
       const entity = child.findByName(name);
       if (entity) {
