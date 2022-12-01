@@ -757,7 +757,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     out[outOffset + 3] = this._w;
   }
 
-  private _toYawPitchRoll(out: Vector3): Vector3 {
+  private _toYawPitchRoll(out: Vector3): void {
     // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     const { _x: x, _y: y, _z: z, _w: w } = this;
     const xx = x * x;
@@ -767,8 +767,6 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     out._y = Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP);
     out._x = Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (y * y + xx));
     out._z = Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (z * z + xx));
-
-    return out;
   }
 
   // @todo: this is yaw roll pitch, we need to waw pitch roll order, this version has better performance
