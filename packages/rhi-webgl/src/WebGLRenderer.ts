@@ -48,6 +48,11 @@ export enum WebGLMode {
 export interface WebGLRendererOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
+  /**
+   * @internal
+   * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for exmaple iPhone13(iOS 15.4.1).
+   */
+  _forceFlush?: boolean;
 }
 
 /**
@@ -56,6 +61,8 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
 export class WebGLRenderer implements IHardwareRenderer {
   /** @internal */
   _readFrameBuffer: WebGLFramebuffer;
+  /** @internal */
+  _enableGlobalDepthBias: boolean = false;
 
   _currentBind: any;
 
@@ -73,6 +80,7 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   // cache value
   private _lastViewport: Vector4 = new Vector4(null, null, null, null);
+  private _lastScissor: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
   private _scissorEnable: boolean = false;
 
@@ -112,6 +120,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     const option = this._options;
     option.alpha === undefined && (option.alpha = false);
     option.stencil === undefined && (option.stencil = true);
+    option._forceFlush === undefined && (option._forceFlush = false);
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
@@ -155,8 +164,6 @@ export class WebGLRenderer implements IHardwareRenderer {
     if (debugRenderInfo != null) {
       this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
     }
-
-    this._options = null;
   }
 
   createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
@@ -192,8 +199,16 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   viewport(x: number, y: number, width: number, height: number): void {
-    const { _gl: gl, _lastViewport: lv } = this;
-    if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
+    const { _gl: gl, _lastViewport: lastViewport } = this;
+    if (x !== lastViewport.x || y !== lastViewport.y || width !== lastViewport.z || height !== lastViewport.w) {
+      gl.viewport(x, y, width, height);
+      lastViewport.set(x, y, width, height);
+    }
+  }
+
+  scissor(x: number, y: number, width: number, height: number): void {
+    const { _gl: gl, _lastScissor: lastScissor } = this;
+    if (x !== lastScissor.x || y !== lastScissor.y || width !== lastScissor.z || height !== lastScissor.w) {
       const { _webCanvas: webCanvas } = this;
       if (x === 0 && y === 0 && width === webCanvas.width && height === webCanvas.height) {
         if (this._scissorEnable) {
@@ -207,8 +222,7 @@ export class WebGLRenderer implements IHardwareRenderer {
         }
         gl.scissor(x, y, width, height);
       }
-      gl.viewport(x, y, width, height);
-      lv.set(x, y, width, height);
+      lastScissor.set(x, y, width, height);
     }
   }
 
@@ -271,8 +285,10 @@ export class WebGLRenderer implements IHardwareRenderer {
     if (renderTarget) {
       /** @ts-ignore */
       (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
-      const { width, height } = renderTarget;
-      this.viewport(0, 0, width >> mipLevel, height >> mipLevel);
+      const width = renderTarget.width >> mipLevel;
+      const height = renderTarget.height >> mipLevel;
+      this.viewport(0, 0, width, height);
+      this.scissor(0, 0, width, height);
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       const { drawingBufferWidth, drawingBufferHeight } = gl;
@@ -281,10 +297,9 @@ export class WebGLRenderer implements IHardwareRenderer {
       const x = viewport.x * drawingBufferWidth;
       const y = drawingBufferHeight - viewport.y * drawingBufferHeight - height;
       this.viewport(x, y, width, height);
+      this.scissor(x, y, width, height);
     }
   }
-
-  destroy() {}
 
   activeTexture(textureID: number): void {
     if (this._activeTextureID !== textureID) {
@@ -300,4 +315,22 @@ export class WebGLRenderer implements IHardwareRenderer {
       this._activeTextures[index] = texture;
     }
   }
+
+  setGlobalDepthBias(bias: number, slopeBias: number): void {
+    const gl = this._gl;
+    const enable = bias !== 0 || slopeBias !== 0;
+    if (enable) {
+      gl.enable(gl.POLYGON_OFFSET_FILL);
+      gl.polygonOffset(slopeBias, bias);
+    } else {
+      gl.disable(gl.POLYGON_OFFSET_FILL);
+    }
+    this._enableGlobalDepthBias = enable;
+  }
+
+  flush(): void {
+    this._gl.flush();
+  }
+
+  destroy() {}
 }

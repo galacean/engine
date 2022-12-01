@@ -5,8 +5,6 @@ import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
 
-type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
-type EditorResourceConfig = Record<string, EditorResourceItem>;
 /**
  * ResourceManager
  */
@@ -36,12 +34,6 @@ export class ResourceManager {
   retryInterval: number = 0;
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = Infinity;
-  /** @internal */
-  _objectPool: { [key: string]: any } = Object.create(null);
-  /** @internal */
-  _editorResourceConfig: EditorResourceConfig = Object.create(null);
-  /** @internal */
-  _virtualPathMap: Record<string, string> = Object.create(null);
 
   /** Asset path pool, key is asset ID, value is asset path */
   private _assetPool: { [key: number]: string } = Object.create(null);
@@ -145,42 +137,6 @@ export class ResourceManager {
   }
 
   /**
-   * @beta Just for internal editor, not recommended for developers.
-   */
-  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
-    const { refId, key, isClone } = ref;
-    const obj = this._objectPool[refId];
-    let promise;
-    if (obj) {
-      promise = Promise.resolve(obj);
-    } else {
-      const url = this._editorResourceConfig[refId]?.path;
-      if (!url) {
-        Logger.error(
-          `refId:${refId} is not find in this._editorResourceConfig:${JSON.stringify(this._editorResourceConfig)}`
-        );
-        return;
-      }
-      promise = this.load<any>({
-        type: this._editorResourceConfig[refId].type,
-        url: `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}`
-      });
-    }
-    return promise.then((item) => (isClone ? item.clone() : item));
-  }
-
-  /**
-   * @internal
-   * @beta Just for internal editor, not recommended for developers.
-   */
-  initVirtualResources(config: EditorResourceItem[]): void {
-    config.forEach((element) => {
-      this._virtualPathMap[element.virtualPath] = element.path;
-      this._editorResourceConfig[element.id] = element;
-    });
-  }
-
-  /**
    * @internal
    */
   _addAsset(path: string, asset: EngineObject): void {
@@ -251,7 +207,7 @@ export class ResourceManager {
     }
     // loading
     if (this._loadingPromises[url]) {
-      return this._loadingPromises[info.url];
+      return this._loadingPromises[url];
     }
     const loader = ResourceManager._loaders[info.type];
     if (!loader) {
@@ -284,6 +240,53 @@ export class ResourceManager {
       }
     }
   }
+
+  //-----------------Editor temp solution-----------------
+
+  /** @internal */
+  _objectPool: { [key: string]: any } = Object.create(null);
+  /** @internal */
+  _editorResourceConfig: EditorResourceConfig = Object.create(null);
+  /** @internal */
+  _virtualPathMap: Record<string, string> = Object.create(null);
+
+  /**
+   * @internal
+   * @beta Just for internal editor, not recommended for developers.
+   */
+  getResourceByRef<T>(ref: { refId: string; key?: string; isClone?: boolean }): Promise<T> {
+    const { refId, key, isClone } = ref;
+    const obj = this._objectPool[refId];
+    let promise;
+    if (obj) {
+      promise = Promise.resolve(obj);
+    } else {
+      const url = this._editorResourceConfig[refId]?.path;
+      if (!url) {
+        Logger.error(
+          `refId:${refId} is not find in this._editorResourceConfig:${JSON.stringify(this._editorResourceConfig)}`
+        );
+        return Promise.resolve(null);
+      }
+      promise = this.load<any>({
+        type: this._editorResourceConfig[refId].type,
+        url: `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}`
+      });
+    }
+    return promise.then((item) => (isClone ? item.clone() : item));
+  }
+
+  /**
+   * @internal
+   * @beta Just for internal editor, not recommended for developers.
+   */
+  initVirtualResources(config: EditorResourceItem[]): void {
+    config.forEach((element) => {
+      this._virtualPathMap[element.virtualPath] = element.path;
+      this._editorResourceConfig[element.id] = element;
+    });
+  }
+  //-----------------Editor temp solution-----------------
 }
 
 /**
@@ -297,3 +300,6 @@ export function resourceLoader(assetType: string, extnames: string[], useCache: 
     ResourceManager._addLoader(assetType, loader, extnames);
   };
 }
+
+type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
+type EditorResourceConfig = Record<string, EditorResourceItem>;

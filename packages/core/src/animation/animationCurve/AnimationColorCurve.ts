@@ -1,6 +1,6 @@
 import { Color } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -21,8 +21,8 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   static _initializeOwner(owner: AnimationCurveOwner<Color>): void {
     owner.defaultValue = new Color();
     owner.fixedPoseValue = new Color();
-    owner.baseTempValue = new Color();
-    owner.crossTempValue = new Color();
+    owner.baseEvaluateData.value = new Color();
+    owner.crossEvaluateData.value = new Color();
   }
 
   /**
@@ -118,5 +118,10 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
     }
 
     return out;
+  }
+
+  constructor() {
+    super();
+    this._evaluateData.value = new Color();
   }
 }

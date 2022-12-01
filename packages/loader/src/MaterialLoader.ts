@@ -63,6 +63,7 @@ class MaterialLoader extends Loader<string> {
               break;
             case "Texture":
               texturePromises.push(
+                // @ts-ignore
                 resourceManager.getResourceByRef<Texture2D>(value).then((texture) => {
                   materialShaderData.setTexture(key, texture);
                 })
@@ -81,7 +82,7 @@ class MaterialLoader extends Loader<string> {
         }
 
         for (let key in renderState) {
-          materialShaderData[key] = renderState[key];
+          material[key] = renderState[key];
         }
 
         Promise.all(texturePromises).then(() => {

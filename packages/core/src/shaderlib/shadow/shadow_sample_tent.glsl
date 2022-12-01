@@ -68,10 +68,10 @@ void sampleShadowGetTexelWeightsTent5x5(float offset, out vec3 texelsWeightsA, o
 }
 
 // 5x5 Tent filter (45 degree sloped triangles in U and V)
-void sampleShadowComputeSamplesTent5x5(float size, vec2 coord, out float fetchesWeights[9], out vec2 fetchesUV[9]) {
+void sampleShadowComputeSamplesTent5x5(vec4 shadowMapTextureTexelSize, vec2 coord, out float fetchesWeights[9], out vec2 fetchesUV[9])
+{
     // tent base is 5x5 base thus covering from 25 to 36 texels, thus we need 9 bilinear PCF fetches
-    float invSize = 1.0 / size;
-    vec2 tentCenterInTexelSpace = coord.xy * size;
+    vec2 tentCenterInTexelSpace = coord.xy * shadowMapTextureTexelSize.zw;
     vec2 centerOfFetchesInTexelSpace = floor(tentCenterInTexelSpace + 0.5);
     vec2 offsetFromTentCenterToCenterOfFetches = tentCenterInTexelSpace - centerOfFetchesInTexelSpace;
 
@@ -88,10 +88,10 @@ void sampleShadowComputeSamplesTent5x5(float size, vec2 coord, out float fetches
     // move the PCF bilinear fetches to respect texels weights
     vec3 fetchesOffsetsU = vec3(texelsWeightsUA.y, texelsWeightsUB.xz) / fetchesWeightsU.xyz + vec3(-2.5,-0.5,1.5);
     vec3 fetchesOffsetsV = vec3(texelsWeightsVA.y, texelsWeightsVB.xz) / fetchesWeightsV.xyz + vec3(-2.5,-0.5,1.5);
-    fetchesOffsetsU *= invSize;
-    fetchesOffsetsV *= invSize;
+    fetchesOffsetsU *= shadowMapTextureTexelSize.xxx;
+    fetchesOffsetsV *= shadowMapTextureTexelSize.yyy;
 
-    vec2 bilinearFetchOrigin = centerOfFetchesInTexelSpace * invSize;
+    vec2 bilinearFetchOrigin = centerOfFetchesInTexelSpace * shadowMapTextureTexelSize.xy;
     fetchesUV[0] = bilinearFetchOrigin + vec2(fetchesOffsetsU.x, fetchesOffsetsV.x);
     fetchesUV[1] = bilinearFetchOrigin + vec2(fetchesOffsetsU.y, fetchesOffsetsV.x);
     fetchesUV[2] = bilinearFetchOrigin + vec2(fetchesOffsetsU.z, fetchesOffsetsV.x);

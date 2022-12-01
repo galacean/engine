@@ -47,7 +47,41 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    * @override
    */
-  _render(context: RenderContext): void {
+  _onDestroy(): void {
+    super._onDestroy();
+    const mesh = this._mesh;
+    if (mesh && !mesh.destroyed) {
+      mesh._addRefCount(-1);
+      this._mesh = null;
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: MeshRenderer): void {
+    target.mesh = this._mesh;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    const mesh = this._mesh;
+    if (mesh) {
+      const localBounds = mesh.bounds;
+      const worldMatrix = this._entity.transform.worldMatrix;
+      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
+    } else {
+      worldBounds.min.set(0, 0, 0);
+      worldBounds.max.set(0, 0, 0);
+    }
+  }
+
+  /**
+   * @override
+   */
+  protected _render(context: RenderContext): void {
     const mesh = this._mesh;
     if (mesh) {
       if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
@@ -99,41 +133,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       }
     } else {
       Logger.error("mesh is null.");
-    }
-  }
-
-  /**
-   * @internal
-   * @override
-   */
-  _onDestroy(): void {
-    super._onDestroy();
-    const mesh = this._mesh;
-    if (mesh && !mesh.destroyed) {
-      mesh._addRefCount(-1);
-      this._mesh = null;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: MeshRenderer): void {
-    target.mesh = this._mesh;
-  }
-
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
-    const mesh = this._mesh;
-    if (mesh) {
-      const localBounds = mesh.bounds;
-      const worldMatrix = this._entity.transform.worldMatrix;
-      BoundingBox.transform(localBounds, worldMatrix, worldBounds);
-    } else {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
     }
   }
 
