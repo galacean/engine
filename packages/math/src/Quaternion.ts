@@ -763,12 +763,11 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     const xx = x * x;
     const sinP = 2.0 * (x * w - y * z);
 
-    out.set(
-      Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (y * y + xx)),
-      // use 90 degrees if out of range
-      Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP),
-      Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (z * z + xx))
-    );
+    // use 90 degrees if out of range
+    out._y = Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP);
+    out._x = Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (y * y + xx));
+    out._z = Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (z * z + xx));
+
     return out;
   }
 
