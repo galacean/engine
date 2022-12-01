@@ -758,29 +758,17 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   }
 
   private _toYawPitchRoll(out: Vector3): Vector3 {
-    let { _x: x, _y: y, _z: z, _w: w } = this;
-    let l = Math.sqrt(x * x + y * y + z * z + w * w);
-    if (l > MathUtil.zeroTolerance) {
-      l = 1.0 / l;
-      x *= l;
-      y *= l;
-      z *= l;
-      w *= l;
-    }
-
+    // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+    const { _x: x, _y: y, _z: z, _w: w } = this;
     const xx = x * x;
-    const yy = y * y;
-    const zz = z * z;
+    const sinP = 2.0 * (x * w - y * z);
 
-    const pitch = Math.asin(2.0 * (x * w - y * z));
-    if (Math.cos(pitch) > MathUtil.zeroTolerance) {
-      out._z = Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (zz + xx));
-      out._x = Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (yy + xx));
-    } else {
-      out._z = Math.atan2(-2.0 * (x * y - z * w), 1.0 - 2.0 * (yy + zz));
-      out._x = 0.0;
-    }
-    out._y = pitch;
+    out.set(
+      Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (y * y + xx)),
+      // use 90 degrees if out of range
+      Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP),
+      Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (z * z + xx))
+    );
     return out;
   }
 
