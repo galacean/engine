@@ -204,10 +204,9 @@ export class Scene extends EngineObject {
    * @returns Entity
    */
   findEntityByName(name: string): Entity | null {
-    const children = this._rootEntities;
-    for (let i = 0, n = children.length; i < n; i++) {
-      const child = children[i];
-      const entity = child.findByName(name);
+    const rootEntities = this._rootEntities;
+    for (let i = 0, n = rootEntities.length; i < n; i++) {
+      const entity = rootEntities[i].findByName(name);
       if (entity) {
         return entity;
       }
