@@ -41,6 +41,7 @@ class MaterialLoader extends Loader<string> {
             material = new BlinnPhongMaterial(engine);
             break;
           case "bake-pbr":
+            // @todo refactor custom shader later
             // @ts-ignore
             material = new PBRBaseMaterial(engine, Shader.find("bake-pbr"));
             break;
