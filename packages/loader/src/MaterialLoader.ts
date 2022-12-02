@@ -4,10 +4,12 @@ import {
   BlinnPhongMaterial,
   Loader,
   LoadItem,
+  PBRBaseMaterial,
   PBRMaterial,
   PBRSpecularMaterial,
   resourceLoader,
   ResourceManager,
+  Shader,
   Texture2D,
   UnlitMaterial
 } from "@oasis-engine/core";
@@ -37,6 +39,11 @@ class MaterialLoader extends Loader<string> {
             break;
           case "blinn-phong":
             material = new BlinnPhongMaterial(engine);
+            break;
+          case "bake-pbr":
+            // @todo refactor custom shader later
+            // @ts-ignore
+            material = new PBRBaseMaterial(engine, Shader.find("bake-pbr"));
             break;
         }
 
