@@ -2,7 +2,7 @@
 #include <common>
 #include <camera_declare>
 
-#include <fog_share>
+#include <FogFragmentDeclaration>
 
 #include <uv_share>
 #include <normal_share>
@@ -16,5 +16,5 @@
 
 void main() {
     #include <pbr_frag>
-    #include <fog_frag>
+    #include <FogFragment>
 }
