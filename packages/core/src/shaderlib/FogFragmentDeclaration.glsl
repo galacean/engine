@@ -1,4 +1,4 @@
-#if OASIS_FOG_MODE > 0
+#if OASIS_FOG_MODE != 0
     varying vec3 v_positionVS;
 
     uniform vec4 oasis_FogColor;
