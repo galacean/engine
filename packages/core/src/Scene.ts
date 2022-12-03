@@ -57,7 +57,7 @@ export class Scene extends EngineObject {
   private _fogMode: FogMode = FogMode.None;
   private _fogColor: Color = new Color(0.5, 0.5, 0.5, 1.0);
   private _fogStart: number = 0;
-  private _fogEnd: number = 300;
+  private _fogEnd: number = 500;
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
 
