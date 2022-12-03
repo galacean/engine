@@ -165,8 +165,7 @@ export class Scene extends EngineObject {
 
   set fogDensity(value: number) {
     if (this._fogDensity !== value) {
-      this._fogParams.z = value / Math.LN2;
-      this._fogParams.w = value / Math.sqrt(Math.LN2);
+      this._computeExponentialFogParams(value);
       this._fogDensity = value;
     }
   }
@@ -203,6 +202,9 @@ export class Scene extends EngineObject {
     shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
+
+    this._computeLinearFogParams(this._fogStart, this._fogEnd);
+    this._computeExponentialFogParams(this._fogDensity);
   }
 
   /**
@@ -448,5 +450,10 @@ export class Scene extends EngineObject {
     const fogParams = this._fogParams;
     fogParams.x = -1 / fogRange;
     fogParams.y = fogEnd / fogRange;
+  }
+
+  private _computeExponentialFogParams(density: number) {
+    this._fogParams.z = density / Math.LN2;
+    this._fogParams.w = density / Math.sqrt(Math.LN2);
   }
 }
