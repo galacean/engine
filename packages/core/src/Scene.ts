@@ -59,7 +59,7 @@ export class Scene extends EngineObject {
   private _fogStart: number = 0;
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
-  private _preComputeFogParams: Vector4 = new Vector4();
+  private _fogParams: Vector4 = new Vector4();
 
   /**
    *  Number of cascades to use for directional light shadows.
@@ -165,7 +165,7 @@ export class Scene extends EngineObject {
 
   set fogDensity(value: number) {
     if (this._fogDensity !== value) {
-      this._preComputeFogParams.z = value / Math.LN2;
+      this._fogParams.z = value / Math.LN2;
       this._fogDensity = value;
     }
   }
@@ -201,7 +201,7 @@ export class Scene extends EngineObject {
     shaderData.enableMacro("OASIS_FOG_MODE", this._fogMode.toString());
     shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
-    shaderData.setVector4(Scene._fogParamsProperty, this._preComputeFogParams);
+    shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
   }
 
   /**
@@ -444,8 +444,8 @@ export class Scene extends EngineObject {
 
   private _preComputeLinearFogParams(fogStart: number, fogEnd: number): void {
     const fogRange = fogEnd - fogStart;
-    const preComputeFogParams = this._preComputeFogParams;
-    preComputeFogParams.x = -1 / fogRange;
-    preComputeFogParams.y = fogEnd / fogRange;
+    const fogParams = this._fogParams;
+    fogParams.x = -1 / fogRange;
+    fogParams.y = fogEnd / fogRange;
   }
 }
