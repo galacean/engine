@@ -137,7 +137,7 @@ export class Scene extends EngineObject {
 
   set fogStart(value: number) {
     if (this._fogStart !== value) {
-      this._preComputeLinearFogParams(value, this._fogEnd);
+      this._computeLinearFogParams(value, this._fogEnd);
       this._fogStart = value;
     }
   }
@@ -151,7 +151,7 @@ export class Scene extends EngineObject {
 
   set fogEnd(value: number) {
     if (this._fogEnd !== value) {
-      this._preComputeLinearFogParams(this._fogStart, value);
+      this._computeLinearFogParams(this._fogStart, value);
       this._fogEnd = value;
     }
   }
@@ -166,6 +166,7 @@ export class Scene extends EngineObject {
   set fogDensity(value: number) {
     if (this._fogDensity !== value) {
       this._fogParams.z = value / Math.LN2;
+      this._fogParams.w = value / Math.sqrt(Math.LN2);
       this._fogDensity = value;
     }
   }
@@ -442,7 +443,7 @@ export class Scene extends EngineObject {
     }
   }
 
-  private _preComputeLinearFogParams(fogStart: number, fogEnd: number): void {
+  private _computeLinearFogParams(fogStart: number, fogEnd: number): void {
     const fogRange = fogEnd - fogStart;
     const fogParams = this._fogParams;
     fogParams.x = -1 / fogRange;

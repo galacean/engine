@@ -2,7 +2,7 @@
     varying vec3 v_fogDistance;
 
     uniform vec4 oasis_FogColor;
-    uniform vec4 oasis_FogParams;
+    uniform vec4 oasis_FogParams;// (-1/(end-start), end/(end-start), density/ln(2),density/sprt(ln(2)));
 
     float ComputeFogIntensity(float fogDepth){
         #if OASIS_FOG_MODE == 1
@@ -12,8 +12,8 @@
             // exp(-z * density) = exp2((-z * density)/ln(2)) = exp2(-z * density/ln(2))
             return  clamp(exp2(-fogDepth * oasis_FogParams.z), 0.0, 1.0);
         #elif OASIS_FOG_MODE == 3
-            // exp(-(z * density)^2) = exp2(-(z * density)^2/ln(2)) = exp2(-z * density/ln(2) * density/ln(2))
-            float factor = fogDepth * oasis_FogParams.z;
+            // exp(-(z * density)^2) = exp2(-(z * density)^2/ln(2)) = exp2(-(z * density/sprt(ln(2)))^2)
+            float factor = fogDepth * oasis_FogParams.w;
             return  clamp(exp2(-factor * factor), 0.0, 1.0);
         #endif
     }
