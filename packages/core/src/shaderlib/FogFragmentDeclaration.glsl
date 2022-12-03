@@ -1,5 +1,5 @@
 #if OASIS_FOG_MODE > 0
-    varying vec3 v_fogDistance;
+    varying vec3 v_positionVS;
 
     uniform vec4 oasis_FogColor;
     uniform vec4 oasis_FogParams;// (-1/(end-start), end/(end-start), density/ln(2),density/sprt(ln(2)));
