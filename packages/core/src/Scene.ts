@@ -98,6 +98,11 @@ export class Scene extends EngineObject {
 
   /**
    * Fog mode.
+   * @remarks
+   * If the fog mode is set to FogMode.None, the fog will be disabled.
+   * If the fog mode is set to FogMode.Linear, the fog will be linear and controlled by `fogStart` and `fogEnd`.
+   * If the fog mode is set to FogMode.Exponential, the fog will be exponential and controlled by `fogDensity`.
+   * If the fog mode is set to FogMode.ExponentialSquared, the fog will be exponential squared and controlled by `fogDensity`.
    */
   get fogMode(): FogMode {
     return this._fogMode;
