@@ -3,6 +3,8 @@
 #define EPSILON 1e-6
 #define LOG2 1.442695
 
+#define saturate( a ) clamp( a, 0.0, 1.0 )
+
 float pow2(float x ) {
     return x * x;
 }
