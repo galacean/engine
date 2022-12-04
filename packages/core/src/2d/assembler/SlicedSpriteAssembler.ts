@@ -33,8 +33,8 @@ export class SlicedSpriteAssembler {
     const { width: expectWidth, height: expectHeight } = sprite;
     const fixedLeft = expectWidth * border.x;
     const fixedBottom = expectHeight * border.y;
-    const fixedRight = expectHeight * border.z;
-    const fixedTop = expectWidth * border.w;
+    const fixedRight = expectWidth * border.z;
+    const fixedTop = expectHeight * border.w;
 
     // ------------------------
     //     [3]
