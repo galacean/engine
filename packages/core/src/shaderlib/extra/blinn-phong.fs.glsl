@@ -22,9 +22,9 @@ void main() {
     gl_FragColor = emission + ambient + diffuse + specular;
     gl_FragColor.a = diffuse.a;
 
+    #include <FogFragment>
+
     #ifndef OASIS_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);
     #endif
-    #include <FogFragment>
-
 }
