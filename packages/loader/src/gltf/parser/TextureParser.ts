@@ -26,8 +26,9 @@ export class TextureParser extends Parser {
 
           if (uri) {
             // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
-            const ext = uri.split(".")[1];
-            const type = ext && ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
+            const index = uri.lastIndexOf(".");
+            const ext = uri.substring(index + 1);
+            const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
             return engine.resourceManager
               .load<Texture2D>({
                 url: GLTFUtil.parseRelativeUrl(url, uri),
