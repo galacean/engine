@@ -25,10 +25,11 @@ export class TextureParser extends Parser {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
 
           if (uri) {
+            const type = uri.endsWith(".ktx") ? AssetType.KTX : AssetType.Texture2D;
             return engine.resourceManager
               .load<Texture2D>({
                 url: GLTFUtil.parseRelativeUrl(url, uri),
-                type: AssetType.Texture2D
+                type: type
               })
               .then((texture) => {
                 if (!texture.name) {
