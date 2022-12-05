@@ -32,6 +32,7 @@ export * from "./base";
 
 export { Background } from "./Background";
 export { BackgroundMode } from "./enums/BackgroundMode";
+export { FogMode } from "./enums/FogMode";
 export { CameraClearFlags } from "./enums/CameraClearFlags";
 export { ColorSpace } from "./enums/ColorSpace";
 export { BackgroundTextureFillMode } from "./enums/BackgroundTextureFillMode";
@@ -48,7 +49,6 @@ export * from "./mesh/index";
 export * from "./sky/index";
 export * from "./particle/index";
 export * from "./trail/index";
-export * from "./fog/index";
 export * from "./env-probe/index";
 export * from "./shader/index";
 export * from "./Layer";
