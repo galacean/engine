@@ -26,12 +26,11 @@ void main() {
         }
     #endif
 
-
-    #ifndef OASIS_COLORSPACE_GAMMA
-        baseColor = linearToGamma(baseColor);
-    #endif
-
     gl_FragColor = baseColor;
 
     #include <FogFragment>
+
+     #ifndef OASIS_COLORSPACE_GAMMA
+        gl_FragColor = linearToGamma(gl_FragColor);
+    #endif
 }
