@@ -1,11 +1,13 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Color, Vector3, Vector4 } from "@oasis-engine/math";
 import { Background } from "./Background";
 import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
+import { Shader } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -17,6 +19,9 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
+  private static _fogColorProperty = Shader.getPropertyByName("oasis_FogColor");
+  private static _fogParamsProperty = Shader.getPropertyByName("oasis_FogParams");
+
   /** Scene name. */
   name: string;
 
@@ -49,6 +54,12 @@ export class Scene extends EngineObject {
 
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
+  private _fogMode: FogMode = FogMode.None;
+  private _fogColor: Color = new Color(0.5, 0.5, 0.5, 1.0);
+  private _fogStart: number = 0;
+  private _fogEnd: number = 300;
+  private _fogDensity: number = 0.01;
+  private _fogParams: Vector4 = new Vector4();
 
   /**
    *  Number of cascades to use for directional light shadows.
@@ -86,6 +97,80 @@ export class Scene extends EngineObject {
   }
 
   /**
+   * Fog mode.
+   * @remarks
+   * If set to `FogMode.None`, the fog will be disabled.
+   * If set to `FogMode.Linear`, the fog will be linear and controlled by `fogStart` and `fogEnd`.
+   * If set to `FogMode.Exponential`, the fog will be exponential and controlled by `fogDensity`.
+   * If set to `FogMode.ExponentialSquared`, the fog will be exponential squared and controlled by `fogDensity`.
+   */
+  get fogMode(): FogMode {
+    return this._fogMode;
+  }
+
+  set fogMode(value: FogMode) {
+    if (this._fogMode !== value) {
+      this.shaderData.enableMacro("OASIS_FOG_MODE", value.toString());
+      this._fogMode = value;
+    }
+  }
+
+  /**
+   * Fog color.
+   */
+  get fogColor(): Color {
+    return this._fogColor;
+  }
+
+  set fogColor(value: Color) {
+    if (this._fogColor !== value) {
+      this._fogColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Fog start.
+   */
+  get fogStart(): number {
+    return this._fogStart;
+  }
+
+  set fogStart(value: number) {
+    if (this._fogStart !== value) {
+      this._computeLinearFogParams(value, this._fogEnd);
+      this._fogStart = value;
+    }
+  }
+
+  /**
+   * Fog end.
+   */
+  get fogEnd(): number {
+    return this._fogEnd;
+  }
+
+  set fogEnd(value: number) {
+    if (this._fogEnd !== value) {
+      this._computeLinearFogParams(this._fogStart, value);
+      this._fogEnd = value;
+    }
+  }
+
+  /**
+   * Fog density.
+   */
+  get fogDensity(): number {
+    return this._fogDensity;
+  }
+
+  set fogDensity(value: number) {
+    if (this._fogDensity !== value) {
+      this._computeExponentialFogParams(value);
+      this._fogDensity = value;
+    }
+  }
+
+  /**
    * Count of root entities.
    */
   get rootEntitiesCount(): number {
@@ -113,7 +198,13 @@ export class Scene extends EngineObject {
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
 
-    this.shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
+    shaderData.enableMacro("OASIS_FOG_MODE", this._fogMode.toString());
+    shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
+    shaderData.setColor(Scene._fogColorProperty, this._fogColor);
+    shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
+
+    this._computeLinearFogParams(this._fogStart, this._fogEnd);
+    this._computeExponentialFogParams(this._fogDensity);
   }
 
   /**
@@ -351,5 +442,17 @@ export class Scene extends EngineObject {
         rootEntities[i]._siblingIndex++;
       }
     }
+  }
+
+  private _computeLinearFogParams(fogStart: number, fogEnd: number): void {
+    const fogRange = fogEnd - fogStart;
+    const fogParams = this._fogParams;
+    fogParams.x = -1 / fogRange;
+    fogParams.y = fogEnd / fogRange;
+  }
+
+  private _computeExponentialFogParams(density: number) {
+    this._fogParams.z = density / Math.LN2;
+    this._fogParams.w = density / Math.sqrt(Math.LN2);
   }
 }

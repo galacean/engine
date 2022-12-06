@@ -4,7 +4,8 @@ import common_vert from "./common_vert.glsl";
 import transform_declare from "./transform_declare.glsl";
 
 import color_share from "./color_share.glsl";
-import fog_share from "./fog_share.glsl";
+import FogFragmentDeclaration from "./FogFragmentDeclaration.glsl";
+import FogVertexDeclaration from "./FogVertexDeclaration.glsl";
 import normal_share from "./normal_share.glsl";
 import uv_share from "./uv_share.glsl";
 import worldpos_share from "./worldpos_share.glsl";
@@ -15,14 +16,14 @@ import begin_position_vert from "./begin_position_vert.glsl";
 import blendShape_input from "./blendShape_input.glsl";
 import blendShape_vert from "./blendShape_vert.glsl";
 import color_vert from "./color_vert.glsl";
-import fog_vert from "./fog_vert.glsl";
+import FogVertex from "./FogVertex.glsl";
 import normal_vert from "./normal_vert.glsl";
 import position_vert from "./position_vert.glsl";
 import skinning_vert from "./skinning_vert.glsl";
 import uv_vert from "./uv_vert.glsl";
 import worldpos_vert from "./worldpos_vert.glsl";
 
-import fog_frag from "./fog_frag.glsl";
+import FogFragment from "./FogFragment.glsl";
 import light_frag_define from "./light_frag_define.glsl";
 import mobile_material_frag from "./mobile_material_frag.glsl";
 
@@ -63,7 +64,8 @@ export const ShaderLib = {
   normal_share,
   uv_share,
   worldpos_share,
-  fog_share,
+  FogVertexDeclaration,
+  FogFragmentDeclaration,
 
   begin_normal_vert,
   begin_position_vert,
@@ -76,11 +78,11 @@ export const ShaderLib = {
   blendShape_vert,
   uv_vert,
   worldpos_vert,
-  fog_vert,
+  FogVertex,
 
   light_frag_define,
   mobile_material_frag,
-  fog_frag,
+  FogFragment,
 
   begin_mobile_frag,
   begin_viewdir_frag,
