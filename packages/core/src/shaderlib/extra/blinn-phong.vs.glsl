@@ -6,7 +6,7 @@
 #include <normal_share>
 #include <worldpos_share>
 
-#include <fog_share>
+#include <FogVertexDeclaration>
 
 void main() {
 
@@ -20,6 +20,6 @@ void main() {
     #include <worldpos_vert>
     #include <position_vert>
 
-    #include <fog_vert>
+    #include <FogVertex>
 
 }
