@@ -297,7 +297,6 @@ export class Scene extends EngineObject {
     }
 
     if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
-
       shaderData.enableMacro("SHADOW_TYPE", this._sunLight.shadowType.toString());
     } else {
       shaderData.disableMacro("SHADOW_TYPE");
