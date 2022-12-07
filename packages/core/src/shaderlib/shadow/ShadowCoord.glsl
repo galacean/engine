@@ -62,5 +62,5 @@ vec3 getShadowCoord() {
     #endif
 
     vec4 shadowCoord = shadowMatrix * vec4(v_pos, 1.0);
-    return shadowCoord.xyz / shadowCoord.w;
+    return shadowCoord.xyz;
 }
