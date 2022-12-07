@@ -21,7 +21,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointCountProperty = Shader.getPropertyByName("u_jointCount");
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
-  private static _maxJoints: number = 0;
 
   @ignoreClone
   private _hasInitJoints: boolean = false;
@@ -257,7 +256,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     this._rootBone = rootBone;
 
-    const maxJoints = Math.floor((this._maxVertexUniformVectors - 30) / 4);
+    const maxJoints = Math.floor((this._maxVertexUniformVectors - 33) / 4);
 
     if (jointCount) {
       shaderData.enableMacro("O3_HAS_SKIN");
@@ -272,9 +271,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           );
         }
       } else {
-        const maxJoints = Math.max(SkinnedMeshRenderer._maxJoints, jointCount);
-        SkinnedMeshRenderer._maxJoints = maxJoints;
         shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
+        // directly use max joint count to avoid shader recompile
+        // @TODO: different shader type should use different count
         shaderData.enableMacro("O3_JOINTS_NUM", maxJoints.toString());
       }
     } else {

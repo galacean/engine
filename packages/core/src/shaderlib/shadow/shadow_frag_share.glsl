@@ -1,4 +1,4 @@
-#if defined(CASCADED_SHADOW_MAP)&&defined(OASIS_RECEIVE_SHADOWS)
+#if defined(SHADOW_TYPE) && defined(OASIS_RECEIVE_SHADOWS)
     #define OASIS_CALCULATE_SHADOWS
 #endif
 
@@ -96,7 +96,7 @@
             return shadowCoord.xyz / shadowCoord.w;
         }
 
-        #if SHADOW_MODE == 2
+        #if SHADOW_TYPE == 2
         float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowMapSize) {
             float attenuation;
             vec4 attenuation4;
@@ -114,7 +114,7 @@
         }
         #endif
 
-        #if SHADOW_MODE == 3
+        #if SHADOW_TYPE == 3
         #include <shadow_sample_tent>
 
         float sampleShadowMapFiltered9(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowmapSize) {
@@ -139,15 +139,15 @@
             vec3 shadowCoord = getShadowCoord();
             float attenuation = 1.0;
             if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
-            #if SHADOW_MODE == 1
+            #if SHADOW_TYPE == 1
                 attenuation = SAMPLE_TEXTURE2D_SHADOW(u_shadowMap, shadowCoord);
             #endif
 
-            #if SHADOW_MODE == 2
+            #if SHADOW_TYPE == 2
                 attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_shadowMapSize);
             #endif
 
-            #if SHADOW_MODE == 3
+            #if SHADOW_TYPE == 3
                 attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_shadowMapSize);
             #endif
                 attenuation = mix(1.0, attenuation, u_shadowInfo.x);
