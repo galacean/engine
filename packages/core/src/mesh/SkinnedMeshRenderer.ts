@@ -261,7 +261,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (jointCount) {
       shaderData.enableMacro("O3_HAS_SKIN");
       shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
-      if (jointCount > maxJoints) {
+      // If blendShapeWeights > 0, use joint texture
+      if (jointCount > maxJoints || this._blendShapeWeights?.length > 0) {
         if (rhi.canIUseMoreJoints) {
           this._useJointTexture = true;
         } else {
