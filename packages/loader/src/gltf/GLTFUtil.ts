@@ -26,7 +26,7 @@ const rePropName = RegExp(
  * @internal
  */
 export class GLTFUtil {
-  public static floatBufferToVector2Array(buffer: Float32Array): Vector2[] {
+  public static typedArrayToVector2Array(buffer: TypedArray): Vector2[] {
     const bufferLen = buffer.length;
     const array = new Array<Vector2>(bufferLen / 2);
     for (let i = 0; i < bufferLen; i += 2) {
@@ -35,7 +35,7 @@ export class GLTFUtil {
     return array;
   }
 
-  public static floatBufferToVector3Array(buffer: Float32Array): Vector3[] {
+  public static typedArrayToVector3Array(buffer: TypedArray): Vector3[] {
     const bufferLen = buffer.length;
     const array = new Array<Vector3>(bufferLen / 3);
     for (let i = 0; i < bufferLen; i += 3) {
@@ -44,7 +44,7 @@ export class GLTFUtil {
     return array;
   }
 
-  public static floatBufferToVector4Array(buffer: Float32Array): Vector4[] {
+  public static typedArrayToVector4Array(buffer: TypedArray): Vector4[] {
     const bufferLen = buffer.length;
     const array = new Array<Vector4>(bufferLen / 4);
     for (let i = 0; i < bufferLen; i += 4) {
@@ -53,7 +53,7 @@ export class GLTFUtil {
     return array;
   }
 
-  public static floatBufferToColorArray(buffer: Float32Array, isColor3: boolean): Color[] {
+  public static typedArrayToColorArray(buffer: TypedArray, isColor3: boolean): Color[] {
     const bufferLen = buffer.length;
     const colors = new Array<Color>(bufferLen / (isColor3 ? 3 : 4));
 

@@ -128,16 +128,21 @@ export class MeshParser extends Parser {
     let vertexCount: number;
 
     const { accessors } = gltf;
-    const accessor = accessors[attributes["POSITION"]];
+    const positionAccessor = accessors[attributes["POSITION"]];
     const positionBuffer = <Float32Array>getVertexBufferData("POSITION");
-    const positions = GLTFUtil.floatBufferToVector3Array(positionBuffer);
-    mesh.setPositions(positions);
+    const positions = GLTFUtil.typedArrayToVector3Array(positionBuffer);
+    const positionVertexElementFormat = GLTFUtil.getElementFormat(
+      positionAccessor.componentType,
+      GLTFUtil.getAccessorTypeSize(positionAccessor.type),
+      positionAccessor.normalized
+    );
+    mesh.setPositions(positions, positionVertexElementFormat);
 
     const { bounds } = mesh;
-    vertexCount = accessor.count;
-    if (accessor.min && accessor.max) {
-      bounds.min.copyFromArray(accessor.min);
-      bounds.max.copyFromArray(accessor.max);
+    vertexCount = positionAccessor.count;
+    if (positionAccessor.min && positionAccessor.max) {
+      bounds.min.copyFromArray(positionAccessor.min);
+      bounds.max.copyFromArray(positionAccessor.max);
     } else {
       const position = MeshParser._tempVector3;
       const { min, max } = bounds;
@@ -159,62 +164,69 @@ export class MeshParser extends Parser {
         continue;
       }
       const bufferData = getVertexBufferData(attributeSemantic);
+      const attributeAccessor = accessors[attributes[attributeSemantic]];
+      const vertexElementFormat = GLTFUtil.getElementFormat(
+        attributeAccessor.componentType,
+        GLTFUtil.getAccessorTypeSize(attributeAccessor.type),
+        attributeAccessor.normalized
+      );
+
       switch (attributeSemantic) {
         case "NORMAL":
-          const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
-          mesh.setNormals(normals);
+          const normals = GLTFUtil.typedArrayToVector3Array(bufferData);
+          mesh.setNormals(normals, vertexElementFormat);
           break;
         case "TEXCOORD_0":
-          const texturecoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords, 0);
+          const texturecoords = GLTFUtil.typedArrayToVector2Array(bufferData);
+          mesh.setUVs(texturecoords, 0, vertexElementFormat);
           break;
         case "TEXCOORD_1":
-          const texturecoords1 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords1, 1);
+          const texturecoords1 = GLTFUtil.typedArrayToVector2Array(bufferData);
+          mesh.setUVs(texturecoords1, 1, vertexElementFormat);
           break;
         case "TEXCOORD_2":
-          const texturecoords2 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords2, 2);
+          const texturecoords2 = GLTFUtil.typedArrayToVector2Array(bufferData);
+          mesh.setUVs(texturecoords2, 2, vertexElementFormat);
           break;
         case "TEXCOORD_3":
-          const texturecoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords3, 3);
+          const texturecoords3 = GLTFUtil.typedArrayToVector2Array(bufferData);
+          mesh.setUVs(texturecoords3, 3, vertexElementFormat);
           break;
         case "TEXCOORD_4":
-          const texturecoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords4, 4);
+          const texturecoords4 = GLTFUtil.typedArrayToVector2Array(bufferData);
+          mesh.setUVs(texturecoords4, 4, vertexElementFormat);
           break;
         case "TEXCOORD_5":
-          const texturecoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords5, 5);
+          const texturecoords5 = GLTFUtil.typedArrayToVector2Array(bufferData);
+          mesh.setUVs(texturecoords5, 5, vertexElementFormat);
           break;
         case "TEXCOORD_6":
-          const texturecoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords6, 6);
+          const texturecoords6 = GLTFUtil.typedArrayToVector2Array(bufferData);
+          mesh.setUVs(texturecoords6, 6, vertexElementFormat);
           break;
         case "TEXCOORD_7":
-          const texturecoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords7, 7);
+          const texturecoords7 = GLTFUtil.typedArrayToVector2Array(bufferData);
+          mesh.setUVs(texturecoords7, 7, vertexElementFormat);
           break;
         case "COLOR_0":
-          const colors = GLTFUtil.floatBufferToColorArray(
-            <Float32Array>bufferData,
+          const colors = GLTFUtil.typedArrayToColorArray(
+            bufferData,
             accessors[attributes["COLOR_0"]].type === AccessorType.VEC3
           );
-          mesh.setColors(colors);
+          mesh.setColors(colors, vertexElementFormat);
           break;
         case "TANGENT":
-          const tangents = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
-          mesh.setTangents(tangents);
+          const tangents = GLTFUtil.typedArrayToVector4Array(bufferData);
+          mesh.setTangents(tangents, vertexElementFormat);
           break;
 
         case "JOINTS_0":
-          const joints = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
-          mesh.setBoneIndices(joints);
+          const joints = GLTFUtil.typedArrayToVector4Array(bufferData);
+          mesh.setBoneIndices(joints, vertexElementFormat);
           break;
         case "WEIGHTS_0":
-          const weights = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
-          mesh.setBoneWeights(weights);
+          const weights = GLTFUtil.typedArrayToVector4Array(bufferData);
+          mesh.setBoneWeights(weights, vertexElementFormat);
           break;
         default:
           // console.warn(`Unsupport attribute semantic ${attributeSemantic}.`);
@@ -254,9 +266,9 @@ export class MeshParser extends Parser {
       const deltaPosBuffer = getBlendShapeData("POSITION", i);
       const deltaNorBuffer = getBlendShapeData("NORMAL", i);
       const deltaTanBuffer = getBlendShapeData("TANGENT", i);
-      const deltaPositions = deltaPosBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaPosBuffer) : null;
-      const deltaNormals = deltaNorBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaNorBuffer) : null;
-      const deltaTangents = deltaTanBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaTanBuffer) : null;
+      const deltaPositions = deltaPosBuffer ? GLTFUtil.typedArrayToVector3Array(deltaPosBuffer) : null;
+      const deltaNormals = deltaNorBuffer ? GLTFUtil.typedArrayToVector3Array(deltaNorBuffer) : null;
+      const deltaTangents = deltaTanBuffer ? GLTFUtil.typedArrayToVector3Array(deltaTanBuffer) : null;
 
       const blendShape = new BlendShape(name);
       blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);

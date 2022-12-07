@@ -52,6 +52,21 @@ export class ModelMesh extends Mesh {
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
 
+  private _positionsFormat: VertexElementFormat;
+  private _normalsFormat: VertexElementFormat;
+  private _colorsFormat: VertexElementFormat;
+  private _tangentsFormat: VertexElementFormat;
+  private _uvFormat: VertexElementFormat;
+  private _uv1Format: VertexElementFormat;
+  private _uv2Format: VertexElementFormat;
+  private _uv3Format: VertexElementFormat;
+  private _uv4Format: VertexElementFormat;
+  private _uv5Format: VertexElementFormat;
+  private _uv6Format: VertexElementFormat;
+  private _uv7Format: VertexElementFormat;
+  private _boneWeightsFormat: VertexElementFormat;
+  private _boneIndicesFormat: VertexElementFormat;
+
   /**
    * Whether to access data of the mesh.
    */
@@ -97,13 +112,15 @@ export class ModelMesh extends Mesh {
   /**
    * Set positions for the mesh.
    * @param positions - The positions for the mesh.
+   * @param format - Vertex element format.
    */
-  setPositions(positions: Vector3[]): void {
+  setPositions(positions: Vector3[], format?: VertexElementFormat): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
 
     this._positions = positions;
+    this._positionsFormat = format ?? VertexElementFormat.Vector3;
     this._vertexCount = positions.length;
     this._vertexChangeFlag |= ValueChanged.Position;
   }
@@ -123,8 +140,9 @@ export class ModelMesh extends Mesh {
   /**
    * Set per-vertex normals for the mesh.
    * @param normals - The normals for the mesh.
+   * @param format - Vertex element format.
    */
-  setNormals(normals: Vector3[] | null): void {
+  setNormals(normals: Vector3[] | null, format?: VertexElementFormat): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -136,6 +154,7 @@ export class ModelMesh extends Mesh {
     this._vertexSlotChanged = !!this._normals !== !!normals;
     this._vertexChangeFlag |= ValueChanged.Normal;
     this._normals = normals;
+    this._normalsFormat = format ?? VertexElementFormat.Vector3;
   }
 
   /**
@@ -152,8 +171,9 @@ export class ModelMesh extends Mesh {
   /**
    * Set per-vertex colors for the mesh.
    * @param colors - The colors for the mesh.
+   * @param format - Vertex element format.
    */
-  setColors(colors: Color[] | null): void {
+  setColors(colors: Color[] | null, format?: VertexElementFormat): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -165,6 +185,7 @@ export class ModelMesh extends Mesh {
     this._vertexSlotChanged = !!this._colors !== !!colors;
     this._vertexChangeFlag |= ValueChanged.Color;
     this._colors = colors;
+    this._colorsFormat = format ?? VertexElementFormat.Vector4;
   }
 
   /**
@@ -181,8 +202,9 @@ export class ModelMesh extends Mesh {
   /**
    * Set per-vertex bone weights for the mesh.
    * @param boneWeights - The bone weights for the mesh.
+   * @param format - Vertex element format.
    */
-  setBoneWeights(boneWeights: Vector4[] | null): void {
+  setBoneWeights(boneWeights: Vector4[] | null, format?: VertexElementFormat): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -194,6 +216,7 @@ export class ModelMesh extends Mesh {
     this._vertexSlotChanged = boneWeights != null;
     this._vertexChangeFlag |= ValueChanged.BoneWeight;
     this._boneWeights = boneWeights;
+    this._boneWeightsFormat = format ?? VertexElementFormat.Vector4;
   }
 
   /**
@@ -210,8 +233,9 @@ export class ModelMesh extends Mesh {
   /**
    * Set per-vertex bone indices for the mesh.
    * @param boneIndices - The bone indices for the mesh.
+   * @param format - Vertex element format.
    */
-  setBoneIndices(boneIndices: Vector4[] | null): void {
+  setBoneIndices(boneIndices: Vector4[] | null, format?: VertexElementFormat): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -223,6 +247,7 @@ export class ModelMesh extends Mesh {
     this._vertexSlotChanged = !!this._boneIndices !== !!boneIndices;
     this._vertexChangeFlag |= ValueChanged.BoneIndex;
     this._boneIndices = boneIndices;
+    this._boneIndicesFormat = format ?? VertexElementFormat.UByte4;
   }
 
   /**
@@ -239,8 +264,9 @@ export class ModelMesh extends Mesh {
   /**
    * Set per-vertex tangents for the mesh.
    * @param tangents - The tangents for the mesh.
+   * @param format - Vertex element format.
    */
-  setTangents(tangents: Vector4[] | null): void {
+  setTangents(tangents: Vector4[] | null, format?: VertexElementFormat): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -252,6 +278,7 @@ export class ModelMesh extends Mesh {
     this._vertexSlotChanged = !!this._tangents !== !!tangents;
     this._vertexChangeFlag |= ValueChanged.Tangent;
     this._tangents = tangents;
+    this._tangentsFormat = format ?? VertexElementFormat.Vector4;
   }
 
   /**
@@ -274,9 +301,10 @@ export class ModelMesh extends Mesh {
    * Set per-vertex uv for the mesh by channelIndex.
    * @param uv - The uv for the mesh.
    * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
+   * @param format - Vertex element format.
    */
-  setUVs(uv: Vector2[] | null, channelIndex: number): void;
-  setUVs(uv: Vector2[] | null, channelIndex?: number): void {
+  setUVs(uv: Vector2[] | null, channelIndex: number, format?: VertexElementFormat): void;
+  setUVs(uv: Vector2[] | null, channelIndex?: number, format?: VertexElementFormat): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
@@ -291,41 +319,49 @@ export class ModelMesh extends Mesh {
         this._vertexSlotChanged = !!this._uv !== !!uv;
         this._vertexChangeFlag |= ValueChanged.UV;
         this._uv = uv;
+        this._uvFormat = format ?? VertexElementFormat.Vector2;
         break;
       case 1:
         this._vertexSlotChanged = !!this._uv1 !== !!uv;
         this._vertexChangeFlag |= ValueChanged.UV1;
         this._uv1 = uv;
+        this._uv1Format = format ?? VertexElementFormat.Vector2;
         break;
       case 2:
         this._vertexSlotChanged = !!this._uv2 !== !!uv;
         this._vertexChangeFlag |= ValueChanged.UV2;
         this._uv2 = uv;
+        this._uv2Format = format ?? VertexElementFormat.Vector2;
         break;
       case 3:
         this._vertexSlotChanged = !!this._uv3 !== !!uv;
         this._vertexChangeFlag |= ValueChanged.UV3;
         this._uv3 = uv;
+        this._uv3Format = format ?? VertexElementFormat.Vector2;
         break;
       case 4:
         this._vertexSlotChanged = !!this._uv4 !== !!uv;
         this._vertexChangeFlag |= ValueChanged.UV4;
         this._uv4 = uv;
+        this._uv4Format = format ?? VertexElementFormat.Vector2;
         break;
       case 5:
         this._vertexSlotChanged = !!this._uv5 !== !!uv;
         this._vertexChangeFlag |= ValueChanged.UV5;
         this._uv5 = uv;
+        this._uv5Format = format ?? VertexElementFormat.Vector2;
         break;
       case 6:
         this._vertexSlotChanged = !!this._uv6 !== !!uv;
         this._vertexChangeFlag |= ValueChanged.UV6;
         this._uv6 = uv;
+        this._uv6Format = format ?? VertexElementFormat.Vector2;
         break;
       case 7:
         this._vertexSlotChanged = !!this._uv7 !== !!uv;
         this._vertexChangeFlag |= ValueChanged.UV7;
         this._uv7 = uv;
+        this._uv7Format = format ?? VertexElementFormat.Vector2;
         break;
       default:
         throw "The index of channel needs to be in range [0 - 7].";
@@ -605,73 +641,73 @@ export class ModelMesh extends Mesh {
     const attributeMode = !blendShapeManager._useTextureMode();
 
     if (this._vertexSlotChanged || (attributeMode && blendShapeManager._vertexElementsNeedUpdate())) {
-      let offset = 12;
+      let offset = 6;
       let elementCount = 3;
       this._clearVertexElements();
-      this._addVertexElement(POSITION_VERTEX_ELEMENT);
+      this._addVertexElement(new VertexElement("POSITION", 0, this._positionsFormat, 0));
 
       if (this._normals) {
-        this._addVertexElement(new VertexElement("NORMAL", offset, VertexElementFormat.Vector3, 0));
+        this._addVertexElement(new VertexElement("NORMAL", offset, this._normalsFormat, 0));
         offset += 12;
         elementCount += 3;
       }
       if (this._colors) {
-        this._addVertexElement(new VertexElement("COLOR_0", offset, VertexElementFormat.Vector4, 0));
+        this._addVertexElement(new VertexElement("COLOR_0", offset, this._colorsFormat, 0));
         offset += 16;
         elementCount += 4;
       }
       if (this._boneWeights) {
-        this._addVertexElement(new VertexElement("WEIGHTS_0", offset, VertexElementFormat.Vector4, 0));
+        this._addVertexElement(new VertexElement("WEIGHTS_0", offset, this._boneWeightsFormat, 0));
         offset += 16;
         elementCount += 4;
       }
       if (this._boneIndices) {
-        this._addVertexElement(new VertexElement("JOINTS_0", offset, VertexElementFormat.UByte4, 0));
+        this._addVertexElement(new VertexElement("JOINTS_0", offset, this._boneIndicesFormat, 0));
         offset += 4;
         elementCount += 1;
       }
       if (this._tangents) {
-        this._addVertexElement(new VertexElement("TANGENT", offset, VertexElementFormat.Vector4, 0));
+        this._addVertexElement(new VertexElement("TANGENT", offset, this._tangentsFormat, 0));
         offset += 16;
         elementCount += 4;
       }
       if (this._uv) {
-        this._addVertexElement(new VertexElement("TEXCOORD_0", offset, VertexElementFormat.Vector2, 0));
+        this._addVertexElement(new VertexElement("TEXCOORD_0", offset, this._uvFormat, 0));
         offset += 8;
         elementCount += 2;
       }
       if (this._uv1) {
-        this._addVertexElement(new VertexElement("TEXCOORD_1", offset, VertexElementFormat.Vector2, 0));
+        this._addVertexElement(new VertexElement("TEXCOORD_1", offset, this._uv1Format, 0));
         offset += 8;
         elementCount += 2;
       }
       if (this._uv2) {
-        this._addVertexElement(new VertexElement("TEXCOORD_2", offset, VertexElementFormat.Vector2, 0));
+        this._addVertexElement(new VertexElement("TEXCOORD_2", offset, this._uv2Format, 0));
         offset += 8;
         elementCount += 2;
       }
       if (this._uv3) {
-        this._addVertexElement(new VertexElement("TEXCOORD_3", offset, VertexElementFormat.Vector2, 0));
+        this._addVertexElement(new VertexElement("TEXCOORD_3", offset, this._uv3Format, 0));
         offset += 8;
         elementCount += 2;
       }
       if (this._uv4) {
-        this._addVertexElement(new VertexElement("TEXCOORD_4", offset, VertexElementFormat.Vector2, 0));
+        this._addVertexElement(new VertexElement("TEXCOORD_4", offset, this._uv4Format, 0));
         offset += 8;
         elementCount += 2;
       }
       if (this._uv5) {
-        this._addVertexElement(new VertexElement("TEXCOORD_5", offset, VertexElementFormat.Vector2, 0));
+        this._addVertexElement(new VertexElement("TEXCOORD_5", offset, this._uv5Format, 0));
         offset += 8;
         elementCount += 2;
       }
       if (this._uv6) {
-        this._addVertexElement(new VertexElement("TEXCOORD_6", offset, VertexElementFormat.Vector2, 0));
+        this._addVertexElement(new VertexElement("TEXCOORD_6", offset, this._uv6Format, 0));
         offset += 8;
         elementCount += 2;
       }
       if (this._uv7) {
-        this._addVertexElement(new VertexElement("TEXCOORD_7", offset, VertexElementFormat.Vector2, 0));
+        this._addVertexElement(new VertexElement("TEXCOORD_7", offset, this._uv7Format, 0));
         offset += 8;
         elementCount += 2;
       }
@@ -909,8 +945,6 @@ export class ModelMesh extends Mesh {
     this._blendShapeManager._releaseMemoryCache();
   }
 }
-
-const POSITION_VERTEX_ELEMENT = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);
 
 enum ValueChanged {
   Position = 0x1,
