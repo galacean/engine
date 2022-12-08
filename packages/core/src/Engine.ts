@@ -302,9 +302,10 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
-    this._frameInProcess = true;
     const time = this._time;
     const deltaTime = time.deltaTime;
+    this._frameInProcess = true;
+    time._frameCount++;
 
     time.tick();
     this._renderElementPool.resetPool();
@@ -333,7 +334,6 @@ export class Engine extends EventDispatcher {
       this._destroy();
     }
     this._frameInProcess = false;
-    time._frameCount++;
   }
 
   /**
