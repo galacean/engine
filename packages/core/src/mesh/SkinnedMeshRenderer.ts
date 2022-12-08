@@ -180,8 +180,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
       if (jointCountChange || bsUniformOccupiesCount !== jointDataCreateCache.y) {
         // directly use max joint count to avoid shader recompile
-        // @TODO: different shader type should use different count, not always 33
-        const remainUniformJointCount = Math.ceil((this._maxVertexUniformVectors - (33 + bsUniformOccupiesCount)) / 4);
+        // @TODO: different shader type should use different count, not always 44
+        const remainUniformJointCount = Math.ceil((this._maxVertexUniformVectors - (44 + bsUniformOccupiesCount)) / 4);
 
         if (jointCount > remainUniformJointCount) {
           const engine = this.engine;
