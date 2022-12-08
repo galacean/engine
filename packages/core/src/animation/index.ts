@@ -1,6 +1,6 @@
-import "./internal/AnimationCurveOwner/Assembler/PositionAnimationCurveOwnerAssembler";
-import "./internal/AnimationCurveOwner/Assembler/RotationAnimationCurveOwnerAssembler";
-import "./internal/AnimationCurveOwner/Assembler/ScaleAnimationCurveOwnerAssembler";
+import "./internal/animationCurveOwner/assembler/PositionAnimationCurveOwnerAssembler";
+import "./internal/animationCurveOwner/assembler/RotationAnimationCurveOwnerAssembler";
+import "./internal/animationCurveOwner/assembler/ScaleAnimationCurveOwnerAssembler";
 
 export { AnimationClip } from "./AnimationClip";
 export { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
