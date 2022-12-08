@@ -2,15 +2,22 @@
  * Tools for calculating the time per frame.
  */
 export class Time {
+  /** @internal */
+  _frameCount: number = 0;
+
   private _clock: { now: () => number };
-
   private _timeScale: number;
-
   private _deltaTime: number;
-
   private _startTime: number;
-
   private _lastTickTime: number;
+
+  /*
+   * The total number of frames since the start of the engine.
+   */
+  get frameCount(): number {
+    return this._frameCount;
+  }
+
   /**
    * Constructor of the Time.
    */

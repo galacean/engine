@@ -333,6 +333,7 @@ export class Engine extends EventDispatcher {
       this._destroy();
     }
     this._frameInProcess = false;
+    time._frameCount++;
   }
 
   /**
