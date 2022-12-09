@@ -641,7 +641,7 @@ export class ModelMesh extends Mesh {
     const attributeMode = !blendShapeManager._useTextureMode();
 
     if (this._vertexSlotChanged || (attributeMode && blendShapeManager._vertexElementsNeedUpdate())) {
-      let offset = 6;
+      let offset = 12;
       let elementCount = 3;
       this._clearVertexElements();
       this._addVertexElement(new VertexElement("POSITION", 0, this._positionsFormat, 0));
