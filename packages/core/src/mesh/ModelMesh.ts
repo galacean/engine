@@ -88,8 +88,7 @@ export class ModelMesh extends Mesh {
    */
   get vertexElements(): Readonly<VertexElement[]> {
     this._updateVertexElements();
-    // @todo: this will cause GC
-    return this._vertexElements.slice(0, this._blendShapeManager._vertexElementOffset);
+    return this._vertexElements;
   }
 
   /**
@@ -723,7 +722,6 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    const { _vertexCount: vertexCount } = this;
     this._updateVertexElements();
 
     // Vertex count change
@@ -734,7 +732,7 @@ export class ModelMesh extends Mesh {
 
       const elementCount = this._bufferStrides[0] / 4;
 
-      const vertexFloatCount = elementCount * vertexCount;
+      const vertexFloatCount = elementCount * this.vertexCount;
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
