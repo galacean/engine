@@ -85,7 +85,7 @@ export class MeshParser extends Parser {
               (attributeSemantic) => {
                 const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
                 const accessor = gltf.accessors[accessorIdx];
-                return GLTFUtil.getAccessorData(gltf, accessor, buffers);
+                return GLTFUtil.getVertexAccessorData(gltf, accessor, buffers);
               },
               (attributeName, shapeIndex) => {
                 const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
