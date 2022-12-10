@@ -33,7 +33,7 @@ export class ModelMesh extends Mesh {
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
   private _vertexSlotChanged: boolean = true;
-  private _vertexChangeFlag: number = 0;
+  private _vertexBufferUpdateFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
   private _vertexCountChanged: boolean = false;
 
@@ -53,7 +53,7 @@ export class ModelMesh extends Mesh {
   private _boneIndices: Vector4[] | null = null;
 
   private _bufferStrides: number[] = [];
-  private _vertexBufferDirtyFlag: number = 0;
+  private _vertexUpdateFlag: number = 0;
 
   /**
    * Whether to access data of the mesh.
@@ -66,7 +66,7 @@ export class ModelMesh extends Mesh {
    * Vertex count of current mesh.
    */
   get vertexCount(): number {
-    if (this._vertexBufferDirtyFlag & VertexElementFlags.Position) {
+    if (this._vertexUpdateFlag & VertexChangedFlags.Position) {
       const positionElement = this._vertexElementMap[VertexAttribute.Position];
       if (positionElement) {
         const positionBufferBinding = this._vertexBufferBindings[positionElement.bindingIndex];
@@ -78,7 +78,7 @@ export class ModelMesh extends Mesh {
       } else {
         this._vertexCount = 0;
       }
-      this._vertexBufferDirtyFlag &= ~VertexElementFlags.Position;
+      this._vertexUpdateFlag &= ~VertexChangedFlags.Position;
     }
     return this._vertexCount;
   }
@@ -139,7 +139,8 @@ export class ModelMesh extends Mesh {
 
     this._positions = positions;
     this._vertexCount = positions.length;
-    this._vertexChangeFlag |= VertexElementFlags.Position;
+    this._vertexBufferUpdateFlag |= VertexChangedFlags.Position;
+    this._vertexUpdateFlag &= ~VertexChangedFlags.Position;
   }
 
   /**
@@ -168,7 +169,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._normals !== !!normals;
-    this._vertexChangeFlag |= VertexElementFlags.Normal;
+    this._vertexBufferUpdateFlag |= VertexChangedFlags.Normal;
     this._normals = normals;
   }
 
@@ -197,7 +198,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._colors !== !!colors;
-    this._vertexChangeFlag |= VertexElementFlags.Color;
+    this._vertexBufferUpdateFlag |= VertexChangedFlags.Color;
     this._colors = colors;
   }
 
@@ -226,7 +227,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = boneWeights != null;
-    this._vertexChangeFlag |= VertexElementFlags.BoneWeight;
+    this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight;
     this._boneWeights = boneWeights;
   }
 
@@ -255,7 +256,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._boneIndices !== !!boneIndices;
-    this._vertexChangeFlag |= VertexElementFlags.BoneIndex;
+    this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex;
     this._boneIndices = boneIndices;
   }
 
@@ -284,7 +285,7 @@ export class ModelMesh extends Mesh {
     }
 
     this._vertexSlotChanged = !!this._tangents !== !!tangents;
-    this._vertexChangeFlag |= VertexElementFlags.Tangent;
+    this._vertexBufferUpdateFlag |= VertexChangedFlags.Tangent;
     this._tangents = tangents;
   }
 
@@ -323,42 +324,42 @@ export class ModelMesh extends Mesh {
     switch (channelIndex) {
       case 0:
         this._vertexSlotChanged = !!this._uv !== !!uv;
-        this._vertexChangeFlag |= VertexElementFlags.UV;
+        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV;
         this._uv = uv;
         break;
       case 1:
         this._vertexSlotChanged = !!this._uv1 !== !!uv;
-        this._vertexChangeFlag |= VertexElementFlags.UV1;
+        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV1;
         this._uv1 = uv;
         break;
       case 2:
         this._vertexSlotChanged = !!this._uv2 !== !!uv;
-        this._vertexChangeFlag |= VertexElementFlags.UV2;
+        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV2;
         this._uv2 = uv;
         break;
       case 3:
         this._vertexSlotChanged = !!this._uv3 !== !!uv;
-        this._vertexChangeFlag |= VertexElementFlags.UV3;
+        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV3;
         this._uv3 = uv;
         break;
       case 4:
         this._vertexSlotChanged = !!this._uv4 !== !!uv;
-        this._vertexChangeFlag |= VertexElementFlags.UV4;
+        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV4;
         this._uv4 = uv;
         break;
       case 5:
         this._vertexSlotChanged = !!this._uv5 !== !!uv;
-        this._vertexChangeFlag |= VertexElementFlags.UV5;
+        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV5;
         this._uv5 = uv;
         break;
       case 6:
         this._vertexSlotChanged = !!this._uv6 !== !!uv;
-        this._vertexChangeFlag |= VertexElementFlags.UV6;
+        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV6;
         this._uv6 = uv;
         break;
       case 7:
         this._vertexSlotChanged = !!this._uv7 !== !!uv;
-        this._vertexChangeFlag |= VertexElementFlags.UV7;
+        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV7;
         this._uv7 = uv;
         break;
       default:
@@ -451,7 +452,7 @@ export class ModelMesh extends Mesh {
       this._addVertexElement(elements[i]);
     }
     this._vertexSlotChanged = true;
-    this._vertexBufferDirtyFlag |= VertexElementFlags.Position;
+    this._vertexUpdateFlag |= VertexChangedFlags.Position;
   }
 
   /**
@@ -486,7 +487,7 @@ export class ModelMesh extends Mesh {
     const bindings = this._vertexBufferBindings;
     bindings.length <= index && (bindings.length = index + 1);
     this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : index, binding);
-    this._vertexBufferDirtyFlag |= VertexElementFlags.Position;
+    this._vertexUpdateFlag |= VertexChangedFlags.Position;
   }
 
   /**
@@ -571,7 +572,7 @@ export class ModelMesh extends Mesh {
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
       this._vertexCountChanged = false;
     } else {
-      if (this._vertexChangeFlag & VertexElementFlags.All) {
+      if (this._vertexBufferUpdateFlag & VertexChangedFlags.All) {
         const vertices = this._verticesFloat32;
         this._updateVertices(vertices, vertexElementChanged);
         vertexBuffer.setData(vertices);
@@ -775,12 +776,12 @@ export class ModelMesh extends Mesh {
 
   private _updateVertices(vertices: Float32Array, force: boolean): void {
     // prettier-ignore
-    const { _bufferStrides,_vertexCount, _positions, _normals, _colors, _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const { _bufferStrides,_vertexCount, _positions, _normals, _colors, _vertexBufferUpdateFlag: _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
     const _vertexStrideFloat = _bufferStrides[0] / 4;
 
-    force && (this._vertexChangeFlag = VertexElementFlags.All);
+    force && (this._vertexBufferUpdateFlag = VertexChangedFlags.All);
 
-    if (_vertexChangeFlag & VertexElementFlags.Position) {
+    if (_vertexChangeFlag & VertexChangedFlags.Position) {
       for (let i = 0; i < _vertexCount; i++) {
         const start = _vertexStrideFloat * i;
         const position = _positions[i];
@@ -793,7 +794,7 @@ export class ModelMesh extends Mesh {
     let offset = 3;
 
     if (_normals) {
-      if (_vertexChangeFlag & VertexElementFlags.Normal) {
+      if (_vertexChangeFlag & VertexChangedFlags.Normal) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const normal = _normals[i];
@@ -808,7 +809,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_colors) {
-      if (_vertexChangeFlag & VertexElementFlags.Color) {
+      if (_vertexChangeFlag & VertexChangedFlags.Color) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const color = _colors[i];
@@ -824,7 +825,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_boneWeights) {
-      if (_vertexChangeFlag & VertexElementFlags.BoneWeight) {
+      if (_vertexChangeFlag & VertexChangedFlags.BoneWeight) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const weight = _boneWeights[i];
@@ -840,7 +841,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_boneIndices) {
-      if (_vertexChangeFlag & VertexElementFlags.BoneIndex) {
+      if (_vertexChangeFlag & VertexChangedFlags.BoneIndex) {
         const { _verticesUint8 } = this;
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
@@ -858,7 +859,7 @@ export class ModelMesh extends Mesh {
     }
 
     if (_tangents) {
-      if (_vertexChangeFlag & VertexElementFlags.Tangent) {
+      if (_vertexChangeFlag & VertexChangedFlags.Tangent) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const tangent = _tangents[i];
@@ -873,7 +874,7 @@ export class ModelMesh extends Mesh {
       offset += 4;
     }
     if (_uv) {
-      if (_vertexChangeFlag & VertexElementFlags.UV) {
+      if (_vertexChangeFlag & VertexChangedFlags.UV) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const uv = _uv[i];
@@ -886,7 +887,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv1) {
-      if (_vertexChangeFlag & VertexElementFlags.UV1) {
+      if (_vertexChangeFlag & VertexChangedFlags.UV1) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const uv = _uv1[i];
@@ -899,7 +900,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv2) {
-      if (_vertexChangeFlag & VertexElementFlags.UV2) {
+      if (_vertexChangeFlag & VertexChangedFlags.UV2) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const uv = _uv2[i];
@@ -912,7 +913,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv3) {
-      if (_vertexChangeFlag & VertexElementFlags.UV3) {
+      if (_vertexChangeFlag & VertexChangedFlags.UV3) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const uv = _uv3[i];
@@ -925,7 +926,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv4) {
-      if (_vertexChangeFlag & VertexElementFlags.UV4) {
+      if (_vertexChangeFlag & VertexChangedFlags.UV4) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const uv = _uv4[i];
@@ -938,7 +939,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv5) {
-      if (_vertexChangeFlag & VertexElementFlags.UV5) {
+      if (_vertexChangeFlag & VertexChangedFlags.UV5) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const uv = _uv5[i];
@@ -951,7 +952,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv6) {
-      if (_vertexChangeFlag & VertexElementFlags.UV6) {
+      if (_vertexChangeFlag & VertexChangedFlags.UV6) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const uv = _uv6[i];
@@ -964,7 +965,7 @@ export class ModelMesh extends Mesh {
       offset += 2;
     }
     if (_uv7) {
-      if (_vertexChangeFlag & VertexElementFlags.UV7) {
+      if (_vertexChangeFlag & VertexChangedFlags.UV7) {
         for (let i = 0; i < _vertexCount; i++) {
           const start = _vertexStrideFloat * i + offset;
           const uv = _uv7[i];
@@ -976,7 +977,7 @@ export class ModelMesh extends Mesh {
       }
       offset += 2;
     }
-    this._vertexChangeFlag = 0;
+    this._vertexBufferUpdateFlag = 0;
   }
 
   private _insertVertexAttribute(vertexAttribute: VertexAttribute): void {
@@ -1071,7 +1072,7 @@ export class ModelMesh extends Mesh {
   }
 }
 
-enum VertexElementFlags {
+enum VertexChangedFlags {
   Position = 0x1,
   Normal = 0x2,
   Color = 0x4,
