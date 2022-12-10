@@ -582,7 +582,7 @@ export class ModelMesh extends Mesh {
     }
 
     const { _blendShapeManager: blendShapeManager } = this;
-    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(vertexCountChange, noLongerAccessible);
+    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(this._vertexCountChanged, noLongerAccessible);
 
     if (noLongerAccessible) {
       this._accessible = false;
