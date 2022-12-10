@@ -229,13 +229,13 @@ export class GLTFUtil {
     const byteOffset = bufferViewByteOffset + accessorByteOffset;
     const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const byteStride = bufferView.byteStride;
-    const arrayType = GLTFUtil.getComponentType(accessor.componentType);
+    const TypedArray = GLTFUtil.getComponentType(accessor.componentType);
 
-    let typedArray: TypedArray;
-    if (byteStride && byteStride !== accessorTypeSize * arrayType.BYTES_PER_ELEMENT) {
-      typedArray = new arrayType(arrayBuffer, byteOffset, accessor.count * (byteStride / arrayType.BYTES_PER_ELEMENT));
+    let data: TypedArray;
+    if (byteStride && byteStride !== accessorTypeSize * TypedArray.BYTES_PER_ELEMENT) {
+      data = new TypedArray(arrayBuffer, byteOffset, accessor.count * (byteStride / TypedArray.BYTES_PER_ELEMENT));
     } else {
-      typedArray = new arrayType(arrayBuffer, byteOffset, accessor.count * accessorTypeSize);
+      data = new TypedArray(arrayBuffer, byteOffset, accessor.count * accessorTypeSize);
     }
 
     if (accessor.sparse) {
@@ -255,21 +255,21 @@ export class GLTFUtil {
         indicesByteOffset,
         indicesByteLength / indicesType.BYTES_PER_ELEMENT
       );
-      const valuesArray = new arrayType(
+      const valuesArray = new TypedArray(
         valuesArrayBuffer,
         valuesByteOffset,
-        valuesByteLength / arrayType.BYTES_PER_ELEMENT
+        valuesByteLength / TypedArray.BYTES_PER_ELEMENT
       );
 
       for (let i = 0; i < count; i++) {
         const replaceIndex = indicesArray[i];
         for (let j = 0; j < accessorTypeSize; j++) {
-          typedArray[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
+          data[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
         }
       }
     }
 
-    return typedArray;
+    return data;
   }
 
   static getVertexStride(gltf: IGLTF, accessor: IAccessor): number {
