@@ -646,6 +646,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * @todo Use this way to update gpu buffer should can get cpu data(may be should support get data form GPU).
+   * @use `setPosition` and `setVertexBufferBinding` at the same time, thew VertexBufferBinding and Vertex buffer data should right.
    */
   setVertexBufferBinding(
     bufferOrBinding: Buffer | VertexBufferBinding,
