@@ -970,18 +970,18 @@ export class ModelMesh extends Mesh {
     const vertexElements = this._vertexElements;
 
     let i = 0;
-    let byteOffset = 0;
+    let lastOffset = 0;
     for (let n = vertexElements.length; i < n; i++) {
       const vertexElement = vertexElements[i];
       if (vertexElement.bindingIndex == 0) {
-        if (vertexElement.offset - byteOffset < needByteLength) {
+        if (vertexElement.offset - lastOffset >= needByteLength) {
           break;
         }
-        byteOffset = vertexElement.offset + this._getAttributeByteLength(vertexElement.semantic);
+        lastOffset = vertexElement.offset + this._getAttributeByteLength(vertexElement.semantic);
       }
     }
-    this._insertVertexElement(i, new VertexElement(vertexAttribute, byteOffset, format, 0));
-    this._bufferStrides[0] = byteOffset + needByteLength;
+    this._insertVertexElement(i, new VertexElement(vertexAttribute, lastOffset, format, 0));
+    this._bufferStrides[0] = lastOffset + needByteLength;
   }
 
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {
