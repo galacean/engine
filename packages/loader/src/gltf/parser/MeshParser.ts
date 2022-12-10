@@ -1,7 +1,16 @@
-import { BlendShape, EngineObject, ModelMesh, TypedArray } from "@oasis-engine/core";
+import {
+  BlendShape,
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
+  EngineObject,
+  ModelMesh,
+  TypedArray,
+  VertexElement
+} from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
-import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
+import { IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
@@ -124,103 +133,50 @@ export class MeshParser extends Parser {
     getIndexBufferData: () => TypedArray,
     keepMeshData: boolean
   ): Promise<ModelMesh> {
-    const { attributes, targets, indices, mode } = gltfPrimitive;
-    let vertexCount: number;
-
     const { accessors } = gltf;
-    const accessor = accessors[attributes["POSITION"]];
-    const positionBuffer = <Float32Array>getVertexBufferData("POSITION");
-    const positions = GLTFUtil.floatBufferToVector3Array(positionBuffer);
-    mesh.setPositions(positions);
+    const { attributes, targets, indices, mode } = gltfPrimitive;
 
-    const { bounds } = mesh;
-    vertexCount = accessor.count;
-    if (accessor.min && accessor.max) {
-      bounds.min.copyFromArray(accessor.min);
-      bounds.max.copyFromArray(accessor.max);
-    } else {
-      const position = MeshParser._tempVector3;
-      const { min, max } = bounds;
+    const engine = mesh.engine;
+    const vertexElements = new Array<VertexElement>();
 
-      min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
-      max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
-
-      const stride = positionBuffer.length / vertexCount;
-      for (let j = 0; j < vertexCount; j++) {
-        const offset = j * stride;
-        position.copyFromArray(positionBuffer, offset);
-        Vector3.min(min, position, min);
-        Vector3.max(max, position, max);
-      }
-    }
-
+    let vertexCount: number;
+    let i = 0;
     for (const attributeSemantic in attributes) {
-      if (attributeSemantic === "POSITION") {
-        continue;
-      }
-      const bufferData = getVertexBufferData(attributeSemantic);
-      switch (attributeSemantic) {
-        case "NORMAL":
-          const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
-          mesh.setNormals(normals);
-          break;
-        case "TEXCOORD_0":
-          const texturecoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords, 0);
-          break;
-        case "TEXCOORD_1":
-          const texturecoords1 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords1, 1);
-          break;
-        case "TEXCOORD_2":
-          const texturecoords2 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords2, 2);
-          break;
-        case "TEXCOORD_3":
-          const texturecoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords3, 3);
-          break;
-        case "TEXCOORD_4":
-          const texturecoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords4, 4);
-          break;
-        case "TEXCOORD_5":
-          const texturecoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords5, 5);
-          break;
-        case "TEXCOORD_6":
-          const texturecoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords6, 6);
-          break;
-        case "TEXCOORD_7":
-          const texturecoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords7, 7);
-          break;
-        case "COLOR_0":
-          const colors = GLTFUtil.floatBufferToColorArray(
-            <Float32Array>bufferData,
-            accessors[attributes["COLOR_0"]].type === AccessorType.VEC3
-          );
-          mesh.setColors(colors);
-          break;
-        case "TANGENT":
-          const tangents = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
-          mesh.setTangents(tangents);
-          break;
+      const accessorIdx = attributes[attributeSemantic];
+      const accessor = accessors[accessorIdx];
+      const stride = GLTFUtil.getVertexStride(gltf, accessor);
+      const vertexELement = GLTFUtil.createVertexElement(attributeSemantic, accessor, i);
+      vertexElements.push(vertexELement);
 
-        case "JOINTS_0":
-          const joints = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
-          mesh.setBoneIndices(joints);
-          break;
-        case "WEIGHTS_0":
-          const weights = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
-          mesh.setBoneWeights(weights);
-          break;
-        default:
-          // console.warn(`Unsupport attribute semantic ${attributeSemantic}.`);
-          break;
+      const bufferData = getVertexBufferData(attributeSemantic);
+      const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, bufferData.byteLength, BufferUsage.Static);
+      vertexBuffer.setData(bufferData);
+      mesh.setVertexBufferBinding(vertexBuffer, stride, i++);
+
+      if (attributeSemantic === "POSITION") {
+        const { bounds } = mesh;
+        vertexCount = accessor.count;
+        if (accessor.min && accessor.max) {
+          bounds.min.copyFromArray(accessor.min);
+          bounds.max.copyFromArray(accessor.max);
+        } else {
+          const position = MeshParser._tempVector3;
+          const { min, max } = bounds;
+
+          min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+          max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+
+          const stride = bufferData.length / vertexCount;
+          for (let j = 0; j < vertexCount; j++) {
+            const offset = j * stride;
+            position.copyFromArray(bufferData, offset);
+            Vector3.min(min, position, min);
+            Vector3.max(max, position, max);
+          }
+        }
       }
     }
+    mesh.setVertexElements(vertexElements);
 
     // Indices
     if (indices !== undefined) {

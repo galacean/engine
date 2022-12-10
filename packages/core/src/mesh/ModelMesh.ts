@@ -35,7 +35,7 @@ export class ModelMesh extends Mesh {
   private _vertexSlotChanged: boolean = true;
   private _vertexChangeFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
-  private _lastUploadVertexCount: number = -1;
+  private _vertexCountChanged: boolean = false;
 
   private _positions: Vector3[] = [];
   private _normals: Vector3[] | null = null;
@@ -119,6 +119,8 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
+
+    this._vertexCountChanged = this._vertexCount != positions.length;
 
     this._positions = positions;
     this._vertexCount = positions.length;
@@ -421,7 +423,6 @@ export class ModelMesh extends Mesh {
 
   /**
    * @beta
-   * @intenral
    * @todo Update buffer should support custom vertex elemnts.
    * Set vertex elements.
    * @param elements - Vertex element collection
@@ -439,7 +440,6 @@ export class ModelMesh extends Mesh {
 
   /**
    * @beta
-   * @internal
    * Set vertex buffer binding.
    * @param vertexBufferBindings - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
@@ -448,7 +448,6 @@ export class ModelMesh extends Mesh {
 
   /**
    * @beta
-   * @internal
    * Set vertex buffer binding.
    * @param vertexBuffer - Vertex buffer
    * @param stride - Vertex buffer data stride
@@ -535,11 +534,10 @@ export class ModelMesh extends Mesh {
 
     const { _vertexCount: vertexCount } = this;
     const vertexElementChanged = this._updateVertexElements();
-    const vertexCountChange = this._lastUploadVertexCount !== vertexCount;
 
     // Vertex count change
     const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
-    if (vertexCountChange) {
+    if (this._vertexCountChanged) {
       vertexBuffer?.destroy();
 
       const elementCount = this._bufferStrides[0] / 4;
@@ -554,7 +552,7 @@ export class ModelMesh extends Mesh {
       const newVertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, vertices, bufferUsage);
 
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
-      this._lastUploadVertexCount = vertexCount;
+      this._vertexCountChanged = false;
     } else {
       if (this._vertexChangeFlag & ValueChanged.All) {
         const vertices = this._verticesFloat32;
