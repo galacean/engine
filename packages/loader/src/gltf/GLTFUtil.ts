@@ -130,6 +130,22 @@ export class GLTFUtil {
     }
   }
 
+  static getNormalizedComponentScale(componentType: AccessorComponentType) {
+    // Reference: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_mesh_quantization#encoding-quantized-data
+    switch (componentType) {
+      case AccessorComponentType.BYTE:
+        return 1 / 127;
+      case AccessorComponentType.UNSIGNED_BYTE:
+        return 1 / 255;
+      case AccessorComponentType.SHORT:
+        return 1 / 32767;
+      case AccessorComponentType.UNSIGNED_SHORT:
+        return 1 / 65535;
+      default:
+        throw new Error("Oasis.GLTFLoader: Unsupported normalized accessor component type.");
+    }
+  }
+
   /**
    * Get accessor data.
    */

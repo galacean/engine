@@ -154,15 +154,13 @@ export class MeshParser extends Parser {
       mesh.setVertexBufferBinding(vertexBuffer, stride, i++);
 
       if (attributeSemantic === "POSITION") {
-        const { bounds } = mesh;
+        const { min, max } = mesh.bounds;
         vertexCount = accessor.count;
         if (accessor.min && accessor.max) {
-          bounds.min.copyFromArray(accessor.min);
-          bounds.max.copyFromArray(accessor.max);
+          min.copyFromArray(accessor.min);
+          max.copyFromArray(accessor.max);
         } else {
           const position = MeshParser._tempVector3;
-          const { min, max } = bounds;
-
           min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
           max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
@@ -173,6 +171,12 @@ export class MeshParser extends Parser {
             Vector3.min(min, position, min);
             Vector3.max(max, position, max);
           }
+        }
+
+        if (accessor.normalized) {
+          const sacleFactor = GLTFUtil.getNormalizedComponentScale(accessor.componentType);
+          min.scale(sacleFactor);
+          max.scale(sacleFactor);
         }
       }
     }
