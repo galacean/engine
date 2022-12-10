@@ -32,12 +32,10 @@ export class ModelMesh extends Mesh {
   private _verticesUint8: Uint8Array | null = null;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
-  private _vertexSlotChanged: boolean = true;
-  private _vertexBufferUpdateFlag: number = 0;
   private _indicesChangeFlag: boolean = false;
   private _vertexCountChanged: boolean = false;
 
-  private _positions: Vector3[] = [];
+  private _positions: Vector3[] | null = null;
   private _normals: Vector3[] | null = null;
   private _colors: Color[] | null = null;
   private _tangents: Vector4[] | null = null;
@@ -53,7 +51,10 @@ export class ModelMesh extends Mesh {
   private _boneIndices: Vector4[] | null = null;
 
   private _bufferStrides: number[] = [];
-  private _vertexUpdateFlag: number = 0;
+  private _vertexBufferUpdateFlag: number = 0;
+  private _vertexDataUpdateFlag: number = 0;
+  private _vertexElementsUpdate: boolean = false;
+  private _customVertexElements: VertexElement[] = [];
 
   /**
    * Whether to access data of the mesh.
@@ -66,19 +67,18 @@ export class ModelMesh extends Mesh {
    * Vertex count of current mesh.
    */
   get vertexCount(): number {
-    if (this._vertexUpdateFlag & VertexChangedFlags.Position) {
+    if (this._vertexDataUpdateFlag & VertexChangedFlags.Position) {
+      let vertexCount = 0;
       const positionElement = this._vertexElementMap[VertexAttribute.Position];
       if (positionElement) {
         const positionBufferBinding = this._vertexBufferBindings[positionElement.bindingIndex];
         if (positionBufferBinding) {
-          this._vertexCount = positionBufferBinding.buffer.byteLength / positionBufferBinding.stride;
-        } else {
-          this._vertexCount = 0;
+          vertexCount = positionBufferBinding.buffer.byteLength / positionBufferBinding.stride;
         }
-      } else {
-        this._vertexCount = 0;
       }
-      this._vertexUpdateFlag &= ~VertexChangedFlags.Position;
+
+      this._vertexCount = vertexCount;
+      this._vertexDataUpdateFlag &= ~VertexChangedFlags.Position;
     }
     return this._vertexCount;
   }
@@ -87,6 +87,7 @@ export class ModelMesh extends Mesh {
    * Vertex element collection.
    */
   get vertexElements(): Readonly<VertexElement[]> {
+    this._updateVertexElements();
     // @todo: this will cause GC
     return this._vertexElements.slice(0, this._blendShapeManager._vertexElementOffset);
   }
@@ -130,17 +131,22 @@ export class ModelMesh extends Mesh {
    * Set positions for the mesh.
    * @param positions - The positions for the mesh.
    */
-  setPositions(positions: Vector3[]): void {
+  setPositions(positions: Vector3[] | null): void {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
+    if (!this._positions && !positions) {
+      return;
+    }
 
-    this._vertexCountChanged = this._vertexCount != positions.length;
+    const newVertexCount = positions ? positions.length : 0;
+    this._vertexCountChanged = this._vertexCount != newVertexCount;
+    this._vertexCount = newVertexCount;
 
-    this._positions = positions;
-    this._vertexCount = positions.length;
+    this._vertexElementsUpdate = !!this._positions !== !!positions;
     this._vertexBufferUpdateFlag |= VertexChangedFlags.Position;
-    this._vertexUpdateFlag &= ~VertexChangedFlags.Position;
+    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Position;
+    this._positions = positions;
   }
 
   /**
@@ -163,13 +169,17 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-
-    if (normals.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
+    if (normals) {
+      if (normals.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
+    } else if (!this._normals) {
+      return;
     }
 
-    this._vertexSlotChanged = !!this._normals !== !!normals;
+    this._vertexElementsUpdate = !!this._normals !== !!normals;
     this._vertexBufferUpdateFlag |= VertexChangedFlags.Normal;
+    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Normal;
     this._normals = normals;
   }
 
@@ -192,13 +202,17 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-
-    if (colors.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
+    if (colors) {
+      if (colors.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
+    } else if (!this._colors) {
+      return;
     }
 
-    this._vertexSlotChanged = !!this._colors !== !!colors;
+    this._vertexElementsUpdate = !!this._colors !== !!colors;
     this._vertexBufferUpdateFlag |= VertexChangedFlags.Color;
+    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Color;
     this._colors = colors;
   }
 
@@ -222,12 +236,17 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    if (boneWeights.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
+    if (boneWeights) {
+      if (boneWeights.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
+    } else if (!this._boneWeights) {
+      return;
     }
 
-    this._vertexSlotChanged = boneWeights != null;
+    this._vertexElementsUpdate = !!this._boneWeights !== !!boneWeights;
     this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight;
+    this._vertexDataUpdateFlag &= ~VertexChangedFlags.BoneWeight;
     this._boneWeights = boneWeights;
   }
 
@@ -251,12 +270,17 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    if (boneIndices.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
+    if (boneIndices) {
+      if (boneIndices?.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
+    } else if (!this._boneIndices) {
+      return;
     }
 
-    this._vertexSlotChanged = !!this._boneIndices !== !!boneIndices;
+    this._vertexElementsUpdate = !!this._boneIndices !== !!boneIndices;
     this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex;
+    this._vertexDataUpdateFlag &= ~VertexChangedFlags.BoneIndex;
     this._boneIndices = boneIndices;
   }
 
@@ -280,12 +304,17 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    if (tangents.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
+    if (tangents) {
+      if (tangents.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
+    } else if (!this._tangents) {
+      return;
     }
 
-    this._vertexSlotChanged = !!this._tangents !== !!tangents;
+    this._vertexElementsUpdate = !!this._tangents !== !!tangents;
     this._vertexBufferUpdateFlag |= VertexChangedFlags.Tangent;
+    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Tangent;
     this._tangents = tangents;
   }
 
@@ -316,50 +345,90 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
-    if (uv.length !== this._vertexCount) {
+    if (uv && uv.length !== this._vertexCount) {
       throw "The array provided needs to be the same size as vertex count.";
     }
 
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        this._vertexSlotChanged = !!this._uv !== !!uv;
+        if (!this._uv && !uv) {
+          return;
+        }
+
+        this._vertexElementsUpdate = !!this._uv !== !!uv;
         this._vertexBufferUpdateFlag |= VertexChangedFlags.UV;
+        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV;
         this._uv = uv;
         break;
       case 1:
-        this._vertexSlotChanged = !!this._uv1 !== !!uv;
+        if (!this._uv1 && !uv) {
+          return;
+        }
+
+        this._vertexElementsUpdate = !!this._uv1 !== !!uv;
         this._vertexBufferUpdateFlag |= VertexChangedFlags.UV1;
+        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV1;
         this._uv1 = uv;
         break;
       case 2:
-        this._vertexSlotChanged = !!this._uv2 !== !!uv;
+        if (!this._uv2 && !uv) {
+          return;
+        }
+
+        this._vertexElementsUpdate = !!this._uv2 !== !!uv;
         this._vertexBufferUpdateFlag |= VertexChangedFlags.UV2;
+        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV2;
         this._uv2 = uv;
         break;
       case 3:
-        this._vertexSlotChanged = !!this._uv3 !== !!uv;
+        if (!this._uv3 && !uv) {
+          return;
+        }
+
+        this._vertexElementsUpdate = !!this._uv3 !== !!uv;
         this._vertexBufferUpdateFlag |= VertexChangedFlags.UV3;
+        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV3;
         this._uv3 = uv;
         break;
       case 4:
-        this._vertexSlotChanged = !!this._uv4 !== !!uv;
+        if (!this._uv4 && !uv) {
+          return;
+        }
+
+        this._vertexElementsUpdate = !!this._uv4 !== !!uv;
         this._vertexBufferUpdateFlag |= VertexChangedFlags.UV4;
+        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV4;
         this._uv4 = uv;
         break;
       case 5:
-        this._vertexSlotChanged = !!this._uv5 !== !!uv;
+        if (!this._uv5 && !uv) {
+          return;
+        }
+
+        this._vertexElementsUpdate = !!this._uv5 !== !!uv;
         this._vertexBufferUpdateFlag |= VertexChangedFlags.UV5;
+        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV5;
         this._uv5 = uv;
         break;
       case 6:
-        this._vertexSlotChanged = !!this._uv6 !== !!uv;
+        if (!this._uv6 && !uv) {
+          return;
+        }
+
+        this._vertexElementsUpdate = !!this._uv6 !== !!uv;
         this._vertexBufferUpdateFlag |= VertexChangedFlags.UV6;
+        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV6;
         this._uv6 = uv;
         break;
       case 7:
-        this._vertexSlotChanged = !!this._uv7 !== !!uv;
+        if (!this._uv7 && !uv) {
+          return;
+        }
+
+        this._vertexElementsUpdate = !!this._uv7 !== !!uv;
         this._vertexBufferUpdateFlag |= VertexChangedFlags.UV7;
+        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV7;
         this._uv7 = uv;
         break;
       default:
@@ -447,12 +516,116 @@ export class ModelMesh extends Mesh {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
-    this._clearVertexElements();
+
+    const customVertexElements = this._customVertexElements;
+    customVertexElements.length = 0;
+
+    const customVertexElementMap: Record<string, VertexElement> = {};
     for (let i = 0, n = elements.length; i < n; i++) {
-      this._addVertexElement(elements[i]);
+      const element = elements[i];
+      customVertexElements.push(element);
+      customVertexElementMap[element.semantic] = element;
     }
-    this._vertexSlotChanged = true;
-    this._vertexUpdateFlag |= VertexChangedFlags.Position;
+
+    if (customVertexElementMap[VertexAttribute.Position]) {
+      const positions = this.getPositions();
+      positions && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Position);
+    } else {
+      this.setPositions(null);
+    }
+
+    if (customVertexElementMap[VertexAttribute.Normal]) {
+      const normals = this.getNormals();
+      normals && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Normal);
+    } else {
+      this.setNormals(null);
+    }
+
+    if (customVertexElementMap[VertexAttribute.Color]) {
+      const colors = this.getColors();
+      colors && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Color);
+    } else {
+      this.setColors(null);
+    }
+
+    if (customVertexElementMap[VertexAttribute.BoneWeight]) {
+      const boneWeights = this.getBoneWeights();
+      boneWeights && (this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight);
+    } else {
+      this.setBoneWeights(null);
+    }
+
+    if (customVertexElementMap[VertexAttribute.BoneIndex]) {
+      const boneIndices = this.getBoneIndices();
+      boneIndices && (this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex);
+    } else {
+      this.setBoneIndices(null);
+    }
+
+    if (customVertexElementMap[VertexAttribute.Tangent]) {
+      const tangents = this.getTangents();
+      tangents && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Tangent);
+    } else {
+      this.setTangents(null);
+    }
+
+    if (customVertexElementMap[VertexAttribute.UV]) {
+      const uvs = this.getUVs(0);
+      uvs && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV);
+    } else {
+      this.setUVs(null, 0);
+    }
+
+    if (customVertexElementMap[VertexAttribute.UV1]) {
+      const uv1s = this.getUVs(1);
+      uv1s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV1);
+    } else {
+      this.setUVs(null, 1);
+    }
+
+    if (customVertexElementMap[VertexAttribute.UV2]) {
+      const uv2s = this.getUVs(2);
+      uv2s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV2);
+    } else {
+      this.setUVs(null, 2);
+    }
+
+    if (customVertexElementMap[VertexAttribute.UV3]) {
+      const uv3s = this.getUVs(3);
+      uv3s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV3);
+    } else {
+      this.setUVs(null, 3);
+    }
+
+    if (customVertexElementMap[VertexAttribute.UV4]) {
+      const uv4s = this.getUVs(4);
+      uv4s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV4);
+    } else {
+      this.setUVs(null, 4);
+    }
+
+    if (customVertexElementMap[VertexAttribute.UV5]) {
+      const uv5s = this.getUVs(5);
+      uv5s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV5);
+    } else {
+      this.setUVs(null, 5);
+    }
+
+    if (customVertexElementMap[VertexAttribute.UV6]) {
+      const uv6s = this.getUVs(6);
+      uv6s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV6);
+    } else {
+      this.setUVs(null, 6);
+    }
+
+    if (customVertexElementMap[VertexAttribute.UV7]) {
+      const uv7s = this.getUVs(7);
+      uv7s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV7);
+    } else {
+      this.setUVs(null, 7);
+    }
+
+    this._vertexElementsUpdate = true;
   }
 
   /**
@@ -487,7 +660,7 @@ export class ModelMesh extends Mesh {
     const bindings = this._vertexBufferBindings;
     bindings.length <= index && (bindings.length = index + 1);
     this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : index, binding);
-    this._vertexUpdateFlag |= VertexChangedFlags.Position;
+    this._vertexDataUpdateFlag |= VertexChangedFlags.Position;
   }
 
   /**
@@ -551,11 +724,12 @@ export class ModelMesh extends Mesh {
     }
 
     const { _vertexCount: vertexCount } = this;
-    const vertexElementChanged = this._updateVertexElements();
+    this._updateVertexElements();
 
     // Vertex count change
     const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
     if (this._vertexCountChanged) {
+      this._vertexBufferUpdateFlag = VertexChangedFlags.All;
       vertexBuffer?.destroy();
 
       const elementCount = this._bufferStrides[0] / 4;
@@ -564,7 +738,7 @@ export class ModelMesh extends Mesh {
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
-      this._updateVertices(vertices, true);
+      this._updateVertices(vertices);
 
       const bufferUsage = noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic;
       const newVertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, vertices, bufferUsage);
@@ -574,7 +748,7 @@ export class ModelMesh extends Mesh {
     } else {
       if (this._vertexBufferUpdateFlag & VertexChangedFlags.All) {
         const vertices = this._verticesFloat32;
-        this._updateVertices(vertices, vertexElementChanged);
+        this._updateVertices(vertices);
         vertexBuffer.setData(vertices);
       }
     }
@@ -700,86 +874,91 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
-  private _updateVertexElements(): boolean {
-    const blendShapeManager = this._blendShapeManager;
-    const blendShapeAttributeMode = !blendShapeManager._useTextureMode();
+  private _supplementaryVertexElements(): void {
+    this._clearVertexElements();
 
-    if (this._vertexSlotChanged || (blendShapeAttributeMode && blendShapeManager._vertexElementsNeedUpdate())) {
-      const vertexElementMap = this._vertexElementMap;
-
-      if (this._positions && !vertexElementMap[VertexAttribute.Position]) {
-        this._insertVertexAttribute(VertexAttribute.Position);
-      }
-
-      if (this._normals && !vertexElementMap[VertexAttribute.Normal]) {
-        this._insertVertexAttribute(VertexAttribute.Normal);
-      }
-
-      if (this._colors && !vertexElementMap[VertexAttribute.Color]) {
-        this._insertVertexAttribute(VertexAttribute.Color);
-      }
-
-      if (this._boneWeights && !vertexElementMap[VertexAttribute.BoneWeight]) {
-        this._insertVertexAttribute(VertexAttribute.BoneWeight);
-      }
-
-      if (this._boneIndices && !vertexElementMap[VertexAttribute.BoneIndex]) {
-        this._insertVertexAttribute(VertexAttribute.BoneIndex);
-      }
-
-      if (this._tangents && !vertexElementMap[VertexAttribute.Tangent]) {
-        this._insertVertexAttribute(VertexAttribute.Tangent);
-      }
-
-      if (this._uv && !vertexElementMap[VertexAttribute.UV]) {
-        this._insertVertexAttribute(VertexAttribute.UV);
-      }
-
-      if (this._uv1 && !vertexElementMap[VertexAttribute.UV1]) {
-        this._insertVertexAttribute(VertexAttribute.UV1);
-      }
-
-      if (this._uv2 && !vertexElementMap[VertexAttribute.UV2]) {
-        this._insertVertexAttribute(VertexAttribute.UV2);
-      }
-
-      if (this._uv3 && !vertexElementMap[VertexAttribute.UV3]) {
-        this._insertVertexAttribute(VertexAttribute.UV3);
-      }
-
-      if (this._uv4 && !vertexElementMap[VertexAttribute.UV4]) {
-        this._insertVertexAttribute(VertexAttribute.UV4);
-      }
-
-      if (this._uv5 && !vertexElementMap[VertexAttribute.UV5]) {
-        this._insertVertexAttribute(VertexAttribute.UV5);
-      }
-
-      if (this._uv6 && !vertexElementMap[VertexAttribute.UV6]) {
-        this._insertVertexAttribute(VertexAttribute.UV6);
-      }
-
-      if (this._uv7 && !vertexElementMap[VertexAttribute.UV7]) {
-        this._insertVertexAttribute(VertexAttribute.UV7);
-      }
-
-      blendShapeManager._vertexElementOffset = this._vertexElements.length;
-      if (blendShapeAttributeMode) {
-        blendShapeManager._blendShapeCount > 0 && blendShapeManager._addVertexElements(this);
-      }
-      this._vertexSlotChanged = false;
-
-      return true;
+    const customVertexElements = this._customVertexElements;
+    for (let i = 0, n = customVertexElements.length; i < n; i++) {
+      this._addVertexElement(customVertexElements[i]);
     }
-    return false;
+
+    const vertexElementMap = this._vertexElementMap;
+    if (this._positions && !vertexElementMap[VertexAttribute.Position]) {
+      this._insertVertexAttribute(VertexAttribute.Position);
+    } else {
+    }
+
+    if (this._normals && !vertexElementMap[VertexAttribute.Normal]) {
+      this._insertVertexAttribute(VertexAttribute.Normal);
+    }
+
+    if (this._colors && !vertexElementMap[VertexAttribute.Color]) {
+      this._insertVertexAttribute(VertexAttribute.Color);
+    }
+
+    if (this._boneWeights && !vertexElementMap[VertexAttribute.BoneWeight]) {
+      this._insertVertexAttribute(VertexAttribute.BoneWeight);
+    }
+
+    if (this._boneIndices && !vertexElementMap[VertexAttribute.BoneIndex]) {
+      this._insertVertexAttribute(VertexAttribute.BoneIndex);
+    }
+
+    if (this._tangents && !vertexElementMap[VertexAttribute.Tangent]) {
+      this._insertVertexAttribute(VertexAttribute.Tangent);
+    }
+
+    if (this._uv && !vertexElementMap[VertexAttribute.UV]) {
+      this._insertVertexAttribute(VertexAttribute.UV);
+    }
+
+    if (this._uv1 && !vertexElementMap[VertexAttribute.UV1]) {
+      this._insertVertexAttribute(VertexAttribute.UV1);
+    }
+
+    if (this._uv2 && !vertexElementMap[VertexAttribute.UV2]) {
+      this._insertVertexAttribute(VertexAttribute.UV2);
+    }
+
+    if (this._uv3 && !vertexElementMap[VertexAttribute.UV3]) {
+      this._insertVertexAttribute(VertexAttribute.UV3);
+    }
+
+    if (this._uv4 && !vertexElementMap[VertexAttribute.UV4]) {
+      this._insertVertexAttribute(VertexAttribute.UV4);
+    }
+
+    if (this._uv5 && !vertexElementMap[VertexAttribute.UV5]) {
+      this._insertVertexAttribute(VertexAttribute.UV5);
+    }
+
+    if (this._uv6 && !vertexElementMap[VertexAttribute.UV6]) {
+      this._insertVertexAttribute(VertexAttribute.UV6);
+    }
+
+    if (this._uv7 && !vertexElementMap[VertexAttribute.UV7]) {
+      this._insertVertexAttribute(VertexAttribute.UV7);
+    }
   }
 
-  private _updateVertices(vertices: Float32Array, force: boolean): void {
+  private _updateVertexElements(): void {
+    const bsManager = this._blendShapeManager;
+    const bsAttributeUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
+
+    if (this._vertexElementsUpdate || bsAttributeUpdate) {
+      this._supplementaryVertexElements();
+      bsManager._vertexElementOffset = this._vertexElements.length;
+      if (bsAttributeUpdate) {
+        bsManager._blendShapeCount > 0 && bsManager._addVertexElements(this);
+      }
+      this._vertexElementsUpdate = false;
+    }
+  }
+
+  private _updateVertices(vertices: Float32Array): void {
     // prettier-ignore
     const { _bufferStrides,_vertexCount, _positions, _normals, _colors, _vertexBufferUpdateFlag: _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
     const _vertexStrideFloat = _bufferStrides[0] / 4;
-
-    force && (this._vertexBufferUpdateFlag = VertexChangedFlags.All);
 
     if (_vertexChangeFlag & VertexChangedFlags.Position) {
       for (let i = 0; i < _vertexCount; i++) {
@@ -1056,7 +1235,7 @@ export class ModelMesh extends Mesh {
     this._verticesUint8 = null;
     this._indices = null;
     this._verticesFloat32 = null;
-    this._positions.length = 0;
+    this._positions = null;
     this._tangents = null;
     this._normals = null;
     this._colors = null;
