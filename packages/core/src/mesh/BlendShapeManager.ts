@@ -43,11 +43,13 @@ export class BlendShapeManager {
   _vertices: Float32Array;
   /** @internal */
   _uniformOccupiesCount: number = 0;
+  /** @internal */
+  _vertexElementOffset: number;
 
   private _useBlendNormal: boolean = false;
   private _useBlendTangent: boolean = false;
   private _vertexElementCount: number = 0;
-  private _vertexElementOffset: number;
+
   private _storeInVertexBufferInfo: Vector2[] = [];
   private _maxCountSingleVertexBuffer: number = 0;
   private readonly _engine: Engine;
@@ -197,7 +199,6 @@ export class BlendShapeManager {
    */
   _addVertexElements(modelMesh: ModelMesh): void {
     let offset = 0;
-    this._vertexElementOffset = modelMesh._vertexElements.length;
     for (let i = 0, n = Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()); i < n; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 1));
       offset += 12;
