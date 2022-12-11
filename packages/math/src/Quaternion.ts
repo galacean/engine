@@ -763,7 +763,8 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     const xx = x * x;
     const yy = y * y;
     const zz = z * z;
-    const unit = xx + yy + zz + w * w;
+    const ww = w * w;
+    const unit = xx + yy + zz + ww;
     const test = x * w - y * z;
     if (test > (0.5 - MathUtil.zeroTolerance) * unit) {
       out._y = Math.PI / 2;
@@ -772,8 +773,8 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     } else {
       out._y = Math.asin((2 * test) / unit);
     }
-    out._x = Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (yy + xx));
-    out._z = Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (zz + xx));
+    out._x = Math.atan2(2.0 * (z * x + y * w), zz + ww - yy - xx);
+    out._z = Math.atan2(2.0 * (x * y + z * w), yy + ww - zz - xx);
   }
 }
 
