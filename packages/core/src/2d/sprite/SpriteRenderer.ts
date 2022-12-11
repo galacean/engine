@@ -10,6 +10,7 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { IAssembler } from "../assembler/IAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
+import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
 import { RenderData2D } from "../data/RenderData2D";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
@@ -68,6 +69,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           break;
         case SpriteDrawMode.Sliced:
           this._assembler = SlicedSpriteAssembler;
+          break;
+        case SpriteDrawMode.Tiled:
+          this._assembler = TiledSpriteAssembler;
           break;
         default:
           break;
@@ -304,10 +308,16 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
+        if (this._drawMode === SpriteDrawMode.Sliced) {
+          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        } else if (this._drawMode === SpriteDrawMode.Tiled) {
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All);
+        if (this._drawMode === SpriteDrawMode.Sliced || this._drawMode === SpriteDrawMode.Tiled) {
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
