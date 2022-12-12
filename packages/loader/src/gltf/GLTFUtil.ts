@@ -263,17 +263,6 @@ export class GLTFUtil {
     return data;
   }
 
-  static getVertexStride(gltf: IGLTF, accessor: IAccessor): number {
-    const stride = gltf.bufferViews[accessor.bufferView ?? 0].byteStride;
-    if (stride) {
-      return stride;
-    }
-
-    const size = GLTFUtil.getAccessorTypeSize(accessor.type);
-    const componentType = GLTFUtil.getComponentType(accessor.componentType);
-    return size * componentType.BYTES_PER_ELEMENT;
-  }
-
   static getIndexFormat(type: AccessorComponentType): IndexFormat {
     switch (type) {
       case AccessorComponentType.UNSIGNED_BYTE:
