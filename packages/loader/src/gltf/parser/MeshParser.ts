@@ -85,9 +85,7 @@ export class MeshParser extends Parser {
               gltfPrimitive,
               gltf,
               (attributeSemantic) => {
-                const accessorIdx = gltfPrimitive.attributes[attributeSemantic];
-                const accessor = gltf.accessors[accessorIdx];
-                return GLTFUtil.getVertexAccessorData(gltf, accessor, buffers);
+                return null;
               },
               (attributeName, shapeIndex) => {
                 const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
@@ -204,11 +202,8 @@ export class MeshParser extends Parser {
       }
       vertexElements.push(vertexElement);
 
-      if (accessor.sparse) {
-        throw "error";
-      }
-
       if (attribute === "POSITION") {
+        vertexCount = attributeCount;
         const { min, max } = mesh.bounds;
         if (accessor.min && accessor.max) {
           min.copyFromArray(accessor.min);
