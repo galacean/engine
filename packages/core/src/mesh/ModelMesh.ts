@@ -138,7 +138,7 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    const newVertexCount = positions ? positions.length : 0;
+    const newVertexCount = positions?.length || 0;
     this._vertexCountChanged = this._vertexCount != newVertexCount;
     this._vertexCount = newVertexCount;
 
