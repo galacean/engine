@@ -33,7 +33,6 @@ export class ModelMesh extends Mesh {
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
   private _indicesChangeFlag: boolean = false;
-  private _vertexCountChanged: boolean = false;
 
   private _positions: Vector3[] | null = null;
   private _normals: Vector3[] | null = null;
@@ -55,6 +54,7 @@ export class ModelMesh extends Mesh {
   private _vertexDataUpdateFlag: number = 0;
   private _vertexElementsUpdate: boolean = false;
   private _customVertexElements: VertexElement[] = [];
+  private _vertexCountChanged: boolean = false;
 
   /**
    * Whether to access data of the mesh.
