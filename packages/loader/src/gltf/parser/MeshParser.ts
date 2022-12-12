@@ -177,6 +177,9 @@ export class MeshParser extends Parser {
           const offset = bufferByteOffset + bufferSlice * bufferStride;
           const count = attributeCount * (bufferStride / dataElementBytes);
           vertices = new TypedArray(buffer, offset, count);
+          if (accessor.sparse) {
+            vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
+          }
 
           const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
           vertexBuffer.setData(vertices);
@@ -191,6 +194,9 @@ export class MeshParser extends Parser {
         const offset = bufferByteOffset + byteOffset;
         const count = attributeCount * dataElmentSize;
         vertices = new TypedArray(buffer, offset, count);
+        if (accessor.sparse) {
+          vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
+        }
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
