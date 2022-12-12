@@ -1,4 +1,4 @@
-import { IndexFormat, TypedArray, VertexElement, VertexElementFormat } from "@oasis-engine/core";
+import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
@@ -281,16 +281,6 @@ export class GLTFUtil {
     const size = GLTFUtil.getAccessorTypeSize(accessor.type);
     const componentType = GLTFUtil.getComponentType(accessor.componentType);
     return size * componentType.BYTES_PER_ELEMENT;
-  }
-
-  static createVertexElement(semantic: string, accessor: IAccessor, index: number): VertexElement {
-    const size = GLTFUtil.getAccessorTypeSize(accessor.type);
-    return new VertexElement(
-      semantic,
-      0,
-      GLTFUtil.getElementFormat(accessor.componentType, size, accessor.normalized),
-      index
-    );
   }
 
   static getIndexFormat(type: AccessorComponentType): IndexFormat {

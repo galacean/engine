@@ -54,6 +54,7 @@ export class MeshParser extends Parser {
             ))
               .then((decodedGeometry: any) => {
                 return this._parseMeshFromGLTFPrimitive(
+                  context,
                   mesh,
                   gltfMesh,
                   gltfPrimitive,
@@ -78,6 +79,7 @@ export class MeshParser extends Parser {
               .then(resolve);
           } else {
             this._parseMeshFromGLTFPrimitive(
+              context,
               mesh,
               gltfMesh,
               gltfPrimitive,
@@ -124,6 +126,7 @@ export class MeshParser extends Parser {
   }
 
   private _parseMeshFromGLTFPrimitive(
+    context: ParserContext,
     mesh: ModelMesh,
     gltfMesh: IMesh,
     gltfPrimitive: IMeshPrimitive,
@@ -134,28 +137,73 @@ export class MeshParser extends Parser {
     keepMeshData: boolean
   ): Promise<ModelMesh> {
     const { accessors } = gltf;
+    const { buffers } = context.glTFResource;
     const { attributes, targets, indices, mode } = gltfPrimitive;
 
     const engine = mesh.engine;
     const vertexElements = new Array<VertexElement>();
+    const bufferViews = gltf.bufferViews;
 
     let vertexCount: number;
-    let i = 0;
-    for (const attributeSemantic in attributes) {
-      const accessorIdx = attributes[attributeSemantic];
-      const accessor = accessors[accessorIdx];
-      const stride = GLTFUtil.getVertexStride(gltf, accessor);
-      const vertexELement = GLTFUtil.createVertexElement(attributeSemantic, accessor, i);
-      vertexElements.push(vertexELement);
+    let bufferBindIndex = 0;
+    for (const attribute in attributes) {
+      const accessor = accessors[attributes[attribute]];
+      const componentType = accessor.componentType;
+      const bufferView = bufferViews[accessor.bufferView];
 
-      const bufferData = getVertexBufferData(attributeSemantic);
-      const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, bufferData.byteLength, BufferUsage.Static);
-      vertexBuffer.setData(bufferData);
-      mesh.setVertexBufferBinding(vertexBuffer, stride, i++);
+      const buffer = buffers[bufferView.buffer];
+      const bufferByteOffset = bufferView.byteOffset || 0;
+      const bufferStride = bufferView.byteStride;
+      const byteOffset = accessor.byteOffset || 0;
 
-      if (attributeSemantic === "POSITION") {
+      const TypedArray = GLTFUtil.getComponentType(componentType);
+      const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+      const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
+      const elementStride = dataElmentSize * dataElementBytes;
+      const attributeCount = accessor.count;
+
+      let vertexElement: VertexElement;
+      let vertices: TypedArray;
+      const elementFormat = GLTFUtil.getElementFormat(componentType, dataElmentSize, accessor.normalized);
+      if (bufferStride && bufferStride !== elementStride) {
+        const bufferSlice = Math.floor(byteOffset / bufferStride);
+        const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + attributeCount;
+        const cacheBuffer = context.vertexBufferCache[bufferCacheKey];
+
+        const elementOffset = byteOffset % bufferStride;
+        if (!cacheBuffer) {
+          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
+
+          const offset = bufferByteOffset + bufferSlice * bufferStride;
+          const count = attributeCount * (bufferStride / dataElementBytes);
+          vertices = new TypedArray(buffer, offset, count);
+
+          const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
+          vertexBuffer.setData(vertices);
+          mesh.setVertexBufferBinding(vertexBuffer, bufferStride, bufferBindIndex);
+
+          context.vertexBufferCache[bufferCacheKey] = { bindIndex: bufferBindIndex++, buffer: vertexBuffer };
+        } else {
+          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, cacheBuffer.bindIndex);
+        }
+      } else {
+        vertexElement = new VertexElement(attribute, 0, elementFormat, bufferBindIndex);
+        const offset = bufferByteOffset + byteOffset;
+        const count = attributeCount * dataElmentSize;
+        vertices = new TypedArray(buffer, offset, count);
+
+        const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
+        vertexBuffer.setData(vertices);
+        mesh.setVertexBufferBinding(vertexBuffer, elementStride, bufferBindIndex++);
+      }
+      vertexElements.push(vertexElement);
+
+      if (accessor.sparse) {
+        throw "error";
+      }
+
+      if (attribute === "POSITION") {
         const { min, max } = mesh.bounds;
-        vertexCount = accessor.count;
         if (accessor.min && accessor.max) {
           min.copyFromArray(accessor.min);
           max.copyFromArray(accessor.max);
@@ -164,10 +212,10 @@ export class MeshParser extends Parser {
           min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
           max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
-          const stride = bufferData.length / vertexCount;
-          for (let j = 0; j < vertexCount; j++) {
+          const stride = vertices.length / attributeCount;
+          for (let j = 0; j < attributeCount; j++) {
             const offset = j * stride;
-            position.copyFromArray(bufferData, offset);
+            position.copyFromArray(vertices, offset);
             Vector3.min(min, position, min);
             Vector3.max(max, position, max);
           }
