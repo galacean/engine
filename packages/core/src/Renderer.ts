@@ -30,9 +30,6 @@ export class Renderer extends Component {
   /** ShaderData related to renderer. */
   @deepClone
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
-  /** Whether it is clipped by the frustum, needs to be turned on camera.enableFrustumCulling. */
-  @ignoreClone
-  isCulled: boolean = false;
 
   /** @internal */
   @ignoreClone
@@ -49,6 +46,8 @@ export class Renderer extends Component {
   /** @internal */
   @deepClone
   _bounds: BoundingBox = new BoundingBox();
+  @ignoreClone
+  _renderFrameCount: number;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
@@ -71,6 +70,13 @@ export class Renderer extends Component {
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;
+
+  /**
+   * Whether it is clipped by the frustum, needs to be turned on camera.enableFrustumCulling.
+   */
+  get isCulled(): boolean {
+    return this._renderFrameCount === this._engine.time.frameCount - 1;
+  }
 
   /**
    * Whether receive shadow.
