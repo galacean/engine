@@ -147,15 +147,18 @@ export class Animator extends Component {
       return;
     }
 
-    let needRender = false;
+    let animationUpdate: boolean;
     if (this.cullingMode === AnimatorCullingMode.Complete) {
+      animationUpdate = false;
       const controlledRenderers = this._controlledRenderers;
       for (let i = 0, n = controlledRenderers.length; i < n; i++) {
         if (!controlledRenderers[i].isCulled) {
-          needRender = true;
+          animationUpdate = true;
           break;
         }
       }
+    } else {
+      animationUpdate = true;
     }
 
     const { _animatorController: animatorController } = this;
@@ -173,7 +176,7 @@ export class Animator extends Component {
         continue;
       }
 
-      this._updateLayer(i, i === 0, deltaTime / 1000);
+      this._updateLayer(i, i === 0, deltaTime / 1000, animationUpdate);
     }
   }
 
@@ -423,33 +426,25 @@ export class Animator extends Component {
     return animatorLayerData;
   }
 
-  private _updateLayer(layerIndex: number, firstLayer: boolean, deltaTime: number): void {
-    const { blendingMode, weight } = this._animatorController.layers[layerIndex];
-    const animLayerData = this._animatorLayersData[layerIndex];
-    const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = animLayerData;
-    const layerAdditive = blendingMode === AnimatorLayerBlendingMode.Additive;
-    const layerWeight = firstLayer ? 1.0 : weight;
+  private _updateLayer(layerIndex: number, firstLayer: boolean, deltaTime: number, aniUpdate: boolean): void {
+    let { blendingMode, weight } = this._animatorController.layers[layerIndex];
+    const layerData = this._animatorLayersData[layerIndex];
+    const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = layerData;
+    const additive = blendingMode === AnimatorLayerBlendingMode.Additive;
+    firstLayer && (weight = 1.0);
     //TODO: 任意情况都应该检查，后面要优化
-    animLayerData.layerState !== LayerState.FixedCrossFading &&
+    layerData.layerState !== LayerState.FixedCrossFading &&
       this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
 
-    switch (animLayerData.layerState) {
+    switch (layerData.layerState) {
       case LayerState.Playing:
-        this._updatePlayingState(srcPlayData, animLayerData, layerIndex, layerWeight, deltaTime, layerAdditive);
+        this._updatePlayingState(srcPlayData, layerData, layerIndex, weight, deltaTime, additive, aniUpdate);
         break;
       case LayerState.FixedCrossFading:
-        this._updateCrossFadeFromPose(destPlayData, animLayerData, layerIndex, layerWeight, deltaTime, layerAdditive);
+        this._updateCrossFadeFromPose(destPlayData, layerData, layerIndex, weight, deltaTime, additive, aniUpdate);
         break;
       case LayerState.CrossFading:
-        this._updateCrossFade(
-          srcPlayData,
-          destPlayData,
-          animLayerData,
-          layerIndex,
-          layerWeight,
-          deltaTime,
-          layerAdditive
-        );
+        this._updateCrossFade(srcPlayData, destPlayData, layerData, layerIndex, weight, deltaTime, additive, aniUpdate);
         break;
     }
   }
@@ -460,7 +455,8 @@ export class Animator extends Component {
     layerIndex: number,
     weight: number,
     delta: number,
-    additive: boolean
+    additive: boolean,
+    aniUpdate: boolean
   ): void {
     const { curveOwners, eventHandlers } = playData.stateData;
     const { state, playState: lastPlayState, clipTime: lastClipTime } = playData;
@@ -468,8 +464,11 @@ export class Animator extends Component {
 
     playData.update(this.speed < 0);
 
-    const { clipTime, playState } = playData;
+    if (!aniUpdate) {
+      return;
+    }
 
+    const { clipTime, playState } = playData;
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
     for (let i = curveBindings.length - 1; i >= 0; i--) {
@@ -500,7 +499,8 @@ export class Animator extends Component {
     layerIndex,
     weight: number,
     delta: number,
-    additive: boolean
+    additive: boolean,
+    aniUpdate: boolean
   ) {
     const { _crossOwnerCollection: crossCurveDataCollection } = this;
     const { _curveBindings: srcCurves } = srcPlayData.state.clip;
@@ -523,6 +523,10 @@ export class Animator extends Component {
     const { playState: destPlayState } = destPlayData;
 
     this._updateCrossFadeData(layerData, crossWeight, delta, false);
+
+    if (!aniUpdate) {
+      return;
+    }
 
     const { clipTime: srcClipTime } = srcPlayData;
     const { clipTime: destClipTime } = destPlayData;
@@ -570,7 +574,8 @@ export class Animator extends Component {
     layerIndex: number,
     layerWeight: number,
     delta: number,
-    additive: boolean
+    additive: boolean,
+    aniUpdate: boolean
   ) {
     const crossCurveDataCollection = this._crossOwnerCollection;
     const { state, stateData, playState: lastPlayState } = destPlayData;
@@ -587,6 +592,10 @@ export class Animator extends Component {
     const { playState } = destPlayData;
 
     this._updateCrossFadeData(layerData, crossWeight, delta, true);
+
+    if (!aniUpdate) {
+      return;
+    }
 
     const { clipTime: destClipTime } = destPlayData;
     //TODO: srcState 少了最新一段时间的判断
