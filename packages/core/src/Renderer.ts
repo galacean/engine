@@ -72,10 +72,10 @@ export class Renderer extends Component {
   private _receiveShadows: boolean = true;
 
   /**
-   * Whether it is clipped by the frustum, needs to be turned on camera.enableFrustumCulling.
+   * Whether it is culled in the current frame and does not participate in rendering.
    */
   get isCulled(): boolean {
-    return this._renderFrameCount === this._engine.time.frameCount - 1;
+    return !(this._renderFrameCount === undefined || this._renderFrameCount === this._engine.time.frameCount - 1);
   }
 
   /**
