@@ -6,6 +6,7 @@ import { ClassPool } from "../RenderPipeline/ClassPool";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
+import { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
 import { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
 import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
 import { LayerState } from "./enums/LayerState";
@@ -20,7 +21,11 @@ import { KeyframeValueType } from "./Keyframe";
  * The controller of the animation system.
  */
 export class Animator extends Component {
+  /** Culling mode of this Animator */
+  public cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
+
   protected _animatorController: AnimatorController;
+
   @assignmentClone
   protected _speed: number = 1.0;
   @ignoreClone
