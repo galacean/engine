@@ -2,6 +2,7 @@ import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { assignmentClone, ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
+import { Renderer } from "../Renderer";
 import { ClassPool } from "../RenderPipeline/ClassPool";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
@@ -21,7 +22,7 @@ import { KeyframeValueType } from "./Keyframe";
  * The controller of the animation system.
  */
 export class Animator extends Component {
-  /** Culling mode of this Animator */
+  /** Culling mode of this Animator. */
   public cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
 
   protected _animatorController: AnimatorController;
@@ -42,6 +43,9 @@ export class Animator extends Component {
 
   @ignoreClone
   private _tempAnimatorStateInfo: IAnimatorStateInfo = { layerIndex: -1, state: null };
+
+  @ignoreClone
+  private _controlledRenderers: Renderer[] = [];
 
   /**
    * The playback speed of the Animator, 1.0 is normal playback speed.
@@ -143,6 +147,17 @@ export class Animator extends Component {
       return;
     }
 
+    let needRender = false;
+    if (this.cullingMode === AnimatorCullingMode.Complete) {
+      const controlledRenderers = this._controlledRenderers;
+      for (let i = 0, n = controlledRenderers.length; i < n; i++) {
+        if (!controlledRenderers[i].isCulled) {
+          needRender = true;
+          break;
+        }
+      }
+    }
+
     const { _animatorController: animatorController } = this;
     if (!animatorController) {
       return;
@@ -186,6 +201,7 @@ export class Animator extends Component {
   _onEnable(): void {
     this.engine._componentsManager.addOnUpdateAnimations(this);
     this.animatorController && this._checkAutoPlay();
+    this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
   }
 
   /**
