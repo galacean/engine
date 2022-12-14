@@ -121,18 +121,22 @@ export class EventDispatcher {
     }
 
     const listeners = this._evts[event];
-
     if (listeners.fn && listeners.fn === fn) {
       this._clearEvent(event);
     } else {
-      const index = listeners.indexOf(fn);
-      if (index > -1) {
-        const temp = listeners[listeners.length - 1];
-        listeners[index] = temp;
-        listeners.length--;
-        if (listeners.length === 1) {
-          this._evts[event] = listeners[0];
+      const length = listeners.length;
+      for (let i = length - 1; i >= 0; i--) {
+        if (listeners[i].fn === fn) {
+          listeners.splice(i, 1);
         }
+      }
+      switch (listeners.length) {
+        case 0:
+          this._clearEvent(event);
+          break;
+        case 1:
+          this._evts[event] = listeners[0];
+          break;
       }
     }
     return this;
