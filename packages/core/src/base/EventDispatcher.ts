@@ -130,13 +130,10 @@ export class EventDispatcher {
           listeners.splice(i, 1);
         }
       }
-      switch (listeners.length) {
-        case 0:
-          this._clearEvent(event);
-          break;
-        case 1:
-          this._evts[event] = listeners[0];
-          break;
+      if (listeners.length === 0) {
+        this._clearEvent(event);
+      } else if (listeners.length === 1) {
+        this._evts[event] = listeners[0];
       }
     }
     return this;
