@@ -4,10 +4,12 @@ import {
   BlinnPhongMaterial,
   Loader,
   LoadItem,
+  PBRBaseMaterial,
   PBRMaterial,
   PBRSpecularMaterial,
   resourceLoader,
   ResourceManager,
+  Shader,
   Texture2D,
   UnlitMaterial
 } from "@oasis-engine/core";
@@ -22,7 +24,7 @@ class MaterialLoader extends Loader<string> {
         type: "json"
       }).then((json: { [key: string]: any }) => {
         const engine = resourceManager.engine;
-        const { shader, shaderData, macros, renderState } = json;
+        const { name, shader, shaderData, macros, renderState } = json;
 
         let material;
         switch (shader) {
@@ -38,7 +40,13 @@ class MaterialLoader extends Loader<string> {
           case "blinn-phong":
             material = new BlinnPhongMaterial(engine);
             break;
+          case "bake-pbr":
+            // @todo refactor custom shader later
+            // @ts-ignore
+            material = new PBRBaseMaterial(engine, Shader.find("bake-pbr"));
+            break;
         }
+        material.name = name;
 
         const texturePromises = new Array<Promise<Texture2D | void>>();
         const materialShaderData = material.shaderData;
@@ -63,6 +71,7 @@ class MaterialLoader extends Loader<string> {
               break;
             case "Texture":
               texturePromises.push(
+                // @ts-ignore
                 resourceManager.getResourceByRef<Texture2D>(value).then((texture) => {
                   materialShaderData.setTexture(key, texture);
                 })
@@ -81,7 +90,7 @@ class MaterialLoader extends Loader<string> {
         }
 
         for (let key in renderState) {
-          materialShaderData[key] = renderState[key];
+          material[key] = renderState[key];
         }
 
         Promise.all(texturePromises).then(() => {

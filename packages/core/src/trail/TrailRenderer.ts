@@ -102,17 +102,6 @@ export class TrailRenderer extends MeshRenderer {
   }
 
   /**
-   * @internal
-   */
-  _render(context: RenderContext): void {
-    this._updateStrapVertices(context.camera, this._points);
-    this._updateStrapCoords();
-    this._vertexBuffer.setData(this._vertices);
-
-    super._render(context);
-  }
-
-  /**
    * @deprecated
    * Set trail texture.
    * @param texture
@@ -121,6 +110,17 @@ export class TrailRenderer extends MeshRenderer {
     if (texture) {
       this.getMaterial().shaderData.setTexture("u_texture", texture);
     }
+  }
+
+  /**
+   * @override
+   */
+  protected _render(context: RenderContext): void {
+    this._updateStrapVertices(context.camera, this._points);
+    this._updateStrapCoords();
+    this._vertexBuffer.setData(this._vertices);
+
+    super._render(context);
   }
 
   private _initGeometry() {

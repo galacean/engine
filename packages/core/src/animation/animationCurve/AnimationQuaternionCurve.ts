@@ -1,6 +1,6 @@
 import { Quaternion } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -24,8 +24,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   static _initializeOwner(owner: AnimationCurveOwner<Quaternion>): void {
     owner.defaultValue = new Quaternion();
     owner.fixedPoseValue = new Quaternion();
-    owner.baseTempValue = new Quaternion();
-    owner.crossTempValue = new Quaternion();
+    owner.baseEvaluateData.value = new Quaternion();
+    owner.crossEvaluateData.value = new Quaternion();
   }
 
   /**
@@ -126,5 +126,10 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
       out.w = p0.w;
     }
     return out;
+  }
+
+  constructor() {
+    super();
+    this._evaluateData.value = new Quaternion();
   }
 }

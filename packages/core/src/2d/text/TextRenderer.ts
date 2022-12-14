@@ -286,7 +286,63 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _render(context: RenderContext): void {
+  _onDestroy(): void {
+    // Clear render data.
+    const charRenderDatas = this._charRenderDatas;
+    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
+      TextRenderer._charRenderDataPool.put(charRenderDatas[i]);
+    }
+    charRenderDatas.length = 0;
+
+    if (this._font) {
+      this._font._addRefCount(-1);
+      this._font = null;
+    }
+    this._subFont && (this._subFont = null);
+
+    super._onDestroy();
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: TextRenderer): void {
+    target.font = this._font;
+    target._subFont = this._subFont;
+  }
+
+  /**
+   * @internal
+   */
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagTrue(type: number): void {
+    this._dirtyFlag |= type;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyFlag &= ~type;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
+  }
+
+  /**
+   * @override
+   */
+  protected _render(context: RenderContext): void {
     if (
       this._text === "" ||
       (this.enableWrapping && this.width <= 0) ||
@@ -343,62 +399,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
       charElements[i] = spriteElement;
     }
     context.camera._renderPipeline.pushPrimitive(textElement);
-  }
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {
-    // Clear render data.
-    const charRenderDatas = this._charRenderDatas;
-    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
-      TextRenderer._charRenderDataPool.put(charRenderDatas[i]);
-    }
-    charRenderDatas.length = 0;
-
-    if (this._font) {
-      this._font._addRefCount(-1);
-      this._font = null;
-    }
-    this._subFont && (this._subFont = null);
-
-    super._onDestroy();
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: TextRenderer): void {
-    target.font = this._font;
-    target._subFont = this._subFont;
-  }
-
-  /**
-   * @internal
-   */
-  _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  /**
-   * @internal
-   */
-  _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
-  }
-
-  /**
-   * @internal
-   */
-  _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
-  }
-
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
-    BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
 
   private _updateStencilState(): void {

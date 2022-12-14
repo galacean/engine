@@ -11,7 +11,6 @@ import { Layer } from "../Layer";
 import { Material } from "../material";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
-import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, TextureCubeFace } from "../texture";
@@ -155,7 +154,7 @@ export class BasicRenderPipeline {
     transparentQueue.clear();
     this._allSpriteMasks.length = 0;
 
-    context.applyViewProjectMatrix(camera.viewMatrix, camera.projectionMatrix, camera._viewProjectionMatrix);
+    context.applyVirtualCamera(camera._virtualCamera);
 
     this._callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
@@ -270,27 +269,7 @@ export class BasicRenderPipeline {
           continue;
         }
       }
-
-      const transform = camera.entity.transform;
-      const position = transform.worldPosition;
-      const center = renderer.bounds.getCenter(BasicRenderPipeline._tempVector0);
-      if (camera.isOrthographic) {
-        const forward = transform.getWorldForward(BasicRenderPipeline._tempVector1);
-        Vector3.subtract(center, position, center);
-        renderer._distanceForSort = Vector3.dot(center, forward);
-      } else {
-        renderer._distanceForSort = Vector3.distanceSquared(center, position);
-      }
-
-      renderer._updateShaderData(context);
-      renderer._render(context);
-
-      // union camera global macro and renderer macro.
-      ShaderMacroCollection.unionCollection(
-        camera._globalShaderMacro,
-        renderer.shaderData._macroCollection,
-        renderer._globalShaderMacro
-      );
+      renderer._prepareRender(context);
     }
   }
 }

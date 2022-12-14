@@ -17,7 +17,9 @@ export class ComponentsManager {
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _disableScripts: Script[] = [];
-  private _destroyScripts: Script[] = [];
+
+  private _pendingDestroyScripts: Script[] = [];
+  private _disposeDestroyScripts: Script[] = [];
 
   // Animation
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
@@ -113,8 +115,8 @@ export class ComponentsManager {
     this._disableScripts.push(component);
   }
 
-  addDestroyScript(component: Script): void {
-    this._destroyScripts.push(component);
+  addPendingDestroyScript(component: Script): void {
+    this._pendingDestroyScripts.push(component);
   }
 
   callScriptOnStart(): void {
@@ -180,8 +182,7 @@ export class ComponentsManager {
   }
 
   handlingInvalidScripts(): void {
-    const { _disableScripts: disableScripts, _destroyScripts: destroyScripts } = this;
-
+    const { _disableScripts: disableScripts } = this;
     let length = disableScripts.length;
     if (length > 0) {
       for (let i = length - 1; i >= 0; i--) {
@@ -191,12 +192,15 @@ export class ComponentsManager {
       disableScripts.length = 0;
     }
 
-    length = destroyScripts.length;
+    const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
+    this._disposeDestroyScripts = disposeDestroyScripts;
+    this._pendingDestroyScripts = pendingDestroyScripts;
+    length = disposeDestroyScripts.length;
     if (length > 0) {
       for (let i = length - 1; i >= 0; i--) {
-        destroyScripts[i].onDestroy();
+        disposeDestroyScripts[i].onDestroy();
       }
-      destroyScripts.length = 0;
+      disposeDestroyScripts.length = 0;
     }
   }
 

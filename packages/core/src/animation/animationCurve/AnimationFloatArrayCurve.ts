@@ -1,5 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -21,8 +21,8 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     const size = owner.referenceTargetValue.length;
     owner.defaultValue = new Float32Array(size);
     owner.fixedPoseValue = new Float32Array(size);
-    owner.baseTempValue = new Float32Array(size);
-    owner.crossTempValue = new Float32Array(size);
+    owner.baseEvaluateData.value = new Float32Array(size);
+    owner.crossEvaluateData.value = new Float32Array(size);
   }
 
   /**
@@ -106,5 +106,19 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
       }
     }
     return out;
+  }
+
+  /**
+   * @inheritdoc
+   * @override
+   */
+  addKey(key: Keyframe<Float32Array>): void {
+    super.addKey(key);
+
+    const evaluateData = this._evaluateData;
+    if (!evaluateData.value || evaluateData.value.length !== key.value.length) {
+      const size = key.value.length;
+      evaluateData.value = new Float32Array(size);
+    }
   }
 }

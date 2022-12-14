@@ -271,6 +271,7 @@ describe("Entity", () => {
       child.parent = parent;
       const child2 = new Entity(engine, "child2");
       child2.parent = parent;
+      expect(parent.findByName("parent")).eq(parent);
       expect(parent.findByName("child")).eq(child);
       expect(parent.findByName("child2")).eq(child2);
     });

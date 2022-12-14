@@ -1,5 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -17,8 +17,12 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /**
    * @internal
    */
-  static _initializeOwner(owner: AnimationCurveOwner<boolean>): void {}
-
+  static _initializeOwner(owner: AnimationCurveOwner<boolean>): void {
+    owner.defaultValue = false;
+    owner.fixedPoseValue = false;
+    owner.baseEvaluateData.value = false;
+    owner.crossEvaluateData.value = false;
+  }
   /**
    * @internal
    */
@@ -58,5 +62,10 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
    */
   static _hermiteInterpolationValue(frame: Keyframe<boolean>): boolean {
     return frame.value;
+  }
+
+  constructor() {
+    super();
+    this._evaluateData.value = false;
   }
 }

@@ -1,4 +1,4 @@
-#include <shadow_frag_share>
+#include <ShadowFragmentDeclaration>
 
 void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
     float attenuation = 1.0;
