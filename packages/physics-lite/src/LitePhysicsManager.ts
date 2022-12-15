@@ -111,6 +111,7 @@ export class LitePhysicsManager implements IPhysicsManager {
   raycast(
     ray: Ray,
     distance: number,
+    onRaycast?: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const colliders = this._colliders;

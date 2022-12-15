@@ -247,24 +247,28 @@ export class PhysicsManager {
     }
 
     if (hitResult != undefined) {
-      const result = this._nativePhysicsManager.raycast(ray, distance, (idx, distance, position, normal) => {
-        hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
-        hitResult.distance = distance;
-        hitResult.normal.copyFrom(normal);
-        hitResult.point.copyFrom(position);
-      });
+      const result = this._nativePhysicsManager.raycast(
+        ray,
+        distance,
+        (obj: number) => {
+          const shape = this._physicalObjectsMap[obj];
+          return !!(shape.collider.entity.layer & layerMask);
+        },
+        (idx, distance, position, normal) => {
+          hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
+          hitResult.distance = distance;
+          hitResult.normal.copyFrom(normal);
+          hitResult.point.copyFrom(position);
+        }
+      );
 
       if (result) {
-        if (hitResult.entity.layer & layerMask) {
-          return true;
-        } else {
-          hitResult.entity = null;
-          hitResult.distance = 0;
-          hitResult.point.set(0, 0, 0);
-          hitResult.normal.set(0, 0, 0);
-          return false;
-        }
+        return true;
       }
+      hitResult.entity = null;
+      hitResult.distance = 0;
+      hitResult.point.set(0, 0, 0);
+      hitResult.normal.set(0, 0, 0);
       return false;
     } else {
       return this._nativePhysicsManager.raycast(ray, distance);
