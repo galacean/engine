@@ -122,6 +122,115 @@ export class MeshParser extends Parser {
     });
   }
 
+  private _parseMeshFromGLTFPrimitiveX(
+    context: ParserContext,
+    mesh: ModelMesh,
+    gltfMesh: IMesh,
+    gltfPrimitive: IMeshPrimitive,
+    gltf: IGLTF,
+    getVertexBufferData: (semantic: string) => TypedArray,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
+    getIndexBufferData: () => TypedArray,
+    keepMeshData: boolean
+  ): Promise<ModelMesh> {
+    const { accessors } = gltf;
+    const { buffers } = context.glTFResource;
+    const { attributes, targets, indices, mode } = gltfPrimitive;
+
+    const engine = mesh.engine;
+    const vertexElements = new Array<VertexElement>();
+
+    let vertexCount: number;
+    let bufferBindIndex = 0;
+    for (const attribute in attributes) {
+      const accessor = accessors[attributes[attribute]];
+      const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
+
+      const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+      const attributeCount = accessor.count;
+
+      let vertexElement: VertexElement;
+      let vertices: TypedArray;
+      const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElmentSize, accessor.normalized);
+      if (accessorBuffer.interleaved) {
+        const byteOffset = accessor.byteOffset || 0;
+        const stride = accessorBuffer.stride;
+        const elementOffset = byteOffset % stride;
+
+        if (accessorBuffer.vertexBindindex === undefined) {
+          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
+
+          vertices = accessorBuffer.data;
+          if (accessor.sparse) {
+            vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
+          }
+          const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
+          vertexBuffer.setData(vertices);
+          mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
+
+          accessorBuffer.vertexBindindex = bufferBindIndex;
+        } else {
+          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, accessorBuffer.vertexBindindex);
+        }
+      } else {
+        vertexElement = new VertexElement(attribute, 0, elementFormat, bufferBindIndex);
+        vertices = accessorBuffer.data;
+        if (accessor.sparse) {
+          vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
+        }
+
+        const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
+        vertexBuffer.setData(vertices);
+        mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex++);
+      }
+      vertexElements.push(vertexElement);
+
+      if (attribute === "POSITION") {
+        vertexCount = attributeCount;
+        const { min, max } = mesh.bounds;
+        if (accessor.min && accessor.max) {
+          min.copyFromArray(accessor.min);
+          max.copyFromArray(accessor.max);
+        } else {
+          const position = MeshParser._tempVector3;
+          min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
+          max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
+
+          const stride = vertices.length / attributeCount;
+          for (let j = 0; j < attributeCount; j++) {
+            const offset = j * stride;
+            position.copyFromArray(vertices, offset);
+            Vector3.min(min, position, min);
+            Vector3.max(max, position, max);
+          }
+        }
+
+        if (accessor.normalized) {
+          const sacleFactor = GLTFUtil.getNormalizedComponentScale(accessor.componentType);
+          min.scale(sacleFactor);
+          max.scale(sacleFactor);
+        }
+      }
+    }
+    mesh.setVertexElements(vertexElements);
+
+    // Indices
+    if (indices !== undefined) {
+      const indexAccessor = gltf.accessors[indices];
+      const indexData = getIndexBufferData();
+      mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>indexData);
+      mesh.addSubMesh(0, indexAccessor.count, mode);
+    } else {
+      mesh.addSubMesh(0, vertexCount, mode);
+    }
+
+    // BlendShapes
+    targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
+
+    mesh.uploadData(!keepMeshData);
+    return Promise.resolve(mesh);
+  }
+
   private _parseMeshFromGLTFPrimitive(
     context: ParserContext,
     mesh: ModelMesh,
