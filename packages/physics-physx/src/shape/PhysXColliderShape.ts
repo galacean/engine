@@ -106,14 +106,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * {@inheritDoc IColliderShape.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
-    this._setShapeFlags(this._shapeFlags);
-  }
-
-  /**
    * {@inheritDoc IColliderShape.destroy }
    */
   destroy(): void {

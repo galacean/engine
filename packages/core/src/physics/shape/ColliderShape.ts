@@ -17,10 +17,12 @@ export abstract class ColliderShape {
   protected _id: number;
   protected _material: PhysicsMaterial;
   private _isTrigger: boolean = false;
-  private _isSceneQuery: boolean = true;
   private _contactOffset: number = 0;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
+
+  /** Whether raycast can select it */
+  isSceneQuery: boolean = true;
 
   /**
    * Collider owner of this shape.
@@ -84,20 +86,6 @@ export abstract class ColliderShape {
     if (this._position !== value) {
       this._position.copyFrom(value);
     }
-  }
-
-  /**
-   * Whether raycast can select it
-   * @internal
-   * @beta
-   */
-  get isSceneQuery(): boolean {
-    return this._isSceneQuery;
-  }
-
-  set isSceneQuery(value: boolean) {
-    this._isSceneQuery = value;
-    this._nativeShape.setIsSceneQuery(value);
   }
 
   /**

@@ -252,7 +252,7 @@ export class PhysicsManager {
         distance,
         (obj: number) => {
           const shape = this._physicalObjectsMap[obj];
-          return !!(shape.collider.entity.layer & layerMask);
+          return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
         },
         (idx, distance, position, normal) => {
           hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
@@ -264,12 +264,13 @@ export class PhysicsManager {
 
       if (result) {
         return true;
+      } else {
+        hitResult.entity = null;
+        hitResult.distance = 0;
+        hitResult.point.set(0, 0, 0);
+        hitResult.normal.set(0, 0, 0);
+        return false;
       }
-      hitResult.entity = null;
-      hitResult.distance = 0;
-      hitResult.point.set(0, 0, 0);
-      hitResult.normal.set(0, 0, 0);
-      return false;
     } else {
       return this._nativePhysicsManager.raycast(ray, distance);
     }

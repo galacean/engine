@@ -198,9 +198,9 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       preFilter: (filterData, shape, actor) => {
         const index = shape.getQueryFilterData().word0;
         if (onRaycast(index)) {
-          return 0;
+          return 2; // eBLOCK
         } else {
-          return 1;
+          return 0; // eNONE
         }
       },
       postFilter: (filterData, hit) => {}
