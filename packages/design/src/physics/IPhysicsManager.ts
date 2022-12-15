@@ -59,7 +59,7 @@ export interface IPhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
-   * @param onRaycast
+   * @param onRaycast - The raycast result callback which prefilter result
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
