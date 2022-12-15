@@ -16,7 +16,7 @@ export class ParserContext {
   subMeshIndex?: number;
   defaultSceneRootOnly?: boolean;
 
-  bufferDataCache: Record<string, IBufferInfo> = {};
+  accessorBufferCache: Record<string, IBufferInfo> = {};
 }
 
 export interface IBufferInfo {

@@ -167,19 +167,19 @@ export class GLTFUtil {
 
     const bufferSlice = Math.floor(byteOffset / bufferStride);
     const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + attributeCount;
-    const bufferDataCache = context.bufferDataCache;
-    let bufferInfo = bufferDataCache[bufferCacheKey];
+    const accessorBufferCache = context.accessorBufferCache;
+    let bufferInfo = accessorBufferCache[bufferCacheKey];
     if (!bufferInfo) {
       if (bufferStride !== elementStride) {
         const offset = bufferByteOffset + bufferSlice * bufferStride;
         const count = attributeCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
-        bufferDataCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: true, stride: bufferStride };
+        accessorBufferCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: true, stride: bufferStride };
       } else {
         const offset = bufferByteOffset + byteOffset;
         const count = attributeCount * dataElmentSize;
         const data = new TypedArray(buffer, offset, count);
-        bufferDataCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: false, stride: bufferStride };
+        accessorBufferCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: false, stride: bufferStride };
       }
     }
     return bufferInfo;
