@@ -246,21 +246,18 @@ export class PhysicsManager {
       hitResult = outHitResult;
     }
 
+    const onRaycast = (obj: number) => {
+      const shape = this._physicalObjectsMap[obj];
+      return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
+    };
+
     if (hitResult != undefined) {
-      const result = this._nativePhysicsManager.raycast(
-        ray,
-        distance,
-        (obj: number) => {
-          const shape = this._physicalObjectsMap[obj];
-          return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
-        },
-        (idx, distance, position, normal) => {
-          hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
-          hitResult.distance = distance;
-          hitResult.normal.copyFrom(normal);
-          hitResult.point.copyFrom(position);
-        }
-      );
+      const result = this._nativePhysicsManager.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
+        hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
+        hitResult.distance = distance;
+        hitResult.normal.copyFrom(normal);
+        hitResult.point.copyFrom(position);
+      });
 
       if (result) {
         return true;
@@ -272,7 +269,7 @@ export class PhysicsManager {
         return false;
       }
     } else {
-      return this._nativePhysicsManager.raycast(ray, distance);
+      return this._nativePhysicsManager.raycast(ray, distance, onRaycast);
     }
   }
 
