@@ -188,7 +188,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   raycast(
     ray: Ray,
     distance: number,
-    onRaycast?: (obj: number) => boolean,
+    onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const { _pxRaycastHit: pxHitResult } = PhysXPhysicsManager;

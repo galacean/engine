@@ -66,7 +66,7 @@ export interface IPhysicsManager {
   raycast(
     ray: Ray,
     distance: number,
-    onRaycast?: (obj: number) => boolean,
+    onRaycast: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): boolean;
 }
