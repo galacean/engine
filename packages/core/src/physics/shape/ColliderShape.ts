@@ -21,7 +21,11 @@ export abstract class ColliderShape {
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
 
-  /** Whether raycast can select it */
+  /**
+   * @internal
+   * @beta
+   * Whether raycast can select it.
+   */
   isSceneQuery: boolean = true;
 
   /**
