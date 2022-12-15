@@ -149,8 +149,12 @@ export class MeshParser extends Parser {
       const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
       const attributeCount = accessor.count;
 
+      let vertices: TypedArray = accessorBuffer.data;
+      if (accessor.sparse) {
+        vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
+      }
+
       let vertexElement: VertexElement;
-      let vertices: TypedArray;
       const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElmentSize, accessor.normalized);
       if (accessorBuffer.interleaved) {
         const byteOffset = accessor.byteOffset || 0;
@@ -160,10 +164,6 @@ export class MeshParser extends Parser {
         if (accessorBuffer.vertexBindindex === undefined) {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
-          vertices = accessorBuffer.data;
-          if (accessor.sparse) {
-            vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
-          }
           const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
           vertexBuffer.setData(vertices);
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
@@ -173,10 +173,6 @@ export class MeshParser extends Parser {
         }
       } else {
         vertexElement = new VertexElement(attribute, 0, elementFormat, bufferBindIndex);
-        vertices = accessorBuffer.data;
-        if (accessor.sparse) {
-          vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
-        }
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
