@@ -139,65 +139,45 @@ export class MeshParser extends Parser {
 
     const engine = mesh.engine;
     const vertexElements = new Array<VertexElement>();
-    const bufferViews = gltf.bufferViews;
 
     let vertexCount: number;
     let bufferBindIndex = 0;
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
-      const componentType = accessor.componentType;
-      const bufferView = bufferViews[accessor.bufferView];
+      const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
 
-      const buffer = buffers[bufferView.buffer];
-      const bufferByteOffset = bufferView.byteOffset || 0;
-      const bufferStride = bufferView.byteStride;
-      const byteOffset = accessor.byteOffset || 0;
-
-      const TypedArray = GLTFUtil.getComponentType(componentType);
       const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
-      const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
-      const elementStride = dataElmentSize * dataElementBytes;
       const attributeCount = accessor.count;
 
+      let vertices: TypedArray = accessorBuffer.data;
+      if (accessor.sparse) {
+        vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
+      }
+
       let vertexElement: VertexElement;
-      let vertices: TypedArray;
-      const elementFormat = GLTFUtil.getElementFormat(componentType, dataElmentSize, accessor.normalized);
-      if (bufferStride && bufferStride !== elementStride) {
-        const bufferSlice = Math.floor(byteOffset / bufferStride);
-        const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + attributeCount;
-        const cacheBuffer = context.vertexBufferCache[bufferCacheKey];
+      const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElmentSize, accessor.normalized);
+      if (accessorBuffer.interleaved) {
+        const byteOffset = accessor.byteOffset || 0;
+        const stride = accessorBuffer.stride;
+        const elementOffset = byteOffset % stride;
 
-        const elementOffset = byteOffset % bufferStride;
-        if (!cacheBuffer) {
+        if (accessorBuffer.vertexBindindex === undefined) {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
-
-          const offset = bufferByteOffset + bufferSlice * bufferStride;
-          const count = attributeCount * (bufferStride / dataElementBytes);
-          vertices = new TypedArray(buffer, offset, count);
-          if (accessor.sparse) {
-            vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
-          }
 
           const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
           vertexBuffer.setData(vertices);
-          mesh.setVertexBufferBinding(vertexBuffer, bufferStride, bufferBindIndex);
-
-          context.vertexBufferCache[bufferCacheKey] = { bindIndex: bufferBindIndex++, buffer: vertexBuffer };
+          mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
+          accessorBuffer.vertexBindindex = bufferBindIndex++;
         } else {
-          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, cacheBuffer.bindIndex);
+          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, accessorBuffer.vertexBindindex);
         }
       } else {
         vertexElement = new VertexElement(attribute, 0, elementFormat, bufferBindIndex);
-        const offset = bufferByteOffset + byteOffset;
-        const count = attributeCount * dataElmentSize;
-        vertices = new TypedArray(buffer, offset, count);
-        if (accessor.sparse) {
-          vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
-        }
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
-        mesh.setVertexBufferBinding(vertexBuffer, elementStride, bufferBindIndex++);
+        mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
+        accessorBuffer.vertexBindindex = bufferBindIndex++;
       }
       vertexElements.push(vertexElement);
 

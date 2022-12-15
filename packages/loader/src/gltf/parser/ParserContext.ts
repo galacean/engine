@@ -1,4 +1,4 @@
-import { Buffer, VertexBufferBinding } from "@oasis-engine/core";
+import { TypedArray } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 
 /**
@@ -16,5 +16,12 @@ export class ParserContext {
   subMeshIndex?: number;
   defaultSceneRootOnly?: boolean;
 
-  vertexBufferCache: Record<string, { bindIndex: number; buffer: Buffer }> = {};
+  accessorBufferCache: Record<string, IBufferInfo> = {};
+}
+
+export interface IBufferInfo {
+  data: TypedArray;
+  interleaved: boolean;
+  stride: number;
+  vertexBindindex?: number;
 }

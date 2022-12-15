@@ -1,5 +1,6 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { IBufferInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
 const charCodeOfDot = ".".charCodeAt(0);
@@ -146,7 +147,56 @@ export class GLTFUtil {
     }
   }
 
+  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): IBufferInfo {
+    const { buffers } = context.glTFResource;
+    const bufferViews = gltf.bufferViews;
+
+    const componentType = accessor.componentType;
+    const bufferView = bufferViews[accessor.bufferView];
+
+    const buffer = buffers[bufferView.buffer];
+    const bufferByteOffset = bufferView.byteOffset || 0;
+    const byteOffset = accessor.byteOffset || 0;
+
+    const TypedArray = GLTFUtil.getComponentType(componentType);
+    const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+    const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
+    const elementStride = dataElmentSize * dataElementBytes;
+    const attributeCount = accessor.count;
+    const bufferStride = bufferView.byteStride || elementStride;
+
+    const bufferSlice = Math.floor(byteOffset / bufferStride);
+    const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + attributeCount;
+    const accessorBufferCache = context.accessorBufferCache;
+    let bufferInfo = accessorBufferCache[bufferCacheKey];
+    if (!bufferInfo) {
+      if (bufferStride !== elementStride) {
+        const offset = bufferByteOffset + bufferSlice * bufferStride;
+        const count = attributeCount * (bufferStride / dataElementBytes);
+        const data = new TypedArray(buffer, offset, count);
+        accessorBufferCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: true, stride: bufferStride };
+      } else {
+        const offset = bufferByteOffset + byteOffset;
+        const count = attributeCount * dataElmentSize;
+        const data = new TypedArray(buffer, offset, count);
+        accessorBufferCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: false, stride: bufferStride };
+      }
+    }
+    return bufferInfo;
+  }
+
+  static getAccessorBufferData(context: ParserContext, gltf: IGLTF, accessor: IAccessor): TypedArray {
+    const { buffers } = context.glTFResource;
+    const bufferInfo = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
+    let data = bufferInfo.data;
+    if (accessor.sparse) {
+      data = GLTFUtil.processingSparseData(gltf, accessor, buffers, data);
+    }
+    return data;
+  }
+
   /**
+   * @deprecated
    * Get accessor data.
    */
   static getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
