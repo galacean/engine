@@ -74,10 +74,10 @@ export class PhysXPhysics {
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.44/libs/physx.release.js.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.45/libs/physx.release.js.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.44/libs/physx.release.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.45/libs/physx.release.js";
       }
     });
 
