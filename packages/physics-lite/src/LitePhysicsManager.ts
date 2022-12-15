@@ -126,7 +126,7 @@ export class LitePhysicsManager implements IPhysicsManager {
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
 
-      if (collider._raycast(ray, curHit)) {
+      if (collider._raycast(ray, curHit) && onRaycast(curHit.shapeID)) {
         isHit = true;
         if (curHit.distance < distance) {
           if (hitResult) {
