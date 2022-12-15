@@ -185,7 +185,7 @@ export class GLTFUtil {
     return bufferInfo;
   }
 
-  static getBufferData(context: ParserContext, gltf: IGLTF, accessor: IAccessor): TypedArray {
+  static getAccessorBufferData(context: ParserContext, gltf: IGLTF, accessor: IAccessor): TypedArray {
     const { buffers } = context.glTFResource;
     const bufferInfo = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
     let data = bufferInfo.data;
@@ -196,6 +196,7 @@ export class GLTFUtil {
   }
 
   /**
+   * @deprecated
    * Get accessor data.
    */
   static getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
