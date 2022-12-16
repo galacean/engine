@@ -272,11 +272,22 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (rootIndex !== -1) {
       BoundingBox.transform(this._mesh.bounds, skin.inverseBindMatrices[rootIndex], this._localBounds);
     } else {
-      // Root bone is not in joints list,we can only use default pose compute local bounds
-      // Default pose is slightly less accurate than bind pose
-      const inverseRootBone = SkinnedMeshRenderer._tempMatrix;
-      Matrix.invert(rootBone.transform.worldMatrix, inverseRootBone);
-      BoundingBox.transform(this._mesh.bounds, inverseRootBone, this._localBounds);
+      // Root bone is not in joints list, we can only compute approximate inverse bind matrix
+      // Average all root bone's children inverse bind matrix
+      let subRootBoneCount = 0;
+      const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
+      const inverseBindMatrices = skin.inverseBindMatrices;
+      const rootBoneChildren = rootBone.children;
+      for (let i = 0; i < jointCount; i++) {
+        const child = rootBoneChildren[i];
+        const index = jointEntitys.indexOf(child);
+        if (index !== -1) {
+          Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
+          subRootBoneCount++;
+        }
+      }
+      Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
+      BoundingBox.transform(this._mesh.bounds, approximateBindMatrix, this._localBounds);
     }
 
     this._rootBone = rootBone;
