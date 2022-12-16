@@ -18,6 +18,7 @@ export class BaseMaterial extends Material {
   protected static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
   protected static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveTexture");
   protected static _emissiveTextureMacro: ShaderMacro = Shader.getMacroByName("EMISSIVETEXTURE");
+  protected static _transparentMacro: ShaderMacro = Shader.getMacroByName("TRANSPARENT");
 
   private static _alphaCutoffProp = Shader.getPropertyByName("u_alphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = Shader.getMacroByName("ALPHA_CUTOFF");
@@ -156,12 +157,14 @@ export class BaseMaterial extends Material {
       renderState.blendState.targetBlendState.enabled = true;
       renderState.depthState.writeEnabled = false;
       renderState.renderQueueType = RenderQueueType.Transparent;
+      this.shaderData.enableMacro(BaseMaterial._transparentMacro);
     } else {
       renderState.blendState.targetBlendState.enabled = false;
       renderState.depthState.writeEnabled = true;
       renderState.renderQueueType = this.shaderData.getFloat(BaseMaterial._alphaCutoffProp)
         ? RenderQueueType.AlphaTest
         : RenderQueueType.Opaque;
+      this.shaderData.disableMacro(BaseMaterial._transparentMacro);
     }
   }
 

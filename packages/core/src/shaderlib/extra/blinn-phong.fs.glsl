@@ -20,7 +20,12 @@ void main() {
     #include <mobile_blinnphong_frag>
 
     gl_FragColor = emission + ambient + diffuse + specular;
-    gl_FragColor.a = diffuse.a;
+
+    #ifdef TRANSPARENT
+        gl_FragColor.a = diffuse.a;
+    #else
+        gl_FragColor.a = 1.0;
+    #endif
 
     #include <FogFragment>
 
