@@ -303,11 +303,11 @@ export class Engine extends EventDispatcher {
    */
   update(): void {
     const time = this._time;
+    time.tick();
+    
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
-    time._frameCount++;
 
-    time.tick();
     this._renderElementPool.resetPool();
     this._spriteElementPool.resetPool();
     this._spriteMaskElementPool.resetPool();
