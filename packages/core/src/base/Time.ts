@@ -81,5 +81,6 @@ export class Time {
     const now = this.nowTime;
     this._deltaTime = (now - this._lastTickTime) * this._timeScale;
     this._lastTickTime = now;
+    ++this._frameCount;
   }
 }
