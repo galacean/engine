@@ -36,6 +36,7 @@ export class PointerManager implements IInput {
   private _engine: Engine;
   private _canvas: Canvas;
   private _htmlCanvas: HTMLCanvasElement;
+  private _curClientRect: DOMRect;
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _hadListener: boolean = false;
@@ -97,6 +98,7 @@ export class PointerManager implements IInput {
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;
+      this._curClientRect = this._htmlCanvas.getBoundingClientRect();
       const { clientWidth, clientHeight } = this._htmlCanvas;
       const { width, height } = this._canvas;
       for (let i = lastIndex; i >= 0; i--) {
@@ -250,10 +252,10 @@ export class PointerManager implements IInput {
     const { _events: events, position } = pointer;
     const length = events.length;
     if (length > 0) {
-      const { _upList, _upMap, _downList, _downMap } = this;
+      const { _upList, _upMap, _downList, _downMap, _curClientRect: rect } = this;
       const latestEvent = events[length - 1];
-      const normalizedX = latestEvent.offsetX / clientW;
-      const normalizedY = latestEvent.offsetY / clientH;
+      const normalizedX = (latestEvent.clientX - rect.left) / clientW;
+      const normalizedY = (latestEvent.clientY - rect.top) / clientH;
       const currX = normalizedX * canvasW;
       const currY = normalizedY * canvasH;
       if (currX === position.x && currY === position.y) {
@@ -317,15 +319,15 @@ export class PointerManager implements IInput {
     const { _events: events } = pointer;
     const length = events.length;
     if (length > 0) {
+      const { _upList, _upMap, _downList, _downMap, _curClientRect: rect } = this;
       const { position } = pointer;
       const latestEvent = events[length - 1];
-      const currX = (latestEvent.offsetX / clientW) * canvasW;
-      const currY = (latestEvent.offsetY / clientH) * canvasH;
+      const currX = ((latestEvent.clientX - rect.left) / clientW) * canvasW;
+      const currY = ((latestEvent.clientY - rect.top) / clientH) * canvasH;
       pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
       pointer.button = _pointerDec2BinMap[latestEvent.button] || PointerButton.None;
       pointer.pressedButtons = latestEvent.buttons;
-      const { _upList, _upMap, _downList, _downMap } = this;
       for (let i = 0; i < length; i++) {
         const { button } = events[i];
         switch (events[i].type) {
