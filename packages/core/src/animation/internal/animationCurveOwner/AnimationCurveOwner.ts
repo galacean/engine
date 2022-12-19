@@ -45,6 +45,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
 
   referenceTargetValue: V;
 
+  isActive: boolean[] = [];
+
   private _assembler: IAnimationCurveOwnerAssembler<V>;
   private _cureType: IAnimationCurveCalculator<V>;
 
