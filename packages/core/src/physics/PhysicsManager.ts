@@ -246,8 +246,13 @@ export class PhysicsManager {
       hitResult = outHitResult;
     }
 
+    const onRaycast = (obj: number) => {
+      const shape = this._physicalObjectsMap[obj];
+      return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
+    };
+
     if (hitResult != undefined) {
-      const result = this._nativePhysicsManager.raycast(ray, distance, (idx, distance, position, normal) => {
+      const result = this._nativePhysicsManager.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
         hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
         hitResult.distance = distance;
         hitResult.normal.copyFrom(normal);
@@ -255,19 +260,16 @@ export class PhysicsManager {
       });
 
       if (result) {
-        if (hitResult.entity.layer & layerMask) {
-          return true;
-        } else {
-          hitResult.entity = null;
-          hitResult.distance = 0;
-          hitResult.point.set(0, 0, 0);
-          hitResult.normal.set(0, 0, 0);
-          return false;
-        }
+        return true;
+      } else {
+        hitResult.entity = null;
+        hitResult.distance = 0;
+        hitResult.point.set(0, 0, 0);
+        hitResult.normal.set(0, 0, 0);
+        return false;
       }
-      return false;
     } else {
-      return this._nativePhysicsManager.raycast(ray, distance);
+      return this._nativePhysicsManager.raycast(ray, distance, onRaycast);
     }
   }
 

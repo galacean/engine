@@ -41,11 +41,15 @@ export class BlendShapeManager {
   _vertexBuffers: Buffer[] = [];
   /** @internal */
   _vertices: Float32Array;
+  /** @internal */
+  _uniformOccupiesCount: number = 0;
+  /** @internal */
+  _vertexElementOffset: number;
 
   private _useBlendNormal: boolean = false;
   private _useBlendTangent: boolean = false;
   private _vertexElementCount: number = 0;
-  private _vertexElementOffset: number;
+
   private _storeInVertexBufferInfo: Vector2[] = [];
   private _maxCountSingleVertexBuffer: number = 0;
   private readonly _engine: Engine;
@@ -107,6 +111,8 @@ export class BlendShapeManager {
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
         shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
         shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
+        shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
+        this._uniformOccupiesCount = blendShapeCount + 1;
       } else {
         const maxBlendCount = this._getVertexBufferModeSupportCount();
         if (blendShapeCount > maxBlendCount) {
@@ -124,8 +130,9 @@ export class BlendShapeManager {
           this._modelMesh._enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
+        shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
+        this._uniformOccupiesCount = blendShapeCount;
       }
-      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
 
       if (this._useBlendNormal) {
         shaderData.enableMacro(BlendShapeManager._blendShapeNormalMacro);
@@ -192,7 +199,6 @@ export class BlendShapeManager {
    */
   _addVertexElements(modelMesh: ModelMesh): void {
     let offset = 0;
-    this._vertexElementOffset = modelMesh._vertexElements.length;
     for (let i = 0, n = Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()); i < n; i++) {
       modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 1));
       offset += 12;

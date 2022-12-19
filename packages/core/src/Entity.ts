@@ -280,19 +280,19 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Find child entity by name.
+   * Find entity by name.
    * @param name - The name of the entity which want to be found
    * @returns The component which be found
    */
   findByName(name: string): Entity {
+    if (name === this.name) {
+      return this;
+    }
     const children = this._children;
-    const child = Entity._findChildByName(this, name);
-    if (child) return child;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      const grandson = child.findByName(name);
-      if (grandson) {
-        return grandson;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const target = children[i].findByName(name);
+      if (target) {
+        return target;
       }
     }
     return null;

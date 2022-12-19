@@ -1,6 +1,6 @@
 #include <common>
 #include <uv_share>
-#include <fog_share>
+#include <FogFragmentDeclaration>
 
 uniform vec4 u_baseColor;
 uniform float u_alphaCutoff;
@@ -26,12 +26,11 @@ void main() {
         }
     #endif
 
-
-    #ifndef OASIS_COLORSPACE_GAMMA
-        baseColor = linearToGamma(baseColor);
-    #endif
-
     gl_FragColor = baseColor;
 
-    #include <fog_frag>
+    #include <FogFragment>
+
+     #ifndef OASIS_COLORSPACE_GAMMA
+        gl_FragColor = linearToGamma(gl_FragColor);
+    #endif
 }

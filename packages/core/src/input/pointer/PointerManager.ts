@@ -118,6 +118,7 @@ export class PointerManager implements IInput {
       htmlCanvas.addEventListener("pointerup", onPointerEvent);
       htmlCanvas.addEventListener("pointerout", onPointerEvent);
       htmlCanvas.addEventListener("pointermove", onPointerEvent);
+      htmlCanvas.addEventListener("pointercancel", onPointerEvent);
       this._hadListener = true;
     }
   }
@@ -132,6 +133,7 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointerup", onPointerEvent);
       htmlCanvas.removeEventListener("pointerout", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
       this._downList.length = 0;
       this._upList.length = 0;
@@ -154,6 +156,7 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointerup", onPointerEvent);
       htmlCanvas.removeEventListener("pointerout", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
     }
     this._pointerPool.length = 0;
@@ -287,6 +290,7 @@ export class PointerManager implements IInput {
             pointer._firePointerUpAndClick(rayCastEntity);
             break;
           case "pointerout":
+          case "pointercancel":
             pointer.phase = PointerPhase.Leave;
             pointer._firePointerExitAndEnter(null);
           default:
@@ -343,6 +347,7 @@ export class PointerManager implements IInput {
             pointer.phase = PointerPhase.Move;
             break;
           case "pointerout":
+          case "pointercancel":
             pointer.phase = PointerPhase.Leave;
           default:
             break;

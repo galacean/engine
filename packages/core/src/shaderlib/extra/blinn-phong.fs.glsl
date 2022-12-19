@@ -7,10 +7,10 @@
 #include <worldpos_share>
 
 #include <light_frag_define>
-#include <shadow_frag_share>
+#include <ShadowFragmentDeclaration>
 #include <mobile_material_frag>
 
-#include <fog_share>
+#include <FogFragmentDeclaration>
 #include <normal_get>
 
 void main() {
@@ -22,9 +22,9 @@ void main() {
     gl_FragColor = emission + ambient + diffuse + specular;
     gl_FragColor.a = diffuse.a;
 
+    #include <FogFragment>
+
     #ifndef OASIS_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);
     #endif
-    #include <fog_frag>
-
 }
