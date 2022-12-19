@@ -17,7 +17,6 @@ export class AnimatorLayerMask {
     for (let i = recursivePathList.length - 1, n = recursivePathList.length; i >= 0; --i) {
       const recursivePath = recursivePathList[i];
       if (path.startsWith(recursivePath)) {
-        console.log(recursivePath, this._pathMaskActiveMap.get(recursivePath));
         return this._pathMaskActiveMap.get(recursivePath);
       }
     }
