@@ -140,10 +140,6 @@ export class MeshParser extends Parser {
     const engine = mesh.engine;
     const vertexElements = new Array<VertexElement>();
 
-    if (mesh.name === "MS_eye_r") {
-      debugger;
-    }
-
     let vertexCount: number;
     let bufferBindIndex = 0;
     for (const attribute in attributes) {
