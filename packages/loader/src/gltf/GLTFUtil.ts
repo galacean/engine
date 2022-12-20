@@ -162,27 +162,28 @@ export class GLTFUtil {
     const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
     const elementStride = dataElmentSize * dataElementBytes;
-    const attributeCount = accessor.count;
-    const bufferStride = bufferView.byteStride || elementStride;
+    const accessorCount = accessor.count;
+    const bufferStride = bufferView.byteStride;
 
-    const bufferSlice = Math.floor(byteOffset / bufferStride);
-    const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + attributeCount;
-    const accessorBufferCache = context.accessorBufferCache;
-    let bufferInfo = accessorBufferCache[bufferCacheKey];
-    if (!bufferInfo) {
-      if (bufferStride !== elementStride) {
+    // According to the glTF official documentation only byteStride not undefined is allowed
+    if (bufferStride !== undefined && bufferStride !== elementStride) {
+      const bufferSlice = Math.floor(byteOffset / bufferStride);
+      const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
+      const accessorBufferCache = context.accessorBufferCache;
+      let bufferInfo = accessorBufferCache[bufferCacheKey];
+      if (!bufferInfo) {
         const offset = bufferByteOffset + bufferSlice * bufferStride;
-        const count = attributeCount * (bufferStride / dataElementBytes);
+        const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
         accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
-      } else {
-        const offset = bufferByteOffset + byteOffset;
-        const count = attributeCount * dataElmentSize;
-        const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, false, bufferStride);
       }
+      return bufferInfo;
+    } else {
+      const offset = bufferByteOffset + byteOffset;
+      const count = accessorCount * dataElmentSize;
+      const data = new TypedArray(buffer, offset, count);
+      return new BufferInfo(data, false, elementStride);
     }
-    return bufferInfo;
   }
 
   static getAccessorBufferData(context: ParserContext, gltf: IGLTF, accessor: IAccessor): TypedArray {
