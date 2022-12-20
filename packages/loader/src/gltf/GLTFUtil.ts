@@ -1,6 +1,6 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { IBufferInfo, ParserContext } from "./parser/ParserContext";
+import { BufferInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
 const charCodeOfDot = ".".charCodeAt(0);
@@ -147,7 +147,7 @@ export class GLTFUtil {
     }
   }
 
-  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): IBufferInfo {
+  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
     const { buffers } = context.glTFResource;
     const bufferViews = gltf.bufferViews;
 
@@ -174,12 +174,12 @@ export class GLTFUtil {
         const offset = bufferByteOffset + bufferSlice * bufferStride;
         const count = attributeCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: true, stride: bufferStride };
+        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
       } else {
         const offset = bufferByteOffset + byteOffset;
         const count = attributeCount * dataElmentSize;
         const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: false, stride: bufferStride };
+        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, false, bufferStride);
       }
     }
     return bufferInfo;
