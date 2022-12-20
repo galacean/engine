@@ -148,11 +148,7 @@ export class MeshParser extends Parser {
 
       const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
       const attributeCount = accessor.count;
-
-      let vertices: TypedArray = accessorBuffer.data;
-      if (accessor.sparse) {
-        vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
-      }
+      const vertices = accessorBuffer.data;
 
       let vertexElement: VertexElement;
       const meshId = mesh.instanceId;
