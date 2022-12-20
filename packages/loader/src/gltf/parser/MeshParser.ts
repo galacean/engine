@@ -166,8 +166,12 @@ export class MeshParser extends Parser {
         if (vertexBindingInfos[meshId] === undefined) {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
-          const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
-          vertexBuffer.setData(vertices);
+          let vertexBuffer = accessorBuffer.vertxBuffer;
+          if (!vertexBuffer) {
+            vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
+            vertexBuffer.setData(vertices);
+            accessorBuffer.vertxBuffer = vertexBuffer;
+          }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
           vertexBindingInfos[meshId] = bufferBindIndex++;
         } else {
