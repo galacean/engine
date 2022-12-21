@@ -261,16 +261,15 @@ export class ResourceManager {
     if (obj) {
       promise = Promise.resolve(obj);
     } else {
-      const url = this._editorResourceConfig[refId]?.path;
+      let url = this._editorResourceConfig[refId]?.path;
       if (!url) {
-        Logger.error(
-          `refId:${refId} is not find in this._editorResourceConfig:${JSON.stringify(this._editorResourceConfig)}`
-        );
+        Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
         return Promise.resolve(null);
       }
+      url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
       promise = this.load<any>({
-        type: this._editorResourceConfig[refId].type,
-        url: `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}`
+        url,
+        type: this._editorResourceConfig[refId].type
       });
     }
     return promise.then((item) => (isClone ? item.clone() : item));
