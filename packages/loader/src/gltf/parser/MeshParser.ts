@@ -148,28 +148,30 @@ export class MeshParser extends Parser {
 
       const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
       const attributeCount = accessor.count;
-
-      let vertices: TypedArray = accessorBuffer.data;
-      if (accessor.sparse) {
-        vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
-      }
+      const vertices = accessorBuffer.data;
 
       let vertexElement: VertexElement;
+      const meshId = mesh.instanceId;
+      const vertexBindingInfos = accessorBuffer.vertexBindingInfos;
       const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElmentSize, accessor.normalized);
       if (accessorBuffer.interleaved) {
         const byteOffset = accessor.byteOffset || 0;
         const stride = accessorBuffer.stride;
         const elementOffset = byteOffset % stride;
 
-        if (accessorBuffer.vertexBindindex === undefined) {
+        if (vertexBindingInfos[meshId] === undefined) {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
-          const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
-          vertexBuffer.setData(vertices);
+          let vertexBuffer = accessorBuffer.vertxBuffer;
+          if (!vertexBuffer) {
+            vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
+            vertexBuffer.setData(vertices);
+            accessorBuffer.vertxBuffer = vertexBuffer;
+          }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
-          accessorBuffer.vertexBindindex = bufferBindIndex++;
+          vertexBindingInfos[meshId] = bufferBindIndex++;
         } else {
-          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, accessorBuffer.vertexBindindex);
+          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, vertexBindingInfos[meshId]);
         }
       } else {
         vertexElement = new VertexElement(attribute, 0, elementFormat, bufferBindIndex);
@@ -177,7 +179,7 @@ export class MeshParser extends Parser {
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
-        accessorBuffer.vertexBindindex = bufferBindIndex++;
+        vertexBindingInfos[meshId] = bufferBindIndex++;
       }
       vertexElements.push(vertexElement);
 
