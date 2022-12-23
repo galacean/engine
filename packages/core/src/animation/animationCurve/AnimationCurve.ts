@@ -51,12 +51,18 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
    */
   addKey(key: Keyframe<V>): void {
     const { time } = key;
-    this.keys.push(key);
-    if (time > this._length) {
-      this._length = time;
-    }
+    const { keys } = this;
 
-    this.keys.sort((a, b) => a.time - b.time);
+    if (time >= this._length) {
+      keys.push(key);
+      this._length = time;
+    } else {
+      let index = keys.length;
+      while (index > 0 && key.time < keys[index - 1].time) {
+        index--;
+      }
+      keys.splice(index, 0, key);
+    }
   }
 
   /**
