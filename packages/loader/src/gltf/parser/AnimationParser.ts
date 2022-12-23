@@ -36,6 +36,7 @@ export class AnimationParser extends Parser {
       if (animationIndex >= 0 && animationIndex !== i) {
         continue;
       }
+
       const gltfAnimation = animations[i];
       const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
       const animationClip = new AnimationClip(name);
@@ -44,8 +45,8 @@ export class AnimationParser extends Parser {
       let duration = -1;
 
       // parse samplers
-      for (let i = 0; i < samplers.length; i++) {
-        const gltfSampler = samplers[i];
+      for (let j = 0, m = samplers.length; j < m; j++) {
+        const gltfSampler = samplers[j];
         const inputAccessor = accessors[gltfSampler.input];
         const outputAccessor = accessors[gltfSampler.output];
 
@@ -55,13 +56,13 @@ export class AnimationParser extends Parser {
         if (outputAccessor.normalized) {
           const scale = GLTFUtil.getNormalizedComponentScale(outputAccessor.componentType);
           const scaled = new Float32Array(output.length);
-          for (let j = 0, m = output.length; j < m; j++) {
-            scaled[j] = output[j] * scale;
+          for (let k = 0, v = output.length; k < v; k++) {
+            scaled[k] = output[k] * scale;
           }
           output = scaled;
         }
 
-        const outputAccessorSize = output.length / input.length;
+        const outputStride = output.length / input.length;
 
         const interpolation = gltfSampler.interpolation ?? AnimationSamplerInterpolation.Linear;
         let samplerInterpolation: InterpolationType;
@@ -76,6 +77,7 @@ export class AnimationParser extends Parser {
             samplerInterpolation = InterpolationType.Linear;
             break;
         }
+
         const maxTime = input[input.length - 1];
         if (maxTime > duration) {
           duration = maxTime;
@@ -86,12 +88,12 @@ export class AnimationParser extends Parser {
           interpolation: samplerInterpolation,
           input,
           output,
-          outputSize: outputAccessorSize
+          outputSize: outputStride
         });
       }
 
-      for (let i = 0; i < channels.length; i++) {
-        const gltfChannel = channels[i];
+      for (let j = 0, m = channels.length; j < m; j++) {
+        const gltfChannel = channels[j];
         const { target } = gltfChannel;
 
         const channelTargetEntity = entities[target.node];
@@ -102,30 +104,30 @@ export class AnimationParser extends Parser {
           entity = entity.parent;
         }
 
-        let compType: new (entity: Entity) => Component;
+        let ComponentType: new (entity: Entity) => Component;
         let propertyName: string;
         switch (target.path) {
           case AnimationChannelTargetPath.TRANSLATION:
-            compType = Transform;
+            ComponentType = Transform;
             propertyName = "position";
             break;
           case AnimationChannelTargetPath.ROTATION:
-            compType = Transform;
+            ComponentType = Transform;
             propertyName = "rotationQuaternion";
             break;
           case AnimationChannelTargetPath.SCALE:
-            compType = Transform;
+            ComponentType = Transform;
             propertyName = "scale";
             break;
           case AnimationChannelTargetPath.WEIGHTS:
-            compType = SkinnedMeshRenderer;
+            ComponentType = SkinnedMeshRenderer;
             propertyName = "blendShapeWeights";
             break;
           default:
         }
 
         const curve = this._addCurve(target.path, gltfChannel, sampleDataCollection);
-        animationClip.addCurveBinding(relativePath, compType, propertyName, curve);
+        animationClip.addCurveBinding(relativePath, ComponentType, propertyName, curve);
       }
 
       animationClips[i] = animationClip;
@@ -162,26 +164,16 @@ export class AnimationParser extends Parser {
         const curve = new AnimationVector3Curve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
 
-        let outputBufferOffset = 0;
-        const getNextOutputValue = () => {
-          const value = new Vector3(
-            output[outputBufferOffset],
-            output[outputBufferOffset + 1],
-            output[outputBufferOffset + 2]
-          );
-          outputBufferOffset += 3;
-          return value;
-        };
-
+        let offset = 0;
         for (let i = 0, n = input.length; i < n; i++) {
           const keyframe = new Keyframe<Vector3>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
-            keyframe.inTangent = getNextOutputValue();
-            keyframe.value = getNextOutputValue();
-            keyframe.outTangent = getNextOutputValue();
+            keyframe.inTangent = new Vector3(output[offset++], output[offset++], output[offset++]);
+            keyframe.value = new Vector3(output[offset++], output[offset++], output[offset++]);
+            keyframe.outTangent = new Vector3(output[offset++], output[offset++], output[offset++]);
           } else {
-            keyframe.value = getNextOutputValue();
+            keyframe.value = new Vector3(output[offset++], output[offset++], output[offset++]);
           }
           curve.addKey(keyframe);
         }
@@ -191,34 +183,16 @@ export class AnimationParser extends Parser {
         const curve = new AnimationQuaternionCurve();
         const interpolation = (curve.interpolation = sampleData.interpolation);
 
-        let outputBufferOffset = 0;
-        const getNextOutputValue = (isQuat: boolean) => {
-          const value = isQuat
-            ? new Quaternion(
-                output[outputBufferOffset],
-                output[outputBufferOffset + 1],
-                output[outputBufferOffset + 2],
-                output[outputBufferOffset + 3]
-              )
-            : new Vector4(
-                output[outputBufferOffset],
-                output[outputBufferOffset + 1],
-                output[outputBufferOffset + 2],
-                output[outputBufferOffset + 3]
-              );
-          outputBufferOffset += 4;
-          return value;
-        };
-
+        let offset = 0;
         for (let i = 0, n = input.length; i < n; i++) {
           const keyframe = new Keyframe<Quaternion>();
           keyframe.time = input[i];
           if (interpolation === InterpolationType.CubicSpine) {
-            keyframe.inTangent = getNextOutputValue(false) as Vector4;
-            keyframe.value = getNextOutputValue(true) as Quaternion;
-            keyframe.outTangent = getNextOutputValue(false) as Vector4;
+            keyframe.inTangent = new Vector4(output[offset++], output[offset++], output[offset++], output[offset++]);
+            keyframe.value = new Quaternion(output[offset++], output[offset++], output[offset++], output[offset++]);
+            keyframe.outTangent = new Vector4(output[offset++], output[offset++], output[offset++], output[offset++]);
           } else {
-            keyframe.value = getNextOutputValue(true) as Quaternion;
+            keyframe.value = new Quaternion(output[offset++], output[offset++], output[offset++], output[offset++]);
           }
           curve.addKey(keyframe);
         }
@@ -228,22 +202,20 @@ export class AnimationParser extends Parser {
         const curve = new AnimationFloatArrayCurve();
         curve.interpolation = sampleData.interpolation;
 
-        let outputBufferOffset = 0;
-        const getNextOutputValue = () => {
-          const value = output.subarray(outputBufferOffset, outputBufferOffset + outputSize);
-          outputBufferOffset += outputSize;
-          return value as Float32Array;
-        };
-
+        let offset = 0;
         for (let i = 0, n = input.length; i < n; i++) {
           const keyframe = new Keyframe<Float32Array>();
           keyframe.time = input[i];
           if (curve.interpolation === InterpolationType.CubicSpine) {
-            keyframe.inTangent = Array.from(getNextOutputValue());
-            keyframe.value = getNextOutputValue();
-            keyframe.outTangent = Array.from(getNextOutputValue());
+            keyframe.inTangent = Array.from(output.subarray(offset, offset + outputSize));
+            offset += outputSize;
+            keyframe.value = output.subarray(offset, offset + outputSize) as Float32Array;
+            offset += outputSize;
+            keyframe.outTangent = Array.from(output.subarray(offset, offset + outputSize));
+            offset += outputSize;
           } else {
-            keyframe.value = getNextOutputValue();
+            keyframe.value = output.subarray(offset, offset + outputSize) as Float32Array;
+            offset += outputSize;
           }
           curve.addKey(keyframe);
         }
