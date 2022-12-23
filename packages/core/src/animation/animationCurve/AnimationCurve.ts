@@ -58,10 +58,12 @@ export abstract class AnimationCurve<V extends KeyframeValueType> {
       this._length = time;
     } else {
       let index = keys.length;
-      while (index > 0 && time < keys[index - 1].time) {
-        index--;
+      while (--index >= 0) {
+        if (time > keys[index].time) {
+          break;
+        }
       }
-      keys.splice(index, 0, key);
+      keys.splice(index + 1, 0, key);
     }
   }
 
