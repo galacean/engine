@@ -7,7 +7,7 @@ import { ParserContext } from "./ParserContext";
 export class BufferParser extends Parser {
   parse(context: ParserContext): Promise<void> {
     const glTFResource = context.glTFResource;
-    const { url, engine } = glTFResource;
+    const { url } = glTFResource;
 
     if (this._isGLB(url)) {
       return request<ArrayBuffer>(url, { type: "arraybuffer" })
@@ -17,24 +17,18 @@ export class BufferParser extends Parser {
           context.buffers = buffers;
         });
     } else {
-      return engine.resourceManager
-        .load<IGLTF>({
-          url,
-          type: AssetType.JSON
-        })
-        .then((gltf: IGLTF) => {
-          glTFResource.gltf = gltf;
-          return Promise.all(
-            gltf.buffers.map((buffer: IBuffer) => {
-              return engine.resourceManager.load<ArrayBuffer>({
-                type: AssetType.Buffer,
-                url: GLTFUtil.parseRelativeUrl(url, buffer.uri)
-              });
-            })
-          ).then((buffers: ArrayBuffer[]) => {
-            glTFResource.buffers = buffers;
-          });
+      return request(url, {
+        type: "json"
+      }).then((gltf: IGLTF) => {
+        context.gltf = gltf;
+        return Promise.all(
+          gltf.buffers.map((buffer: IBuffer) => {
+            return request<ArrayBuffer>(GLTFUtil.parseRelativeUrl(url, buffer.uri), { type: "arraybuffer" });
+          })
+        ).then((buffers: ArrayBuffer[]) => {
+          context.buffers = buffers;
         });
+      });
     }
   }
 
