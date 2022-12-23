@@ -134,7 +134,7 @@ export class MeshParser extends Parser {
     keepMeshData: boolean
   ): Promise<ModelMesh> {
     const { accessors } = gltf;
-    const { buffers } = context.glTFResource;
+    const { buffers } = context;
     const { attributes, targets, indices, mode } = gltfPrimitive;
 
     const engine = mesh.engine;
