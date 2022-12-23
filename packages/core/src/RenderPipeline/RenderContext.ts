@@ -1,6 +1,6 @@
-import { Matrix } from "@oasis-engine/math";
 import { Camera } from "../Camera";
 import { Shader } from "../shader";
+import { VirtualCamera } from "../VirtualCamera";
 
 /**
  * @internal
@@ -14,18 +14,13 @@ export class RenderContext {
   private static _projectionMatrixProperty = Shader.getPropertyByName("u_projMat");
 
   camera: Camera;
-  viewMatrix: Matrix;
-  projectionMatrix: Matrix;
-  viewProjectMatrix: Matrix;
+  virtualCamera: VirtualCamera;
 
-  applyViewProjectMatrix(viewMatrix: Matrix, projectionMatrix: Matrix, viewProjectMatrix: Matrix): void {
+  applyVirtualCamera(virtualCamera: VirtualCamera): void {
+    this.virtualCamera = virtualCamera;
     const shaderData = this.camera.shaderData;
-    shaderData.setMatrix(RenderContext._viewMatrixProperty, viewMatrix);
-    shaderData.setMatrix(RenderContext._projectionMatrixProperty, projectionMatrix);
-    shaderData.setMatrix(RenderContext._vpMatrixProperty, viewProjectMatrix);
-
-    this.viewMatrix = viewMatrix;
-    this.projectionMatrix = projectionMatrix;
-    this.viewProjectMatrix = viewProjectMatrix;
+    shaderData.setMatrix(RenderContext._viewMatrixProperty, virtualCamera.viewMatrix);
+    shaderData.setMatrix(RenderContext._projectionMatrixProperty, virtualCamera.projectionMatrix);
+    shaderData.setMatrix(RenderContext._vpMatrixProperty, virtualCamera.viewProjectionMatrix);
   }
 }

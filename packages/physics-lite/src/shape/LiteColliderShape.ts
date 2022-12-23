@@ -76,13 +76,6 @@ export abstract class LiteColliderShape implements IColliderShape {
   }
 
   /**
-   * {@inheritDoc IColliderShape.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    console.log("Physics-lite don't support setIsSceneQuery. Use Physics-PhysX instead!");
-  }
-
-  /**
    * {@inheritDoc IColliderShape.destroy }
    */
   destroy(): void {}

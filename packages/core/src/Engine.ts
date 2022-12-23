@@ -105,6 +105,7 @@ export class Engine extends EventDispatcher {
   private _vSyncCounter: number = 1;
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
+  private _frameInProcess: boolean = false;
   private _waittingDestroy: boolean = false;
 
   private _animate = () => {
@@ -302,9 +303,11 @@ export class Engine extends EventDispatcher {
    */
   update(): void {
     const time = this._time;
-    const deltaTime = time.deltaTime;
-
     time.tick();
+    
+    const deltaTime = time.deltaTime;
+    this._frameInProcess = true;
+
     this._renderElementPool.resetPool();
     this._spriteElementPool.resetPool();
     this._spriteMaskElementPool.resetPool();
@@ -324,14 +327,13 @@ export class Engine extends EventDispatcher {
       this._render(scene);
     }
 
-    // Engine is complete delayed destruction mechanism
-    if (this._waittingDestroy) {
-      this._sceneManager._destroyAllScene();
+    if (!this._waittingDestroy) {
+      componentsManager.handlingInvalidScripts();
     }
-    componentsManager.handlingInvalidScripts();
     if (this._waittingDestroy) {
       this._destroy();
     }
+    this._frameInProcess = false;
   }
 
   /**
@@ -342,21 +344,10 @@ export class Engine extends EventDispatcher {
     this.trigger(new Event("run", this));
   }
 
-  /**
-   * Destroy engine.
-   * @remarks The timing of engine destruction is at the end of the current frame
-   */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-    this._waittingDestroy = true;
-  }
+  private _destroy(): void {
+    this._sceneManager._destroyAllScene();
+    this._componentsManager.handlingInvalidScripts();
 
-  /**
-   * @internal
-   */
-  _destroy(): void {
     this._resourceManager._destroy();
     this._magentaTexture2D.destroy(true);
     this._magentaTextureCube.destroy(true);
@@ -372,9 +363,7 @@ export class Engine extends EventDispatcher {
 
     this._sceneManager = null;
     this._resourceManager = null;
-
     this._canvas = null;
-
     this._time = null;
 
     // delete mask manager
@@ -386,6 +375,22 @@ export class Engine extends EventDispatcher {
   }
 
   /**
+   * Destroy engine.
+   * @remarks If call during frame execution will delay until the end of the frame
+   */
+  destroy(): void {
+    if (this._destroyed) {
+      return;
+    }
+
+    if (this._frameInProcess) {
+      this._waittingDestroy = true;
+    } else {
+      this._destroy();
+    }
+  }
+
+  /**
    * @internal
    */
   _getShaderProgramPool(shaderPass: ShaderPass): ShaderProgramPool {
@@ -394,7 +399,7 @@ export class Engine extends EventDispatcher {
     let pool = shaderProgramPools[index];
     if (!pool) {
       const length = index + 1;
-      if (length < shaderProgramPools.length) {
+      if (length > shaderProgramPools.length) {
         shaderProgramPools.length = length;
       }
       shaderProgramPools[index] = pool = new ShaderProgramPool();
@@ -402,6 +407,9 @@ export class Engine extends EventDispatcher {
     return pool;
   }
 
+  /**
+   * @intenral
+   */
   _render(scene: Scene): void {
     const cameras = scene._activeCameras;
     const componentsManager = this._componentsManager;
@@ -416,6 +424,11 @@ export class Engine extends EventDispatcher {
         componentsManager.callCameraOnBeginRender(camera);
         camera.render();
         componentsManager.callCameraOnEndRender(camera);
+
+        // temp solution for webgl implement bug
+        if (this._hardwareRenderer._options._forceFlush) {
+          this._hardwareRenderer.flush();
+        }
       }
     } else {
       Logger.debug("NO active camera.");

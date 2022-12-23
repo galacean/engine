@@ -22,6 +22,13 @@ export abstract class ColliderShape {
   private _position: Vector3 = new Vector3();
 
   /**
+   * @internal
+   * @beta
+   * Whether raycast can select it.
+   */
+  isSceneQuery: boolean = true;
+
+  /**
    * Collider owner of this shape.
    */
   get collider(): Collider {

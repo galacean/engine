@@ -168,10 +168,29 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
+   * @internal
+   */
+  _cloneTo(target: SpriteMask): void {
+    target.sprite = this._sprite;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    if (!this.sprite?.texture || !this.width || !this.height) {
+      worldBounds.min.set(0, 0, 0);
+      worldBounds.max.set(0, 0, 0);
+    } else {
+      SimpleSpriteAssembler.updatePositions(this);
+    }
+  }
+
+  /**
    * @override
    * @inheritdoc
    */
-  _render(context: RenderContext): void {
+  protected _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
@@ -193,25 +212,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
     maskElement.setValue(this, this._renderData, this.getMaterial());
     context.camera._renderPipeline._allSpriteMasks.add(this);
     this._maskElement = maskElement;
-  }
-
-  /**
-   * @internal
-   */
-  _cloneTo(target: SpriteMask): void {
-    target.sprite = this._sprite;
-  }
-
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
-    } else {
-      SimpleSpriteAssembler.updatePositions(this);
-    }
   }
 
   @ignoreClone

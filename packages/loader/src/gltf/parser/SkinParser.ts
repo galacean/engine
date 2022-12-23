@@ -24,7 +24,7 @@ export class SkinParser extends Parser {
 
       // parse IBM
       const accessor = gltf.accessors[inverseBindMatrices];
-      const buffer = GLTFUtil.getAccessorData(gltf, accessor, buffers);
+      const buffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor).data;
       for (let i = 0; i < jointCount; i++) {
         const inverseBindMatrix = new Matrix();
         inverseBindMatrix.copyFromArray(buffer, i * 16);
@@ -59,7 +59,7 @@ export class SkinParser extends Parser {
     for (const index of joints) {
       const path = new Array<Entity>();
       let entity = entities[index];
-      while (entity.parent !== null) {
+      while (entity) {
         path.unshift(entity);
         entity = entity.parent;
       }

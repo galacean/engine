@@ -24,19 +24,19 @@ void main() {
     #include <begin_normal_vert>
     #include <blendShape_vert>
     #include <skinning_vert>
-    #include <normal_vert>
-    vec4 temp_pos = u_modelMat * position;
-    vec3 v_pos = temp_pos.xyz / temp_pos.w;
+    
+    vec4 positionWS = u_modelMat * position;
 
-    v_pos = applyShadowBias(v_pos);
+    positionWS.xyz = applyShadowBias(positionWS.xyz);
     #ifndef OMIT_NORMAL
         #ifdef O3_HAS_NORMAL
-            v_pos = applyShadowNormalBias(v_pos, v_normal);
+            vec3 normalWS = normalize( mat3(u_normalMat) * normal );
+            positionWS.xyz = applyShadowNormalBias(positionWS.xyz, normalWS);
         #endif
     #endif
 
 
-    vec4 positionCS = u_VPMat * vec4(v_pos, 1.0);
+    vec4 positionCS = u_VPMat * positionWS;
     positionCS.z = max(positionCS.z, -1.0);// clamp to min ndc z
 
     gl_Position = positionCS;

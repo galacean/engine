@@ -70,13 +70,9 @@ export class PointerManager implements IInput {
     if (lastIndex >= 0) {
       for (let i = lastIndex; i >= 0; i--) {
         if (pointers[i].phase === PointerPhase.Leave) {
-          if (i !== lastIndex) {
-            pointers[i] = pointers[lastIndex];
-          }
-          --lastIndex;
+          pointers.splice(i, 1);
         }
       }
-      pointers.length = lastIndex + 1;
     }
 
     /** Generate the pointer received for this frame. */
@@ -118,6 +114,7 @@ export class PointerManager implements IInput {
       htmlCanvas.addEventListener("pointerup", onPointerEvent);
       htmlCanvas.addEventListener("pointerout", onPointerEvent);
       htmlCanvas.addEventListener("pointermove", onPointerEvent);
+      htmlCanvas.addEventListener("pointercancel", onPointerEvent);
       this._hadListener = true;
     }
   }
@@ -132,6 +129,7 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointerup", onPointerEvent);
       htmlCanvas.removeEventListener("pointerout", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
       this._downList.length = 0;
       this._upList.length = 0;
@@ -154,6 +152,7 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointerup", onPointerEvent);
       htmlCanvas.removeEventListener("pointerout", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
     }
     this._pointerPool.length = 0;
@@ -287,6 +286,7 @@ export class PointerManager implements IInput {
             pointer._firePointerUpAndClick(rayCastEntity);
             break;
           case "pointerout":
+          case "pointercancel":
             pointer.phase = PointerPhase.Leave;
             pointer._firePointerExitAndEnter(null);
           default:
@@ -343,6 +343,7 @@ export class PointerManager implements IInput {
             pointer.phase = PointerPhase.Move;
             break;
           case "pointerout":
+          case "pointercancel":
             pointer.phase = PointerPhase.Leave;
           default:
             break;

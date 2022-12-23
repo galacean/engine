@@ -1,5 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
-import { AnimationCurveOwner } from "../internal/AnimationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
 import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculator";
@@ -20,8 +20,8 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   static _initializeOwner(owner: AnimationCurveOwner<number>): void {
     owner.defaultValue = 0;
     owner.fixedPoseValue = 0;
-    owner.baseTempValue = 0;
-    owner.crossTempValue = 0;
+    owner.baseEvaluateData.value = 0;
+    owner.crossEvaluateData.value = 0;
   }
 
   /**
@@ -81,5 +81,10 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
     } else {
       return frame.value;
     }
+  }
+
+  constructor() {
+    super();
+    this._evaluateData.value = 0;
   }
 }

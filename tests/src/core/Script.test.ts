@@ -5,35 +5,34 @@ import spies from "chai-spies";
 
 chai.use(spies);
 
-describe("Scene", () => {
-  const engine = new WebGLEngine(document.createElement("canvas"));
-  engine.run();
-
+describe("Script", () => {
   describe("onEnable/onDisable/onAwake", () => {
     it("Add script to Entity", () => {
       class TestScript extends Script {
         onAwake() {
-          console.log("ParentScript___onAwake");
+          console.log("onAwake");
         }
+
         onEnable() {
-          console.log("ParentScript___onEnable");
+          console.log("onEnable");
         }
 
         onDisable() {
-          console.log("ParentScript___onDisable");
+          console.log("onDisable");
         }
       }
       TestScript.prototype.onAwake = chai.spy(TestScript.prototype.onAwake);
       TestScript.prototype.onEnable = chai.spy(TestScript.prototype.onEnable);
       TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
 
+      const engine = new WebGLEngine(document.createElement("canvas"));
       const scene = engine.sceneManager.activeScene;
-      const rootEntity = scene.createRootEntity();
+      const rootEntity = scene.createRootEntity("root");
+      engine.run();
 
-      const testEntity = new Entity(engine);
-      rootEntity.addChild(testEntity);
-
-      const testScript = testEntity.addComponent(TestScript);
+      const entity = new Entity(engine);
+      rootEntity.addChild(entity);
+      const testScript = entity.addComponent(TestScript);
 
       expect(testScript.onAwake).to.have.been.called.exactly(1);
       expect(testScript.onEnable).to.have.been.called.exactly(1);
@@ -43,27 +42,27 @@ describe("Scene", () => {
     it("Parent onAwakeb call inAtive child", () => {
       class ParentScript extends Script {
         onAwake() {
-          console.log("ParentScript___onAwake");
+          console.log("ParentScript_onAwake");
           const child = this.entity.findByName("child");
           child.isActive = false;
         }
         onEnable() {
-          console.log("ParentScript___onEnable");
+          console.log("ParentScript_onEnable");
         }
 
         onDisable() {
-          console.log("ParentScript___onDisable");
+          console.log("ParentScript_onDisable");
         }
         onUpdate() {
-          console.log("ParentScript___onUpdate");
+          console.log("ParentScript_onUpdate");
         }
 
         onLateUpdate() {
-          console.log("ParentScript___onLateUpdate");
+          console.log("ParentScript_onLateUpdate");
         }
 
         onDestroy() {
-          console.log("ParentScript___onDestroy");
+          console.log("ParentScript_onDestroy");
         }
       }
       ParentScript.prototype.onAwake = chai.spy(ParentScript.prototype.onAwake);
@@ -72,35 +71,37 @@ describe("Scene", () => {
 
       class ChildScript extends Script {
         onAwake() {
-          console.log("ChildScript___onAwake");
+          console.log("ChildScript_onAwake");
         }
         onEnable() {
-          console.log("ChildScript___onEnable");
+          console.log("ChildScript_onEnable");
         }
 
         onDisable() {
-          console.log("ChildScript___onDisable");
+          console.log("ChildScript_onDisable");
         }
 
         onUpdate() {
-          console.log("ChildScript___onUpdate");
+          console.log("ChildScript_onUpdate");
           this.engine.destroy();
         }
 
         onLateUpdate() {
-          console.log("ChildScript___onLateUpdate");
+          console.log("ChildScript_onLateUpdate");
         }
 
         onDestroy() {
-          console.log("ChildScript___onDestroy");
+          console.log("ChildScript_onDestroy");
         }
       }
       ChildScript.prototype.onAwake = chai.spy(ChildScript.prototype.onAwake);
       ChildScript.prototype.onEnable = chai.spy(ChildScript.prototype.onEnable);
       ChildScript.prototype.onDisable = chai.spy(ChildScript.prototype.onDisable);
 
+      const engine = new WebGLEngine(document.createElement("canvas"));
       const scene = engine.sceneManager.activeScene;
-      const rootEntity = scene.createRootEntity();
+      const rootEntity = scene.createRootEntity("root");
+      engine.run();
 
       const parent = new Entity(engine);
       const parentScript = parent.addComponent(ParentScript);
@@ -122,26 +123,28 @@ describe("Scene", () => {
     it("Entity isActive = true after script call enabled = false", () => {
       class TestScript extends Script {
         onAwake() {
-          console.log("TestScript___onAwake");
+          console.log("TestScript_onAwake");
         }
         onEnable() {
-          console.log("TestScript___onEnable");
+          console.log("TestScript_onEnable");
         }
 
         onDisable() {
-          console.log("TestScript___onDisable");
+          console.log("TestScript_onDisable");
         }
 
         onDestroy() {
-          console.log("TestScript___onDestroy");
+          console.log("TestScript_onDestroy");
         }
       }
       TestScript.prototype.onAwake = chai.spy(TestScript.prototype.onAwake);
       TestScript.prototype.onEnable = chai.spy(TestScript.prototype.onEnable);
       TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
 
+      const engine = new WebGLEngine(document.createElement("canvas"));
       const scene = engine.sceneManager.activeScene;
-      const rootEntity = scene.createRootEntity();
+      const rootEntity = scene.createRootEntity("root");
+      engine.run();
 
       const entity = rootEntity.createChild("entity");
       const script = entity.addComponent(TestScript);
@@ -155,6 +158,97 @@ describe("Scene", () => {
       expect(script.onAwake).to.have.been.called.exactly(1);
       expect(script.onEnable).to.have.been.called.exactly(2);
       expect(script.onDisable).to.have.been.called.exactly(2);
+    });
+
+    it("Engine destroy outside the main loop", () => {
+      class TestScript extends Script {
+        onAwake() {
+          console.log("TestScript_onAwake");
+        }
+
+        onEnable() {
+          console.log("TestScript_onEnable");
+        }
+
+        onUpdate() {
+          console.log("TestScript_onUpdate");
+        }
+
+        onDisable() {
+          console.log("TestScript_onDisable");
+        }
+
+        onDestroy() {
+          console.log("TestScript_onDestroy");
+        }
+      }
+      TestScript.prototype.onAwake = chai.spy(TestScript.prototype.onAwake);
+      TestScript.prototype.onEnable = chai.spy(TestScript.prototype.onEnable);
+      TestScript.prototype.onUpdate = chai.spy(TestScript.prototype.onUpdate);
+      TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
+      TestScript.prototype.onDestroy = chai.spy(TestScript.prototype.onDestroy);
+
+      const engine = new WebGLEngine(document.createElement("canvas"));
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity("root");
+      engine.run();
+
+      const entity = rootEntity.createChild("entity");
+      const script = entity.addComponent(TestScript);
+
+      engine.destroy();
+
+      expect(script.onAwake).to.have.been.called.exactly(1);
+      expect(script.onEnable).to.have.been.called.exactly(1);
+      expect(script.onUpdate).to.have.been.called.exactly(0);
+      expect(script.onDisable).to.have.been.called.exactly(1);
+      expect(script.onDestroy).to.have.been.called.exactly(1);
+    });
+
+    it("Engine destroy inside the main loop", () => {
+      class TestScript extends Script {
+        onAwake() {
+          console.log("TestScript_onAwake");
+        }
+
+        onEnable() {
+          console.log("TestScript_onEnable");
+        }
+
+        onDisable() {
+          console.log("TestScript_onDisable");
+        }
+
+        onUpdate() {
+          console.log("TestScript_onUpdate");
+          engine.destroy();
+        }
+
+        onDestroy() {
+          console.log("TestScript_onDestroy");
+        }
+      }
+      TestScript.prototype.onAwake = chai.spy(TestScript.prototype.onAwake);
+      TestScript.prototype.onEnable = chai.spy(TestScript.prototype.onEnable);
+      TestScript.prototype.onUpdate = chai.spy(TestScript.prototype.onUpdate);
+      TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
+      TestScript.prototype.onDestroy = chai.spy(TestScript.prototype.onDestroy);
+
+      const engine = new WebGLEngine(document.createElement("canvas"));
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity("root");
+      engine.run();
+
+      const entity = rootEntity.createChild("entity");
+      const script = entity.addComponent(TestScript);
+
+      setTimeout(() => {
+        expect(script.onAwake).to.have.been.called.exactly(1);
+        expect(script.onEnable).to.have.been.called.exactly(1);
+        expect(script.onUpdate).to.have.been.called.exactly(1);
+        expect(script.onDisable).to.have.been.called.exactly(1);
+        expect(script.onDestroy).to.have.been.called.exactly(1);
+      }, 1000);
     });
   });
 });

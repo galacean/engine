@@ -17,9 +17,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
 
       let pipeline = GLTFParser.defaultPipeline;
 
-      const query = GLTFUtil.getQuery(url);
-      if (query.q) {
-        const path = GLTFUtil.stringToPath(query.q);
+      const { query, baseUrl } = GLTFUtil.parseUrl(url);
+      if (query) {
+        glTFResource.url = baseUrl;
+        const path = GLTFUtil.stringToPath(query);
         const key = path[0];
         const value1 = Number(path[1]) || 0;
         const value2 = Number(path[2]) || 0;
