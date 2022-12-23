@@ -1,4 +1,4 @@
-import { TypedArray } from "@oasis-engine/core";
+import { Buffer, TypedArray } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 
 /**
@@ -20,6 +20,7 @@ export class ParserContext {
 }
 
 export class BufferInfo {
+  vertxBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
   constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
 }

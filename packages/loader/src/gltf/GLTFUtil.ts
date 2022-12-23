@@ -165,35 +165,31 @@ export class GLTFUtil {
     const accessorCount = accessor.count;
     const bufferStride = bufferView.byteStride;
 
+    let bufferInfo: BufferInfo;
     // According to the glTF official documentation only byteStride not undefined is allowed
     if (bufferStride !== undefined && bufferStride !== elementStride) {
       const bufferSlice = Math.floor(byteOffset / bufferStride);
       const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
       const accessorBufferCache = context.accessorBufferCache;
-      let bufferInfo = accessorBufferCache[bufferCacheKey];
+      bufferInfo = accessorBufferCache[bufferCacheKey];
       if (!bufferInfo) {
         const offset = bufferByteOffset + bufferSlice * bufferStride;
         const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
         accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
       }
-      return bufferInfo;
     } else {
       const offset = bufferByteOffset + byteOffset;
       const count = accessorCount * dataElmentSize;
       const data = new TypedArray(buffer, offset, count);
-      return new BufferInfo(data, false, elementStride);
+      bufferInfo = new BufferInfo(data, false, elementStride);
     }
-  }
 
-  static getAccessorBufferData(context: ParserContext, gltf: IGLTF, accessor: IAccessor): TypedArray {
-    const { buffers } = context.glTFResource;
-    const bufferInfo = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
-    let data = bufferInfo.data;
     if (accessor.sparse) {
-      data = GLTFUtil.processingSparseData(gltf, accessor, buffers, data);
+      const data = GLTFUtil.processingSparseData(gltf, accessor, buffers, bufferInfo.data);
+      bufferInfo = new BufferInfo(data, false, bufferInfo.stride);
     }
-    return data;
+    return bufferInfo;
   }
 
   /**

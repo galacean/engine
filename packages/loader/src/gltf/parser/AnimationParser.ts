@@ -50,8 +50,8 @@ export class AnimationParser extends Parser {
         const inputAccessor = accessors[gltfSampler.input];
         const outputAccessor = accessors[gltfSampler.output];
 
-        const input = GLTFUtil.getAccessorBufferData(context, gltf, inputAccessor);
-        let output = GLTFUtil.getAccessorBufferData(context, gltf, outputAccessor);
+        const input = GLTFUtil.getAccessorBuffer(context, gltf, inputAccessor).data;
+        let output = GLTFUtil.getAccessorBuffer(context, gltf, outputAccessor).data;
 
         if (outputAccessor.normalized) {
           const scale = GLTFUtil.getNormalizedComponentScale(outputAccessor.componentType);
