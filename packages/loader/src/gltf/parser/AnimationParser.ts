@@ -19,8 +19,8 @@ import { ParserContext } from "./ParserContext";
 
 export class AnimationParser extends Parser {
   parse(context: ParserContext) {
-    const { animationIndex, glTFResource } = context;
-    const { gltf, buffers, entities } = glTFResource;
+    const { gltf, buffers, animationIndex, glTFResource } = context;
+    const { entities } = glTFResource;
     const { animations, accessors } = gltf;
     if (!animations) {
       return;

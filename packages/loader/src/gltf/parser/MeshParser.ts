@@ -18,8 +18,8 @@ export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
 
   parse(context: ParserContext) {
-    const { meshIndex, subMeshIndex, glTFResource } = context;
-    const { engine, gltf, buffers } = glTFResource;
+    const { gltf, buffers, meshIndex, subMeshIndex, glTFResource } = context;
+    const { engine } = glTFResource;
     if (!gltf.meshes) return;
 
     const meshPromises: Promise<ModelMesh[]>[] = [];
@@ -48,7 +48,7 @@ export class MeshParser extends Parser {
               Parser.createEngineResource(
                 "KHR_draco_mesh_compression",
                 KHR_draco_mesh_compression,
-                glTFResource,
+                context,
                 gltfPrimitive
               )
             ))
@@ -134,7 +134,7 @@ export class MeshParser extends Parser {
     keepMeshData: boolean
   ): Promise<ModelMesh> {
     const { accessors } = gltf;
-    const { buffers } = context.glTFResource;
+    const { buffers } = context;
     const { attributes, targets, indices, mode } = gltfPrimitive;
 
     const engine = mesh.engine;

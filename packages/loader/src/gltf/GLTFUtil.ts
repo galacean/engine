@@ -148,7 +148,7 @@ export class GLTFUtil {
   }
 
   static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
-    const { buffers } = context.glTFResource;
+    const { buffers } = context;
     const bufferViews = gltf.bufferViews;
 
     const componentType = accessor.componentType;

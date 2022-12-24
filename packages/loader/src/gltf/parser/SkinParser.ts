@@ -6,8 +6,8 @@ import { ParserContext } from "./ParserContext";
 
 export class SkinParser extends Parser {
   parse(context: ParserContext): void {
-    const glTFResource = context.glTFResource;
-    const { gltf, buffers, entities } = glTFResource;
+    const { glTFResource, gltf, buffers } = context;
+    const { entities } = glTFResource;
     const gltfSkins = gltf.skins;
 
     if (!gltfSkins) return;
