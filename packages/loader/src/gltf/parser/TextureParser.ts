@@ -1,4 +1,4 @@
-import { AssetType, Logger, Texture2D, TextureWrapMode, TextureFilterMode } from "@oasis-engine/core";
+import { AssetType, Logger, Texture2D, TextureWrapMode, TextureFilterMode, AssetPromise } from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
 import { ISampler, TextureWrapMode as GLTFTextureWrapMode, TextureMagFilter, TextureMinFilter } from "../Schema";
 import { Parser } from "./Parser";
@@ -16,7 +16,7 @@ export class TextureParser extends Parser {
     const { gltf, buffers, engine, url } = glTFResource;
 
     if (gltf.textures) {
-      return Promise.all(
+      return AssetPromise.all(
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           if (textureIndex >= 0 && textureIndex !== index) {
             return;

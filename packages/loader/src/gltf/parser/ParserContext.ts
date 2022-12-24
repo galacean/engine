@@ -1,4 +1,4 @@
-import { TypedArray } from "@oasis-engine/core";
+import { AssetPromise, TypedArray } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 
 /**
@@ -15,6 +15,8 @@ export class ParserContext {
   meshIndex?: number;
   subMeshIndex?: number;
   defaultSceneRootOnly?: boolean;
+  /** chain asset promise */
+  chainPromises: AssetPromise<any>[] = [];
 
   accessorBufferCache: Record<string, BufferInfo> = {};
 }
