@@ -3,19 +3,23 @@ import {
   ICapsuleColliderShape,
   ICharacterController,
   IDynamicCollider,
+  IFixedJoint,
+  IHingeJoint,
   IPhysics,
   IPhysicsManager,
   IPhysicsMaterial,
   IPlaneColliderShape,
   ISphereColliderShape,
-  IStaticCollider,
-  IFixedJoint,
-  IHingeJoint,
-  ISpringJoint
+  ISpringJoint,
+  IStaticCollider
 } from "@oasis-engine/design";
 import { Quaternion, Vector3 } from "oasis-engine";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
+import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
+import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
+import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { PhysXCharacterController } from "./PhysXCharacterController";
+import { PhysXCollider } from "./PhysXCollider";
 import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 import { PhysXPhysicsMaterial } from "./PhysXPhysicsMaterial";
@@ -24,11 +28,7 @@ import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
 import { PhysXCapsuleColliderShape } from "./shape/PhysXCapsuleColliderShape";
 import { PhysXPlaneColliderShape } from "./shape/PhysXPlaneColliderShape";
 import { PhysXSphereColliderShape } from "./shape/PhysXSphereColliderShape";
-import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
-import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
-import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
 import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
-import { PhysXCollider } from "./PhysXCollider";
 
 /**
  * PhysX object creation.
@@ -98,6 +98,9 @@ export class PhysXPhysics {
   public static destroy(): void {
     this._pxFoundation.release();
     this._pxPhysics.release();
+    this._physX = null;
+    this._pxFoundation = null;
+    this._pxPhysics = null;
   }
 
   /**
@@ -213,22 +216,17 @@ export class PhysXPhysics {
     return new PhysXSpringJoint(collider);
   }
 
-  private static _init(PHYSX: any): void {
-    PhysXPhysics._physX = PHYSX;
-    const version = PhysXPhysics._physX.PX_PHYSICS_VERSION;
-    const defaultErrorCallback = new PhysXPhysics._physX.PxDefaultErrorCallback();
-    const allocator = new PhysXPhysics._physX.PxDefaultAllocator();
-    PhysXPhysics._pxFoundation = PhysXPhysics._physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
+  private static _init(physX: any): void {
+    const version = physX.PX_PHYSICS_VERSION;
+    const defaultErrorCallback = new physX.PxDefaultErrorCallback();
+    const allocator = new physX.PxDefaultAllocator();
+    const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
+    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, new physX.PxTolerancesScale(), false, null);
 
-    this._pxPhysics = PhysXPhysics._physX.PxCreatePhysics(
-      version,
-      PhysXPhysics._pxFoundation,
-      new PhysXPhysics._physX.PxTolerancesScale(),
-      false,
-      null
-    );
-
-    PhysXPhysics._physX.PxInitExtensions(this._pxPhysics, null);
+    physX.PxInitExtensions(pxPhysics, null);
+    PhysXPhysics._physX = physX;
+    PhysXPhysics._pxFoundation = pxFoundation;
+    PhysXPhysics._pxPhysics = pxPhysics;
     PhysXPhysicsManager._init();
   }
 }

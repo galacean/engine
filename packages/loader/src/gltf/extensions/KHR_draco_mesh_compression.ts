@@ -1,7 +1,7 @@
 import { DRACODecoder } from "@oasis-engine/draco";
-import { GLTFResource } from "../GLTFResource";
 import { GLTFUtil } from "../GLTFUtil";
 import { registerExtension } from "../parser/Parser";
+import { ParserContext } from "../parser/ParserContext";
 import { IMeshPrimitive } from "../Schema";
 import { ExtensionParser } from "./ExtensionParser";
 import { IKHRDracoMeshCompression } from "./Schema";
@@ -16,7 +16,7 @@ class KHR_draco_mesh_compression extends ExtensionParser {
     }
   }
 
-  createEngineResource(schema: IKHRDracoMeshCompression, context: GLTFResource, gltfPrimitive: IMeshPrimitive) {
+  createEngineResource(schema: IKHRDracoMeshCompression, context: ParserContext, gltfPrimitive: IMeshPrimitive) {
     const { gltf, buffers } = context;
     const { bufferViews, accessors } = gltf;
     const { bufferView: bufferViewIndex, attributes: gltfAttributeMap } = schema;
