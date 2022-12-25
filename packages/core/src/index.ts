@@ -20,6 +20,7 @@ export { Loader } from "./asset/Loader";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
 export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
+export type { AssetPromiseExecutor } from "./asset/AssetPromise";
 export { AssetType } from "./asset/AssetType";
 export { RefObject } from "./asset/RefObject";
 

@@ -11,17 +11,11 @@ export class ParserContext {
   glTFResource: GLTFResource;
   keepMeshData: boolean;
   hasSkinned: boolean = false;
-  /** adapter subAsset */
-  textureIndex?: number;
-  materialIndex?: number;
-  animationIndex?: number;
-  meshIndex?: number;
-  subMeshIndex?: number;
-  defaultSceneRootOnly?: boolean;
   /** chain asset promise */
   chainPromises: AssetPromise<any>[] = [];
-
   accessorBufferCache: Record<string, BufferInfo> = {};
+  subAssetFiflter:Function;
+  query:string;
 }
 
 export class BufferInfo {

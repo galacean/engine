@@ -4,51 +4,68 @@ import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFUtil } from "./gltf/GLTFUtil";
 import { ParserContext } from "./gltf/parser/ParserContext";
 
-@resourceLoader(AssetType.Prefab, ["gltf", "glb"])
+function subAssetFilter(glTFResource: GLTFResource, query: string) {
+  const path = GLTFUtil.stringToPath(query);
+  const key = path[0];
+  const index1 = Number(path[1]) || 0;
+  const index2 = Number(path[2]) || 0;
+
+  switch (key) {
+    case "textures":
+      debugger;
+      if (index1 >= 0) {
+        const texture = glTFResource.textures[index1];
+        if (texture) {
+          return texture;
+        } else {
+          throw `texture index not find in: ${index1}`;
+        }
+      }
+    case "materials":
+      const material = glTFResource.materials[index1];
+      if (material) {
+        return material;
+      } else {
+        throw `material index not find in: ${index1}`;
+      }
+    case "animations":
+      debugger;
+      const animationClip = glTFResource.animations[index1];
+      if (animationClip) {
+        return animationClip;
+      } else {
+        throw `animation index not find in: ${index1}`;
+      }
+    case "meshes":
+      const mesh = glTFResource.meshes[index1]?.[index2];
+      if (mesh) {
+        return mesh;
+      } else {
+        throw `meshIndex-subMeshIndex index not find in: ${index1}-${index2}`;
+      }
+    case "defaultSceneRoot":
+      if (glTFResource.defaultSceneRoot) {
+        return glTFResource.defaultSceneRoot;
+      } else {
+        throw `defaultSceneRoot is not find in this gltf`;
+      }
+  }
+}
+
+@resourceLoader(AssetType.Prefab, ["gltf", "glb"], false, subAssetFilter)
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const url = item.url;
     return new AssetPromise((resolve, reject, _, onCancel) => {
       const context = new ParserContext();
+      context.subAssetFiflter = subAssetFilter;
+      context.query=this.query;
       const glTFResource = new GLTFResource(resourceManager.engine);
       context.glTFResource = glTFResource;
       glTFResource.url = url;
       context.keepMeshData = item.params?.keepMeshData ?? false;
 
       let pipeline = GLTFParser.defaultPipeline;
-
-      const { query, baseUrl } = GLTFUtil.parseUrl(url);
-      if (query) {
-        glTFResource.url = baseUrl;
-        const path = GLTFUtil.stringToPath(query);
-        const key = path[0];
-        const value1 = Number(path[1]) || 0;
-        const value2 = Number(path[2]) || 0;
-
-        switch (key) {
-          case "textures":
-            pipeline = GLTFParser.texturePipeline;
-            context.textureIndex = value1;
-            break;
-          case "materials":
-            pipeline = GLTFParser.materialPipeline;
-            context.materialIndex = value1;
-            break;
-          case "animations":
-            pipeline = GLTFParser.animationPipeline;
-            context.animationIndex = value1;
-            break;
-          case "meshes":
-            pipeline = GLTFParser.meshPipeline;
-            context.meshIndex = value1;
-            context.subMeshIndex = value2;
-            break;
-          case "defaultSceneRoot":
-            pipeline = GLTFParser.defaultPipeline;
-            context.defaultSceneRootOnly = true;
-            break;
-        }
-      }
 
       onCancel(() => {
         const { chainPromises } = context;
@@ -61,6 +78,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
         .parse(context)
         .then(resolve)
         .catch((e) => {
+          debugger;
           console.error(e);
           reject(`Error loading glTF model from ${url} .`);
         });

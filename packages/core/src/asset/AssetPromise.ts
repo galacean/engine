@@ -33,7 +33,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   /** compatible with Promise */
   get [Symbol.toStringTag]() {
-    return 'AssetPromise';
+    return "AssetPromise";
   }
 
   private _promise: Promise<T>;
@@ -136,7 +136,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
   }
 }
 
-interface AssetPromiseExecutor<T> {
+export interface AssetPromiseExecutor<T> {
   (
     resolve: (value?: T | PromiseLike<T>) => void,
     reject?: (reason?: any) => void,

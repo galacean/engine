@@ -25,11 +25,6 @@ export class GLTFParser {
     SceneParser
   ]);
 
-  static texturePipeline = new GLTFParser([BufferParser, TextureParser]);
-  static materialPipeline = new GLTFParser([BufferParser, TextureParser, MaterialParser]);
-  static animationPipeline = new GLTFParser([BufferParser, EntityParser, AnimationParser]);
-  static meshPipeline = new GLTFParser([BufferParser, MeshParser]);
-
   private _pipes: Parser[] = [];
 
   private constructor(pipes: (new () => Parser)[]) {
@@ -48,7 +43,7 @@ export class GLTFParser {
           lastPipe = lastPipe.then(() => {
             return parser.parse(context);
           });
-          if(lastPipe.cancel) {
+          if (lastPipe.cancel) {
             context.chainPromises.push(lastPipe);
           }
         } else {
@@ -58,12 +53,16 @@ export class GLTFParser {
 
       if (lastPipe) {
         lastPipe
-          .then((customRes) => {
-            resolve(customRes || glTFResource);
+          .then(() => {
+            //@ts-ignore
+            glTFResource.engine.resourceManager._addAsset(glTFResource.url,glTFResource);
+            resolve(context.subAssetFiflter(glTFResource, context.query));
           })
           .catch(reject);
       } else {
-        resolve(glTFResource);
+        //@ts-ignore
+        glTFResource.engine.resourceManager._addAsset(glTFResource.url,glTFResource);
+        resolve(context.subAssetFiflter(glTFResource, context.query));
       }
     });
   }
