@@ -3,6 +3,7 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
+  AssetPromise,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -64,7 +65,7 @@ export class SceneParser extends Parser {
 
     gltf.extensions && delete gltf.extensions["OASIS_materials_remap"];
 
-    return Promise.all(promises).then(() => {
+    return AssetPromise.all(promises).then(() => {
       if (defaultSceneRootOnly) {
         if (glTFResource.defaultSceneRoot) {
           return glTFResource.defaultSceneRoot;

@@ -1,4 +1,4 @@
-import { EngineObject } from "@oasis-engine/core";
+import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@oasis-engine/core";
 import { ExtensionParser } from "../extensions/ExtensionParser";
 import { ExtensionSchema } from "../extensions/Schema";
 import { ParserContext } from "./ParserContext";
@@ -60,7 +60,7 @@ export abstract class Parser {
     Parser._extensionParsers[extensionName].push(extensionParser);
   }
 
-  abstract parse(context: ParserContext);
+  abstract parse(context: ParserContext): AssetPromise<any> | void | Material | AnimationClip | Mesh;
 }
 
 /**

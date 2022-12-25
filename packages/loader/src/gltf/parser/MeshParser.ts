@@ -1,4 +1,5 @@
 import {
+  AssetPromise,
   BlendShape,
   Buffer,
   BufferBindFlag,
@@ -109,7 +110,7 @@ export class MeshParser extends Parser {
       meshPromises[i] = Promise.all(primitivePromises);
     }
 
-    return Promise.all(meshPromises).then((meshes: ModelMesh[][]) => {
+    return AssetPromise.all(meshPromises).then((meshes: ModelMesh[][]) => {
       if (meshIndex >= 0) {
         const mesh = meshes[meshIndex]?.[subMeshIndex];
         if (mesh) {

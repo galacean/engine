@@ -1,11 +1,11 @@
-import { request } from "@oasis-engine/core";
+import { AssetPromise, request } from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
 import { IBuffer, IGLTF } from "../Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
 export class BufferParser extends Parser {
-  parse(context: ParserContext): Promise<void> {
+  parse(context: ParserContext): AssetPromise<void> {
     const glTFResource = context.glTFResource;
     const { url } = glTFResource;
 

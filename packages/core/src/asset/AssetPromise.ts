@@ -31,6 +31,11 @@ export class AssetPromise<T> implements PromiseLike<T> {
     });
   }
 
+  /** compatible with Promise */
+  get [Symbol.toStringTag]() {
+    return 'AssetPromise';
+  }
+
   private _promise: Promise<T>;
   private _state = PromiseState.Pending;
   private _onProgressCallback: Array<(progress: number) => void> = [];
@@ -63,8 +68,6 @@ export class AssetPromise<T> implements PromiseLike<T> {
       };
       const onCancel = (callback) => {
         if (this._state === PromiseState.Pending) {
-          this._state = PromiseState.Canceled;
-          this._onProgressCallback = undefined;
           this._onCancelHandler = callback;
         }
       };
@@ -91,8 +94,10 @@ export class AssetPromise<T> implements PromiseLike<T> {
   then<TResult1 = T, TResult2 = never>(
     onfulfilled?: (value: T) => TResult1 | PromiseLike<TResult1>,
     onrejected?: (reason: any) => TResult2 | PromiseLike<TResult2>
-  ): Promise<TResult1 | TResult2> {
-    return this._promise.then(onfulfilled, onrejected);
+  ): AssetPromise<TResult1 | TResult2> {
+    return new AssetPromise<TResult1 | TResult2>((resolve, reject) => {
+      this._promise.then(onfulfilled, onrejected).then(resolve).catch(reject);
+    });
   }
 
   /**
@@ -100,8 +105,10 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @param onRejected - The callback to execute when the Promise is rejected.
    * @returns A Promise for the completion of the callback.
    */
-  catch(onRejected: (reason: any) => any): Promise<T> {
-    return this._promise.catch(onRejected);
+  catch(onRejected: (reason: any) => any): AssetPromise<T> {
+    return new AssetPromise<T>((resolve, reject) => {
+      this._promise.catch(onRejected).then(resolve).catch(reject);
+    });
   }
 
   /**
@@ -129,7 +136,6 @@ export class AssetPromise<T> implements PromiseLike<T> {
   }
 }
 
-/** @internal */
 interface AssetPromiseExecutor<T> {
   (
     resolve: (value?: T | PromiseLike<T>) => void,
