@@ -310,33 +310,6 @@ export class ResourceManager {
     }
   }
 
-  private _handleLoadingPromises(
-    isMaster: boolean,
-    loadingURL: string,
-    promise: AssetPromise<EngineObject>,
-    useCache: boolean
-  ): void {
-    const loadingPromises = this._loadingPromises;
-
-    loadingPromises[loadingURL] = promise;
-    promise
-      .then((res: EngineObject) => {
-        // Only cache the main asset
-        if (useCache && isMaster) {
-          this._addAsset(loadingURL, res);
-        }
-        if (loadingPromises) {
-          delete loadingPromises[loadingURL];
-        }
-      })
-      .catch((err: Error) => {
-        Promise.reject(err);
-        if (loadingPromises) {
-          delete loadingPromises[loadingURL];
-        }
-      });
-  }
-
   private _gc(forceDestroy: boolean): void {
     const objects = ObjectValues(this._refObjectPool);
     for (let i = 0, len = objects.length; i < len; i++) {
