@@ -243,6 +243,9 @@ export class ResourceManager {
         if (loader.useCache) {
           this._addAsset(url, res);
         }
+        //@todo:resolve sub asset
+        // subAssetFilter(res, query);
+
         if (loadingPromises) {
           delete loadingPromises[url];
         }
