@@ -4,6 +4,8 @@ import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFUtil } from "./gltf/GLTFUtil";
 import { ParserContext } from "./gltf/parser/ParserContext";
 
+function cache(resourceManager: ResourceManager, baseURL: string, query: string): void {}
+
 @resourceLoader(AssetType.Prefab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
