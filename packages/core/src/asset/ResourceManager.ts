@@ -5,6 +5,32 @@ import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
 
+// function isNumeric(str:string) {
+//   if (typeof str != "string") return false // we only process strings!
+//   return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
+//          !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
+// }
+
+const charCodeOfDot = ".".charCodeAt(0);
+const reEscapeChar = /\\(\\)?/g;
+const rePropName = RegExp(
+  // Match anything that isn't a dot or bracket.
+  "[^.[\\]]+" +
+    "|" +
+    // Or match property names within brackets.
+    "\\[(?:" +
+    // Match a non-string expression.
+    "([^\"'][^[]*)" +
+    "|" +
+    // Or match strings (supports escaping characters).
+    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
+    ")\\]" +
+    "|" +
+    // Or match "" as the space between consecutive dots or empty brackets.
+    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
+  "g"
+);
+
 /**
  * ResourceManager
  */
@@ -201,6 +227,17 @@ export class ResourceManager {
     return assetInfo;
   }
 
+  private _getResourceByPath(resource: any, pathes: string[]): any {
+    let subResource = resource;
+    if (pathes) {
+      for (let i = 0, n = pathes.length; i < n; i++) {
+        const path = pathes[i];
+        subResource = subResource[path];
+      }
+    }
+    return subResource;
+  }
+
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
     const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
     const itemURL = item.url;
@@ -209,23 +246,34 @@ export class ResourceManager {
     // Check url mapping
     const url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
 
-    const { baseURL, promiseURL, query } = this._parseUrl(url);
+    // const subAssetFilters = ResourceManager._subAssetFilters[item.type];
 
     // Has cache
-    if (this._assetUrlPool[baseURL]) {
+    const { assetPath, queryPath } = this._parseURLMasterAsset(url);
+    const pathes = queryPath ? this._stringToPath(queryPath) : [];
+    if (this._assetUrlPool[assetPath]) {
       return new AssetPromise((resolve) => {
-        const subAssetFilters = ResourceManager._subAssetFilters[item.type];
-        if (subAssetFilters) {
-          resolve(subAssetFilters(this._assetUrlPool[baseURL], query) as T);
-        } else {
-          resolve(this._assetUrlPool[baseURL] as T);
-        }
+        resolve(this._getResourceByPath(this._assetUrlPool[assetPath], pathes) as T);
       });
     }
 
+    let loadingURL = assetPath;
+    if (queryPath) {
+      loadingURL = loadingURL + "?q=" + pathes.shift();
+    }
+
     // Is loading
-    if (loadingPromises[promiseURL]) {
-      return loadingPromises[promiseURL];
+    if (loadingPromises[loadingURL]) {
+      const loadingpromise = loadingPromises[loadingURL];
+      return new AssetPromise((resolve, reject) => {
+        loadingpromise
+          .then((res: EngineObject) => {
+            resolve(this._getResourceByPath(res, pathes) as T);
+          })
+          .catch((err: Error) => {
+            reject(err);
+          });
+      });
     }
 
     // Check loader
@@ -234,33 +282,33 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
     // temp solution
-    loader.query = query;
+    loader.query = queryPath;
 
-    item.url = baseURL;
+    item.url = assetPath;
 
     const promise = loader.load(item, this);
     if (promise instanceof AssetPromise) {
-      loadingPromises[baseURL] = promise;
+      loadingPromises[assetPath] = promise;
       promise
         .then((res: EngineObject) => {
           if (loader.useCache) {
-            this._addAsset(baseURL, res);
+            this._addAsset(assetPath, res);
           }
           if (loadingPromises) {
-            delete loadingPromises[baseURL];
+            delete loadingPromises[assetPath];
           }
         })
         .catch((err: Error) => {
           Promise.reject(err);
           if (loadingPromises) {
-            delete loadingPromises[baseURL];
+            delete loadingPromises[assetPath];
           }
         });
       return promise;
     } else {
       for (let subURL in promise) {
         const subPromise = promise[subURL];
-        const isMaster = baseURL === subURL;
+        const isMaster = assetPath === subURL;
         loadingPromises[subURL] = subPromise;
         subPromise
           .then((res: EngineObject) => {
@@ -287,7 +335,15 @@ export class ResourceManager {
           });
       }
 
-      return promise[promiseURL];
+      const subAssetPromise = promise[loadingURL];
+      return new AssetPromise((resolve, reject) => {
+        subAssetPromise.then((res: EngineObject) => {
+          resolve(this._getResourceByPath(res, pathes) as T);
+        });
+        subAssetPromise.catch((err: Error) => {
+          reject(err);
+        });
+      });
     }
   }
 
@@ -327,17 +383,23 @@ export class ResourceManager {
     }
   }
 
-  private _parseUrl(path: string): { baseURL: string; promiseURL: string; query: string } {
-    let baseURL = path;
-    if (baseURL.indexOf("?") !== -1) {
-      baseURL = baseURL.slice(0, path.indexOf("?"));
+  private _parseURLMasterAsset(path: string): { assetPath: string; queryPath: string } {
+    let assetPath = path;
+    const index = assetPath.indexOf("?");
+    if (index !== -1) {
+      assetPath = assetPath.slice(0, index);
     }
-    let promiseURL = path;
-    if (promiseURL.indexOf("[") !== -1) {
-      promiseURL = promiseURL.slice(0, path.indexOf("["));
-    }
-    return { baseURL, promiseURL, query: this._getParameterByName("q", path) };
+    return { assetPath, queryPath: this._getParameterByName("q", path) };
   }
+
+  // private _parseURLSubAsset(path: string): { assetPath: string; indexPath: string } {
+  //   let assetPath = path;
+  //   const index = assetPath.indexOf("[");
+  //   if (index !== -1) {
+  //     assetPath = assetPath.slice(0, index);
+  //   }
+  //   return { assetPath, indexPath: this._getParameterByName("[", path) };
+  // }
 
   private _getParameterByName(name, url = window.location.href) {
     name = name.replace(/[\[\]]/g, "\\$&");
@@ -346,6 +408,23 @@ export class ResourceManager {
     if (!results) return null;
     if (!results[2]) return "";
     return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
+  private _stringToPath(string): string[] {
+    const result = [];
+    if (string.charCodeAt(0) === charCodeOfDot) {
+      result.push("");
+    }
+    string.replace(rePropName, (match, expression, quote, subString) => {
+      let key = match;
+      if (quote) {
+        key = subString.replace(reEscapeChar, "$1");
+      } else if (expression) {
+        key = expression.trim();
+      }
+      result.push(key);
+    });
+    return result;
   }
 
   //-----------------Editor temp solution-----------------

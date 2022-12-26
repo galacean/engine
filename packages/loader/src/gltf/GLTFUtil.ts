@@ -416,6 +416,7 @@ export class GLTFUtil {
   }
 
   static stringToPath(string): string[] {
+    debugger;
     const result = [];
     if (string.charCodeAt(0) === charCodeOfDot) {
       result.push("");
