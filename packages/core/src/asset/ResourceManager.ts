@@ -48,8 +48,8 @@ export class ResourceManager {
   private _assetUrlPool: { [key: string]: Object } = Object.create(null);
   /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
   private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
-  /** Loading assets. */
-  private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
+  /** Loading promises. */
+  private _loadingPromises: { [url: string]: AssetPromise<any> | Record<string, AssetPromise<any>> } = {};
 
   /**
    * Create a ResourceManager.
