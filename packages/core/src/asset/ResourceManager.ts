@@ -197,6 +197,7 @@ export class ResourceManager {
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
     const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
     const itemUrl = item.url;
+    const loadingPromises = this._loadingPromises;
 
     // Check url mapping
     const url = this._virtualPathMap[itemUrl] ? this._virtualPathMap[itemUrl] : itemUrl;
@@ -207,10 +208,10 @@ export class ResourceManager {
         resolve(this._assetUrlPool[url] as T);
       });
     }
-    
+
     // Is loading
-    if (this._loadingPromises[url]) {
-      return this._loadingPromises[url];
+    if (loadingPromises[url]) {
+      return loadingPromises[url];
     }
     const loader = ResourceManager._loaders[item.type];
     if (!loader) {
@@ -218,18 +219,20 @@ export class ResourceManager {
     }
     item.url = url;
     const promise = loader.load(item, this);
-    this._loadingPromises[url] = promise;
+    loadingPromises[url] = promise;
     promise
       .then((res: EngineObject) => {
-        if (loader.useCache) this._addAsset(url, res);
-        if (this._loadingPromises) {
-          delete this._loadingPromises[url];
+        if (loader.useCache) {
+          this._addAsset(url, res);
+        }
+        if (loadingPromises) {
+          delete loadingPromises[url];
         }
       })
       .catch((err: Error) => {
         Promise.reject(err);
-        if (this._loadingPromises) {
-          delete this._loadingPromises[url];
+        if (loadingPromises) {
+          delete loadingPromises[url];
         }
       });
     return promise;
