@@ -210,7 +210,6 @@ export class ResourceManager {
     const url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
 
     const { baseURL, promiseURL, query } = this._parseUrl(url);
-    console.log(promiseURL);
 
     // Has cache
     if (this._assetUrlPool[baseURL]) {
@@ -241,19 +240,58 @@ export class ResourceManager {
 
     const promise = loader.load(item, this);
     if (promise instanceof AssetPromise) {
-      this._handleLoadingPromises(true, baseURL, promise, loader.useCache);
+      loadingPromises[baseURL] = promise;
+      promise
+        .then((res: EngineObject) => {
+          if (loader.useCache) {
+            this._addAsset(baseURL, res);
+          }
+          if (loadingPromises) {
+            delete loadingPromises[baseURL];
+          }
+        })
+        .catch((err: Error) => {
+          Promise.reject(err);
+          if (loadingPromises) {
+            delete loadingPromises[baseURL];
+          }
+        });
       return promise;
     } else {
-      for (let k in promise) {
-        const isMaster = k === "";
-        const loadingURL = isMaster ? baseURL : baseURL + "?q=" + k;
-        this._handleLoadingPromises(isMaster, loadingURL, promise[k], loader.useCache);
+      for (let subURL in promise) {
+        const subPromise = promise[subURL];
+        const isMaster = baseURL === subURL;
+        loadingPromises[subURL] = subPromise;
+        subPromise
+          .then((res: EngineObject) => {
+            // Only cache the main asset
+            if (isMaster) {
+              if (loader.useCach) {
+                this._addAsset(subURL, res);
+
+                if (loadingPromises) {
+                  for (let subURL in promise) {
+                    delete loadingPromises[subURL];
+                  }
+                }
+              }
+            }
+          })
+          .catch((err: Error) => {
+            Promise.reject(err);
+            if (loadingPromises) {
+              for (let subURL in promise) {
+                delete loadingPromises[subURL];
+              }
+            }
+          });
       }
-      if (query == null) {
+
+      const returnKey = query ? baseURL + "?q=" + query : baseURL;
+      if (!promise[returnKey]) {
         debugger;
       }
-      console.log(query);
-      return promise[query];
+      return promise[returnKey];
     }
   }
 
@@ -340,7 +378,6 @@ export class ResourceManager {
         return Promise.resolve(null);
       }
       url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
-      debugger;
       promise = this.load<any>({
         url,
         type: this._editorResourceConfig[refId].type

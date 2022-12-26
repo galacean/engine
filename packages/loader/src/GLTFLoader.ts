@@ -55,19 +55,18 @@ function subAssetFilter(glTFResource: GLTFResource, query: string) {
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
     const context = new ParserContext();
+    const url = item.url;
 
-    const promiseMap: Record<string, AssetPromise<any>> = {
-      textures: context.texturesPromiseInfo.promise,
-      materials: context.materialsPromiseInfo.promise,
-      meshes: context.meshesPromiseInfo.promise,
-      animations: context.animationClipsPromiseInfo.promise,
-      defaultSceneRoot: context.defaultSceneRootPromiseInfo.promise,
-      "": context.masterPromiseInfo.promise
-    };
+    const promiseMap: Record<string, AssetPromise<any>> = {};
+    promiseMap[`${url}?q=textures`] = context.texturesPromiseInfo.promise;
+    promiseMap[`${url}?q=materials`] = context.materialsPromiseInfo.promise;
+    promiseMap[`${url}?q=meshes`] = context.meshesPromiseInfo.promise;
+    promiseMap[`${url}?q=animations`] = context.animationClipsPromiseInfo.promise;
+    promiseMap[`${url}?q=defaultSceneRoot`] = context.defaultSceneRootPromiseInfo.promise;
+    promiseMap[`${url}`] = context.masterPromiseInfo.promise;
 
     const masterPromiseInfo = context.masterPromiseInfo;
 
-    const url = item.url;
     context.subAssetFiflter = subAssetFilter;
     context.query = this.query;
     const glTFResource = new GLTFResource(resourceManager.engine);
