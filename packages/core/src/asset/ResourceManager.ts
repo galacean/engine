@@ -213,6 +213,7 @@ export class ResourceManager {
     if (loadingPromises[url]) {
       return loadingPromises[url];
     }
+    
     const loader = ResourceManager._loaders[item.type];
     if (!loader) {
       throw `loader not found: ${item.type}`;
