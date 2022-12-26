@@ -5,32 +5,6 @@ import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefObject } from "./RefObject";
 
-// function isNumeric(str:string) {
-//   if (typeof str != "string") return false // we only process strings!
-//   return !isNaN(str) && // use type coercion to parse the _entirety_ of the string (`parseFloat` alone does not do this)...
-//          !isNaN(parseFloat(str)) // ...and ensure strings of whitespace fail
-// }
-
-const charCodeOfDot = ".".charCodeAt(0);
-const reEscapeChar = /\\(\\)?/g;
-const rePropName = RegExp(
-  // Match anything that isn't a dot or bracket.
-  "[^.[\\]]+" +
-    "|" +
-    // Or match property names within brackets.
-    "\\[(?:" +
-    // Match a non-string expression.
-    "([^\"'][^[]*)" +
-    "|" +
-    // Or match strings (supports escaping characters).
-    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
-    ")\\]" +
-    "|" +
-    // Or match "" as the space between consecutive dots or empty brackets.
-    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
-  "g"
-);
-
 /**
  * ResourceManager
  */
@@ -465,6 +439,26 @@ export function resourceLoader(assetType: string, extnames: string[], useCache: 
     ResourceManager._addLoader(assetType, loader, extnames);
   };
 }
+
+const charCodeOfDot = ".".charCodeAt(0);
+const reEscapeChar = /\\(\\)?/g;
+const rePropName = RegExp(
+  // Match anything that isn't a dot or bracket.
+  "[^.[\\]]+" +
+    "|" +
+    // Or match property names within brackets.
+    "\\[(?:" +
+    // Match a non-string expression.
+    "([^\"'][^[]*)" +
+    "|" +
+    // Or match strings (supports escaping characters).
+    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
+    ")\\]" +
+    "|" +
+    // Or match "" as the space between consecutive dots or empty brackets.
+    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
+  "g"
+);
 
 type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
 type EditorResourceConfig = Record<string, EditorResourceItem>;
