@@ -287,11 +287,7 @@ export class ResourceManager {
           });
       }
 
-      const returnKey = query ? baseURL + "?q=" + query : baseURL;
-      if (!promise[returnKey]) {
-        debugger;
-      }
-      return promise[returnKey];
+      return promise[promiseURL];
     }
   }
 
