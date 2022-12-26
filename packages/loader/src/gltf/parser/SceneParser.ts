@@ -3,6 +3,7 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
+  AssetPromise,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -64,7 +65,7 @@ export class SceneParser extends Parser {
 
     gltf.extensions && delete gltf.extensions["OASIS_materials_remap"];
 
-    return Promise.all(promises).then(() => null);
+    return AssetPromise.all(promises).then(() => null);
   }
 
   private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
@@ -108,10 +109,6 @@ export class SceneParser extends Parser {
   }
 
   private _createRenderer(context: ParserContext, gltfNode: INode, entity: Entity) {
-    if(entity.name==="FX_Show_06")
-    {
-      debugger;
-    }
     const { glTFResource, gltf } = context;
     const { meshes: gltfMeshes } = gltf;
 
