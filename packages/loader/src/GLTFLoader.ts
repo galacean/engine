@@ -53,7 +53,7 @@ function getSubAsset(glTFResource: GLTFResource, query: string) {
   }
 }
 
-@resourceLoader(AssetType.Prefab, ["gltf", "glb"])
+@resourceLoader(AssetType.Prefab, ["gltf", "glb"], true, getSubAsset)
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const url = item.url;
@@ -61,17 +61,14 @@ export class GLTFLoader extends Loader<GLTFResource> {
       const context = new ParserContext();
       const glTFResource = new GLTFResource(resourceManager.engine);
       context.glTFResource = glTFResource;
-      glTFResource.url = url;
       context.keepMeshData = item.params?.keepMeshData ?? false;
 
-      let pipeline = GLTFParser.defaultPipeline;
-
+      let pipeline: GLTFParser;
       // @ts-ignore
       const { _baseURL, _query } = item;
       if (_query) {
         glTFResource.url = _baseURL;
         const path = GLTFUtil.stringToPath(_query);
-
         switch (path[0]) {
           case "textures":
             pipeline = GLTFParser.texturePipeline;
@@ -89,6 +86,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
             pipeline = GLTFParser.defaultPipeline;
             break;
         }
+      } else {
+        pipeline = GLTFParser.defaultPipeline;
+        glTFResource.url = url;
       }
 
       onCancel(() => {
