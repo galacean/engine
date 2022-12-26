@@ -20,12 +20,6 @@ export class TextureParser extends Parser {
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
 
-          
-          if(uri=="https://mdn.alipayobjects.com/rms/afts/file/A*kYopRZFfbTYAAAAAAAAAAAAAARQnAQ")
-          {
-            debugger;
-          }
-
           if (uri) {
             // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
             const index = uri.lastIndexOf(".");

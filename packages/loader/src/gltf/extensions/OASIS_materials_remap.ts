@@ -8,7 +8,6 @@ import { IOasisMaterialRemap } from "./Schema";
 class OasisMaterialsRemap extends ExtensionParser {
   createEngineResource(schema: IOasisMaterialRemap, context: ParserContext): Promise<Material> {
     const { engine } = context.glTFResource;
-    debugger;
     // @ts-ignore
     return engine.resourceManager.getResourceByRef<Material>(schema);
   }

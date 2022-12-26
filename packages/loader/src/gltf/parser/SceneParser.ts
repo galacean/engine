@@ -108,10 +108,6 @@ export class SceneParser extends Parser {
   }
 
   private _createRenderer(context: ParserContext, gltfNode: INode, entity: Entity) {
-    if(entity.name==="FX_Show_06")
-    {
-      debugger;
-    }
     const { glTFResource, gltf } = context;
     const { meshes: gltfMeshes } = gltf;
 

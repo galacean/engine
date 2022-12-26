@@ -211,10 +211,6 @@ export class ResourceManager {
 
     const { query, baseURL } = this._parseUrl(url);
 
-    if(url.indexOf("https://mdn.alipayobjects.com/rms/afts/file/A*kq53TZ6_zCYAAAAAAAAAAAAAARQnAQ/FX_Show_skin.gltf")!=-1){
-      debugger;
-    }
-
     // Has cache
     if (this._assetUrlPool[baseURL]) {
       return new AssetPromise((resolve) => {

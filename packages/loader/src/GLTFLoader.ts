@@ -15,14 +15,11 @@ function subAssetFilter(glTFResource: GLTFResource, query: string) {
 
   switch (key) {
     case "textures":
-      debugger;
-      if (index1 >= 0) {
-        const texture = glTFResource.textures[index1];
-        if (texture) {
-          return texture;
-        } else {
-          throw `texture index not find in: ${index1}`;
-        }
+      const texture = glTFResource.textures[index1];
+      if (texture) {
+        return texture;
+      } else {
+        throw `texture index not find in: ${index1}`;
       }
     case "materials":
       const material = glTFResource.materials[index1];
@@ -32,7 +29,6 @@ function subAssetFilter(glTFResource: GLTFResource, query: string) {
         throw `material index not find in: ${index1}`;
       }
     case "animations":
-      debugger;
       const animationClip = glTFResource.animations[index1];
       if (animationClip) {
         return animationClip;
@@ -81,7 +77,6 @@ export class GLTFLoader extends Loader<GLTFResource> {
         .parse(context)
         .then(resolve)
         .catch((e) => {
-          debugger;
           console.error(e);
           reject(`Error loading glTF model from ${url} .`);
         });
