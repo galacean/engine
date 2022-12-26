@@ -140,7 +140,7 @@ export class AnimationParser extends Parser {
     // @ts-ignore for editor
     glTFResource._animationsIndices = animationsIndices;
 
-    animationClipsPromiseInfo.resolve();
+    animationClipsPromiseInfo.resolve(animationClips);
     return animationClipsPromiseInfo.promise;
   }
 

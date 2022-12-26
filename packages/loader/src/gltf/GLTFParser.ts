@@ -55,14 +55,15 @@ export class GLTFParser {
         lastPipe
           .then(() => {
             //@ts-ignore
-            glTFResource.engine.resourceManager._addAsset(glTFResource.url,glTFResource);
-            resolve(context.subAssetFiflter(glTFResource, context.query));
+            glTFResource.engine.resourceManager._addAsset(glTFResource.url, glTFResource);
+            resolve(glTFResource);
           })
           .catch(reject);
       } else {
-        //@ts-ignore
-        glTFResource.engine.resourceManager._addAsset(glTFResource.url,glTFResource);
-        resolve(context.subAssetFiflter(glTFResource, context.query));
+        debugger;
+        // //@ts-ignore
+        // glTFResource.engine.resourceManager._addAsset(glTFResource.url,glTFResource);
+        // resolve(context.subAssetFiflter(glTFResource, context.query));
       }
     });
   }

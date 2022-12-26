@@ -174,7 +174,7 @@ export class MaterialParser extends Parser {
     }
 
     glTFResource.materials = materials;
-    materialsPromiseInfo.resolve();
+    materialsPromiseInfo.resolve(materials);
     return materialsPromiseInfo.promise;
   }
 }

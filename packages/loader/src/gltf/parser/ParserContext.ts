@@ -1,4 +1,13 @@
-import { AnimationClip, AssetPromise, Buffer, Material, ModelMesh, Texture2D, TypedArray } from "@oasis-engine/core";
+import {
+  AnimationClip,
+  AssetPromise,
+  Buffer,
+  Entity,
+  Material,
+  ModelMesh,
+  Texture2D,
+  TypedArray
+} from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 import { IGLTF } from "../Schema";
 
@@ -21,6 +30,7 @@ export class ParserContext {
   materialsPromiseInfo: PromiseInfo<Material[]> = new PromiseInfo<Material[]>();
   meshesPromiseInfo: PromiseInfo<ModelMesh[][]> = new PromiseInfo<ModelMesh[][]>();
   animationClipsPromiseInfo: PromiseInfo<AnimationClip[]> = new PromiseInfo<AnimationClip[]>();
+  defaultSceneRootPromiseInfo: PromiseInfo<Entity> = new PromiseInfo<Entity>();
   masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
 
   constructor() {
@@ -28,6 +38,7 @@ export class ParserContext {
     this._initPromiseInfo(this.materialsPromiseInfo);
     this._initPromiseInfo(this.meshesPromiseInfo);
     this._initPromiseInfo(this.animationClipsPromiseInfo);
+    this._initPromiseInfo(this.defaultSceneRootPromiseInfo);
     this._initPromiseInfo(this.masterPromiseInfo);
   }
 

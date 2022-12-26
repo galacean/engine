@@ -49,7 +49,7 @@ export class ResourceManager {
   /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
   private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
   /** Loading promises. */
-  private _loadingPromises: { [url: string]: AssetPromise<any> | Record<string, AssetPromise<any>> } = {};
+  private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
 
   /**
    * Create a ResourceManager.
@@ -209,7 +209,8 @@ export class ResourceManager {
     // Check url mapping
     const url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
 
-    const { query, baseURL } = this._parseUrl(url);
+    const { baseURL, promiseURL, query } = this._parseUrl(url);
+    console.log(promiseURL);
 
     // Has cache
     if (this._assetUrlPool[baseURL]) {
@@ -224,8 +225,8 @@ export class ResourceManager {
     }
 
     // Is loading
-    if (loadingPromises[baseURL]) {
-      return loadingPromises[baseURL];
+    if (loadingPromises[promiseURL]) {
+      return loadingPromises[promiseURL];
     }
 
     // Check loader
@@ -239,23 +240,48 @@ export class ResourceManager {
     item.url = baseURL;
 
     const promise = loader.load(item, this);
-    loadingPromises[baseURL] = promise;
+    if (promise instanceof AssetPromise) {
+      this._handleLoadingPromises(true, baseURL, promise, loader.useCache);
+      return promise;
+    } else {
+      for (let k in promise) {
+        const isMaster = k === "";
+        const loadingURL = isMaster ? baseURL : baseURL + "?q=" + k;
+        this._handleLoadingPromises(isMaster, loadingURL, promise[k], loader.useCache);
+      }
+      if (query == null) {
+        debugger;
+      }
+      console.log(query);
+      return promise[query];
+    }
+  }
+
+  private _handleLoadingPromises(
+    isMaster: boolean,
+    loadingURL: string,
+    promise: AssetPromise<EngineObject>,
+    useCache: boolean
+  ): void {
+    const loadingPromises = this._loadingPromises;
+
+    loadingPromises[loadingURL] = promise;
     promise
       .then((res: EngineObject) => {
-        if (loader.useCache) {
-          this._addAsset(baseURL, res);
+        // Only cache the main asset
+        if (useCache && isMaster) {
+          this._addAsset(loadingURL, res);
         }
         if (loadingPromises) {
-          delete loadingPromises[baseURL];
+          delete loadingPromises[loadingURL];
         }
       })
       .catch((err: Error) => {
         Promise.reject(err);
         if (loadingPromises) {
-          delete loadingPromises[baseURL];
+          delete loadingPromises[loadingURL];
         }
       });
-    return promise;
   }
 
   private _gc(forceDestroy: boolean): void {
@@ -267,12 +293,16 @@ export class ResourceManager {
     }
   }
 
-  private _parseUrl(path: string): { query: string; baseURL: string } {
+  private _parseUrl(path: string): { baseURL: string; promiseURL: string; query: string } {
     let baseURL = path;
     if (baseURL.indexOf("?") !== -1) {
       baseURL = baseURL.slice(0, path.indexOf("?"));
     }
-    return { query: this._getParameterByName("q", path), baseURL: baseURL };
+    let promiseURL = path;
+    if (promiseURL.indexOf("[") !== -1) {
+      promiseURL = promiseURL.slice(0, path.indexOf("["));
+    }
+    return { baseURL, promiseURL, query: this._getParameterByName("q", path) };
   }
 
   private _getParameterByName(name, url = window.location.href) {
@@ -310,6 +340,7 @@ export class ResourceManager {
         return Promise.resolve(null);
       }
       url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
+      debugger;
       promise = this.load<any>({
         url,
         type: this._editorResourceConfig[refId].type

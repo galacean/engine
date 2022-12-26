@@ -106,7 +106,7 @@ export class MeshParser extends Parser {
 
      AssetPromise.all(meshPromises).then((meshes: ModelMesh[][]) => {
       glTFResource.meshes = meshes;
-      meshesPromiseInfo.resolve();
+      meshesPromiseInfo.resolve(meshes);
     });
 
     return meshesPromiseInfo.promise;
