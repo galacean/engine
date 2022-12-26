@@ -10,14 +10,21 @@ import { RefObject } from "./RefObject";
  */
 export class ResourceManager {
   /** Loader collection. */
-  private static _loaders: { [key: number]: Loader<any> } = {};
+  private static _loaders: { [key: string]: Loader<any> } = {};
+  private static _subAssetFilter: { [key: string]: (resource: EngineObject, query: string) => any } = {};
   private static _extTypeMapping: { [key: string]: string } = {};
 
   /**
    * @internal
    */
-  static _addLoader(type: string, loader: Loader<any>, extNames: string[]) {
+  static _addLoader(
+    type: string,
+    loader: Loader<any>,
+    extNames: string[],
+    subAssetFilter: (resource: EngineObject, query: string) => any
+  ): void {
     this._loaders[type] = loader;
+    subAssetFilter && (this._subAssetFilter[type] = subAssetFilter);
     for (let i = 0, len = extNames.length; i < len; i++) {
       this._extTypeMapping[extNames[i]] = type;
     }
@@ -38,7 +45,7 @@ export class ResourceManager {
   /** Asset path pool, key is asset ID, value is asset path */
   private _assetPool: { [key: number]: string } = Object.create(null);
   /** Asset pool, the key is the asset path and the value is the asset. */
-  private _assetUrlPool: { [key: string]: Object } = Object.create(null);
+  private _assetUrlPool: { [key: string]: EngineObject } = Object.create(null);
   /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
   private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
   /** Loading assets. */
@@ -197,15 +204,22 @@ export class ResourceManager {
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
     const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
     const itemUrl = item.url;
+    const itemType = item.type;
     const loadingPromises = this._loadingPromises;
 
     // Check url mapping
     const url = this._virtualPathMap[itemUrl] ? this._virtualPathMap[itemUrl] : itemUrl;
 
+    // Parse url
+    const { baseURL, query } = this._parseURL(url);
+    item._baseURL = baseURL;
+    item._query = query;
+
     // Has cache
-    if (this._assetUrlPool[url]) {
+    const cacheAsset = this._getAssetFromCache(itemType, url, query);
+    if (cacheAsset) {
       return new AssetPromise((resolve) => {
-        resolve(this._assetUrlPool[url] as T);
+        resolve(cacheAsset as T);
       });
     }
 
@@ -213,10 +227,10 @@ export class ResourceManager {
     if (loadingPromises[url]) {
       return loadingPromises[url];
     }
-    
-    const loader = ResourceManager._loaders[item.type];
+
+    const loader = ResourceManager._loaders[itemType];
     if (!loader) {
-      throw `loader not found: ${item.type}`;
+      throw `loader not found: ${itemType}`;
     }
     item.url = url;
     const promise = loader.load(item, this);
@@ -246,6 +260,24 @@ export class ResourceManager {
         objects[i].destroy();
       }
     }
+  }
+
+  private _parseURL(path: string): { baseURL: string; query: string } {
+    const index = path.indexOf("?");
+    if (index !== -1) {
+      return { baseURL: path, query: null };
+    } else {
+      return { baseURL: path.slice(0, index), query: this._getParameterByName("q", path) };
+    }
+  }
+
+  private _getParameterByName(name, url = window.location.href) {
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+      results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return "";
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
   }
 
   //-----------------Editor temp solution-----------------
@@ -292,6 +324,16 @@ export class ResourceManager {
       this._editorResourceConfig[element.id] = element;
     });
   }
+
+  private _getAssetFromCache(type: string, url: string, query: string): EngineObject {
+    let cacheAsset = this._assetUrlPool[url];
+    const subAssetFilter = ResourceManager._subAssetFilter[type];
+    if (subAssetFilter) {
+      cacheAsset = subAssetFilter(cacheAsset, query);
+    }
+    return cacheAsset;
+  }
+
   //-----------------Editor temp solution-----------------
 }
 
@@ -300,10 +342,15 @@ export class ResourceManager {
  * @param assetType - Type of asset
  * @param extnames - Name of file extension
  */
-export function resourceLoader(assetType: string, extnames: string[], useCache: boolean = true) {
+export function resourceLoader(
+  assetType: string,
+  extnames: string[],
+  useCache: boolean = true,
+  subAssetFilter?: (resource: EngineObject, query: string) => any
+) {
   return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
     const loader = new Target(useCache);
-    ResourceManager._addLoader(assetType, loader, extnames);
+    ResourceManager._addLoader(assetType, loader, extnames, subAssetFilter);
   };
 }
 

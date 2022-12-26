@@ -31,7 +31,6 @@ function getSubAsset(glTFResource: GLTFResource, query: string) {
         throw `material index not find in: ${index1}`;
       }
     case "animations":
-      debugger;
       const animationClip = glTFResource.animations[index1];
       if (animationClip) {
         return animationClip;
@@ -67,15 +66,13 @@ export class GLTFLoader extends Loader<GLTFResource> {
 
       let pipeline = GLTFParser.defaultPipeline;
 
-      const { query, baseUrl } = GLTFUtil.parseUrl(url);
-      if (query) {
-        glTFResource.url = baseUrl;
-        const path = GLTFUtil.stringToPath(query);
-        const key = path[0];
-        const value1 = Number(path[1]) || 0;
-        const value2 = Number(path[2]) || 0;
+      // @ts-ignore
+      const { _baseURL, _query } = item;
+      if (_query) {
+        glTFResource.url = _baseURL;
+        const path = GLTFUtil.stringToPath(_query);
 
-        switch (key) {
+        switch (path[0]) {
           case "textures":
             pipeline = GLTFParser.texturePipeline;
             break;

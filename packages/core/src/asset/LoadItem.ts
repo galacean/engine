@@ -30,4 +30,9 @@ export type LoadItem = {
    * Additional parameters for specified loader.
    */
   params?: Record<string, any>;
+
+  /** @internal */
+  _baseURL?: string;
+  /** @internal */
+  _query?: string;
 };
