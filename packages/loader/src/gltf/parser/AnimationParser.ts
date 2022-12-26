@@ -19,7 +19,7 @@ import { ParserContext } from "./ParserContext";
 
 export class AnimationParser extends Parser {
   parse(context: ParserContext) {
-    const { gltf, buffers, animationIndex, glTFResource } = context;
+    const { gltf, buffers, glTFResource } = context;
     const { entities } = glTFResource;
     const { animations, accessors } = gltf;
     if (!animations) {
@@ -33,10 +33,6 @@ export class AnimationParser extends Parser {
     }>(animationClipCount);
 
     for (let i = 0; i < animationClipCount; i++) {
-      if (animationIndex >= 0 && animationIndex !== i) {
-        continue;
-      }
-
       const gltfAnimation = animations[i];
       const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
       const animationClip = new AnimationClip(name);
@@ -137,14 +133,6 @@ export class AnimationParser extends Parser {
       };
     }
 
-    if (animationIndex >= 0) {
-      const animationClip = animationClips[animationIndex];
-      if (animationClip) {
-        return animationClip;
-      } else {
-        throw `animation index not find in: ${animationIndex}`;
-      }
-    }
     glTFResource.animations = animationClips;
     // @ts-ignore for editor
     glTFResource._animationsIndices = animationsIndices;

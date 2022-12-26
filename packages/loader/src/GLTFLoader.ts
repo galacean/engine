@@ -4,7 +4,55 @@ import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFUtil } from "./gltf/GLTFUtil";
 import { ParserContext } from "./gltf/parser/ParserContext";
 
-function cache(resourceManager: ResourceManager, baseURL: string, query: string): void {}
+function getSubAsset(glTFResource: GLTFResource, query: string) {
+  if (!query) {
+    return glTFResource;
+  }
+  const path = GLTFUtil.stringToPath(query);
+  const key = path[0];
+  const index1 = Number(path[1]) || 0;
+  const index2 = Number(path[2]) || 0;
+
+  switch (key) {
+    case "textures":
+      if (index1 >= 0) {
+        const texture = glTFResource.textures[index1];
+        if (texture) {
+          return texture;
+        } else {
+          throw `texture index not find in: ${index1}`;
+        }
+      }
+    case "materials":
+      const material = glTFResource.materials[index1];
+      if (material) {
+        return material;
+      } else {
+        throw `material index not find in: ${index1}`;
+      }
+    case "animations":
+      debugger;
+      const animationClip = glTFResource.animations[index1];
+      if (animationClip) {
+        return animationClip;
+      } else {
+        throw `animation index not find in: ${index1}`;
+      }
+    case "meshes":
+      const mesh = glTFResource.meshes[index1]?.[index2];
+      if (mesh) {
+        return mesh;
+      } else {
+        throw `meshIndex-subMeshIndex index not find in: ${index1}-${index2}`;
+      }
+    case "defaultSceneRoot":
+      if (glTFResource.defaultSceneRoot) {
+        return glTFResource.defaultSceneRoot;
+      } else {
+        throw `defaultSceneRoot is not find in this gltf`;
+      }
+  }
+}
 
 @resourceLoader(AssetType.Prefab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
@@ -30,24 +78,18 @@ export class GLTFLoader extends Loader<GLTFResource> {
         switch (key) {
           case "textures":
             pipeline = GLTFParser.texturePipeline;
-            context.textureIndex = value1;
             break;
           case "materials":
             pipeline = GLTFParser.materialPipeline;
-            context.materialIndex = value1;
             break;
           case "animations":
             pipeline = GLTFParser.animationPipeline;
-            context.animationIndex = value1;
             break;
           case "meshes":
             pipeline = GLTFParser.meshPipeline;
-            context.meshIndex = value1;
-            context.subMeshIndex = value2;
             break;
           case "defaultSceneRoot":
             pipeline = GLTFParser.defaultPipeline;
-            context.defaultSceneRootOnly = true;
             break;
         }
       }

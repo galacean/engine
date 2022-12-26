@@ -12,16 +12,12 @@ export class TextureParser extends Parser {
   };
 
   parse(context: ParserContext) {
-    const { textureIndex, glTFResource, gltf, buffers } = context;
+    const { glTFResource, gltf, buffers } = context;
     const { engine, url } = glTFResource;
 
     if (gltf.textures) {
       return AssetPromise.all(
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
-          if (textureIndex >= 0 && textureIndex !== index) {
-            return;
-          }
-
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
 
           if (uri) {
@@ -59,14 +55,6 @@ export class TextureParser extends Parser {
           }
         })
       ).then((textures: Texture2D[]) => {
-        if (textureIndex >= 0) {
-          const texture = textures[textureIndex];
-          if (texture) {
-            return texture;
-          } else {
-            throw `texture index not find in: ${textureIndex}`;
-          }
-        }
         glTFResource.textures = textures;
       });
     }

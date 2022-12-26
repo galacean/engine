@@ -29,7 +29,7 @@ export class SceneParser extends Parser {
   }
 
   parse(context: ParserContext) {
-    const { defaultSceneRootOnly, glTFResource, gltf } = context;
+    const { glTFResource, gltf } = context;
     const { entities } = glTFResource;
     const { nodes, cameras: gltfCameras } = gltf;
 
@@ -65,15 +65,7 @@ export class SceneParser extends Parser {
 
     gltf.extensions && delete gltf.extensions["OASIS_materials_remap"];
 
-    return AssetPromise.all(promises).then(() => {
-      if (defaultSceneRootOnly) {
-        if (glTFResource.defaultSceneRoot) {
-          return glTFResource.defaultSceneRoot;
-        } else {
-          throw `defaultSceneRoot is not find in this gltf`;
-        }
-      }
-    });
+    return AssetPromise.all(promises).then(() => null);
   }
 
   private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
