@@ -63,6 +63,8 @@ export class SceneParser extends Parser {
     }
 
     gltf.extensions && delete gltf.extensions["OASIS_materials_remap"];
+
+    return Promise.all(promises).then(() => null);
   }
 
   private _createCamera(context: GLTFResource, cameraSchema: ICamera, entity: Entity): void {
@@ -141,19 +143,16 @@ export class SceneParser extends Parser {
       }
 
       const materialIndex = gltfMeshPrimitives[i].material;
-      debugger;
       const remapMaterials = gltf.extensions && gltf.extensions["OASIS_materials_remap"];
       if (remapMaterials && remapMaterials[materialIndex]) {
         promises.push(
           remapMaterials[materialIndex].then((mtl) => {
             renderer.setMaterial(mtl);
-            debugger;
           })
         );
       } else {
         const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
         renderer.setMaterial(material);
-        debugger;
       }
 
       const { extensions = {} } = gltfMeshPrimitives[i];
