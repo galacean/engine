@@ -37,20 +37,13 @@ const rePropName = RegExp(
 export class ResourceManager {
   /** Loader collection. */
   private static _loaders: { [key: number]: Loader<any> } = {};
-  private static _subAssetFilters: { [key: number]: Loader<any> } = {};
   private static _extTypeMapping: { [key: string]: string } = {};
 
   /**
    * @internal
    */
-  static _addLoader(
-    type: string,
-    loader: Loader<any>,
-    extNames: string[],
-    subAssetFilter: (resource: EngineObject, query: string) => any
-  ) {
+  static _addLoader(type: string, loader: Loader<any>, extNames: string[]) {
     this._loaders[type] = loader;
-    this._subAssetFilters[type] = subAssetFilter;
     for (let i = 0, len = extNames.length; i < len; i++) {
       this._extTypeMapping[extNames[i]] = type;
     }
@@ -246,8 +239,6 @@ export class ResourceManager {
     // Check url mapping
     const url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
 
-    // const subAssetFilters = ResourceManager._subAssetFilters[item.type];
-
     // Has cache
     const { assetPath, queryPath } = this._parseURLMasterAsset(url);
     const pathes = queryPath ? this._stringToPath(queryPath) : [];
@@ -281,8 +272,6 @@ export class ResourceManager {
     if (!loader) {
       throw `loader not found: ${item.type}`;
     }
-    // temp solution
-    loader.query = queryPath;
 
     item.url = assetPath;
 
@@ -479,15 +468,10 @@ export class ResourceManager {
  * @param assetType - Type of asset
  * @param extnames - Name of file extension
  */
-export function resourceLoader(
-  assetType: string,
-  extnames: string[],
-  useCache: boolean = true,
-  subAssetFilter?: (resource: EngineObject, query: string) => any
-) {
+export function resourceLoader(assetType: string, extnames: string[], useCache: boolean = true) {
   return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
     const loader = new Target(useCache);
-    ResourceManager._addLoader(assetType, loader, extnames, subAssetFilter);
+    ResourceManager._addLoader(assetType, loader, extnames);
   };
 }
 

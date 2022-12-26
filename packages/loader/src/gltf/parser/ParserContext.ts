@@ -23,8 +23,6 @@ export class ParserContext {
   /** chain asset promise */
   chainPromises: AssetPromise<any>[] = [];
   accessorBufferCache: Record<string, BufferInfo> = {};
-  subAssetFiflter: Function;
-  query: string;
 
   texturesPromiseInfo: PromiseInfo<Texture2D[]> = new PromiseInfo<Texture2D[]>();
   materialsPromiseInfo: PromiseInfo<Material[]> = new PromiseInfo<Material[]>();

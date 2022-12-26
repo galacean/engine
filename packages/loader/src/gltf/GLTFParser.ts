@@ -54,16 +54,9 @@ export class GLTFParser {
       if (lastPipe) {
         lastPipe
           .then(() => {
-            //@ts-ignore
-            glTFResource.engine.resourceManager._addAsset(glTFResource.url, glTFResource);
             resolve(glTFResource);
           })
           .catch(reject);
-      } else {
-        debugger;
-        // //@ts-ignore
-        // glTFResource.engine.resourceManager._addAsset(glTFResource.url,glTFResource);
-        // resolve(context.subAssetFiflter(glTFResource, context.query));
       }
     });
   }
