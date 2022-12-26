@@ -36,7 +36,7 @@ const rePropName = RegExp(
  */
 export class ResourceManager {
   /** Loader collection. */
-  private static _loaders: { [key: number]: Loader<any> } = {};
+  private static _loaders: { [key: string]: Loader<any> } = {};
   private static _extTypeMapping: { [key: string]: string } = {};
 
   /**
@@ -303,7 +303,7 @@ export class ResourceManager {
           .then((res: EngineObject) => {
             // Only cache the main asset
             if (isMaster) {
-              if (loader.useCach) {
+              if (loader.useCache) {
                 this._addAsset(subURL, res);
 
                 if (loadingPromises) {

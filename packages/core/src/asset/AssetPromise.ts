@@ -136,7 +136,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
   }
 }
 
-export interface AssetPromiseExecutor<T> {
+interface AssetPromiseExecutor<T> {
   (
     resolve: (value?: T | PromiseLike<T>) => void,
     reject?: (reason?: any) => void,
