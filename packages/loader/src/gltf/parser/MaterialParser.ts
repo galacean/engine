@@ -141,7 +141,6 @@ export class MaterialParser extends Parser {
       }
 
       if (OASIS_materials_remap) {
-        debugger;
         gltf.extensions = gltf.extensions ?? {};
         gltf.extensions["OASIS_materials_remap"] = gltf.extensions["OASIS_materials_remap"] ?? {};
         gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
