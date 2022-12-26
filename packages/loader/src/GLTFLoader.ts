@@ -77,7 +77,6 @@ export class GLTFLoader extends Loader<GLTFResource> {
         .parse(context)
         .then(resolve)
         .catch((e) => {
-          debugger;
           console.error(e);
           reject(`Error loading glTF model from ${url} .`);
         });
