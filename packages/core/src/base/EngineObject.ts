@@ -31,6 +31,7 @@ export abstract class EngineObject {
 
   constructor(engine: Engine) {
     this._engine = engine;
+    console.log("instanceID: "+this.instanceId);
   }
 
   /**
