@@ -5,6 +5,9 @@ import { GLTFUtil } from "./gltf/GLTFUtil";
 import { ParserContext } from "./gltf/parser/ParserContext";
 
 function subAssetFilter(glTFResource: GLTFResource, query: string) {
+  if (!query) {
+    return glTFResource;
+  }
   const path = GLTFUtil.stringToPath(query);
   const key = path[0];
   const index1 = Number(path[1]) || 0;
@@ -59,7 +62,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     return new AssetPromise((resolve, reject, _, onCancel) => {
       const context = new ParserContext();
       context.subAssetFiflter = subAssetFilter;
-      context.query=this.query;
+      context.query = this.query;
       const glTFResource = new GLTFResource(resourceManager.engine);
       context.glTFResource = glTFResource;
       glTFResource.url = url;

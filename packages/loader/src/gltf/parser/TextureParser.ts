@@ -20,6 +20,7 @@ export class TextureParser extends Parser {
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
 
+          
           if(uri=="https://mdn.alipayobjects.com/rms/afts/file/A*kYopRZFfbTYAAAAAAAAAAAAAARQnAQ")
           {
             debugger;

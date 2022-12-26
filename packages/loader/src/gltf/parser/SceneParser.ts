@@ -106,6 +106,10 @@ export class SceneParser extends Parser {
   }
 
   private _createRenderer(context: ParserContext, gltfNode: INode, entity: Entity) {
+    if(entity.name==="FX_Show_06")
+    {
+      debugger;
+    }
     const { glTFResource, gltf } = context;
     const { meshes: gltfMeshes } = gltf;
 
@@ -137,16 +141,19 @@ export class SceneParser extends Parser {
       }
 
       const materialIndex = gltfMeshPrimitives[i].material;
+      debugger;
       const remapMaterials = gltf.extensions && gltf.extensions["OASIS_materials_remap"];
       if (remapMaterials && remapMaterials[materialIndex]) {
         promises.push(
           remapMaterials[materialIndex].then((mtl) => {
             renderer.setMaterial(mtl);
+            debugger;
           })
         );
       } else {
         const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
         renderer.setMaterial(material);
+        debugger;
       }
 
       const { extensions = {} } = gltfMeshPrimitives[i];

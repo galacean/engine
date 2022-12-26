@@ -211,7 +211,7 @@ export class ResourceManager {
 
     const { query, baseURL } = this._parseUrl(url);
 
-    if (baseURL.indexOf("https://mdn.alipayobjects.com/rms/afts/file/A*kYopRZFfbTYAAAAAAAAAAAAAARQnA") !== -1) {
+    if(url.indexOf("https://mdn.alipayobjects.com/rms/afts/file/A*kq53TZ6_zCYAAAAAAAAAAAAAARQnAQ/FX_Show_skin.gltf")!=-1){
       debugger;
     }
 
@@ -219,7 +219,11 @@ export class ResourceManager {
     if (this._assetUrlPool[baseURL]) {
       return new AssetPromise((resolve) => {
         const subAssetFilters = ResourceManager._subAssetFilters[item.type];
-        resolve(subAssetFilters(this._assetUrlPool[baseURL], query) as T);
+        if (subAssetFilters) {
+          resolve(subAssetFilters(this._assetUrlPool[baseURL], query) as T);
+        } else {
+          resolve(this._assetUrlPool[baseURL] as T);
+        }
       });
     }
 
@@ -268,7 +272,11 @@ export class ResourceManager {
   }
 
   private _parseUrl(path: string): { query: string; baseURL: string } {
-    return { query: this._getParameterByName("q", path), baseURL: path.slice(0, path.indexOf("?")) };
+    let baseURL = path;
+    if (baseURL.indexOf("?") !== -1) {
+      baseURL = baseURL.slice(0, path.indexOf("?"));
+    }
+    return { query: this._getParameterByName("q", path), baseURL: baseURL };
   }
 
   private _getParameterByName(name, url = window.location.href) {
