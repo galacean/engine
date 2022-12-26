@@ -11,15 +11,15 @@ export class TextureParser extends Parser {
     [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
-  parse(context: ParserContext) {
+  parse(context: ParserContext): AssetPromise<Texture2D[]> {
     const { glTFResource, gltf, buffers } = context;
     const { engine, url } = glTFResource;
 
     if (gltf.textures) {
-      return AssetPromise.all(
+      const texturesPromiseInfo = context.texturesPromiseInfo;
+      AssetPromise.all(
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
-
           if (uri) {
             // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
             const index = uri.lastIndexOf(".");
@@ -56,7 +56,9 @@ export class TextureParser extends Parser {
         })
       ).then((textures: Texture2D[]) => {
         glTFResource.textures = textures;
+        texturesPromiseInfo.resolve(textures);
       });
+      return texturesPromiseInfo.promise;
     }
   }
 

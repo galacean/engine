@@ -1,4 +1,5 @@
 import {
+  AssetPromise,
   Logger,
   Material,
   PBRMaterial,
@@ -21,12 +22,13 @@ export class MaterialParser extends Parser {
     }
   }
 
-  parse(context: ParserContext) {
+  parse(context: ParserContext): AssetPromise<Material[]> {
     const { gltf, glTFResource } = context;
 
     const { engine, textures } = glTFResource;
     if (!gltf.materials) return;
 
+    const materialsPromiseInfo = context.materialsPromiseInfo;
     const materials: Material[] = [];
 
     for (let i = 0; i < gltf.materials.length; i++) {
@@ -172,5 +174,7 @@ export class MaterialParser extends Parser {
     }
 
     glTFResource.materials = materials;
+    materialsPromiseInfo.resolve();
+    return materialsPromiseInfo.promise;
   }
 }
