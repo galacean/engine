@@ -194,27 +194,30 @@ export class ResourceManager {
     return assetInfo;
   }
 
-  private _loadSingleItem<T>(item: LoadItem | string): AssetPromise<T> {
-    const info = this._assignDefaultOptions(typeof item === "string" ? { url: item } : item);
-    const infoUrl = info.url;
-    // check url mapping
-    const url = this._virtualPathMap[infoUrl] ? this._virtualPathMap[infoUrl] : infoUrl;
-    // has cache
+  private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
+    const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
+    const itemUrl = item.url;
+
+    // Check url mapping
+    const url = this._virtualPathMap[itemUrl] ? this._virtualPathMap[itemUrl] : itemUrl;
+
+    // Has cache
     if (this._assetUrlPool[url]) {
       return new AssetPromise((resolve) => {
         resolve(this._assetUrlPool[url] as T);
       });
     }
-    // loading
+    
+    // Is loading
     if (this._loadingPromises[url]) {
       return this._loadingPromises[url];
     }
-    const loader = ResourceManager._loaders[info.type];
+    const loader = ResourceManager._loaders[item.type];
     if (!loader) {
-      throw `loader not found: ${info.type}`;
+      throw `loader not found: ${item.type}`;
     }
-    info.url = url;
-    const promise = loader.load(info, this);
+    item.url = url;
+    const promise = loader.load(item, this);
     this._loadingPromises[url] = promise;
     promise
       .then((res: EngineObject) => {
