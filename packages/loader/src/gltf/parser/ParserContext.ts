@@ -17,33 +17,46 @@ export class ParserContext {
   subAssetFiflter: Function;
   query: string;
 
-  texturesPromiseInfo: PromiseInfo<Texture2D[]>;
-  materialsPromiseInfo: PromiseInfo<Material[]>;
-  meshesPromiseInfo: PromiseInfo<ModelMesh[][]>;
-  animationClipsPromiseInfo: PromiseInfo<AnimationClip[]>;
+  texturesPromiseInfo: PromiseInfo<Texture2D[]> = new PromiseInfo<Texture2D[]>();
+  materialsPromiseInfo: PromiseInfo<Material[]> = new PromiseInfo<Material[]>();
+  meshesPromiseInfo: PromiseInfo<ModelMesh[][]> = new PromiseInfo<ModelMesh[][]>();
+  animationClipsPromiseInfo: PromiseInfo<AnimationClip[]> = new PromiseInfo<AnimationClip[]>();
+  masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
 
   constructor() {
-    const texturesPromise = new AssetPromise<Texture2D[]>(function (resolve) {
-      this.texturesPromiseInfo = new PromiseInfo<Texture2D[]>(texturesPromise, resolve);
-    });
-    const materialsPromise = new AssetPromise<Material[]>(function (resolve) {
-      this.materialsPromiseInfo = new PromiseInfo<Material[]>(materialsPromise, resolve);
-    });
-    const meshedPromise = new AssetPromise<ModelMesh[][]>(function (resolve) {
-      this.meshesPromiseInfo = new PromiseInfo<ModelMesh[][]>(meshedPromise, resolve);
-    });
-    const animationClipsPromise = new AssetPromise<AnimationClip[]>(function (resolve) {
-      this.animationClipsPromiseInfo = new PromiseInfo<AnimationClip[]>(animationClipsPromise, resolve);
+    this._initPromiseInfo(this.texturesPromiseInfo);
+    this._initPromiseInfo(this.materialsPromiseInfo);
+    this._initPromiseInfo(this.meshesPromiseInfo);
+    this._initPromiseInfo(this.animationClipsPromiseInfo);
+    this._initPromiseInfo(this.masterPromiseInfo);
+  }
+
+  private _initPromiseInfo(promiseInfo): void {
+    promiseInfo.promise = new AssetPromise<Texture2D[]>((resolve, reject, setProgress, onCancel) => {
+      promiseInfo.resolve = resolve;
+      promiseInfo.reject = reject;
+      promiseInfo.setProgress = setProgress;
+      promiseInfo.onCancel = onCancel;
     });
   }
 }
 
+/**
+ * @internal
+ */
 export class BufferInfo {
   vertxBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
   constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
 }
 
+/**
+ * @internal
+ */
 export class PromiseInfo<T> {
-  constructor(public promise: AssetPromise<T>, public resolve: (value?: T | PromiseLike<T>) => void) {}
+  public promise: AssetPromise<T>;
+  public resolve: (value?: T | PromiseLike<T>) => void;
+  public reject: (reason?: any) => void;
+  public setProgress: (progress: number) => void;
+  public onCancel: (callback: () => void) => void;
 }
