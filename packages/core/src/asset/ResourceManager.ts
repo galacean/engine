@@ -216,10 +216,13 @@ export class ResourceManager {
     item._query = query;
 
     // Has cache
-    const cacheAsset = this._getAssetFromCache(itemType, url, query);
-    if (cacheAsset) {
+    const subAssetFilter = ResourceManager._subAssetFilter[itemType];
+    const cacheAsset = this._assetUrlPool[url];
+    const cacheSubAsset = subAssetFilter(cacheAsset, query);
+
+    if (cacheSubAsset) {
       return new AssetPromise((resolve) => {
-        resolve(cacheAsset as T);
+        resolve(cacheSubAsset as T);
       });
     }
 
