@@ -381,15 +381,6 @@ export class ResourceManager {
     return { assetPath, queryPath: this._getParameterByName("q", path) };
   }
 
-  // private _parseURLSubAsset(path: string): { assetPath: string; indexPath: string } {
-  //   let assetPath = path;
-  //   const index = assetPath.indexOf("[");
-  //   if (index !== -1) {
-  //     assetPath = assetPath.slice(0, index);
-  //   }
-  //   return { assetPath, indexPath: this._getParameterByName("[", path) };
-  // }
-
   private _getParameterByName(name, url = window.location.href) {
     name = name.replace(/[\[\]]/g, "\\$&");
     var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
