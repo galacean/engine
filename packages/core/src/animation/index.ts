@@ -15,6 +15,7 @@ export { AnimatorStateMachine } from "./AnimatorStateMachine";
 export { AnimatorStateTransition } from "./AnimatorTransition";
 export { AnimatorConditionMode } from "./enums/AnimatorConditionMode";
 export { AnimatorLayerBlendingMode } from "./enums/AnimatorLayerBlendingMode";
+export { AnimatorCullingMode } from "./enums/AnimatorCullingMode";
 export { InterpolationType } from "./enums/InterpolationType";
 export { WrapMode } from "./enums/WrapMode";
 export * from "./Keyframe";

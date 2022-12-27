@@ -8,7 +8,7 @@ import { ParserContext } from "./gltf/parser/ParserContext";
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
     const url = item.url;
-    return new AssetPromise((resolve, reject) => {
+    return new AssetPromise((resolve, reject, _, onCancel) => {
       const context = new ParserContext();
       const glTFResource = new GLTFResource(resourceManager.engine);
       context.glTFResource = glTFResource;
@@ -49,6 +49,13 @@ export class GLTFLoader extends Loader<GLTFResource> {
             break;
         }
       }
+
+      onCancel(() => {
+        const { chainPromises } = context;
+        for (const promise of chainPromises) {
+          promise.cancel();
+        }
+      });
 
       pipeline
         .parse(context)

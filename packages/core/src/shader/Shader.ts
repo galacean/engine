@@ -130,8 +130,8 @@ export class Shader {
     for (let i = 0, n = macros._length; i < n; i++) {
       const subMaskMap = maskMap[i];
       const subMask = mask[i];
-      const n = subMask < 0 ? 32 : Math.floor(Math.log2(subMask)) + 1; // if is negative must contain 1 << 31.
-      for (let j = 0; j < n; j++) {
+      const m = subMask < 0 ? 32 : Math.floor(Math.log2(subMask)) + 1; // if is negative must contain 1 << 31.
+      for (let j = 0; j < m; j++) {
         if (subMask & (1 << j)) {
           out.push(subMaskMap[j]);
         }

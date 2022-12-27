@@ -60,11 +60,12 @@ export class ShaderProgramPool {
     if (hierarchy == end) {
       for (let k in cacheMap) {
         const shader: ShaderProgram = cacheMap[k];
+        let subCacheMap = cacheMap;
         for (let i = 0, n = resizeLength - end; i < n; i++) {
           if (i == n - 1) {
-            cacheMap[0] = shader;
+            subCacheMap[0] = shader;
           } else {
-            cacheMap = cacheMap[i == 0 ? k : 0] = Object.create(null);
+            subCacheMap = subCacheMap[i == 0 ? k : 0] = Object.create(null);
           }
         }
       }

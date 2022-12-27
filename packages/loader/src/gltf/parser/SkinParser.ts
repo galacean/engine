@@ -6,8 +6,8 @@ import { ParserContext } from "./ParserContext";
 
 export class SkinParser extends Parser {
   parse(context: ParserContext): void {
-    const glTFResource = context.glTFResource;
-    const { gltf, buffers, entities } = glTFResource;
+    const { glTFResource, gltf, buffers } = context;
+    const { entities } = glTFResource;
     const gltfSkins = gltf.skins;
 
     if (!gltfSkins) return;
@@ -24,7 +24,7 @@ export class SkinParser extends Parser {
 
       // parse IBM
       const accessor = gltf.accessors[inverseBindMatrices];
-      const buffer = GLTFUtil.getAccessorData(gltf, accessor, buffers);
+      const buffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor).data;
       for (let i = 0; i < jointCount; i++) {
         const inverseBindMatrix = new Matrix();
         inverseBindMatrix.copyFromArray(buffer, i * 16);
