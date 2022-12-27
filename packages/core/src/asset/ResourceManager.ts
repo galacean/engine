@@ -250,16 +250,11 @@ export class ResourceManager {
           if (loader.useCache) {
             this._addAsset(assetBaseURL, resource);
           }
-          // @todo: remove?
-          if (loadingPromises) {
-            delete loadingPromises[assetBaseURL];
-          }
+          delete loadingPromises[assetBaseURL];
         })
         .catch((error: Error) => {
           Promise.reject(error);
-          if (loadingPromises) {
-            delete loadingPromises[assetBaseURL];
-          }
+          delete loadingPromises[assetBaseURL];
         });
       return promise;
     } else {
@@ -274,20 +269,16 @@ export class ResourceManager {
               if (loader.useCache) {
                 this._addAsset(subURL, resource);
 
-                if (loadingPromises) {
-                  for (let subURL in promise) {
-                    delete loadingPromises[subURL];
-                  }
+                for (let subURL in promise) {
+                  delete loadingPromises[subURL];
                 }
               }
             }
           })
           .catch((err: Error) => {
             Promise.reject(err);
-            if (loadingPromises) {
-              for (let subURL in promise) {
-                delete loadingPromises[subURL];
-              }
+            for (let subURL in promise) {
+              delete loadingPromises[subURL];
             }
           });
       }
