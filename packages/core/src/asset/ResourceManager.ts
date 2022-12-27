@@ -194,49 +194,42 @@ export class ResourceManager {
     return assetInfo;
   }
 
-  private _getResourceByPath(resource: any, pathes: string[]): any {
-    let subResource = resource;
-    if (pathes) {
-      for (let i = 0, n = pathes.length; i < n; i++) {
-        const path = pathes[i];
-        subResource = subResource[path];
-      }
-    }
-    return subResource;
-  }
-
   private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
     const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
-    const itemURL = item.url;
-    const loadingPromises = this._loadingPromises;
 
     // Check url mapping
+    const itemURL = item.url;
     const url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
 
-    // Has cache
-    const { assetPath, queryPath } = this._parseURLMasterAsset(url);
-    const pathes = queryPath ? this._stringToPath(queryPath) : [];
-    if (this._assetUrlPool[assetPath]) {
+    // Parse url
+    const { assetBaseURL, queryPath } = this._parseURL(url);
+    const pathes = queryPath ? this._parseQueryPath(queryPath) : [];
+
+    // Check cache
+    const cacheObject = this._assetUrlPool[assetBaseURL];
+    if (cacheObject) {
       return new AssetPromise((resolve) => {
-        resolve(this._getResourceByPath(this._assetUrlPool[assetPath], pathes) as T);
+        resolve(this._getResolveResource(cacheObject, pathes) as T);
       });
     }
 
-    let loadingURL = assetPath;
+    // Get asset url
+    let assetURL = assetBaseURL;
     if (queryPath) {
-      loadingURL = loadingURL + "?q=" + pathes.shift();
+      assetURL += "?q=" + pathes.shift();
     }
 
-    // Is loading
-    if (loadingPromises[loadingURL]) {
-      const loadingpromise = loadingPromises[loadingURL];
+    // Check is loading
+    const loadingPromises = this._loadingPromises;
+    const loadingPromise = loadingPromises[assetURL];
+    if (loadingPromise) {
       return new AssetPromise((resolve, reject) => {
-        loadingpromise
-          .then((res: EngineObject) => {
-            resolve(this._getResourceByPath(res, pathes) as T);
+        loadingPromise
+          .then((resource: EngineObject) => {
+            resolve(this._getResolveResource(resource, pathes) as T);
           })
-          .catch((err: Error) => {
-            reject(err);
+          .catch((error: Error) => {
+            reject(error);
           });
       });
     }
@@ -247,38 +240,39 @@ export class ResourceManager {
       throw `loader not found: ${item.type}`;
     }
 
-    item.url = assetPath;
-
+    // Load asset
+    item.url = assetBaseURL;
     const promise = loader.load(item, this);
     if (promise instanceof AssetPromise) {
-      loadingPromises[assetPath] = promise;
+      loadingPromises[assetBaseURL] = promise;
       promise
-        .then((res: EngineObject) => {
+        .then((resource: EngineObject) => {
           if (loader.useCache) {
-            this._addAsset(assetPath, res);
+            this._addAsset(assetBaseURL, resource);
           }
+          // @todo: remove?
           if (loadingPromises) {
-            delete loadingPromises[assetPath];
+            delete loadingPromises[assetBaseURL];
           }
         })
-        .catch((err: Error) => {
-          Promise.reject(err);
+        .catch((error: Error) => {
+          Promise.reject(error);
           if (loadingPromises) {
-            delete loadingPromises[assetPath];
+            delete loadingPromises[assetBaseURL];
           }
         });
       return promise;
     } else {
       for (let subURL in promise) {
         const subPromise = promise[subURL];
-        const isMaster = assetPath === subURL;
+        const isMaster = assetBaseURL === subURL;
         loadingPromises[subURL] = subPromise;
         subPromise
-          .then((res: EngineObject) => {
+          .then((resource: EngineObject) => {
             // Only cache the main asset
             if (isMaster) {
               if (loader.useCache) {
-                this._addAsset(subURL, res);
+                this._addAsset(subURL, resource);
 
                 if (loadingPromises) {
                   for (let subURL in promise) {
@@ -298,13 +292,13 @@ export class ResourceManager {
           });
       }
 
-      const subAssetPromise = promise[loadingURL];
+      const subAssetPromise = promise[assetURL];
       return new AssetPromise((resolve, reject) => {
-        subAssetPromise.then((res: EngineObject) => {
-          resolve(this._getResourceByPath(res, pathes) as T);
+        subAssetPromise.then((resource: EngineObject) => {
+          resolve(this._getResolveResource(resource, pathes) as T);
         });
-        subAssetPromise.catch((err: Error) => {
-          reject(err);
+        subAssetPromise.catch((error: Error) => {
+          reject(error);
         });
       });
     }
@@ -319,13 +313,24 @@ export class ResourceManager {
     }
   }
 
-  private _parseURLMasterAsset(path: string): { assetPath: string; queryPath: string } {
-    let assetPath = path;
-    const index = assetPath.indexOf("?");
-    if (index !== -1) {
-      assetPath = assetPath.slice(0, index);
+  private _getResolveResource(resource: any, pathes: string[]): any {
+    let subResource = resource;
+    if (pathes) {
+      for (let i = 0, n = pathes.length; i < n; i++) {
+        const path = pathes[i];
+        subResource = subResource[path];
+      }
     }
-    return { assetPath, queryPath: this._getParameterByName("q", path) };
+    return subResource;
+  }
+
+  private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
+    let assetBaseURL = path;
+    const index = assetBaseURL.indexOf("?");
+    if (index !== -1) {
+      assetBaseURL = assetBaseURL.slice(0, index);
+    }
+    return { assetBaseURL, queryPath: this._getParameterByName("q", path) };
   }
 
   private _getParameterByName(name, url = window.location.href) {
@@ -337,7 +342,7 @@ export class ResourceManager {
     return decodeURIComponent(results[2].replace(/\+/g, " "));
   }
 
-  private _stringToPath(string): string[] {
+  private _parseQueryPath(string): string[] {
     const result = [];
     if (string.charCodeAt(0) === charCodeOfDot) {
       result.push("");
