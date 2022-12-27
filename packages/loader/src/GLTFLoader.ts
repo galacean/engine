@@ -8,11 +8,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
     const url = item.url;
     const context = new ParserContext(url);
+    const glTFResource = new GLTFResource(resourceManager.engine, url);
     const masterPromiseInfo = context.masterPromiseInfo;
 
-    const glTFResource = new GLTFResource(resourceManager.engine);
     context.glTFResource = glTFResource;
-    glTFResource.url = url;
     context.keepMeshData = item.params?.keepMeshData ?? false;
 
     masterPromiseInfo.onCancel(() => {
