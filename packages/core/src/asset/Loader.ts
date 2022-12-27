@@ -25,7 +25,9 @@ export abstract class Loader<T> {
   }
 
   private static _engineObjects: { [key: string]: any } = {};
+
+  constructor(public readonly useCache: boolean) {}
+
   request: <U>(url: string, config: RequestConfig) => AssetPromise<U> = request;
   abstract load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T> | Record<string, AssetPromise<any>>;
-  constructor(public readonly useCache: boolean) {}
 }
