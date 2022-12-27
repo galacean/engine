@@ -261,24 +261,19 @@ export class ResourceManager {
         const subPromise = promise[subURL];
         const isMaster = assetBaseURL === subURL;
         loadingPromises[subURL] = subPromise;
+
         subPromise
           .then((resource: EngineObject) => {
-            // Only cache the main asset
             if (isMaster) {
               if (loader.useCache) {
                 this._addAsset(subURL, resource);
-
-                for (let subURL in promise) {
-                  delete loadingPromises[subURL];
-                }
+                for (let k in promise) delete loadingPromises[k];
               }
             }
           })
           .catch((err: Error) => {
             Promise.reject(err);
-            for (let subURL in promise) {
-              delete loadingPromises[subURL];
-            }
+            for (let k in promise) delete loadingPromises[k];
           });
       }
 
