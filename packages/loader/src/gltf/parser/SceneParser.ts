@@ -66,13 +66,9 @@ export class SceneParser extends Parser {
 
     gltf.extensions && delete gltf.extensions["OASIS_materials_remap"];
 
-    if (promises.length > 0) {
-      AssetPromise.all(promises).then(() => {
-        defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
-      });
-    } else {
+    AssetPromise.all(promises).then(() => {
       defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
-    }
+    });
 
     return defaultSceneRootPromiseInfo.promise;
   }
