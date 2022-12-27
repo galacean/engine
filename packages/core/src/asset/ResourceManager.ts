@@ -179,7 +179,6 @@ export class ResourceManager {
     this._assetPool = null;
     this._assetUrlPool = null;
     this._refObjectPool = null;
-    this._loadingPromises = null;
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
