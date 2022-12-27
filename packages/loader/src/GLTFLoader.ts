@@ -6,25 +6,14 @@ import { ParserContext } from "./gltf/parser/ParserContext";
 @resourceLoader(AssetType.Prefab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
-    const context = new ParserContext();
     const url = item.url;
-
-    const promiseMap: Record<string, AssetPromise<any>> = {};
-    promiseMap[`${url}?q=textures`] = context.texturesPromiseInfo.promise;
-    promiseMap[`${url}?q=materials`] = context.materialsPromiseInfo.promise;
-    promiseMap[`${url}?q=meshes`] = context.meshesPromiseInfo.promise;
-    promiseMap[`${url}?q=animations`] = context.animationClipsPromiseInfo.promise;
-    promiseMap[`${url}?q=defaultSceneRoot`] = context.defaultSceneRootPromiseInfo.promise;
-    promiseMap[`${url}`] = context.masterPromiseInfo.promise;
-
+    const context = new ParserContext(url);
     const masterPromiseInfo = context.masterPromiseInfo;
 
     const glTFResource = new GLTFResource(resourceManager.engine);
     context.glTFResource = glTFResource;
     glTFResource.url = url;
     context.keepMeshData = item.params?.keepMeshData ?? false;
-
-    let pipeline = GLTFParser.defaultPipeline;
 
     masterPromiseInfo.onCancel(() => {
       const { chainPromises } = context;
@@ -33,7 +22,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
       }
     });
 
-    pipeline
+    GLTFParser.defaultPipeline
       .parse(context)
       .then(masterPromiseInfo.resolve)
       .catch((e) => {
@@ -41,7 +30,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
         masterPromiseInfo.reject(`Error loading glTF model from ${url} .`);
       });
 
-    return promiseMap;
+    return context.promiseMap;
   }
 }
 

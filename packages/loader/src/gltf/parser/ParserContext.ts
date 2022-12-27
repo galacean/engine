@@ -30,23 +30,27 @@ export class ParserContext {
   animationClipsPromiseInfo: PromiseInfo<AnimationClip[]> = new PromiseInfo<AnimationClip[]>();
   defaultSceneRootPromiseInfo: PromiseInfo<Entity> = new PromiseInfo<Entity>();
   masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
+  promiseMap: Record<string, AssetPromise<any>> = {};
 
-  constructor() {
-    this._initPromiseInfo(this.texturesPromiseInfo);
-    this._initPromiseInfo(this.materialsPromiseInfo);
-    this._initPromiseInfo(this.meshesPromiseInfo);
-    this._initPromiseInfo(this.animationClipsPromiseInfo);
-    this._initPromiseInfo(this.defaultSceneRootPromiseInfo);
-    this._initPromiseInfo(this.masterPromiseInfo);
+  constructor(url: string) {
+    const promiseMap = this.promiseMap;
+    promiseMap[`${url}?q=textures`] = this._initPromiseInfo(this.texturesPromiseInfo);
+    promiseMap[`${url}?q=materials`] = this._initPromiseInfo(this.materialsPromiseInfo);
+    promiseMap[`${url}?q=meshes`] = this._initPromiseInfo(this.meshesPromiseInfo);
+    promiseMap[`${url}?q=animations`] = this._initPromiseInfo(this.animationClipsPromiseInfo);
+    promiseMap[`${url}?q=defaultSceneRoot`] = this._initPromiseInfo(this.defaultSceneRootPromiseInfo);
+    promiseMap[`${url}`] = this._initPromiseInfo(this.masterPromiseInfo);
   }
 
-  private _initPromiseInfo(promiseInfo): void {
-    promiseInfo.promise = new AssetPromise<Texture2D[]>((resolve, reject, setProgress, onCancel) => {
+  private _initPromiseInfo(promiseInfo): AssetPromise<any> {
+    const promise = new AssetPromise<any>((resolve, reject, setProgress, onCancel) => {
       promiseInfo.resolve = resolve;
       promiseInfo.reject = reject;
       promiseInfo.setProgress = setProgress;
       promiseInfo.onCancel = onCancel;
     });
+    promiseInfo.promise = promise;
+    return promise;
   }
 }
 
