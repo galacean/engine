@@ -8,21 +8,35 @@ export class AssetPromise<T> implements PromiseLike<T> {
    * @param - Promise Collection
    * @returns AssetPromise
    */
-  static all<T = any>(promises: PromiseLike<T>[]) {
+  static all<T = any>(promises: (PromiseLike<T> | T)[]) {
     return new AssetPromise<T[]>((resolve, reject, setProgress) => {
       const count = promises.length;
       const results: T[] = new Array(count);
       let completed = 0;
 
-      function onProgress(promise: PromiseLike<T>, index: number) {
-        promise.then((value) => {
-          completed++;
-          results[index] = value;
-          setProgress(completed / count);
-          if (completed === count) {
-            resolve(results);
-          }
-        }, reject);
+      if (count === 0) {
+        return resolve(results);
+      }
+
+      function onComplete(index: number, resultValue: T) {
+        completed++;
+        results[index] = resultValue;
+        setProgress(completed / count);
+        if (completed === count) {
+          resolve(results);
+        }
+      }
+
+      function onProgress(promise: PromiseLike<T> | T, index: number) {
+        if (promise instanceof Promise || promise instanceof AssetPromise) {
+          promise.then(function (value) {
+            onComplete(index, value);
+          }, reject);
+        } else {
+          Promise.resolve().then(() => {
+            onComplete(index, promise as T);
+          });
+        }
       }
 
       for (let i = 0; i < count; i++) {
@@ -33,7 +47,7 @@ export class AssetPromise<T> implements PromiseLike<T> {
 
   /** compatible with Promise */
   get [Symbol.toStringTag]() {
-    return 'AssetPromise';
+    return "AssetPromise";
   }
 
   private _promise: Promise<T>;
