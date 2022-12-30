@@ -10,8 +10,10 @@ import {
   IPlatformTextureCube,
   Logger,
   Mesh,
+  Platform,
   RenderTarget,
   SubMesh,
+  SystemInfo,
   Texture2D,
   Texture2DArray,
   TextureCube
@@ -116,11 +118,21 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._options = options;
   }
 
-  init(canvas: Canvas) {
+  init(canvas: Canvas):void {
+    debugger;
     const option = this._options;
     option.alpha === undefined && (option.alpha = false);
     option.stencil === undefined && (option.stencil = true);
-    option._forceFlush === undefined && (option._forceFlush = false);
+
+    if (SystemInfo.platform == Platform.IPhone || SystemInfo.platform == Platform.IPad) {
+      const version = SystemInfo.operatingSystem.split(".");
+      if (parseInt(version[1]) > 15 && parseInt(version[2]) >= 0 && parseInt(version[2]) <= 4) {
+        option._forceFlush = true;
+      }
+    } else {
+      option._forceFlush === undefined && (option._forceFlush = false);
+    }
+
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
     const webGLMode = option.webGLMode || WebGLMode.Auto;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
