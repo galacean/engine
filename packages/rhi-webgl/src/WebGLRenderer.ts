@@ -131,7 +131,6 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   init(canvas: Canvas): void {
-    debugger;
     const options = this._options;
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
     const webGLMode = options.webGLMode;
