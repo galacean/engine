@@ -121,7 +121,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     options.stencil = initializeOptions?.stencil ?? true;
     options._forceFlush = initializeOptions?._forceFlush ?? false;
 
-    if (SystemInfo.platform == Platform.IPhone || SystemInfo.platform == Platform.IPad) {
+    if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
       const version = SystemInfo.operatingSystem.match(/(\d+).(\d+).(\d+)/);
       if (parseInt(version[1]) > 15 && parseInt(version[2]) >= 0 && parseInt(version[2]) <= 4) {
         options._forceFlush = true;
