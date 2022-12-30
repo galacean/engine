@@ -17,7 +17,6 @@ export class WebGLEngine extends Engine {
     const webCanvas = new WebCanvas(
       <HTMLCanvasElement | OffscreenCanvas>(typeof canvas === "string" ? document.getElementById(canvas) : canvas)
     );
-
     const hardwareRenderer = new WebGLRenderer(webGLRendererOptions);
     super(webCanvas, hardwareRenderer);
   }
