@@ -1,6 +1,6 @@
-import { Engine, Platform, SystemInfo } from "@oasis-engine/core";
+import { Engine } from "@oasis-engine/core";
 import { WebCanvas } from "./WebCanvas";
-import { WebGLMode, WebGLRenderer, WebGLRendererOptions } from "./WebGLRenderer";
+import { WebGLRenderer, WebGLRendererOptions } from "./WebGLRenderer";
 
 type OffscreenCanvas = any;
 
