@@ -77,7 +77,7 @@ export class PhysXPhysics {
           "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.56/libs/physx.release.js.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.56/libs/physx.release.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.0.0-experimental-physx-debug.0/libs/physx.release.js";
       }
     });
 
