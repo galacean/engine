@@ -114,33 +114,33 @@ export class WebGLRenderer implements IHardwareRenderer {
     return this.capability.canIUseMoreJoints;
   }
 
-  constructor(options: WebGLRendererOptions = {}) {
+  constructor(initializeOptions: WebGLRendererOptions = {}) {
+    const options = <WebGLRendererOptions>{};
+    options.webGLMode = initializeOptions?.webGLMode ?? WebGLMode.Auto;
+    options.alpha = initializeOptions?.alpha ?? false;
+    options.stencil = initializeOptions?.stencil ?? true;
+    options._forceFlush = initializeOptions?._forceFlush ?? false;
+
+    if (SystemInfo.platform == Platform.IPhone || SystemInfo.platform == Platform.IPad) {
+      const version = SystemInfo.operatingSystem.match(/(\d+).(\d+).(\d+)/);
+      if (parseInt(version[1]) > 15 && parseInt(version[2]) >= 0 && parseInt(version[2]) <= 4) {
+        options._forceFlush = true;
+      }
+    }
     this._options = options;
   }
 
-  init(canvas: Canvas):void {
+  init(canvas: Canvas): void {
     debugger;
-    const option = this._options;
-    option.alpha === undefined && (option.alpha = false);
-    option.stencil === undefined && (option.stencil = true);
-
-    if (SystemInfo.platform == Platform.IPhone || SystemInfo.platform == Platform.IPad) {
-      const version = SystemInfo.operatingSystem.split(".");
-      if (parseInt(version[1]) > 15 && parseInt(version[2]) >= 0 && parseInt(version[2]) <= 4) {
-        option._forceFlush = true;
-      }
-    } else {
-      option._forceFlush === undefined && (option._forceFlush = false);
-    }
-
+    const options = this._options;
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
-    const webGLMode = option.webGLMode || WebGLMode.Auto;
+    const webGLMode = options.webGLMode;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", option);
+      gl = webCanvas.getContext("webgl2", options);
       if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", option);
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", options);
       }
       this._isWebGL2 = true;
 
@@ -152,9 +152,9 @@ export class WebGLRenderer implements IHardwareRenderer {
 
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", option);
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", options);
         if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", option);
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", options);
         }
         this._isWebGL2 = false;
       }

@@ -27,11 +27,11 @@ export class SystemInfo {
 
       const userAgent = navigator.userAgent;
 
-      if (/iphone)/i.test(userAgent)) {
+      if (/iPhone/i.test(userAgent)) {
         SystemInfo.platform = Platform.IPhone;
-      } else if (/ipad/i.test(userAgent)) {
+      } else if (/iPad/i.test(userAgent)) {
         SystemInfo.platform = Platform.IPad;
-      } else if (/android/i.test(userAgent)) {
+      } else if (/Android/i.test(userAgent)) {
         SystemInfo.platform = Platform.Android;
       }
 
@@ -39,14 +39,14 @@ export class SystemInfo {
       switch (SystemInfo.platform) {
         case Platform.IPhone:
           v = userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
-          this.operatingSystem = `iPhone OS ${v[1]}.${v[2]}.${v[3]}`;
+          this.operatingSystem = `iPhone OS ${v[1]}.${v[2]}.${v[3] || 0}`;
           break;
         case Platform.IPad:
           v = userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
-          this.operatingSystem = `iPad OS ${v[1]}.${v[2]}.${v[3]}`;
+          this.operatingSystem = `iPad OS ${v[1]}.${v[2]}.${v[3] || 0}`;
           break;
         case Platform.Android:
-          v = userAgent.match(/Android (\d+).(\d+).?(\d+)?/);
+          v = userAgent.match(/Android (\d+).(\d+).(\d+)/);
           this.operatingSystem = `Android ${v[1]}.${v[2]}.${v[3]}`;
           break;
       }
