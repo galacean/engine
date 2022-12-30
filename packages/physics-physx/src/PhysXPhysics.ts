@@ -74,25 +74,24 @@ export class PhysXPhysics {
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.45/libs/physx.release.js.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.56/libs/physx.release.js.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.45/libs/physx.release.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.56/libs/physx.release.js";
       }
     });
 
     return new Promise((resolve, reject) => {
       scriptPromise
-        .then(() => {
-          (<any>window)
-            .PHYSX()
-            .then((PHYSX) => {
+        .then(
+          () =>
+            (<any>window).PHYSX().then((PHYSX) => {
               PhysXPhysics._init(PHYSX);
               console.log("PhysX loaded.");
               resolve();
-            }, reject)
-            .catch(reject);
-        }, reject)
+            }, reject),
+          reject
+        )
         .catch(reject);
     });
   }
