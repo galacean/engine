@@ -48,12 +48,12 @@ export class PhysXPhysics {
    * @returns Promise object
    */
   public static initialize(runtimeMode: PhysXRuntimeMode = PhysXRuntimeMode.Auto): Promise<void> {
-    const scriptPromise = new Promise((resolve) => {
+    const scriptPromise = new Promise((resolve, reject) => {
       const script = document.createElement("script");
       document.body.appendChild(script);
       script.async = true;
       script.onload = resolve;
-
+      script.onerror = reject;
       if (runtimeMode == PhysXRuntimeMode.Auto) {
         const supported = (() => {
           try {
@@ -81,14 +81,18 @@ export class PhysXPhysics {
       }
     });
 
-    return new Promise((resolve) => {
-      scriptPromise.then(() => {
-        (<any>window).PHYSX().then((PHYSX) => {
-          PhysXPhysics._init(PHYSX);
-          console.log("PhysX loaded.");
-          resolve();
-        });
-      });
+    return new Promise((resolve, reject) => {
+      scriptPromise
+        .then(
+          () =>
+            (<any>window).PHYSX().then((PHYSX) => {
+              PhysXPhysics._init(PHYSX);
+              console.log("PhysX loaded.");
+              resolve();
+            }, reject),
+          reject
+        )
+        .catch(reject);
     });
   }
 
