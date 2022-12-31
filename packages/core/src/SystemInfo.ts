@@ -50,9 +50,6 @@ export class SystemInfo {
           this.operatingSystem = v ? `Android ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "Android";
           break;
       }
-
-      alert(this.platform);
-      alert(this.operatingSystem);
     }
   }
 }
