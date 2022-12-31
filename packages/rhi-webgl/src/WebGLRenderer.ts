@@ -122,7 +122,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     options._forceFlush = initializeOptions?._forceFlush ?? false;
 
     if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
-      const version = SystemInfo.operatingSystem.match(/?(\d+)?.?(\d+)?.?(\d+)?/);
+      const version = SystemInfo.operatingSystem.match(/(\d+).?(\d+)?.?(\d+)?/);
       if (version) {
         const majorVersion = parseInt(version[1]);
         const minorVersion = parseInt(version[2]);
