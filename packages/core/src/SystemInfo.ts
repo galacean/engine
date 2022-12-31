@@ -38,18 +38,21 @@ export class SystemInfo {
       let v: RegExpMatchArray;
       switch (SystemInfo.platform) {
         case Platform.IPhone:
-          v = userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
-          this.operatingSystem = `iPhone OS ${v[1]}.${v[2]}.${v[3] || 0}`;
+          v = userAgent.match(/OS (\d+)_?(\d+)?_?(\d+)?/);
+          this.operatingSystem = v ? `iPhone OS ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "iPhone OS";
           break;
         case Platform.IPad:
-          v = userAgent.match(/OS (\d+)_(\d+)_?(\d+)?/);
-          this.operatingSystem = `iPad OS ${v[1]}.${v[2]}.${v[3] || 0}`;
+          v = userAgent.match(/OS (\d+)_?(\d+)?_?(\d+)?/);
+          this.operatingSystem = v ? `iPad OS ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "iPad OS";
           break;
         case Platform.Android:
-          v = userAgent.match(/Android (\d+).(\d+).(\d+)/);
-          this.operatingSystem = `Android ${v[1]}.${v[2]}.${v[3]}`;
+          v = userAgent.match(/Android (\d+).?(\d+)?.?(\d+)?/);
+          this.operatingSystem = v ? `Android ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "Android";
           break;
       }
+
+      alert(this.platform);
+      alert(this.operatingSystem);
     }
   }
 }
