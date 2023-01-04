@@ -18,9 +18,13 @@ export abstract class Mesh extends RefObject {
   /** Name. */
   name: string;
 
+  /** @internal */
   _vertexElementMap: Record<string, VertexElement> = {};
+  /** @internal */
   _glIndexType: number;
+  /** @internal */
   _glIndexByteCount: number;
+  /** @internal */
   _platformPrimitive: IPlatformPrimitive;
 
   /** @internal */
@@ -149,6 +153,16 @@ export abstract class Mesh extends RefObject {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
+    this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+  }
+
+  /**
+   * @internal
+   */
+  _insertVertexElement(i: number, element: VertexElement): void {
+    const { semantic } = element;
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.splice(i, 0, element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
   }
 

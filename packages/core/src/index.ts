@@ -1,3 +1,4 @@
+export { Platform } from "./Platform";
 export { Engine } from "./Engine";
 export { SystemInfo } from "./SystemInfo";
 export type { Canvas } from "./Canvas";

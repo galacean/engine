@@ -388,10 +388,9 @@ export class Scene extends EngineObject {
     }
 
     if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
-      shaderData.enableMacro("CASCADED_SHADOW_MAP");
-      this.shaderData.enableMacro("SHADOW_MODE", this._sunLight.shadowType.toString());
+      shaderData.enableMacro("SHADOW_TYPE", this._sunLight.shadowType.toString());
     } else {
-      shaderData.disableMacro("CASCADED_SHADOW_MAP");
+      shaderData.disableMacro("SHADOW_TYPE");
     }
 
     // union scene and camera macro.

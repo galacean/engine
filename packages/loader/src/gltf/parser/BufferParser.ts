@@ -1,44 +1,34 @@
-import { AssetType } from "@oasis-engine/core";
+import { AssetPromise, request } from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
 import { IBuffer, IGLTF } from "../Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
 export class BufferParser extends Parser {
-  parse(context: ParserContext): Promise<void> {
+  parse(context: ParserContext): AssetPromise<void> {
     const glTFResource = context.glTFResource;
-    const { url, engine } = glTFResource;
+    const { url } = glTFResource;
 
     if (this._isGLB(url)) {
-      return engine.resourceManager
-        .load<ArrayBuffer>({
-          url,
-          type: AssetType.Buffer
-        })
+      return request<ArrayBuffer>(url, { type: "arraybuffer" })
         .then(GLTFUtil.parseGLB)
         .then(({ gltf, buffers }) => {
-          glTFResource.gltf = gltf;
-          glTFResource.buffers = buffers;
+          context.gltf = gltf;
+          context.buffers = buffers;
         });
     } else {
-      return engine.resourceManager
-        .load<IGLTF>({
-          url,
-          type: AssetType.JSON
-        })
-        .then((gltf: IGLTF) => {
-          glTFResource.gltf = gltf;
-          return Promise.all(
-            gltf.buffers.map((buffer: IBuffer) => {
-              return engine.resourceManager.load<ArrayBuffer>({
-                type: AssetType.Buffer,
-                url: GLTFUtil.parseRelativeUrl(url, buffer.uri)
-              });
-            })
-          ).then((buffers: ArrayBuffer[]) => {
-            glTFResource.buffers = buffers;
-          });
+      return request(url, {
+        type: "json"
+      }).then((gltf: IGLTF) => {
+        context.gltf = gltf;
+        return Promise.all(
+          gltf.buffers.map((buffer: IBuffer) => {
+            return request<ArrayBuffer>(GLTFUtil.parseRelativeUrl(url, buffer.uri), { type: "arraybuffer" });
+          })
+        ).then((buffers: ArrayBuffer[]) => {
+          context.buffers = buffers;
         });
+      });
     }
   }
 

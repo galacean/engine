@@ -18,22 +18,32 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempRect: Rect = new Rect();
   private _tempVec2: Vector2 = new Vector2();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
-    return new AssetPromise((resolve, reject) => {
-      this.request<AtlasConfig>(item.url, {
+    return new AssetPromise((resolve, reject, _, onCancel) => {
+      const chainPromises = [];
+      onCancel(() => {
+        for (let i = 0; i < chainPromises.length; i++) {
+          chainPromises[i].cancel();
+        }
+      });
+      const configPromise = this.request<AtlasConfig>(item.url, {
         ...item,
         type: "json"
-      })
+      });
+      chainPromises.push(configPromise);
+      configPromise
         .then((atlasData) => {
           const { atlasItems, format } = atlasData;
           const atlasItemsLen = atlasItems.length;
-          Promise.all(
+          const imagePromises = AssetPromise.all(
             atlasItems.map(({ img }) =>
               this.request<HTMLImageElement>(GLTFUtil.parseRelativeUrl(item.url, img), {
                 ...item,
                 type: "image"
               })
             )
-          ).then((imgs) => {
+          );
+          chainPromises.push(imagePromises);
+          imagePromises.then((imgs) => {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object.
             const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;

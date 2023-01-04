@@ -24,7 +24,7 @@ class MaterialLoader extends Loader<string> {
         type: "json"
       }).then((json: { [key: string]: any }) => {
         const engine = resourceManager.engine;
-        const { shader, shaderData, macros, renderState } = json;
+        const { name, shader, shaderData, macros, renderState } = json;
 
         let material;
         switch (shader) {
@@ -46,6 +46,7 @@ class MaterialLoader extends Loader<string> {
             material = new PBRBaseMaterial(engine, Shader.find("bake-pbr"));
             break;
         }
+        material.name = name;
 
         const texturePromises = new Array<Promise<Texture2D | void>>();
         const materialShaderData = material.shaderData;
