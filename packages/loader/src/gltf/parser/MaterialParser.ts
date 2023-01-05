@@ -17,7 +17,7 @@ export class MaterialParser extends Parser {
   /**
    * @internal
    */
-  static _checkTextureTransform(texture: ITextureInfo, textureName: string): void {
+  static _checkOtherTextureTransform(texture: ITextureInfo, textureName: string): void {
     if (texture.extensions?.KHR_texture_transform) {
       Logger.warn(`${textureName} texture always use the KHR_texture_transform of the base texture.`);
     }
@@ -101,7 +101,7 @@ export class MaterialParser extends Parser {
           m.roughness = roughnessFactor ?? 1;
           if (metallicRoughnessTexture) {
             m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
-            MaterialParser._checkTextureTransform(metallicRoughnessTexture, "Metallic roughness");
+            MaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Metallic roughness");
           }
         }
       }
@@ -111,7 +111,7 @@ export class MaterialParser extends Parser {
 
         if (emissiveTexture) {
           m.emissiveTexture = textures[emissiveTexture.index];
-          MaterialParser._checkTextureTransform(emissiveTexture, "Emissive");
+          MaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
         }
 
         if (emissiveFactor) {
@@ -125,7 +125,7 @@ export class MaterialParser extends Parser {
         if (normalTexture) {
           const { index, scale } = normalTexture;
           m.normalTexture = textures[index];
-          MaterialParser._checkTextureTransform(normalTexture, "Normal");
+          MaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
 
           if (scale !== undefined) {
             m.normalTextureIntensity = scale;
@@ -135,7 +135,7 @@ export class MaterialParser extends Parser {
         if (occlusionTexture) {
           const { index, strength, texCoord } = occlusionTexture;
           m.occlusionTexture = textures[index];
-          MaterialParser._checkTextureTransform(occlusionTexture, "Occlusion");
+          MaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
 
           if (strength !== undefined) {
             m.occlusionTextureIntensity = strength;

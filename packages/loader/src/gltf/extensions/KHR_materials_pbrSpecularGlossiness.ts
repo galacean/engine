@@ -44,7 +44,7 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (specularGlossinessTexture) {
       material.specularGlossinessTexture = textures[specularGlossinessTexture.index];
-      MaterialParser._checkTextureTransform(specularGlossinessTexture, "Specular glossiness");
+      MaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
     }
 
     return material;
