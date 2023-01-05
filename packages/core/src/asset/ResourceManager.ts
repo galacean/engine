@@ -252,8 +252,8 @@ export class ResourceManager {
           delete loadingPromises[assetBaseURL];
         })
         .catch((error: Error) => {
-          Promise.reject(error);
           delete loadingPromises[assetBaseURL];
+          return Promise.reject(error);
         });
       return promise;
     } else {
@@ -272,8 +272,8 @@ export class ResourceManager {
             }
           })
           .catch((err: Error) => {
-            Promise.reject(err);
             for (let k in promise) delete loadingPromises[k];
+            return Promise.reject(err);
           });
       }
 
