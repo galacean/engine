@@ -80,7 +80,7 @@ export class MaterialParser extends Parser {
         }
         if (baseColorTexture) {
           material.baseTexture = textures[baseColorTexture.index];
-          const KHR_texture_transform = baseColorTexture.extensions.KHR_texture_transform;
+          const KHR_texture_transform = baseColorTexture.extensions?.KHR_texture_transform;
           if (KHR_texture_transform) {
             Parser.parseEngineResource("KHR_texture_transform", KHR_texture_transform, material, context);
           }
@@ -92,7 +92,7 @@ export class MaterialParser extends Parser {
           m.roughness = roughnessFactor ?? 1;
           if (metallicRoughnessTexture) {
             m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
-            if (metallicRoughnessTexture.extensions.KHR_texture_transform) {
+            if (metallicRoughnessTexture.extensions?.KHR_texture_transform) {
               Logger.warn("Metallic roughness texture always use the KHR_texture_transform of the base texture.");
             }
           }
@@ -104,7 +104,7 @@ export class MaterialParser extends Parser {
 
         if (emissiveTexture) {
           m.emissiveTexture = textures[emissiveTexture.index];
-          if (emissiveTexture.extensions.KHR_texture_transform) {
+          if (emissiveTexture.extensions?.KHR_texture_transform) {
             Logger.warn("Emissive texture always use the KHR_texture_transform of the base texture.");
           }
         }
@@ -120,7 +120,7 @@ export class MaterialParser extends Parser {
         if (normalTexture) {
           const { index, scale } = normalTexture;
           m.normalTexture = textures[index];
-          if (normalTexture.extensions.KHR_texture_transform) {
+          if (normalTexture.extensions?.KHR_texture_transform) {
             Logger.warn("Normal texture always use the KHR_texture_transform of the base texture.");
           }
 
@@ -132,7 +132,7 @@ export class MaterialParser extends Parser {
         if (occlusionTexture) {
           const { index, strength, texCoord } = occlusionTexture;
           m.occlusionTexture = textures[index];
-          if (occlusionTexture.extensions.KHR_texture_transform) {
+          if (occlusionTexture.extensions?.KHR_texture_transform) {
             Logger.warn("Occlusion texture always use the KHR_texture_transform of the base texture.");
           }
           if (strength !== undefined) {

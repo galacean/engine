@@ -23,7 +23,7 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (diffuseTexture) {
       material.baseTexture = textures[diffuseTexture.index];
-      const KHR_texture_transform = diffuseTexture.extensions.KHR_texture_transform;
+      const KHR_texture_transform = diffuseTexture.extensions?.KHR_texture_transform;
       if (KHR_texture_transform) {
         Parser.parseEngineResource("KHR_texture_transform", KHR_texture_transform, material, context);
       }
@@ -43,7 +43,7 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (specularGlossinessTexture) {
       material.specularGlossinessTexture = textures[specularGlossinessTexture.index];
-      if (specularGlossinessTexture.extensions.KHR_texture_transform) {
+      if (specularGlossinessTexture.extensions?.KHR_texture_transform) {
         Logger.warn("Specular glossiness texture always use the KHR_texture_transform of the base texture.");
       }
     }

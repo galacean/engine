@@ -21,19 +21,19 @@ class KHR_materials_clearcoat extends ExtensionParser {
 
     if (clearcoatTexture) {
       material.clearCoatTexture = textures[clearcoatTexture.index];
-      if (clearcoatTexture.extensions.KHR_texture_transform) {
+      if (clearcoatTexture.extensions?.KHR_texture_transform) {
         Logger.warn("Clearcoat texture always use the KHR_texture_transform of the base texture.");
       }
     }
     if (clearcoatRoughnessTexture) {
       material.clearCoatRoughnessTexture = textures[clearcoatRoughnessTexture.index];
-      if (clearcoatRoughnessTexture.extensions.KHR_texture_transform) {
+      if (clearcoatRoughnessTexture.extensions?.KHR_texture_transform) {
         Logger.warn("Clearcoat roughness texture always use the KHR_texture_transform of the base texture.");
       }
     }
     if (clearcoatNormalTexture) {
       material.clearCoatNormalTexture = textures[clearcoatNormalTexture.index];
-      if (clearcoatNormalTexture.extensions.KHR_texture_transform) {
+      if (clearcoatNormalTexture.extensions?.KHR_texture_transform) {
         Logger.warn("Clearcoat normal texture always use the KHR_texture_transform of the base texture.");
       }
     }
