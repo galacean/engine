@@ -62,12 +62,11 @@ class SceneLoader extends Loader<Scene> {
               }
               break;
           }
-          Promise.all([ambientLightPromise, backgroundPromise]).then(() => {
+          return Promise.all([ambientLightPromise, backgroundPromise]).then(() => {
             resolve(scene);
           });
         });
-      });
-      //
+      }).catch(reject);
     });
   }
 }
