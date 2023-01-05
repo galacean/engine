@@ -1,6 +1,7 @@
 import {
   AnimationClip,
   Camera,
+  Engine,
   EngineObject,
   Entity,
   Light,
@@ -39,6 +40,11 @@ export class GLTFResource extends EngineObject {
   defaultSceneRoot: Entity;
   /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
   variants?: { renderer: Renderer; material: Material; variants: string[] }[];
+
+  constructor(engine: Engine, url: string) {
+    super(engine);
+    this.url = url;
+  }
 
   /**
    * @override
