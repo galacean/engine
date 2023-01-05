@@ -43,7 +43,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
             )
           );
           chainPromises.push(imagePromises);
-          imagePromises.then((imgs) => {
+          return imagePromises.then((imgs) => {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object.
             const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;
