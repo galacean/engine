@@ -8,6 +8,7 @@ export class EventDispatcher {
   @ignoreClone
   private _evts = Object.create(null);
   private _evtCount = 0;
+  private _dispatchingListeners = [];
 
   /**
    * Determine whether there is event listening.
@@ -54,14 +55,26 @@ export class EventDispatcher {
     const listeners = this._evts[event];
 
     if (listeners.fn) {
-      if (listeners.once) this.removeEventListener(event, listeners.fn);
+      if (listeners.once) this.off(event, listeners.fn);
       listeners.fn(data);
     } else {
       const l = listeners.length;
+
+      // cloning list to avoid structure breaking
+      const _dispatchingListeners = this._dispatchingListeners;
       for (let i = 0; i < l; i++) {
-        if (listeners[i].once) this.removeEventListener(event, listeners[i].fn);
-        listeners[i].fn(data);
+        _dispatchingListeners[i] = listeners[i];
       }
+
+      for (let i = 0; i < l; i++) {
+        if (!_dispatchingListeners[i].destroyed) {
+          if (_dispatchingListeners[i].once) this.off(event, _dispatchingListeners[i].fn);
+          _dispatchingListeners[i].fn(data);
+        }
+      }
+
+      // remove hooked function to avoid gc problem
+      _dispatchingListeners.length = 0;
     }
     return true;
   }
@@ -127,6 +140,8 @@ export class EventDispatcher {
       const length = listeners.length;
       for (let i = length - 1; i >= 0; i--) {
         if (listeners[i].fn === fn) {
+          // mark as destroyed
+          listeners[i].destroyed = true;
           listeners.splice(i, 1);
         }
       }
