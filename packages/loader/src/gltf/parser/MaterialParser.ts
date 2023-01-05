@@ -105,7 +105,7 @@ export class MaterialParser extends Parser {
         if (emissiveTexture) {
           m.emissiveTexture = textures[emissiveTexture.index];
           if (emissiveTexture.extensions.KHR_texture_transform) {
-            Logger.warn("Emissive texture, always use the KHR_texture_transform of the base texture.");
+            Logger.warn("Emissive texture always use the KHR_texture_transform of the base texture.");
           }
         }
 
