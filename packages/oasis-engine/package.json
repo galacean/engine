@@ -1,6 +1,6 @@
 {
   "name": "oasis-engine",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,9 +18,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.8.2",
-    "@oasis-engine/loader": "0.8.2",
-    "@oasis-engine/math": "0.8.2",
-    "@oasis-engine/rhi-webgl": "0.8.2"
+    "@oasis-engine/core": "0.8.3",
+    "@oasis-engine/loader": "0.8.3",
+    "@oasis-engine/math": "0.8.3",
+    "@oasis-engine/rhi-webgl": "0.8.3"
   }
 }
