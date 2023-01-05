@@ -1,7 +1,7 @@
 import { EventDispatcher } from "@oasis-engine/core";
 import chai, { expect } from "chai";
 
-describe.only("EventDispatcher test", function () {
+describe("EventDispatcher test", function () {
   it("has event", () => {
     const eventDispatcher = new EventDispatcher();
     expect(eventDispatcher.hasEvent("test-event")).to.be.false;
