@@ -1,4 +1,5 @@
-import { Logger, PBRMaterial } from "@oasis-engine/core";
+import { PBRMaterial } from "@oasis-engine/core";
+import { MaterialParser } from "../parser/MaterialParser";
 import { registerExtension } from "../parser/Parser";
 import { ParserContext } from "../parser/ParserContext";
 import { ExtensionParser } from "./ExtensionParser";
@@ -21,21 +22,15 @@ class KHR_materials_clearcoat extends ExtensionParser {
 
     if (clearcoatTexture) {
       material.clearCoatTexture = textures[clearcoatTexture.index];
-      if (clearcoatTexture.extensions?.KHR_texture_transform) {
-        Logger.warn("Clearcoat texture always use the KHR_texture_transform of the base texture.");
-      }
+      MaterialParser._checkTextureTransform(clearcoatTexture, "Clear coat");
     }
     if (clearcoatRoughnessTexture) {
       material.clearCoatRoughnessTexture = textures[clearcoatRoughnessTexture.index];
-      if (clearcoatRoughnessTexture.extensions?.KHR_texture_transform) {
-        Logger.warn("Clearcoat roughness texture always use the KHR_texture_transform of the base texture.");
-      }
+      MaterialParser._checkTextureTransform(clearcoatRoughnessTexture, "Clear coat roughness");
     }
     if (clearcoatNormalTexture) {
       material.clearCoatNormalTexture = textures[clearcoatNormalTexture.index];
-      if (clearcoatNormalTexture.extensions?.KHR_texture_transform) {
-        Logger.warn("Clearcoat normal texture always use the KHR_texture_transform of the base texture.");
-      }
+      MaterialParser._checkTextureTransform(clearcoatNormalTexture, "Clear coat normal");
     }
   }
 }
