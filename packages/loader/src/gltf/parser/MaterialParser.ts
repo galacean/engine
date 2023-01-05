@@ -80,12 +80,10 @@ export class MaterialParser extends Parser {
         }
         if (baseColorTexture) {
           material.baseTexture = textures[baseColorTexture.index];
-          Parser.parseEngineResource(
-            "KHR_texture_transform",
-            baseColorTexture.extensions.KHR_texture_transform,
-            material,
-            context
-          );
+          const KHR_texture_transform = baseColorTexture.extensions.KHR_texture_transform;
+          if (KHR_texture_transform) {
+            Parser.parseEngineResource("KHR_texture_transform", KHR_texture_transform, material, context);
+          }
         }
 
         if (!KHR_materials_unlit && !KHR_materials_pbrSpecularGlossiness) {
