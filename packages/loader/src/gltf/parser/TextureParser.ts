@@ -54,10 +54,12 @@ export class TextureParser extends Parser {
             });
           }
         })
-      ).then((textures: Texture2D[]) => {
-        glTFResource.textures = textures;
-        texturesPromiseInfo.resolve(textures);
-      });
+      )
+        .then((textures: Texture2D[]) => {
+          glTFResource.textures = textures;
+          texturesPromiseInfo.resolve(textures);
+        })
+        .catch(texturesPromiseInfo.reject);
       return texturesPromiseInfo.promise;
     }
   }
