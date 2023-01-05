@@ -9,43 +9,11 @@ import {
   UnlitMaterial
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
-import { IKHRTextureTransform } from "../extensions/Schema";
 import { MaterialAlphaMode } from "../Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
 export class MaterialParser extends Parser {
-  /**
-   * @internal
-   */
-  static _checkTextureTransform(
-    baseTextureTransformDef: IKHRTextureTransform,
-    otherTextureTransformDef: IKHRTextureTransform
-  ): void {
-    if (!baseTextureTransformDef) {
-      return;
-    }
-    const baseOffset = baseTextureTransformDef.offset;
-    const otherOffset = otherTextureTransformDef.offset;
-    if (baseOffset && otherOffset) {
-      if (baseOffset[0] !== otherOffset[0] || baseOffset[1] !== otherOffset[1]) {
-        Logger.warn(
-          "Only support base texture transform, the offset of other textures is different from the base texture."
-        );
-      }
-    }
-
-    const baseScale = baseTextureTransformDef.scale;
-    const otherScale = otherTextureTransformDef.scale;
-    if (baseScale && otherScale) {
-      if (baseScale[0] !== otherScale[0] || baseScale[1] !== otherScale[1]) {
-        Logger.warn(
-          "Only support base texture transform, the scale of other textures is different from the base texture."
-        );
-      }
-    }
-  }
-
   parse(context: ParserContext): AssetPromise<Material[]> {
     const { gltf, glTFResource } = context;
 
