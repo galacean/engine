@@ -101,7 +101,7 @@ export class MaterialParser extends Parser {
           m.roughness = roughnessFactor ?? 1;
           if (metallicRoughnessTexture) {
             m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
-            MaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Metallic roughness");
+            MaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
           }
         }
       }
