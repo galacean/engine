@@ -1,5 +1,4 @@
-import { PBRMaterial } from "@oasis-engine/core";
-import { MaterialParser } from "../parser/MaterialParser";
+import { Logger, PBRMaterial } from "@oasis-engine/core";
 import { registerExtension } from "../parser/Parser";
 import { ParserContext } from "../parser/ParserContext";
 import { ExtensionParser } from "./ExtensionParser";
@@ -22,15 +21,21 @@ class KHR_materials_clearcoat extends ExtensionParser {
 
     if (clearcoatTexture) {
       material.clearCoatTexture = textures[clearcoatTexture.index];
-      MaterialParser._parseTextureTransform(material, clearcoatTexture.extensions, context);
+      if (clearcoatTexture.extensions.KHR_texture_transform) {
+        Logger.warn("KHR_texture_transform is only supports base texture, not support clearcoat texture.");
+      }
     }
     if (clearcoatRoughnessTexture) {
       material.clearCoatRoughnessTexture = textures[clearcoatRoughnessTexture.index];
-      MaterialParser._parseTextureTransform(material, clearcoatRoughnessTexture.extensions, context);
+      if (clearcoatRoughnessTexture.extensions.KHR_texture_transform) {
+        Logger.warn("KHR_texture_transform is only supports base texture, not support clearcoat roughness texture.");
+      }
     }
     if (clearcoatNormalTexture) {
       material.clearCoatNormalTexture = textures[clearcoatNormalTexture.index];
-      MaterialParser._parseTextureTransform(material, clearcoatNormalTexture.extensions, context);
+      if (clearcoatNormalTexture.extensions.KHR_texture_transform) {
+        Logger.warn("KHR_texture_transform is only supports base texture, not support clearcoat normal texture.");
+      }
     }
   }
 }
