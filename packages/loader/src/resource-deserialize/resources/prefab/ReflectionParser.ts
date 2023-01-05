@@ -120,7 +120,7 @@ export class ReflectionParser {
       }
     }
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       Promise.all(promises).then(() => {
         const handle = this.customParseComponentHandles[instance.constructor.name];
         if (handle) {
@@ -130,7 +130,7 @@ export class ReflectionParser {
         } else {
           resolve(instance);
         }
-      });
+      }).catch(reject)
     });
   }
 
