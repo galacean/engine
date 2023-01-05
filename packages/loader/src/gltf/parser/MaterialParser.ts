@@ -127,9 +127,7 @@ export class MaterialParser extends Parser {
           if (metallicRoughnessTexture) {
             m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
             if (metallicRoughnessTexture.extensions.KHR_texture_transform) {
-              Logger.warn(
-                "KHR_texture_transform is only supports base texture, not support metallic roughness texture."
-              );
+              Logger.warn("Metallic roughness texture always use the KHR_texture_transform of the base texture.");
             }
           }
         }
@@ -141,7 +139,7 @@ export class MaterialParser extends Parser {
         if (emissiveTexture) {
           m.emissiveTexture = textures[emissiveTexture.index];
           if (emissiveTexture.extensions.KHR_texture_transform) {
-            Logger.warn("KHR_texture_transform is only supports base texture, not support emissive texture.");
+            Logger.warn("Emissive texture, always use the KHR_texture_transform of the base texture.");
           }
         }
 
@@ -157,7 +155,7 @@ export class MaterialParser extends Parser {
           const { index, scale } = normalTexture;
           m.normalTexture = textures[index];
           if (normalTexture.extensions.KHR_texture_transform) {
-            Logger.warn("KHR_texture_transform is only supports base texture, not support normal texture.");
+            Logger.warn("Normal texture always use the KHR_texture_transform of the base texture.");
           }
 
           if (scale !== undefined) {
@@ -169,7 +167,7 @@ export class MaterialParser extends Parser {
           const { index, strength, texCoord } = occlusionTexture;
           m.occlusionTexture = textures[index];
           if (occlusionTexture.extensions.KHR_texture_transform) {
-            Logger.warn("KHR_texture_transform is only supports base texture, not support occlusion texture.");
+            Logger.warn("Occlusion texture always use the KHR_texture_transform of the base texture.");
           }
           if (strength !== undefined) {
             m.occlusionTextureIntensity = strength;

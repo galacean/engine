@@ -1,6 +1,5 @@
 import { Logger, PBRSpecularMaterial } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
-import { MaterialParser } from "../parser/MaterialParser";
 import { Parser, registerExtension } from "../parser/Parser";
 import { ParserContext } from "../parser/ParserContext";
 import { ExtensionParser } from "./ExtensionParser";
@@ -24,7 +23,12 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (diffuseTexture) {
       material.baseTexture = textures[diffuseTexture.index];
-      Parser.parseEngineResource("KHR_texture_transform", diffuseTexture.extensions.KHR_texture_transform, material, context);
+      Parser.parseEngineResource(
+        "KHR_texture_transform",
+        diffuseTexture.extensions.KHR_texture_transform,
+        material,
+        context
+      );
     }
 
     if (specularFactor) {
@@ -42,7 +46,7 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
     if (specularGlossinessTexture) {
       material.specularGlossinessTexture = textures[specularGlossinessTexture.index];
       if (specularGlossinessTexture.extensions.KHR_texture_transform) {
-        Logger.warn("KHR_texture_transform is only supports base texture, not support specular glossiness texture.");
+        Logger.warn("Specular glossiness texture always use the KHR_texture_transform of the base texture.");
       }
     }
 
