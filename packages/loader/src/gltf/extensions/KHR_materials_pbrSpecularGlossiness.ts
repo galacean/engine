@@ -23,12 +23,10 @@ class KHR_materials_pbrSpecularGlossiness extends ExtensionParser {
 
     if (diffuseTexture) {
       material.baseTexture = textures[diffuseTexture.index];
-      Parser.parseEngineResource(
-        "KHR_texture_transform",
-        diffuseTexture.extensions.KHR_texture_transform,
-        material,
-        context
-      );
+      const KHR_texture_transform = diffuseTexture.extensions.KHR_texture_transform;
+      if (KHR_texture_transform) {
+        Parser.parseEngineResource("KHR_texture_transform", KHR_texture_transform, material, context);
+      }
     }
 
     if (specularFactor) {
