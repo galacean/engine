@@ -35,12 +35,8 @@ export class EventDispatcher {
     const listeners = this._events[event];
 
     if (!listeners) return 0;
-
-    if (Array.isArray(listeners)) {
-      return listeners.length;
-    } else {
-      return 1;
-    }
+    if (Array.isArray(listeners)) return listeners.length;
+    return 1;
   }
 
   /**
