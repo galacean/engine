@@ -9,6 +9,8 @@ import { RenderElement } from "./RenderElement";
 export class SpriteElement extends RenderElement {
   renderData: RenderData2D;
   texture: Texture2D;
+  /** for canvas 2d. */
+  dataIndex: number;
 
   constructor() {
     super();
@@ -21,7 +23,8 @@ export class SpriteElement extends RenderElement {
     material: Material,
     texture: Texture2D,
     renderState: RenderState,
-    shaderPass: ShaderPass
+    shaderPass: ShaderPass,
+    dataIndex: number = 0
   ): void {
     this.component = component;
     this.renderData = renderDate;
@@ -29,5 +32,6 @@ export class SpriteElement extends RenderElement {
     this.texture = texture;
     this.renderState = renderState;
     this.shaderPass = shaderPass;
+    this.dataIndex = dataIndex;
   }
 }

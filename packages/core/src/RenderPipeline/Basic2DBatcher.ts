@@ -42,15 +42,7 @@ export abstract class Basic2DBatcher {
 
   constructor(engine: Engine) {
     this._engine = engine;
-
-    const { MAX_VERTEX_COUNT } = Basic2DBatcher;
-    this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
-    this._indices = new Uint16Array(MAX_VERTEX_COUNT * 3);
-
-    const { _meshes, _meshCount } = this;
-    for (let i = 0; i < _meshCount; i++) {
-      _meshes[i] = this._createMesh(engine, i);
-    }
+    this._initMeshes(engine);
   }
 
   drawElement(
@@ -65,6 +57,20 @@ export abstract class Basic2DBatcher {
       }
     } else {
       this._drawSubElement(<SpriteMaskElement | SpriteElement>element, camera, replaceMaterial);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _initMeshes(engine: Engine) {
+    const { MAX_VERTEX_COUNT } = Basic2DBatcher;
+    this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
+    this._indices = new Uint16Array(MAX_VERTEX_COUNT * 3);
+
+    const { _meshes, _meshCount } = this;
+    for (let i = 0; i < _meshCount; i++) {
+      _meshes[i] = this._createMesh(engine, i);
     }
   }
 

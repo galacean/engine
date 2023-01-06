@@ -246,7 +246,10 @@ export class TextUtils {
     return str;
   }
 
-  private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
+  /**
+   * @internal
+   */
+  static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
     const measureString = char || TextUtils._measureString;
@@ -327,7 +330,10 @@ export class TextUtils {
     }
   }
 
-  private static _getCharInfo(char: string, fontString: string, font: SubFont): CharInfo {
+  /**
+   * @internal
+   */
+  static _getCharInfo(char: string, fontString: string, font: SubFont): CharInfo {
     let charInfo = font._getCharInfo(char);
     if (!charInfo) {
       charInfo = TextUtils.measureChar(char, fontString);
