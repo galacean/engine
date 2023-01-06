@@ -6,8 +6,8 @@ import { Event } from "./Event";
  */
 export class EventDispatcher {
   @ignoreClone
-  private _evts = Object.create(null);
-  private _evtCount = 0;
+  private _evts: Record<string, EventData | EventData[]> = Object.create(null);
+  private _evtCount: number = 0;
   private _dispatchingListeners = [];
 
   /**
@@ -37,8 +37,10 @@ export class EventDispatcher {
     const listeners = this._evts[event];
 
     if (!listeners) return 0;
-    if (listeners.fn) return 1;
-    return listeners.length;
+
+    if ((<EventData>listeners).fn) return 1;
+
+    return (<EventData[]>listeners).length;
   }
 
   /**
@@ -54,27 +56,29 @@ export class EventDispatcher {
 
     const listeners = this._evts[event];
 
-    if (listeners.fn) {
+    if (!Array.isArray(listeners)) {
       if (listeners.once) this.off(event, listeners.fn);
       listeners.fn(data);
     } else {
       const l = listeners.length;
 
       // cloning list to avoid structure breaking
-      const _dispatchingListeners = this._dispatchingListeners;
+      const dispatchingListeners = this._dispatchingListeners;
+      dispatchingListeners.length = l;
       for (let i = 0; i < l; i++) {
-        _dispatchingListeners[i] = listeners[i];
+        dispatchingListeners[i] = listeners[i];
       }
 
       for (let i = 0; i < l; i++) {
-        if (!_dispatchingListeners[i].destroyed) {
-          if (_dispatchingListeners[i].once) this.off(event, _dispatchingListeners[i].fn);
-          _dispatchingListeners[i].fn(data);
+        const listener = dispatchingListeners[i];
+        if (!listener.destroyed) {
+          if (listener.once) this.off(event, listener.fn);
+          listener.fn(data);
         }
       }
 
       // remove hooked function to avoid gc problem
-      _dispatchingListeners.length = 0;
+      dispatchingListeners.length = 0;
     }
     return true;
   }
@@ -191,4 +195,9 @@ export class EventDispatcher {
       delete this._evts[event];
     }
   }
+}
+
+interface EventData {
+  fn: Function;
+  once: boolean;
 }
