@@ -108,7 +108,7 @@ export class EventDispatcher {
    * @returns this
    */
   addEventListener(event: string, fn: Function, once?: boolean): EventDispatcher {
-    const listener = { fn, once, destroyed: false };
+    const listener = { fn, once };
     const events = this._events;
     const element = events[event];
 
@@ -197,6 +197,6 @@ export class EventDispatcher {
 
 interface EventData {
   fn: Function;
-  once: boolean;
-  destroyed: boolean;
+  once?: boolean;
+  destroyed?: boolean;
 }

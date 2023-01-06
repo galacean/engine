@@ -61,4 +61,15 @@ describe("EventDispatcher test", function () {
     expect(offFuncIn).to.have.been.called.exactly(0);
     expect(offFuncCall).to.have.been.called.exactly(1);
   });
+
+  it("off event", () => {
+    const eventDispatcher = new EventDispatcher();
+    const eventOn = chai.spy(() => {});
+    const eventOff = chai.spy(() => {});
+    eventDispatcher.on("test-event", eventOn);
+    eventDispatcher.off("test-event", eventOff);
+    eventDispatcher.dispatch("test-event");
+    expect(eventOn).to.have.been.called.exactly(1);
+    expect(eventDispatcher.listenerCount("test-event")).to.eql(1);
+  });
 });
