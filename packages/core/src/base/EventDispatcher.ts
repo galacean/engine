@@ -140,8 +140,7 @@ export class EventDispatcher {
     if (!isArray && listeners.fn === fn) {
       this._clearEvent(event);
     } else if (isArray) {
-      const length = listeners.length;
-      for (let i = length - 1; i >= 0; i--) {
+      for (let i = listeners.length - 1; i >= 0; i--) {
         if (listeners[i].fn === fn) {
           // mark as destroyed
           listeners[i].destroyed = true;
