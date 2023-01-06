@@ -99,9 +99,9 @@ export class Transform extends Component {
       //@ts-ignore
       rotation._onValueChanged = null;
       this._rotationQuaternion.toEuler(rotation);
+      rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
       //@ts-ignore
       rotation._onValueChanged = this._onRotationChanged;
-      rotation.scale(MathUtil.radToDegreeFactor); // radians to degrees
       this._setDirtyFlagFalse(TransformModifyFlags.LocalEuler);
     }
 
@@ -252,11 +252,21 @@ export class Transform extends Component {
       this._localMatrix.copyFrom(value);
     }
 
+    // @ts-ignore
+    this._position._onValueChanged = this._rotationQuaternion._onValueChanged = this._scale._onValueChanged = null;
     this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
+    // @ts-ignore
+    this._position._onValueChanged = this._onPositionChanged;
+    // @ts-ignore
+    this._rotationQuaternion._onValueChanged = this._onRotationQuaternionChanged;
+    // @ts-ignore
+    this._scale._onValueChanged = this._onScaleChanged;
 
     this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
     this._updateAllWorldFlag();
+    this._updateWorldRotationFlag();
   }
 
   /**
