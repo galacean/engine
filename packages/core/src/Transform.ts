@@ -266,7 +266,6 @@ export class Transform extends Component {
     this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix);
     this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
     this._updateAllWorldFlag();
-    this._updateWorldRotationFlag();
   }
 
   /**
