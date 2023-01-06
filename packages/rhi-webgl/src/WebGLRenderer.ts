@@ -115,12 +115,13 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   constructor(initializeOptions: WebGLRendererOptions = {}) {
-    const options = <WebGLRendererOptions>{};
-    options.webGLMode = initializeOptions?.webGLMode ?? WebGLMode.Auto;
-    options.alpha = initializeOptions?.alpha ?? false;
-    options.stencil = initializeOptions?.stencil ?? true;
-    options._forceFlush = initializeOptions?._forceFlush ?? false;
-
+    const options = {
+      webGLMode: WebGLMode.Auto,
+      alpha: false,
+      stencil: true,
+      _forceFlush: false,
+      ...initializeOptions
+    };
     if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
       const version = SystemInfo.operatingSystem.match(/(\d+).?(\d+)?.?(\d+)?/);
       if (version) {
