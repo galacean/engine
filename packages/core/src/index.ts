@@ -30,6 +30,7 @@ export { RenderPass } from "./RenderPipeline/RenderPass";
 export { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
 export { SpriteElement } from "./RenderPipeline/SpriteElement";
 export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";
+export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 export * from "./base";
 
 export { Background } from "./Background";
