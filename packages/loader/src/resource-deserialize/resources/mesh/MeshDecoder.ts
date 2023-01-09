@@ -1,12 +1,13 @@
-import {
-  ModelMesh,
-  BlendShape} from "@oasis-engine/core";
+import { ModelMesh, BlendShape } from "@oasis-engine/core";
 import { decoder } from "../../utils/Decorator";
 import type { Engine } from "@oasis-engine/core";
 import type { BufferReader } from "../../utils/BufferReader";
 import { IEncodedModelMesh } from "./IModelMesh";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 
+/**
+ * @todo refactor 
+ */
 @decoder("Mesh")
 export class MeshDecoder {
   public static decode(engine: Engine, bufferReader: BufferReader): Promise<ModelMesh> {
@@ -14,6 +15,9 @@ export class MeshDecoder {
       const modelMesh = new ModelMesh(engine);
       const jsonDataString = bufferReader.nextStr();
       const encodedMeshData: IEncodedModelMesh = JSON.parse(jsonDataString);
+
+      // @ts-ignore Vector3 is not compatible with {x: number, y: number, z: number}.
+      encodedMeshData.bounds && modelMesh.bounds.copyFrom(encodedMeshData.bounds);
 
       const offset = Math.ceil(bufferReader.offset / 4) * 4;
 
@@ -173,9 +177,8 @@ export class MeshDecoder {
         }
         modelMesh.setIndices(indices);
       }
-      encodedMeshData.subMeshes.forEach((subMesh) => {
-        modelMesh.addSubMesh(subMesh);
-      });
+      // modelMesh.bounds.min.set()
+      encodedMeshData.subMeshes.forEach((subMesh) => modelMesh.addSubMesh(subMesh));
       modelMesh.uploadData(false);
       resolve(modelMesh);
     });
