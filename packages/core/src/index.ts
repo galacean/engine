@@ -29,6 +29,7 @@ export { RenderQueue } from "./RenderPipeline/RenderQueue";
 export { RenderPass } from "./RenderPipeline/RenderPass";
 export { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
 export { SpriteElement } from "./RenderPipeline/SpriteElement";
+export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";
 export * from "./base";
 
 export { Background } from "./Background";
