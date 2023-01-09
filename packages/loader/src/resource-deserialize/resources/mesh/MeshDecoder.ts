@@ -177,7 +177,7 @@ export class MeshDecoder {
         }
         modelMesh.setIndices(indices);
       }
-      // modelMesh.bounds.min.set()
+      
       encodedMeshData.subMeshes.forEach((subMesh) => modelMesh.addSubMesh(subMesh));
       modelMesh.uploadData(false);
       resolve(modelMesh);
