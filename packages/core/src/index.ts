@@ -29,8 +29,6 @@ export { RenderQueue } from "./RenderPipeline/RenderQueue";
 export { RenderPass } from "./RenderPipeline/RenderPass";
 export { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
 export { SpriteElement } from "./RenderPipeline/SpriteElement";
-export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";
-export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 export * from "./base";
 
 export { Background } from "./Background";
@@ -58,3 +56,7 @@ export * from "./Layer";
 export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
+
+// Export for canvas 2d.
+export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";
+export { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
