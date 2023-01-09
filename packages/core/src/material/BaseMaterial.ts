@@ -18,7 +18,7 @@ export class BaseMaterial extends Material {
   protected static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
   protected static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveTexture");
   protected static _emissiveTextureMacro: ShaderMacro = Shader.getMacroByName("EMISSIVETEXTURE");
-  protected static _transparentMacro: ShaderMacro = Shader.getMacroByName("TRANSPARENT");
+  protected static _transparentMacro: ShaderMacro = Shader.getMacroByName("OASIS_TRANSPARENT");
 
   private static _alphaCutoffProp = Shader.getPropertyByName("u_alphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = Shader.getMacroByName("ALPHA_CUTOFF");

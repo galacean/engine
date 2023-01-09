@@ -21,7 +21,7 @@ void main() {
 
     gl_FragColor = emission + ambient + diffuse + specular;
 
-    #ifdef TRANSPARENT
+    #ifdef OASIS_TRANSPARENT
         gl_FragColor.a = diffuse.a;
     #else
         gl_FragColor.a = 1.0;
