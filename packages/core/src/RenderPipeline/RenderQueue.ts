@@ -31,7 +31,7 @@ export class RenderQueue {
   private _spriteBatcher: SpriteBatcher;
 
   constructor(engine: Engine) {
-    this._spriteBatcher = new SpriteBatcher(engine);
+    this._initSpriteBatcher(engine);
   }
 
   /**
@@ -175,6 +175,14 @@ export class RenderQueue {
    */
   sort(compareFunc: Function): void {
     this._quickSort(this.items, 0, this.items.length, compareFunc);
+  }
+
+  /**
+   * @internal
+   * Standalone for CanvasRenderer plugin.
+   */
+  _initSpriteBatcher(engine: Engine): void {
+    this._spriteBatcher = new SpriteBatcher(engine);
   }
 
   /**
