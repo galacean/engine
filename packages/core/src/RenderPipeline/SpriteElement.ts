@@ -9,8 +9,7 @@ import { RenderElement } from "./RenderElement";
 export class SpriteElement extends RenderElement {
   renderData: RenderData2D;
   texture: Texture2D;
-  /** for canvas 2d. */
-  dataIndex: number;
+  dataIndex: number;// Add for CanvasRenderer plugin.
 
   constructor() {
     super();

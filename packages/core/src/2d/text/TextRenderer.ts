@@ -282,6 +282,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   /**
    * @internal
+   * Standalone for CanvasRenderer plugin.
    */
   _init(): void {
     const { engine } = this;

@@ -248,6 +248,7 @@ export class TextUtils {
 
   /**
    * @internal
+   * Use internal for CanvasRenderer plugin.
    */
   static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
@@ -332,6 +333,7 @@ export class TextUtils {
 
   /**
    * @internal
+   * Use internal for CanvasRenderer plugin.
    */
   static _getCharInfo(char: string, fontString: string, font: SubFont): CharInfo {
     let charInfo = font._getCharInfo(char);

@@ -80,6 +80,7 @@ export class Background {
 
   /**
    * @internal
+   * Standalone for CanvasRenderer plugin.
    */
   _initMesh(engine): void {
     this._mesh = this._createPlane(engine);

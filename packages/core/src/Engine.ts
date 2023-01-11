@@ -414,6 +414,7 @@ export class Engine extends EventDispatcher {
 
   /**
    * @internal
+   * Standalone for CanvasRenderer plugin.
    */
   _initMagentaTextures(hardwareRenderer: IHardwareRenderer) {
     const magentaPixel = new Uint8Array([255, 0, 255, 255]);

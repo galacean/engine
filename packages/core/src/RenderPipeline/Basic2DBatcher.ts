@@ -62,6 +62,7 @@ export abstract class Basic2DBatcher {
 
   /**
    * @internal
+   * Standalone for canvas 2d renderer plugin.
    */
   _initMeshes(engine: Engine) {
     const { MAX_VERTEX_COUNT } = Basic2DBatcher;

@@ -179,6 +179,7 @@ export class RenderQueue {
 
   /**
    * @internal
+   * Standalone for CanvasRenderer plugin.
    */
   _initSpriteBatcher(engine: Engine): void {
     this._spriteBatcher = new SpriteBatcher(engine);
