@@ -17,3 +17,16 @@ or individual classes using:
 ```javascript
 import { PhysXPhysics } from "@oasis-engine/physics-physx";
 ```
+
+## Usage
+
+```typescript
+// Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
+const engine = new WebGLEngine("canvas-id");
+engine.physicsManager.initialize(PhysXPhysics);
+
+......
+
+// Run engine.
+engine.run();
+```

@@ -17,3 +17,16 @@ or individual classes using:
 ```javascript
 import { LitePhysics } from "@oasis-engine/physics-lite";
 ```
+
+## Usage
+
+```typescript
+// Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
+const engine = new WebGLEngine("canvas-id");
+engine.physicsManager.initialize(LitePhysics);
+
+......
+
+// Run engine.
+engine.run();
+```
