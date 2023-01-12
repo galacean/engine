@@ -16,6 +16,26 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time interac
 - 👆  &nbsp;**Input** - Easy-to-use interactive capabilities
 - 📑  &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
+## npm
+
+The engine is published on npm with full typing support. To install, use:
+
+```sh
+npm install oasis-engine
+```
+
+This will allow you to import engine entirely using:
+
+```javascript
+import * as OASIS from "oasis-engine";
+```
+
+or individual classes using:
+
+```javascript
+import { Engine, Scene, Entity } from "oasis-engine";
+```
+
 ## Usage
 
 ```typescript
@@ -47,26 +67,6 @@ meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 
 // Run engine.
 engine.run();
-```
-
-## npm
-
-The engine is published on npm with full typing support. To install, use:
-
-```sh
-npm install oasis-engine
-```
-
-This will allow you to import engine entirely using:
-
-```javascript
-import * as OASIS from "oasis-engine";
-```
-
-or individual classes using:
-
-```javascript
-import { Engine, Scene, Entity } from "oasis-engine";
 ```
 
 ## Contributing
