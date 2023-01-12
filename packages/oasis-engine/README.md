@@ -72,9 +72,9 @@ import { Engine, Scene, Entity } from "oasis-engine";
 ## Links
 
 - [Official Site](https://oasisengine.cn)
-- [Examples](https://oasisengine.cn/0.6/examples)
-- [Documentation](https://oasisengine.cn/0.6/docs/install-cn)
-- [API References](https://oasisengine.cn/0.6/api/core/index)
+- [Examples](https://oasisengine.cn/#/examples/latest)
+- [Documentation](https://oasisengine.cn/#/docs/latest/cn/install)
+- [API References](https://oasisengine.cn/#/api/latest/core)
 
 
 ## License 
