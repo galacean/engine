@@ -21,7 +21,7 @@ export class SceneParser {
   }
 
   /**
-   * The promise of 
+   * The promise of parsed scene.
    */
   readonly promise = new Promise<Scene>((resolve, reject) => {
     this._reject = reject;
@@ -36,6 +36,7 @@ export class SceneParser {
     this._engine = this.context.scene.engine;
   }
 
+  /** start parse the scene */
   start() {
     this._parseEntities()
       .then(this._organizeEntities)
