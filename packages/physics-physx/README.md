@@ -3,7 +3,7 @@
 To install, use:
 
 ```sh
-npm install @oasis-engine/core
+npm install @oasis-engine/physics-physx
 ```
 
 This will allow you to import engine entirely using:
