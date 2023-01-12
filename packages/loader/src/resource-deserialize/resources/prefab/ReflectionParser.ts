@@ -21,21 +21,7 @@ export class ReflectionParser {
       if (scale) {
         entity.transform.setScale(scale.x, scale.y, scale.z);
       }
-      const promises = [];
-      for (let i = 0; i < entityConfig.components.length; i++) {
-        const componentConfig = entityConfig.components[i];
-        const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
-        let component;
-        if (key === "Animator") {
-          component = entity.getComponent(Loader.getClass(key));
-        }
-        component = component || entity.addComponent(Loader.getClass(key));
-        const promise = this.parsePropsAndMethods(component, componentConfig, engine);
-        promises.push(promise);
-      }
-      return Promise.all(promises).then(() => {
-        return entity;
-      });
+      return entity;
     });
   }
 
@@ -120,17 +106,10 @@ export class ReflectionParser {
       }
     }
 
-    return new Promise((resolve, reject) => {
-      Promise.all(promises).then(() => {
-        const handle = this.customParseComponentHandles[instance.constructor.name];
-        if (handle) {
-          handle(instance, item, engine).then(() => {
-            resolve(instance);
-          });
-        } else {
-          resolve(instance);
-        }
-      }).catch(reject)
+    return Promise.all(promises).then(() => {
+      const handle = this.customParseComponentHandles[instance.constructor.name];
+      if (handle) return handle(instance, item, engine);
+      else return instance;
     });
   }
 
