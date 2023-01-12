@@ -23,6 +23,8 @@ import { LitePhysics } from "@oasis-engine/physics-lite";
 ```typescript
 // Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
 const engine = new WebGLEngine("canvas-id");
+
+// Initialize physics manager with LitePhysics.
 engine.physicsManager.initialize(LitePhysics);
 
 ......

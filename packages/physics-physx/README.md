@@ -23,6 +23,8 @@ import { PhysXPhysics } from "@oasis-engine/physics-physx";
 ```typescript
 // Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
 const engine = new WebGLEngine("canvas-id");
+
+// Initialize physics manager with PhysXPhysics.
 engine.physicsManager.initialize(PhysXPhysics);
 
 ......

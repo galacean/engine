@@ -17,6 +17,8 @@
     "dist/**/*",
     "types/**/*"
   ],
+  "homepage": "https://oasisengine.cn/",
+  "repository": {"url": "https://github.com/ant-galaxy/oasis-engine"},
   "dependencies": {
     "@oasis-engine/core": "workspace:*",
     "@oasis-engine/loader": "workspace:*",
