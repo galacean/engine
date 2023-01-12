@@ -263,8 +263,7 @@ export class Transform extends Component {
     this._scale._onValueChanged = this._onScaleChanged;
 
     this._setDirtyFlagTrue(TransformModifyFlags.LocalEuler);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix);
-    this._setDirtyFlagFalse(TransformModifyFlags.LocalQuat);
+    this._setDirtyFlagFalse(TransformModifyFlags.LocalMatrix | TransformModifyFlags.LocalQuat);
     this._updateAllWorldFlag();
   }
 
