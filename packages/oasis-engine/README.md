@@ -16,9 +16,9 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time interac
 - 👆  &nbsp;**Input** - Easy-to-use interactive capabilities
 - 📑  &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
-## npm
+## Installation
 
-The engine is published on npm with full typing support. To install, use:
+To install, use:
 
 ```sh
 npm install oasis-engine
@@ -67,31 +67,6 @@ meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 
 // Run engine.
 engine.run();
-```
-
-## Contributing
-
-Everyone is welcome to join us! Whether you find a bug, have a great feature request or you fancy owning a task from the road map feel free to get in touch.
-
-Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [贡献指南](https://github.com/oasis-engine/engine/wiki/%E5%A6%82%E4%BD%95%E4%B8%8E%E6%88%91%E4%BB%AC%E5%85%B1%E5%BB%BA-Oasis-%E5%BC%80%E6%BA%90%E4%BA%92%E5%8A%A8%E5%BC%95%E6%93%8E) before submitting changes.
-
-## Build
-
-Prerequisites: 
-
-- [Node.js v15.0.0+](https://nodejs.org/en/) and NPM (Install by official website)
-- [PNPM](https://pnpm.io/) (Install globally by `npm install -g pnpm`)
-
-In the folder where you have cloned the repository, install the build dependencies using pnpm:
-
-```sh
-pnpm install
-```
-
-Then, to build the source, using npm:
-
-```sh
-npm run b:all
 ```
 
 ## Links
