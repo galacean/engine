@@ -117,7 +117,6 @@ export class WebGLRenderer implements IHardwareRenderer {
   constructor(initializeOptions: WebGLRendererOptions = {}) {
     const options = {
       webGLMode: WebGLMode.Auto,
-      alpha: false,
       stencil: true,
       _forceFlush: false,
       ...initializeOptions
