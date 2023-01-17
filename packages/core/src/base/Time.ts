@@ -33,10 +33,17 @@ export class Time {
   }
 
   /**
-   * The time in seconds at the beginning of this frame.
+   * The time in seconds of this frame.
    */
   get time(): number {
     return this._time;
+  }
+
+  /**
+   * The unscaled time in seconds of this frame.
+   */
+  get unscaledTime(): number {
+    return this._time / this._timeScale;
   }
 
   /**
