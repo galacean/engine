@@ -9,7 +9,6 @@ export class Time {
   private _time: number;
   private _timeScale: number;
   private _deltaTime: number;
-  private _startTime: number;
   private _lastSystemTime: number;
 
   /*
@@ -41,13 +40,6 @@ export class Time {
   }
 
   /**
-   * The elapsed time in seconds, after the engine is startup.
-   */
-  get timeSinceStartup(): number {
-    return this._time - this._startTime;
-  }
-
-  /**
    * The scale of time.
    */
   get timeScale(): number {
@@ -68,7 +60,6 @@ export class Time {
     this._deltaTime = 0.0001;
 
     const now = this._clock.now() / 1000;
-    this._startTime = now;
     this._lastSystemTime = now;
   }
 
