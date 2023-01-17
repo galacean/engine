@@ -6,9 +6,11 @@ export class Time {
   _frameCount: number = 0;
 
   private _clock: { now: () => number };
-  private _time: number;
-  private _timeScale: number;
-  private _deltaTime: number;
+  private _time: number = 0;
+  private _unscaledTime: number = 0;
+  private _deltaTime: number = 0;
+  private _unscaledDeltaTime: number = 0;
+  private _timeScale: number = 1.0;
   private _lastSystemTime: number;
 
   /*
@@ -62,10 +64,6 @@ export class Time {
    */
   constructor() {
     this._clock = performance ? performance : Date;
-
-    this._timeScale = 1.0;
-    this._deltaTime = 0.0001;
-
     const now = this._clock.now() / 1000;
     this._lastSystemTime = now;
   }
