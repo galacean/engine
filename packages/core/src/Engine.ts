@@ -271,7 +271,7 @@ export class Engine extends EventDispatcher {
   resume(): void {
     if (!this._isPaused) return;
     this._isPaused = false;
-    this.time.reset();
+    this.time._reset();
     this._requestId = requestAnimationFrame(this._animate);
   }
 
@@ -280,7 +280,7 @@ export class Engine extends EventDispatcher {
    */
   update(): void {
     const time = this._time;
-    time.tick();
+    time._tick();
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
@@ -296,7 +296,7 @@ export class Engine extends EventDispatcher {
       scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
 
       componentsManager.callScriptOnStart();
-      this.physicsManager._initialized && this.physicsManager._update(deltaTime / 1000.0);
+      this.physicsManager._initialized && this.physicsManager._update(deltaTime);
       this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);

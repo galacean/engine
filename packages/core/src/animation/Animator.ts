@@ -176,7 +176,7 @@ export class Animator extends Component {
         continue;
       }
 
-      this._updateLayer(i, i === 0, deltaTime / 1000, animationUpdate);
+      this._updateLayer(i, i === 0, deltaTime, animationUpdate);
     }
   }
 

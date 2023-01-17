@@ -1,21 +1,61 @@
 /**
- * Tools for calculating the time per frame.
+ * Tools for get time information.
  */
 export class Time {
   /** @internal */
   _frameCount: number = 0;
 
   private _clock: { now: () => number };
+  private _time: number;
   private _timeScale: number;
   private _deltaTime: number;
   private _startTime: number;
-  private _lastTickTime: number;
+  private _lastSystemTime: number;
 
   /*
    * The total number of frames since the start of the engine.
    */
   get frameCount(): number {
     return this._frameCount;
+  }
+
+  /**
+   * The interval in seconds from the last frame to the current frame.
+   */
+  get deltaTime(): number {
+    return this._deltaTime;
+  }
+
+  /**
+   * The unscaled interval in seconds from the last frame to the current frame.
+   */
+  get unscaledDeltaTime(): number {
+    return this._deltaTime / this._timeScale;
+  }
+
+  /**
+   * The time in seconds at the beginning of this frame.
+   */
+  get time(): number {
+    return this._time;
+  }
+
+  /**
+   * The elapsed time in seconds, after the engine is startup.
+   */
+  get timeSinceStartup(): number {
+    return this._time - this._startTime;
+  }
+
+  /**
+   * The scale of time.
+   */
+  get timeScale(): number {
+    return this._timeScale;
+  }
+
+  set timeScale(value) {
+    this._timeScale = value;
   }
 
   /**
@@ -27,60 +67,29 @@ export class Time {
     this._timeScale = 1.0;
     this._deltaTime = 0.0001;
 
-    const now = this._clock.now();
+    const now = this._clock.now() / 1000;
     this._startTime = now;
-    this._lastTickTime = now;
-  }
-
-  reset() {
-    this._lastTickTime = this._clock.now();
+    this._lastSystemTime = now;
   }
 
   /**
-   * Current Time
+   * @internal
    */
-  get nowTime(): number {
-    return this._clock.now();
+  _reset() {
+    this._lastSystemTime = this._clock.now() / 1000;
   }
 
   /**
-   * Time between two ticks
+   * @internal
    */
-  get deltaTime(): number {
-    return this._deltaTime;
-  }
+  _tick(): void {
+    const systemTime = this._clock.now() / 1000;
+    const deltaTime = (systemTime - this._lastSystemTime) * this._timeScale;
 
-  /**
-   * Scaled delta time.
-   */
-  get timeScale(): number {
-    return this._timeScale;
-  }
-  set timeScale(s) {
-    this._timeScale = s;
-  }
-
-  /**
-   * Unscaled delta time.
-   */
-  get unscaledDeltaTime(): number {
-    return this._deltaTime / this._timeScale;
-  }
-
-  /**
-   * The elapsed time, after the clock is initialized.
-   */
-  get timeSinceStartup(): number {
-    return this.nowTime - this._startTime;
-  }
-
-  /**
-   * Call every frame, update delta time and other data.
-   */
-  public tick(): void {
-    const now = this.nowTime;
-    this._deltaTime = (now - this._lastTickTime) * this._timeScale;
-    this._lastTickTime = now;
+    this._deltaTime = deltaTime;
+    this._time += deltaTime;
     this._frameCount++;
+
+    this._lastSystemTime = systemTime;
   }
 }
