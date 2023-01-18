@@ -46,18 +46,6 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
     out._y = left._y * right._y;
     out._onValueChanged && out._onValueChanged();
   }
-  
-  /**
-   * Determines the product of a vector and a number.
-   * @param vec - The first vector to multiply
-   * @param num - The scalar to multiply
-   * @param out - The product of two vectors
-   */
-  static multiplyScalar(vec: Vector2, num: number, out: Vector2): void {
-    out._x = vec._x * num;
-    out._y = vec._y * num;
-    out._onValueChanged && out._onValueChanged();
-  }
 
   /**
    * Determines the divisor of two vectors.
@@ -278,18 +266,6 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
   multiply(right: Vector2): Vector2 {
     this._x *= right._x;
     this._y *= right._y;
-    this._onValueChanged && this._onValueChanged();
-    return this;
-  }
-  
-  /**
-   * Determines the product of this vector and the specified number.
-   * @param num - The specified number
-   * @returns This vector
-   */
-  multiplyScalar(num: number): Vector2 {
-    this._x *= num;
-    this._y *= num;
     this._onValueChanged && this._onValueChanged();
     return this;
   }
