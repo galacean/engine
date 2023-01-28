@@ -16,7 +16,7 @@ export class DynamicCollider extends Collider {
   private _centerOfMass = new Vector3();
   private _inertiaTensor = new Vector3(1, 1, 1);
   private _maxAngularVelocity: number = 100;
-  private _maxDepenetrationVelocity: number = 0;
+  private _maxDepenetrationVelocity: number = 1000;
   private _solverIterations: number = 4;
   private _isKinematic: boolean = false;
   private _constraints: DynamicColliderConstraints = 0;

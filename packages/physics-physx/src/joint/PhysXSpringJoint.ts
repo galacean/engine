@@ -21,9 +21,9 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat
     );
-    this._pxJoint.setDistanceJointFlag(1, true); // enable max distance;
-    this._pxJoint.setDistanceJointFlag(2, true); // enable min distance;
-    this._pxJoint.setDistanceJointFlag(4, true); // enable spring;
+    this._pxJoint.setDistanceJointFlag(2, true); // enable max distance;
+    this._pxJoint.setDistanceJointFlag(4, true); // enable min distance;
+    this._pxJoint.setDistanceJointFlag(8, true); // enable spring;
   }
 
   /**
