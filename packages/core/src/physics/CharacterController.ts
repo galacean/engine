@@ -53,7 +53,6 @@ export class CharacterController extends Collider {
     if (this._upDirection !== value) {
       this._upDirection.copyFrom(value);
     }
-    (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }
 
   /**
@@ -74,6 +73,10 @@ export class CharacterController extends Collider {
   constructor(entity: Entity) {
     super(entity);
     (<ICharacterController>this._nativeCollider) = PhysicsManager._nativePhysics.createCharacterController();
+
+    this._setUpDirection = this._setUpDirection.bind(this);
+    //@ts-ignore
+    this._upDirection._onValueChanged = this._setUpDirection;
   }
 
   /**
@@ -153,5 +156,9 @@ export class CharacterController extends Collider {
    */
   _onDisable() {
     this.engine.physicsManager._removeCharacterController(this);
+  }
+
+  private _setUpDirection(): void {
+    (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }
 }

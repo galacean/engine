@@ -58,7 +58,6 @@ export class DynamicCollider extends Collider {
     if (this._linearVelocity !== value) {
       this._linearVelocity.copyFrom(value);
     }
-    (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
   }
 
   /**
@@ -72,7 +71,6 @@ export class DynamicCollider extends Collider {
     if (this._angularVelocity !== value) {
       this._angularVelocity.copyFrom(value);
     }
-    (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
   }
 
   /**
@@ -98,7 +96,6 @@ export class DynamicCollider extends Collider {
     if (this._centerOfMass !== value) {
       this._centerOfMass.copyFrom(value);
     }
-    (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
   }
 
   /**
@@ -112,7 +109,6 @@ export class DynamicCollider extends Collider {
     if (this._inertiaTensor !== value) {
       this._inertiaTensor.copyFrom(value);
     }
-    (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 
   /**
@@ -209,6 +205,20 @@ export class DynamicCollider extends Collider {
       transform.worldPosition,
       transform.worldRotationQuaternion
     );
+
+    this._setLinearVelocity = this._setLinearVelocity.bind(this);
+    this._setAngularVelocity = this._setAngularVelocity.bind(this);
+    this._setCenterOfMass = this._setCenterOfMass.bind(this);
+    this._setInertiaTensor = this._setInertiaTensor.bind(this);
+
+    //@ts-ignore
+    this._linearVelocity._onValueChanged = this._setLinearVelocity;
+    //@ts-ignore
+    this._angularVelocity._onValueChanged = this._setAngularVelocity;
+    //@ts-ignore
+    this._centerOfMass._onValueChanged = this._setCenterOfMass;
+    //@ts-ignore
+    this._inertiaTensor._onValueChanged = this._setInertiaTensor;
   }
 
   /**
@@ -273,6 +283,22 @@ export class DynamicCollider extends Collider {
     const { worldPosition, worldRotationQuaternion } = transform;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);
     this._updateFlag.flag = false;
+  }
+
+  private _setLinearVelocity(): void {
+    (<IDynamicCollider>this._nativeCollider).setLinearVelocity(this._linearVelocity);
+  }
+
+  private _setAngularVelocity(): void {
+    (<IDynamicCollider>this._nativeCollider).setAngularVelocity(this._angularVelocity);
+  }
+
+  private _setCenterOfMass(): void {
+    (<IDynamicCollider>this._nativeCollider).setCenterOfMass(this._centerOfMass);
+  }
+
+  private _setInertiaTensor(): void {
+    (<IDynamicCollider>this._nativeCollider).setInertiaTensor(this._inertiaTensor);
   }
 }
 

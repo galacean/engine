@@ -45,7 +45,7 @@ export abstract class ColliderShape {
   /**
    * Contact offset for this shape.
    */
-  get contactOffset() {
+  get contactOffset(): number {
     return this._contactOffset;
   }
 
