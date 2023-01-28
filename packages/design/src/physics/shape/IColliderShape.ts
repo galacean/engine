@@ -31,6 +31,7 @@ export interface IColliderShape {
 
   /**
    * Get the contact offset.
+   * @return - contact offset
    */
   getContactOffset(): number;
 

@@ -24,6 +24,8 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   private static _tempTranslation = new Vector3();
   private static _tempRotation = new Quaternion();
 
+  private _sleepThreshold: number = PhysXPhysics.toleranceSpeed * PhysXPhysics.toleranceSpeed * 5e-5;
+
   constructor(position: Vector3, rotation: Quaternion) {
     super();
     const transform = this._transform(position, rotation);
@@ -94,10 +96,20 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getSleepThreshold }
+   */
+  getSleepThreshold(): number {
+    return this._sleepThreshold;
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setSleepThreshold }
    */
   setSleepThreshold(value: number): void {
-    this._pxActor.setSleepThreshold(value);
+    if (this._sleepThreshold !== value) {
+      this._sleepThreshold = value;
+      this._pxActor.setSleepThreshold(value);
+    }
   }
 
   /**

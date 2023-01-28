@@ -9,16 +9,15 @@ import { PhysicsManager } from "./PhysicsManager";
  */
 export class DynamicCollider extends Collider {
   private _linearDamping: number = 0;
-  private _angularDamping: number = 0;
+  private _angularDamping: number = 0.05;
   private _linearVelocity = new Vector3();
   private _angularVelocity = new Vector3();
-  private _mass: number = 0;
+  private _mass: number = 1.0;
   private _centerOfMass = new Vector3();
-  private _inertiaTensor = new Vector3();
-  private _maxAngularVelocity: number = 0;
+  private _inertiaTensor = new Vector3(1, 1, 1);
+  private _maxAngularVelocity: number = 100;
   private _maxDepenetrationVelocity: number = 0;
-  private _sleepThreshold: number = 0;
-  private _solverIterations: number = 0;
+  private _solverIterations: number = 4;
   private _isKinematic: boolean = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
@@ -139,11 +138,10 @@ export class DynamicCollider extends Collider {
    * The mass-normalized energy threshold, below which objects start going to sleep.
    */
   get sleepThreshold(): number {
-    return this._sleepThreshold;
+    return (<IDynamicCollider>this._nativeCollider).getSleepThreshold();
   }
 
   set sleepThreshold(value: number) {
-    this._sleepThreshold = value;
     (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
   }
 

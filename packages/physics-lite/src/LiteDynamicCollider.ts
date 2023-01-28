@@ -130,6 +130,13 @@ export class LiteDynamicCollider extends LiteCollider implements IDynamicCollide
   }
 
   /**
+   * {@inheritDoc IDynamicCollider.getSleepThreshold }
+   */
+  getSleepThreshold(): number {
+    throw "Physics-lite don't support getSleepThreshold. Use Physics-PhysX instead!";
+  }
+
+  /**
    * {@inheritDoc IDynamicCollider.setSleepThreshold }
    */
   setSleepThreshold(value: number): void {
