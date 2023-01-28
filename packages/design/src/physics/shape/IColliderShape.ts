@@ -30,6 +30,11 @@ export interface IColliderShape {
   setContactOffset(offset: number): void;
 
   /**
+   * Get the contact offset.
+   */
+  getContactOffset(): number;
+
+  /**
    * Set physics material on shape.
    * @param material - The physics material
    */

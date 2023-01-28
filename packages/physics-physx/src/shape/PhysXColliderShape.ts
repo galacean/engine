@@ -47,7 +47,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _id: number;
   /** @internal */
-  _contactOffset: number = 0;
+  _contactOffset: number = PhysXPhysics.toleranceLength * 0.02;
 
   /**
    * {@inheritDoc IColliderShape.setRotation }
@@ -76,15 +76,24 @@ export abstract class PhysXColliderShape implements IColliderShape {
   abstract setWorldScale(scale: Vector3): void;
 
   /**
+   * {@inheritDoc IColliderShape.getContactOffset }
+   */
+  getContactOffset(): number {
+    return this._contactOffset;
+  }
+
+  /**
    * {@inheritDoc IColliderShape.setContactOffset }
    */
   setContactOffset(offset: number): void {
-    this._contactOffset = offset;
-    this._pxShape.setContactOffset(offset);
+    if (offset !== this._contactOffset) {
+      this._contactOffset = offset;
+      this._pxShape.setContactOffset(offset);
 
-    const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setContactOffset(offset);
+      const controllers = this._controllers;
+      for (let i = 0, n = controllers.length; i < n; i++) {
+        controllers.get(i)._pxController.setContactOffset(offset);
+      }
     }
   }
 
