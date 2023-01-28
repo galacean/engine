@@ -6,7 +6,7 @@ import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@oasis-engine/math";
 import { ICollider } from "./ICollider";
 import { ICharacterController } from "./ICharacterController";
-import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
+import { IFixedJoint, IHingeJoint, ISpringJoint, ISphericalJoint } from "./joints";
 
 /**
  * The interface of physics creation.
@@ -119,4 +119,10 @@ export interface IPhysics {
    * @param collider - Affector of joint
    */
   createSpringJoint(collider: ICollider): ISpringJoint;
+
+  /**
+   * Create spherical joint
+   * @param collider - Affector of joint
+   */
+  createSphericalJoint(collider: ICollider): ISphericalJoint;
 }
