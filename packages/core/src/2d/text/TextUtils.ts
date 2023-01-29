@@ -120,6 +120,7 @@ export class TextUtils {
         const char = subText[j];
         const charInfo = TextUtils._getCharInfo(char, fontString, subFont);
         const charCode = char.charCodeAt(0);
+        // 32 is space.
         const isNotEnglish = charCode === 32 || charCode > 255;
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
