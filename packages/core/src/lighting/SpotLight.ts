@@ -1,4 +1,4 @@
-import { Color, Matrix, Vector3 } from "@oasis-engine/math";
+import { Matrix, Vector3 } from "@oasis-engine/math";
 import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -45,7 +45,6 @@ export class SpotLight extends Light {
   penumbra: number = Math.PI / 12;
 
   private _forward: Vector3 = new Vector3();
-  private _lightColor: Color = new Color(1, 1, 1, 1);
   private _inverseDirection: Vector3 = new Vector3();
   private _projectMatrix: Matrix = new Matrix();
 
@@ -73,17 +72,6 @@ export class SpotLight extends Light {
   }
 
   /**
-   * Get the final light color.
-   */
-  get lightColor(): Color {
-    this._lightColor.r = this.color.r * this.intensity;
-    this._lightColor.g = this.color.g * this.intensity;
-    this._lightColor.b = this.color.b * this.intensity;
-    this._lightColor.a = this.color.a * this.intensity;
-    return this._lightColor;
-  }
-
-  /**
    * @internal
    * @override
    */
@@ -105,7 +93,7 @@ export class SpotLight extends Light {
     const penumbraCosStart = lightIndex;
     const angleCosStart = lightIndex;
 
-    const color = this.lightColor;
+    const color = this._getLightColor();
     const position = this.position;
     const direction = this.direction;
 

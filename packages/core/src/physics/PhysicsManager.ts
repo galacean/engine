@@ -127,8 +127,14 @@ export class PhysicsManager {
   /** The fixed time step in seconds at which physics are performed. */
   fixedTimeStep: number = 1 / 60;
 
-  /** The max sum of time step in seconds one frame. */
-  maxSumTimeStep: number = 1 / 3;
+  /**
+   * The max allowed time step in seconds one frame.
+   *
+   * @remarks
+   * When the frame rate is low or stutter occurs, the maximum execution time of physics will not exceed this value.
+   * So physics will slow down a bit when performance hitch occurs.
+   */
+  maxAllowedTimeStep: number = 1 / 3;
 
   /**
    * The gravity of physics scene.
@@ -143,6 +149,18 @@ export class PhysicsManager {
       gravity.copyFrom(value);
     }
     this._nativePhysicsManager.setGravity(gravity);
+  }
+
+  /**
+   * @deprecated
+   * Please use `maxAllowedTimeStep` instead.
+   */
+  get maxSumTimeStep(): number {
+    return this.maxAllowedTimeStep;
+  }
+
+  set maxSumTimeStep(value: number) {
+    this.maxAllowedTimeStep = value;
   }
 
   constructor(engine: Engine) {
@@ -246,8 +264,13 @@ export class PhysicsManager {
       hitResult = outHitResult;
     }
 
+    const onRaycast = (obj: number) => {
+      const shape = this._physicalObjectsMap[obj];
+      return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
+    };
+
     if (hitResult != undefined) {
-      const result = this._nativePhysicsManager.raycast(ray, distance, (idx, distance, position, normal) => {
+      const result = this._nativePhysicsManager.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
         hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
         hitResult.distance = distance;
         hitResult.normal.copyFrom(normal);
@@ -255,19 +278,16 @@ export class PhysicsManager {
       });
 
       if (result) {
-        if (hitResult.entity.layer & layerMask) {
-          return true;
-        } else {
-          hitResult.entity = null;
-          hitResult.distance = 0;
-          hitResult.point.set(0, 0, 0);
-          hitResult.normal.set(0, 0, 0);
-          return false;
-        }
+        return true;
+      } else {
+        hitResult.entity = null;
+        hitResult.distance = 0;
+        hitResult.point.set(0, 0, 0);
+        hitResult.normal.set(0, 0, 0);
+        return false;
       }
-      return false;
     } else {
-      return this._nativePhysicsManager.raycast(ray, distance);
+      return this._nativePhysicsManager.raycast(ray, distance, onRaycast);
     }
   }
 
@@ -279,8 +299,8 @@ export class PhysicsManager {
     const { fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
     const componentsManager = this._engine._componentsManager;
 
-    const simulateTime = deltaTime + this._restTime;
-    const step = Math.floor(Math.min(this.maxSumTimeStep, simulateTime) / fixedTimeStep);
+    const simulateTime = Math.min(this.maxAllowedTimeStep, this._restTime + deltaTime);
+    const step = Math.floor(simulateTime / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();

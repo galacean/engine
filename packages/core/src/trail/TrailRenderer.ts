@@ -1,5 +1,4 @@
 import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
-import { Camera } from "../Camera";
 import { Entity } from "../Entity";
 import { Buffer } from "../graphic/Buffer";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
@@ -8,6 +7,7 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { BufferMesh } from "../mesh/BufferMesh";
 import { MeshRenderer } from "../mesh/MeshRenderer";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Texture2D } from "../texture";
 import { TrailMaterial } from "./TrailMaterial";
 
@@ -102,17 +102,6 @@ export class TrailRenderer extends MeshRenderer {
   }
 
   /**
-   * @internal
-   */
-  _render(camera: Camera): void {
-    this._updateStrapVertices(camera, this._points);
-    this._updateStrapCoords();
-    this._vertexBuffer.setData(this._vertices);
-
-    super._render(camera);
-  }
-
-  /**
    * @deprecated
    * Set trail texture.
    * @param texture
@@ -121,6 +110,17 @@ export class TrailRenderer extends MeshRenderer {
     if (texture) {
       this.getMaterial().shaderData.setTexture("u_texture", texture);
     }
+  }
+
+  /**
+   * @override
+   */
+  protected _render(context: RenderContext): void {
+    this._updateStrapVertices(context.camera, this._points);
+    this._updateStrapCoords();
+    this._vertexBuffer.setData(this._vertices);
+
+    super._render(context);
   }
 
   private _initGeometry() {

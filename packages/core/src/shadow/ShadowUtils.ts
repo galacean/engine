@@ -6,12 +6,17 @@ import {
   MathUtil,
   Matrix,
   Plane,
+  Vector2,
   Vector3
 } from "@oasis-engine/math";
 import { Camera } from "../Camera";
+import { DirectLight, Light } from "../lighting";
 import { Renderer } from "../Renderer";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { TextureFormat } from "../texture";
+import { Utils } from "../Utils";
 import { ShadowResolution } from "./enum/ShadowResolution";
+import { ShadowType } from "./enum/ShadowType";
 import { ShadowSliceData } from "./ShadowSliceData";
 
 /**
@@ -33,6 +38,17 @@ enum FrustumCorner {
  * @internal
  */
 export class ShadowUtils {
+  private static _tempMatrix0: Matrix = new Matrix();
+
+  // prettier-ignore
+  /** @internal */
+  private static _shadowMapCoordMatrix: Matrix = new Matrix(
+    0.5, 0.0, 0.0, 0.0,
+    0.0, 0.5, 0.0, 0.0,
+    0.0, 0.0, 0.5, 0.0,
+    0.5, 0.5, 0.5, 1.0
+  );
+
   private static _frustumCorners: Vector3[] = [
     new Vector3(),
     new Vector3(),
@@ -48,108 +64,74 @@ export class ShadowUtils {
   private static _backPlaneFaces: FrustumFace[] = new Array(5);
   private static _edgePlanePoint2: Vector3 = new Vector3();
 
+  /** near, far, left, right, bottom, top  */
   private static _frustumPlaneNeighbors: FrustumFace[][] = [
-    // near
     [FrustumFace.Left, FrustumFace.Right, FrustumFace.Top, FrustumFace.Bottom],
-    // far
     [FrustumFace.Left, FrustumFace.Right, FrustumFace.Top, FrustumFace.Bottom],
-    // left
     [FrustumFace.Near, FrustumFace.Far, FrustumFace.Top, FrustumFace.Bottom],
-    // right
     [FrustumFace.Near, FrustumFace.Far, FrustumFace.Top, FrustumFace.Bottom],
-    // bottom
     [FrustumFace.Near, FrustumFace.Far, FrustumFace.Left, FrustumFace.Right],
-    // top
     [FrustumFace.Near, FrustumFace.Far, FrustumFace.Left, FrustumFace.Right]
   ];
 
+  /** near, far, left, right, bottom, top  */
   private static _frustumTwoPlaneCorners: FrustumCorner[][][] = [
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // far
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // left
       [FrustumCorner.nearBottomLeft, FrustumCorner.nearTopLeft],
-      // right
       [FrustumCorner.nearTopRight, FrustumCorner.nearBottomRight],
-      // bottom
       [FrustumCorner.nearBottomRight, FrustumCorner.nearBottomLeft],
-      // top
       [FrustumCorner.nearTopLeft, FrustumCorner.nearTopRight]
-    ], // near
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // far
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // left
       [FrustumCorner.FarTopLeft, FrustumCorner.FarBottomLeft],
-      // right
       [FrustumCorner.FarBottomRight, FrustumCorner.FarTopRight],
-      // bottom
       [FrustumCorner.FarBottomLeft, FrustumCorner.FarBottomRight],
-      // top
       [FrustumCorner.FarTopRight, FrustumCorner.FarTopLeft]
-    ], // far
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.nearTopLeft, FrustumCorner.nearBottomLeft],
-      // far
       [FrustumCorner.FarBottomLeft, FrustumCorner.FarTopLeft],
-      // left
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // right
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // bottom
       [FrustumCorner.nearBottomLeft, FrustumCorner.FarBottomLeft],
-      // top
       [FrustumCorner.FarTopLeft, FrustumCorner.nearTopLeft]
-    ], // left
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.nearBottomRight, FrustumCorner.nearTopRight],
-      // far
       [FrustumCorner.FarTopRight, FrustumCorner.FarBottomRight],
-      // left
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // right
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // bottom
       [FrustumCorner.FarBottomRight, FrustumCorner.nearBottomRight],
-      // top
       [FrustumCorner.nearTopRight, FrustumCorner.FarTopRight]
-    ], // right
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.nearBottomLeft, FrustumCorner.nearBottomRight],
-      // far
       [FrustumCorner.FarBottomRight, FrustumCorner.FarBottomLeft],
-      // left
       [FrustumCorner.FarBottomLeft, FrustumCorner.nearBottomLeft],
-      // right
       [FrustumCorner.nearBottomRight, FrustumCorner.FarBottomRight],
-      // bottom
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // top
       [FrustumCorner.unknown, FrustumCorner.unknown]
-    ], // bottom
+    ],
     [
-      // near
+      // near, far, left, right, bottom, top
       [FrustumCorner.nearTopRight, FrustumCorner.nearTopLeft],
-      // far
       [FrustumCorner.FarTopLeft, FrustumCorner.FarTopRight],
-      // left
       [FrustumCorner.nearTopLeft, FrustumCorner.FarTopLeft],
-      // right
       [FrustumCorner.FarTopRight, FrustumCorner.nearTopRight],
-      // bottom
       [FrustumCorner.unknown, FrustumCorner.unknown],
-      // top
       [FrustumCorner.unknown, FrustumCorner.unknown]
-    ] // top
+    ]
   ];
-  //now max shadow sample tent is 5x5,atlas borderSize at least 3=ceil(2.5),and +1 pixel is for global border for no cascade mode.
+  //now max shadow sample tent is 5x5, atlas borderSize at least 3=ceil(2.5),and +1 pixel is for global border for no cascade mode.
   static readonly atlasBorderSize: number = 4.0;
 
   static shadowResolution(value: ShadowResolution): number {
@@ -176,32 +158,37 @@ export class ShadowUtils {
   static cullingRenderBounds(bounds: BoundingBox, cullPlaneCount: number, cullPlanes: Plane[]): boolean {
     const { min, max } = bounds;
 
-    let pass = true;
     for (let i = 0; i < cullPlaneCount; i++) {
       const plane = cullPlanes[i];
       const normal = plane.normal;
       if (
-        normal.x * (normal.x > 0.0 ? min.x : max.x) +
-          normal.y * (normal.y > 0.0 ? min.y : max.y) +
-          normal.z * (normal.z > 0.0 ? min.z : max.z) >
+        normal.x * (normal.x >= 0.0 ? max.x : min.x) +
+          normal.y * (normal.y >= 0.0 ? max.y : min.y) +
+          normal.z * (normal.z >= 0.0 ? max.z : min.z) <
         -plane.distance
       ) {
-        pass = false;
-        break;
+        return false;
       }
     }
-    return pass;
+    return true;
   }
 
-  static shadowCullFrustum(camera: Camera, renderer: Renderer, shadowSliceData: ShadowSliceData) {
-    const center = ShadowUtils._edgePlanePoint2;
-    if (
-      renderer.castShadows &&
-      ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
-    ) {
-      renderer.bounds.getCenter(center);
-      renderer._distanceForSort = Vector3.distance(center, shadowSliceData.position);
-      renderer._render(camera);
+  static shadowCullFrustum(
+    context: RenderContext,
+    light: Light,
+    renderer: Renderer,
+    shadowSliceData: ShadowSliceData
+  ): void {
+    const layer = renderer._entity.layer;
+    // filter by camera culling mask
+    if (context.camera.cullingMask & layer && light.cullingMask & layer) {
+      if (
+        renderer.castShadows &&
+        ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
+      ) {
+        renderer._renderFrameCount = renderer.engine.time._frameCount;
+        renderer._prepareRender(context);
+      }
     }
   }
 
@@ -266,10 +253,10 @@ export class ShadowUtils {
     const splitFar = ShadowUtils._adjustFarPlane;
     splitNear.normal.copyFrom(near.normal);
     splitFar.normal.copyFrom(far.normal);
-    splitNear.distance = near.distance + splitNearDistance;
-    //do a clamp is the sphere is out of range the far plane
-    splitFar.distance = Math.max(
-      -near.distance - shadowSliceData.sphereCenterZ - shadowSliceData.splitBoundSphere.radius,
+    splitNear.distance = near.distance - splitNearDistance;
+    // do a clamp if the sphere is out of range the far plane
+    splitFar.distance = Math.min(
+      -near.distance + shadowSliceData.sphereCenterZ + shadowSliceData.splitBoundSphere.radius,
       far.distance
     );
 
@@ -304,7 +291,7 @@ export class ShadowUtils {
       }
     }
 
-    let edgeIndex: number = backIndex;
+    let edgeIndex = backIndex;
     for (let i = 0; i < backIndex; i++) {
       const backFace = backPlaneFaces[i];
       const neighborFaces = planeNeighbors[backFace];
@@ -335,7 +322,8 @@ export class ShadowUtils {
     cascadeIndex: number,
     nearPlane: number,
     shadowResolution: number,
-    shadowSliceData: ShadowSliceData
+    shadowSliceData: ShadowSliceData,
+    outShadowMatrices: Float32Array
   ): void {
     const boundSphere = shadowSliceData.splitBoundSphere;
     shadowSliceData.resolution = shadowResolution;
@@ -358,14 +346,14 @@ export class ShadowUtils {
     center.z = lightUp.z * upLen + lightSide.z * sideLen + lightForward.z * forwardLen;
 
     // Direction light use shadow pancaking tech,do special dispose with nearPlane.
-    const origin = shadowSliceData.position;
-    const viewMatrix = shadowSliceData.viewMatrix;
-    const projectMatrix = shadowSliceData.projectionMatrix;
-    const viewProjectMatrix = shadowSliceData.viewProjectMatrix;
+    const virtualCamera = shadowSliceData.virtualCamera;
+    const position = virtualCamera.position;
+    const viewMatrix = virtualCamera.viewMatrix;
+    const projectMatrix = virtualCamera.projectionMatrix;
 
-    Vector3.scale(lightForward, radius + nearPlane, origin);
-    Vector3.subtract(center, origin, origin);
-    Matrix.lookAt(origin, center, lightUp, viewMatrix);
+    Vector3.scale(lightForward, radius + nearPlane, position);
+    Vector3.subtract(center, position, position);
+    Matrix.lookAt(position, center, lightUp, viewMatrix);
     Matrix.ortho(
       -borderRadius,
       borderRadius,
@@ -375,7 +363,16 @@ export class ShadowUtils {
       radius * 2.0 + nearPlane,
       projectMatrix
     );
-    Matrix.multiply(projectMatrix, viewMatrix, viewProjectMatrix);
+
+    const viewProjectionMatrix = virtualCamera.viewProjectionMatrix;
+    Matrix.multiply(projectMatrix, viewMatrix, viewProjectionMatrix);
+    Utils._floatMatrixMultiply(
+      ShadowUtils._shadowMapCoordMatrix,
+      viewProjectionMatrix.elements,
+      0,
+      outShadowMatrices,
+      cascadeIndex * 16
+    );
   }
 
   static getMaxTileResolutionInAtlas(atlasWidth: number, atlasHeight: number, tileCount: number): number {
@@ -388,5 +385,58 @@ export class ShadowUtils {
       currentTileCount = Math.floor(atlasWidth / resolution) * Math.floor(atlasHeight / resolution);
     }
     return resolution;
+  }
+
+  static getShadowBias(light: DirectLight, projectionMatrix: Matrix, shadowResolution: number, out: Vector2): void {
+    // Frustum size is guaranteed to be a cube as we wrap shadow frustum around a sphere
+    // elements[0] = 2.0 / (right - left)
+    const frustumSize = 2.0 / projectionMatrix.elements[0];
+
+    // depth and normal bias scale is in shadowmap texel size in world space
+    const texelSize = frustumSize / shadowResolution;
+    let depthBias = -light.shadowBias * texelSize;
+    let normalBias = -light.shadowNormalBias * texelSize;
+
+    if (light.shadowType == ShadowType.SoftHigh) {
+      // TODO: depth and normal bias assume sample is no more than 1 texel away from shadowmap
+      // This is not true with PCF. Ideally we need to do either
+      // cone base bias (based on distance to center sample)
+      // or receiver place bias based on derivatives.
+      // For now we scale it by the PCF kernel size (5x5)
+      const kernelRadius = 2.5;
+      depthBias *= kernelRadius;
+      normalBias *= kernelRadius;
+    }
+    out.set(depthBias, normalBias);
+  }
+
+  /**
+   * Apply shadow slice scale and offset
+   */
+  static applySliceTransform(
+    tileSize: number,
+    atlasWidth: number,
+    atlasHeight: number,
+    cascadeIndex: number,
+    atlasOffset: Vector2,
+    outShadowMatrices: Float32Array
+  ): void {
+    const sliceMatrix = ShadowUtils._tempMatrix0;
+    const slice = sliceMatrix.elements;
+
+    const oneOverAtlasWidth = 1.0 / atlasWidth;
+    const oneOverAtlasHeight = 1.0 / atlasHeight;
+    const scaleX = tileSize * oneOverAtlasWidth;
+    const scaleY = tileSize * oneOverAtlasHeight;
+    const offsetX = atlasOffset.x * oneOverAtlasWidth;
+    const offsetY = atlasOffset.y * oneOverAtlasHeight;
+
+    (slice[0] = scaleX), (slice[1] = 0), (slice[2] = 0), (slice[3] = 0);
+    (slice[4] = 0), (slice[5] = scaleY), (slice[6] = 0), (slice[7] = 0);
+    (slice[8] = 0), (slice[9] = 0), (slice[10] = 1), (slice[11] = 0);
+    (slice[12] = offsetX), (slice[13] = offsetY), (slice[14] = 0), (slice[15] = 1);
+
+    const offset = cascadeIndex * 16;
+    Utils._floatMatrixMultiply(sliceMatrix, outShadowMatrices, offset, outShadowMatrices, offset);
   }
 }

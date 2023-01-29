@@ -2,6 +2,12 @@ import { Engine, Entity, Loader } from "@oasis-engine/core";
 import { IBasicType, IClassObject, IEntity, IReferenceType } from "./PrefabDesign";
 
 export class ReflectionParser {
+  static customParseComponentHandles = new Map<string, Function>();
+
+  static registerCustomParseComponent(componentType: string, handle: Function) {
+    this.customParseComponentHandles[componentType] = handle;
+  }
+
   static parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
       entity.isActive = entityConfig.isActive ?? true;
@@ -19,7 +25,11 @@ export class ReflectionParser {
       for (let i = 0; i < entityConfig.components.length; i++) {
         const componentConfig = entityConfig.components[i];
         const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
-        const component = entity.addComponent(Loader.getClass(key));
+        let component;
+        if (key === "Animator") {
+          component = entity.getComponent(Loader.getClass(key));
+        }
+        component = component || entity.addComponent(Loader.getClass(key));
         const promise = this.parsePropsAndMethods(component, componentConfig, engine);
         promises.push(promise);
       }
@@ -33,8 +43,15 @@ export class ReflectionParser {
     // @ts-ignore
     const assetRefId: string = entityConfig.assetRefId;
     if (assetRefId) {
-      // @ts-ignore
-      return engine.resourceManager.getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key });
+      return (
+        engine.resourceManager
+          // @ts-ignore
+          .getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key, isClone: entityConfig.isClone })
+          .then((entity) => {
+            entity.name = entityConfig.name;
+            return entity;
+          })
+      );
     } else {
       const entity = new Entity(engine, entityConfig.name);
       return Promise.resolve(entity);
@@ -59,7 +76,7 @@ export class ReflectionParser {
   ): Promise<any> {
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.parseBasicType(item, engine, resourceManager)));
-    } else if (typeof value === "object") {
+    } else if (typeof value === "object" && value != null) {
       if (this._isClass(value)) {
         // 类对象
         return this.parseClassObject(value, engine, resourceManager);
@@ -103,8 +120,17 @@ export class ReflectionParser {
       }
     }
 
-    return Promise.all(promises).then(() => {
-      return instance;
+    return new Promise((resolve, reject) => {
+      Promise.all(promises).then(() => {
+        const handle = this.customParseComponentHandles[instance.constructor.name];
+        if (handle) {
+          handle(instance, item, engine).then(() => {
+            resolve(instance);
+          });
+        } else {
+          resolve(instance);
+        }
+      }).catch(reject)
     });
   }
 
@@ -123,10 +149,10 @@ export class ReflectionParser {
   }
 
   private static _isClass(value: any): value is IClassObject {
-    return "class" in value;
+    return value["class"] != undefined;
   }
 
   private static _isRef(value: any): value is IReferenceType {
-    return "refId" in value;
+    return value["refId"] != undefined;
   }
 }

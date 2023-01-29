@@ -165,9 +165,7 @@ export class Entity extends EngineObject {
     ComponentsDependencies._addCheck(this, type);
     const component = new type(this);
     this._components.push(component);
-    if (this._isActiveInHierarchy) {
-      component._setActive(true);
-    }
+    component._setActive(true);
     return component;
   }
 
@@ -177,8 +175,10 @@ export class Entity extends EngineObject {
    * @returns	The first component which match type
    */
   getComponent<T extends Component>(type: new (entity: Entity) => T): T {
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
+    const components = this._components;
+    // @todo: should inverse traversal
+    for (let i = components.length - 1; i >= 0; i--) {
+      const component = components[i];
       if (component instanceof type) {
         return component;
       }
@@ -193,8 +193,9 @@ export class Entity extends EngineObject {
    */
   getComponents<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
     results.length = 0;
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const component = components[i];
       if (component instanceof type) {
         results.push(component);
       }
@@ -279,19 +280,19 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Find child entity by name.
+   * Find entity by name.
    * @param name - The name of the entity which want to be found
    * @returns The component which be found
    */
   findByName(name: string): Entity {
+    if (name === this.name) {
+      return this;
+    }
     const children = this._children;
-    const child = Entity._findChildByName(this, name);
-    if (child) return child;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      const grandson = child.findByName(name);
-      if (grandson) {
-        return grandson;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const target = children[i].findByName(name);
+      if (target) {
+        return target;
       }
     }
     return null;
@@ -375,7 +376,9 @@ export class Entity extends EngineObject {
    * Destroy self.
    */
   destroy(): void {
-    if (this._destroyed) return;
+    if (this._destroyed) {
+      return;
+    }
 
     super.destroy();
     const components = this._components;
@@ -385,12 +388,16 @@ export class Entity extends EngineObject {
     this._components.length = 0;
 
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      children[i].destroy();
+    while (children.length > 0) {
+      children[0].destroy();
     }
-    this._children.length = 0;
 
-    this._removeFromParent();
+    if (this._isRoot) {
+      this._scene._removeFromEntityList(this);
+      this._isRoot = false;
+    } else {
+      this._removeFromParent();
+    }
   }
 
   /**
@@ -425,11 +432,11 @@ export class Entity extends EngineObject {
   _removeFromParent(): void {
     const oldParent = this._parent;
     if (oldParent != null) {
-      const oldSilbing = oldParent._children;
+      const oldSibling = oldParent._children;
       let index = this._siblingIndex;
-      oldSilbing.splice(index, 1);
-      for (let n = oldSilbing.length; index < n; index++) {
-        oldSilbing[index]._siblingIndex--;
+      oldSibling.splice(index, 1);
+      for (let n = oldSibling.length; index < n; index++) {
+        oldSibling[index]._siblingIndex--;
       }
       this._parent = null;
       this._siblingIndex = -1;
@@ -532,7 +539,7 @@ export class Entity extends EngineObject {
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       const component = components[i];
-      component.enabled && activeChangedComponents.push(component);
+      (component.enabled || !component._awoken) && activeChangedComponents.push(component);
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {

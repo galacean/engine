@@ -1,6 +1,27 @@
-import { IndexFormat, TypedArray, VertexElement, VertexElementFormat } from "@oasis-engine/core";
+import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BufferInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
+
+const charCodeOfDot = ".".charCodeAt(0);
+const reEscapeChar = /\\(\\)?/g;
+const rePropName = RegExp(
+  // Match anything that isn't a dot or bracket.
+  "[^.[\\]]+" +
+    "|" +
+    // Or match property names within brackets.
+    "\\[(?:" +
+    // Match a non-string expression.
+    "([^\"'][^[]*)" +
+    "|" +
+    // Or match strings (supports escaping characters).
+    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
+    ")\\]" +
+    "|" +
+    // Or match "" as the space between consecutive dots or empty brackets.
+    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
+  "g"
+);
 
 /**
  * @internal
@@ -110,7 +131,69 @@ export class GLTFUtil {
     }
   }
 
+  static getNormalizedComponentScale(componentType: AccessorComponentType) {
+    // Reference: https://github.com/KhronosGroup/glTF/tree/master/extensions/2.0/Khronos/KHR_mesh_quantization#encoding-quantized-data
+    switch (componentType) {
+      case AccessorComponentType.BYTE:
+        return 1 / 127;
+      case AccessorComponentType.UNSIGNED_BYTE:
+        return 1 / 255;
+      case AccessorComponentType.SHORT:
+        return 1 / 32767;
+      case AccessorComponentType.UNSIGNED_SHORT:
+        return 1 / 65535;
+      default:
+        throw new Error("Oasis.GLTFLoader: Unsupported normalized accessor component type.");
+    }
+  }
+
+  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
+    const { buffers } = context;
+    const bufferViews = gltf.bufferViews;
+
+    const componentType = accessor.componentType;
+    const bufferView = bufferViews[accessor.bufferView];
+
+    const buffer = buffers[bufferView.buffer];
+    const bufferByteOffset = bufferView.byteOffset || 0;
+    const byteOffset = accessor.byteOffset || 0;
+
+    const TypedArray = GLTFUtil.getComponentType(componentType);
+    const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+    const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
+    const elementStride = dataElmentSize * dataElementBytes;
+    const accessorCount = accessor.count;
+    const bufferStride = bufferView.byteStride;
+
+    let bufferInfo: BufferInfo;
+    // According to the glTF official documentation only byteStride not undefined is allowed
+    if (bufferStride !== undefined && bufferStride !== elementStride) {
+      const bufferSlice = Math.floor(byteOffset / bufferStride);
+      const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
+      const accessorBufferCache = context.accessorBufferCache;
+      bufferInfo = accessorBufferCache[bufferCacheKey];
+      if (!bufferInfo) {
+        const offset = bufferByteOffset + bufferSlice * bufferStride;
+        const count = accessorCount * (bufferStride / dataElementBytes);
+        const data = new TypedArray(buffer, offset, count);
+        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+      }
+    } else {
+      const offset = bufferByteOffset + byteOffset;
+      const count = accessorCount * dataElmentSize;
+      const data = new TypedArray(buffer, offset, count);
+      bufferInfo = new BufferInfo(data, false, elementStride);
+    }
+
+    if (accessor.sparse) {
+      const data = GLTFUtil.processingSparseData(gltf, accessor, buffers, bufferInfo.data);
+      bufferInfo = new BufferInfo(data, false, bufferInfo.stride);
+    }
+    return bufferInfo;
+  }
+
   /**
+   * @deprecated
    * Get accessor data.
    */
   static getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
@@ -181,25 +264,50 @@ export class GLTFUtil {
     return arrayBuffer.slice(byteOffset, byteOffset + byteLength);
   }
 
-  static getVertexStride(gltf: IGLTF, accessor: IAccessor): number {
-    const stride = gltf.bufferViews[accessor.bufferView ?? 0].byteStride;
-    if (stride) {
-      return stride;
+  /**
+   * Get accessor data.
+   */
+  static processingSparseData(
+    gltf: IGLTF,
+    accessor: IAccessor,
+    buffers: ArrayBuffer[],
+    originData: TypedArray
+  ): TypedArray {
+    const bufferViews = gltf.bufferViews;
+    const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+    const TypedArray = GLTFUtil.getComponentType(accessor.componentType);
+    const data = originData.slice();
+
+    const { count, indices, values } = accessor.sparse;
+    const indicesBufferView = bufferViews[indices.bufferView];
+    const valuesBufferView = bufferViews[values.bufferView];
+    const indicesArrayBuffer = buffers[indicesBufferView.buffer];
+    const valuesArrayBuffer = buffers[valuesBufferView.buffer];
+    const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesBufferView.byteOffset ?? 0);
+    const indicesByteLength = indicesBufferView.byteLength;
+    const valuesByteOffset = (values.byteOffset ?? 0) + (valuesBufferView.byteOffset ?? 0);
+    const valuesByteLength = valuesBufferView.byteLength;
+
+    const IndexTypeArray = GLTFUtil.getComponentType(indices.componentType);
+    const indicesArray = new IndexTypeArray(
+      indicesArrayBuffer,
+      indicesByteOffset,
+      indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT
+    );
+    const valuesArray = new TypedArray(
+      valuesArrayBuffer,
+      valuesByteOffset,
+      valuesByteLength / TypedArray.BYTES_PER_ELEMENT
+    );
+
+    for (let i = 0; i < count; i++) {
+      const replaceIndex = indicesArray[i];
+      for (let j = 0; j < accessorTypeSize; j++) {
+        data[replaceIndex * accessorTypeSize + j] = valuesArray[i * accessorTypeSize + j];
+      }
     }
 
-    const size = GLTFUtil.getAccessorTypeSize(accessor.type);
-    const componentType = GLTFUtil.getComponentType(accessor.componentType);
-    return size * componentType.BYTES_PER_ELEMENT;
-  }
-
-  static createVertexElement(semantic: string, accessor: IAccessor, index: number): VertexElement {
-    const size = GLTFUtil.getAccessorTypeSize(accessor.type);
-    return new VertexElement(
-      semantic,
-      0,
-      GLTFUtil.getElementFormat(accessor.componentType, size, accessor.normalized),
-      index
-    );
+    return data;
   }
 
   static getIndexFormat(type: AccessorComponentType): IndexFormat {
@@ -273,9 +381,6 @@ export class GLTFUtil {
     return new Promise((resolve, reject) => {
       const blob = new window.Blob([imageBuffer], { type });
       const img = new Image();
-      img.src = URL.createObjectURL(blob);
-
-      img.crossOrigin = "anonymous";
       img.onerror = function () {
         reject(new Error("Failed to load image buffer"));
       };
@@ -288,6 +393,8 @@ export class GLTFUtil {
           img.onabort = null;
         });
       };
+      img.crossOrigin = "anonymous";
+      img.src = URL.createObjectURL(blob);
     });
   }
 

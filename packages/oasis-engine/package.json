@@ -1,6 +1,6 @@
 {
   "name": "oasis-engine",
-  "version": "0.9.0-alpha.6",
+  "version": "0.9.0-beta.64",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -17,6 +17,8 @@
     "dist/**/*",
     "types/**/*"
   ],
+  "homepage": "https://oasisengine.cn/",
+  "repository": {"url": "https://github.com/ant-galaxy/oasis-engine"},
   "dependencies": {
     "@oasis-engine/core": "workspace:*",
     "@oasis-engine/loader": "workspace:*",

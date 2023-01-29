@@ -42,7 +42,6 @@ export class Texture2DDecoder {
       } else {
         const blob = new window.Blob([imagesData[0]]);
         const img = new Image();
-        img.src = URL.createObjectURL(blob);
         img.onload = () => {
           texture2D.setImageSource(img);
           let completedCount = 0;
@@ -58,14 +57,15 @@ export class Texture2DDecoder {
             for (let i = 1; i < mipCount; i++) {
               const blob = new window.Blob([imagesData[i]]);
               const img = new Image();
-              img.src = URL.createObjectURL(blob);
               img.onload = () => {
                 texture2D.setImageSource(img, i);
                 onComplete();
               };
+              img.src = URL.createObjectURL(blob);
             }
           }
         };
+        img.src = URL.createObjectURL(blob);
       }
     });
   }

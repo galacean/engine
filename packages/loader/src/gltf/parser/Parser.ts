@@ -1,7 +1,7 @@
-import { EngineObject } from "@oasis-engine/core";
+import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@oasis-engine/core";
 import { ExtensionParser } from "../extensions/ExtensionParser";
 import { ExtensionSchema } from "../extensions/Schema";
-import { GLTFResource } from "../GLTFResource";
+import { ParserContext } from "./ParserContext";
 
 export abstract class Parser {
   private static _extensionParsers: Record<string, ExtensionParser[]> = {};
@@ -10,7 +10,7 @@ export abstract class Parser {
     extensionName: string,
     extensionSchema: ExtensionSchema,
     parseResource: EngineObject,
-    context: GLTFResource,
+    context: ParserContext,
     ...extra
   ): void {
     const parsers = Parser._extensionParsers[extensionName];
@@ -25,7 +25,7 @@ export abstract class Parser {
   static createEngineResource<T extends EngineObject>(
     extensionName: string,
     extensionSchema: ExtensionSchema,
-    context: GLTFResource,
+    context: ParserContext,
     ...extra
   ): T | Promise<T> {
     const parsers = Parser._extensionParsers[extensionName];
@@ -60,7 +60,7 @@ export abstract class Parser {
     Parser._extensionParsers[extensionName].push(extensionParser);
   }
 
-  abstract parse(context: GLTFResource): void | Promise<void>;
+  abstract parse(context: ParserContext): AssetPromise<any> | void | Material | AnimationClip | Mesh;
 }
 
 /**

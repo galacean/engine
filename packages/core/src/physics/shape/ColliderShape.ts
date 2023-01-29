@@ -15,11 +15,18 @@ export abstract class ColliderShape {
   _nativeShape: IColliderShape;
 
   protected _id: number;
-  protected _position: Vector3 = new Vector3();
   protected _material: PhysicsMaterial;
-  protected _isTrigger: boolean = false;
-  protected _isSceneQuery: boolean = true;
+  private _isTrigger: boolean = false;
   private _contactOffset: number = 0;
+  private _rotation: Vector3 = new Vector3();
+  private _position: Vector3 = new Vector3();
+
+  /**
+   * @internal
+   * @beta
+   * Whether raycast can select it.
+   */
+  isSceneQuery: boolean = true;
 
   /**
    * Collider owner of this shape.
@@ -60,6 +67,19 @@ export abstract class ColliderShape {
   }
 
   /**
+   * The local rotation of this ColliderShape.
+   */
+  get rotation(): Vector3 {
+    return this._rotation;
+  }
+
+  set rotation(value: Vector3) {
+    if (this._rotation != value) {
+      this._rotation.copyFrom(value);
+    }
+  }
+
+  /**
    * The local position of this ColliderShape.
    */
   get position(): Vector3 {
@@ -70,7 +90,6 @@ export abstract class ColliderShape {
     if (this._position !== value) {
       this._position.copyFrom(value);
     }
-    this._nativeShape.setPosition(value);
   }
 
   /**
@@ -88,17 +107,13 @@ export abstract class ColliderShape {
   protected constructor() {
     this._material = new PhysicsMaterial();
     this._id = ColliderShape._idGenerator++;
-  }
 
-  /**
-   * Set local position of collider shape
-   * @param x - The x component of the vector, default 0
-   * @param y - The y component of the vector, default 0
-   * @param z - The z component of the vector, default 0
-   */
-  setPosition(x: number, y: number, z: number): void {
-    this._position.set(x, y, z);
-    this._nativeShape.setPosition(this._position);
+    this._setRotation = this._setRotation.bind(this);
+    this._setPosition = this._setPosition.bind(this);
+    //@ts-ignore
+    this._rotation._onValueChanged = this._setRotation;
+    //@ts-ignore
+    this._position._onValueChanged = this._setPosition;
   }
 
   /**
@@ -107,5 +122,13 @@ export abstract class ColliderShape {
   _destroy() {
     this._material._destroy();
     this._nativeShape.destroy();
+  }
+
+  private _setPosition(): void {
+    this._nativeShape.setPosition(this._position);
+  }
+
+  private _setRotation(): void {
+    this._nativeShape.setRotation(this._rotation);
   }
 }
