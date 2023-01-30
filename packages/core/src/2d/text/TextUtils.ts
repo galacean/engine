@@ -292,6 +292,8 @@ export class TextUtils {
         if (y > bottom) {
           bottom = y;
         }
+      } else {
+        colorData[i] = colorData[i + 1] = colorData[i + 2] = 255;
       }
     }
 
