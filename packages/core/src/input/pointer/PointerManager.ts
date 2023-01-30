@@ -56,7 +56,7 @@ export class PointerManager implements IInput {
     this._updatePointerWithPhysics = this._updatePointerWithPhysics.bind(this);
     this._updatePointerWithoutPhysics = this._updatePointerWithoutPhysics.bind(this);
     this._onFocus();
-    // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
+    // If there are no compatibility issues, navigator.maxTouchPoints should be used here
     this._pointerPool = new Array<Pointer>(11);
   }
 
@@ -65,7 +65,7 @@ export class PointerManager implements IInput {
    */
   _update(frameCount: number): void {
     const { _pointers: pointers, _nativeEvents: nativeEvents } = this;
-    /** Clean up the pointer released in the previous frame. */
+    // Clean up the pointer released in the previous frame
     let lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
       for (let i = lastIndex; i >= 0; i--) {
@@ -75,7 +75,7 @@ export class PointerManager implements IInput {
       }
     }
 
-    /** Generate the pointer received for this frame. */
+    // Generate the pointer received for this frame
     lastIndex = nativeEvents.length - 1;
     if (lastIndex >= 0) {
       for (let i = 0; i <= lastIndex; i++) {
@@ -85,7 +85,7 @@ export class PointerManager implements IInput {
       nativeEvents.length = 0;
     }
 
-    /** Pointer handles its own events. */
+    // Pointer handles its own events
     this._upList.length = this._downList.length = 0;
     this._buttons = PointerButton.None;
     lastIndex = pointers.length - 1;
@@ -189,7 +189,7 @@ export class PointerManager implements IInput {
       const lastCount = pointers.length;
       if (lastCount === 0 || this._multiPointerEnabled) {
         const { _pointerPool: pointerPool } = this;
-        // Get Pointer smallest index.
+        // Get Pointer smallest index
         let i = 0;
         for (; i < lastCount; i++) {
           if (pointers[i].id > i) {
