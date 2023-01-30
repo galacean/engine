@@ -75,6 +75,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
+   * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
     this._pxShape.setContactOffset(offset);

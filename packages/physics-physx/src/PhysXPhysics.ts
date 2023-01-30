@@ -41,8 +41,6 @@ export class PhysXPhysics {
   static _pxFoundation: any;
   /** @internal Physx physics object */
   static _pxPhysics: any;
-  /** @internal Physx physics tolerance scale */
-  static _pxTolerancesScale: any;
 
   /**
    * Initialize PhysXPhysics.
@@ -223,18 +221,16 @@ export class PhysXPhysics {
   }
 
   private static _init(physX: any): void {
-    const tolerancesScale = new physX.PxTolerancesScale();
     const version = physX.PX_PHYSICS_VERSION;
     const defaultErrorCallback = new physX.PxDefaultErrorCallback();
     const allocator = new physX.PxDefaultAllocator();
     const pxFoundation = physX.PxCreateFoundation(version, allocator, defaultErrorCallback);
-    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, tolerancesScale, false, null);
+    const pxPhysics = physX.PxCreatePhysics(version, pxFoundation, new physX.PxTolerancesScale(), false, null);
 
     physX.PxInitExtensions(pxPhysics, null);
     PhysXPhysics._physX = physX;
     PhysXPhysics._pxFoundation = pxFoundation;
     PhysXPhysics._pxPhysics = pxPhysics;
-    PhysXPhysics._pxTolerancesScale = tolerancesScale;
     PhysXPhysicsManager._init();
   }
 }
