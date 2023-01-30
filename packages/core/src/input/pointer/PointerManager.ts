@@ -316,7 +316,6 @@ export class PointerManager implements IInput {
     const { _events: events } = pointer;
     const length = events.length;
     if (length > 0) {
-      const { _upList, _upMap, _downList, _downMap } = this;
       const { position } = pointer;
       const latestEvent = events[length - 1];
       const currX = ((latestEvent.clientX - rect.left) / clientW) * canvasW;
@@ -325,6 +324,7 @@ export class PointerManager implements IInput {
       position.set(currX, currY);
       pointer.button = _pointerDec2BinMap[latestEvent.button] || PointerButton.None;
       pointer.pressedButtons = latestEvent.buttons;
+      const { _upList, _upMap, _downList, _downMap } = this;
       for (let i = 0; i < length; i++) {
         const { button } = events[i];
         switch (events[i].type) {
