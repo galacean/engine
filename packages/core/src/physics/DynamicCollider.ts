@@ -31,8 +31,10 @@ export class DynamicCollider extends Collider {
   }
 
   set linearDamping(value: number) {
-    this._linearDamping = value;
-    (<IDynamicCollider>this._nativeCollider).setLinearDamping(value);
+    if (this._linearDamping !== value) {
+      this._linearDamping = value;
+      (<IDynamicCollider>this._nativeCollider).setLinearDamping(value);
+    }
   }
 
   /**
@@ -43,8 +45,10 @@ export class DynamicCollider extends Collider {
   }
 
   set angularDamping(value: number) {
-    this._angularDamping = value;
-    (<IDynamicCollider>this._nativeCollider).setAngularDamping(value);
+    if (this._angularDamping !== value) {
+      this._angularDamping = value;
+      (<IDynamicCollider>this._nativeCollider).setAngularDamping(value);
+    }
   }
 
   /**
@@ -81,8 +85,10 @@ export class DynamicCollider extends Collider {
   }
 
   set mass(value: number) {
-    this._mass = value;
-    (<IDynamicCollider>this._nativeCollider).setMass(value);
+    if (this._mass !== value) {
+      this._mass = value;
+      (<IDynamicCollider>this._nativeCollider).setMass(value);
+    }
   }
 
   /**
@@ -119,8 +125,10 @@ export class DynamicCollider extends Collider {
   }
 
   set maxAngularVelocity(value: number) {
-    this._maxAngularVelocity = value;
-    (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(value);
+    if (this._maxAngularVelocity !== value) {
+      this._maxAngularVelocity = value;
+      (<IDynamicCollider>this._nativeCollider).setMaxAngularVelocity(value);
+    }
   }
 
   /**
@@ -131,8 +139,10 @@ export class DynamicCollider extends Collider {
   }
 
   set maxDepenetrationVelocity(value: number) {
-    this._maxDepenetrationVelocity = value;
-    (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(value);
+    if (this._maxDepenetrationVelocity !== value) {
+      this._maxDepenetrationVelocity = value;
+      (<IDynamicCollider>this._nativeCollider).setMaxDepenetrationVelocity(value);
+    }
   }
 
   /**
@@ -157,8 +167,10 @@ export class DynamicCollider extends Collider {
   }
 
   set solverIterations(value: number) {
-    this._solverIterations = value;
-    (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
+    if (this._solverIterations !== value) {
+      this._solverIterations = value;
+      (<IDynamicCollider>this._nativeCollider).setSolverIterations(value);
+    }
   }
 
   /**
@@ -169,8 +181,10 @@ export class DynamicCollider extends Collider {
   }
 
   set isKinematic(value: boolean) {
-    this._isKinematic = value;
-    (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+    if (this._isKinematic !== value) {
+      this._isKinematic = value;
+      (<IDynamicCollider>this._nativeCollider).setIsKinematic(value);
+    }
   }
 
   /**
@@ -181,8 +195,10 @@ export class DynamicCollider extends Collider {
   }
 
   set constraints(value: DynamicColliderConstraints) {
-    this._constraints = value;
-    (<IDynamicCollider>this._nativeCollider).setConstraints(value);
+    if (this._constraints !== value) {
+      this._constraints = value;
+      (<IDynamicCollider>this._nativeCollider).setConstraints(value);
+    }
   }
 
   /**
@@ -193,8 +209,10 @@ export class DynamicCollider extends Collider {
   }
 
   set collisionDetectionMode(value: CollisionDetectionMode) {
-    this._collisionDetectionMode = value;
-    (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
+    if (this._collisionDetectionMode !== value) {
+      this._collisionDetectionMode = value;
+      (<IDynamicCollider>this._nativeCollider).setCollisionDetectionMode(value);
+    }
   }
 
   /**

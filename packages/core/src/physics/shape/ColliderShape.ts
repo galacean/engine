@@ -64,8 +64,10 @@ export abstract class ColliderShape {
   }
 
   set material(value: PhysicsMaterial) {
-    this._material = value;
-    this._nativeShape.setMaterial(value._nativeMaterial);
+    if (this._material !== value) {
+      this._material = value;
+      this._nativeShape.setMaterial(value._nativeMaterial);
+    }
   }
 
   /**
@@ -102,8 +104,10 @@ export abstract class ColliderShape {
   }
 
   set isTrigger(value: boolean) {
-    this._isTrigger = value;
-    this._nativeShape.setIsTrigger(value);
+    if (this._isTrigger !== value) {
+      this._isTrigger = value;
+      this._nativeShape.setIsTrigger(value);
+    }
   }
 
   protected constructor() {

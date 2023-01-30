@@ -26,8 +26,10 @@ export class CharacterController extends Collider {
   }
 
   set stepOffset(value: number) {
-    this._stepOffset = value;
-    (<ICharacterController>this._nativeCollider).setStepOffset(value);
+    if (this._stepOffset !== value) {
+      this._stepOffset = value;
+      (<ICharacterController>this._nativeCollider).setStepOffset(value);
+    }
   }
 
   /**
@@ -38,8 +40,10 @@ export class CharacterController extends Collider {
   }
 
   set nonWalkableMode(value: ControllerNonWalkableMode) {
-    this._nonWalkableMode = value;
-    (<ICharacterController>this._nativeCollider).setNonWalkableMode(value);
+    if (this._nonWalkableMode !== value) {
+      this._nonWalkableMode = value;
+      (<ICharacterController>this._nativeCollider).setNonWalkableMode(value);
+    }
   }
 
   /**
@@ -63,8 +67,10 @@ export class CharacterController extends Collider {
   }
 
   set slopeLimit(value: number) {
-    this._slopeLimit = value;
-    (<ICharacterController>this._nativeCollider).setSlopeLimit(value);
+    if (this._slopeLimit !== value) {
+      this._slopeLimit = value;
+      (<ICharacterController>this._nativeCollider).setSlopeLimit(value);
+    }
   }
 
   /**
