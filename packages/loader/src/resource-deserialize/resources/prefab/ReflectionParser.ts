@@ -12,15 +12,9 @@ export class ReflectionParser {
     return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
       entity.isActive = entityConfig.isActive ?? true;
       const { position, rotation, scale } = entityConfig;
-      if (position) {
-        entity.transform.setPosition(position.x, position.y, position.z);
-      }
-      if (rotation) {
-        entity.transform.setRotation(rotation.x, rotation.y, rotation.z);
-      }
-      if (scale) {
-        entity.transform.setScale(scale.x, scale.y, scale.z);
-      }
+      if (position) entity.transform.setPosition(position.x, position.y, position.z);
+      if (rotation) entity.transform.setRotation(rotation.x, rotation.y, rotation.z);
+      if (scale) entity.transform.setScale(scale.x, scale.y, scale.z);
       return entity;
     });
   }
