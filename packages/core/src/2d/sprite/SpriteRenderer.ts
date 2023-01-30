@@ -1,4 +1,4 @@
-import { BoundingBox, Color } from "@oasis-engine/math";
+import { BoundingBox, Color, MathUtil } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
@@ -16,6 +16,7 @@ import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
+import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 
 /**
@@ -33,6 +34,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   private _drawMode: SpriteDrawMode;
   @ignoreClone
   private _assembler: IAssembler;
+  @ignoreClone
+  private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
+  @ignoreClone
+  private _tileStretchValue: number = 0.5;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -78,6 +83,39 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       }
       this._assembler.resetData(this);
       this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+    }
+  }
+
+  /**
+   * The tiling mode of the sprite renderer. (Only works in tiled mode.)
+   */
+  get tileMode(): SpriteTileMode {
+    return this._tileMode;
+  }
+
+  set tileMode(tileMode: SpriteTileMode) {
+    if (this._tileMode !== tileMode) {
+      this._tileMode = tileMode;
+      if (this.drawMode === SpriteDrawMode.Tiled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+      }
+    }
+  }
+
+  /**
+   * The stretch value of the sprite renderer. (Only works in tiled mode.)
+   */
+  get tileStretchValue(): number {
+    return this._tileStretchValue;
+  }
+
+  set tileStretchValue(stretchValue: number) {
+    stretchValue = MathUtil.clamp(stretchValue, 0, 1);
+    if (stretchValue !== this._tileStretchValue) {
+      this._tileStretchValue = stretchValue;
+      if (this.drawMode === SpriteDrawMode.Tiled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+      }
     }
   }
 
@@ -219,6 +257,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _cloneTo(target: SpriteRenderer): void {
+    target._tileMode = this._tileMode;
+    target._tileStretchValue = this._tileStretchValue;
+    target.drawMode = this._drawMode;
     target.sprite = this._sprite;
   }
 
