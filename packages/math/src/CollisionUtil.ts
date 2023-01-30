@@ -371,37 +371,37 @@ export class CollisionUtil {
     let distance = CollisionUtil.distancePlaneAndPoint(frustum.top, point);
     if (distance < 0) {
       return ContainmentType.Disjoint;
-    } else if (distance = 0) {
+    } else if (distance === 0) {
       return ContainmentType.Intersects;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.right, point);
     if (distance < 0) {
       return ContainmentType.Disjoint;
-    } else if (distance = 0) {
+    } else if (distance === 0) {
       return ContainmentType.Intersects;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.bottom, point);
     if (distance < 0) {
       return ContainmentType.Disjoint;
-    } else if (distance = 0) {
+    } else if (distance === 0) {
       return ContainmentType.Intersects;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.left, point);
     if (distance < 0) {
       return ContainmentType.Disjoint;
-    } else if (distance = 0) {
+    } else if (distance === 0) {
       return ContainmentType.Intersects;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.near, point);
     if (distance < 0) {
       return ContainmentType.Disjoint;
-    } else if (distance = 0) {
+    } else if (distance === 0) {
       return ContainmentType.Intersects;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.far, point);
     if (distance < 0) {
       return ContainmentType.Disjoint;
-    } else if (distance = 0) {
+    } else if (distance === 0) {
       return ContainmentType.Intersects;
     }
     return ContainmentType.Contains;
