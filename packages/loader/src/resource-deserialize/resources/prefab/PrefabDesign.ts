@@ -72,6 +72,6 @@ export type IClassObject = {
   props?: { [key: string]: IBasicType | IMethodParams };
 };
 
-export type IBasicType = string | number | boolean | null | undefined | IReferenceType | IClassObject | IMethodParams;
+export type IBasicType = string | number | boolean | null | undefined | IAssetRef | IClassObject | IMethodParams;
 
-export type IReferenceType = { key?: string; refId: string };
+export type IAssetRef = { key?: string; refId: string };

@@ -1,5 +1,5 @@
 import { Engine, Entity, Loader } from "@oasis-engine/core";
-import { IBasicType, IClassObject, IEntity, IReferenceType } from "./PrefabDesign";
+import { IBasicType, IClassObject, IEntity, IAssetRef } from "./PrefabDesign";
 
 export class ReflectionParser {
   static customParseComponentHandles = new Map<string, Function>();
@@ -131,7 +131,7 @@ export class ReflectionParser {
     return value["class"] != undefined;
   }
 
-  private static _isRef(value: any): value is IReferenceType {
+  private static _isRef(value: any): value is IAssetRef {
     return value["refId"] != undefined;
   }
 }
