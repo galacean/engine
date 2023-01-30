@@ -7,7 +7,6 @@ import { IClone } from "./IClone";
 import { ICopy } from "./ICopy";
 import { Matrix } from "./Matrix";
 import { Plane } from "./Plane";
-import { Vector3 } from "./Vector3";
 
 /**
  * A bounding frustum.
@@ -142,33 +141,6 @@ export class BoundingFrustum implements IClone<BoundingFrustum>, ICopy<BoundingF
    */
   public intersectsSphere(sphere: BoundingSphere): boolean {
     return CollisionUtil.frustumContainsSphere(this, sphere) !== ContainmentType.Disjoint;
-  }
-
-  /**
-   * Get whether or not a point is in frustum.
-   * @param point - The point for testing
-   * @returns True if the point is in this frustum, false otherwise
-  */
-  public containsPoint(point: Vector3): boolean {
-    if (Plane.distanceToPoint(this.top, point) < 0) {
-      return false;
-    }
-    if (Plane.distanceToPoint(this.right, point) < 0) {
-      return false;
-    }
-    if (Plane.distanceToPoint(this.bottom, point) < 0) {
-      return false;
-    }
-    if (Plane.distanceToPoint(this.left, point) < 0) {
-      return false;
-    }
-    if (Plane.distanceToPoint(this.near, point) < 0) {
-      return false;
-    }
-    if (Plane.distanceToPoint(this.far, point) < 0) {
-      return false;
-    }
-    return true;
   }
 
   /**
