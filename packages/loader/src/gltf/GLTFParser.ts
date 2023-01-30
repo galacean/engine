@@ -1,3 +1,4 @@
+import { AssetPromise } from "@oasis-engine/core";
 import { GLTFResource } from "./GLTFResource";
 import { AnimationParser } from "./parser/AnimationParser";
 import { BufferParser } from "./parser/BufferParser";
@@ -24,11 +25,6 @@ export class GLTFParser {
     SceneParser
   ]);
 
-  static texturePipeline = new GLTFParser([BufferParser, TextureParser]);
-  static materialPipeline = new GLTFParser([BufferParser, TextureParser, MaterialParser]);
-  static animationPipeline = new GLTFParser([BufferParser, EntityParser, AnimationParser]);
-  static meshPipeline = new GLTFParser([BufferParser, MeshParser]);
-
   private _pipes: Parser[] = [];
 
   private constructor(pipes: (new () => Parser)[]) {
@@ -37,16 +33,19 @@ export class GLTFParser {
     });
   }
 
-  parse(context: ParserContext): Promise<GLTFResource> {
+  parse(context: ParserContext): AssetPromise<GLTFResource> {
     const glTFResource = context.glTFResource;
     let lastPipe;
 
-    return new Promise((resolve, reject) => {
+    return new AssetPromise<GLTFResource>((resolve, reject) => {
       this._pipes.forEach((parser: Parser) => {
         if (lastPipe) {
           lastPipe = lastPipe.then(() => {
             return parser.parse(context);
           });
+          if (lastPipe.cancel) {
+            context.chainPromises.push(lastPipe);
+          }
         } else {
           lastPipe = parser.parse(context);
         }
@@ -54,12 +53,10 @@ export class GLTFParser {
 
       if (lastPipe) {
         lastPipe
-          .then((customRes) => {
-            resolve(customRes || glTFResource);
+          .then(() => {
+            resolve(glTFResource);
           })
           .catch(reject);
-      } else {
-        resolve(glTFResource);
       }
     });
   }

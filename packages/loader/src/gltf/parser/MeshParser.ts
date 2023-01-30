@@ -1,4 +1,5 @@
 import {
+  AssetPromise,
   BlendShape,
   Buffer,
   BufferBindFlag,
@@ -18,24 +19,18 @@ export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
 
   parse(context: ParserContext) {
-    const { meshIndex, subMeshIndex, glTFResource } = context;
-    const { engine, gltf, buffers } = glTFResource;
+    const { gltf, buffers, glTFResource } = context;
+    const { engine } = glTFResource;
     if (!gltf.meshes) return;
 
+    const meshesPromiseInfo = context.meshesPromiseInfo;
     const meshPromises: Promise<ModelMesh[]>[] = [];
 
     for (let i = 0; i < gltf.meshes.length; i++) {
-      if (meshIndex >= 0 && meshIndex !== i) {
-        continue;
-      }
       const gltfMesh = gltf.meshes[i];
       const primitivePromises: Promise<ModelMesh>[] = [];
 
       for (let j = 0; j < gltfMesh.primitives.length; j++) {
-        if (subMeshIndex >= 0 && subMeshIndex !== j) {
-          continue;
-        }
-
         const gltfPrimitive = gltfMesh.primitives[j];
         const { extensions = {} } = gltfPrimitive;
         const { KHR_draco_mesh_compression } = extensions;
@@ -48,7 +43,7 @@ export class MeshParser extends Parser {
               Parser.createEngineResource(
                 "KHR_draco_mesh_compression",
                 KHR_draco_mesh_compression,
-                glTFResource,
+                context,
                 gltfPrimitive
               )
             ))
@@ -109,17 +104,14 @@ export class MeshParser extends Parser {
       meshPromises[i] = Promise.all(primitivePromises);
     }
 
-    return Promise.all(meshPromises).then((meshes: ModelMesh[][]) => {
-      if (meshIndex >= 0) {
-        const mesh = meshes[meshIndex]?.[subMeshIndex];
-        if (mesh) {
-          return mesh;
-        } else {
-          throw `meshIndex-subMeshIndex index not find in: ${meshIndex}-${subMeshIndex}`;
-        }
-      }
-      glTFResource.meshes = meshes;
-    });
+    AssetPromise.all(meshPromises)
+      .then((meshes: ModelMesh[][]) => {
+        glTFResource.meshes = meshes;
+        meshesPromiseInfo.resolve(meshes);
+      })
+      .catch(meshesPromiseInfo.reject);
+
+    return meshesPromiseInfo.promise;
   }
 
   private _parseMeshFromGLTFPrimitive(
@@ -134,7 +126,7 @@ export class MeshParser extends Parser {
     keepMeshData: boolean
   ): Promise<ModelMesh> {
     const { accessors } = gltf;
-    const { buffers } = context.glTFResource;
+    const { buffers } = context;
     const { attributes, targets, indices, mode } = gltfPrimitive;
 
     const engine = mesh.engine;
@@ -148,28 +140,30 @@ export class MeshParser extends Parser {
 
       const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
       const attributeCount = accessor.count;
-
-      let vertices: TypedArray = accessorBuffer.data;
-      if (accessor.sparse) {
-        vertices = GLTFUtil.processingSparseData(gltf, accessor, buffers, vertices);
-      }
+      const vertices = accessorBuffer.data;
 
       let vertexElement: VertexElement;
+      const meshId = mesh.instanceId;
+      const vertexBindingInfos = accessorBuffer.vertexBindingInfos;
       const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElmentSize, accessor.normalized);
       if (accessorBuffer.interleaved) {
         const byteOffset = accessor.byteOffset || 0;
         const stride = accessorBuffer.stride;
         const elementOffset = byteOffset % stride;
 
-        if (accessorBuffer.vertexBindindex === undefined) {
+        if (vertexBindingInfos[meshId] === undefined) {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
-          const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
-          vertexBuffer.setData(vertices);
+          let vertexBuffer = accessorBuffer.vertxBuffer;
+          if (!vertexBuffer) {
+            vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
+            vertexBuffer.setData(vertices);
+            accessorBuffer.vertxBuffer = vertexBuffer;
+          }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
-          accessorBuffer.vertexBindindex = bufferBindIndex++;
+          vertexBindingInfos[meshId] = bufferBindIndex++;
         } else {
-          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, accessorBuffer.vertexBindindex);
+          vertexElement = new VertexElement(attribute, elementOffset, elementFormat, vertexBindingInfos[meshId]);
         }
       } else {
         vertexElement = new VertexElement(attribute, 0, elementFormat, bufferBindIndex);
@@ -177,7 +171,7 @@ export class MeshParser extends Parser {
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
-        accessorBuffer.vertexBindindex = bufferBindIndex++;
+        vertexBindingInfos[meshId] = bufferBindIndex++;
       }
       vertexElements.push(vertexElement);
 

@@ -8,12 +8,12 @@ export class EntityParser extends Parser {
   static _defaultName: String = "_GLTF_ENTITY_";
 
   parse(context: ParserContext): void {
-    const glTFResource = context.glTFResource;
-
     const {
-      engine,
+      glTFResource,
       gltf: { nodes }
-    } = glTFResource;
+    } = context;
+
+    const { engine } = glTFResource;
 
     if (!nodes) return;
 
@@ -45,15 +45,15 @@ export class EntityParser extends Parser {
     }
 
     glTFResource.entities = entities;
-    this._buildEntityTree(glTFResource);
-    this._createSceneRoots(glTFResource);
+    this._buildEntityTree(context, glTFResource);
+    this._createSceneRoots(context, glTFResource);
   }
 
-  private _buildEntityTree(context: GLTFResource): void {
+  private _buildEntityTree(context: ParserContext, glTFResource: GLTFResource): void {
     const {
-      gltf: { nodes },
-      entities
+      gltf: { nodes }
     } = context;
+    const { entities } = glTFResource;
 
     for (let i = 0; i < nodes.length; i++) {
       const { children } = nodes[i];
@@ -69,12 +69,9 @@ export class EntityParser extends Parser {
     }
   }
 
-  private _createSceneRoots(context: GLTFResource): void {
-    const {
-      engine,
-      gltf: { scene: sceneID = 0, scenes },
-      entities
-    } = context;
+  private _createSceneRoots(context: ParserContext, glTFResource: GLTFResource): void {
+    const { scene: sceneID = 0, scenes } = context.gltf;
+    const { engine, entities } = glTFResource;
 
     if (!scenes) return;
 
@@ -96,7 +93,7 @@ export class EntityParser extends Parser {
       }
     }
 
-    context.sceneRoots = sceneRoots;
-    context.defaultSceneRoot = sceneRoots[sceneID];
+    glTFResource.sceneRoots = sceneRoots;
+    glTFResource.defaultSceneRoot = sceneRoots[sceneID];
   }
 }
