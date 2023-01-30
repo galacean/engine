@@ -53,15 +53,6 @@ export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
     out.distance = -(x * x0 + y * y0 + z * z0);
   }
 
-  /**
-   * Calculate the distance from a plane to a point.
-   * @param plane - The plane
-   * @param point - The point
-   */
-  static distanceToPoint(plane: Plane, point: Vector3) {
-    return Vector3.dot(plane.normal, point) + plane.distance;
-  }
-
   /** The normal of the plane. */
   public readonly normal: Vector3 = new Vector3();
   /** The distance of the plane along its normal to the origin. */
