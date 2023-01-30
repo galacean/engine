@@ -71,13 +71,9 @@ export class PointerManager implements IInput {
     if (lastIndex >= 0) {
       for (let i = lastIndex; i >= 0; i--) {
         if (pointers[i].phase === PointerPhase.Leave) {
-          if (i !== lastIndex) {
-            pointers[i] = pointers[lastIndex];
-          }
-          --lastIndex;
+          pointers.splice(i, 1);
         }
       }
-      pointers.length = lastIndex + 1;
     }
 
     /** Generate the pointer received for this frame. */

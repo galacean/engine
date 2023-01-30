@@ -60,7 +60,6 @@ export class ShaderPass {
     let vertexSource = ShaderFactory.parseIncludes(
       ` ${versionStr}
         ${graphicAPI}
-        ${precisionStr}
         ${macroNameStr}
       ` + this._vertexSource
     );

@@ -10,7 +10,7 @@ import { RefObject } from "./RefObject";
  */
 export class ResourceManager {
   /** Loader collection. */
-  private static _loaders: { [key: number]: Loader<any> } = {};
+  private static _loaders: { [key: string]: Loader<any> } = {};
   private static _extTypeMapping: { [key: string]: string } = {};
 
   /**
@@ -41,7 +41,7 @@ export class ResourceManager {
   private _assetUrlPool: { [key: string]: Object } = Object.create(null);
   /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
   private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
-  /** Loading assets. */
+  /** Loading promises. */
   private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
 
   /**
@@ -179,7 +179,6 @@ export class ResourceManager {
     this._assetPool = null;
     this._assetUrlPool = null;
     this._refObjectPool = null;
-    this._loadingPromises = null;
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
@@ -194,42 +193,100 @@ export class ResourceManager {
     return assetInfo;
   }
 
-  private _loadSingleItem<T>(item: LoadItem | string): AssetPromise<T> {
-    const info = this._assignDefaultOptions(typeof item === "string" ? { url: item } : item);
-    const infoUrl = info.url;
-    // check url mapping
-    const url = this._virtualPathMap[infoUrl] ? this._virtualPathMap[infoUrl] : infoUrl;
-    // has cache
-    if (this._assetUrlPool[url]) {
+  private _loadSingleItem<T>(itemOrURL: LoadItem | string): AssetPromise<T> {
+    const item = this._assignDefaultOptions(typeof itemOrURL === "string" ? { url: itemOrURL } : itemOrURL);
+
+    // Check url mapping
+    const itemURL = item.url;
+    const url = this._virtualPathMap[itemURL] ? this._virtualPathMap[itemURL] : itemURL;
+
+    // Parse url
+    const { assetBaseURL, queryPath } = this._parseURL(url);
+    const pathes = queryPath ? this._parseQueryPath(queryPath) : [];
+
+    // Check cache
+    const cacheObject = this._assetUrlPool[assetBaseURL];
+    if (cacheObject) {
       return new AssetPromise((resolve) => {
-        resolve(this._assetUrlPool[url] as T);
+        resolve(this._getResolveResource(cacheObject, pathes) as T);
       });
     }
-    // loading
-    if (this._loadingPromises[url]) {
-      return this._loadingPromises[url];
+
+    // Get asset url
+    let assetURL = assetBaseURL;
+    if (queryPath) {
+      assetURL += "?q=" + pathes.shift();
     }
-    const loader = ResourceManager._loaders[info.type];
+
+    // Check is loading
+    const loadingPromises = this._loadingPromises;
+    const loadingPromise = loadingPromises[assetURL];
+    if (loadingPromise) {
+      return new AssetPromise((resolve, reject) => {
+        loadingPromise
+          .then((resource: EngineObject) => {
+            resolve(this._getResolveResource(resource, pathes) as T);
+          })
+          .catch((error: Error) => {
+            reject(error);
+          });
+      });
+    }
+
+    // Check loader
+    const loader = ResourceManager._loaders[item.type];
     if (!loader) {
-      throw `loader not found: ${info.type}`;
+      throw `loader not found: ${item.type}`;
     }
-    info.url = url;
-    const promise = loader.load(info, this);
-    this._loadingPromises[url] = promise;
-    promise
-      .then((res: EngineObject) => {
-        if (loader.useCache) this._addAsset(url, res);
-        if (this._loadingPromises) {
-          delete this._loadingPromises[url];
-        }
-      })
-      .catch((err: Error) => {
-        Promise.reject(err);
-        if (this._loadingPromises) {
-          delete this._loadingPromises[url];
-        }
+
+    // Load asset
+    item.url = assetBaseURL;
+    const promise = loader.load(item, this);
+    if (promise instanceof AssetPromise) {
+      loadingPromises[assetBaseURL] = promise;
+      promise
+        .then((resource: EngineObject) => {
+          if (loader.useCache) {
+            this._addAsset(assetBaseURL, resource);
+          }
+          delete loadingPromises[assetBaseURL];
+        })
+        .catch((error: Error) => {
+          delete loadingPromises[assetBaseURL];
+          return Promise.reject(error);
+        });
+      return promise;
+    } else {
+      for (let subURL in promise) {
+        const subPromise = promise[subURL];
+        const isMaster = assetBaseURL === subURL;
+        loadingPromises[subURL] = subPromise;
+
+        subPromise
+          .then((resource: EngineObject) => {
+            if (isMaster) {
+              if (loader.useCache) {
+                this._addAsset(subURL, resource);
+                for (let k in promise) delete loadingPromises[k];
+              }
+            }
+          })
+          .catch((err: Error) => {
+            for (let k in promise) delete loadingPromises[k];
+            return Promise.reject(err);
+          });
+      }
+
+      const subAssetPromise = promise[assetURL];
+      return new AssetPromise((resolve, reject) => {
+        subAssetPromise.then((resource: EngineObject) => {
+          resolve(this._getResolveResource(resource, pathes) as T);
+        });
+        subAssetPromise.catch((error: Error) => {
+          reject(error);
+        });
       });
-    return promise;
+    }
   }
 
   private _gc(forceDestroy: boolean): void {
@@ -239,6 +296,52 @@ export class ResourceManager {
         objects[i].destroy();
       }
     }
+  }
+
+  private _getResolveResource(resource: any, pathes: string[]): any {
+    let subResource = resource;
+    if (pathes) {
+      for (let i = 0, n = pathes.length; i < n; i++) {
+        const path = pathes[i];
+        subResource = subResource[path];
+      }
+    }
+    return subResource;
+  }
+
+  private _parseURL(path: string): { assetBaseURL: string; queryPath: string } {
+    let assetBaseURL = path;
+    const index = assetBaseURL.indexOf("?");
+    if (index !== -1) {
+      assetBaseURL = assetBaseURL.slice(0, index);
+    }
+    return { assetBaseURL, queryPath: this._getParameterByName("q", path) };
+  }
+
+  private _getParameterByName(name, url = window.location.href) {
+    name = name.replace(/[\[\]]/g, "\\$&");
+    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
+      results = regex.exec(url);
+    if (!results) return null;
+    if (!results[2]) return "";
+    return decodeURIComponent(results[2].replace(/\+/g, " "));
+  }
+
+  private _parseQueryPath(string): string[] {
+    const result = [];
+    if (string.charCodeAt(0) === charCodeOfDot) {
+      result.push("");
+    }
+    string.replace(rePropName, (match, expression, quote, subString) => {
+      let key = match;
+      if (quote) {
+        key = subString.replace(reEscapeChar, "$1");
+      } else if (expression) {
+        key = expression.trim();
+      }
+      result.push(key);
+    });
+    return result;
   }
 
   //-----------------Editor temp solution-----------------
@@ -261,16 +364,15 @@ export class ResourceManager {
     if (obj) {
       promise = Promise.resolve(obj);
     } else {
-      const url = this._editorResourceConfig[refId]?.path;
+      let url = this._editorResourceConfig[refId]?.path;
       if (!url) {
-        Logger.error(
-          `refId:${refId} is not find in this._editorResourceConfig:${JSON.stringify(this._editorResourceConfig)}`
-        );
+        Logger.warn(`refId:${refId} is not find in this._editorResourceConfig.`);
         return Promise.resolve(null);
       }
+      url = key ? `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}` : url;
       promise = this.load<any>({
-        type: this._editorResourceConfig[refId].type,
-        url: `${url}${url.indexOf("?") > -1 ? "&" : "?"}q=${key}`
+        url,
+        type: this._editorResourceConfig[refId].type
       });
     }
     return promise.then((item) => (isClone ? item.clone() : item));
@@ -300,6 +402,26 @@ export function resourceLoader(assetType: string, extnames: string[], useCache: 
     ResourceManager._addLoader(assetType, loader, extnames);
   };
 }
+
+const charCodeOfDot = ".".charCodeAt(0);
+const reEscapeChar = /\\(\\)?/g;
+const rePropName = RegExp(
+  // Match anything that isn't a dot or bracket.
+  "[^.[\\]]+" +
+    "|" +
+    // Or match property names within brackets.
+    "\\[(?:" +
+    // Match a non-string expression.
+    "([^\"'][^[]*)" +
+    "|" +
+    // Or match strings (supports escaping characters).
+    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
+    ")\\]" +
+    "|" +
+    // Or match "" as the space between consecutive dots or empty brackets.
+    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
+  "g"
+);
 
 type EditorResourceItem = { virtualPath: string; path: string; type: string; id: string };
 type EditorResourceConfig = Record<string, EditorResourceItem>;

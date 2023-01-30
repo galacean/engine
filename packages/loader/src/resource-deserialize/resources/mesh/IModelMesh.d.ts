@@ -101,6 +101,10 @@ export interface IEncodedModelMesh {
     start: number;
     end: number;
   };
+  bounds?: {
+    min: IVector3[];
+    max: IVector3[];
+  };
   subMeshes: {
     start: number;
     topology: MeshTopology;

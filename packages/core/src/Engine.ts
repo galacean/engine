@@ -399,7 +399,7 @@ export class Engine extends EventDispatcher {
     let pool = shaderProgramPools[index];
     if (!pool) {
       const length = index + 1;
-      if (length < shaderProgramPools.length) {
+      if (length > shaderProgramPools.length) {
         shaderProgramPools.length = length;
       }
       shaderProgramPools[index] = pool = new ShaderProgramPool();

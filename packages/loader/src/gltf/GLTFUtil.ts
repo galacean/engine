@@ -1,6 +1,6 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { IBufferInfo, ParserContext } from "./parser/ParserContext";
+import { BufferInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
 const charCodeOfDot = ".".charCodeAt(0);
@@ -147,8 +147,8 @@ export class GLTFUtil {
     }
   }
 
-  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): IBufferInfo {
-    const { buffers } = context.glTFResource;
+  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
+    const { buffers } = context;
     const bufferViews = gltf.bufferViews;
 
     const componentType = accessor.componentType;
@@ -162,37 +162,34 @@ export class GLTFUtil {
     const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
     const elementStride = dataElmentSize * dataElementBytes;
-    const attributeCount = accessor.count;
-    const bufferStride = bufferView.byteStride || elementStride;
+    const accessorCount = accessor.count;
+    const bufferStride = bufferView.byteStride;
 
-    const bufferSlice = Math.floor(byteOffset / bufferStride);
-    const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + attributeCount;
-    const accessorBufferCache = context.accessorBufferCache;
-    let bufferInfo = accessorBufferCache[bufferCacheKey];
-    if (!bufferInfo) {
-      if (bufferStride !== elementStride) {
+    let bufferInfo: BufferInfo;
+    // According to the glTF official documentation only byteStride not undefined is allowed
+    if (bufferStride !== undefined && bufferStride !== elementStride) {
+      const bufferSlice = Math.floor(byteOffset / bufferStride);
+      const bufferCacheKey = accessor.bufferView + ":" + componentType + ":" + bufferSlice + ":" + accessorCount;
+      const accessorBufferCache = context.accessorBufferCache;
+      bufferInfo = accessorBufferCache[bufferCacheKey];
+      if (!bufferInfo) {
         const offset = bufferByteOffset + bufferSlice * bufferStride;
-        const count = attributeCount * (bufferStride / dataElementBytes);
+        const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: true, stride: bufferStride };
-      } else {
-        const offset = bufferByteOffset + byteOffset;
-        const count = attributeCount * dataElmentSize;
-        const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = { data: data, interleaved: false, stride: bufferStride };
+        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
       }
+    } else {
+      const offset = bufferByteOffset + byteOffset;
+      const count = accessorCount * dataElmentSize;
+      const data = new TypedArray(buffer, offset, count);
+      bufferInfo = new BufferInfo(data, false, elementStride);
+    }
+
+    if (accessor.sparse) {
+      const data = GLTFUtil.processingSparseData(gltf, accessor, buffers, bufferInfo.data);
+      bufferInfo = new BufferInfo(data, false, bufferInfo.stride);
     }
     return bufferInfo;
-  }
-
-  static getAccessorBufferData(context: ParserContext, gltf: IGLTF, accessor: IAccessor): TypedArray {
-    const { buffers } = context.glTFResource;
-    const bufferInfo = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
-    let data = bufferInfo.data;
-    if (accessor.sparse) {
-      data = GLTFUtil.processingSparseData(gltf, accessor, buffers, data);
-    }
-    return data;
   }
 
   /**
@@ -416,36 +413,6 @@ export class GLTFUtil {
     }
 
     return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
-  }
-
-  static parseUrl(path: string): { query: string; baseUrl: string } {
-    return { query: this.getParameterByName("q", path), baseUrl: path.slice(0, path.indexOf("?")) };
-  }
-
-  static getParameterByName(name, url = window.location.href) {
-    name = name.replace(/[\[\]]/g, "\\$&");
-    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-      results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return "";
-    return decodeURIComponent(results[2].replace(/\+/g, " "));
-  }
-
-  static stringToPath(string): string[] {
-    const result = [];
-    if (string.charCodeAt(0) === charCodeOfDot) {
-      result.push("");
-    }
-    string.replace(rePropName, (match, expression, quote, subString) => {
-      let key = match;
-      if (quote) {
-        key = subString.replace(reEscapeChar, "$1");
-      } else if (expression) {
-        key = expression.trim();
-      }
-      result.push(key);
-    });
-    return result;
   }
 
   /**
