@@ -36,7 +36,6 @@ export class PointerManager implements IInput {
   private _engine: Engine;
   private _canvas: Canvas;
   private _htmlCanvas: HTMLCanvasElement;
-  private _curClientRect: DOMRect;
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _hadListener: boolean = false;
@@ -98,13 +97,13 @@ export class PointerManager implements IInput {
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;
-      this._curClientRect = this._htmlCanvas.getBoundingClientRect();
+      const clientRect = this._htmlCanvas.getBoundingClientRect();
       const { clientWidth, clientHeight } = this._htmlCanvas;
       const { width, height } = this._canvas;
       for (let i = lastIndex; i >= 0; i--) {
         const pointer = pointers[i];
         pointer._upList.length = pointer._downList.length = 0;
-        updatePointer(frameCount, pointer, clientWidth, clientHeight, width, height);
+        updatePointer(frameCount, pointer, clientRect, clientWidth, clientHeight, width, height);
         this._buttons |= pointer.pressedButtons;
       }
     }
@@ -244,6 +243,7 @@ export class PointerManager implements IInput {
   private _updatePointerWithPhysics(
     frameCount: number,
     pointer: Pointer,
+    rect: DOMRect,
     clientW: number,
     clientH: number,
     canvasW: number,
@@ -252,7 +252,7 @@ export class PointerManager implements IInput {
     const { _events: events, position } = pointer;
     const length = events.length;
     if (length > 0) {
-      const { _upList, _upMap, _downList, _downMap, _curClientRect: rect } = this;
+      const { _upList, _upMap, _downList, _downMap } = this;
       const latestEvent = events[length - 1];
       const normalizedX = (latestEvent.clientX - rect.left) / clientW;
       const normalizedY = (latestEvent.clientY - rect.top) / clientH;
@@ -311,6 +311,7 @@ export class PointerManager implements IInput {
   private _updatePointerWithoutPhysics(
     frameCount: number,
     pointer: Pointer,
+    rect: DOMRect,
     clientW: number,
     clientH: number,
     canvasW: number,
@@ -319,7 +320,7 @@ export class PointerManager implements IInput {
     const { _events: events } = pointer;
     const length = events.length;
     if (length > 0) {
-      const { _upList, _upMap, _downList, _downMap, _curClientRect: rect } = this;
+      const { _upList, _upMap, _downList, _downMap } = this;
       const { position } = pointer;
       const latestEvent = events[length - 1];
       const currX = ((latestEvent.clientX - rect.left) / clientW) * canvasW;
