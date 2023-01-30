@@ -369,40 +369,40 @@ export class CollisionUtil {
    */
   static frustumContainsPoint(frustum: BoundingFrustum, point: Vector3): ContainmentType {
     let distance = CollisionUtil.distancePlaneAndPoint(frustum.top, point);
-    if (distance < 0) {
-      return ContainmentType.Disjoint;
-    } else if (distance === 0) {
+    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.right, point);
-    if (distance < 0) {
-      return ContainmentType.Disjoint;
-    } else if (distance === 0) {
+    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.bottom, point);
-    if (distance < 0) {
-      return ContainmentType.Disjoint;
-    } else if (distance === 0) {
+    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.left, point);
-    if (distance < 0) {
-      return ContainmentType.Disjoint;
-    } else if (distance === 0) {
+    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.near, point);
-    if (distance < 0) {
-      return ContainmentType.Disjoint;
-    } else if (distance === 0) {
+    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.far, point);
-    if (distance < 0) {
-      return ContainmentType.Disjoint;
-    } else if (distance === 0) {
+    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
+    } else if (distance < 0) {
+      return ContainmentType.Disjoint;
     }
     return ContainmentType.Contains;
   }
