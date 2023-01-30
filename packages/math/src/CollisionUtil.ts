@@ -362,6 +362,34 @@ export class CollisionUtil {
   }
 
   /**
+   * Get the containment type between a frustum and a point.
+   * @param frustum - The frustum
+   * @param point - The point
+   * @returns The containment type
+   */
+  static frustumContainsPoint(frustum: BoundingFrustum, point: Vector3): ContainmentType {
+    if (CollisionUtil.distancePlaneAndPoint(frustum.top, point) < 0) {
+      return ContainmentType.Disjoint;
+    }
+    if (CollisionUtil.distancePlaneAndPoint(frustum.right, point) < 0) {
+      return ContainmentType.Disjoint;
+    }
+    if (CollisionUtil.distancePlaneAndPoint(frustum.bottom, point) < 0) {
+      return ContainmentType.Disjoint;
+    }
+    if (CollisionUtil.distancePlaneAndPoint(frustum.left, point) < 0) {
+      return ContainmentType.Disjoint;
+    }
+    if (CollisionUtil.distancePlaneAndPoint(frustum.near, point) < 0) {
+      return ContainmentType.Disjoint;
+    }
+    if (CollisionUtil.distancePlaneAndPoint(frustum.far, point) < 0) {
+      return ContainmentType.Disjoint;
+    }
+    return ContainmentType.Contains;
+  }
+
+  /**
    * Get the containment type between a frustum and a box (AABB).
    * @param frustum - The frustum
    * @param box - The box
