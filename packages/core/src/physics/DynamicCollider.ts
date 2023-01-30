@@ -21,6 +21,7 @@ export class DynamicCollider extends Collider {
   private _isKinematic: boolean = false;
   private _constraints: DynamicColliderConstraints = 0;
   private _collisionDetectionMode: CollisionDetectionMode = CollisionDetectionMode.Discrete;
+  private _sleepThreshold: number = 5e-3;
 
   /**
    * The linear damping of the dynamic collider.
@@ -138,11 +139,14 @@ export class DynamicCollider extends Collider {
    * The mass-normalized energy threshold, below which objects start going to sleep.
    */
   get sleepThreshold(): number {
-    return (<IDynamicCollider>this._nativeCollider).getSleepThreshold();
+    return this._sleepThreshold;
   }
 
   set sleepThreshold(value: number) {
-    (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
+    if (value !== this._sleepThreshold) {
+      this._sleepThreshold = value;
+      (<IDynamicCollider>this._nativeCollider).setSleepThreshold(value);
+    }
   }
 
   /**

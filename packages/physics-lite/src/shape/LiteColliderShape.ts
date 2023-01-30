@@ -48,14 +48,6 @@ export abstract class LiteColliderShape implements IColliderShape {
   abstract setWorldScale(scale: Vector3): void;
 
   /**
-   * {@inheritDoc IColliderShape.getContactOffset }
-   */
-  getContactOffset(): number {
-    console.log("Physics-lite don't support getContactOffset. Use Physics-PhysX instead!");
-    return 0;
-  }
-
-  /**
    * {@inheritDoc IColliderShape.setContactOffset }
    */
   setContactOffset(offset: number): void {

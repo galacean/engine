@@ -19,6 +19,7 @@ export abstract class ColliderShape {
   private _isTrigger: boolean = false;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
+  private _contactOffset: number = 0.02;
 
   /**
    * @internal
@@ -45,11 +46,14 @@ export abstract class ColliderShape {
    * Contact offset for this shape.
    */
   get contactOffset(): number {
-    return this._nativeShape.getContactOffset();
+    return this._contactOffset;
   }
 
   set contactOffset(value: number) {
-    this._nativeShape.setContactOffset(value);
+    if (this._contactOffset !== value) {
+      this._contactOffset = value;
+      this._nativeShape.setContactOffset(value);
+    }
   }
 
   /**

@@ -74,12 +74,6 @@ export interface IDynamicCollider extends ICollider {
   setMaxDepenetrationVelocity(value: number): void;
 
   /**
-   * Returns the mass-normalized kinetic energy below which an actor may go to sleep.
-   * @return - The energy threshold for sleeping.
-   */
-  getSleepThreshold(): number;
-
-  /**
    * Sets the mass-normalized kinetic energy threshold below which an actor may go to sleep.
    * @param value - Energy below which an actor may go to sleep.
    */

@@ -45,20 +45,6 @@ export class PhysXPhysics {
   static _pxTolerancesScale: any;
 
   /**
-   * The typical magnitude of velocities of objects in simulation.
-   */
-  static get toleranceSpeed(): number {
-    return PhysXPhysics._pxTolerancesScale.speed;
-  }
-
-  /**
-   * The approximate size of objects in the simulation.
-   */
-  static get toleranceLength(): number {
-    return PhysXPhysics._pxTolerancesScale.length;
-  }
-
-  /**
    * Initialize PhysXPhysics.
    * @param runtimeMode - Runtime mode
    * @returns Promise object
