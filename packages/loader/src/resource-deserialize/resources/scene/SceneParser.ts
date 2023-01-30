@@ -23,10 +23,7 @@ export class SceneParser {
   /**
    * The promise of parsed scene.
    */
-  readonly promise = new Promise<Scene>((resolve, reject) => {
-    this._reject = reject;
-    this._resolve = resolve;
-  });
+  readonly promise: Promise<Scene>;
 
   private _resolve: (scene: Scene) => void;
   private _reject: (reason: any) => void;
@@ -34,6 +31,13 @@ export class SceneParser {
 
   constructor(public readonly context: SceneParserContext) {
     this._engine = this.context.scene.engine;
+    this._organizeEntities = this._organizeEntities.bind(this);
+    this._parseComponents = this._parseComponents.bind(this);
+    this._clearAndResolveScene = this._clearAndResolveScene.bind(this);
+    this.promise = new Promise<Scene>((resolve, reject) => {
+      this._reject = reject;
+      this._resolve = resolve;
+    });
   }
 
   /** start parse the scene */
