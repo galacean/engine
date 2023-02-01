@@ -13,8 +13,7 @@ import { IAssembler } from "./IAssembler";
 export class TiledSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer): void {
-    const { _renderData: renderData } = renderer;
-    renderData.triangles = [];
+    renderer._renderData.triangles ||= [];
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
@@ -39,20 +38,25 @@ export class TiledSpriteAssembler {
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
     const sx = renderer.flipX ? -1 : 1;
     const sy = renderer.flipY ? -1 : 1;
-    (wE[0] = pWE[0] * sx), (wE[1] = pWE[1] * sx), (wE[2] = pWE[2] * sx);
-    (wE[4] = pWE[4] * sy), (wE[5] = pWE[5] * sy), (wE[6] = pWE[6] * sy);
+    let wE0: number, wE1: number, wE2: number;
+    let wE4: number, wE5: number, wE6: number;
+    (wE0 = wE[0] = pWE[0] * sx), (wE1 = wE[1] = pWE[1] * sx), (wE2 = wE[2] = pWE[2] * sx);
+    (wE4 = wE[4] = pWE[4] * sy), (wE5 = wE[5] = pWE[5] * sy), (wE6 = wE[6] = pWE[6] * sy);
     (wE[8] = pWE[8]), (wE[9] = pWE[9]), (wE[10] = pWE[10]);
-    wE[12] = pWE[12] - localTransX * wE[0] - localTransY * wE[4];
-    wE[13] = pWE[13] - localTransX * wE[1] - localTransY * wE[5];
-    wE[14] = pWE[14] - localTransX * wE[2] - localTransY * wE[6];
+    const wE12 = (wE[12] = pWE[12] - localTransX * wE[0] - localTransY * wE[4]);
+    const wE13 = (wE[13] = pWE[13] - localTransX * wE[1] - localTransY * wE[5]);
+    const wE14 = (wE[14] = pWE[14] - localTransX * wE[2] - localTransY * wE[6]);
+
+    const fillDataFunc = (i: number, x: number, y: number, u: number, v: number) => {
+      uvs[i] ? uvs[i].set(u, v) : (uvs[i] = new Vector2(u, v));
+      positions[i]
+        ? positions[i].set(wE0 * x + wE4 * y + wE12, wE1 * x + wE5 * y + wE13, wE2 * x + wE6 * y + wE14)
+        : (positions[i] = new Vector3(wE0 * x + wE4 * y + wE12, wE1 * x + wE5 * y + wE13, wE2 * x + wE6 * y + wE14));
+    };
+
     // Assemble position and uv.
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
-
-    for (let i = positions.length; i < rowLength * columnLength * 4; i++) {
-      positions.push(new Vector3());
-      uvs.push(new Vector2());
-    }
     let positionOffset = 0;
     let trianglesOffset = 0;
     for (let j = 0; j < columnLength; j++) {
@@ -75,33 +79,10 @@ export class TiledSpriteAssembler {
         const bottom = posColumn[j];
         const right = posRow[i + 1];
         const top = posColumn[j + 1];
-        uvs[positionOffset].set(uvLeft, uvBottom);
-        positions[positionOffset++].set(
-          wE[0] * left + wE[4] * bottom + wE[12],
-          wE[1] * left + wE[5] * bottom + wE[13],
-          wE[2] * left + wE[6] * bottom + wE[14]
-        );
-
-        uvs[positionOffset].set(uvRight, uvBottom);
-        positions[positionOffset++].set(
-          wE[0] * right + wE[4] * bottom + wE[12],
-          wE[1] * right + wE[5] * bottom + wE[13],
-          wE[2] * right + wE[6] * bottom + wE[14]
-        );
-
-        uvs[positionOffset].set(uvLeft, uvTop);
-        positions[positionOffset++].set(
-          wE[0] * left + wE[4] * top + wE[12],
-          wE[1] * left + wE[5] * top + wE[13],
-          wE[2] * left + wE[6] * top + wE[14]
-        );
-
-        uvs[positionOffset].set(uvRight, uvTop);
-        positions[positionOffset++].set(
-          wE[0] * right + wE[4] * top + wE[12],
-          wE[1] * right + wE[5] * top + wE[13],
-          wE[2] * right + wE[6] * top + wE[14]
-        );
+        fillDataFunc(positionOffset++, left, bottom, uvLeft, uvBottom);
+        fillDataFunc(positionOffset++, right, bottom, uvRight, uvBottom);
+        fillDataFunc(positionOffset++, left, top, uvLeft, uvTop);
+        fillDataFunc(positionOffset++, right, top, uvRight, uvTop);
       }
     }
 
