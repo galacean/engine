@@ -1,8 +1,8 @@
 import { Color, Vector3, Vector4 } from "@oasis-engine/math";
 import { Logger } from "..";
 import { Engine } from "../Engine";
-import { Shader } from "../shader";
-import { Texture2D } from "../texture";
+import { Shader } from "../shader/Shader";
+import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
 import { TextureCoordinate } from "./enums/TextureCoordinate";
 
