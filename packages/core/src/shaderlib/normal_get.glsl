@@ -22,7 +22,7 @@ vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalInt
 }
 
 mat3 getTBN(){
-    #if defined(O3_HAS_NORMAL) && defined(O3_HAS_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+    #if defined(O3_HAS_NORMAL) && defined(O3_HAS_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) || defined(HAS_ANISOTROPY) )
         mat3 tbn = v_TBN;
     #else
         vec3 normal = getNormal();
@@ -43,13 +43,13 @@ mat3 getTBN(){
 	        vec3 tangent = dp2perp * duv1.x + dp1perp * duv2.x;
 	        vec3 binormal = dp2perp * duv1.y + dp1perp * duv2.y;
 
-	        // construct a scale-invariant frame 
+	        // construct a scale-invariant frame
 	        float invmax = inversesqrt(max(dot(tangent, tangent), dot(binormal, binormal)));
 	        mat3 tbn = mat3(tangent * invmax, binormal * invmax, normal);
         #else
             mat3 tbn = mat3(vec3(0.0), vec3(0.0), normal);
         #endif
     #endif
-	
+
     return tbn;
 }

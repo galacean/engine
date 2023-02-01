@@ -91,7 +91,7 @@ vec3 anisotropicLobe(vec3 h, vec3 l, Geometry geometry, vec3 specularColor, floa
     float dotTH = dot(t, h);
     float dotBH = dot(b, h);
 
-    #define MIN_ROUGHNESS            0.007921 // mobile
+    float MIN_ROUGHNESS = 0.007921 // mobile
     // Anisotropic parameters: at and ab are the roughness along the tangent and bitangent
     // to simplify materials, we derive them from a single roughness parameter
     // Kulla 2017, "Revisiting Physically Based Shading at Imageworks"
