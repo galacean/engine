@@ -369,37 +369,37 @@ export class CollisionUtil {
    */
   static frustumContainsPoint(frustum: BoundingFrustum, point: Vector3): ContainmentType {
     let distance = CollisionUtil.distancePlaneAndPoint(frustum.near, point);
-    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
     } else if (distance < 0) {
       return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.far, point);
-    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
     } else if (distance < 0) {
       return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.left, point);
-    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
     } else if (distance < 0) {
       return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.right, point);
-    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
     } else if (distance < 0) {
       return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.top, point);
-    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
     } else if (distance < 0) {
       return ContainmentType.Disjoint;
     }
     distance = CollisionUtil.distancePlaneAndPoint(frustum.bottom, point);
-    if (Math.abs(distance) <= MathUtil.zeroTolerance) {
+    if (Math.abs(distance) < MathUtil.zeroTolerance) {
       return ContainmentType.Intersects;
     } else if (distance < 0) {
       return ContainmentType.Disjoint;
