@@ -1,4 +1,5 @@
 import {
+  AssetPromise,
   Logger,
   Material,
   PBRMaterial,
@@ -21,18 +22,16 @@ export class MaterialParser extends Parser {
     }
   }
 
-  parse(context: ParserContext) {
-    const { gltf, glTFResource, materialIndex } = context;
+  parse(context: ParserContext): AssetPromise<Material[]> {
+    const { gltf, glTFResource } = context;
 
     const { engine, textures } = glTFResource;
     if (!gltf.materials) return;
 
+    const materialsPromiseInfo = context.materialsPromiseInfo;
     const materials: Material[] = [];
 
     for (let i = 0; i < gltf.materials.length; i++) {
-      if (materialIndex >= 0 && materialIndex !== i) {
-        continue;
-      }
       const {
         extensions = {},
         pbrMetallicRoughness,
@@ -174,15 +173,8 @@ export class MaterialParser extends Parser {
       materials[i] = material;
     }
 
-    if (materialIndex >= 0) {
-      const material = materials[materialIndex];
-      if (material) {
-        return material;
-      } else {
-        throw `material index not find in: ${materialIndex}`;
-      }
-    }
-
     glTFResource.materials = materials;
+    materialsPromiseInfo.resolve(materials);
+    return materialsPromiseInfo.promise;
   }
 }

@@ -3,6 +3,7 @@ import {
   AnimationFloatArrayCurve,
   AnimationQuaternionCurve,
   AnimationVector3Curve,
+  AssetPromise,
   Component,
   Entity,
   InterpolationType,
@@ -18,13 +19,15 @@ import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
 export class AnimationParser extends Parser {
-  parse(context: ParserContext) {
-    const { gltf, buffers, animationIndex, glTFResource } = context;
+  parse(context: ParserContext): AssetPromise<AnimationClip[]> {
+    const { gltf, buffers, glTFResource } = context;
     const { entities } = glTFResource;
     const { animations, accessors } = gltf;
     if (!animations) {
       return;
     }
+    const animationClipsPromiseInfo = context.animationClipsPromiseInfo;
+
     const animationClipCount = animations.length;
     const animationClips = new Array<AnimationClip>(animationClipCount);
     const animationsIndices = new Array<{
@@ -33,10 +36,6 @@ export class AnimationParser extends Parser {
     }>(animationClipCount);
 
     for (let i = 0; i < animationClipCount; i++) {
-      if (animationIndex >= 0 && animationIndex !== i) {
-        continue;
-      }
-
       const gltfAnimation = animations[i];
       const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
       const animationClip = new AnimationClip(name);
@@ -137,17 +136,12 @@ export class AnimationParser extends Parser {
       };
     }
 
-    if (animationIndex >= 0) {
-      const animationClip = animationClips[animationIndex];
-      if (animationClip) {
-        return animationClip;
-      } else {
-        throw `animation index not find in: ${animationIndex}`;
-      }
-    }
     glTFResource.animations = animationClips;
     // @ts-ignore for editor
     glTFResource._animationsIndices = animationsIndices;
+
+    animationClipsPromiseInfo.resolve(animationClips);
+    return animationClipsPromiseInfo.promise;
   }
 
   private _addCurve(

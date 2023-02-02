@@ -127,8 +127,14 @@ export class PhysicsManager {
   /** The fixed time step in seconds at which physics are performed. */
   fixedTimeStep: number = 1 / 60;
 
-  /** The max sum of time step in seconds one frame. */
-  maxSumTimeStep: number = 1 / 3;
+  /**
+   * The max allowed time step in seconds one frame.
+   *
+   * @remarks
+   * When the frame rate is low or stutter occurs, the maximum execution time of physics will not exceed this value.
+   * So physics will slow down a bit when performance hitch occurs.
+   */
+  maxAllowedTimeStep: number = 1 / 3;
 
   /**
    * The gravity of physics scene.
@@ -142,11 +148,26 @@ export class PhysicsManager {
     if (gravity !== value) {
       gravity.copyFrom(value);
     }
-    this._nativePhysicsManager.setGravity(gravity);
+  }
+
+  /**
+   * @deprecated
+   * Please use `maxAllowedTimeStep` instead.
+   */
+  get maxSumTimeStep(): number {
+    return this.maxAllowedTimeStep;
+  }
+
+  set maxSumTimeStep(value: number) {
+    this.maxAllowedTimeStep = value;
   }
 
   constructor(engine: Engine) {
     this._engine = engine;
+
+    this._setGravity = this._setGravity.bind(this);
+    //@ts-ignore
+    this._gravity._onValueChanged = this._setGravity;
   }
 
   /**
@@ -281,8 +302,8 @@ export class PhysicsManager {
     const { fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
     const componentsManager = this._engine._componentsManager;
 
-    const simulateTime = deltaTime + this._restTime;
-    const step = Math.floor(Math.min(this.maxSumTimeStep, simulateTime) / fixedTimeStep);
+    const simulateTime = Math.min(this.maxAllowedTimeStep, this._restTime + deltaTime);
+    const step = Math.floor(simulateTime / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {
       componentsManager.callScriptOnPhysicsUpdate();
@@ -380,5 +401,9 @@ export class PhysicsManager {
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onLateUpdate();
     }
+  }
+
+  private _setGravity(): void {
+    this._nativePhysicsManager.setGravity(this._gravity);
   }
 }
