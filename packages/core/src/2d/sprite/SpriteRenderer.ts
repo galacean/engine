@@ -103,7 +103,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * The stretch value of the sprite renderer. (Only works in tiled mode.)
+   * The stretch value of the sprite renderer, specified in normalized. (Only works in tiled mode.)
    */
   get tileStretchValue(): number {
     return this._tileStretchValue;
