@@ -72,7 +72,7 @@ export class PointerManager implements IInput {
     this._updatePointerWithPhysics = this._updatePointerWithPhysics.bind(this);
     this._updatePointerWithoutPhysics = this._updatePointerWithoutPhysics.bind(this);
     this._addListener();
-    // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
+    // If there are no compatibility issues, navigator.maxTouchPoints should be used here
     this._pointerPool = new Array<Pointer>(11);
   }
 
