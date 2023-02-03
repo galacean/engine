@@ -37,8 +37,10 @@ export class SpringJoint extends Joint {
   }
 
   set minDistance(value: number) {
-    this._minDistance = value;
-    (<ISpringJoint>this._nativeJoint).setMinDistance(value);
+    if (this._minDistance !== value) {
+      this._minDistance = value;
+      (<ISpringJoint>this._nativeJoint).setMinDistance(value);
+    }
   }
 
   /**
@@ -49,8 +51,10 @@ export class SpringJoint extends Joint {
   }
 
   set maxDistance(value: number) {
-    this._maxDistance = value;
-    (<ISpringJoint>this._nativeJoint).setMaxDistance(value);
+    if (this._maxDistance !== value) {
+      this._maxDistance = value;
+      (<ISpringJoint>this._nativeJoint).setMaxDistance(value);
+    }
   }
 
   /**
@@ -61,8 +65,10 @@ export class SpringJoint extends Joint {
   }
 
   set tolerance(value: number) {
-    this._tolerance = value;
-    (<ISpringJoint>this._nativeJoint).setTolerance(value);
+    if (this._tolerance !== value) {
+      this._tolerance = value;
+      (<ISpringJoint>this._nativeJoint).setTolerance(value);
+    }
   }
 
   /**
@@ -73,8 +79,10 @@ export class SpringJoint extends Joint {
   }
 
   set stiffness(value: number) {
-    this._stiffness = value;
-    (<ISpringJoint>this._nativeJoint).setStiffness(value);
+    if (this._stiffness !== value) {
+      this._stiffness = value;
+      (<ISpringJoint>this._nativeJoint).setStiffness(value);
+    }
   }
 
   /**
@@ -85,8 +93,10 @@ export class SpringJoint extends Joint {
   }
 
   set damping(value: number) {
-    this._damping = value;
-    (<ISpringJoint>this._nativeJoint).setDamping(value);
+    if (this._damping !== value) {
+      this._damping = value;
+      (<ISpringJoint>this._nativeJoint).setDamping(value);
+    }
   }
 
   /**

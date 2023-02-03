@@ -58,7 +58,7 @@ export class PointerManager implements IInput {
     this._updatePointerWithPhysics = this._updatePointerWithPhysics.bind(this);
     this._updatePointerWithoutPhysics = this._updatePointerWithoutPhysics.bind(this);
     this._onFocus();
-    // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
+    // If there are no compatibility issues, navigator.maxTouchPoints should be used here
     this._pointerPool = new Array<Pointer>(11);
   }
 
@@ -67,7 +67,7 @@ export class PointerManager implements IInput {
    */
   _update(): void {
     const { _pointers: pointers, _nativeEvents: nativeEvents } = this;
-    /** Clean up the pointer released in the previous frame. */
+    // Clean up the pointer released in the previous frame
     let lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
       for (let i = lastIndex; i >= 0; i--) {
@@ -77,7 +77,7 @@ export class PointerManager implements IInput {
       }
     }
 
-    /** Generate the pointer received for this frame. */
+    // Generate the pointer received for this frame
     lastIndex = nativeEvents.length - 1;
     if (lastIndex >= 0) {
       for (let i = 0; i <= lastIndex; i++) {
@@ -87,7 +87,7 @@ export class PointerManager implements IInput {
       nativeEvents.length = 0;
     }
 
-    /** Pointer handles its own events. */
+    // Pointer handles its own events
     this._upList.length = this._downList.length = 0;
     this._buttons = PointerButton.None;
     lastIndex = pointers.length - 1;
@@ -96,12 +96,13 @@ export class PointerManager implements IInput {
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;
+      const clientRect = this._htmlCanvas.getBoundingClientRect();
       const { clientWidth, clientHeight } = this._htmlCanvas;
       const { width, height } = this._canvas;
       for (let i = lastIndex; i >= 0; i--) {
         const pointer = pointers[i];
         pointer._upList.length = pointer._downList.length = 0;
-        updatePointer(frameCount, pointer, clientWidth, clientHeight, width, height);
+        updatePointer(frameCount, pointer, clientRect, clientWidth, clientHeight, width, height);
         this._buttons |= pointer.pressedButtons;
       }
     }
@@ -191,7 +192,7 @@ export class PointerManager implements IInput {
       const lastCount = pointers.length;
       if (lastCount === 0 || this._multiPointerEnabled) {
         const { _pointerPool: pointerPool } = this;
-        // Get Pointer smallest index.
+        // Get Pointer smallest index
         let i = 0;
         for (; i < lastCount; i++) {
           if (pointers[i].id > i) {
@@ -241,6 +242,7 @@ export class PointerManager implements IInput {
   private _updatePointerWithPhysics(
     frameCount: number,
     pointer: Pointer,
+    rect: DOMRect,
     clientW: number,
     clientH: number,
     canvasW: number,
@@ -251,8 +253,8 @@ export class PointerManager implements IInput {
     if (length > 0) {
       const { _upList, _upMap, _downList, _downMap } = this;
       const latestEvent = events[length - 1];
-      const normalizedX = latestEvent.offsetX / clientW;
-      const normalizedY = latestEvent.offsetY / clientH;
+      const normalizedX = (latestEvent.clientX - rect.left) / clientW;
+      const normalizedY = (latestEvent.clientY - rect.top) / clientH;
       const currX = normalizedX * canvasW;
       const currY = normalizedY * canvasH;
       if (currX === position.x && currY === position.y) {
@@ -308,6 +310,7 @@ export class PointerManager implements IInput {
   private _updatePointerWithoutPhysics(
     frameCount: number,
     pointer: Pointer,
+    rect: DOMRect,
     clientW: number,
     clientH: number,
     canvasW: number,
@@ -318,8 +321,8 @@ export class PointerManager implements IInput {
     if (length > 0) {
       const { position } = pointer;
       const latestEvent = events[length - 1];
-      const currX = (latestEvent.offsetX / clientW) * canvasW;
-      const currY = (latestEvent.offsetY / clientH) * canvasH;
+      const currX = ((latestEvent.clientX - rect.left) / clientW) * canvasW;
+      const currY = ((latestEvent.clientY - rect.top) / clientH) * canvasH;
       pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
       pointer.button = _pointerDec2BinMap[latestEvent.button] || PointerButton.None;
