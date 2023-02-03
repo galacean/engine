@@ -38,7 +38,22 @@ export class PointerManager implements IInput {
   private _htmlCanvas: HTMLCanvasElement;
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
+  private _focus: boolean = true;
   private _hadListener: boolean = false;
+
+  /**
+   * If the input has focus.
+   */
+  get focus(): boolean {
+    return this._focus;
+  }
+
+  set focus(value: boolean) {
+    if (this._focus !== value) {
+      this._focus = value;
+      value ? this._addListener() : this._removeListener();
+    }
+  }
 
   /**
    * Create a PointerManager.
@@ -46,18 +61,17 @@ export class PointerManager implements IInput {
    * @param htmlCanvas - HTMLCanvasElement
    */
   constructor(engine: Engine) {
-    // @ts-ignore
-    const htmlCanvas = engine._canvas._webCanvas;
     this._engine = engine;
     this._canvas = engine.canvas;
-    this._htmlCanvas = htmlCanvas;
-    htmlCanvas.oncontextmenu = (event: UIEvent) => {
+    // @ts-ignore
+    this._htmlCanvas = engine.canvas._webCanvas;
+    this._htmlCanvas.oncontextmenu = (event: UIEvent) => {
       return false;
     };
     this._onPointerEvent = this._onPointerEvent.bind(this);
     this._updatePointerWithPhysics = this._updatePointerWithPhysics.bind(this);
     this._updatePointerWithoutPhysics = this._updatePointerWithoutPhysics.bind(this);
-    this._onFocus();
+    this._addListener();
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
     this._pointerPool = new Array<Pointer>(11);
   }
@@ -110,7 +124,14 @@ export class PointerManager implements IInput {
   /**
    * @internal
    */
-  _onFocus(): void {
+  _destroy(): void {
+    this._removeListener();
+    this._pointerPool.length = 0;
+    this._htmlCanvas = null;
+    this._engine = null;
+  }
+
+  private _addListener(): void {
     if (!this._hadListener) {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.addEventListener("pointerdown", onPointerEvent);
@@ -122,10 +143,7 @@ export class PointerManager implements IInput {
     }
   }
 
-  /**
-   * @internal
-   */
-  _onBlur(): void {
+  private _removeListener(): void {
     if (this._hadListener) {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
@@ -142,28 +160,6 @@ export class PointerManager implements IInput {
       }
       pointers.length = 0;
     }
-  }
-
-  /**
-   * @internal
-   */
-  _destroy(): void {
-    // @ts-ignore
-    if (this._hadListener) {
-      const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
-      htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
-      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
-      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
-      this._hadListener = false;
-    }
-    this._pointerPool.length = 0;
-    this._pointers.length = 0;
-    this._downList.length = 0;
-    this._upList.length = 0;
-    this._htmlCanvas = null;
-    this._engine = null;
   }
 
   private _onPointerEvent(evt: PointerEvent) {

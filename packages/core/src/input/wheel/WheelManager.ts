@@ -12,18 +12,31 @@ export class WheelManager implements IInput {
 
   private _nativeEvents: WheelEvent[] = [];
   private _canvas: HTMLCanvasElement;
-  private _hadListener: boolean;
+  private _focus: boolean = true;
+  private _hadListener: boolean = false;
+
+  /**
+   * If the input has focus.
+   */
+  get focus(): boolean {
+    return this._focus;
+  }
+
+  set focus(value: boolean) {
+    if (this._focus !== value) {
+      this._focus = value;
+      value ? this._addListener() : this._removeListener();
+    }
+  }
 
   /**
    * Create a KeyboardManager.
    */
   constructor(engine: Engine) {
     // @ts-ignore
-    const htmlCanvas = engine._canvas._webCanvas;
+    this._canvas = engine.canvas._webCanvas;
     this._onWheelEvent = this._onWheelEvent.bind(this);
-    htmlCanvas.addEventListener("wheel", this._onWheelEvent);
-    this._canvas = htmlCanvas;
-    this._hadListener = true;
+    this._addListener();
   }
 
   /**
@@ -47,34 +60,26 @@ export class WheelManager implements IInput {
   /**
    * @internal
    */
-  _onFocus(): void {
+  _destroy(): void {
+    this._removeListener();
+    this._delta = null;
+    this._nativeEvents = null;
+  }
+
+  private _addListener(): void {
     if (!this._hadListener) {
       this._canvas.addEventListener("wheel", this._onWheelEvent);
       this._hadListener = true;
     }
   }
 
-  /**
-   * @internal
-   */
-  _onBlur(): void {
+  private _removeListener(): void {
     if (this._hadListener) {
       this._canvas.removeEventListener("wheel", this._onWheelEvent);
       this._nativeEvents.length = 0;
       this._delta.set(0, 0, 0);
       this._hadListener = false;
     }
-  }
-
-  /**
-   * @internal
-   */
-  _destroy(): void {
-    if (this._hadListener) {
-      this._canvas.removeEventListener("wheel", this._onWheelEvent);
-      this._hadListener = false;
-    }
-    this._nativeEvents = null;
   }
 
   private _onWheelEvent(evt: WheelEvent): void {
