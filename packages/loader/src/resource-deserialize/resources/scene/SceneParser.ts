@@ -58,7 +58,7 @@ export class SceneParser {
     const engine = this._engine;
     const promises = entitiesConfig.map((entityConfig) => {
       entityConfigMap.set(entityConfig.id, entityConfig);
-      // 记录 root entity
+      // record root entities
       if (!entityConfig.parent) rootIds.push(entityConfig.id);
       return ReflectionParser.parseEntity(entityConfig, engine);
     });

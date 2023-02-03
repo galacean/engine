@@ -12,9 +12,9 @@ export class ReflectionParser {
     return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
       entity.isActive = entityConfig.isActive ?? true;
       const { position, rotation, scale } = entityConfig;
-      if (position) entity.transform.setPosition(position.x, position.y, position.z);
-      if (rotation) entity.transform.setRotation(rotation.x, rotation.y, rotation.z);
-      if (scale) entity.transform.setScale(scale.x, scale.y, scale.z);
+      if (position) entity.transform.position.copyFrom(position);
+      if (rotation) entity.transform.rotation.copyFrom(rotation);
+      if (scale) entity.transform.scale.copyFrom(scale);
       return entity;
     });
   }
@@ -58,13 +58,13 @@ export class ReflectionParser {
       return Promise.all(value.map((item) => this.parseBasicType(item, engine, resourceManager)));
     } else if (typeof value === "object" && value != null) {
       if (this._isClass(value)) {
-        // 类对象
+        // class object
         return this.parseClassObject(value, engine, resourceManager);
       } else if (this._isRef(value)) {
-        // 引用对象
+        // reference object
         return resourceManager.getResourceByRef(value);
       } else {
-        // 基础类型
+        // basic type
         return Promise.resolve(value);
       }
     } else {
