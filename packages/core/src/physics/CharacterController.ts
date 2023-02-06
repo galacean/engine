@@ -19,6 +19,7 @@ export class CharacterController extends Collider {
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit: number = 0.707;
   private _center = new Vector3();
+  private _scaledCenter = new Vector3();
 
   /**
    * The step offset for the controller.
@@ -145,14 +146,17 @@ export class CharacterController extends Collider {
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      const shapes = this.shapes;
-      Vector3.add(transform.worldPosition, this._center, CharacterController._tempVec);
-      (<ICharacterController>this._nativeCollider).setWorldPosition(CharacterController._tempVec);
+      const { shapes, _center: center, _scaledCenter: scaledCenter } = this;
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = shapes.length; i < n; i++) {
         shapes[i]._nativeShape.setWorldScale(worldScale);
       }
+
+      Vector3.multiply(center, worldScale, scaledCenter);
+      Vector3.add(transform.worldPosition, scaledCenter, CharacterController._tempVec);
+      (<ICharacterController>this._nativeCollider).setWorldPosition(CharacterController._tempVec);
+
       this._updateFlag.flag = false;
     }
   }
@@ -163,7 +167,7 @@ export class CharacterController extends Collider {
    */
   _onLateUpdate() {
     (<ICharacterController>this._nativeCollider).getWorldPosition(CharacterController._tempVec);
-    Vector3.subtract(CharacterController._tempVec, this._center, this.entity.transform.worldPosition);
+    Vector3.subtract(CharacterController._tempVec, this._scaledCenter, this.entity.transform.worldPosition);
     this._updateFlag.flag = false;
   }
 
