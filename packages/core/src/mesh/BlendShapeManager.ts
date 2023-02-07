@@ -44,6 +44,8 @@ export class BlendShapeManager {
   /** @internal */
   _uniformOccupiesCount: number = 0;
   /** @internal */
+  _bufferBindingOffset: number;
+  /** @internal */
   _vertexElementOffset: number;
 
   private _useBlendNormal: boolean = false;
@@ -198,16 +200,24 @@ export class BlendShapeManager {
    * @internal
    */
   _addVertexElements(modelMesh: ModelMesh): void {
+    const bindingOffset = this._bufferBindingOffset;
+
     let offset = 0;
     for (let i = 0, n = Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()); i < n; i++) {
-      modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 1));
+      modelMesh._addVertexElement(
+        new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
+      );
       offset += 12;
       if (this._useBlendNormal) {
-        modelMesh._addVertexElement(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 1));
+        modelMesh._addVertexElement(
+          new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
+        );
         offset += 12;
       }
       if (this._useBlendTangent) {
-        modelMesh._addVertexElement(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 1));
+        modelMesh._addVertexElement(
+          new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
+        );
         offset += 12;
       }
     }
@@ -283,6 +293,7 @@ export class BlendShapeManager {
     this._maxCountSingleVertexBuffer = maxCountSingleBuffer;
     this._storeInVertexBufferInfo.length = blendShapeCount;
 
+    const bufferBindingOffset = this._bufferBindingOffset;
     for (let i = 0; i < bufferCount; i++) {
       const lastIndex = bufferCount - 1;
       const containCount = i === lastIndex ? blendShapeCount - lastIndex * maxCountSingleBuffer : maxCountSingleBuffer;
@@ -290,9 +301,8 @@ export class BlendShapeManager {
       const byteLength = stride * vertexCount;
 
       const usage = noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic;
-
       const blendShapeBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, byteLength, usage);
-      modelMesh._setVertexBufferBinding(i + 1, new VertexBufferBinding(blendShapeBuffer, stride));
+      modelMesh._setVertexBufferBinding(bufferBindingOffset + i, new VertexBufferBinding(blendShapeBuffer, stride));
       vertexBuffers[i] = blendShapeBuffer;
     }
   }
