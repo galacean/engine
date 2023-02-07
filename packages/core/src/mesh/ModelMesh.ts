@@ -724,6 +724,9 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
+    // Update vertex elements
+    this._updateVertexElements();
+
     // Vertex count change
     const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
     if (this._vertexCountChanged) {
@@ -750,8 +753,6 @@ export class ModelMesh extends Mesh {
         vertexBuffer.setData(vertices);
       }
     }
-
-    this._updateVertexElements();
 
     const { _indices: indices } = this;
     const indexBuffer = this._indexBufferBinding?._buffer;
@@ -950,7 +951,8 @@ export class ModelMesh extends Mesh {
 
       if (bsAttributeUpdate && bsManager._blendShapeCount > 0) {
         bsManager._vertexElementOffset = this._vertexElements.length;
-        bsManager._bufferBindingOffset = this._vertexBufferBindings.length;
+        // Reserve at least 1 placeholder to save the built-in vertex buffer
+        bsManager._bufferBindingOffset = this._vertexBufferBindings.length || 1;
         bsManager._addVertexElements(this);
       }
       this._vertexElementsUpdate = false;
