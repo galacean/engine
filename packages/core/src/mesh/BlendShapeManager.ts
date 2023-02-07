@@ -43,14 +43,12 @@ export class BlendShapeManager {
   _vertices: Float32Array;
   /** @internal */
   _uniformOccupiesCount: number = 0;
-  /** @internal */
-  _bufferBindingOffset: number;
-  /** @internal */
-  _vertexElementOffset: number;
 
   private _useBlendNormal: boolean = false;
   private _useBlendTangent: boolean = false;
   private _vertexElementCount: number = 0;
+  private _bufferBindingOffset: number;
+  private _vertexElementOffset: number;
 
   private _storeInVertexBufferInfo: Vector2[] = [];
   private _maxCountSingleVertexBuffer: number = 0;
@@ -194,6 +192,14 @@ export class BlendShapeManager {
       }
     }
     return false;
+  }
+
+  /**
+   * @internal
+   */
+  _setAttributeModeOffsetInfo(vertexElementOffset: number, bufferBindingOffset: number): void {
+    this._vertexElementOffset = vertexElementOffset;
+    this._bufferBindingOffset = bufferBindingOffset;
   }
 
   /**

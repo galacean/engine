@@ -950,9 +950,8 @@ export class ModelMesh extends Mesh {
       this._supplementaryVertexElements();
 
       if (bsAttributeUpdate && bsManager._blendShapeCount > 0) {
-        bsManager._vertexElementOffset = this._vertexElements.length;
         // Reserve at least 1 placeholder to save the built-in vertex buffer
-        bsManager._bufferBindingOffset = this._vertexBufferBindings.length || 1;
+        bsManager._setAttributeModeOffsetInfo(this._vertexElements.length, this._vertexBufferBindings.length || 1);
         bsManager._addVertexElements(this);
       }
       this._vertexElementsUpdate = false;
