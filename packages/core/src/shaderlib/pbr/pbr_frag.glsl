@@ -8,32 +8,8 @@ initMaterial(material, geometry);
 // Direct Light
 addTotalDirectRadiance(geometry, material, reflectedLight);
 
-// IBL diffuse
-#ifdef O3_USE_SH
-    vec3 irradiance = getLightProbeIrradiance(u_env_sh, geometry.normal);
-    #ifdef OASIS_COLORSPACE_GAMMA
-        irradiance = linearToGamma(vec4(irradiance, 1.0)).rgb;
-    #endif
-    irradiance *= u_envMapLight.diffuseIntensity;
-#else
-   vec3 irradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
-   irradiance *= PI;
-#endif
-
-reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
-
-// IBL specular
-vec3 radiance = getLightProbeRadiance(geometry, geometry.normal, material.roughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity);
-float radianceAttenuation = 1.0;
-
-#ifdef CLEARCOAT
-    vec3 clearCoatRadiance = getLightProbeRadiance( geometry, geometry.clearCoatNormal, material.clearCoatRoughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity );
-
-    reflectedLight.indirectSpecular += clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), material.clearCoatRoughness, geometry.clearCoatDotNV);
-    radianceAttenuation -= material.clearCoat * F_Schlick(geometry.clearCoatDotNV);
-#endif
-
-reflectedLight.indirectSpecular += radianceAttenuation * radiance * envBRDFApprox(material.specularColor, material.roughness, geometry.dotNV );
+// IBL 
+evaluateIBL(reflectedLight, geometry, material);
 
 
 // Occlusion
