@@ -250,7 +250,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     }
   }
 
-  colorMask(r, g, b, a) {
+  colorMask(r: boolean, g: boolean, b: boolean, a: boolean): void {
     this._gl.colorMask(r, g, b, a);
   }
 
