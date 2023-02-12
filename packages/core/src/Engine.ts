@@ -1,7 +1,7 @@
 import { Color } from "@oasis-engine/math/src/Color";
 import { Font } from "./2d/text/Font";
 import { ResourceManager } from "./asset/ResourceManager";
-import { Event, EventDispatcher, Logger, Time } from "./base";
+import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { Canvas } from "./Canvas";
 import { ComponentsManager } from "./ComponentsManager";
@@ -283,7 +283,7 @@ export class Engine extends EventDispatcher {
     if (this._isDeviceLost) {
       return;
     }
-    
+
     const time = this._time;
     time.tick();
 
@@ -323,7 +323,7 @@ export class Engine extends EventDispatcher {
    */
   run(): void {
     this.resume();
-    this.trigger(new Event("run", this));
+    this.dispatch("run", this);
   }
 
   /**
