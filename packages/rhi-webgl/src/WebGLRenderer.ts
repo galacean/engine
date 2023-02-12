@@ -256,10 +256,12 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   clearRenderTarget(engine: Engine, clearFlags: CameraClearFlags, clearColor: Color) {
     const gl = this._gl;
+
     const {
       blendState: { targetBlendState },
       depthState,
       stencilState
+      // @ts-ignore
     } = engine._lastRenderState;
     let clearFlag = 0;
     if (clearFlags & CameraClearFlags.Color) {

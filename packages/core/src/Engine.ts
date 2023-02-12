@@ -52,19 +52,32 @@ export class Engine extends EventDispatcher {
 
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
+  /** Input manager of Engine. */
   readonly inputManager: InputManager;
 
+  /* @internal */
   _lightManager: LightManager = new LightManager();
+  /* @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
+  /* @internal */
   _hardwareRenderer: IHardwareRenderer;
+  /* @internal */
   _lastRenderState: RenderState = new RenderState();
+  /* @internal */
   _renderElementPool: ClassPool<MeshRenderElement> = new ClassPool(MeshRenderElement);
+  /* @internal */
   _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
+  /* @internal */
   _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
+  /* @internal */
   _textElementPool: ClassPool<TextRenderElement> = new ClassPool(TextRenderElement);
+  /* @internal */
   _spriteDefaultMaterial: Material;
+  /* @internal */
   _spriteMaskDefaultMaterial: Material;
+  /* @internal */
   _textDefaultFont: Font;
+  /* @internal */
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
@@ -106,7 +119,7 @@ export class Engine extends EventDispatcher {
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
   private _frameInProcess: boolean = false;
-  private _waittingDestroy: boolean = false;
+  private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
 
   private _animate = () => {
@@ -309,10 +322,10 @@ export class Engine extends EventDispatcher {
       this._render(scene);
     }
 
-    if (!this._waittingDestroy) {
+    if (!this._waitingDestroy) {
       componentsManager.handlingInvalidScripts();
     }
-    if (this._waittingDestroy) {
+    if (this._waitingDestroy) {
       this._destroy();
     }
     this._frameInProcess = false;
@@ -327,7 +340,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Fore lose device.
+   * Force lose device.
    * @remarks Used to simulate the phenomenon after the real loss of device.
    */
   forceLoseDevice(): void {
@@ -354,7 +367,7 @@ export class Engine extends EventDispatcher {
     this.inputManager._destroy();
     this.dispatch("shutdown", this);
 
-    // -- cancel animation
+    // Cancel animation
     this.pause();
 
     this._animate = null;
@@ -364,13 +377,13 @@ export class Engine extends EventDispatcher {
     this._canvas = null;
     this._time = null;
 
-    // delete mask manager
+    // Delete mask manager
     this._spriteMaskManager.destroy();
 
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-    this._waittingDestroy = false;
+    this._waitingDestroy = false;
     this._destroyed = true;
   }
 
@@ -384,7 +397,7 @@ export class Engine extends EventDispatcher {
     }
 
     if (this._frameInProcess) {
-      this._waittingDestroy = true;
+      this._waitingDestroy = true;
     } else {
       this._destroy();
     }
@@ -408,7 +421,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * @intenral
+   * @internal
    */
   _render(scene: Scene): void {
     const cameras = scene._activeCameras;
@@ -425,7 +438,7 @@ export class Engine extends EventDispatcher {
         camera.render();
         componentsManager.callCameraOnEndRender(camera);
 
-        // temp solution for webgl implement bug
+        // Temp solution for webgl implement bug
         if (this._hardwareRenderer._options._forceFlush) {
           this._hardwareRenderer.flush();
         }
