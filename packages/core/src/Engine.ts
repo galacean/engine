@@ -107,6 +107,7 @@ export class Engine extends EventDispatcher {
   private _destroyed: boolean = false;
   private _frameInProcess: boolean = false;
   private _waittingDestroy: boolean = false;
+  private _isDeviceLost: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -245,6 +246,9 @@ export class Engine extends EventDispatcher {
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
+
+    hardwareRenderer._onDeviceLost = this._onDeviceLost;
+    hardwareRenderer._onDeviceRestored = this._onDeviceRestored;
   }
 
   /**
@@ -321,6 +325,22 @@ export class Engine extends EventDispatcher {
     this.trigger(new Event("run", this));
   }
 
+  /**
+   * Fore lose device.
+   * @remarks Used to simulate the phenomenon after the real loss of device.
+   */
+  forceLoseDevice(): void {
+    this._hardwareRenderer.forceLoseDevice();
+  }
+
+  /**
+   * Force restore device.
+   * @remarks Used to simulate the phenomenon after the real restore of device.
+   */
+  forceRestoreDevice(): void {
+    this._hardwareRenderer.forceRestoreDevice();
+  }
+
   private _destroy(): void {
     this._sceneManager._destroyAllScene();
     this._componentsManager.handlingInvalidScripts();
@@ -331,7 +351,7 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.destroy(true);
 
     this.inputManager._destroy();
-    this.trigger(new Event("shutdown", this));
+    this.dispatch("shutdown", this);
 
     // -- cancel animation
     this.pause();
@@ -345,6 +365,8 @@ export class Engine extends EventDispatcher {
 
     // delete mask manager
     this._spriteMaskManager.destroy();
+
+    this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
     this._waittingDestroy = false;
@@ -469,5 +491,17 @@ export class Engine extends EventDispatcher {
     renderState.depthState.enabled = false;
     material.isGCIgnored = true;
     return material;
+  }
+
+  private _onDeviceLost(): void {
+    this._isDeviceLost = true;
+    this.dispatch("deviceLost", this);
+    console.log("Engine: Device lost.");
+  }
+
+  private _onDeviceRestored(): void {
+    this._isDeviceLost = false;
+    this.dispatch("deviceRestored", this);
+    console.log("Engine: Device restored.");
   }
 }

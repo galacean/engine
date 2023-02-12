@@ -62,6 +62,11 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
  */
 export class WebGLRenderer implements IHardwareRenderer {
   /** @internal */
+  _onDeviceLost: () => void;
+  /** @internal */
+  _onDeviceRestored: () => void;
+
+  /** @internal */
   _readFrameBuffer: WebGLFramebuffer;
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
@@ -138,8 +143,12 @@ export class WebGLRenderer implements IHardwareRenderer {
     const options = this._options;
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
     const webGLMode = options.webGLMode;
-    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
+    webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
+    webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
+    webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+
+    let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
       gl = webCanvas.getContext("webgl2", options);
       if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
@@ -347,5 +356,33 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._gl.flush();
   }
 
-  destroy() {}
+  forceLoseDevice(): void {
+    const extension = this.requireExtension(GLCapabilityType.WEBGL_lose_context);
+    extension.loseContext();
+  }
+
+  forceRestoreDevice(): void {
+    const extension = this.requireExtension(GLCapabilityType.WEBGL_lose_context);
+    extension.restoreContext();
+  }
+
+  destroy(): void {
+    const webCanvas = this._webCanvas._webCanvas;
+    webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
+    webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
+  }
+
+  private _onContextCreationError(event: WebGLContextEvent) {
+    console.error("WebGLRenderer: A WebGL context could not be created. Reason: ", event.statusMessage);
+  }
+
+  private _onWebGLContextLost(event: WebGLContextEvent) {
+    event.preventDefault();
+    this._onDeviceLost();
+  }
+
+  private _onWebGLContextRestored(event: WebGLContextEvent) {
+    this._onDeviceRestored();
+  }
 }
