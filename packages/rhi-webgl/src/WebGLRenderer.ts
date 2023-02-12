@@ -135,6 +135,9 @@ export class WebGLRenderer implements IHardwareRenderer {
       }
     }
     this._options = options;
+
+    this._onWebGLContextLost = this._onWebGLContextLost.bind(this);
+    this._onWebGLContextRestored = this._onWebGLContextRestored.bind(this);
   }
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
