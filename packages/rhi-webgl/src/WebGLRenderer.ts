@@ -376,7 +376,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   private _onContextCreationError(event: WebGLContextEvent) {
-    console.error("WebGLRenderer: A WebGL context could not be created. Reason: ", event.statusMessage);
+    console.error("WebGLRenderer: WebGL context could not be created. Reason: ", event.statusMessage);
   }
 
   private _onWebGLContextLost(event: WebGLContextEvent) {

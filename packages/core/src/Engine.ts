@@ -509,13 +509,13 @@ export class Engine extends EventDispatcher {
 
   private _onDeviceLost(): void {
     this._isDeviceLost = true;
-    this.dispatch("deviceLost", this);
     console.log("Engine: Device lost.");
+    this.dispatch("deviceLost", this);
   }
 
   private _onDeviceRestored(): void {
     this._isDeviceLost = false;
-    this.dispatch("deviceRestored", this);
     console.log("Engine: Device restored.");
+    this.dispatch("deviceRestored", this);
   }
 }
