@@ -221,9 +221,7 @@ export class Engine extends EventDispatcher {
   constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, settings?: EngineSettings) {
     super();
     this._hardwareRenderer = hardwareRenderer;
-    this._onDeviceLost = this._onDeviceLost.bind(this);
-    this._onDeviceRestored = this._onDeviceRestored.bind(this);
-    this._hardwareRenderer.init(canvas, this._onDeviceLost, this._onDeviceRestored);
+    this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
     this.physicsManager = new PhysicsManager(this);
 
