@@ -208,7 +208,7 @@ export class Engine extends EventDispatcher {
   constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, settings?: EngineSettings) {
     super();
     this._hardwareRenderer = hardwareRenderer;
-    this._hardwareRenderer.init(canvas);
+    this._hardwareRenderer.init(canvas, this._onDeviceLost, this._onDeviceRestored);
 
     this.physicsManager = new PhysicsManager(this);
 
@@ -246,9 +246,6 @@ export class Engine extends EventDispatcher {
     const colorSpace = settings?.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
-
-    hardwareRenderer._onDeviceLost = this._onDeviceLost;
-    hardwareRenderer._onDeviceRestored = this._onDeviceRestored;
   }
 
   /**
@@ -283,6 +280,10 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
+    if (this._isDeviceLost) {
+      return;
+    }
+    
     const time = this._time;
     time.tick();
 

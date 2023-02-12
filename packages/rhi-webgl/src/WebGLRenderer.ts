@@ -62,11 +62,6 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
  */
 export class WebGLRenderer implements IHardwareRenderer {
   /** @internal */
-  _onDeviceLost: () => void;
-  /** @internal */
-  _onDeviceRestored: () => void;
-
-  /** @internal */
   _readFrameBuffer: WebGLFramebuffer;
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
@@ -90,6 +85,9 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _lastScissor: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
   private _scissorEnable: boolean = false;
+
+  private _onDeviceLost: () => void;
+  private _onDeviceRestored: () => void;
 
   get isWebGL2(): boolean {
     return this._isWebGL2;
@@ -139,11 +137,13 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._options = options;
   }
 
-  init(canvas: Canvas): void {
+  init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const options = this._options;
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
     const webGLMode = options.webGLMode;
 
+    this._onDeviceLost = onDeviceLost;
+    this._onDeviceRestored = onDeviceRestored;
     webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
     webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
