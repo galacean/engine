@@ -200,14 +200,14 @@ export class TextUtils {
             } else {
               wordChars += char;
               wordCharsWidth += charInfo.xAdvance;
-              wordMaxAscent < ascent && (maxAscent = ascent);
-              wordMaxDescent < descent && (maxDescent = descent);
+              wordMaxAscent < ascent && (wordMaxAscent = maxAscent = ascent);
+              wordMaxDescent < descent && (wordMaxDescent = maxDescent = descent);
             }
           } else {
             wordChars += char;
             wordCharsWidth += charInfo.xAdvance;
-            wordMaxAscent < ascent && (maxAscent = ascent);
-            wordMaxDescent < descent && (maxDescent = descent);
+            wordMaxAscent < ascent && (wordMaxAscent = maxAscent = ascent);
+            wordMaxDescent < descent && (wordMaxDescent = maxDescent = descent);
           }
         }
       }
