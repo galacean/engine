@@ -1,7 +1,7 @@
 import { EventDispatcher } from "@oasis-engine/core";
 import chai, { expect } from "chai";
 
-describe.only("EventDispatcher test", function () {
+describe("EventDispatcher test", function () {
   it("has event", () => {
     const eventDispatcher = new EventDispatcher();
     expect(eventDispatcher.hasEvent("test-event")).to.be.false;
@@ -73,7 +73,7 @@ describe.only("EventDispatcher test", function () {
     expect(eventDispatcher.listenerCount("test-event")).to.eql(1);
   });
 
-  it("call any", () => {
+  it("call event in a callback", () => {
     const eventDispatcher = new EventDispatcher();
     const event1On = chai.spy(() => {
       eventDispatcher.dispatch("event2");
