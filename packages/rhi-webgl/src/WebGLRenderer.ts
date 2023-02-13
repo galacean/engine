@@ -1,10 +1,13 @@
 import {
+  BufferBindFlag,
+  BufferUsage,
   CameraClearFlags,
   Canvas,
   ColorWriteMask,
   Engine,
   GLCapabilityType,
   IHardwareRenderer,
+  IPlatformBuffer,
   IPlatformRenderTarget,
   IPlatformTexture2D,
   IPlatformTextureCube,
@@ -20,6 +23,7 @@ import {
 } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { Color, Vector4 } from "@oasis-engine/math";
+import { GLBuffer } from "./GLBuffer";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
@@ -211,6 +215,15 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   createPlatformRenderTarget(target: RenderTarget): IPlatformRenderTarget {
     return new GLRenderTarget(this, target);
+  }
+
+  createPlatformBuffer(
+    type: BufferBindFlag,
+    byteLength: number,
+    bufferUsage: BufferUsage = BufferUsage.Static,
+    data?: ArrayBuffer | ArrayBufferView
+  ): IPlatformBuffer {
+    return new GLBuffer(this, type, byteLength, bufferUsage, data);
   }
 
   requireExtension(ext) {
