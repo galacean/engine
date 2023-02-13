@@ -138,14 +138,14 @@ export class MeshParser extends Parser {
       const accessor = accessors[attributes[attribute]];
       const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
 
-      const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+      const dataElementSize = GLTFUtil.getAccessorTypeSize(accessor.type);
       const attributeCount = accessor.count;
       const vertices = accessorBuffer.data;
 
       let vertexElement: VertexElement;
       const meshId = mesh.instanceId;
       const vertexBindingInfos = accessorBuffer.vertexBindingInfos;
-      const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElmentSize, accessor.normalized);
+      const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElementSize, accessor.normalized);
       if (accessorBuffer.interleaved) {
         const byteOffset = accessor.byteOffset || 0;
         const stride = accessorBuffer.stride;
@@ -154,11 +154,11 @@ export class MeshParser extends Parser {
         if (vertexBindingInfos[meshId] === undefined) {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
-          let vertexBuffer = accessorBuffer.vertxBuffer;
+          let vertexBuffer = accessorBuffer.vertexBuffer;
           if (!vertexBuffer) {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
             vertexBuffer.setData(vertices);
-            accessorBuffer.vertxBuffer = vertexBuffer;
+            accessorBuffer.vertexBuffer = vertexBuffer;
           }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
           vertexBindingInfos[meshId] = bufferBindIndex++;

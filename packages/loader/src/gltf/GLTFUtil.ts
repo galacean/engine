@@ -147,9 +147,9 @@ export class GLTFUtil {
     }
   }
 
-  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
+  static getAccessorBuffer(context: ParserContext, glTF: IGLTF, accessor: IAccessor): BufferInfo {
     const { buffers } = context;
-    const bufferViews = gltf.bufferViews;
+    const bufferViews = glTF.bufferViews;
 
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
@@ -159,9 +159,9 @@ export class GLTFUtil {
     const byteOffset = accessor.byteOffset || 0;
 
     const TypedArray = GLTFUtil.getComponentType(componentType);
-    const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+    const dataElementSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
-    const elementStride = dataElmentSize * dataElementBytes;
+    const elementStride = dataElementSize * dataElementBytes;
     const accessorCount = accessor.count;
     const bufferStride = bufferView.byteStride;
 
@@ -180,13 +180,13 @@ export class GLTFUtil {
       }
     } else {
       const offset = bufferByteOffset + byteOffset;
-      const count = accessorCount * dataElmentSize;
+      const count = accessorCount * dataElementSize;
       const data = new TypedArray(buffer, offset, count);
       bufferInfo = new BufferInfo(data, false, elementStride);
     }
 
     if (accessor.sparse) {
-      const data = GLTFUtil.processingSparseData(gltf, accessor, buffers, bufferInfo.data);
+      const data = GLTFUtil.processingSparseData(glTF, accessor, buffers, bufferInfo.data);
       bufferInfo = new BufferInfo(data, false, bufferInfo.stride);
     }
     return bufferInfo;
