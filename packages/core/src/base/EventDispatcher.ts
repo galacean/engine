@@ -6,7 +6,6 @@ import { Event } from "./Event";
 export class EventDispatcher {
   private _events: Record<string, EventData | EventData[]> = Object.create(null);
   private _eventCount: number = 0;
-  private _dispatchingListeners: EventData[] = [];
 
   /**
    * Determine whether there is event listening.
@@ -56,7 +55,7 @@ export class EventDispatcher {
       const count = listeners.length;
 
       // cloning list to avoid structure breaking
-      const dispatchingListeners = this._dispatchingListeners;
+      const dispatchingListeners = new Array(count);
       dispatchingListeners.length = count;
       for (let i = 0; i < count; i++) {
         dispatchingListeners[i] = listeners[i];
