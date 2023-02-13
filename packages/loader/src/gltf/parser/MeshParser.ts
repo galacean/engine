@@ -196,9 +196,9 @@ export class MeshParser extends Parser {
         }
 
         if (accessor.normalized) {
-          const sacleFactor = GLTFUtil.getNormalizedComponentScale(accessor.componentType);
-          min.scale(sacleFactor);
-          max.scale(sacleFactor);
+          const scaleFactor = GLTFUtil.getNormalizedComponentScale(accessor.componentType);
+          min.scale(scaleFactor);
+          max.scale(scaleFactor);
         }
       }
     }
@@ -300,36 +300,36 @@ export class MeshParser extends Parser {
           mesh.setNormals(normals);
           break;
         case "TEXCOORD_0":
-          const texturecoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords, 0);
+          const textureCoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(textureCoords, 0);
           break;
         case "TEXCOORD_1":
-          const texturecoords1 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords1, 1);
+          const textureCoords1 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(textureCoords1, 1);
           break;
         case "TEXCOORD_2":
-          const texturecoords2 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords2, 2);
+          const textureCoords2 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(textureCoords2, 2);
           break;
         case "TEXCOORD_3":
-          const texturecoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords3, 3);
+          const textureCoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(textureCoords3, 3);
           break;
         case "TEXCOORD_4":
-          const texturecoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords4, 4);
+          const textureCoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(textureCoords4, 4);
           break;
         case "TEXCOORD_5":
-          const texturecoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords5, 5);
+          const textureCoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(textureCoords5, 5);
           break;
         case "TEXCOORD_6":
-          const texturecoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords6, 6);
+          const textureCoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(textureCoords6, 6);
           break;
         case "TEXCOORD_7":
-          const texturecoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
-          mesh.setUVs(texturecoords7, 7);
+          const textureCoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          mesh.setUVs(textureCoords7, 7);
           break;
         case "COLOR_0":
           const colors = GLTFUtil.floatBufferToColorArray(
