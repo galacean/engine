@@ -46,8 +46,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
   /** @internal */
   _id: number;
-  /** @internal */
-  _contactOffset: number = 0;
 
   /**
    * {@inheritDoc IColliderShape.setRotation }
@@ -77,9 +75,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
+   * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._contactOffset = offset;
     this._pxShape.setContactOffset(offset);
 
     const controllers = this._controllers;

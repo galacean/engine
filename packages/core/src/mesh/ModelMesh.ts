@@ -507,7 +507,7 @@ export class ModelMesh extends Mesh {
 
   /**
    * @beta
-   * @todo Update buffer should support custom vertex elemnts.
+   * @todo Update buffer should support custom vertex elements.
    * Set vertex elements.
    * @param elements - Vertex element collection
    */
@@ -724,6 +724,7 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
 
+    // Update vertex elements
     this._updateVertexElements();
 
     // Vertex count change
@@ -947,9 +948,11 @@ export class ModelMesh extends Mesh {
 
     if (this._vertexElementsUpdate || bsAttributeUpdate) {
       this._supplementaryVertexElements();
-      bsManager._vertexElementOffset = this._vertexElements.length;
-      if (bsAttributeUpdate) {
-        bsManager._blendShapeCount > 0 && bsManager._addVertexElements(this);
+
+      if (bsAttributeUpdate && bsManager._blendShapeCount > 0) {
+        // Reserve at least 1 placeholder to save the built-in vertex buffer
+        bsManager._setAttributeModeOffsetInfo(this._vertexElements.length, this._vertexBufferBindings.length || 1);
+        bsManager._addVertexElements(this);
       }
       this._vertexElementsUpdate = false;
     }
