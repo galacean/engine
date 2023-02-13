@@ -54,6 +54,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
   @assignmentClone
   private _lineSpacing: number = 0;
   @assignmentClone
+  private _letterSpacing: number = 0;
+  @assignmentClone
   private _horizontalAlignment: TextHorizontalAlignment = TextHorizontalAlignment.Center;
   @assignmentClone
   private _verticalAlignment: TextVerticalAlignment = TextVerticalAlignment.Center;
@@ -168,7 +170,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * The space between two lines (in pixels).
+   * The space between two lines.
    */
   get lineSpacing(): number {
     return this._lineSpacing;
@@ -177,6 +179,20 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
+      this._setDirtyFlagTrue(DirtyFlag.Position);
+    }
+  }
+
+  /**
+   * The space between two letters.
+   */
+  get letterSpacing(): number {
+    return this._letterSpacing;
+  }
+
+  set letterSpacing(value: number) {
+    if (this._letterSpacing !== value) {
+      this._letterSpacing = value;
       this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }

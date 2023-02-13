@@ -185,6 +185,7 @@ export class TextUtils {
     const lineMaxSizes = new Array<FontSizeInfo>();
     const { _pixelsPerUnit } = Engine;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
+    const letterSpacing = renderer.letterSpacing * _pixelsPerUnit;
     let width = 0;
     let height = renderer.height * _pixelsPerUnit;
     if (renderer.overflowMode === OverflowMode.Overflow) {
