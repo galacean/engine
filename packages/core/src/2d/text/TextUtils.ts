@@ -121,7 +121,8 @@ export class TextUtils {
         const charInfo = TextUtils._getCharInfo(char, fontString, subFont);
         const charCode = char.charCodeAt(0);
         // 32 is space.
-        const isNotEnglish = charCode === 32 || charCode > 255;
+        const isSpace = charCode === 32;
+        const isNotEnglish = isSpace || charCode > 255;
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
@@ -156,16 +157,25 @@ export class TextUtils {
               this._pushCharsToLines(lines, lineWidths, lineMaxSizes, char, w, ascent, descent);
             } else {
               this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
-              chars = char;
-              charsWidth = charInfo.xAdvance;
-              maxAscent = ascent;
-              maxDescent = descent;
+              if (isSpace) {
+                chars = "";
+                charsWidth = 0;
+                maxAscent = -1;
+                maxDescent = -1;
+              } else {
+                chars = char;
+                charsWidth = charInfo.xAdvance;
+                maxAscent = ascent;
+                maxDescent = descent;
+              }
             }
           } else {
-            chars += char;
-            charsWidth += charInfo.xAdvance;
-            maxAscent < ascent && (maxAscent = ascent);
-            maxDescent < descent && (maxDescent = descent);
+            if (!(isSpace && chars.length !== j)) {
+              chars += char;
+              charsWidth += charInfo.xAdvance;
+              maxAscent < ascent && (maxAscent = ascent);
+              maxDescent < descent && (maxDescent = descent);
+            }
           }
         } else {
           curInEnglishWord = true;
