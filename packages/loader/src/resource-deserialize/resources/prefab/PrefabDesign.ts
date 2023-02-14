@@ -1,5 +1,5 @@
 import type { BackgroundMode } from "@oasis-engine/core";
-import { IRefResource } from "@oasis-engine/core/types/asset/IRefResource";
+import { IReferenceable } from "@oasis-engine/core/types/asset/IReferenceable";
 import { IColor } from "../mesh/IModelMesh";
 
 export interface IPrefabFile {
@@ -11,11 +11,11 @@ export interface IScene extends IPrefabFile {
     background: {
       mode: BackgroundMode;
       color: IColor;
-      texture?: IRefResource;
-      sky?: IRefResource;
+      texture?: IReferenceable;
+      sky?: IReferenceable;
     };
     ambient: {
-      ambientLight: IRefResource;
+      ambientLight: IReferenceable;
       diffuseSolidColor: IColor;
       diffuseIntensity: number;
       specularIntensity: number;
