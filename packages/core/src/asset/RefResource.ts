@@ -29,11 +29,15 @@ export abstract class RefResource extends EngineObject implements IRefResource {
    * @returns Whether the release was successful.
    */
   destroy(force: boolean = false): boolean {
-    if (this._destroyed) return true;
-    if (!force && this._refCount !== 0) return false;
+    if (this._destroyed) {
+      return true;
+    }
+    if (!force && this._refCount !== 0) {
+      return false;
+    }
     const resourceManager = this._engine.resourceManager;
     // resourceManager maybe null,because engine has destroyed.
-    // TODO:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
+    // @todo:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
     if (resourceManager) {
       super.destroy();
       resourceManager._deleteRefResource(this.instanceId);
@@ -45,7 +49,7 @@ export abstract class RefResource extends EngineObject implements IRefResource {
     }
     this._engine = null;
     this._onDestroy();
-    
+
     return true;
   }
 
