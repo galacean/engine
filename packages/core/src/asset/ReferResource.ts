@@ -1,11 +1,11 @@
 import { EngineObject } from "../base/EngineObject";
 import { Engine } from "../Engine";
-import { IReferenceable } from "./IReferenceable";
+import { IReferable } from "./IReferable";
 
 /**
  * The base class of assets, with reference counting capability.
  */
-export abstract class ReferenceResource extends EngineObject implements IReferenceable {
+export abstract class ReferResource extends EngineObject implements IReferable {
   /** Whether to ignore the garbage collection check, if it is true, it will not be affected by ResourceManager.gc(). */
   isGCIgnored: boolean = false;
 

@@ -1,6 +1,6 @@
 import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@oasis-engine/math";
-import { ReferenceResource } from "../asset/ReferenceResource";
+import { ReferResource } from "../asset/ReferResource";
 import { Engine } from "../Engine";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
@@ -14,7 +14,7 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 /**
  * Mesh.
  */
-export abstract class Mesh extends ReferenceResource {
+export abstract class Mesh extends ReferResource {
   /** Name. */
   name: string;
 

@@ -1,11 +1,11 @@
-import { ReferenceResource } from "../../asset/ReferenceResource";
+import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
 import { Sprite } from "../sprite/Sprite";
 
 /**
  * Sprite Atlas.
  */
-export class SpriteAtlas extends ReferenceResource {
+export class SpriteAtlas extends ReferResource {
   private _sprites: Sprite[] = new Array<Sprite>();
   private _spriteNamesToIndex: Record<string, number> = {};
 

@@ -22,7 +22,7 @@ export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
 export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
-export { ReferenceResource } from "./asset/ReferenceResource";
+export { ReferResource } from "./asset/ReferResource";
 
 export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 export { RenderQueue } from "./RenderPipeline/RenderQueue";

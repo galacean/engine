@@ -1,4 +1,4 @@
-export interface IReferenceable {
+export interface IReferable {
   /**
    * @internal
    */

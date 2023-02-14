@@ -1,4 +1,4 @@
-import { ReferenceResource } from "../../asset/ReferenceResource";
+import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { CharInfo } from "../text/CharInfo";
@@ -7,7 +7,7 @@ import { CharInfo } from "../text/CharInfo";
  * @internal
  * Font Atlas.
  */
-export class FontAtlas extends ReferenceResource {
+export class FontAtlas extends ReferResource {
   private _charInfoMap: Record<number, CharInfo> = {};
   private _texture: Texture2D;
   private _space: number = 1;

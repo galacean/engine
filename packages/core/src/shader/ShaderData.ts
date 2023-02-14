@@ -1,6 +1,6 @@
 import { IClone } from "@oasis-engine/design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { IReferenceable } from "../asset/IReferenceable";
+import { IReferable } from "../asset/IReferable";
 import { CloneManager } from "../clone/CloneManager";
 import { Texture } from "../texture/Texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
@@ -13,7 +13,7 @@ import { ShaderProperty } from "./ShaderProperty";
 /**
  * Shader data collection,Correspondence includes shader properties data and macros data.
  */
-export class ShaderData implements IReferenceable, IClone {
+export class ShaderData implements IReferable, IClone {
   /** @internal */
   _group: ShaderDataGroup;
   /** @internal */

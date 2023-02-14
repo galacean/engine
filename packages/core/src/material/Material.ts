@@ -1,5 +1,5 @@
 import { IClone } from "@oasis-engine/design";
-import { ReferenceResource } from "../asset/ReferenceResource";
+import { ReferResource } from "../asset/ReferResource";
 import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";
 import { MeshRenderElement } from "../RenderPipeline/MeshRenderElement";
@@ -12,7 +12,7 @@ import { RenderState } from "../shader/state/RenderState";
 /**
  * Material.
  */
-export class Material extends ReferenceResource implements IClone {
+export class Material extends ReferResource implements IClone {
   /** Name. */
   name: string;
   /** Shader data. */

@@ -1,4 +1,4 @@
-import { ReferenceResource } from "../../asset/ReferenceResource";
+import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
 import { FontStyle } from "../enums/FontStyle";
 import { SubFont } from "./SubFont";
@@ -6,7 +6,7 @@ import { SubFont } from "./SubFont";
 /**
  * Font.
  */
-export class Font extends ReferenceResource {
+export class Font extends ReferResource {
   private static _fontMap: Record<string, Font> = {};
 
   /**

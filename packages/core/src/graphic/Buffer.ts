@@ -1,5 +1,5 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { ReferenceResource } from "../asset/ReferenceResource";
+import { ReferResource } from "../asset/ReferResource";
 import { Engine } from "../Engine";
 import { IPlatformBuffer } from "../renderingHardwareInterface";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
