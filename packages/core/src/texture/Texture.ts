@@ -1,5 +1,4 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { RefResource } from "../asset/RefResource";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";

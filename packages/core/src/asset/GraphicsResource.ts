@@ -1,7 +1,7 @@
 import { Engine } from "../Engine";
-import { RefResource } from "./RefResource";
+import { ReferenceResource } from "./ReferenceResource";
 
-export abstract class GraphicsResource extends RefResource {
+export abstract class GraphicsResource extends ReferenceResource {
   protected constructor(engine: Engine) {
     super(engine);
     engine.resourceManager._addGraphicResource(this.instanceId, this);

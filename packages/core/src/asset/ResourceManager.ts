@@ -4,7 +4,7 @@ import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
-import { RefResource } from "./RefResource";
+import { ReferenceResource } from "./ReferenceResource";
 
 /**
  * ResourceManager
@@ -41,7 +41,7 @@ export class ResourceManager {
   /** Asset pool, the key is the asset path and the value is the asset. */
   private _assetUrlPool: Record<string, Object> = Object.create(null);
   /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
-  private _refResourcePool: Record<number, RefResource> = Object.create(null);
+  private _refResourcePool: Record<number, ReferenceResource> = Object.create(null);
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
 
@@ -160,7 +160,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addRefResource(id: number, asset: RefResource): void {
+  _addRefResource(id: number, asset: ReferenceResource): void {
     this._refResourcePool[id] = asset;
   }
 
