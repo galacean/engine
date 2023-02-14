@@ -20,7 +20,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
 
   protected constructor(engine: Engine) {
     super(engine);
-    engine.resourceManager._addRefResource(this.instanceId, this);
+    engine.resourceManager._addReferResource(this.instanceId, this);
   }
 
   /**
@@ -40,7 +40,7 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     // @todo:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
     if (resourceManager) {
       super.destroy();
-      resourceManager._deleteRefResource(this.instanceId);
+      resourceManager._deleteReferResource(this.instanceId);
     }
 
     const refCount = this._getRefCount();

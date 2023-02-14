@@ -160,14 +160,14 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addRefResource(id: number, asset: ReferResource): void {
+  _addReferResource(id: number, asset: ReferResource): void {
     this._refResourcePool[id] = asset;
   }
 
   /**
    * @internal
    */
-  _deleteRefResource(id: number): void {
+  _deleteReferResource(id: number): void {
     delete this._refResourcePool[id];
   }
 
