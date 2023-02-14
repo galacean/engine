@@ -1,6 +1,7 @@
 import { Engine, EngineObject, Logger } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
+import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { RefResource } from "./RefResource";
@@ -36,13 +37,13 @@ export class ResourceManager {
   timeout: number = Infinity;
 
   /** Asset path pool, key is asset ID, value is asset path */
-  private _assetPool: { [key: number]: string } = Object.create(null);
+  private _assetPool: Record<number, string> = Object.create(null);
   /** Asset pool, the key is the asset path and the value is the asset. */
-  private _assetUrlPool: { [key: string]: Object } = Object.create(null);
+  private _assetUrlPool: Record<string, Object> = Object.create(null);
   /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
-  private _refResourcePool: { [key: number]: RefResource } = Object.create(null);
-  /** Loading promises. */
-  private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
+  private _refResourcePool: Record<number, RefResource> = Object.create(null);
+  private _loadingPromises: Record<string, AssetPromise<any>> = {};
+  private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
 
   /**
    * Create a ResourceManager.
@@ -168,6 +169,20 @@ export class ResourceManager {
    */
   _deleteRefResource(id: number): void {
     delete this._refResourcePool[id];
+  }
+
+  /**
+   * @internal
+   */
+  _addGraphicResource(id: number, asset: GraphicsResource): void {
+    this._graphicResourcePool[id] = asset;
+  }
+
+  /**
+   * @internal
+   */
+  _deleteGraphicResource(id: number): void {
+    delete this._graphicResourcePool[id];
   }
 
   /**
