@@ -1,11 +1,11 @@
 import { EngineObject } from "../base/EngineObject";
 import { Engine } from "../Engine";
-import { IRefObject } from "./IRefObject";
+import { IRefResource } from "./IRefResource";
 
 /**
  * The base class of assets, with reference counting capability.
  */
-export abstract class RefObject extends EngineObject implements IRefObject {
+export abstract class RefResource extends EngineObject implements IRefResource {
   /** Whether to ignore the garbage collection check, if it is true, it will not be affected by ResourceManager.gc(). */
   isGCIgnored: boolean = false;
 
@@ -20,7 +20,7 @@ export abstract class RefObject extends EngineObject implements IRefObject {
 
   protected constructor(engine: Engine) {
     super(engine);
-    engine.resourceManager._addRefObject(this.instanceId, this);
+    engine.resourceManager._addRefResource(this.instanceId, this);
   }
 
   /**
@@ -36,7 +36,7 @@ export abstract class RefObject extends EngineObject implements IRefObject {
     // TODO:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
     if (resourceManager) {
       super.destroy();
-      resourceManager._deleteRefObject(this.instanceId);
+      resourceManager._deleteRefResource(this.instanceId);
     }
 
     const refCount = this._getRefCount();

@@ -1,4 +1,5 @@
-import { RefObject } from "../asset/RefObject";
+import { GraphicsResource } from "../asset/GraphicsResource";
+import { RefResource } from "../asset/RefResource";
 import { Engine } from "../Engine";
 import { IPlatformBuffer } from "../renderingHardwareInterface";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
@@ -8,7 +9,7 @@ import { SetDataOptions } from "./enums/SetDataOptions";
 /**
  * Buffer.
  */
-export class Buffer extends RefObject {
+export class Buffer extends GraphicsResource {
   /** @internal */
   _platformBuffer: IPlatformBuffer;
 

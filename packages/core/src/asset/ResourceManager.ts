@@ -3,7 +3,7 @@ import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
-import { RefObject } from "./RefObject";
+import { RefResource } from "./RefResource";
 
 /**
  * ResourceManager
@@ -40,7 +40,7 @@ export class ResourceManager {
   /** Asset pool, the key is the asset path and the value is the asset. */
   private _assetUrlPool: { [key: string]: Object } = Object.create(null);
   /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
-  private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
+  private _refResourcePool: { [key: number]: RefResource } = Object.create(null);
   /** Loading promises. */
   private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
 
@@ -159,15 +159,15 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addRefObject(id: number, asset: RefObject): void {
-    this._refObjectPool[id] = asset;
+  _addRefResource(id: number, asset: RefResource): void {
+    this._refResourcePool[id] = asset;
   }
 
   /**
    * @internal
    */
-  _deleteRefObject(id: number): void {
-    delete this._refObjectPool[id];
+  _deleteRefResource(id: number): void {
+    delete this._refResourcePool[id];
   }
 
   /**
@@ -178,7 +178,7 @@ export class ResourceManager {
     this._gc(true);
     this._assetPool = null;
     this._assetUrlPool = null;
-    this._refObjectPool = null;
+    this._refResourcePool = null;
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
@@ -290,7 +290,7 @@ export class ResourceManager {
   }
 
   private _gc(forceDestroy: boolean): void {
-    const objects = ObjectValues(this._refObjectPool);
+    const objects = ObjectValues(this._refResourcePool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored || forceDestroy) {
         objects[i].destroy();

@@ -1,5 +1,5 @@
 import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
-import { RefObject } from "../../asset/RefObject";
+import { RefResource } from "../../asset/RefResource";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
@@ -8,7 +8,7 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 /**
  * 2D sprite.
  */
-export class Sprite extends RefObject {
+export class Sprite extends RefResource {
   /** The name of sprite. */
   name: string;
 

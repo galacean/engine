@@ -1,4 +1,5 @@
-import { RefObject } from "../asset/RefObject";
+import { GraphicsResource } from "../asset/GraphicsResource";
+import { RefResource } from "../asset/RefResource";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
@@ -9,7 +10,7 @@ import { TextureWrapMode } from "./enums/TextureWrapMode";
 /**
  * The base class of texture, contains some common functions of texture-related classes.
  */
-export abstract class Texture extends RefObject {
+export abstract class Texture extends GraphicsResource {
   name: string;
 
   /** @internal */
