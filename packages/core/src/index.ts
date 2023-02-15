@@ -18,6 +18,7 @@ export type { EngineSettings } from "./EngineSettings";
 
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
+export { RebuildInfo } from "./asset/RebuildInfo";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
 export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";

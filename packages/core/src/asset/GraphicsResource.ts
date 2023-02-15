@@ -14,7 +14,7 @@ export abstract class GraphicsResource extends ReferResource {
   /**
    * @internal
    */
-  _rebuild(): void {}
+  abstract _rebuild(): void;
 
   // destroy(force: boolean = false): boolean {
   //   const success= super.destroy(force);

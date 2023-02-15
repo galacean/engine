@@ -6,7 +6,8 @@ import {
   resourceLoader,
   ResourceManager,
   Texture2D,
-  TextureFormat
+  TextureFormat,
+  RebuildInfo
 } from "@oasis-engine/core";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
@@ -26,8 +27,9 @@ class Texture2DLoader extends Loader<Texture2D> {
             params.format,
             params.mipmap
           );
-          /** @ts-ignore */
+          // @ts-ignore
           if (!texture._platformTexture) return;
+
           texture.setImageSource(image);
           texture.generateMipmaps();
 
@@ -36,6 +38,9 @@ class Texture2DLoader extends Loader<Texture2D> {
             texture.name = splitPath[splitPath.length - 1];
           }
           resolve(texture);
+
+          // @ts-ignore
+          texture._rebuildInfo = new RebuildInfo(item.url);
         })
         .catch((e) => {
           reject(e);

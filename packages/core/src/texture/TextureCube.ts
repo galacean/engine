@@ -186,4 +186,9 @@ export class TextureCube extends Texture {
       );
     }
   }
+
+  /**
+   * @override
+   */
+  _rebuild(): void {}
 }

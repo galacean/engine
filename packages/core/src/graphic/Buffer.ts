@@ -165,6 +165,11 @@ export class Buffer extends GraphicsResource {
 
   /**
    * @override
+   */
+  _rebuild(): void {}
+
+  /**
+   * @override
    * Destroy.
    */
   _onDestroy() {

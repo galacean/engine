@@ -211,4 +211,9 @@ export class Texture2DArray extends Texture {
       );
     }
   }
+
+   /**
+   * @override
+   */
+   _rebuild(): void {}
 }

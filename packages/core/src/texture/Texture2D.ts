@@ -1,3 +1,4 @@
+import { request } from "../asset/request";
 import { Engine } from "../Engine";
 import { IPlatformTexture2D } from "../renderingHardwareInterface";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
@@ -44,6 +45,34 @@ export class Texture2D extends Texture {
 
     this.filterMode = TextureFilterMode.Bilinear;
     this.wrapModeU = this.wrapModeV = TextureWrapMode.Repeat;
+  }
+
+  /**
+   * @internal
+   */
+  _rebuild(): void {
+    const rebuildInfo = this._rebuildInfo;
+    if (!rebuildInfo) {
+      return;
+    }
+
+    const platformTexture = <IPlatformTexture2D>this._engine._hardwareRenderer.createPlatformTexture2D(this);
+
+    request<HTMLImageElement>(rebuildInfo.url, {
+      // todo: retry count
+      type: "image"
+    })
+      .then((imageSource) => {
+        platformTexture.setImageSource(imageSource, 0, false, false, 0, 0);
+        if (this._mipmap) {
+          platformTexture.generateMipmaps();
+        }
+      })
+      .catch((e) => {
+        console.warn("Texture2D: rebuild failed.");
+      });
+
+    this._platformTexture = platformTexture;
   }
 
   /**
