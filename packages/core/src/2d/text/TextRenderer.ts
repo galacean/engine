@@ -508,6 +508,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const rendererWidth = this.width * _pixelsPerUnit;
     const halfRendererWidth = rendererWidth * 0.5;
     const rendererHeight = this.height * _pixelsPerUnit;
+    const letterSpacing = this.letterSpacing * _pixelsPerUnit;
 
     const textMetrics = this.enableWrapping
       ? TextUtils.measureTextWithWrap(this)
@@ -548,10 +549,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
           startX = -halfRendererWidth;
           break;
         case TextHorizontalAlignment.Center:
-          startX = -lineWidth * 0.5;
+          startX = -lineWidth * 0.5 + letterSpacing * 0.5;
           break;
         case TextHorizontalAlignment.Right:
-          startX = halfRendererWidth - lineWidth;
+          startX = halfRendererWidth - lineWidth + letterSpacing;
           break;
       }
 
@@ -582,7 +583,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
           j === 0 && (minX = Math.min(minX, left));
           j === m && (maxX = Math.max(maxX, right));
         }
-        startX += charInfo.xAdvance;
+        startX += charInfo.xAdvance + letterSpacing;
       }
 
       startY -= lineHeight;

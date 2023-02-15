@@ -101,6 +101,7 @@ export class TextUtils {
     const lineMaxSizes = new Array<FontSizeInfo>();
     const { _pixelsPerUnit } = Engine;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
+    const letterSpacing = renderer.letterSpacing * _pixelsPerUnit;
     const wrapWidth = renderer.width * _pixelsPerUnit;
     let width = 0;
 
@@ -172,14 +173,14 @@ export class TextUtils {
                 maxDescent = -1;
               } else {
                 chars = char;
-                charsWidth = charInfo.xAdvance;
+                charsWidth = charInfo.xAdvance + letterSpacing;
                 maxAscent = ascent;
                 maxDescent = descent;
               }
             }
           } else {
             chars += char;
-            charsWidth += charInfo.xAdvance;
+            charsWidth += charInfo.xAdvance + letterSpacing;
             maxAscent < ascent && (maxAscent = ascent);
             maxDescent < descent && (maxDescent = descent);
           }
@@ -211,18 +212,18 @@ export class TextUtils {
               );
               isNotFirstLine = true;
               wordChars = char;
-              wordCharsWidth = charInfo.xAdvance;
+              wordCharsWidth = charInfo.xAdvance + letterSpacing;
               wordMaxAscent = ascent;
               wordMaxDescent = descent;
             } else {
               wordChars += char;
-              wordCharsWidth += charInfo.xAdvance;
+              wordCharsWidth += charInfo.xAdvance + letterSpacing;
               wordMaxAscent < ascent && (wordMaxAscent = maxAscent = ascent);
               wordMaxDescent < descent && (wordMaxDescent = maxDescent = descent);
             }
           } else {
             wordChars += char;
-            wordCharsWidth += charInfo.xAdvance;
+            wordCharsWidth += charInfo.xAdvance + letterSpacing;
             wordMaxAscent < ascent && (wordMaxAscent = maxAscent = ascent);
             wordMaxDescent < descent && (wordMaxDescent = maxDescent = descent);
           }
@@ -302,7 +303,7 @@ export class TextUtils {
 
       for (let j = 0, m = line.length; j < m; ++j) {
         const charInfo = TextUtils._getCharInfo(line[j], fontString, subFont);
-        curWidth += charInfo.xAdvance;
+        curWidth += charInfo.xAdvance + letterSpacing;
         const { offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
