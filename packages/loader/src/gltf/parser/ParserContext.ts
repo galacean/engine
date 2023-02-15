@@ -8,6 +8,7 @@ import {
   Texture2D,
   TypedArray
 } from "@oasis-engine/core";
+import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 import { GLTFResource } from "../GLTFResource";
 import { IGLTF } from "../Schema";
 
@@ -20,7 +21,6 @@ export class ParserContext {
   glTFResource: GLTFResource;
   keepMeshData: boolean;
   hasSkinned: boolean = false;
-  /** chain asset promise */
   chainPromises: AssetPromise<any>[] = [];
   accessorBufferCache: Record<string, BufferInfo> = {};
 
@@ -31,6 +31,9 @@ export class ParserContext {
   defaultSceneRootPromiseInfo: PromiseInfo<Entity> = new PromiseInfo<Entity>();
   masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
   promiseMap: Record<string, AssetPromise<any>> = {};
+
+  bufferUrl: string;
+  bufferRequestInfos: BufferRequestInfo[] = [];
 
   constructor(url: string) {
     const promiseMap = this.promiseMap;
@@ -72,4 +75,11 @@ export class PromiseInfo<T> {
   public reject: (reason?: any) => void;
   public setProgress: (progress: number) => void;
   public onCancel: (callback: () => void) => void;
+}
+
+/**
+ * @internal
+ */
+export class BufferRequestInfo {
+  constructor(public url: string, public config: RequestConfig,public byteOffset?: number) {}
 }

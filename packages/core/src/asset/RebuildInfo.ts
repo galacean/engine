@@ -1,4 +1,10 @@
+import { RequestConfig } from "./request";
 
 export class RebuildInfo {
-  constructor(public url: string, public bufferOffset?: number, public bufferLength?: number) {}
+  constructor(
+    public url: string,
+    public requestConfig: RequestConfig,
+    public bufferOffset?: number,
+    public bufferLength?: number
+  ) {}
 }

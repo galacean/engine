@@ -59,10 +59,7 @@ export class Texture2D extends Texture {
       return;
     }
 
-    request<HTMLImageElement>(rebuildInfo.url, {
-      // todo: retry count
-      type: "image"
-    })
+    request<HTMLImageElement>(rebuildInfo.url, rebuildInfo.requestConfig)
       .then((imageSource) => {
         platformTexture.setImageSource(imageSource, 0, false, false, 0, 0);
         if (this._mipmap) {

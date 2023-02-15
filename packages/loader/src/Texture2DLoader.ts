@@ -9,15 +9,18 @@ import {
   TextureFormat,
   RebuildInfo
 } from "@oasis-engine/core";
+import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
-      this.request<HTMLImageElement>(item.url, {
+      const url = item.url;
+      const requestConfig = <RequestConfig>{
         ...item,
         type: "image"
-      })
+      };
+      this.request<HTMLImageElement>(url, requestConfig)
         .then((image) => {
           const params = item.params ?? {};
           const texture = new Texture2D(
@@ -37,10 +40,11 @@ class Texture2DLoader extends Loader<Texture2D> {
             const splitPath = item.url.split("/");
             texture.name = splitPath[splitPath.length - 1];
           }
-          resolve(texture);
 
           // @ts-ignore
-          texture._rebuildInfo = new RebuildInfo(item.url);
+          texture._rebuildInfo = new RebuildInfo(url, requestConfig);
+
+          resolve(texture);
         })
         .catch((e) => {
           reject(e);

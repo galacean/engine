@@ -1,6 +1,7 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
+import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { BufferInfo, ParserContext } from "./parser/ParserContext";
+import { BufferInfo, BufferRequestInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
 const charCodeOfDot = ".".charCodeAt(0);
@@ -418,7 +419,11 @@ export class GLTFUtil {
   /**
    * Parse the glb format.
    */
-  static parseGLB(glb: ArrayBuffer): {
+  static parseGLB(
+    context: ParserContext,
+    glb: ArrayBuffer,
+    requestConfig: RequestConfig
+  ): {
     gltf: IGLTF;
     buffers: ArrayBuffer[];
   } {
@@ -470,6 +475,9 @@ export class GLTFUtil {
       const currentOffset = byteOffset + 2 * UINT32_LENGTH;
       const buffer = glb.slice(currentOffset, currentOffset + chunkLength);
       buffers.push(buffer);
+      context.bufferRequestInfos.push(
+        new BufferRequestInfo(context.glTFResource.url, requestConfig, currentOffset)
+      );
 
       byteOffset += chunkLength + 2 * UINT32_LENGTH;
     }

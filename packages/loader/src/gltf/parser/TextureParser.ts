@@ -1,4 +1,11 @@
-import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@oasis-engine/core";
+import {
+  AssetPromise,
+  AssetType,
+  RebuildInfo,
+  Texture2D,
+  TextureFilterMode,
+  TextureWrapMode
+} from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
 import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../Schema";
 import { Parser } from "./Parser";
@@ -41,6 +48,7 @@ export class TextureParser extends Parser {
               });
           } else {
             const bufferView = gltf.bufferViews[bufferViewIndex];
+            const bufferRequestInfo = context.bufferRequestInfos[bufferViewIndex];
             const bufferViewData = GLTFUtil.getBufferViewData(bufferView, buffers);
             return GLTFUtil.loadImageBuffer(bufferViewData, mimeType).then((image) => {
               const texture = new Texture2D(engine, image.width, image.height);
@@ -50,6 +58,13 @@ export class TextureParser extends Parser {
               if (sampler !== undefined) {
                 this._parseSampler(texture, gltf.samplers[sampler]);
               }
+              //@ts-ignore
+              texture._rebuildInfo = new RebuildInfo(
+                bufferRequestInfo.url,
+                bufferRequestInfo.config,
+                bufferRequestInfo.byteOffset ?? 0 + bufferView.byteOffset,
+                bufferView.byteLength
+              );
               return texture;
             });
           }
