@@ -166,7 +166,17 @@ export class Buffer extends GraphicsResource {
   /**
    * @override
    */
-  _rebuild(): void {}
+  _rebuild(): void {
+    const platformBuffer = this._engine._hardwareRenderer.createPlatformBuffer(this);
+    this._platformBuffer = platformBuffer;
+
+    const rebuildInfo = this._rebuildInfo;
+    if (!rebuildInfo) {
+      return;
+    }
+
+    
+  }
 
   /**
    * @override

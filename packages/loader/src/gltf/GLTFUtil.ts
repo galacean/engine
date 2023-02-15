@@ -155,7 +155,8 @@ export class GLTFUtil {
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    const buffer = buffers[bufferView.buffer];
+    const bufferIndex= bufferView.buffer;
+    const buffer = buffers[bufferIndex];
     const bufferByteOffset = bufferView.byteOffset || 0;
     const byteOffset = accessor.byteOffset || 0;
 
@@ -177,18 +178,35 @@ export class GLTFUtil {
         const offset = bufferByteOffset + bufferSlice * bufferStride;
         const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(
+          data,
+          true,
+          bufferStride,
+          context.bufferRequestInfos[bufferIndex].url,
+          context.bufferRequestInfos[bufferIndex].config,
+          offset,
+          count
+        );
       }
     } else {
       const offset = bufferByteOffset + byteOffset;
       const count = accessorCount * dataElementSize;
       const data = new TypedArray(buffer, offset, count);
-      bufferInfo = new BufferInfo(data, false, elementStride);
+      bufferInfo = new BufferInfo(
+        data,
+        false,
+        elementStride,
+        context.bufferRequestInfos[bufferIndex].url,
+        context.bufferRequestInfos[bufferIndex].config,
+        offset,
+        count
+      );
     }
 
     if (accessor.sparse) {
       const data = GLTFUtil.processingSparseData(glTF, accessor, buffers, bufferInfo.data);
-      bufferInfo = new BufferInfo(data, false, bufferInfo.stride);
+      // @todo: need to support rebuild sparse data
+      bufferInfo = new BufferInfo(data, false, bufferInfo.stride, null, null, 0, 0);
     }
     return bufferInfo;
   }
@@ -475,9 +493,7 @@ export class GLTFUtil {
       const currentOffset = byteOffset + 2 * UINT32_LENGTH;
       const buffer = glb.slice(currentOffset, currentOffset + chunkLength);
       buffers.push(buffer);
-      context.bufferRequestInfos.push(
-        new BufferRequestInfo(context.glTFResource.url, requestConfig, currentOffset)
-      );
+      context.bufferRequestInfos.push(new BufferRequestInfo(context.glTFResource.url, requestConfig, currentOffset));
 
       byteOffset += chunkLength + 2 * UINT32_LENGTH;
     }

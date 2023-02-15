@@ -6,6 +6,7 @@ import {
   BufferUsage,
   EngineObject,
   ModelMesh,
+  RebuildInfo,
   TypedArray,
   VertexElement
 } from "@oasis-engine/core";
@@ -158,6 +159,13 @@ export class MeshParser extends Parser {
           if (!vertexBuffer) {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
             vertexBuffer.setData(vertices);
+            // @ts-ignore
+            vertexBuffer._rebuildInfo = new RebuildInfo(
+              accessorBuffer.url,
+              accessorBuffer.config,
+              accessorBuffer.byteOffset,
+              accessorBuffer.byteLength
+            );
             accessorBuffer.vertexBuffer = vertexBuffer;
           }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
@@ -170,6 +178,13 @@ export class MeshParser extends Parser {
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
+        // @ts-ignore
+        vertexBuffer._rebuildInfo = new RebuildInfo(
+          accessorBuffer.url,
+          accessorBuffer.config,
+          accessorBuffer.byteOffset,
+          accessorBuffer.byteLength
+        );
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
         vertexBindingInfos[meshId] = bufferBindIndex++;
       }

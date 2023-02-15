@@ -63,7 +63,16 @@ export class ParserContext {
 export class BufferInfo {
   vertexBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
-  constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
+
+  constructor(
+    public data: TypedArray,
+    public interleaved: boolean,
+    public stride: number,
+    public url: string,
+    public config: RequestConfig,
+    public byteOffset: number,
+    public byteLength: number
+  ) {}
 }
 
 /**
@@ -81,5 +90,5 @@ export class PromiseInfo<T> {
  * @internal
  */
 export class BufferRequestInfo {
-  constructor(public url: string, public config: RequestConfig,public byteOffset?: number) {}
+  constructor(public url: string, public config: RequestConfig, public byteOffset?: number) {}
 }
