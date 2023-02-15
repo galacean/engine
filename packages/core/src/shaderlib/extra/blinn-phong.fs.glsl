@@ -7,7 +7,7 @@
 #include <worldpos_share>
 
 #include <light_frag_define>
-#include <shadow_frag_share>
+#include <ShadowFragmentDeclaration>
 #include <mobile_material_frag>
 
 #include <FogFragmentDeclaration>
@@ -20,7 +20,12 @@ void main() {
     #include <mobile_blinnphong_frag>
 
     gl_FragColor = emission + ambient + diffuse + specular;
-    gl_FragColor.a = diffuse.a;
+
+    #ifdef OASIS_TRANSPARENT
+        gl_FragColor.a = diffuse.a;
+    #else
+        gl_FragColor.a = 1.0;
+    #endif
 
     #include <FogFragment>
 

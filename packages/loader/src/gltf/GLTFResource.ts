@@ -1,6 +1,7 @@
 import {
   AnimationClip,
   Camera,
+  Engine,
   EngineObject,
   Entity,
   Light,
@@ -10,7 +11,6 @@ import {
   Skin,
   Texture2D
 } from "@oasis-engine/core";
-import { IGLTF } from "./Schema";
 
 /**
  * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.
@@ -18,10 +18,6 @@ import { IGLTF } from "./Schema";
 export class GLTFResource extends EngineObject {
   /** GLTF file url. */
   url: string;
-  /** GLTF file content. */
-  gltf: IGLTF;
-  /** ArrayBuffer after BufferParser. */
-  buffers: ArrayBuffer[];
   /** Oasis Texture2D after TextureParser. */
   textures?: Texture2D[];
   /** Oasis Material after MaterialParser. */
@@ -44,4 +40,32 @@ export class GLTFResource extends EngineObject {
   defaultSceneRoot: Entity;
   /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
   variants?: { renderer: Renderer; material: Material; variants: string[] }[];
+
+  constructor(engine: Engine, url: string) {
+    super(engine);
+    this.url = url;
+  }
+
+  /**
+   * @override
+   */
+  destroy(): void {
+    if (this._destroyed) {
+      return;
+    }
+
+    super.destroy();
+    this.defaultSceneRoot.destroy();
+
+    this.textures = null;
+    this.materials = null;
+    this.meshes = null;
+    this.skins = null;
+    this.animations = null;
+    this.entities = null;
+    this.cameras = null;
+    this.lights = null;
+    this.sceneRoots = null;
+    this.variants = null;
+  }
 }

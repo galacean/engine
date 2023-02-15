@@ -1,6 +1,6 @@
-import { AssetType, Logger, Texture2D, TextureWrapMode, TextureFilterMode } from "@oasis-engine/core";
+import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
-import { ISampler, TextureWrapMode as GLTFTextureWrapMode, TextureMagFilter, TextureMinFilter } from "../Schema";
+import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
@@ -11,24 +11,24 @@ export class TextureParser extends Parser {
     [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
-  parse(context: ParserContext) {
-    const { textureIndex, glTFResource } = context;
-    const { gltf, buffers, engine, url } = glTFResource;
+  parse(context: ParserContext): AssetPromise<Texture2D[]> {
+    const { glTFResource, gltf, buffers } = context;
+    const { engine, url } = glTFResource;
 
     if (gltf.textures) {
-      return Promise.all(
+      const texturesPromiseInfo = context.texturesPromiseInfo;
+      AssetPromise.all(
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
-          if (textureIndex >= 0 && textureIndex !== index) {
-            return;
-          }
-
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
-
           if (uri) {
+            // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
+            const index = uri.lastIndexOf(".");
+            const ext = uri.substring(index + 1);
+            const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
             return engine.resourceManager
               .load<Texture2D>({
                 url: GLTFUtil.parseRelativeUrl(url, uri),
-                type: AssetType.Texture2D
+                type: type
               })
               .then((texture) => {
                 if (!texture.name) {
@@ -54,17 +54,13 @@ export class TextureParser extends Parser {
             });
           }
         })
-      ).then((textures: Texture2D[]) => {
-        if (textureIndex >= 0) {
-          const texture = textures[textureIndex];
-          if (texture) {
-            return texture;
-          } else {
-            throw `texture index not find in: ${textureIndex}`;
-          }
-        }
-        glTFResource.textures = textures;
-      });
+      )
+        .then((textures: Texture2D[]) => {
+          glTFResource.textures = textures;
+          texturesPromiseInfo.resolve(textures);
+        })
+        .catch(texturesPromiseInfo.reject);
+      return texturesPromiseInfo.promise;
     }
   }
 

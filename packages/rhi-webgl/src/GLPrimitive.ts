@@ -113,6 +113,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
     this.attribLocArray.length = 0;
     const attributeLocation = shaderProgram.attributeLocation;
+    // @ts-ignore
     const attributes = primitive._vertexElementMap;
 
     let vbo: WebGLBuffer;

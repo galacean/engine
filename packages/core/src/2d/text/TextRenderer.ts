@@ -277,6 +277,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   constructor(entity: Entity) {
     super(entity);
+    this._init();
+  }
+
+  /**
+   * @internal
+   * Standalone for CanvasRenderer plugin.
+   */
+  _init(): void {
     const { engine } = this;
     this._font = engine._textDefaultFont;
     this._font._addRefCount(1);
@@ -394,7 +402,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
         material,
         charRenderData.texture,
         renderStates[0],
-        passes[0]
+        passes[0],
+        i
       );
       charElements[i] = spriteElement;
     }

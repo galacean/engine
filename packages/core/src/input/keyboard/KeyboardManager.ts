@@ -1,3 +1,4 @@
+import { Engine } from "../../Engine";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Keys } from "../enums/Keys";
 import { IInput } from "../interface/IInput";
@@ -21,6 +22,7 @@ export class KeyboardManager implements IInput {
   /** @internal */
   _curFrameUpList: DisorderedArray<Keys> = new DisorderedArray();
 
+  private _engine: Engine;
   private _htmlCanvas: HTMLCanvasElement;
   private _nativeEvents: KeyboardEvent[] = [];
   private _hadListener: boolean = false;
@@ -28,7 +30,10 @@ export class KeyboardManager implements IInput {
   /**
    * Create a KeyboardManager.
    */
-  constructor(htmlCanvas: HTMLCanvasElement) {
+  constructor(engine: Engine) {
+    // @ts-ignore
+    const htmlCanvas = engine._canvas._webCanvas;
+    this._engine = engine;
     this._htmlCanvas = htmlCanvas;
     // Need to set tabIndex to make the canvas focus.
     htmlCanvas.tabIndex = htmlCanvas.tabIndex;
@@ -41,11 +46,12 @@ export class KeyboardManager implements IInput {
   /**
    * @internal
    */
-  _update(frameCount: number): void {
+  _update(): void {
     const { _nativeEvents: nativeEvents, _curFrameDownList: curFrameDownList, _curFrameUpList: curFrameUpList } = this;
     curFrameDownList.length = 0;
     curFrameUpList.length = 0;
     if (nativeEvents.length > 0) {
+      const frameCount = this._engine.time.frameCount;
       const {
         _curHeldDownKeyToIndexMap: curHeldDownKeyToIndexMap,
         _curFrameHeldDownList: curFrameHeldDownList,

@@ -222,20 +222,7 @@ export class Engine extends EventDispatcher {
 
     this.inputManager = new InputManager(this);
 
-    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
-
-    const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
-    magentaTexture2D.setPixelBuffer(magentaPixel);
-    magentaTexture2D.isGCIgnored = true;
-
-    const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
-    magentaTextureCube.isGCIgnored = true;
+    this._initMagentaTextures(hardwareRenderer);
 
     if (!hardwareRenderer.canIUse(GLCapabilityType.depthTexture)) {
       this._macroCollection.enable(Engine._noDepthTextureMacro);
@@ -243,16 +230,6 @@ export class Engine extends EventDispatcher {
       const depthTexture2D = new Texture2D(this, 1, 1, TextureFormat.Depth16, false);
       depthTexture2D.isGCIgnored = true;
       this._depthTexture2D = depthTexture2D;
-    }
-
-    this._magentaTexture2D = magentaTexture2D;
-    this._magentaTextureCube = magentaTextureCube;
-
-    if (hardwareRenderer.isWebGL2) {
-      const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
-      magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
-      magentaTexture2DArray.isGCIgnored = true;
-      this._magentaTexture2DArray = magentaTexture2DArray;
     }
 
     const magentaMaterial = new Material(this, Shader.find("unlit"));
@@ -302,11 +279,12 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
-    this._frameInProcess = true;
     const time = this._time;
-    const deltaTime = time.deltaTime;
-
     time.tick();
+
+    const deltaTime = time.deltaTime;
+    this._frameInProcess = true;
+
     this._renderElementPool.resetPool();
     this._spriteElementPool.resetPool();
     this._spriteMaskElementPool.resetPool();
@@ -398,7 +376,7 @@ export class Engine extends EventDispatcher {
     let pool = shaderProgramPools[index];
     if (!pool) {
       const length = index + 1;
-      if (length < shaderProgramPools.length) {
+      if (length > shaderProgramPools.length) {
         shaderProgramPools.length = length;
       }
       shaderProgramPools[index] = pool = new ShaderProgramPool();
@@ -431,6 +409,37 @@ export class Engine extends EventDispatcher {
       }
     } else {
       Logger.debug("NO active camera.");
+    }
+  }
+
+  /**
+   * @internal
+   * Standalone for CanvasRenderer plugin.
+   */
+  _initMagentaTextures(hardwareRenderer: IHardwareRenderer) {
+    const magentaPixel = new Uint8Array([255, 0, 255, 255]);
+
+    const magentaTexture2D = new Texture2D(this, 1, 1, TextureFormat.R8G8B8A8, false);
+    magentaTexture2D.setPixelBuffer(magentaPixel);
+    magentaTexture2D.isGCIgnored = true;
+
+    const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, magentaPixel);
+    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
+    magentaTextureCube.isGCIgnored = true;
+
+    this._magentaTexture2D = magentaTexture2D;
+    this._magentaTextureCube = magentaTextureCube;
+
+    if (hardwareRenderer.isWebGL2) {
+      const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
+      magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
+      magentaTexture2DArray.isGCIgnored = true;
+      this._magentaTexture2DArray = magentaTexture2DArray;
     }
   }
 

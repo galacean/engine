@@ -523,8 +523,11 @@ export class GLTexture implements IPlatformTexture {
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
-    this._bind();
-    this._gl.generateMipmap(this._target);
+    // @todo (1x1).generateMipmap() will flash back in uc.
+    if (this._texture.width !== 1 || this._texture.height !== 1) {
+      this._bind();
+      this._gl.generateMipmap(this._target);
+    }
   }
 
   protected _bind() {

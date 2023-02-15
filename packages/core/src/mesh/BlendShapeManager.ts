@@ -41,11 +41,15 @@ export class BlendShapeManager {
   _vertexBuffers: Buffer[] = [];
   /** @internal */
   _vertices: Float32Array;
+  /** @internal */
+  _uniformOccupiesCount: number = 0;
 
   private _useBlendNormal: boolean = false;
   private _useBlendTangent: boolean = false;
   private _vertexElementCount: number = 0;
+  private _bufferBindingOffset: number;
   private _vertexElementOffset: number;
+
   private _storeInVertexBufferInfo: Vector2[] = [];
   private _maxCountSingleVertexBuffer: number = 0;
   private readonly _engine: Engine;
@@ -107,6 +111,8 @@ export class BlendShapeManager {
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
         shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
         shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
+        shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
+        this._uniformOccupiesCount = blendShapeCount + 1;
       } else {
         const maxBlendCount = this._getVertexBufferModeSupportCount();
         if (blendShapeCount > maxBlendCount) {
@@ -124,8 +130,9 @@ export class BlendShapeManager {
           this._modelMesh._enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
+        shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
+        this._uniformOccupiesCount = blendShapeCount;
       }
-      shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
 
       if (this._useBlendNormal) {
         shaderData.enableMacro(BlendShapeManager._blendShapeNormalMacro);
@@ -190,18 +197,33 @@ export class BlendShapeManager {
   /**
    * @internal
    */
+  _setAttributeModeOffsetInfo(vertexElementOffset: number, bufferBindingOffset: number): void {
+    this._vertexElementOffset = vertexElementOffset;
+    this._bufferBindingOffset = bufferBindingOffset;
+  }
+
+  /**
+   * @internal
+   */
   _addVertexElements(modelMesh: ModelMesh): void {
+    const bindingOffset = this._bufferBindingOffset;
+
     let offset = 0;
-    this._vertexElementOffset = modelMesh._vertexElements.length;
     for (let i = 0, n = Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()); i < n; i++) {
-      modelMesh._addVertexElement(new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, 1));
+      modelMesh._addVertexElement(
+        new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
+      );
       offset += 12;
       if (this._useBlendNormal) {
-        modelMesh._addVertexElement(new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, 1));
+        modelMesh._addVertexElement(
+          new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
+        );
         offset += 12;
       }
       if (this._useBlendTangent) {
-        modelMesh._addVertexElement(new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, 1));
+        modelMesh._addVertexElement(
+          new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
+        );
         offset += 12;
       }
     }
@@ -277,6 +299,7 @@ export class BlendShapeManager {
     this._maxCountSingleVertexBuffer = maxCountSingleBuffer;
     this._storeInVertexBufferInfo.length = blendShapeCount;
 
+    const bufferBindingOffset = this._bufferBindingOffset;
     for (let i = 0; i < bufferCount; i++) {
       const lastIndex = bufferCount - 1;
       const containCount = i === lastIndex ? blendShapeCount - lastIndex * maxCountSingleBuffer : maxCountSingleBuffer;
@@ -284,9 +307,8 @@ export class BlendShapeManager {
       const byteLength = stride * vertexCount;
 
       const usage = noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic;
-
       const blendShapeBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, byteLength, usage);
-      modelMesh._setVertexBufferBinding(i + 1, new VertexBufferBinding(blendShapeBuffer, stride));
+      modelMesh._setVertexBufferBinding(bufferBindingOffset + i, new VertexBufferBinding(blendShapeBuffer, stride));
       vertexBuffers[i] = blendShapeBuffer;
     }
   }

@@ -75,7 +75,15 @@ export class Background {
    * @param _engine Engine Which the background belongs to.
    */
   constructor(private _engine: Engine) {
-    this._mesh = this._createPlane(_engine);
+    this._initMesh(_engine);
+  }
+
+  /**
+   * @internal
+   * Standalone for CanvasRenderer plugin.
+   */
+  _initMesh(engine): void {
+    this._mesh = this._createPlane(engine);
   }
 
   /**
@@ -87,7 +95,7 @@ export class Background {
     }
     const { canvas } = this._engine;
     const { width, height } = canvas;
-    const { _mesh:_backgroundTextureMesh } = this;
+    const { _mesh: _backgroundTextureMesh } = this;
     const positions = _backgroundTextureMesh.getPositions();
 
     switch (this._textureFillMode) {
@@ -116,9 +124,7 @@ export class Background {
     _backgroundTextureMesh.uploadData(false);
   }
 
-  private _createPlane(
-    engine: Engine,
-  ): ModelMesh {
+  private _createPlane(engine: Engine): ModelMesh {
     const mesh = new ModelMesh(engine);
     mesh.isGCIgnored = true;
     const indices = new Uint8Array([1, 2, 0, 1, 3, 2]);

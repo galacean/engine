@@ -10,8 +10,10 @@ import {
   IPlatformTextureCube,
   Logger,
   Mesh,
+  Platform,
   RenderTarget,
   SubMesh,
+  SystemInfo,
   Texture2D,
   Texture2DArray,
   TextureCube
@@ -112,23 +114,36 @@ export class WebGLRenderer implements IHardwareRenderer {
     return this.capability.canIUseMoreJoints;
   }
 
-  constructor(options: WebGLRendererOptions = {}) {
+  constructor(initializeOptions: WebGLRendererOptions = {}) {
+    const options = {
+      webGLMode: WebGLMode.Auto,
+      stencil: true,
+      _forceFlush: false,
+      ...initializeOptions
+    };
+    if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
+      const version = SystemInfo.operatingSystem.match(/(\d+).?(\d+)?.?(\d+)?/);
+      if (version) {
+        const majorVersion = parseInt(version[1]);
+        const minorVersion = parseInt(version[2]);
+        if (majorVersion === 15 && minorVersion >= 0 && minorVersion <= 4) {
+          options._forceFlush = true;
+        }
+      }
+    }
     this._options = options;
   }
 
-  init(canvas: Canvas) {
-    const option = this._options;
-    option.alpha === undefined && (option.alpha = false);
-    option.stencil === undefined && (option.stencil = true);
-    option._forceFlush === undefined && (option._forceFlush = false);
+  init(canvas: Canvas): void {
+    const options = this._options;
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
-    const webGLMode = option.webGLMode || WebGLMode.Auto;
+    const webGLMode = options.webGLMode;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", option);
+      gl = webCanvas.getContext("webgl2", options);
       if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", option);
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", options);
       }
       this._isWebGL2 = true;
 
@@ -140,9 +155,9 @@ export class WebGLRenderer implements IHardwareRenderer {
 
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", option);
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", options);
         if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", option);
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", options);
         }
         this._isWebGL2 = false;
       }

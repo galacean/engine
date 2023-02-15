@@ -246,13 +246,18 @@ export class TextUtils {
     return str;
   }
 
-  private static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
+  /**
+   * @internal
+   * Use internal for CanvasRenderer plugin.
+   */
+  static _measureFontOrChar(fontString: string, char: string = ""): FontSizeInfo | CharInfo {
     const { canvas, context } = TextUtils.textContext();
     context.font = fontString;
     const measureString = char || TextUtils._measureString;
     // Safari gets data confusion through getImageData when the canvas width is not an integer.
-    // @todo: Text layout may vary from standard.
-    const width = Math.round(context.measureText(measureString).width);
+    // The measure text width of some special invisible characters may be 0, so make sure the width is at least 1.
+    // @todo: Text layout may vary from standard and not support emoji.
+    const width = Math.max(1, Math.round(context.measureText(measureString).width));
     let baseline = Math.ceil(context.measureText(TextUtils._measureBaseline).width);
     const height = baseline * TextUtils._heightMultiplier;
     baseline = (TextUtils._baselineMultiplier * baseline) | 0;
@@ -291,6 +296,8 @@ export class TextUtils {
         if (y > bottom) {
           bottom = y;
         }
+      } else {
+        colorData[i] = colorData[i + 1] = colorData[i + 2] = 255;
       }
     }
 
@@ -327,7 +334,11 @@ export class TextUtils {
     }
   }
 
-  private static _getCharInfo(char: string, fontString: string, font: SubFont): CharInfo {
+  /**
+   * @internal
+   * Use internal for CanvasRenderer plugin.
+   */
+  static _getCharInfo(char: string, fontString: string, font: SubFont): CharInfo {
     let charInfo = font._getCharInfo(char);
     if (!charInfo) {
       charInfo = TextUtils.measureChar(char, fontString);

@@ -251,7 +251,8 @@ export class BasicRenderPipeline {
   }
 
   private _callRender(context: RenderContext): void {
-    const renderers = this._camera.engine._componentsManager._renderers;
+    const engine = context.camera.engine;
+    const renderers = engine._componentsManager._renderers;
     const camera = context.camera;
     const elements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
@@ -264,11 +265,11 @@ export class BasicRenderPipeline {
 
       // filter by camera frustum.
       if (camera.enableFrustumCulling) {
-        renderer.isCulled = !camera._frustum.intersectsBox(renderer.bounds);
-        if (renderer.isCulled) {
+        if (!camera._frustum.intersectsBox(renderer.bounds)) {
           continue;
         }
       }
+      renderer._renderFrameCount = engine.time._frameCount;
       renderer._prepareRender(context);
     }
   }

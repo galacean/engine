@@ -46,8 +46,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
   /** @internal */
   _id: number;
-  /** @internal */
-  _contactOffset: number = 0;
 
   /**
    * {@inheritDoc IColliderShape.setRotation }
@@ -77,9 +75,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
+   * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._contactOffset = offset;
     this._pxShape.setContactOffset(offset);
 
     const controllers = this._controllers;
@@ -102,14 +100,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   setIsTrigger(value: boolean): void {
     this._modifyFlag(ShapeFlag.SIMULATION_SHAPE, !value);
     this._modifyFlag(ShapeFlag.TRIGGER_SHAPE, value);
-    this._setShapeFlags(this._shapeFlags);
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
     this._setShapeFlags(this._shapeFlags);
   }
 

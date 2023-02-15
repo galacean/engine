@@ -1,8 +1,28 @@
+import type { BackgroundMode } from "@oasis-engine/core";
+import { IRefObject } from "@oasis-engine/core/types/asset/IRefObject";
+import { IColor } from "../mesh/IModelMesh";
+
 export interface IPrefabFile {
   entities: Array<IEntity>;
 }
 
-export interface IScene extends IPrefabFile {}
+export interface IScene extends IPrefabFile {
+  scene: {
+    background: {
+      mode: BackgroundMode;
+      color: IColor;
+      texture?: IRefObject;
+      sky?: IRefObject;
+    };
+    ambient: {
+      ambientLight: IRefObject;
+      diffuseSolidColor: IColor;
+      diffuseIntensity: number;
+      specularIntensity: number;
+    };
+  };
+  files: Array<{ id: string; type: string; virtualPath: string; path: string }>;
+}
 
 export interface IVector3 {
   x: number;
@@ -40,6 +60,6 @@ export type IClassObject = {
   props?: { [key: string]: IBasicType | IMethodParams };
 };
 
-export type IBasicType = string | number | boolean | null | undefined | IReferenceType | IClassObject | IMethodParams;
+export type IBasicType = string | number | boolean | null | undefined | IAssetRef | IClassObject | IMethodParams;
 
-export type IReferenceType = { key?: string; refId: string };
+export type IAssetRef = { key?: string; refId: string };

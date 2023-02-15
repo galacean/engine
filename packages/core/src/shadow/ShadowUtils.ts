@@ -179,13 +179,14 @@ export class ShadowUtils {
     renderer: Renderer,
     shadowSliceData: ShadowSliceData
   ): void {
-    // filter by camera culling mask.
     const layer = renderer._entity.layer;
+    // filter by camera culling mask
     if (context.camera.cullingMask & layer && light.cullingMask & layer) {
       if (
         renderer.castShadows &&
         ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
       ) {
+        renderer._renderFrameCount = renderer.engine.time._frameCount;
         renderer._prepareRender(context);
       }
     }
