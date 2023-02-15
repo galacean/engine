@@ -94,7 +94,7 @@ export class MeshParser extends Parser {
               },
               () => {
                 const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-                const bufferIndex = indexAccessor.bufferView;
+                const bufferIndex = gltf.bufferViews[indexAccessor.bufferView].buffer;
                 const bufferInfo = context.bufferRequestInfos[bufferIndex];
                 context.indexBufferInfo = new IndexBufferInfo(
                   bufferInfo.url,

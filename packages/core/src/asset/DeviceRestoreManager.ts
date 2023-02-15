@@ -1,0 +1,6 @@
+/**
+ * @internal
+ */
+export class DeviceRestoreManager {
+    
+}

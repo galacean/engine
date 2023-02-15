@@ -1,6 +1,7 @@
 import { Engine, EngineObject, Logger } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
+import { DeviceRestoreManager } from "./DeviceRestoreManager";
 import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
@@ -44,6 +45,7 @@ export class ResourceManager {
   private _refResourcePool: Record<number, ReferResource> = Object.create(null);
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
+  private _deviceRestoreManager: DeviceRestoreManager = new DeviceRestoreManager();
 
   /**
    * Create a ResourceManager.
