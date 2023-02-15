@@ -419,12 +419,12 @@ export class ResourceManager {
 /**
  * Declare ResourceLoader's decorator.
  * @param assetType - Type of asset
- * @param extnames - Name of file extension
+ * @param extNames - Name of file extension
  */
-export function resourceLoader(assetType: string, extnames: string[], useCache: boolean = true) {
+export function resourceLoader(assetType: string, extNames: string[], useCache: boolean = true) {
   return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
     const loader = new Target(useCache);
-    ResourceManager._addLoader(assetType, loader, extnames);
+    ResourceManager._addLoader(assetType, loader, extNames);
   };
 }
 

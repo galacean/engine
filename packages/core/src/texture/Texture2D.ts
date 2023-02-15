@@ -51,12 +51,13 @@ export class Texture2D extends Texture {
    * @internal
    */
   _rebuild(): void {
+    const platformTexture = <IPlatformTexture2D>this._engine._hardwareRenderer.createPlatformTexture2D(this);
+    this._platformTexture = platformTexture;
+
     const rebuildInfo = this._rebuildInfo;
     if (!rebuildInfo) {
       return;
     }
-
-    const platformTexture = <IPlatformTexture2D>this._engine._hardwareRenderer.createPlatformTexture2D(this);
 
     request<HTMLImageElement>(rebuildInfo.url, {
       // todo: retry count
@@ -71,8 +72,6 @@ export class Texture2D extends Texture {
       .catch((e) => {
         console.warn("Texture2D: rebuild failed.");
       });
-
-    this._platformTexture = platformTexture;
   }
 
   /**
