@@ -241,6 +241,13 @@ export class MeshParser extends Parser {
     targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
+    //@ts-ignore
+    mesh._indexBufferBinding._buffer._rebuildInfo = new RebuildInfo(
+      context.indexBufferInfo.url,
+      context.indexBufferInfo.config,
+      context.indexBufferInfo.byteOffset,
+      context.indexBufferInfo.byteLength
+    );
     return Promise.resolve(mesh);
   }
 
