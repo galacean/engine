@@ -34,6 +34,7 @@ export class ParserContext {
 
   bufferUrl: string;
   bufferRequestInfos: BufferRequestInfo[] = [];
+  indexBufferInfo: IndexBufferInfo;
 
   constructor(url: string) {
     const promiseMap = this.promiseMap;
@@ -73,6 +74,13 @@ export class BufferInfo {
     public byteOffset: number,
     public byteLength: number
   ) {}
+}
+
+/**
+ * @internal
+ */
+export class IndexBufferInfo {
+  constructor(public url: string, public config: RequestConfig, public byteOffset: number, public byteLength: number) {}
 }
 
 /**

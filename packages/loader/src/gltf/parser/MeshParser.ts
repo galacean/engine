@@ -14,7 +14,7 @@ import { Vector3 } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { IndexBufferInfo, ParserContext } from "./ParserContext";
 
 export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
@@ -94,6 +94,14 @@ export class MeshParser extends Parser {
               },
               () => {
                 const indexAccessor = gltf.accessors[gltfPrimitive.indices];
+                const bufferIndex = indexAccessor.bufferView;
+                const bufferInfo = context.bufferRequestInfos[bufferIndex];
+                context.indexBufferInfo = new IndexBufferInfo(
+                  bufferInfo.url,
+                  bufferInfo.config,
+                  bufferInfo.byteOffset + indexAccessor.byteOffset,
+                  indexAccessor.count
+                );
                 return GLTFUtil.getAccessorData(gltf, indexAccessor, buffers);
               },
               context.keepMeshData
