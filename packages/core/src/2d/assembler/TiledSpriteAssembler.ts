@@ -108,85 +108,85 @@ export class TiledSpriteAssembler {
     uvColumn: number[]
   ) {
     const { border } = sprite;
-    const spriteUVs = sprite._getUVs();
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
+    const [spriteUV0, spriteUV1, spriteUV2, spriteUV3] = sprite._getUVs();
     const { width: expectWidth, height: expectHeight } = sprite;
     const fixedLeft = expectWidth * border.x;
-    const fixedBottom = expectHeight * border.y;
     const fixedRight = expectWidth * border.z;
-    const fixedTop = expectHeight * border.w;
-
+    const fixedLeftAndRight = fixedLeft + fixedRight;
     let widthScale: number = 1;
-    let heightScale: number = 1;
     let count: number = 0;
-
-    if (fixedLeft + fixedRight >= width) {
-      widthScale = width / (fixedLeft + fixedRight);
+    if (fixedLeftAndRight >= width) {
+      widthScale = width / fixedLeftAndRight;
       posRow.push(
         expectWidth * left * widthScale,
         fixedLeft * widthScale,
         width - expectWidth * (1 - right) * widthScale
       );
-      uvRow.push(spriteUVs[0].x, spriteUVs[1].x, spriteUVs[2].x, spriteUVs[3].x);
+      uvRow.push(spriteUV0.x, spriteUV1.x, spriteUV2.x, spriteUV3.x);
     } else {
-      const fixedCenterW = expectWidth - fixedLeft - fixedRight;
-      count = fixedCenterW > MathUtil.zeroTolerance ? (width - fixedLeft - fixedRight) / fixedCenterW : 0;
+      const fixedCenterW = expectWidth - fixedLeftAndRight;
+      count = fixedCenterW > MathUtil.zeroTolerance ? (width - fixedLeftAndRight) / fixedCenterW : 0;
       count = count % 1 >= stretch ? Math.ceil(count) : Math.floor(count);
       if (count === 0) {
         posRow.push(expectWidth * left, fixedLeft, width - fixedRight, width - expectWidth * (1 - right));
-        uvRow.push(spriteUVs[0].x, spriteUVs[1].x, NaN, NaN, spriteUVs[2].x, spriteUVs[3].x);
+        uvRow.push(spriteUV0.x, spriteUV1.x, NaN, NaN, spriteUV2.x, spriteUV3.x);
       } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / 16 - 3) {
-        widthScale = width / (fixedLeft + fixedRight + count * fixedCenterW);
+        widthScale = width / (fixedLeftAndRight + count * fixedCenterW);
         posRow.push(expectWidth * left * widthScale, fixedLeft * widthScale);
-        uvRow.push(spriteUVs[0].x, spriteUVs[1].x, spriteUVs[1].x);
+        uvRow.push(spriteUV0.x, spriteUV1.x, spriteUV1.x);
         for (let i = 0, l = count - 1; i < l; i++) {
           posRow.push(fixedLeft + (i + 1) * fixedCenterW * widthScale);
-          uvRow.push(spriteUVs[2].x, spriteUVs[1].x);
+          uvRow.push(spriteUV2.x, spriteUV1.x);
         }
         posRow.push(width - fixedRight * widthScale, width - expectWidth * (1 - right) * widthScale);
-        uvRow.push(spriteUVs[2].x, spriteUVs[2].x, spriteUVs[3].x);
+        uvRow.push(spriteUV2.x, spriteUV2.x, spriteUV3.x);
       } else {
         posRow.push(width * left, width * right);
         posColumn.push(height * bottom, height * top);
-        uvRow.push(spriteUVs[0].x, spriteUVs[3].x);
-        uvColumn.push(spriteUVs[0].y, spriteUVs[3].y);
+        uvRow.push(spriteUV0.x, spriteUV3.x);
+        uvColumn.push(spriteUV0.y, spriteUV3.y);
         return;
       }
     }
 
-    if (fixedTop + fixedBottom > height) {
-      heightScale = height / (fixedTop + fixedBottom);
+    const fixedTop = expectHeight * border.w;
+    const fixedBottom = expectHeight * border.y;
+    const fixedTopAndBottom = fixedTop + fixedBottom;
+    let heightScale: number = 1;
+    if (fixedTopAndBottom > height) {
+      heightScale = height / fixedTopAndBottom;
       posColumn.push(
         expectHeight * bottom * heightScale,
         fixedBottom * heightScale,
         height - expectHeight * (1 - top) * heightScale
       );
-      uvColumn.push(spriteUVs[0].y, spriteUVs[1].y, spriteUVs[2].y, spriteUVs[3].y);
+      uvColumn.push(spriteUV0.y, spriteUV1.y, spriteUV2.y, spriteUV3.y);
     } else {
-      const fixedCenterH = expectHeight - fixedTop - fixedBottom;
-      count = fixedCenterH > MathUtil.zeroTolerance ? (height - fixedTop - fixedBottom) / fixedCenterH : 0;
+      const fixedCenterH = expectHeight - fixedTopAndBottom;
+      count = fixedCenterH > MathUtil.zeroTolerance ? (height - fixedTopAndBottom) / fixedCenterH : 0;
       count = count % 1 >= stretch ? Math.ceil(count) : Math.floor(count);
       if (count === 0) {
         posColumn.push(expectHeight * bottom, fixedBottom, height - fixedTop, height - expectHeight * (1 - top));
-        uvColumn.push(spriteUVs[0].y, spriteUVs[1].y, NaN, NaN, spriteUVs[2].y, spriteUVs[3].y);
+        uvColumn.push(spriteUV0.y, spriteUV1.y, NaN, NaN, spriteUV2.y, spriteUV3.y);
       } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / posRow.length / 4 - 3) {
-        heightScale = height / (fixedTop + fixedBottom + count * fixedCenterH);
+        heightScale = height / (fixedTopAndBottom + count * fixedCenterH);
         posColumn.push(expectHeight * bottom * heightScale, fixedBottom * heightScale);
-        uvColumn.push(spriteUVs[0].y, spriteUVs[1].y, spriteUVs[1].y);
+        uvColumn.push(spriteUV0.y, spriteUV1.y, spriteUV1.y);
         for (let i = 0, l = count - 1; i < l; i++) {
           posColumn.push(fixedBottom + (i + 1) * fixedCenterH * heightScale);
-          uvColumn.push(spriteUVs[2].y, spriteUVs[1].y);
+          uvColumn.push(spriteUV2.y, spriteUV1.y);
         }
         posColumn.push(height - fixedTop * heightScale, height - expectHeight * (1 - top) * heightScale);
-        uvColumn.push(spriteUVs[2].y, spriteUVs[2].y, spriteUVs[3].y);
+        uvColumn.push(spriteUV2.y, spriteUV2.y, spriteUV3.y);
       } else {
         posRow.length = uvRow.length = 0;
         posRow.push(width * left, width * right);
-        uvRow.push(spriteUVs[0].x, spriteUVs[3].x);
+        uvRow.push(spriteUV0.x, spriteUV3.x);
         posColumn.push(height * bottom, height * top);
-        uvColumn.push(spriteUVs[0].y, spriteUVs[3].y);
+        uvColumn.push(spriteUV0.y, spriteUV3.y);
       }
     }
   }
@@ -202,86 +202,80 @@ export class TiledSpriteAssembler {
   ) {
     const { zeroTolerance } = MathUtil;
     const { border } = sprite;
-    const spriteUVs = sprite._getUVs();
     const spritePositions = sprite._getPositions();
     const { x: left, y: bottom } = spritePositions[0];
     const { x: right, y: top } = spritePositions[3];
+    const [spriteUV0, spriteUV1, spriteUV2, spriteUV3] = sprite._getUVs();
     const { width: expectWidth, height: expectHeight } = sprite;
     const fixedLeft = expectWidth * border.x;
-    const fixedBottom = expectHeight * border.y;
     const fixedRight = expectWidth * border.z;
-    const fixedTop = expectHeight * border.w;
-    if (fixedLeft + fixedRight >= width) {
-      const widthScale = width / (fixedLeft + fixedRight);
+    const fixedLeftAndRight = fixedLeft + fixedRight;
+    if (fixedLeftAndRight >= width) {
+      const widthScale = width / fixedLeftAndRight;
       posRow.push(
         expectWidth * left * widthScale,
         fixedLeft * widthScale,
         width - expectWidth * (1 - right) * widthScale
       );
-      uvRow.push(spriteUVs[0].x, spriteUVs[1].x, spriteUVs[2].x, spriteUVs[3].x);
+      uvRow.push(spriteUV0.x, spriteUV1.x, spriteUV2.x, spriteUV3.x);
     } else {
-      const fixedCenterW = expectWidth - fixedLeft - fixedRight;
-      const count = fixedCenterW > zeroTolerance ? (width - fixedLeft - fixedRight) / fixedCenterW : 0;
+      const fixedCenterW = expectWidth - fixedLeftAndRight;
+      const count = fixedCenterW > zeroTolerance ? (width - fixedLeftAndRight) / fixedCenterW : 0;
       if (count === 0) {
         posRow.push(expectWidth * left, fixedLeft, width - fixedRight, width - expectWidth * (1 - right));
-        uvRow.push(spriteUVs[0].x, spriteUVs[1].x, NaN, NaN, spriteUVs[2].x, spriteUVs[3].x);
-      } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / 4 / 4 - 4) {
+        uvRow.push(spriteUV0.x, spriteUV1.x, NaN, NaN, spriteUV2.x, spriteUV3.x);
+      } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / 16 - 4) {
         posRow.push(expectWidth * left, fixedLeft);
-        uvRow.push(spriteUVs[0].x, spriteUVs[1].x, spriteUVs[1].x);
+        uvRow.push(spriteUV0.x, spriteUV1.x, spriteUV1.x);
         const countInteger = count | 0;
         for (let i = 0; i < countInteger; i++) {
           posRow.push(fixedLeft + (i + 1) * fixedCenterW);
-          uvRow.push(spriteUVs[2].x, spriteUVs[1].x);
+          uvRow.push(spriteUV2.x, spriteUV1.x);
         }
         posRow.push(width - fixedRight, width - expectWidth * (1 - right));
-        uvRow.push(
-          (spriteUVs[2].x - spriteUVs[1].x) * (count - countInteger) + spriteUVs[1].x,
-          spriteUVs[2].x,
-          spriteUVs[3].x
-        );
+        uvRow.push((spriteUV2.x - spriteUV1.x) * (count - countInteger) + spriteUV1.x, spriteUV2.x, spriteUV3.x);
       } else {
         posRow.push(width * left, width * right);
         posColumn.push(height * bottom, height * top);
-        uvRow.push(spriteUVs[0].x, spriteUVs[3].x);
-        uvColumn.push(spriteUVs[0].y, spriteUVs[3].y);
+        uvRow.push(spriteUV0.x, spriteUV3.x);
+        uvColumn.push(spriteUV0.y, spriteUV3.y);
         return;
       }
     }
 
-    if (fixedTop + fixedBottom >= height) {
-      const heightScale = height / (fixedTop + fixedBottom);
+    const fixedTop = expectHeight * border.w;
+    const fixedBottom = expectHeight * border.y;
+    const fixedTopAndBottom = fixedTop + fixedBottom;
+    if (fixedTopAndBottom >= height) {
+      const heightScale = height / fixedTopAndBottom;
       posColumn.push(
         expectHeight * bottom * heightScale,
         fixedBottom * heightScale,
         height - expectHeight * (1 - top) * heightScale
       );
-      uvColumn.push(spriteUVs[0].y, spriteUVs[1].y, spriteUVs[2].y, spriteUVs[3].y);
+      uvColumn.push(spriteUV0.y, spriteUV1.y, spriteUV2.y, spriteUV3.y);
     } else {
-      const fixedCenterH = expectHeight - fixedTop - fixedBottom;
-      const count = fixedCenterH > zeroTolerance ? (height - fixedTop - fixedBottom) / fixedCenterH : 0;
+      const fixedCenterH = expectHeight - fixedTopAndBottom;
+      const count = fixedCenterH > zeroTolerance ? (height - fixedTopAndBottom) / fixedCenterH : 0;
       if (count === 0) {
         posColumn.push(expectHeight * bottom, fixedBottom, height - fixedTop, height - expectHeight * (1 - top));
-        uvColumn.push(spriteUVs[0].y, spriteUVs[1].y, NaN, NaN, spriteUVs[2].y, spriteUVs[3].y);
+        uvColumn.push(spriteUV0.y, spriteUV1.y, NaN, NaN, spriteUV2.y, spriteUV3.y);
       } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / posRow.length / 4 - 4) {
         posColumn.push(expectHeight * bottom, fixedBottom);
-        uvColumn.push(spriteUVs[0].y, spriteUVs[1].y, spriteUVs[1].y);
+        uvColumn.push(spriteUV0.y, spriteUV1.y, spriteUV1.y);
         const countInteger = count | 0;
         for (let i = 0; i < countInteger; i++) {
           posColumn.push(fixedBottom + (i + 1) * fixedCenterH);
-          uvColumn.push(spriteUVs[2].y, spriteUVs[1].y);
+          uvColumn.push(spriteUV2.y, spriteUV1.y);
         }
         posColumn.push(height - fixedTop, height - expectHeight * (1 - top));
-        uvColumn.push(
-          (spriteUVs[2].y - spriteUVs[1].y) * (count - countInteger) + spriteUVs[1].y,
-          spriteUVs[2].y,
-          spriteUVs[3].y
-        );
+        uvColumn.push((spriteUV2.y - spriteUV1.y) * (count - countInteger) + spriteUV1.y, spriteUV2.y, spriteUV3.y);
       } else {
         posRow.length = uvRow.length = 0;
         posRow.push(width * left, width * right);
-        uvRow.push(spriteUVs[0].x, spriteUVs[3].x);
+        uvRow.push(spriteUV0.x, spriteUV3.x);
         posColumn.push(height * bottom, height * top);
-        uvColumn.push(spriteUVs[0].y, spriteUVs[3].y);
+        uvColumn.push(spriteUV0.y, spriteUV3.y);
       }
     }
   }

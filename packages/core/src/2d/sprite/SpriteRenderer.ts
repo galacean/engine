@@ -110,8 +110,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   set tileStretchValue(stretchValue: number) {
-    stretchValue = MathUtil.clamp(stretchValue, 0, 1);
     if (stretchValue !== this._tileStretchValue) {
+      stretchValue = MathUtil.clamp(stretchValue, 0, 1);
       this._tileStretchValue = stretchValue;
       if (this.drawMode === SpriteDrawMode.Tiled) {
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
