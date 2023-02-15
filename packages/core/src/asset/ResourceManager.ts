@@ -188,6 +188,16 @@ export class ResourceManager {
   /**
    * @internal
    */
+  _rebuildGraphicResource(): void {
+    const { _graphicResourcePool } = this;
+    for (const id in _graphicResourcePool) {
+      _graphicResourcePool[id]._rebuild();
+    }
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     this.cancelNotLoaded();
     this._gc(true);
