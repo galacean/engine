@@ -1,5 +1,6 @@
 import { request } from "../asset/request";
 import { Engine } from "../Engine";
+import { LoaderUtil } from "../LoaderUtil";
 import { IPlatformTexture2D } from "../renderingHardwareInterface";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
@@ -59,16 +60,35 @@ export class Texture2D extends Texture {
       return;
     }
 
-    request<HTMLImageElement>(rebuildInfo.url, rebuildInfo.requestConfig)
-      .then((imageSource) => {
-        platformTexture.setImageSource(imageSource, 0, false, false, 0, 0);
-        if (this._mipmap) {
-          platformTexture.generateMipmaps();
-        }
-      })
-      .catch((e) => {
-        console.warn("Texture2D: rebuild failed.");
+    if (rebuildInfo.bufferOffset > 0) {
+      request<ArrayBuffer>(rebuildInfo.url, rebuildInfo.requestConfig).then((arrayBuffer) => {
+        const bufferViewData = arrayBuffer.slice(
+          rebuildInfo.bufferOffset,
+          rebuildInfo.bufferOffset + rebuildInfo.bufferLength
+        );
+        LoaderUtil.loadImageBuffer(bufferViewData, rebuildInfo.mimeType)
+          .then((image) => {
+            platformTexture.setImageSource(image, 0, false, false, 0, 0);
+            if (this._mipmap) {
+              platformTexture.generateMipmaps();
+            }
+          })
+          .catch((e) => {
+            console.warn("Texture2D: rebuild failed.");
+          });
       });
+    } else {
+      request<HTMLImageElement>(rebuildInfo.url, rebuildInfo.requestConfig)
+        .then((imageSource) => {
+          platformTexture.setImageSource(imageSource, 0, false, false, 0, 0);
+          if (this._mipmap) {
+            platformTexture.generateMipmaps();
+          }
+        })
+        .catch((e) => {
+          console.warn("Texture2D: rebuild failed.");
+        });
+    }
   }
 
   /**

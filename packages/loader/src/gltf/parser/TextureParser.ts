@@ -63,7 +63,8 @@ export class TextureParser extends Parser {
                 bufferRequestInfo.url,
                 bufferRequestInfo.config,
                 bufferRequestInfo.byteOffset ?? 0 + bufferView.byteOffset,
-                bufferView.byteLength
+                bufferView.byteLength,
+                mimeType
               );
               return texture;
             });

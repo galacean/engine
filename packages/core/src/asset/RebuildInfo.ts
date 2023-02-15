@@ -5,6 +5,7 @@ export class RebuildInfo {
     public url: string,
     public requestConfig: RequestConfig,
     public bufferOffset?: number,
-    public bufferLength?: number
+    public bufferLength?: number,
+    public mimeType?: string
   ) {}
 }
