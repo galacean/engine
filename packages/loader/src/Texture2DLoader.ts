@@ -5,9 +5,9 @@ import {
   LoadItem,
   resourceLoader,
   ResourceManager,
+  RestoreContentInfo,
   Texture2D,
-  TextureFormat,
-  TextureContentInfo
+  TextureFormat
 } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 
@@ -42,7 +42,7 @@ class Texture2DLoader extends Loader<Texture2D> {
           }
 
           // @ts-ignore
-          texture._rebuildInfo = new TextureContentInfo(url, requestConfig);
+          resourceManager._addRestoreContentInfo(new Texture2DContentRestorer(texture, url, requestConfig));
 
           resolve(texture);
         })
@@ -50,6 +50,24 @@ class Texture2DLoader extends Loader<Texture2D> {
           reject(e);
         });
     });
+  }
+}
+
+class Texture2DContentRestorer extends RestoreContentInfo {
+  constructor(public texture: Texture2D, public url: string, public requestConfig: RequestConfig) {
+    super(texture);
+  }
+
+  restoreContent(): void {
+    this.request<HTMLImageElement>(this.url, this.requestConfig)
+      .then((image) => {
+        const texture = this.texture;
+        texture.setImageSource(image);
+        texture.generateMipmaps();
+      })
+      .catch((e) => {
+        console.warn("Texture2D: rebuild failed.");
+      });
   }
 }
 

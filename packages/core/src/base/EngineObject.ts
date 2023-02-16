@@ -40,6 +40,7 @@ export abstract class EngineObject {
     if (this._destroyed) return;
 
     this._engine.resourceManager?._deleteAsset(this);
+    this._engine.resourceManager?._deleteRestoreContentInfo(this);
     this._destroyed = true;
   }
 }

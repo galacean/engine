@@ -1,4 +1,4 @@
-import { Engine, EngineObject, Logger } from "..";
+import { Engine, EngineObject, Logger, RestoreContentInfo } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
 import { DeviceRestoreManager } from "./DeviceRestoreManager";
@@ -174,6 +174,20 @@ export class ResourceManager {
    */
   _deleteReferResource(id: number): void {
     delete this._refResourcePool[id];
+  }
+
+  /**
+   * @internal
+   */
+  _addRestoreContentInfo(restoreInfo: RestoreContentInfo): void {
+    this._deviceRestoreManager.addRestoreContentInfo(restoreInfo.host.instanceId, restoreInfo);
+  }
+
+  /**
+   * @internal
+   */
+  _deleteRestoreContentInfo(resource: EngineObject): void {
+    this._deviceRestoreManager.deleteRestoreContentInfo(resource.instanceId);
   }
 
   /**

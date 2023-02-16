@@ -8,7 +8,7 @@ import {
   ModelMesh,
   TypedArray,
   VertexElement,
-  MeshContentInfo
+  MeshRestoreContentInfo
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
@@ -167,13 +167,13 @@ export class MeshParser extends Parser {
           if (!vertexBuffer) {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
             vertexBuffer.setData(vertices);
-            // @ts-ignore
-            vertexBuffer._rebuildInfo = new MeshContentInfo(
-              accessorBuffer.url,
-              accessorBuffer.config,
-              accessorBuffer.byteOffset,
-              accessorBuffer.byteLength
-            );
+            // // @ts-ignore
+            // vertexBuffer._rebuildInfo = new MeshRestoreContentInfo(
+            //   accessorBuffer.url,
+            //   accessorBuffer.config,
+            //   accessorBuffer.byteOffset,
+            //   accessorBuffer.byteLength
+            // );
             accessorBuffer.vertexBuffer = vertexBuffer;
           }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
@@ -186,13 +186,13 @@ export class MeshParser extends Parser {
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
-        // @ts-ignore
-        vertexBuffer._rebuildInfo = new MeshContentInfo(
-          accessorBuffer.url,
-          accessorBuffer.config,
-          accessorBuffer.byteOffset,
-          accessorBuffer.byteLength
-        );
+        // // @ts-ignore
+        // vertexBuffer._rebuildInfo = new MeshRestoreContentInfo(
+        //   accessorBuffer.url,
+        //   accessorBuffer.config,
+        //   accessorBuffer.byteOffset,
+        //   accessorBuffer.byteLength
+        // );
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
         vertexBindingInfos[meshId] = bufferBindIndex++;
       }
@@ -241,13 +241,13 @@ export class MeshParser extends Parser {
     targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
-    //@ts-ignore
-    mesh._indexBufferBinding._buffer._rebuildInfo = new MeshContentInfo(
-      context.indexBufferInfo.url,
-      context.indexBufferInfo.config,
-      context.indexBufferInfo.byteOffset,
-      context.indexBufferInfo.byteLength
-    );
+    // //@ts-ignore
+    // mesh._indexBufferBinding._buffer._rebuildInfo = new MeshRestoreContentInfo(
+    //   context.indexBufferInfo.url,
+    //   context.indexBufferInfo.config,
+    //   context.indexBufferInfo.byteOffset,
+    //   context.indexBufferInfo.byteLength
+    // );
     return Promise.resolve(mesh);
   }
 

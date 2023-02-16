@@ -18,8 +18,9 @@ export type { EngineSettings } from "./EngineSettings";
 
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
-export { TextureContentInfo } from "./asset/TextureContentInfo";
-export { MeshContentInfo } from "./asset/MeshContentInfo";
+export { RestoreContentInfo } from "./asset/RestoreContentInfo";
+export { TextureRestoreContentInfo } from "./asset/TextureRestoreContentInfo";
+export { MeshRestoreContentInfo } from "./asset/MeshRestoreContentInfo";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
 export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
