@@ -5,12 +5,14 @@ import {
   Entity,
   Material,
   ModelMesh,
+  RestoreContentInfo,
   Texture2D,
   TypedArray
 } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
+import { Vector2 } from "@oasis-engine/math";
 import { GLTFResource } from "../GLTFResource";
-import { IGLTF } from "../Schema";
+import { IAccessor, IBufferView, IGLTF } from "../Schema";
 
 /**
  * @internal
@@ -32,9 +34,7 @@ export class ParserContext {
   masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
   promiseMap: Record<string, AssetPromise<any>> = {};
 
-  bufferUrl: string;
-  bufferRequestInfos: BufferRequestInfo[] = [];
-  indexBufferInfo: IndexBufferInfo;
+  glTFContentRestorer: GLTFContentRestorer = new GLTFContentRestorer(null, null, null);
 
   constructor(url: string) {
     const promiseMap = this.promiseMap;
@@ -65,22 +65,7 @@ export class BufferInfo {
   vertexBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
 
-  constructor(
-    public data: TypedArray,
-    public interleaved: boolean,
-    public stride: number,
-    public url: string,
-    public config: RequestConfig,
-    public byteOffset: number,
-    public byteLength: number
-  ) {}
-}
-
-/**
- * @internal
- */
-export class IndexBufferInfo {
-  constructor(public url: string, public config: RequestConfig, public byteOffset: number, public byteLength: number) {}
+  constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
 }
 
 /**
@@ -98,5 +83,50 @@ export class PromiseInfo<T> {
  * @internal
  */
 export class BufferRequestInfo {
-  constructor(public url: string, public config: RequestConfig, public byteOffset?: number) {}
+  constructor(public url: string, public config: RequestConfig) {}
+}
+
+/**
+ * @internal
+ */
+export class ModelMeshRestoreInfo {
+  public vertexBufferAccessors: IAccessor[] = [];
+  public indexBufferAccessor: IAccessor;
+  public blendShapeAccessors: Record<string, IAccessor>[] = [];
+}
+
+/**
+ * @internal
+ */
+export class BufferTextureRestoreInfo {
+  public bufferView: IBufferView;
+  public mimeType: string;
+}
+
+class GLTFContentRestorer extends RestoreContentInfo {
+  bufferViews: IBufferView[] = [];
+  isGLB: boolean;
+  glbBufferSlice: Vector2[] = [];
+  bufferRequestInfos: BufferRequestInfo[] = [];
+  meshInfos: ModelMeshRestoreInfo[] = [];
+  bufferTextureRestoreInfos: BufferTextureRestoreInfo[] = [];
+
+  constructor(public texture: Texture2D, public url: string, public requestConfig: RequestConfig) {
+    super(texture);
+  }
+
+  restoreContent(): AssetPromise<Texture2D> {
+    return new AssetPromise((resolve, reject) => {
+      this.request<HTMLImageElement>(this.url, this.requestConfig)
+        .then((image) => {
+          const texture = this.texture;
+          texture.setImageSource(image);
+          texture.generateMipmaps();
+          resolve(texture);
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
+  }
 }

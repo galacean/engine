@@ -1,7 +1,7 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { BufferInfo, BufferRequestInfo, ParserContext } from "./parser/ParserContext";
+import { BufferInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
 const charCodeOfDot = ".".charCodeAt(0);
@@ -148,14 +148,13 @@ export class GLTFUtil {
     }
   }
 
-  static getAccessorBuffer(context: ParserContext, glTF: IGLTF, accessor: IAccessor): BufferInfo {
+  static getAccessorBuffer(context: ParserContext, bufferViews: IBufferView[], accessor: IAccessor): BufferInfo {
     const { buffers } = context;
-    const bufferViews = glTF.bufferViews;
 
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    const bufferIndex= bufferView.buffer;
+    const bufferIndex = bufferView.buffer;
     const buffer = buffers[bufferIndex];
     const bufferByteOffset = bufferView.byteOffset || 0;
     const byteOffset = accessor.byteOffset || 0;
@@ -178,35 +177,19 @@ export class GLTFUtil {
         const offset = bufferByteOffset + bufferSlice * bufferStride;
         const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
-        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(
-          data,
-          true,
-          bufferStride,
-          context.bufferRequestInfos[bufferIndex].url,
-          context.bufferRequestInfos[bufferIndex].config,
-          offset,
-          count
-        );
+        accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
       }
     } else {
       const offset = bufferByteOffset + byteOffset;
       const count = accessorCount * dataElementSize;
       const data = new TypedArray(buffer, offset, count);
-      bufferInfo = new BufferInfo(
-        data,
-        false,
-        elementStride,
-        context.bufferRequestInfos[bufferIndex].url,
-        context.bufferRequestInfos[bufferIndex].config,
-        offset,
-        count
-      );
+      bufferInfo = new BufferInfo(data, false, elementStride);
     }
 
     if (accessor.sparse) {
-      const data = GLTFUtil.processingSparseData(glTF, accessor, buffers, bufferInfo.data);
+      const data = GLTFUtil.processingSparseData(bufferViews, accessor, buffers, bufferInfo.data);
       // @todo: need to support rebuild sparse data
-      bufferInfo = new BufferInfo(data, false, bufferInfo.stride, null, null, 0, 0);
+      bufferInfo = new BufferInfo(data, false, bufferInfo.stride);
     }
     return bufferInfo;
   }
@@ -287,12 +270,11 @@ export class GLTFUtil {
    * Get accessor data.
    */
   static processingSparseData(
-    gltf: IGLTF,
+    bufferViews: IBufferView[],
     accessor: IAccessor,
     buffers: ArrayBuffer[],
     originData: TypedArray
   ): TypedArray {
-    const bufferViews = gltf.bufferViews;
     const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const TypedArray = GLTFUtil.getComponentType(accessor.componentType);
     const data = originData.slice();
@@ -481,6 +463,7 @@ export class GLTFUtil {
     const buffers: ArrayBuffer[] = [];
     let byteOffset = GLB_HEADER_LENGTH + 2 * UINT32_LENGTH + chunkLength;
 
+    const restoreGLBBufferSlice = context.glTFContentRestorer.glbBufferSlice;
     while (byteOffset < header.length) {
       chunkLength = dataView.getUint32(byteOffset, true);
       chunkType = dataView.getUint32(byteOffset + UINT32_LENGTH, true);
@@ -493,7 +476,7 @@ export class GLTFUtil {
       const currentOffset = byteOffset + 2 * UINT32_LENGTH;
       const buffer = glb.slice(currentOffset, currentOffset + chunkLength);
       buffers.push(buffer);
-      context.bufferRequestInfos.push(new BufferRequestInfo(context.glTFResource.url, requestConfig, currentOffset));
+      restoreGLBBufferSlice.push(new Vector2(currentOffset, chunkLength));
 
       byteOffset += chunkLength + 2 * UINT32_LENGTH;
     }

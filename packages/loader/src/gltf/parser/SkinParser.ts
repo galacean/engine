@@ -24,7 +24,7 @@ export class SkinParser extends Parser {
 
       // parse IBM
       const accessor = gltf.accessors[inverseBindMatrices];
-      const buffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor).data;
+      const buffer = GLTFUtil.getAccessorBuffer(context, gltf.bufferViews, accessor).data;
       for (let i = 0; i < jointCount; i++) {
         const inverseBindMatrix = new Matrix();
         inverseBindMatrix.copyFromArray(buffer, i * 16);
