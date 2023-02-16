@@ -1,9 +1,10 @@
 import { AssetPromise, request } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
+import { BufferRequestInfo } from "../../GLTFLoader";
 import { GLTFUtil } from "../GLTFUtil";
 import { IBuffer, IGLTF } from "../Schema";
 import { Parser } from "./Parser";
-import { BufferRequestInfo, ParserContext } from "./ParserContext";
+import { ParserContext } from "./ParserContext";
 
 export class BufferParser extends Parser {
   parse(context: ParserContext): AssetPromise<void> {

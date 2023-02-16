@@ -5,14 +5,12 @@ import {
   Entity,
   Material,
   ModelMesh,
-  RestoreContentInfo,
   Texture2D,
   TypedArray
 } from "@oasis-engine/core";
-import { RequestConfig } from "@oasis-engine/core/types/asset/request";
-import { Vector2 } from "@oasis-engine/math";
+import { GLTFContentRestorer } from "../../GLTFLoader";
 import { GLTFResource } from "../GLTFResource";
-import { IAccessor, IBufferView, IGLTF } from "../Schema";
+import { IGLTF } from "../Schema";
 
 /**
  * @internal
@@ -34,7 +32,7 @@ export class ParserContext {
   masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
   promiseMap: Record<string, AssetPromise<any>> = {};
 
-  glTFContentRestorer: GLTFContentRestorer = new GLTFContentRestorer(null, null, null);
+  glTFContentRestorer: GLTFContentRestorer = new GLTFContentRestorer();
 
   constructor(url: string) {
     const promiseMap = this.promiseMap;
@@ -77,56 +75,4 @@ export class PromiseInfo<T> {
   public reject: (reason?: any) => void;
   public setProgress: (progress: number) => void;
   public onCancel: (callback: () => void) => void;
-}
-
-/**
- * @internal
- */
-export class BufferRequestInfo {
-  constructor(public url: string, public config: RequestConfig) {}
-}
-
-/**
- * @internal
- */
-export class ModelMeshRestoreInfo {
-  public vertexBufferAccessors: IAccessor[] = [];
-  public indexBufferAccessor: IAccessor;
-  public blendShapeAccessors: Record<string, IAccessor>[] = [];
-}
-
-/**
- * @internal
- */
-export class BufferTextureRestoreInfo {
-  public bufferView: IBufferView;
-  public mimeType: string;
-}
-
-class GLTFContentRestorer extends RestoreContentInfo {
-  bufferViews: IBufferView[] = [];
-  isGLB: boolean;
-  glbBufferSlice: Vector2[] = [];
-  bufferRequestInfos: BufferRequestInfo[] = [];
-  meshInfos: ModelMeshRestoreInfo[] = [];
-  bufferTextureRestoreInfos: BufferTextureRestoreInfo[] = [];
-
-  constructor(public texture: Texture2D, public url: string, public requestConfig: RequestConfig) {
-    super(texture);
-  }
-
-  restoreContent(): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
-      this.request<HTMLImageElement>(this.url, this.requestConfig)
-        .then((image) => {
-          const texture = this.texture;
-          texture.setImageSource(image);
-          texture.generateMipmaps();
-          resolve(texture);
-        })
-        .catch((e) => {
-          reject(e);
-        });
-    });
-  }
 }

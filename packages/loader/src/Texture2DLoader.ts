@@ -42,29 +42,11 @@ class Texture2DLoader extends Loader<Texture2D> {
           }
 
           // @ts-ignore
-          resourceManager._addRestoreContentInfo(new Texture2DContentRestorer(texture, url, requestConfig));
+          resourceManager._addRestoreContentInfo(
+            texture.instanceId,
+            new Texture2DContentRestorer(texture, url, requestConfig)
+          );
 
-          resolve(texture);
-        })
-        .catch((e) => {
-          reject(e);
-        });
-    });
-  }
-}
-
-class Texture2DContentRestorer extends RestoreContentInfo {
-  constructor(public texture: Texture2D, public url: string, public requestConfig: RequestConfig) {
-    super(texture);
-  }
-
-  restoreContent(): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
-      this.request<HTMLImageElement>(this.url, this.requestConfig)
-        .then((image) => {
-          const texture = this.texture;
-          texture.setImageSource(image);
-          texture.generateMipmaps();
           resolve(texture);
         })
         .catch((e) => {
@@ -82,4 +64,25 @@ export interface Texture2DParams {
   format: TextureFormat;
   /** Whether to use multi-level texture, default is true. */
   mipmap: boolean;
+}
+
+class Texture2DContentRestorer extends RestoreContentInfo {
+  constructor(public texture: Texture2D, public url: string, public requestConfig: RequestConfig) {
+    super();
+  }
+
+  restoreContent(): AssetPromise<Texture2D> {
+    return new AssetPromise((resolve, reject) => {
+      this.request<HTMLImageElement>(this.url, this.requestConfig)
+        .then((image) => {
+          const texture = this.texture;
+          texture.setImageSource(image);
+          texture.generateMipmaps();
+          resolve(texture);
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
+  }
 }

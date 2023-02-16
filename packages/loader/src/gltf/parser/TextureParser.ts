@@ -1,8 +1,9 @@
 import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@oasis-engine/core";
+import { BufferTextureRestoreInfo } from "../../GLTFLoader";
 import { GLTFUtil } from "../GLTFUtil";
 import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../Schema";
 import { Parser } from "./Parser";
-import { BufferTextureRestoreInfo, ParserContext } from "./ParserContext";
+import { ParserContext } from "./ParserContext";
 
 export class TextureParser extends Parser {
   private static _wrapMap = {

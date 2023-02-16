@@ -178,8 +178,8 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addRestoreContentInfo(restoreInfo: RestoreContentInfo): void {
-    this._deviceRestoreManager.addRestoreContentInfo(restoreInfo.host.instanceId, restoreInfo);
+  _addRestoreContentInfo(instanceId: number, restoreInfo: RestoreContentInfo): void {
+    this._deviceRestoreManager.addRestoreContentInfo(instanceId, restoreInfo);
   }
 
   /**
