@@ -22,13 +22,13 @@ class Texture2DLoader extends Loader<Texture2D> {
       };
       this.request<HTMLImageElement>(url, requestConfig)
         .then((image) => {
-          const params = item.params ?? {};
+          const params = item.params;
           const texture = new Texture2D(
             resourceManager.engine,
             image.width,
             image.height,
-            params.format,
-            params.mipmap
+            params?.format,
+            params?.mipmap
           );
           // @ts-ignore
           if (!texture._platformTexture) return;
@@ -36,8 +36,8 @@ class Texture2DLoader extends Loader<Texture2D> {
           texture.setImageSource(image);
           texture.generateMipmaps();
 
-          if (item.url.indexOf("data:") !== 0) {
-            const splitPath = item.url.split("/");
+          if (url.indexOf("data:") !== 0) {
+            const splitPath = url.split("/");
             texture.name = splitPath[splitPath.length - 1];
           }
 
