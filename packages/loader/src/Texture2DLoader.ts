@@ -58,16 +58,19 @@ class Texture2DContentRestorer extends RestoreContentInfo {
     super(texture);
   }
 
-  restoreContent(): void {
-    this.request<HTMLImageElement>(this.url, this.requestConfig)
-      .then((image) => {
-        const texture = this.texture;
-        texture.setImageSource(image);
-        texture.generateMipmaps();
-      })
-      .catch((e) => {
-        console.warn("Texture2D: rebuild failed.");
-      });
+  restoreContent(): AssetPromise<Texture2D> {
+    return new AssetPromise((resolve, reject) => {
+      this.request<HTMLImageElement>(this.url, this.requestConfig)
+        .then((image) => {
+          const texture = this.texture;
+          texture.setImageSource(image);
+          texture.generateMipmaps();
+          resolve(texture);
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
   }
 }
 
