@@ -37,15 +37,18 @@ export class ResourceManager {
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = Infinity;
 
-  /** Asset path pool, key is asset ID, value is asset path */
+  /** @internal */
+  _deviceRestoreManager: DeviceRestoreManager = new DeviceRestoreManager();
+
+  private _loadingPromises: Record<string, AssetPromise<any>> = {};
+
+  /** Asset path pool, key is asset ID, value is asset path. */
   private _assetPool: Record<number, string> = Object.create(null);
   /** Asset pool, the key is the asset path and the value is the asset. */
   private _assetUrlPool: Record<string, Object> = Object.create(null);
+
   /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
   private _refResourcePool: Record<number, ReferResource> = Object.create(null);
-  private _loadingPromises: Record<string, AssetPromise<any>> = {};
-  private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
-  private _deviceRestoreManager: DeviceRestoreManager = new DeviceRestoreManager();
 
   /**
    * Create a ResourceManager.
@@ -171,30 +174,6 @@ export class ResourceManager {
    */
   _deleteReferResource(id: number): void {
     delete this._refResourcePool[id];
-  }
-
-  /**
-   * @internal
-   */
-  _addGraphicResource(id: number, asset: GraphicsResource): void {
-    this._graphicResourcePool[id] = asset;
-  }
-
-  /**
-   * @internal
-   */
-  _deleteGraphicResource(id: number): void {
-    delete this._graphicResourcePool[id];
-  }
-
-  /**
-   * @internal
-   */
-  _rebuildGraphicResource(): void {
-    const { _graphicResourcePool } = this;
-    for (const id in _graphicResourcePool) {
-      _graphicResourcePool[id]._rebuild();
-    }
   }
 
   /**

@@ -6,9 +6,9 @@ import {
   BufferUsage,
   EngineObject,
   ModelMesh,
-  RebuildInfo,
   TypedArray,
-  VertexElement
+  VertexElement,
+  MeshContentInfo
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
@@ -168,7 +168,7 @@ export class MeshParser extends Parser {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
             vertexBuffer.setData(vertices);
             // @ts-ignore
-            vertexBuffer._rebuildInfo = new RebuildInfo(
+            vertexBuffer._rebuildInfo = new MeshContentInfo(
               accessorBuffer.url,
               accessorBuffer.config,
               accessorBuffer.byteOffset,
@@ -187,7 +187,7 @@ export class MeshParser extends Parser {
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
         // @ts-ignore
-        vertexBuffer._rebuildInfo = new RebuildInfo(
+        vertexBuffer._rebuildInfo = new MeshContentInfo(
           accessorBuffer.url,
           accessorBuffer.config,
           accessorBuffer.byteOffset,
@@ -242,7 +242,7 @@ export class MeshParser extends Parser {
 
     mesh.uploadData(!keepMeshData);
     //@ts-ignore
-    mesh._indexBufferBinding._buffer._rebuildInfo = new RebuildInfo(
+    mesh._indexBufferBinding._buffer._rebuildInfo = new MeshContentInfo(
       context.indexBufferInfo.url,
       context.indexBufferInfo.config,
       context.indexBufferInfo.byteOffset,

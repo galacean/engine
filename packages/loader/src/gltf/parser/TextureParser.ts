@@ -1,7 +1,6 @@
 import {
   AssetPromise,
   AssetType,
-  RebuildInfo,
   Texture2D,
   TextureFilterMode,
   TextureWrapMode
@@ -59,7 +58,7 @@ export class TextureParser extends Parser {
                 this._parseSampler(texture, gltf.samplers[sampler]);
               }
               //@ts-ignore
-              texture._rebuildInfo = new RebuildInfo(
+              texture._rebuildInfo = new text(
                 bufferRequestInfo.url,
                 bufferRequestInfo.config,
                 bufferRequestInfo.byteOffset ?? 0 + bufferView.byteOffset,

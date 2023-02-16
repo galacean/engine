@@ -7,7 +7,7 @@ import {
   ResourceManager,
   Texture2D,
   TextureFormat,
-  RebuildInfo
+  TextureContentInfo
 } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 
@@ -42,7 +42,7 @@ class Texture2DLoader extends Loader<Texture2D> {
           }
 
           // @ts-ignore
-          texture._rebuildInfo = new RebuildInfo(url, requestConfig);
+          texture._rebuildInfo = new TextureContentInfo(url, requestConfig);
 
           resolve(texture);
         })

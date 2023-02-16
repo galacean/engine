@@ -1,6 +1,6 @@
 import { RequestConfig } from "./request";
 
-export class RebuildInfo {
+export class MeshContentInfo {
   constructor(
     public url: string,
     public requestConfig: RequestConfig,

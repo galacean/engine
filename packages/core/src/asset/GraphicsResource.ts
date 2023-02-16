@@ -1,14 +1,10 @@
 import { Engine } from "../Engine";
-import { RebuildInfo } from "./RebuildInfo";
 import { ReferResource } from "./ReferResource";
 
 export abstract class GraphicsResource extends ReferResource {
-  /** @internal */
-  _rebuildInfo: RebuildInfo;
-
   protected constructor(engine: Engine) {
     super(engine);
-    engine.resourceManager._addGraphicResource(this.instanceId, this);
+    engine.resourceManager._deviceRestoreManager.addGraphicResource(this.instanceId, this);
   }
 
   /**

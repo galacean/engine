@@ -1,5 +1,4 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
-import { ReferResource } from "../asset/ReferResource";
 import { Engine } from "../Engine";
 import { IPlatformBuffer } from "../renderingHardwareInterface";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
@@ -169,13 +168,6 @@ export class Buffer extends GraphicsResource {
   _rebuild(): void {
     const platformBuffer = this._engine._hardwareRenderer.createPlatformBuffer(this);
     this._platformBuffer = platformBuffer;
-
-    const rebuildInfo = this._rebuildInfo;
-    if (!rebuildInfo) {
-      return;
-    }
-
-    
   }
 
   /**
