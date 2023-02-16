@@ -61,13 +61,36 @@ export interface GLTFParams {
  */
 export class GLTFContentRestorer extends RestoreContentInfo {
   isGLB: boolean;
-  glbBufferSlice: Vector2[] = [];
   bufferRequestInfos: BufferRequestInfo[] = [];
+  glbBufferSlice: Vector2[] = [];
   bufferViews: IBufferView[] = [];
   meshInfos: ModelMeshRestoreInfo[] = [];
   bufferTextureRestoreInfos: BufferTextureRestoreInfo[] = [];
 
-  restoreContent() {}
+  restoreContent() {
+    return Promise.all(
+      this.bufferRequestInfos.map((bufferRequestInfo) => {
+        return this.request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config);
+      })
+    ).then((buffers: ArrayBuffer[]) => {
+      // Buffer parse
+      if (this.isGLB) {
+        const glbBufferSlice = this.glbBufferSlice;
+        const bigBuffer = buffers[0];
+        const bufferCount = glbBufferSlice.length;
+        buffers.length = bufferCount;
+        for (let i = 0; i < bufferCount; i++) {
+          const slice = glbBufferSlice[i];
+          buffers[i] = bigBuffer.slice(slice.x, slice.y);
+        }
+
+        // Restore texture
+    
+
+        // Restore mesh
+      }
+    });
+  }
 }
 
 /**
