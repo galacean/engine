@@ -10,7 +10,7 @@ import {
   VertexElement
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
-import { ModelMeshRestoreInfo } from "../../GLTFLoader";
+import { MeshBufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFLoader";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
@@ -104,7 +104,6 @@ export class MeshParser extends Parser {
               },
               () => {
                 const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-                meshRestoreInfo.indexBufferAccessor = indexAccessor;
                 return GLTFUtil.getAccessorData(gltf, indexAccessor, buffers);
               },
               context.keepMeshData
@@ -171,7 +170,15 @@ export class MeshParser extends Parser {
           if (!vertexBuffer) {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
             vertexBuffer.setData(vertices);
-            meshRestoreInfo.vertexBufferAccessors.push(accessor);
+            meshRestoreInfo.vertexBufferRestoreInfos.push(
+              new MeshBufferRestoreInfo(
+                vertexBuffer,
+                gltf.bufferViews[accessor.bufferView].buffer,
+                accessor.componentType,
+                vertices.byteOffset,
+                vertices.byteLength
+              )
+            );
             accessorBuffer.vertexBuffer = vertexBuffer;
           }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
@@ -184,7 +191,15 @@ export class MeshParser extends Parser {
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
-        meshRestoreInfo.vertexBufferAccessors.push(accessor);
+        meshRestoreInfo.vertexBufferRestoreInfos.push(
+          new MeshBufferRestoreInfo(
+            vertexBuffer,
+            gltf.bufferViews[accessor.bufferView].buffer,
+            accessor.componentType,
+            vertices.byteOffset,
+            vertices.byteLength
+          )
+        );
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
         vertexBindingInfos[meshId] = bufferBindIndex++;
       }
@@ -233,6 +248,20 @@ export class MeshParser extends Parser {
     targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
+
+    // @todo: remove this
+    if (indices !== undefined) {
+      const indexAccessor = gltf.accessors[indices];
+      meshRestoreInfo.indexBufferRestoreInfo = new MeshBufferRestoreInfo(
+        // @ts-ignore 
+        mesh._indexBufferBinding.buffer,
+        gltf.bufferViews[indexAccessor.bufferView].buffer,
+        indexAccessor.componentType,
+        indexAccessor.byteOffset,
+        indexAccessor.count
+      );
+    }
+
     return Promise.resolve(mesh);
   }
 

@@ -53,6 +53,7 @@ export class TextureParser extends Parser {
               }
               const bufferTextureRestoreInfo = new BufferTextureRestoreInfo();
               context.glTFContentRestorer.bufferTextureRestoreInfos.push(bufferTextureRestoreInfo);
+              bufferTextureRestoreInfo.texture = texture;
               bufferTextureRestoreInfo.mimeType = mimeType;
               bufferTextureRestoreInfo.bufferView = bufferView;
 
