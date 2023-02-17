@@ -13,6 +13,9 @@ import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
+  /**
+   * @override
+   */
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       const url = item.url;
@@ -50,6 +53,9 @@ class Texture2DLoader extends Loader<Texture2D> {
     });
   }
 
+  /**
+   * @override
+   */
   restoreContent(host: Texture2D, restoreInfo: Texture2DContentRestoreInfo): AssetPromise<Texture2D> {
     return this.request<HTMLImageElement>(restoreInfo.url, restoreInfo.requestConfig).then((image) => {
       host.setImageSource(image);

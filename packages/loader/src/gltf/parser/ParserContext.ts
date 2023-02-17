@@ -8,7 +8,7 @@ import {
   Texture2D,
   TypedArray
 } from "@oasis-engine/core";
-import { GLTFContentRestorer } from "../../GLTFLoader";
+import { GLTFContentRestoreInfo } from "../../GLTFLoader";
 import { GLTFResource } from "../GLTFResource";
 import { IGLTF } from "../Schema";
 
@@ -32,7 +32,7 @@ export class ParserContext {
   masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
   promiseMap: Record<string, AssetPromise<any>> = {};
 
-  glTFContentRestorer: GLTFContentRestorer = new GLTFContentRestorer();
+  glTFContentRestorer: GLTFContentRestoreInfo = new GLTFContentRestoreInfo();
 
   constructor(url: string) {
     const promiseMap = this.promiseMap;

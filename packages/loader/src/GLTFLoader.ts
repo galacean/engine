@@ -2,11 +2,11 @@ import {
   AssetPromise,
   AssetType,
   Buffer,
+  ContentRestoreInfo,
   Loader,
   LoadItem,
   resourceLoader,
   ResourceManager,
-  ContentRestoreInfo,
   Texture2D
 } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
@@ -19,6 +19,9 @@ import { AccessorComponentType, IAccessor, IBufferView } from "./gltf/Schema";
 
 @resourceLoader(AssetType.Prefab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
+  /**
+   * @override
+   */
   load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
     const url = item.url;
     const context = new ParserContext(url);
@@ -38,8 +41,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     GLTFParser.defaultPipeline
       .parse(context)
       .then((glTFResource) => {
-        // @ts-ignore
-        resourceManager._addRestoreContentInfo(glTFResource.instanceId, new GLTFContentRestorer());
+        this.addContentRestoreInfo(glTFResource, new GLTFContentRestoreInfo());
         masterPromiseInfo.resolve(glTFResource);
       })
       .catch((e) => {
@@ -50,7 +52,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
     return context.promiseMap;
   }
 
-  restore(restoreContentInfo: GLTFContentRestorer): AssetPromise<any> {
+  /**
+   * @override
+   */
+  restoreContent(host: GLTFResource, restoreContentInfo: GLTFContentRestoreInfo): AssetPromise<any> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
         restoreContentInfo.bufferRequestInfos.map((bufferRequestInfo) => {
@@ -115,7 +120,7 @@ export interface GLTFParams {
 /**
  * @internal
  */
-export class GLTFContentRestorer extends ContentRestoreInfo {
+export class GLTFContentRestoreInfo extends ContentRestoreInfo {
   isGLB: boolean;
   bufferRequestInfos: BufferRequestInfo[] = [];
   glbBufferSlice: Vector2[] = [];
@@ -131,14 +136,13 @@ export class BufferRequestInfo {
   constructor(public url: string, public config: RequestConfig) {}
 }
 
-export class MeshBufferRestoreInfo {
-  constructor(
-    public buffer: Buffer,
-    public bufferIndex: number,
-    public componentType: AccessorComponentType,
-    public byteOffset: number,
-    public byteLength: number
-  ) {}
+/**
+ * @internal
+ */
+export class BufferTextureRestoreInfo {
+  public texture: Texture2D;
+  public bufferView: IBufferView;
+  public mimeType: string;
 }
 
 /**
@@ -150,11 +154,12 @@ export class ModelMeshRestoreInfo {
   public blendShapeAccessors: Record<string, IAccessor>[] = [];
 }
 
-/**
- * @internal
- */
-export class BufferTextureRestoreInfo {
-  public texture: Texture2D;
-  public bufferView: IBufferView;
-  public mimeType: string;
+export class MeshBufferRestoreInfo {
+  constructor(
+    public buffer: Buffer,
+    public bufferIndex: number,
+    public componentType: AccessorComponentType,
+    public byteOffset: number,
+    public byteLength: number
+  ) {}
 }
