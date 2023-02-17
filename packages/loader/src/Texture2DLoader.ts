@@ -54,6 +54,21 @@ class Texture2DLoader extends Loader<Texture2D> {
         });
     });
   }
+
+  restore(restoreContentInfo: Texture2DContentRestorer): AssetPromise<Texture2D> {
+    return new AssetPromise((resolve, reject) => {
+      this.request<HTMLImageElement>(restoreContentInfo.url, restoreContentInfo.requestConfig)
+        .then((image) => {
+          const texture = restoreContentInfo.texture;
+          texture.setImageSource(image);
+          texture.generateMipmaps();
+          resolve(texture);
+        })
+        .catch((e) => {
+          reject(e);
+        });
+    });
+  }
 }
 
 /**
@@ -69,20 +84,5 @@ export interface Texture2DParams {
 class Texture2DContentRestorer extends RestoreContentInfo {
   constructor(public texture: Texture2D, public url: string, public requestConfig: RequestConfig) {
     super();
-  }
-
-  restoreContent(): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
-      this.request<HTMLImageElement>(this.url, this.requestConfig)
-        .then((image) => {
-          const texture = this.texture;
-          texture.setImageSource(image);
-          texture.generateMipmaps();
-          resolve(texture);
-        })
-        .catch((e) => {
-          reject(e);
-        });
-    });
   }
 }

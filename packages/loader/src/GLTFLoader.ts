@@ -49,6 +49,59 @@ export class GLTFLoader extends Loader<GLTFResource> {
 
     return context.promiseMap;
   }
+
+  restore(restoreContentInfo: GLTFContentRestorer): AssetPromise<any> {
+    return new AssetPromise((resolve, reject) => {
+      Promise.all(
+        restoreContentInfo.bufferRequestInfos.map((bufferRequestInfo) => {
+          return this.request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config);
+        })
+      ).then((buffers: ArrayBuffer[]) => {
+        // Buffer parse
+        if (restoreContentInfo.isGLB) {
+          const glbBufferSlice = restoreContentInfo.glbBufferSlice;
+          const bigBuffer = buffers[0];
+          const bufferCount = glbBufferSlice.length;
+          buffers.length = bufferCount;
+          for (let i = 0; i < bufferCount; i++) {
+            const slice = glbBufferSlice[i];
+            buffers[i] = bigBuffer.slice(slice.x, slice.y);
+          }
+
+          // Restore texture
+          AssetPromise.all(
+            restoreContentInfo.bufferTextureRestoreInfos.map((textureRestoreInfo) => {
+              const { bufferView } = textureRestoreInfo;
+              const buffer = buffers[bufferView.buffer];
+              const bufferData = buffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
+
+              return GLTFUtil.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
+                textureRestoreInfo.texture.setImageSource(image);
+              });
+            })
+          ).then(() => {
+            // Restore mesh
+            for (const meshInfo of restoreContentInfo.meshInfos) {
+              for (const restoreInfo of meshInfo.vertexBufferRestoreInfos) {
+                const TypedArray = GLTFUtil.getComponentType(restoreInfo.componentType);
+                const buffer = buffers[restoreInfo.bufferIndex];
+                const byteOffset = restoreInfo.byteOffset;
+                const data = new TypedArray(buffer, byteOffset, byteOffset + restoreInfo.byteLength);
+                restoreInfo.buffer.setData(data);
+              }
+
+              const indexBufferRestoreInfo = meshInfo.indexBufferRestoreInfo;
+              const TypedArray = GLTFUtil.getComponentType(indexBufferRestoreInfo.componentType);
+              const buffer = buffers[indexBufferRestoreInfo.bufferIndex];
+              const byteOffset = indexBufferRestoreInfo.byteOffset;
+              const data = new TypedArray(buffer, byteOffset, byteOffset + indexBufferRestoreInfo.byteLength);
+              indexBufferRestoreInfo.buffer.setData(data);
+            }
+          });
+        }
+      });
+    });
+  }
 }
 
 /**
@@ -69,57 +122,6 @@ export class GLTFContentRestorer extends RestoreContentInfo {
   bufferViews: IBufferView[] = [];
   bufferTextureRestoreInfos: BufferTextureRestoreInfo[] = [];
   meshInfos: ModelMeshRestoreInfo[] = [];
-
-  restoreContent() {
-    Promise.all(
-      this.bufferRequestInfos.map((bufferRequestInfo) => {
-        return this.request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config);
-      })
-    ).then((buffers: ArrayBuffer[]) => {
-      // Buffer parse
-      if (this.isGLB) {
-        const glbBufferSlice = this.glbBufferSlice;
-        const bigBuffer = buffers[0];
-        const bufferCount = glbBufferSlice.length;
-        buffers.length = bufferCount;
-        for (let i = 0; i < bufferCount; i++) {
-          const slice = glbBufferSlice[i];
-          buffers[i] = bigBuffer.slice(slice.x, slice.y);
-        }
-
-        // Restore texture
-        AssetPromise.all(
-          this.bufferTextureRestoreInfos.map((textureRestoreInfo) => {
-            const { bufferView } = textureRestoreInfo;
-            const buffer = buffers[bufferView.buffer];
-            const bufferData = buffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
-
-            return GLTFUtil.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
-              textureRestoreInfo.texture.setImageSource(image);
-            });
-          })
-        ).then(() => {
-          // Restore mesh
-          for (const meshInfo of this.meshInfos) {
-            for (const restoreInfo of meshInfo.vertexBufferRestoreInfos) {
-              const TypedArray = GLTFUtil.getComponentType(restoreInfo.componentType);
-              const buffer = buffers[restoreInfo.bufferIndex];
-              const byteOffset = restoreInfo.byteOffset;
-              const data = new TypedArray(buffer, byteOffset, byteOffset + restoreInfo.byteLength);
-              restoreInfo.buffer.setData(data);
-            }
-
-            const indexBufferRestoreInfo = meshInfo.indexBufferRestoreInfo;
-            const TypedArray = GLTFUtil.getComponentType(indexBufferRestoreInfo.componentType);
-            const buffer = buffers[indexBufferRestoreInfo.bufferIndex];
-            const byteOffset = indexBufferRestoreInfo.byteOffset;
-            const data = new TypedArray(buffer, byteOffset, byteOffset + indexBufferRestoreInfo.byteLength);
-            indexBufferRestoreInfo.buffer.setData(data);
-          }
-        });
-      }
-    });
-  }
 }
 
 /**

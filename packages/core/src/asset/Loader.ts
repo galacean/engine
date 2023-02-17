@@ -2,6 +2,7 @@ import { AssetPromise } from "./AssetPromise";
 import { LoadItem } from "./LoadItem";
 import { request, RequestConfig } from "./request";
 import { ResourceManager } from "./ResourceManager";
+import { RestoreContentInfo } from "./RestoreContentInfo";
 /**
  * Loader abstract class.
  */
@@ -30,6 +31,7 @@ export abstract class Loader<T> {
 
   request: <U>(url: string, config: RequestConfig) => AssetPromise<U> = request;
   abstract load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<T> | Record<string, AssetPromise<any>>;
-
-  
+  restore(restoreContentInfo: RestoreContentInfo): AssetPromise<T> | Record<string, AssetPromise<any>> {
+    throw new Error("Method not implemented.");
+  }
 }

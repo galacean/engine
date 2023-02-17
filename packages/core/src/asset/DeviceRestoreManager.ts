@@ -34,7 +34,8 @@ export class DeviceRestoreManager {
   restoreResourcesContent(): void {
     const restoreContentInfoPool = this._restoreContentInfoPool;
     for (const key in restoreContentInfoPool) {
-      restoreContentInfoPool[key].restoreContent();
+      // @todo: use loader
+      // restoreContentInfoPool[key].restoreContent();
     }
   }
 }
