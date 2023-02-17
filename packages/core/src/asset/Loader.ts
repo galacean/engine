@@ -53,6 +53,6 @@ export abstract class Loader<T> {
     host: EngineObject,
     restoreInfo: ContentRestoreInfo
   ): AssetPromise<T> | Record<string, AssetPromise<any>> {
-    throw new Error("Method not implemented.");
+    throw "Restore content not implemented.";
   }
 }
