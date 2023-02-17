@@ -61,50 +61,55 @@ export class GLTFLoader extends Loader<GLTFResource> {
         restoreInfo.bufferRequestInfos.map((bufferRequestInfo) => {
           return this.request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config);
         })
-      ).then((buffers: ArrayBuffer[]) => {
-        // Buffer parse
-        if (restoreInfo.isGLB) {
-          const glbBufferSlice = restoreInfo.glbBufferSlice;
-          const bigBuffer = buffers[0];
-          const bufferCount = glbBufferSlice.length;
-          buffers.length = bufferCount;
-          for (let i = 0; i < bufferCount; i++) {
-            const slice = glbBufferSlice[i];
-            buffers[i] = bigBuffer.slice(slice.x, slice.y);
-          }
-
-          // Restore texture
-          AssetPromise.all(
-            restoreInfo.bufferTextureRestoreInfos.map((textureRestoreInfo) => {
-              const { bufferView } = textureRestoreInfo;
-              const buffer = buffers[bufferView.buffer];
-              const bufferData = buffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
-
-              return GLTFUtil.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
-                textureRestoreInfo.texture.setImageSource(image);
-              });
-            })
-          ).then(() => {
-            // Restore mesh
-            for (const meshInfo of restoreInfo.meshInfos) {
-              for (const restoreInfo of meshInfo.vertexBufferRestoreInfos) {
-                const TypedArray = GLTFUtil.getComponentType(restoreInfo.componentType);
-                const buffer = buffers[restoreInfo.bufferIndex];
-                const byteOffset = restoreInfo.byteOffset;
-                const data = new TypedArray(buffer, byteOffset, byteOffset + restoreInfo.byteLength);
-                restoreInfo.buffer.setData(data);
-              }
-
-              const indexBufferRestoreInfo = meshInfo.indexBufferRestoreInfo;
-              const TypedArray = GLTFUtil.getComponentType(indexBufferRestoreInfo.componentType);
-              const buffer = buffers[indexBufferRestoreInfo.bufferIndex];
-              const byteOffset = indexBufferRestoreInfo.byteOffset;
-              const data = new TypedArray(buffer, byteOffset, byteOffset + indexBufferRestoreInfo.byteLength);
-              indexBufferRestoreInfo.buffer.setData(data);
+      )
+        .then((buffers: ArrayBuffer[]) => {
+          // Buffer parse
+          if (restoreInfo.isGLB) {
+            const glbBufferSlice = restoreInfo.glbBufferSlice;
+            const bigBuffer = buffers[0];
+            const bufferCount = glbBufferSlice.length;
+            buffers.length = bufferCount;
+            for (let i = 0; i < bufferCount; i++) {
+              const slice = glbBufferSlice[i];
+              buffers[i] = bigBuffer.slice(slice.x, slice.y);
             }
-          });
-        }
-      });
+
+            // Restore texture
+            AssetPromise.all(
+              restoreInfo.bufferTextureRestoreInfos.map((textureRestoreInfo) => {
+                const { bufferView } = textureRestoreInfo;
+                const buffer = buffers[bufferView.buffer];
+                const bufferData = buffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
+
+                return GLTFUtil.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
+                  textureRestoreInfo.texture.setImageSource(image);
+                });
+              })
+            )
+              .then(() => {
+                // Restore mesh
+                for (const meshInfo of restoreInfo.meshInfos) {
+                  for (const restoreInfo of meshInfo.vertexBufferRestoreInfos) {
+                    const TypedArray = GLTFUtil.getComponentType(restoreInfo.componentType);
+                    const buffer = buffers[restoreInfo.bufferIndex];
+                    const byteOffset = restoreInfo.byteOffset;
+                    const data = new TypedArray(buffer, byteOffset, byteOffset + restoreInfo.byteLength);
+                    restoreInfo.buffer.setData(data);
+                  }
+
+                  const indexBufferRestoreInfo = meshInfo.indexBufferRestoreInfo;
+                  const TypedArray = GLTFUtil.getComponentType(indexBufferRestoreInfo.componentType);
+                  const buffer = buffers[indexBufferRestoreInfo.bufferIndex];
+                  const byteOffset = indexBufferRestoreInfo.byteOffset;
+                  const data = new TypedArray(buffer, byteOffset, byteOffset + indexBufferRestoreInfo.byteLength);
+                  indexBufferRestoreInfo.buffer.setData(data);
+                }
+                resolve(host);
+              })
+              .catch(reject);
+          }
+        })
+        .catch(reject);
     });
   }
 }
