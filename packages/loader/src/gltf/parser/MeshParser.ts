@@ -170,7 +170,7 @@ export class MeshParser extends Parser {
           if (!vertexBuffer) {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
             vertexBuffer.setData(vertices);
-            meshRestoreInfo.vertexBufferRestoreInfos.push(
+            meshRestoreInfo.vertexBuffer.push(
               new MeshBufferRestoreInfo(
                 vertexBuffer,
                 gltf.bufferViews[accessor.bufferView].buffer,
@@ -191,7 +191,7 @@ export class MeshParser extends Parser {
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
-        meshRestoreInfo.vertexBufferRestoreInfos.push(
+        meshRestoreInfo.vertexBuffer.push(
           new MeshBufferRestoreInfo(
             vertexBuffer,
             gltf.bufferViews[accessor.bufferView].buffer,
@@ -252,7 +252,7 @@ export class MeshParser extends Parser {
     // @todo: remove this
     if (indices !== undefined) {
       const indexAccessor = gltf.accessors[indices];
-      meshRestoreInfo.indexBufferRestoreInfo = new MeshBufferRestoreInfo(
+      meshRestoreInfo.indexBuffer = new MeshBufferRestoreInfo(
         // @ts-ignore 
         mesh._indexBufferBinding.buffer,
         gltf.bufferViews[indexAccessor.bufferView].buffer,

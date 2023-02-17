@@ -76,7 +76,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
 
             // Restore texture
             AssetPromise.all(
-              restoreInfo.bufferTextureRestoreInfos.map((textureRestoreInfo) => {
+              restoreInfo.bufferTextureInfos.map((textureRestoreInfo) => {
                 const { bufferView } = textureRestoreInfo;
                 const buffer = buffers[bufferView.buffer];
                 const bufferData = buffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
@@ -89,7 +89,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
               .then(() => {
                 // Restore mesh
                 for (const meshInfo of restoreInfo.meshInfos) {
-                  for (const restoreInfo of meshInfo.vertexBufferRestoreInfos) {
+                  for (const restoreInfo of meshInfo.vertexBuffer) {
                     const TypedArray = GLTFUtil.getComponentType(restoreInfo.componentType);
                     const buffer = buffers[restoreInfo.bufferIndex];
                     const byteOffset = restoreInfo.byteOffset;
@@ -97,7 +97,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
                     restoreInfo.buffer.setData(data);
                   }
 
-                  const indexBufferRestoreInfo = meshInfo.indexBufferRestoreInfo;
+                  const indexBufferRestoreInfo = meshInfo.indexBuffer;
                   const TypedArray = GLTFUtil.getComponentType(indexBufferRestoreInfo.componentType);
                   const buffer = buffers[indexBufferRestoreInfo.bufferIndex];
                   const byteOffset = indexBufferRestoreInfo.byteOffset;
@@ -129,8 +129,7 @@ export class GLTFContentRestoreInfo extends ContentRestoreInfo {
   isGLB: boolean;
   bufferRequestInfos: BufferRequestInfo[] = [];
   glbBufferSlice: Vector2[] = [];
-  bufferViews: IBufferView[] = [];
-  bufferTextureRestoreInfos: BufferTextureRestoreInfo[] = [];
+  bufferTextureInfos: BufferTextureRestoreInfo[] = [];
   meshInfos: ModelMeshRestoreInfo[] = [];
 }
 
@@ -154,8 +153,8 @@ export class BufferTextureRestoreInfo {
  * @internal
  */
 export class ModelMeshRestoreInfo {
-  public vertexBufferRestoreInfos: MeshBufferRestoreInfo[] = [];
-  public indexBufferRestoreInfo: MeshBufferRestoreInfo;
+  public vertexBuffer: MeshBufferRestoreInfo[] = [];
+  public indexBuffer: MeshBufferRestoreInfo;
   public blendShapeAccessors: Record<string, IAccessor>[] = [];
 }
 
