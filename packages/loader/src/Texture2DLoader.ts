@@ -37,8 +37,8 @@ class Texture2DLoader extends Loader<Texture2D> {
           texture.generateMipmaps();
 
           if (url.indexOf("data:") !== 0) {
-            const splitPath = url.split("/");
-            texture.name = splitPath[splitPath.length - 1];
+            const index = url.lastIndexOf("/");
+            texture.name = url.substring(index + 1);
           }
 
           this.addContentRestoreInfo(texture, new Texture2DContentRestorer(url, requestConfig));
