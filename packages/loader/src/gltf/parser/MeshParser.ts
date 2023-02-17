@@ -171,6 +171,7 @@ export class MeshParser extends Parser {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
             vertexBuffer.setData(vertices);
             meshRestoreInfo.vertexBuffer.push(
+            // @todo: 使用 bufferview 合并
               new MeshBufferRestoreInfo(
                 vertexBuffer,
                 gltf.bufferViews[accessor.bufferView].buffer,
