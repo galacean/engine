@@ -51,16 +51,10 @@ class Texture2DLoader extends Loader<Texture2D> {
   }
 
   restoreContent(host: Texture2D, restoreInfo: Texture2DContentRestoreInfo): AssetPromise<Texture2D> {
-    return new AssetPromise((resolve, reject) => {
-      this.request<HTMLImageElement>(restoreInfo.url, restoreInfo.requestConfig)
-        .then((image) => {
-          host.setImageSource(image);
-          host.generateMipmaps();
-          resolve(host);
-        })
-        .catch((e) => {
-          reject(e);
-        });
+    return this.request<HTMLImageElement>(restoreInfo.url, restoreInfo.requestConfig).then((image) => {
+      host.setImageSource(image);
+      host.generateMipmaps();
+      return host;
     });
   }
 }
