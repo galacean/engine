@@ -32,7 +32,7 @@ export class ParserContext {
   masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
   promiseMap: Record<string, AssetPromise<any>> = {};
 
-  glTFContentRestorer: GLTFContentRestoreInfo = new GLTFContentRestoreInfo();
+  contentRestoreInfo: GLTFContentRestoreInfo = new GLTFContentRestoreInfo();
 
   constructor(url: string) {
     const promiseMap = this.promiseMap;
