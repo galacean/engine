@@ -58,14 +58,14 @@ export class GLTFLoader extends Loader<GLTFResource> {
   restoreContent(host: GLTFResource, restoreInfo: GLTFContentRestoreInfo): AssetPromise<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
-        restoreInfo.bufferRequestInfos.map((bufferRequestInfo) => {
+        restoreInfo.bufferRequests.map((bufferRequestInfo) => {
           return this.request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config);
         })
       )
         .then((buffers: ArrayBuffer[]) => {
           // Buffer parse
           if (restoreInfo.isGLB) {
-            const glbBufferSlice = restoreInfo.glbBufferSlice;
+            const glbBufferSlice = restoreInfo.glbBufferSlices;
             const bigBuffer = buffers[0];
             const bufferCount = glbBufferSlice.length;
             buffers.length = bufferCount;
@@ -76,7 +76,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
 
             // Restore texture
             AssetPromise.all(
-              restoreInfo.bufferTextureInfos.map((textureRestoreInfo) => {
+              restoreInfo.bufferTextures.map((textureRestoreInfo) => {
                 const { bufferView } = textureRestoreInfo;
                 const buffer = buffers[bufferView.buffer];
                 const bufferData = buffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
@@ -88,7 +88,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
             )
               .then(() => {
                 // Restore mesh
-                for (const meshInfo of restoreInfo.meshInfos) {
+                for (const meshInfo of restoreInfo.meshes) {
                   for (const restoreInfo of meshInfo.vertexBuffer) {
                     const TypedArray = GLTFUtil.getComponentType(restoreInfo.componentType);
                     const buffer = buffers[restoreInfo.bufferIndex];
@@ -127,10 +127,10 @@ export interface GLTFParams {
  */
 export class GLTFContentRestoreInfo extends ContentRestoreInfo {
   isGLB: boolean;
-  bufferRequestInfos: BufferRequestInfo[] = [];
-  glbBufferSlice: Vector2[] = [];
-  bufferTextureInfos: BufferTextureRestoreInfo[] = [];
-  meshInfos: ModelMeshRestoreInfo[] = [];
+  bufferRequests: BufferRequestInfo[] = [];
+  glbBufferSlices: Vector2[] = [];
+  bufferTextures: BufferTextureRestoreInfo[] = [];
+  meshes: ModelMeshRestoreInfo[] = [];
 }
 
 /**
