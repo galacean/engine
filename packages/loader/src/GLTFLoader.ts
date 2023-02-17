@@ -55,16 +55,16 @@ export class GLTFLoader extends Loader<GLTFResource> {
   /**
    * @override
    */
-  restoreContent(host: GLTFResource, restoreContentInfo: GLTFContentRestoreInfo): AssetPromise<any> {
+  restoreContent(host: GLTFResource, restoreInfo: GLTFContentRestoreInfo): AssetPromise<any> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
-        restoreContentInfo.bufferRequestInfos.map((bufferRequestInfo) => {
+        restoreInfo.bufferRequestInfos.map((bufferRequestInfo) => {
           return this.request<ArrayBuffer>(bufferRequestInfo.url, bufferRequestInfo.config);
         })
       ).then((buffers: ArrayBuffer[]) => {
         // Buffer parse
-        if (restoreContentInfo.isGLB) {
-          const glbBufferSlice = restoreContentInfo.glbBufferSlice;
+        if (restoreInfo.isGLB) {
+          const glbBufferSlice = restoreInfo.glbBufferSlice;
           const bigBuffer = buffers[0];
           const bufferCount = glbBufferSlice.length;
           buffers.length = bufferCount;
@@ -75,7 +75,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
 
           // Restore texture
           AssetPromise.all(
-            restoreContentInfo.bufferTextureRestoreInfos.map((textureRestoreInfo) => {
+            restoreInfo.bufferTextureRestoreInfos.map((textureRestoreInfo) => {
               const { bufferView } = textureRestoreInfo;
               const buffer = buffers[bufferView.buffer];
               const bufferData = buffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
@@ -86,7 +86,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
             })
           ).then(() => {
             // Restore mesh
-            for (const meshInfo of restoreContentInfo.meshInfos) {
+            for (const meshInfo of restoreInfo.meshInfos) {
               for (const restoreInfo of meshInfo.vertexBufferRestoreInfos) {
                 const TypedArray = GLTFUtil.getComponentType(restoreInfo.componentType);
                 const buffer = buffers[restoreInfo.bufferIndex];
