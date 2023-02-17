@@ -6,7 +6,7 @@ import {
   LoadItem,
   resourceLoader,
   ResourceManager,
-  RestoreContentInfo,
+  ContentRestoreInfo,
   Texture2D
 } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
@@ -115,7 +115,7 @@ export interface GLTFParams {
 /**
  * @internal
  */
-export class GLTFContentRestorer extends RestoreContentInfo {
+export class GLTFContentRestorer extends ContentRestoreInfo {
   isGLB: boolean;
   bufferRequestInfos: BufferRequestInfo[] = [];
   glbBufferSlice: Vector2[] = [];

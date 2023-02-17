@@ -1,12 +1,12 @@
+import { ContentRestoreInfo } from "./ContentRestoreInfo";
 import { GraphicsResource } from "./GraphicsResource";
-import { RestoreContentInfo } from "./RestoreContentInfo";
 
 /**
  * @internal
  */
 export class DeviceRestoreManager {
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
-  private _restoreContentInfoPool: Record<number, RestoreContentInfo> = Object.create(null);
+  private _restoreContentInfoPool: Record<number, ContentRestoreInfo> = Object.create(null);
 
   addGraphicResource(id: number, asset: GraphicsResource): void {
     this._graphicResourcePool[id] = asset;
@@ -16,7 +16,7 @@ export class DeviceRestoreManager {
     delete this._graphicResourcePool[id];
   }
 
-  addRestoreContentInfo(id: number, asset: RestoreContentInfo): void {
+  addRestoreContentInfo(id: number, asset: ContentRestoreInfo): void {
     this._restoreContentInfoPool[id] = asset;
   }
 
@@ -33,9 +33,10 @@ export class DeviceRestoreManager {
 
   restoreResourcesContent(): void {
     const restoreContentInfoPool = this._restoreContentInfoPool;
-    for (const key in restoreContentInfoPool) {
-      // @todo: use loader
-      // restoreContentInfoPool[key].restoreContent();
+    for (const k in restoreContentInfoPool) {
+      const restoreInfo = restoreContentInfoPool[k];
+      //@todo: get host
+      restoreInfo._loader.restoreContent(null,restoreInfo);
     }
   }
 }

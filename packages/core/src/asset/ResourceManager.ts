@@ -1,4 +1,4 @@
-import { Engine, EngineObject, Logger, RestoreContentInfo } from "..";
+import { ContentRestoreInfo, Engine, EngineObject, Logger } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
 import { DeviceRestoreManager } from "./DeviceRestoreManager";
@@ -178,7 +178,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addRestoreContentInfo(instanceId: number, restoreInfo: RestoreContentInfo): void {
+  _addRestoreContentInfo(instanceId: number, restoreInfo: ContentRestoreInfo): void {
     this._deviceRestoreManager.addRestoreContentInfo(instanceId, restoreInfo);
   }
 

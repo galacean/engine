@@ -1,11 +1,11 @@
 import {
   AssetPromise,
   AssetType,
+  ContentRestoreInfo,
   Loader,
   LoadItem,
   resourceLoader,
   ResourceManager,
-  RestoreContentInfo,
   Texture2D,
   TextureFormat
 } from "@oasis-engine/core";
@@ -41,12 +41,7 @@ class Texture2DLoader extends Loader<Texture2D> {
             texture.name = splitPath[splitPath.length - 1];
           }
 
-          // @ts-ignore
-          resourceManager._addRestoreContentInfo(
-            texture.instanceId,
-            new Texture2DContentRestorer(texture, url, requestConfig)
-          );
-
+          this.addContentRestoreInfo(texture, new Texture2DContentRestorer(url, requestConfig));
           resolve(texture);
         })
         .catch((e) => {
@@ -55,14 +50,13 @@ class Texture2DLoader extends Loader<Texture2D> {
     });
   }
 
-  restore(restoreContentInfo: Texture2DContentRestorer): AssetPromise<Texture2D> {
+  restore(host: Texture2D, restoreContentInfo: Texture2DContentRestorer): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       this.request<HTMLImageElement>(restoreContentInfo.url, restoreContentInfo.requestConfig)
         .then((image) => {
-          const texture = restoreContentInfo.texture;
-          texture.setImageSource(image);
-          texture.generateMipmaps();
-          resolve(texture);
+          host.setImageSource(image);
+          host.generateMipmaps();
+          resolve(host);
         })
         .catch((e) => {
           reject(e);
@@ -81,8 +75,8 @@ export interface Texture2DParams {
   mipmap: boolean;
 }
 
-class Texture2DContentRestorer extends RestoreContentInfo {
-  constructor(public texture: Texture2D, public url: string, public requestConfig: RequestConfig) {
+class Texture2DContentRestorer extends ContentRestoreInfo {
+  constructor(public url: string, public requestConfig: RequestConfig) {
     super();
   }
 }
