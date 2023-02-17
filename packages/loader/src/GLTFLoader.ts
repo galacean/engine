@@ -55,7 +55,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
   /**
    * @override
    */
-  restoreContent(host: GLTFResource, restoreInfo: GLTFContentRestoreInfo): AssetPromise<any> {
+  restoreContent(host: GLTFResource, restoreInfo: GLTFContentRestoreInfo): AssetPromise<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
         restoreInfo.bufferRequestInfos.map((bufferRequestInfo) => {
