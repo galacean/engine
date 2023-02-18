@@ -1,7 +1,7 @@
 import { ContentRestoreInfo, Engine, EngineObject, Logger } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
-import { DeviceRestoreManager } from "./DeviceRestoreManager";
+import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
 import { ReferResource } from "./ReferResource";
@@ -36,9 +36,6 @@ export class ResourceManager {
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = Infinity;
 
-  /** @internal */
-  _deviceRestoreManager: DeviceRestoreManager = new DeviceRestoreManager();
-
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
 
   /** Asset path pool, key is asset ID, value is asset path. */
@@ -46,8 +43,12 @@ export class ResourceManager {
   /** Asset pool, the key is the asset path and the value is the asset. */
   private _assetUrlPool: Record<string, Object> = Object.create(null);
 
-  /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
+  /** Referable resource pool, key is the `instanceID` of resource. */
   private _refResourcePool: Record<number, ReferResource> = Object.create(null);
+  /** Graphic resource pool, key is the `instanceID` of resource. */
+  private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
+  /** Restorable resource information pool, key is the `instanceID` of resource. */
+  private _restoreContentInfoPool: Record<number, ContentRestoreInfo> = Object.create(null);
 
   /**
    * Create a ResourceManager.
@@ -164,29 +165,59 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addReferResource(id: number, asset: ReferResource): void {
-    this._refResourcePool[id] = asset;
+  _addReferResource(instanceID: number, asset: ReferResource): void {
+    this._refResourcePool[instanceID] = asset;
   }
 
   /**
    * @internal
    */
-  _deleteReferResource(id: number): void {
-    delete this._refResourcePool[id];
+  _deleteReferResource(instanceID: number): void {
+    delete this._refResourcePool[instanceID];
+  }
+
+  _addGraphicResource(instanceID: number, asset: GraphicsResource): void {
+    this._graphicResourcePool[instanceID] = asset;
+  }
+
+  _deleteGraphicResource(instanceID: number): void {
+    delete this._graphicResourcePool[instanceID];
   }
 
   /**
    * @internal
    */
-  _addRestoreContentInfo(instanceId: number, restoreInfo: ContentRestoreInfo): void {
-    this._deviceRestoreManager.addRestoreContentInfo(instanceId, restoreInfo);
+  _addRestoreContentInfo(instanceID: number, restoreInfo: ContentRestoreInfo): void {
+    this._restoreContentInfoPool[instanceID] = restoreInfo;
   }
 
   /**
    * @internal
    */
   _deleteRestoreContentInfo(resource: EngineObject): void {
-    this._deviceRestoreManager.deleteRestoreContentInfo(resource.instanceId);
+    delete this._restoreContentInfoPool[resource.instanceId];
+  }
+
+  /**
+   * @internal
+   */
+  _restoreGraphicResources(): void {
+    const graphicResourcePool = this._graphicResourcePool;
+    for (const id in graphicResourcePool) {
+      graphicResourcePool[id]._rebuild();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _restoreResourcesContent(): void {
+    const restoreContentInfoPool = this._restoreContentInfoPool;
+    for (const k in restoreContentInfoPool) {
+      const restoreInfo = restoreContentInfoPool[k];
+      //@todo: get host
+      restoreInfo._loader.restoreContent(null, restoreInfo);
+    }
   }
 
   /**
