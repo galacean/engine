@@ -218,11 +218,15 @@ export class ResourceManager {
    * @internal
    */
   _restoreResourcesContent(): void {
+    const assetPool = this._assetPool;
+    const assetUrlPool = this._assetUrlPool;
+
     const restoreContentInfoPool = this._restoreContentInfoPool;
     for (const k in restoreContentInfoPool) {
       const restoreInfo = restoreContentInfoPool[k];
-      //@todo: get host
-      restoreInfo._loader.restoreContent(null, restoreInfo);
+      const url = assetPool[k];
+      const resource = <EngineObject>assetUrlPool[url];
+      restoreInfo._loader.restoreContent(resource, restoreInfo);
     }
   }
 

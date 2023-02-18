@@ -35,21 +35,21 @@ export abstract class Loader<T> {
 
   /**
    * Add content restore info to the engine object.
-   * @param host - The host object to restore content
+   * @param resource - The resource to add restore information
    * @param restoreInfo - The restore info
    */
-  addContentRestoreInfo(host: EngineObject, restoreInfo: ContentRestoreInfo): void {
+  addContentRestoreInfo(resource: EngineObject, restoreInfo: ContentRestoreInfo): void {
     restoreInfo._loader = this;
-    host.engine.resourceManager._addRestoreContentInfo(host, restoreInfo);
+    resource.engine.resourceManager._addRestoreContentInfo(resource, restoreInfo);
   }
 
   /**
    * Called when the content of the host object needs to be restored.
-   * @param host - The host object to restore content
+   * @param resource - The resource to restore content
    * @param restoreInfo - The restore info
    * @returns The promise of the restore content
    */
-  restoreContent(host: EngineObject, restoreInfo: ContentRestoreInfo): AssetPromise<T> {
+  restoreContent(resource: EngineObject, restoreInfo: ContentRestoreInfo): AssetPromise<T> {
     throw "Loader: Restore content not implemented.";
   }
 }
