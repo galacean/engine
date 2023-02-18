@@ -526,6 +526,7 @@ export class Engine extends EventDispatcher {
     resourceManager._restoreGraphicResources();
 
     // Restore resources content
+    // @todo: await
     resourceManager._restoreResourcesContent();
 
     // Clear shader pools
