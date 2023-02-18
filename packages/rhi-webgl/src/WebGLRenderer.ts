@@ -384,6 +384,27 @@ export class WebGLRenderer implements IHardwareRenderer {
     extension.restoreContext();
   }
 
+  resetState(): void {
+    this._readFrameBuffer = undefined;
+
+    this._enableGlobalDepthBias = false;
+
+    this._currentBind = undefined;
+
+    this._renderStates = new GLRenderStates(this._gl);
+
+    this._activeTextureID = undefined;
+    const activeTextures = this._activeTextures;
+    for (let i = 0, n = activeTextures.length; i < n; i++) {
+      activeTextures[i] = undefined;
+    }
+
+    this._lastViewport.set(null, null, null, null);
+    this._lastScissor.set(null, null, null, null);
+    this._lastClearColor.set(null, null, null, null);
+    this._scissorEnable = false;
+  }
+
   destroy(): void {
     const webCanvas = this._webCanvas._webCanvas;
     webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
