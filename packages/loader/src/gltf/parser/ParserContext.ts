@@ -8,7 +8,7 @@ import {
   Texture2D,
   TypedArray
 } from "@oasis-engine/core";
-import { GLTFContentRestoreInfo } from "../../GLTFLoader";
+import { BufferRestoreInfo, GLTFContentRestoreInfo } from "../../GLTFLoader";
 import { GLTFResource } from "../GLTFResource";
 import { IGLTF } from "../Schema";
 
@@ -62,6 +62,7 @@ export class ParserContext {
 export class BufferInfo {
   vertexBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
+  restoreInfo: BufferRestoreInfo = new BufferRestoreInfo();
 
   constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
 }
