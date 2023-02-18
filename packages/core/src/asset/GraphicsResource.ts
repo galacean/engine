@@ -12,8 +12,11 @@ export abstract class GraphicsResource extends ReferResource {
    */
   abstract _rebuild(): void;
 
-  // destroy(force: boolean = false): boolean {
-  //   const success= super.destroy(force);
-  //   return success;
-  // }
+  /**
+   * @internal
+   */
+  _internalDestroy(): void {
+    this.engine.resourceManager._deleteGraphicResource(this);
+    super._internalDestroy();
+  }
 }

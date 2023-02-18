@@ -35,19 +35,8 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     if (!force && this._refCount !== 0) {
       return false;
     }
-    const resourceManager = this._engine.resourceManager;
-    // resourceManager maybe null,because engine has destroyed.
-    // @todo:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
-    if (resourceManager) {
-      super.destroy();
-      resourceManager._deleteReferResource(this);
-    }
 
-    const refCount = this._getRefCount();
-    if (refCount > 0) {
-      this._addRefCount(-refCount);
-    }
-    this._engine = null;
+    this._internalDestroy();
     this._onDestroy();
 
     return true;
@@ -72,6 +61,23 @@ export abstract class ReferResource extends EngineObject implements IReferable {
    */
   _addToResourceManager(path: string): void {
     this._engine.resourceManager._addAsset(path, this);
+  }
+
+  protected _internalDestroy(): void {
+    const resourceManager = this._engine.resourceManager;
+    // resourceManager maybe null,because engine has destroyed.
+    // @todo:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
+    if (resourceManager) {
+      super.destroy();
+      resourceManager._deleteReferResource(this);
+    }
+
+    const refCount = this._getRefCount();
+    if (refCount > 0) {
+      this._addRefCount(-refCount);
+    }
+
+    this._engine = null;
   }
 
   /**
