@@ -217,5 +217,6 @@ export class Texture2DArray extends Texture {
    */
   _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2DArray(this);
+    super._rebuild();
   }
 }

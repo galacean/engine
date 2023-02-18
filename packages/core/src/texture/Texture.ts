@@ -1,3 +1,4 @@
+import { threadId } from "worker_threads";
 import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
@@ -165,6 +166,19 @@ export abstract class Texture extends GraphicsResource {
       this._platformTexture.setUseDepthCompareMode(value);
       this._useDepthCompareMode = value;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _rebuild(): void {
+    const platformTexture = this._platformTexture;
+    platformTexture.wrapModeU = this._wrapModeU;
+    platformTexture.wrapModeV = this._wrapModeV;
+    platformTexture.filterMode = this._filterMode;
+    platformTexture.anisoLevel = this._anisoLevel;
+    platformTexture.depthCompareFunction = this._depthCompareFunction;
+    platformTexture.setUseDepthCompareMode(this._useDepthCompareMode);
   }
 
   /**

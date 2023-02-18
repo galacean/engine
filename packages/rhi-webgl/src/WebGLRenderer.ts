@@ -184,12 +184,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     }
 
     this._gl = gl;
-    this._activeTextureID = gl.TEXTURE0;
-    this._renderStates = new GLRenderStates(gl);
-    this._extensions = new GLExtensions(this);
-    this._capability = new GLCapability(this);
-    // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
-    gl.activeTexture(gl.TEXTURE0);
+    this._initGLState(gl);
 
     const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
     if (debugRenderInfo != null) {
@@ -391,9 +386,6 @@ export class WebGLRenderer implements IHardwareRenderer {
 
     this._currentBind = undefined;
 
-    this._renderStates = new GLRenderStates(this._gl);
-
-    this._activeTextureID = undefined;
     const activeTextures = this._activeTextures;
     for (let i = 0, n = activeTextures.length; i < n; i++) {
       activeTextures[i] = undefined;
@@ -403,6 +395,17 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._lastScissor.set(null, null, null, null);
     this._lastClearColor.set(null, null, null, null);
     this._scissorEnable = false;
+
+    this._initGLState(this._gl);
+  }
+
+  protected _initGLState(gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext): void {
+    this._activeTextureID = gl.TEXTURE0;
+    this._renderStates = new GLRenderStates(gl);
+    this._extensions = new GLExtensions(this);
+    this._capability = new GLCapability(this);
+    // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
+    gl.activeTexture(gl.TEXTURE0);
   }
 
   destroy(): void {

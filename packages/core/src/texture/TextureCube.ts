@@ -192,5 +192,6 @@ export class TextureCube extends Texture {
    */
   _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTextureCube(this);
+    super._rebuild();
   }
 }
