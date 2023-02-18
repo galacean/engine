@@ -40,7 +40,7 @@ export abstract class Loader<T> {
    */
   addContentRestoreInfo(engineObject: EngineObject, restoreInfo: ContentRestoreInfo): void {
     restoreInfo._loader = this;
-    engineObject.engine.resourceManager._addRestoreContentInfo(engineObject.instanceId, restoreInfo);
+    engineObject.engine.resourceManager._addRestoreContentInfo(engineObject, restoreInfo);
   }
 
   /**

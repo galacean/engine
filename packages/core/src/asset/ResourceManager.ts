@@ -165,30 +165,36 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addReferResource(instanceID: number, asset: ReferResource): void {
-    this._refResourcePool[instanceID] = asset;
+  _addReferResource(resource: ReferResource): void {
+    this._refResourcePool[resource.instanceId] = resource;
   }
 
   /**
    * @internal
    */
-  _deleteReferResource(instanceID: number): void {
-    delete this._refResourcePool[instanceID];
-  }
-
-  _addGraphicResource(instanceID: number, asset: GraphicsResource): void {
-    this._graphicResourcePool[instanceID] = asset;
-  }
-
-  _deleteGraphicResource(instanceID: number): void {
-    delete this._graphicResourcePool[instanceID];
+  _deleteReferResource(resource: EngineObject): void {
+    delete this._refResourcePool[resource.instanceId];
   }
 
   /**
    * @internal
    */
-  _addRestoreContentInfo(instanceID: number, restoreInfo: ContentRestoreInfo): void {
-    this._restoreContentInfoPool[instanceID] = restoreInfo;
+  _addGraphicResource(resource: GraphicsResource): void {
+    this._graphicResourcePool[resource.instanceId] = resource;
+  }
+
+  /**
+   * @internal
+   */
+  _deleteGraphicResource(resource: EngineObject): void {
+    delete this._graphicResourcePool[resource.instanceId];
+  }
+
+  /**
+   * @internal
+   */
+  _addRestoreContentInfo(resource: EngineObject, restoreInfo: ContentRestoreInfo): void {
+    this._restoreContentInfoPool[resource.instanceId] = restoreInfo;
   }
 
   /**

@@ -4,7 +4,7 @@ import { ReferResource } from "./ReferResource";
 export abstract class GraphicsResource extends ReferResource {
   protected constructor(engine: Engine) {
     super(engine);
-    engine.resourceManager._addGraphicResource(this.instanceId, this);
+    engine.resourceManager._addGraphicResource(this);
   }
 
   /**
