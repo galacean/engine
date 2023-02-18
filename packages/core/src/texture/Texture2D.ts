@@ -47,14 +47,6 @@ export class Texture2D extends Texture {
   }
 
   /**
-   * @internal
-   */
-  _rebuild(): void {
-    const platformTexture = <IPlatformTexture2D>this._engine._hardwareRenderer.createPlatformTexture2D(this);
-    this._platformTexture = platformTexture;
-  }
-
-  /**
    * Setting pixels data through color buffer data, designated area and texture mipmapping level,it's also applicable to compressed formats.
    * @remarks If it is the WebGL1.0 platform and the texture format is compressed, the first upload must be filled with textures.
    * @param colorBuffer - Color buffer data
@@ -175,5 +167,12 @@ export class Texture2D extends Texture {
         out
       );
     }
+  }
+
+  /**
+   * @internal
+   */
+  _rebuild(): void {
+    this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2D(this);
   }
 }

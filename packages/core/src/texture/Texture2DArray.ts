@@ -212,11 +212,10 @@ export class Texture2DArray extends Texture {
     }
   }
 
-   /**
+  /**
    * @override
    */
-   _rebuild(): void {
-    const platformTexture = <IPlatformTexture2DArray>this._engine._hardwareRenderer.createPlatformTexture2DArray(this);
-    this._platformTexture = platformTexture;
-   }
+  _rebuild(): void {
+    this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2DArray(this);
+  }
 }

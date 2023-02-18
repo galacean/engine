@@ -49,10 +49,7 @@ export abstract class Loader<T> {
    * @param restoreInfo - The restore info
    * @returns The promise of the restore content
    */
-  restoreContent(
-    host: EngineObject,
-    restoreInfo: ContentRestoreInfo
-  ): AssetPromise<T> | Record<string, AssetPromise<any>> {
-    throw "Restore content not implemented.";
+  restoreContent(host: EngineObject, restoreInfo: ContentRestoreInfo): AssetPromise<T> {
+    throw "Loader: Restore content not implemented.";
   }
 }

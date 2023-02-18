@@ -515,7 +515,17 @@ export class Engine extends EventDispatcher {
 
   private _onDeviceRestored(): void {
     this._isDeviceLost = false;
-    this.resourceManager._restoreGraphicResources();
+    const { resourceManager } = this;
+
+    // Restore graphic resources
+    resourceManager._restoreGraphicResources();
+
+    // Restore resources content
+    resourceManager._restoreResourcesContent();
+
+    // Clear shader pools
+    this._shaderProgramPools.length = 0;
+
     console.log("Engine: Device restored.");
     this.dispatch("deviceRestored", this);
   }

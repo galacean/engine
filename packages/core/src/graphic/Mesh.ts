@@ -1,6 +1,6 @@
 import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@oasis-engine/math";
-import { ReferResource } from "../asset/ReferResource";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
@@ -14,7 +14,7 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 /**
  * Mesh.
  */
-export abstract class Mesh extends ReferResource {
+export abstract class Mesh extends GraphicsResource {
   /** Name. */
   name: string;
 
@@ -194,6 +194,13 @@ export abstract class Mesh extends ReferResource {
     for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
       vertexBufferBindings[i]._buffer._addRefCount(value);
     }
+  }
+
+  /**
+   * @override
+   */
+  _rebuild(): void {
+   this._engine._hardwareRenderer.createPlatformPrimitive(this);
   }
 
   /**

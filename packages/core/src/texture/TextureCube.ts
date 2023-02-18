@@ -191,7 +191,6 @@ export class TextureCube extends Texture {
    * @override
    */
   _rebuild(): void {
-    const platformTexture = <IPlatformTextureCube>this._engine._hardwareRenderer.createPlatformTextureCube(this);
-    this._platformTexture = platformTexture;
+    this._platformTexture = this._engine._hardwareRenderer.createPlatformTextureCube(this);
   }
 }
