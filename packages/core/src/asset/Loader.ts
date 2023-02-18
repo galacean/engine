@@ -35,12 +35,12 @@ export abstract class Loader<T> {
 
   /**
    * Add content restore info to the engine object.
-   * @param engineObject - The engine object
+   * @param host - The host object to restore content
    * @param restoreInfo - The restore info
    */
-  addContentRestoreInfo(engineObject: EngineObject, restoreInfo: ContentRestoreInfo): void {
+  addContentRestoreInfo(host: EngineObject, restoreInfo: ContentRestoreInfo): void {
     restoreInfo._loader = this;
-    engineObject.engine.resourceManager._addRestoreContentInfo(engineObject, restoreInfo);
+    host.engine.resourceManager._addRestoreContentInfo(host, restoreInfo);
   }
 
   /**
