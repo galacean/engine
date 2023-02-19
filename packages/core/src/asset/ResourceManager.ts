@@ -217,17 +217,20 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _restoreResourcesContent(): void {
+  _restoreResourcesContent(): Promise<void[]> {
     const assetPool = this._assetPool;
     const assetUrlPool = this._assetUrlPool;
 
     const restoreContentInfoPool = this._restoreContentInfoPool;
+
+    const restorePromises: Promise<void>[] = [];
     for (const k in restoreContentInfoPool) {
       const restoreInfo = restoreContentInfoPool[k];
       const url = assetPool[k];
       const resource = <EngineObject>assetUrlPool[url];
-      restoreInfo._loader.restoreContent(resource, restoreInfo);
+      restorePromises.push(restoreInfo._loader.restoreContent(resource, restoreInfo));
     }
+    return Promise.all(restorePromises);
   }
 
   /**
