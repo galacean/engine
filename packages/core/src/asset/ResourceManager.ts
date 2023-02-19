@@ -38,13 +38,13 @@ export class ResourceManager {
 
   private _loadingPromises: Record<string, AssetPromise<any>> = {};
 
-  /** Asset path pool, key is asset ID, value is asset path. */
+  /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
   private _assetPool: Record<number, string> = Object.create(null);
-  /** Asset pool, the key is the asset path and the value is the asset. */
+  /** Asset url pool, key is the asset path and the value is the asset. */
   private _assetUrlPool: Record<string, Object> = Object.create(null);
 
   /** Referable resource pool, key is the `instanceID` of resource. */
-  private _refResourcePool: Record<number, ReferResource> = Object.create(null);
+  private _referResourcePool: Record<number, ReferResource> = Object.create(null);
   /** Graphic resource pool, key is the `instanceID` of resource. */
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
   /** Restorable resource information pool, key is the `instanceID` of resource. */
@@ -166,14 +166,14 @@ export class ResourceManager {
    * @internal
    */
   _addReferResource(resource: ReferResource): void {
-    this._refResourcePool[resource.instanceId] = resource;
+    this._referResourcePool[resource.instanceId] = resource;
   }
 
   /**
    * @internal
    */
   _deleteReferResource(resource: EngineObject): void {
-    delete this._refResourcePool[resource.instanceId];
+    delete this._referResourcePool[resource.instanceId];
   }
 
   /**
@@ -223,7 +223,7 @@ export class ResourceManager {
 
     const restoreContentInfoPool = this._restoreContentInfoPool;
 
-    const restorePromises: Promise<void>[] = [];
+    const restorePromises = new Array<Promise<void>>();
     for (const k in restoreContentInfoPool) {
       const restoreInfo = restoreContentInfoPool[k];
       const url = assetPool[k];
@@ -241,7 +241,7 @@ export class ResourceManager {
     this._gc(true);
     this._assetPool = null;
     this._assetUrlPool = null;
-    this._refResourcePool = null;
+    this._referResourcePool = null;
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
@@ -353,7 +353,7 @@ export class ResourceManager {
   }
 
   private _gc(forceDestroy: boolean): void {
-    const objects = ObjectValues(this._refResourcePool);
+    const objects = ObjectValues(this._referResourcePool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored || forceDestroy) {
         objects[i].destroy();
@@ -361,11 +361,11 @@ export class ResourceManager {
     }
   }
 
-  private _getResolveResource(resource: any, pathes: string[]): any {
+  private _getResolveResource(resource: any, paths: string[]): any {
     let subResource = resource;
-    if (pathes) {
-      for (let i = 0, n = pathes.length; i < n; i++) {
-        const path = pathes[i];
+    if (paths) {
+      for (let i = 0, n = paths.length; i < n; i++) {
+        const path = paths[i];
         subResource = subResource[path];
       }
     }
