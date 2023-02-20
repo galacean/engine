@@ -79,7 +79,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _capability: GLCapability;
   private _isWebGL2: boolean;
   private _renderer: string;
-  private _webCanvas: WebCanvas;
+  private _webCanvas: HTMLCanvasElement | OffscreenCanvas;
 
   private _activeTextureID: number;
   private _activeTextures: GLTexture[] = new Array(32);
@@ -146,7 +146,7 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   init(canvas: Canvas, onDeviceLost: () => void, onDeviceRestored: () => void): void {
     const options = this._options;
-    const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
+    const webCanvas = (canvas as WebCanvas)._webCanvas;
     const webGLMode = options.webGLMode;
 
     this._onDeviceLost = onDeviceLost;
@@ -154,6 +154,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
     webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    this._webCanvas = webCanvas;
 
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
@@ -409,7 +410,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   destroy(): void {
-    const webCanvas = this._webCanvas._webCanvas;
+    const webCanvas = this._webCanvas;
     webCanvas.removeEventListener("webglcontextcreationerror", this._onContextCreationError, false);
     webCanvas.removeEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.removeEventListener("webglcontextrestored", this._onWebGLContextRestored, false);

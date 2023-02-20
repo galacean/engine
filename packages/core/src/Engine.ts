@@ -369,20 +369,18 @@ export class Engine extends EventDispatcher {
 
     // Cancel animation
     this.pause();
+    
+    this._spriteMaskManager.destroy();
+    this._hardwareRenderer.destroy();
 
+    this.removeAllEventListeners();
+    
     this._animate = null;
-
     this._sceneManager = null;
     this._resourceManager = null;
     this._canvas = null;
     this._time = null;
 
-    // Delete mask manager
-    this._spriteMaskManager.destroy();
-
-    this._hardwareRenderer.destroy();
-
-    this.removeAllEventListeners();
     this._waitingDestroy = false;
     this._destroyed = true;
   }
