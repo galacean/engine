@@ -262,10 +262,10 @@ export class GLTFUtil {
   }
 
   static getBufferViewData(bufferView: IBufferView, buffers: ArrayBuffer[]): ArrayBuffer {
-    const { buffer, byteOffset = 0, byteLength } = bufferView;
-    const arrayBuffer = buffers[buffer];
+    const { byteOffset = 0 } = bufferView;
+    const arrayBuffer = buffers[bufferView.buffer];
 
-    return arrayBuffer.slice(byteOffset, byteOffset + byteLength);
+    return arrayBuffer.slice(byteOffset, byteOffset + bufferView.byteLength);
   }
 
   /**

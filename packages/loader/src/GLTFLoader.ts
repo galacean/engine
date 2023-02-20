@@ -71,7 +71,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
             buffers.length = bufferCount;
             for (let i = 0; i < bufferCount; i++) {
               const slice = glbBufferSlice[i];
-              buffers[i] = bigBuffer.slice(slice.x, slice.y);
+              buffers[i] = bigBuffer.slice(slice.x, slice.x + slice.y);
             }
           }
 
@@ -80,7 +80,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
             restoreInfo.bufferTextures.map((textureRestoreInfo) => {
               const { bufferView } = textureRestoreInfo;
               const buffer = buffers[bufferView.buffer];
-              const bufferData = buffer.slice(bufferView.byteOffset, bufferView.byteOffset + bufferView.byteLength);
+              const bufferData = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
 
               return GLTFUtil.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
                 textureRestoreInfo.texture.setImageSource(image);

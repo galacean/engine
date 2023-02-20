@@ -42,8 +42,10 @@ export class TextureParser extends Parser {
               });
           } else {
             const bufferView = gltf.bufferViews[bufferViewIndex];
-            const bufferViewData = GLTFUtil.getBufferViewData(bufferView, buffers);
-            return GLTFUtil.loadImageBuffer(bufferViewData, mimeType).then((image) => {
+            const buffer = buffers[bufferView.buffer];
+            const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
+
+            return GLTFUtil.loadImageBuffer(imageBuffer, mimeType).then((image) => {
               const texture = new Texture2D(engine, image.width, image.height);
               texture.setImageSource(image);
               texture.generateMipmaps();
