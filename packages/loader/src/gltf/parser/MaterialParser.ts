@@ -24,15 +24,15 @@ export class MaterialParser extends Parser {
   }
 
   parse(context: ParserContext): AssetPromise<Material[]> {
-    const { gltf, glTFResource } = context;
+    const { glTF, glTFResource } = context;
 
     const { engine, textures } = glTFResource;
-    if (!gltf.materials) return;
+    if (!glTF.materials) return;
 
     const materialsPromiseInfo = context.materialsPromiseInfo;
     const materials: Material[] = [];
 
-    for (let i = 0; i < gltf.materials.length; i++) {
+    for (let i = 0; i < glTF.materials.length; i++) {
       const {
         extensions = {},
         pbrMetallicRoughness,
@@ -44,7 +44,7 @@ export class MaterialParser extends Parser {
         alphaCutoff,
         doubleSided,
         name = ""
-      } = gltf.materials[i];
+      } = glTF.materials[i];
 
       const {
         KHR_materials_unlit,
@@ -149,9 +149,9 @@ export class MaterialParser extends Parser {
       }
 
       if (OASIS_materials_remap) {
-        gltf.extensions = gltf.extensions ?? {};
-        gltf.extensions["OASIS_materials_remap"] = gltf.extensions["OASIS_materials_remap"] ?? {};
-        gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
+        glTF.extensions = glTF.extensions ?? {};
+        glTF.extensions["OASIS_materials_remap"] = glTF.extensions["OASIS_materials_remap"] ?? {};
+        glTF.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
           "OASIS_materials_remap",
           OASIS_materials_remap,
           context

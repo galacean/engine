@@ -8,7 +8,7 @@ import { IKHRMaterialVariants_Mapping } from "./Schema";
 class KHR_materials_variants extends ExtensionParser {
   parseEngineResource(schema: IKHRMaterialVariants_Mapping, renderer: Renderer, context: ParserContext): void {
     const {
-      gltf: {
+      glTF: {
         extensions: {
           KHR_materials_variants: { variants: variantNames }
         }

@@ -426,7 +426,7 @@ export class GLTFUtil {
     glb: ArrayBuffer,
     requestConfig: RequestConfig
   ): {
-    gltf: IGLTF;
+    glTF: IGLTF;
     buffers: ArrayBuffer[];
   } {
     const UINT32_LENGTH = 4;
@@ -484,7 +484,7 @@ export class GLTFUtil {
     }
 
     return {
-      gltf,
+      glTF: gltf,
       buffers
     };
   }

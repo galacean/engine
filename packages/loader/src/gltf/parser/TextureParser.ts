@@ -13,14 +13,14 @@ export class TextureParser extends Parser {
   };
 
   parse(context: ParserContext): AssetPromise<Texture2D[]> {
-    const { glTFResource, gltf, buffers } = context;
+    const { glTFResource, glTF, buffers } = context;
     const { engine, url } = glTFResource;
 
-    if (gltf.textures) {
+    if (glTF.textures) {
       const texturesPromiseInfo = context.texturesPromiseInfo;
       AssetPromise.all(
-        gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
-          const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
+        glTF.textures.map(({ sampler, source = 0, name: textureName }, index) => {
+          const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = glTF.images[source];
           if (uri) {
             // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
             const index = uri.lastIndexOf(".");
@@ -36,12 +36,12 @@ export class TextureParser extends Parser {
                   texture.name = textureName || imageName || `texture_${index}`;
                 }
                 if (sampler !== undefined) {
-                  this._parseSampler(texture, gltf.samplers[sampler]);
+                  this._parseSampler(texture, glTF.samplers[sampler]);
                 }
                 return texture;
               });
           } else {
-            const bufferView = gltf.bufferViews[bufferViewIndex];
+            const bufferView = glTF.bufferViews[bufferViewIndex];
             const buffer = buffers[bufferView.buffer];
             const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
@@ -51,7 +51,7 @@ export class TextureParser extends Parser {
               texture.generateMipmaps();
               texture.name = textureName || imageName || `texture_${index}`;
               if (sampler !== undefined) {
-                this._parseSampler(texture, gltf.samplers[sampler]);
+                this._parseSampler(texture, glTF.samplers[sampler]);
               }
               const bufferTextureRestoreInfo = new BufferTextureRestoreInfo();
               context.contentRestoreInfo.bufferTextures.push(bufferTextureRestoreInfo);

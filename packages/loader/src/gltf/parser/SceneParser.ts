@@ -29,9 +29,9 @@ export class SceneParser extends Parser {
   }
 
   parse(context: ParserContext) {
-    const { glTFResource, gltf } = context;
+    const { glTFResource, glTF } = context;
     const { entities } = glTFResource;
-    const { nodes, cameras: gltfCameras } = gltf;
+    const { nodes, cameras: gltfCameras } = glTF;
 
     if (!nodes) return;
     const defaultSceneRootPromiseInfo = context.defaultSceneRootPromiseInfo;
@@ -54,7 +54,7 @@ export class SceneParser extends Parser {
 
       if (KHR_lights_punctual) {
         const lightIndex = KHR_lights_punctual.light;
-        const lights = (gltf.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
+        const lights = (glTF.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
 
         Parser.parseEngineResource("KHR_lights_punctual", lights[lightIndex], entity, context);
       }
@@ -64,7 +64,7 @@ export class SceneParser extends Parser {
       this._createAnimator(context);
     }
 
-    gltf.extensions && delete gltf.extensions["OASIS_materials_remap"];
+    glTF.extensions && delete glTF.extensions["OASIS_materials_remap"];
 
     AssetPromise.all(promises)
       .then(() => defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot))
@@ -114,7 +114,7 @@ export class SceneParser extends Parser {
   }
 
   private _createRenderer(context: ParserContext, gltfNode: INode, entity: Entity) {
-    const { glTFResource, gltf } = context;
+    const { glTFResource, glTF: gltf } = context;
     const { meshes: gltfMeshes } = gltf;
 
     const { engine, meshes, materials, skins } = glTFResource;

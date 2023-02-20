@@ -16,9 +16,9 @@ class KHR_draco_mesh_compression extends ExtensionParser {
     }
   }
 
-  createEngineResource(schema: IKHRDracoMeshCompression, context: ParserContext, gltfPrimitive: IMeshPrimitive) {
-    const { gltf, buffers } = context;
-    const { bufferViews, accessors } = gltf;
+  createEngineResource(schema: IKHRDracoMeshCompression, context: ParserContext, glTFPrimitive: IMeshPrimitive) {
+    const { glTF, buffers } = context;
+    const { bufferViews, accessors } = glTF;
     const { bufferView: bufferViewIndex, attributes: gltfAttributeMap } = schema;
 
     const attributeMap = {};
@@ -26,13 +26,13 @@ class KHR_draco_mesh_compression extends ExtensionParser {
     for (let attributeName in gltfAttributeMap) {
       attributeMap[attributeName] = gltfAttributeMap[attributeName];
     }
-    for (let attributeName in gltfPrimitive.attributes) {
+    for (let attributeName in glTFPrimitive.attributes) {
       if (gltfAttributeMap[attributeName] !== undefined) {
-        const accessorDef = accessors[gltfPrimitive.attributes[attributeName]];
+        const accessorDef = accessors[glTFPrimitive.attributes[attributeName]];
         attributeTypeMap[attributeName] = GLTFUtil.getComponentType(accessorDef.componentType).name;
       }
     }
-    const indexAccessor = accessors[gltfPrimitive.indices];
+    const indexAccessor = accessors[glTFPrimitive.indices];
     const indexType = GLTFUtil.getComponentType(indexAccessor.componentType).name;
     const taskConfig = {
       attributeIDs: attributeMap,

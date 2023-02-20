@@ -20,9 +20,9 @@ import { ParserContext } from "./ParserContext";
 
 export class AnimationParser extends Parser {
   parse(context: ParserContext): AssetPromise<AnimationClip[]> {
-    const { gltf, buffers, glTFResource } = context;
+    const { glTF, buffers, glTFResource } = context;
     const { entities } = glTFResource;
-    const { animations, accessors, bufferViews } = gltf;
+    const { animations, accessors, bufferViews } = glTF;
     if (!animations) {
       return;
     }

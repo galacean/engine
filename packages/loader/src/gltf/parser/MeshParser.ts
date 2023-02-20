@@ -20,15 +20,15 @@ export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
 
   parse(context: ParserContext) {
-    const { gltf, buffers, glTFResource } = context;
+    const { glTF, buffers, glTFResource } = context;
     const { engine } = glTFResource;
-    if (!gltf.meshes) return;
+    if (!glTF.meshes) return;
 
     const meshesPromiseInfo = context.meshesPromiseInfo;
     const meshPromises: Promise<ModelMesh[]>[] = [];
 
-    for (let i = 0; i < gltf.meshes.length; i++) {
-      const gltfMesh = gltf.meshes[i];
+    for (let i = 0; i < glTF.meshes.length; i++) {
+      const gltfMesh = glTF.meshes[i];
       const primitivePromises: Promise<ModelMesh>[] = [];
 
       for (let j = 0; j < gltfMesh.primitives.length; j++) {
@@ -55,7 +55,7 @@ export class MeshParser extends Parser {
                   mesh,
                   gltfMesh,
                   gltfPrimitive,
-                  gltf,
+                  glTF,
                   (attributeSemantic) => {
                     for (let j = 0; j < decodedGeometry.attributes.length; j++) {
                       if (decodedGeometry.attributes[j].name === attributeSemantic) {
@@ -81,7 +81,7 @@ export class MeshParser extends Parser {
               meshRestoreInfo,
               gltfMesh,
               gltfPrimitive,
-              gltf,
+              glTF,
               (attributeSemantic) => {
                 return null;
               },
@@ -89,7 +89,7 @@ export class MeshParser extends Parser {
                 const shapeAccessorIdx = gltfPrimitive.targets[shapeIndex];
                 const attributeAccessorIdx = shapeAccessorIdx[attributeName];
                 if (attributeAccessorIdx) {
-                  const accessor = gltf.accessors[attributeAccessorIdx];
+                  const accessor = glTF.accessors[attributeAccessorIdx];
 
                   let shapeAccessors = meshRestoreInfo.blendShapeAccessors[shapeIndex];
                   if (!shapeAccessors) {
@@ -98,14 +98,14 @@ export class MeshParser extends Parser {
                   }
                   shapeAccessors[attributeName] = accessor;
 
-                  return GLTFUtil.getAccessorData(gltf, accessor, buffers);
+                  return GLTFUtil.getAccessorData(glTF, accessor, buffers);
                 } else {
                   return null;
                 }
               },
               () => {
-                const indexAccessor = gltf.accessors[gltfPrimitive.indices];
-                return GLTFUtil.getAccessorData(gltf, indexAccessor, buffers);
+                const indexAccessor = glTF.accessors[gltfPrimitive.indices];
+                return GLTFUtil.getAccessorData(glTF, indexAccessor, buffers);
               },
               context.keepMeshData
             ).then(resolve);

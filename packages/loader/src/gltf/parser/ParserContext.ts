@@ -16,7 +16,7 @@ import { IGLTF } from "../Schema";
  * @internal
  */
 export class ParserContext {
-  gltf: IGLTF;
+  glTF: IGLTF;
   buffers: ArrayBuffer[];
   glTFResource: GLTFResource;
   keepMeshData: boolean;
