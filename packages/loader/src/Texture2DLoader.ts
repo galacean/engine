@@ -33,8 +33,6 @@ class Texture2DLoader extends Loader<Texture2D> {
             params?.format,
             params?.mipmap
           );
-          // @ts-ignore
-          if (!texture._platformTexture) return;
 
           texture.setImageSource(image);
           texture.generateMipmaps();
