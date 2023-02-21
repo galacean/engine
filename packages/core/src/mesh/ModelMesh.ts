@@ -703,24 +703,26 @@ export class ModelMesh extends Mesh {
       }
     }
 
-    const { _indices: indices } = this;
-    const indexBuffer = this._indexBufferBinding?._buffer;
-    if (indices) {
-      if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
-        indexBuffer?.destroy();
-        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
-        this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
-        this._indicesChangeFlag = false;
-      } else if (this._indicesChangeFlag) {
-        indexBuffer.setData(indices);
-        if (this._indexBufferBinding._format !== this._indicesFormat) {
-          this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
+    if (this._indicesChangeFlag) {
+      const { _indices: indices } = this;
+      const indexBuffer = this._indexBufferBinding?._buffer;
+      if (indices) {
+        if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
+          indexBuffer?.destroy();
+          const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
+          this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
+        } else {
+          indexBuffer.setData(indices);
+          if (this._indexBufferBinding._format !== this._indicesFormat) {
+            this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
+          }
         }
-        this._indicesChangeFlag = false;
+      } else if (indexBuffer) {
+        indexBuffer.destroy();
+        this._setIndexBufferBinding(null);
       }
-    } else if (indexBuffer) {
-      indexBuffer.destroy();
-      this._setIndexBufferBinding(null);
+
+      this._indicesChangeFlag = false;
     }
 
     const { _blendShapeManager: blendShapeManager } = this;
