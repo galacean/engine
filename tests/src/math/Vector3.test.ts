@@ -260,6 +260,6 @@ describe("Vector3 test", () => {
 
   it("toJSON", () => {
     const a = new Vector3(2, 3, 4);
-    expect(JSON.stringify(a)).to.eq("{x:2,y:3,z:4}");
+    expect(JSON.stringify(a)).to.eq('{"x":2,"y":3,"z":4}');
   });
 });
