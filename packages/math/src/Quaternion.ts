@@ -758,7 +758,7 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
   }
 
   /**
-   * JSON JSON serialization.
+   * Serialize this quaternion to a JSON representation.
    * @returns A JSON Object representation of this quaternion
    */
   toJSON(): QuaternionLike {

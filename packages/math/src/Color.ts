@@ -305,7 +305,7 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
   }
 
   /**
-   * JSON serialization.
+   * Serialize this color to a JSON representation.
    * @return A JSON representation of this color
    */
   toJSON(): ColorLike {
