@@ -2,7 +2,6 @@ import "./AnimatorControllerLoader";
 import "./BufferLoader";
 import "./EnvLoader";
 import "./FontLoader";
-import "./gltf/extensions/index";
 import "./GLTFLoader";
 import "./HDRLoader";
 import "./JSONLoader";
@@ -23,4 +22,3 @@ export * from "./resource-deserialize";
 export * from "./SceneLoader";
 export type { Texture2DParams } from "./Texture2DLoader";
 export * from "./gltf";
-

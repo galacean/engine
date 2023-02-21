@@ -31,7 +31,7 @@ export abstract class Parser {
     const parsers = Parser._extensionParsers[extensionName];
 
     if (parsers?.length) {
-      return parsers[0].createEngineResource(extensionSchema, context, ...extra) as T;
+      return parsers[parsers.length - 1].createEngineResource(extensionSchema, context, ...extra) as T;
     }
   }
 
