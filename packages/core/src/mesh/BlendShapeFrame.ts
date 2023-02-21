@@ -1,4 +1,5 @@
 import { Vector3 } from "@oasis-engine/math";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * BlendShapeFrame.
@@ -8,8 +9,9 @@ export class BlendShapeFrame {
   readonly weight: number;
 
   /** @internal */
-  _dirty: BlendShapeDirty = BlendShapeDirty.All;
+  _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
 
+  private _dirty: BlendShapeFrameDirty = BlendShapeFrameDirty.All;
   private _deltaPositions: Vector3[];
   private _deltaNormals: Vector3[];
   private _deltaTangents: Vector3[];
@@ -24,7 +26,8 @@ export class BlendShapeFrame {
 
   set deltaPositions(value: Vector3[]) {
     this._deltaPositions = value;
-    this._dirty |= BlendShapeDirty.Position;
+    this._dirty |= BlendShapeFrameDirty.Position;
+    this._dataChangeManager.dispatch(this._dirty, this);
   }
 
   /**
@@ -37,7 +40,8 @@ export class BlendShapeFrame {
 
   set deltaNormals(value: Vector3[]) {
     this._deltaNormals = value;
-    this._dirty |= BlendShapeDirty.Normal;
+    this._dirty |= BlendShapeFrameDirty.Normal;
+    this._dataChangeManager.dispatch(this._dirty, this);
   }
 
   /**
@@ -50,7 +54,8 @@ export class BlendShapeFrame {
 
   set deltaTangents(value: Vector3[]) {
     this._deltaTangents = value;
-    this._dirty |= BlendShapeDirty.Tangent;
+    this._dirty |= BlendShapeFrameDirty.Tangent;
+    this._dataChangeManager.dispatch(this._dirty, this);
   }
 
   /**
@@ -90,7 +95,7 @@ export class BlendShapeFrame {
   }
 }
 
-enum BlendShapeDirty {
+export enum BlendShapeFrameDirty {
   Position = 0x1,
   Normal = 0x2,
   Tangent = 0x4,
