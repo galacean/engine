@@ -377,7 +377,7 @@ export class Vector2 implements IClone<Vector2>, ICopy<Vector2Like, Vector2> {
 
   /**
    * JSON serialization.
-   * @returns A string representation of this vector
+   * @returns A JSON representation of this vector
    */
   toJSON(): Vector2Like {
     return {
