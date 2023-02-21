@@ -22,16 +22,16 @@ export abstract class Parser {
     }
   }
 
-  static createEngineResource<T extends EngineObject>(
+  static createEngineResource(
     extensionName: string,
     extensionSchema: ExtensionSchema,
     context: ParserContext,
     ...extra
-  ): T | Promise<T> {
+  ): EngineObject | Promise<EngineObject> {
     const parsers = Parser._extensionParsers[extensionName];
 
     if (parsers?.length) {
-      return parsers[parsers.length - 1].createEngineResource(extensionSchema, context, ...extra) as T;
+      return parsers[parsers.length - 1].createEngineResource(extensionSchema, context, ...extra);
     }
   }
 

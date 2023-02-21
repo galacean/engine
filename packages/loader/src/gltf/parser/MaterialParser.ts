@@ -1,7 +1,9 @@
 import {
   AssetPromise,
+  BaseMaterial,
   Logger,
   Material,
+  PBRBaseMaterial,
   PBRMaterial,
   PBRSpecularMaterial,
   RenderFace,
@@ -9,7 +11,7 @@ import {
   UnlitMaterial
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
-import { ITextureInfo, MaterialAlphaMode } from "../Schema";
+import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
@@ -24,163 +26,168 @@ export class MaterialParser extends Parser {
   }
 
   parse(context: ParserContext): AssetPromise<Material[]> {
-    const { gltf, glTFResource } = context;
-
-    const { engine, textures } = glTFResource;
+    const { gltf, glTFResource, materialsPromiseInfo } = context;
     if (!gltf.materials) return;
 
-    const materialsPromiseInfo = context.materialsPromiseInfo;
-    const materials: Material[] = [];
+    const { engine } = glTFResource;
+
+    let promises = [];
 
     for (let i = 0; i < gltf.materials.length; i++) {
-      const {
-        extensions = {},
-        pbrMetallicRoughness,
-        normalTexture,
-        occlusionTexture,
-        emissiveTexture,
-        emissiveFactor,
-        alphaMode,
-        alphaCutoff,
-        doubleSided,
-        name = ""
-      } = gltf.materials[i];
+      const materialInfo = gltf.materials[i];
+      const { extensions = {}, name = "" } = materialInfo;
 
-      const {
-        KHR_materials_unlit,
-        KHR_materials_pbrSpecularGlossiness,
-        KHR_materials_clearcoat,
-        OASIS_materials_remap
-      } = extensions;
+      const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat, ...otherExtensions } =
+        extensions;
+      let material: BaseMaterial | Promise<BaseMaterial> = null;
 
-      let material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial = null;
-
-      if (KHR_materials_unlit) {
-        material = <UnlitMaterial>Parser.createEngineResource("KHR_materials_unlit", KHR_materials_unlit, context);
-      } else if (KHR_materials_pbrSpecularGlossiness) {
-        material = <PBRSpecularMaterial>(
-          Parser.createEngineResource(
-            "KHR_materials_pbrSpecularGlossiness",
-            KHR_materials_pbrSpecularGlossiness,
-            context
-          )
-        );
-      } else {
-        material = new PBRMaterial(engine);
+      for (let name in otherExtensions) {
+        if (Parser.hasExtensionParser(name)) {
+          material = <Promise<any>>Parser.createEngineResource(name, otherExtensions[name], context);
+          if (material) {
+            break;
+          }
+        }
       }
 
-      material.name = name;
-
-      if (KHR_materials_clearcoat) {
-        Parser.parseEngineResource("KHR_materials_clearcoat", KHR_materials_clearcoat, material, context);
-      }
-
-      if (pbrMetallicRoughness) {
-        const { baseColorFactor, baseColorTexture, metallicFactor, roughnessFactor, metallicRoughnessTexture } =
-          pbrMetallicRoughness;
-
-        if (baseColorFactor) {
-          material.baseColor = new Color(
-            Color.linearToGammaSpace(baseColorFactor[0]),
-            Color.linearToGammaSpace(baseColorFactor[1]),
-            Color.linearToGammaSpace(baseColorFactor[2]),
-            baseColorFactor[3]
+      if (!material) {
+        if (KHR_materials_unlit) {
+          material = <UnlitMaterial>Parser.createEngineResource("KHR_materials_unlit", KHR_materials_unlit, context);
+        } else if (KHR_materials_pbrSpecularGlossiness) {
+          material = <PBRSpecularMaterial>(
+            Parser.createEngineResource(
+              "KHR_materials_pbrSpecularGlossiness",
+              KHR_materials_pbrSpecularGlossiness,
+              context
+            )
           );
+        } else {
+          material = new PBRMaterial(engine);
         }
-        if (baseColorTexture) {
-          material.baseTexture = textures[baseColorTexture.index];
-          const KHR_texture_transform = baseColorTexture.extensions?.KHR_texture_transform;
-          if (KHR_texture_transform) {
-            Parser.parseEngineResource("KHR_texture_transform", KHR_texture_transform, material, context);
-          }
-        }
-
-        if (!KHR_materials_unlit && !KHR_materials_pbrSpecularGlossiness) {
-          const m = material as PBRMaterial;
-          m.metallic = metallicFactor ?? 1;
-          m.roughness = roughnessFactor ?? 1;
-          if (metallicRoughnessTexture) {
-            m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
-            MaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
-          }
-        }
+        material.name = name;
+        this._parseGLTFMaterial(material, materialInfo, context);
       }
 
-      if (!KHR_materials_unlit) {
-        const m = material as PBRMaterial | PBRSpecularMaterial;
-
-        if (emissiveTexture) {
-          m.emissiveTexture = textures[emissiveTexture.index];
-          MaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
-        }
-
-        if (emissiveFactor) {
-          m.emissiveColor = new Color(
-            Color.linearToGammaSpace(emissiveFactor[0]),
-            Color.linearToGammaSpace(emissiveFactor[1]),
-            Color.linearToGammaSpace(emissiveFactor[2])
-          );
-        }
-
-        if (normalTexture) {
-          const { index, scale } = normalTexture;
-          m.normalTexture = textures[index];
-          MaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
-
-          if (scale !== undefined) {
-            m.normalTextureIntensity = scale;
-          }
-        }
-
-        if (occlusionTexture) {
-          const { index, strength, texCoord } = occlusionTexture;
-          m.occlusionTexture = textures[index];
-          MaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
-
-          if (strength !== undefined) {
-            m.occlusionTextureIntensity = strength;
-          }
-          if (texCoord === TextureCoordinate.UV1) {
-            m.occlusionTextureCoord = TextureCoordinate.UV1;
-          } else if (texCoord > TextureCoordinate.UV1) {
-            Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
-          }
-        }
-      }
-
-      if (OASIS_materials_remap) {
-        gltf.extensions = gltf.extensions ?? {};
-        gltf.extensions["OASIS_materials_remap"] = gltf.extensions["OASIS_materials_remap"] ?? {};
-        gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
-          "OASIS_materials_remap",
-          OASIS_materials_remap,
-          context
-        );
-      }
-
-      if (doubleSided) {
-        material.renderFace = RenderFace.Double;
-      } else {
-        material.renderFace = RenderFace.Front;
-      }
-
-      switch (alphaMode) {
-        case MaterialAlphaMode.OPAQUE:
-          material.isTransparent = false;
-          break;
-        case MaterialAlphaMode.BLEND:
-          material.isTransparent = true;
-          break;
-        case MaterialAlphaMode.MASK:
-          material.alphaCutoff = alphaCutoff ?? 0.5;
-          break;
-      }
-
-      materials[i] = material;
+      promises.push(material);
     }
 
-    glTFResource.materials = materials;
-    materialsPromiseInfo.resolve(materials);
-    return materialsPromiseInfo.promise;
+    return AssetPromise.all(promises).then((materials) => {
+      glTFResource.materials = materials;
+      materialsPromiseInfo.resolve(materials);
+      return materialsPromiseInfo.promise;
+    });
+  }
+
+  private _parseGLTFMaterial(material: BaseMaterial, materialInfo: IMaterial, context: ParserContext) {
+    const { textures } = context.glTFResource;
+    const {
+      extensions = {},
+      pbrMetallicRoughness,
+      normalTexture,
+      occlusionTexture,
+      emissiveTexture,
+      emissiveFactor,
+      alphaMode,
+      alphaCutoff,
+      doubleSided
+    } = materialInfo;
+
+    const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat } = extensions;
+
+    if (KHR_materials_clearcoat) {
+      Parser.parseEngineResource("KHR_materials_clearcoat", KHR_materials_clearcoat, material, context);
+    }
+
+    if (pbrMetallicRoughness) {
+      const m = material as PBRBaseMaterial;
+      const { baseColorFactor, baseColorTexture, metallicFactor, roughnessFactor, metallicRoughnessTexture } =
+        pbrMetallicRoughness;
+
+      if (baseColorFactor) {
+        m.baseColor = new Color(
+          Color.linearToGammaSpace(baseColorFactor[0]),
+          Color.linearToGammaSpace(baseColorFactor[1]),
+          Color.linearToGammaSpace(baseColorFactor[2]),
+          baseColorFactor[3]
+        );
+      }
+      if (baseColorTexture) {
+        m.baseTexture = textures[baseColorTexture.index];
+        const KHR_texture_transform = baseColorTexture.extensions?.KHR_texture_transform;
+        if (KHR_texture_transform) {
+          Parser.parseEngineResource("KHR_texture_transform", KHR_texture_transform, material, context);
+        }
+      }
+
+      if (!KHR_materials_unlit && !KHR_materials_pbrSpecularGlossiness) {
+        const m = material as PBRMaterial;
+        m.metallic = metallicFactor ?? 1;
+        m.roughness = roughnessFactor ?? 1;
+        if (metallicRoughnessTexture) {
+          m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
+          MaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
+        }
+      }
+    }
+
+    if (!KHR_materials_unlit) {
+      const m = material as PBRBaseMaterial;
+
+      if (emissiveTexture) {
+        m.emissiveTexture = textures[emissiveTexture.index];
+        MaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
+      }
+
+      if (emissiveFactor) {
+        m.emissiveColor = new Color(
+          Color.linearToGammaSpace(emissiveFactor[0]),
+          Color.linearToGammaSpace(emissiveFactor[1]),
+          Color.linearToGammaSpace(emissiveFactor[2])
+        );
+      }
+
+      if (normalTexture) {
+        const { index, scale } = normalTexture;
+        m.normalTexture = textures[index];
+        MaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
+
+        if (scale !== undefined) {
+          m.normalTextureIntensity = scale;
+        }
+      }
+
+      if (occlusionTexture) {
+        const { index, strength, texCoord } = occlusionTexture;
+        m.occlusionTexture = textures[index];
+        MaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
+
+        if (strength !== undefined) {
+          m.occlusionTextureIntensity = strength;
+        }
+        if (texCoord === TextureCoordinate.UV1) {
+          m.occlusionTextureCoord = TextureCoordinate.UV1;
+        } else if (texCoord > TextureCoordinate.UV1) {
+          Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
+        }
+      }
+    }
+
+    if (doubleSided) {
+      material.renderFace = RenderFace.Double;
+    } else {
+      material.renderFace = RenderFace.Front;
+    }
+
+    switch (alphaMode) {
+      case MaterialAlphaMode.OPAQUE:
+        material.isTransparent = false;
+        break;
+      case MaterialAlphaMode.BLEND:
+        material.isTransparent = true;
+        break;
+      case MaterialAlphaMode.MASK:
+        material.alphaCutoff = alphaCutoff ?? 0.5;
+        break;
+    }
   }
 }

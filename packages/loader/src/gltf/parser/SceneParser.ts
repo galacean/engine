@@ -3,7 +3,6 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
-  AssetPromise,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -36,8 +35,6 @@ export class SceneParser extends Parser {
     if (!nodes) return;
     const defaultSceneRootPromiseInfo = context.defaultSceneRootPromiseInfo;
 
-    const promises = [];
-
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
       const { camera: cameraID, mesh: meshID, extensions = {} } = gltfNode;
@@ -49,7 +46,7 @@ export class SceneParser extends Parser {
       }
 
       if (meshID !== undefined) {
-        promises.push(this._createRenderer(context, gltfNode, entity));
+        this._createRenderer(context, gltfNode, entity);
       }
 
       if (KHR_lights_punctual) {
@@ -64,11 +61,7 @@ export class SceneParser extends Parser {
       this._createAnimator(context);
     }
 
-    gltf.extensions && delete gltf.extensions["OASIS_materials_remap"];
-
-    AssetPromise.all(promises)
-      .then(() => defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot))
-      .catch(defaultSceneRootPromiseInfo.reject);
+    defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
 
     return defaultSceneRootPromiseInfo.promise;
   }
@@ -123,7 +116,6 @@ export class SceneParser extends Parser {
     const gltfMeshPrimitives = glTFMesh.primitives;
     const blendShapeWeights = gltfNode.weights || glTFMesh.weights;
 
-    const promises = [];
     for (let i = 0; i < gltfMeshPrimitives.length; i++) {
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
@@ -145,17 +137,8 @@ export class SceneParser extends Parser {
       }
 
       const materialIndex = gltfMeshPrimitives[i].material;
-      const remapMaterials = gltf.extensions && gltf.extensions["OASIS_materials_remap"];
-      if (remapMaterials && remapMaterials[materialIndex]) {
-        promises.push(
-          remapMaterials[materialIndex].then((mtl) => {
-            renderer.setMaterial(mtl);
-          })
-        );
-      } else {
-        const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
-        renderer.setMaterial(material);
-      }
+      const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
+      renderer.setMaterial(material);
 
       const { extensions = {} } = gltfMeshPrimitives[i];
       const { KHR_materials_variants } = extensions;
@@ -163,7 +146,6 @@ export class SceneParser extends Parser {
         Parser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context);
       }
     }
-    return Promise.all(promises);
   }
 
   private _createAnimator(context: ParserContext): void {

@@ -18,8 +18,9 @@ export class Validator extends Parser {
     if (extensionsUsed) {
       Logger.info("extensionsUsed: ", extensionsUsed);
       for (let i = 0; i < extensionsUsed.length; i++) {
-        if (!Parser.hasExtensionParser(extensionsUsed[i])) {
-          Logger.warn(`Extension ${extensionsUsed[i]} is not implemented, you can customize this extension in gltf.`);
+        const extensionUsed = extensionsUsed[i];
+        if (!Parser.hasExtensionParser(extensionUsed)) {
+          Logger.warn(`Extension ${extensionUsed} is not implemented, you can customize this extension in gltf.`);
         }
       }
     }
