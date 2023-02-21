@@ -1,11 +1,11 @@
 import { UpdateFlag } from "./UpdateFlag";
 
 /**
- * Used to update tags.
+ * Bool update flag.
  */
 export class BoolUpdateFlag extends UpdateFlag {
-  /** Flag. */
-  flag = true;
+  /** Bool flag. */
+  flag: boolean = true;
 
   /**
    * @inheritdoc

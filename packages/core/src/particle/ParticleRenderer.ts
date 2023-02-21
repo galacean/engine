@@ -7,12 +7,13 @@ import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { Material } from "../material/Material";
 import { BlendFactor } from "../shader/enums/BlendFactor";
-import { RenderQueueType } from "../material/enums/RenderQueueType";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader, CullMode } from "../shader";
 import { Texture } from "../texture";
 import { MeshRenderer } from "../mesh/MeshRenderer";
 import { GLCapabilityType } from "../base/Constant";
 import { BufferMesh } from "../mesh/BufferMesh";
+import { ignoreClone } from "../clone/CloneManager";
 
 enum DirtyFlagType {
   Position = 0x1,
@@ -200,8 +201,7 @@ export class ParticleRenderer extends MeshRenderer {
   }
 
   set color(value: Color) {
-    this._updateDirtyFlag |= DirtyFlagType.Color;
-    this._color = value;
+    this._color.copyFrom(value);
   }
 
   /**
@@ -534,6 +534,10 @@ export class ParticleRenderer extends MeshRenderer {
   constructor(props) {
     super(props);
 
+    this._onColorChanged = this._onColorChanged.bind(this);
+    //@ts-ignore
+    this._color._onValueChanged = this._onColorChanged;
+
     this.setMaterial(this._createMaterial());
   }
 
@@ -600,7 +604,7 @@ export class ParticleRenderer extends MeshRenderer {
 
     renderState.depthState.writeEnabled = false;
 
-    material.renderQueueType = RenderQueueType.Transparent;
+    material.renderState.renderQueueType = RenderQueueType.Transparent;
 
     this.isUseOriginColor = true;
     this.is2d = true;
@@ -926,5 +930,10 @@ export class ParticleRenderer extends MeshRenderer {
     vertices[k2 + 23] = 0.5;
     vertices[k3 + 22] = -0.5;
     vertices[k3 + 23] = 0.5;
+  }
+
+  @ignoreClone
+  private _onColorChanged(): void {
+    this._updateDirtyFlag |= DirtyFlagType.Color;
   }
 }

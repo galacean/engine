@@ -16,14 +16,17 @@ class SpriteLoader extends Loader<Sprite> {
       this.request<any>(item.url, {
         ...item,
         type: "json"
-      }).then((data) => {
-        resourceManager.getResourceByRef<Texture2D>(data.texture).then((texture) => {
-          const sprite = new Sprite(resourceManager.engine, texture);
-          sprite.region = data.region;
-          sprite.pivot = data.pivot;
-          resolve(sprite);
-        });
-      });
+      })
+        .then((data) => {
+          // @ts-ignore
+          resourceManager.getResourceByRef<Texture2D>(data.texture).then((texture) => {
+            const sprite = new Sprite(resourceManager.engine, texture);
+            sprite.region = data.region;
+            sprite.pivot = data.pivot;
+            resolve(sprite);
+          });
+        })
+        .catch(reject);
     });
   }
 }

@@ -31,7 +31,7 @@ export class RenderQueue {
   private _spriteBatcher: SpriteBatcher;
 
   constructor(engine: Engine) {
-    this._spriteBatcher = new SpriteBatcher(engine);
+    this._initSpriteBatcher(engine);
   }
 
   /**
@@ -41,7 +41,7 @@ export class RenderQueue {
     this.items.push(element);
   }
 
-  render(camera: Camera, replaceMaterial: Material, mask: Layer) {
+  render(camera: Camera, replaceMaterial: Material, mask: Layer, customShader: Shader): void {
     const items = this.items;
     if (items.length === 0) {
       return;
@@ -67,7 +67,7 @@ export class RenderQueue {
         const compileMacros = Shader._compileMacros;
         const element = <MeshRenderElement>item;
         const renderer = element.component;
-        const material = element.material;
+        const material = element.material.destroyed ? engine._magentaMaterial : element.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
 
@@ -81,7 +81,13 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = (replaceMaterial || material).shader._getShaderProgram(engine, compileMacros);
+        // @todo: temporary solution
+        const program = (
+          customShader?.passes[0] ||
+          replaceMaterial?.shader.passes[0] ||
+          element.shaderPass
+        )._getShaderProgram(engine, compileMacros);
+
         if (!program.isValid) {
           continue;
         }
@@ -97,11 +103,19 @@ export class RenderQueue {
           program.uploadAll(program.materialUniformBlock, materialData);
           // UnGroup textures should upload default value, texture uint maybe change by logic of texture bind.
           program.uploadUnGroupTextures();
+          program._uploadScene = scene;
           program._uploadCamera = camera;
           program._uploadRenderer = renderer;
           program._uploadMaterial = material;
           program._uploadRenderCount = renderCount;
         } else {
+          if (program._uploadScene !== scene) {
+            program.uploadAll(program.sceneUniformBlock, sceneData);
+            program._uploadScene = scene;
+          } else if (switchProgram) {
+            program.uploadTextures(program.sceneUniformBlock, sceneData);
+          }
+
           if (program._uploadCamera !== camera) {
             program.uploadAll(program.cameraUniformBlock, cameraData);
             program._uploadCamera = camera;
@@ -128,7 +142,7 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        material.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+        element.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
@@ -161,6 +175,14 @@ export class RenderQueue {
    */
   sort(compareFunc: Function): void {
     this._quickSort(this.items, 0, this.items.length, compareFunc);
+  }
+
+  /**
+   * @internal
+   * Standalone for CanvasRenderer plugin.
+   */
+  _initSpriteBatcher(engine: Engine): void {
+    this._spriteBatcher = new SpriteBatcher(engine);
   }
 
   /**

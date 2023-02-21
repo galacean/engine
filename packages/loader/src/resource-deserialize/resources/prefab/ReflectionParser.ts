@@ -1,31 +1,21 @@
 import { Engine, Entity, Loader } from "@oasis-engine/core";
-import { IBasicType, IClassObject, IEntity, IReferenceType } from "./PrefabDesign";
+import { IBasicType, IClassObject, IEntity, IAssetRef } from "./PrefabDesign";
 
 export class ReflectionParser {
+  static customParseComponentHandles = new Map<string, Function>();
+
+  static registerCustomParseComponent(componentType: string, handle: Function) {
+    this.customParseComponentHandles[componentType] = handle;
+  }
+
   static parseEntity(entityConfig: IEntity, engine: Engine): Promise<Entity> {
     return ReflectionParser.getEntityByConfig(entityConfig, engine).then((entity) => {
       entity.isActive = entityConfig.isActive ?? true;
       const { position, rotation, scale } = entityConfig;
-      if (position) {
-        entity.transform.setPosition(position.x, position.y, position.z);
-      }
-      if (rotation) {
-        entity.transform.setRotation(rotation.x, rotation.y, rotation.z);
-      }
-      if (scale) {
-        entity.transform.setScale(scale.x, scale.y, scale.z);
-      }
-      const promises = [];
-      for (let i = 0; i < entityConfig.components.length; i++) {
-        const componentConfig = entityConfig.components[i];
-        const key = !componentConfig.refId ? componentConfig.class : componentConfig.refId;
-        const component = entity.addComponent(Loader.getClass(key));
-        const promise = this.parsePropsAndMethods(component, componentConfig, engine);
-        promises.push(promise);
-      }
-      return Promise.all(promises).then(() => {
-        return entity;
-      });
+      if (position) entity.transform.position.copyFrom(position);
+      if (rotation) entity.transform.rotation.copyFrom(rotation);
+      if (scale) entity.transform.scale.copyFrom(scale);
+      return entity;
     });
   }
 
@@ -33,8 +23,15 @@ export class ReflectionParser {
     // @ts-ignore
     const assetRefId: string = entityConfig.assetRefId;
     if (assetRefId) {
-      // @ts-ignore
-      return engine.resourceManager.getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key });
+      return (
+        engine.resourceManager
+          // @ts-ignore
+          .getResourceByRef<Entity>({ refId: assetRefId, key: entityConfig.key, isClone: entityConfig.isClone })
+          .then((entity) => {
+            entity.name = entityConfig.name;
+            return entity;
+          })
+      );
     } else {
       const entity = new Entity(engine, entityConfig.name);
       return Promise.resolve(entity);
@@ -59,15 +56,15 @@ export class ReflectionParser {
   ): Promise<any> {
     if (Array.isArray(value)) {
       return Promise.all(value.map((item) => this.parseBasicType(item, engine, resourceManager)));
-    } else if (typeof value === "object") {
+    } else if (typeof value === "object" && value != null) {
       if (this._isClass(value)) {
-        // 类对象
+        // class object
         return this.parseClassObject(value, engine, resourceManager);
       } else if (this._isRef(value)) {
-        // 引用对象
+        // reference object
         return resourceManager.getResourceByRef(value);
       } else {
-        // 基础类型
+        // basic type
         return Promise.resolve(value);
       }
     } else {
@@ -104,7 +101,9 @@ export class ReflectionParser {
     }
 
     return Promise.all(promises).then(() => {
-      return instance;
+      const handle = this.customParseComponentHandles[instance.constructor.name];
+      if (handle) return handle(instance, item, engine);
+      else return instance;
     });
   }
 
@@ -123,10 +122,10 @@ export class ReflectionParser {
   }
 
   private static _isClass(value: any): value is IClassObject {
-    return "class" in value;
+    return value["class"] != undefined;
   }
 
-  private static _isRef(value: any): value is IReferenceType {
-    return "refId" in value;
+  private static _isRef(value: any): value is IAssetRef {
+    return value["refId"] != undefined;
   }
 }

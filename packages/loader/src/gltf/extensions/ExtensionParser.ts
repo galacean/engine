@@ -1,5 +1,5 @@
 import { EngineObject } from "@oasis-engine/core";
-import { GLTFResource } from "../GLTFResource";
+import { ParserContext } from "../parser/ParserContext";
 import { ExtensionSchema } from "./Schema";
 
 export abstract class ExtensionParser {
@@ -8,11 +8,15 @@ export abstract class ExtensionParser {
   parseEngineResource(
     schema: ExtensionSchema,
     parseResource: EngineObject,
-    context: GLTFResource,
+    context: ParserContext,
     ...extra
   ): void | Promise<void> {}
 
-  createEngineResource(schema: ExtensionSchema, context: GLTFResource, ...extra): EngineObject | Promise<EngineObject> {
+  createEngineResource(
+    schema: ExtensionSchema,
+    context: ParserContext,
+    ...extra
+  ): EngineObject | Promise<EngineObject> {
     return null;
   }
 }

@@ -1,26 +1,42 @@
-import { Quaternion } from "@oasis-engine/math";
 import {
+  AnimationArrayCurve,
   AnimationClip,
+  AnimationColorCurve,
   AnimationCurve,
   AnimationEvent,
-  Component,
+  AnimationFloatArrayCurve,
+  AnimationFloatCurve,
+  AnimationQuaternionCurve,
+  AnimationVector2Curve,
+  AnimationVector3Curve,
+  AnimationVector4Curve,
   Engine,
-  Entity,
-  InterpolableKeyframe,
-  InterpolableValueType,
-  SkinnedMeshRenderer,
-  Transform
+  Keyframe,
+  KeyframeValueType
 } from "@oasis-engine/core";
-import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
-import { ComponentClass, PropertyNameMap } from "./type";
+import { ComponentMap } from "./ComponentMap";
+
+export { ComponentMap } from "./ComponentMap";
+
+export enum InterpolableValueType {
+  Float,
+  FloatArray,
+  Vector2,
+  Vector3,
+  Vector4,
+  Quaternion,
+  Color,
+  Array,
+  Boolean
+}
 
 @decoder("AnimationClip")
 export class AnimationClipDecoder {
   public static decode(engine: Engine, bufferReader: BufferReader): Promise<AnimationClip> {
     return new Promise((resolve) => {
-      const objectId = bufferReader.nextStr();
       const name = bufferReader.nextStr();
       const clip = new AnimationClip(name);
       const eventsLen = bufferReader.nextUint16();
@@ -33,55 +49,77 @@ export class AnimationClipDecoder {
       }
 
       const curveBindingsLen = bufferReader.nextUint16();
+
       for (let i = 0; i < curveBindingsLen; ++i) {
         const relativePath = bufferReader.nextStr();
-        const componentClass: ComponentClass = bufferReader.nextUint8();
-        let compType: new (entity: Entity) => Component;
-        switch (componentClass) {
-          case ComponentClass.Transform:
-            compType = Transform;
-            break;
-          case ComponentClass.SkinnedMeshRenderer:
-            compType = SkinnedMeshRenderer;
-            break;
-        }
-        const property = bufferReader.nextUint8();
-        const curve = new AnimationCurve();
-        curve.interpolation = bufferReader.nextUint8();
+        const componentStr = bufferReader.nextStr();
+        const componentType = ComponentMap[componentStr];
+        const property = bufferReader.nextStr();
+        let curve: AnimationCurve<KeyframeValueType>;
+        const interpolation = bufferReader.nextUint8();
         const keysLen = bufferReader.nextUint16();
-        for (let j = 0; j < keysLen; ++j) {
-          const type = bufferReader.nextUint8();
-          switch (type) {
-            case InterpolableValueType.Float: {
-              const keyframe = new InterpolableKeyframe<number, number>();
+        const curveType = bufferReader.nextStr();
+
+        switch (curveType) {
+          case "AnimationFloatCurve": {
+            curve = curve || new AnimationFloatCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<number>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = bufferReader.nextFloat32();
               keyframe.inTangent = bufferReader.nextFloat32();
               keyframe.outTangent = bufferReader.nextFloat32();
-              curve.addKey(keyframe);
-              break;
+              (<AnimationFloatCurve>curve).addKey(keyframe);
             }
-            case InterpolableValueType.FloatArray: {
-              const keyframe = new InterpolableKeyframe<Float32Array, Float32Array>();
+            break;
+          }
+          case "AnimationArrayCurve": {
+            curve = curve || new AnimationArrayCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<number[]>();
+              keyframe.time = bufferReader.nextFloat32();
+              const len = bufferReader.nextUint16();
+              keyframe.value = Array.from(bufferReader.nextFloat32Array(len));
+              keyframe.inTangent = Array.from(bufferReader.nextFloat32Array(len));
+              keyframe.outTangent = Array.from(bufferReader.nextFloat32Array(len));
+              (<AnimationArrayCurve>curve).addKey(keyframe);
+            }
+            break;
+          }
+          case "AnimationFloatArrayCurve": {
+            curve = curve || new AnimationFloatArrayCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<Float32Array>();
               keyframe.time = bufferReader.nextFloat32();
               const len = bufferReader.nextUint16();
               keyframe.value = bufferReader.nextFloat32Array(len);
-              keyframe.inTangent = bufferReader.nextFloat32Array(len);
-              keyframe.outTangent = bufferReader.nextFloat32Array(len);
-              curve.addKey(keyframe);
-              break;
+              keyframe.inTangent = Array.from(bufferReader.nextFloat32Array(len));
+              keyframe.outTangent = Array.from(bufferReader.nextFloat32Array(len));
+              (<AnimationFloatArrayCurve>curve).addKey(keyframe);
             }
-            case InterpolableValueType.Vector2: {
-              const keyframe = new InterpolableKeyframe<Vector2, Vector2>();
+            break;
+          }
+          case "AnimationVector2Curve": {
+            curve = curve || new AnimationVector2Curve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<Vector2>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
               keyframe.inTangent = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
               keyframe.outTangent = new Vector2(bufferReader.nextFloat32(), bufferReader.nextFloat32());
-              curve.addKey(keyframe);
-              break;
+              (<AnimationVector2Curve>curve).addKey(keyframe);
             }
-            case InterpolableValueType.Vector3: {
-              const keyframe = new InterpolableKeyframe<Vector3, Vector3>();
+            break;
+          }
+          case "AnimationVector3Curve": {
+            curve = curve || new AnimationVector3Curve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<Vector3>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Vector3(
                 bufferReader.nextFloat32(),
@@ -98,13 +136,43 @@ export class AnimationClipDecoder {
                 bufferReader.nextFloat32(),
                 bufferReader.nextFloat32()
               );
-              curve.addKey(keyframe);
-              break;
+              (<AnimationVector3Curve>curve).addKey(keyframe);
             }
-            case InterpolableValueType.Vector4: {
-              const keyframe = new InterpolableKeyframe<Vector4, Vector4>();
+            break;
+          }
+          case "AnimationVector4Curve": {
+            curve = curve || new AnimationVector4Curve();
+            curve.interpolation = interpolation;
+            const keyframe = new Keyframe<Vector4>();
+            keyframe.time = bufferReader.nextFloat32();
+            keyframe.value = new Vector4(
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32()
+            );
+            keyframe.inTangent = new Vector4(
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32()
+            );
+            keyframe.outTangent = new Vector4(
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32(),
+              bufferReader.nextFloat32()
+            );
+            (<AnimationVector4Curve>curve).addKey(keyframe);
+            break;
+          }
+          case "AnimationColorCurve": {
+            curve = curve || new AnimationColorCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<Color>();
               keyframe.time = bufferReader.nextFloat32();
-              keyframe.value = new Vector4(
+              keyframe.value = new Color(
                 bufferReader.nextFloat32(),
                 bufferReader.nextFloat32(),
                 bufferReader.nextFloat32(),
@@ -122,11 +190,15 @@ export class AnimationClipDecoder {
                 bufferReader.nextFloat32(),
                 bufferReader.nextFloat32()
               );
-              curve.addKey(keyframe);
-              break;
+              (<AnimationColorCurve>curve).addKey(keyframe);
             }
-            case InterpolableValueType.Quaternion: {
-              const keyframe = new InterpolableKeyframe<Vector4, Quaternion>();
+            break;
+          }
+          case "AnimationQuaternionCurve": {
+            curve = curve || new AnimationQuaternionCurve();
+            curve.interpolation = interpolation;
+            for (let j = 0; j < keysLen; ++j) {
+              const keyframe = new Keyframe<Quaternion>();
               keyframe.time = bufferReader.nextFloat32();
               keyframe.value = new Quaternion(
                 bufferReader.nextFloat32(),
@@ -146,16 +218,14 @@ export class AnimationClipDecoder {
                 bufferReader.nextFloat32(),
                 bufferReader.nextFloat32()
               );
-              curve.addKey(keyframe);
-              break;
+              (<AnimationQuaternionCurve>curve).addKey(keyframe);
             }
+            break;
           }
         }
-        clip.addCurveBinding(relativePath, compType, PropertyNameMap[property], curve);
+        clip.addCurveBinding(relativePath, componentType, property, curve);
       }
 
-      // @ts-ignore
-      engine.resourceManager._objectPool[objectId] = clip;
       resolve(clip);
     });
   }

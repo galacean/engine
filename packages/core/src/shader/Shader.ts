@@ -1,39 +1,54 @@
-import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
-import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
-import { ShaderProgram } from "./ShaderProgram";
+import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
 
 /**
- * Shader containing vertex and fragment source.
+ * Shader for rendering.
  */
 export class Shader {
   /** @internal */
   static readonly _compileMacros: ShaderMacroCollection = new ShaderMacroCollection();
+  /** @internal */
+  static readonly _shaderExtension: string[] = [
+    "GL_EXT_shader_texture_lod",
+    "GL_OES_standard_derivatives",
+    "GL_EXT_draw_buffers"
+  ];
+  /** @internal */
+  static _propertyIdMap: Record<number, ShaderProperty> = Object.create(null);
 
-  private static _shaderCounter: number = 0;
   private static _shaderMap: Record<string, Shader> = Object.create(null);
   private static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
   private static _macroMaskMap: string[][] = [];
   private static _macroCounter: number = 0;
   private static _macroMap: Record<string, ShaderMacro> = Object.create(null);
-  private static _shaderExtension = ["GL_EXT_shader_texture_lod", "GL_OES_standard_derivatives", "GL_EXT_draw_buffers"];
 
   /**
    * Create a shader.
    * @param name - Name of the shader
    * @param vertexSource - Vertex source code
    * @param fragmentSource - Fragment source code
+   * @returns Shader
    */
-  static create(name: string, vertexSource: string, fragmentSource: string): Shader {
+  static create(name: string, vertexSource: string, fragmentSource: string): Shader;
+
+  /**
+   * Create a shader.
+   * @param name - Name of the shader
+   * @param shaderPasses - Shader passes
+   * @returns Shader
+   */
+  static create(name: string, shaderPasses: ShaderPass[]): Shader;
+
+  static create(name: string, vertexSourceOrShaderPasses: string | ShaderPass[], fragmentSource?: string): Shader {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[name]) {
       throw `Shader named "${name}" already exists.`;
     }
-    return (shaderMap[name] = new Shader(name, vertexSource, fragmentSource));
+    return (shaderMap[name] = new Shader(name, vertexSourceOrShaderPasses, fragmentSource));
   }
 
   /**
@@ -92,6 +107,7 @@ export class Shader {
     } else {
       const property = new ShaderProperty(name);
       propertyNameMap[name] = property;
+      Shader._propertyIdMap[property._uniqueId] = property;
       return property;
     }
   }
@@ -104,15 +120,18 @@ export class Shader {
     return shaderProperty?._group;
   }
 
-  private static _getNamesByMacros(macros: ShaderMacroCollection, out: string[]): void {
+  /**
+   * @internal
+   */
+  static _getNamesByMacros(macros: ShaderMacroCollection, out: string[]): void {
     const maskMap = Shader._macroMaskMap;
     const mask = macros._mask;
     out.length = 0;
     for (let i = 0, n = macros._length; i < n; i++) {
       const subMaskMap = maskMap[i];
       const subMask = mask[i];
-      const n = subMask < 0 ? 32 : Math.floor(Math.log2(subMask)) + 1; // if is negative must contain 1 << 31.
-      for (let j = 0; j < n; j++) {
+      const m = subMask < 0 ? 32 : Math.floor(Math.log2(subMask)) + 1; // if is negative must contain 1 << 31.
+      for (let j = 0; j < m; j++) {
         if (subMask & (1 << j)) {
           out.push(subMaskMap[j]);
         }
@@ -123,17 +142,29 @@ export class Shader {
   /** The name of shader. */
   readonly name: string;
 
-  /** @internal */
-  _shaderId: number = 0;
+  /**
+   *  Shader passes.
+   */
+  get passes(): ReadonlyArray<ShaderPass> {
+    return this._passes;
+  }
 
-  private _vertexSource: string;
-  private _fragmentSource: string;
+  private _passes: ShaderPass[] = [];
 
-  private constructor(name: string, vertexSource: string, fragmentSource: string) {
-    this._shaderId = Shader._shaderCounter++;
+  private constructor(name: string, vertexSourceOrShaderPasses: string | ShaderPass[], fragmentSource?: string) {
     this.name = name;
-    this._vertexSource = vertexSource;
-    this._fragmentSource = fragmentSource;
+
+    if (typeof vertexSourceOrShaderPasses === "string") {
+      this._passes.push(new ShaderPass(vertexSourceOrShaderPasses, fragmentSource));
+    } else {
+      const passCount = vertexSourceOrShaderPasses.length;
+      if (passCount < 1) {
+        throw "Shader pass count must large than 0.";
+      }
+      for (let i = 0; i < passCount; i++) {
+        this._passes.push(vertexSourceOrShaderPasses[i]);
+      }
+    }
   }
 
   /**
@@ -152,64 +183,12 @@ export class Shader {
     for (let i = 0, n = macros.length; i < n; i++) {
       compileMacros.enable(Shader.getMacroByName(macros[i]));
     }
-    return this._getShaderProgram(engine, compileMacros).isValid;
-  }
 
-  /**
-   * @internal
-   */
-  _getShaderProgram(engine: Engine, macroCollection: ShaderMacroCollection): ShaderProgram {
-    const shaderProgramPool = engine._getShaderProgramPool(this);
-    let shaderProgram = shaderProgramPool.get(macroCollection);
-    if (shaderProgram) {
-      return shaderProgram;
+    let isValid = true;
+    const passes = this._passes;
+    for (let i = 0, n = passes.length; i < n; i++) {
+      isValid &&= passes[i]._getShaderProgram(engine, compileMacros).isValid;
     }
-
-    const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
-    const macroNameList = [];
-    Shader._getNamesByMacros(macroCollection, macroNameList);
-    const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
-    const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
-    let precisionStr = `
-    #ifdef GL_FRAGMENT_PRECISION_HIGH
-      precision highp float;
-      precision highp int;
-    #else
-      precision mediump float;
-      precision mediump int;
-    #endif
-    `;
-
-    if (engine._hardwareRenderer.canIUse(GLCapabilityType.shaderTextureLod)) {
-      precisionStr += "#define HAS_TEX_LOD\n";
-    }
-    if (engine._hardwareRenderer.canIUse(GLCapabilityType.standardDerivatives)) {
-      precisionStr += "#define HAS_DERIVATIVES\n";
-    }
-
-    let vertexSource = ShaderFactory.parseIncludes(
-      ` ${versionStr}
-        ${precisionStr}
-        ${macroNameStr}
-        ` + this._vertexSource
-    );
-
-    let fragmentSource = ShaderFactory.parseIncludes(
-      ` ${versionStr}
-        ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}
-        ${precisionStr}
-        ${macroNameStr}
-      ` + this._fragmentSource
-    );
-
-    if (isWebGL2) {
-      vertexSource = ShaderFactory.convertTo300(vertexSource);
-      fragmentSource = ShaderFactory.convertTo300(fragmentSource, true);
-    }
-
-    shaderProgram = new ShaderProgram(engine, vertexSource, fragmentSource);
-
-    shaderProgramPool.cache(shaderProgram);
-    return shaderProgram;
+    return isValid;
   }
 }

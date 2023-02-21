@@ -13,10 +13,10 @@ export class CharacterController extends Collider {
   /** @internal */
   _index: number = -1;
 
-  private _stepOffset: number = 0;
+  private _stepOffset: number = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
-  private _slopeLimit: number = 0;
+  private _slopeLimit: number = 0.707;
 
   /**
    * The step offset for the controller.
@@ -26,8 +26,10 @@ export class CharacterController extends Collider {
   }
 
   set stepOffset(value: number) {
-    this._stepOffset = value;
-    (<ICharacterController>this._nativeCollider).setStepOffset(value);
+    if (this._stepOffset !== value) {
+      this._stepOffset = value;
+      (<ICharacterController>this._nativeCollider).setStepOffset(value);
+    }
   }
 
   /**
@@ -38,8 +40,10 @@ export class CharacterController extends Collider {
   }
 
   set nonWalkableMode(value: ControllerNonWalkableMode) {
-    this._nonWalkableMode = value;
-    (<ICharacterController>this._nativeCollider).setNonWalkableMode(value);
+    if (this._nonWalkableMode !== value) {
+      this._nonWalkableMode = value;
+      (<ICharacterController>this._nativeCollider).setNonWalkableMode(value);
+    }
   }
 
   /**
@@ -53,7 +57,6 @@ export class CharacterController extends Collider {
     if (this._upDirection !== value) {
       this._upDirection.copyFrom(value);
     }
-    (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }
 
   /**
@@ -64,8 +67,10 @@ export class CharacterController extends Collider {
   }
 
   set slopeLimit(value: number) {
-    this._slopeLimit = value;
-    (<ICharacterController>this._nativeCollider).setSlopeLimit(value);
+    if (this._slopeLimit !== value) {
+      this._slopeLimit = value;
+      (<ICharacterController>this._nativeCollider).setSlopeLimit(value);
+    }
   }
 
   /**
@@ -74,6 +79,10 @@ export class CharacterController extends Collider {
   constructor(entity: Entity) {
     super(entity);
     (<ICharacterController>this._nativeCollider) = PhysicsManager._nativePhysics.createCharacterController();
+
+    this._setUpDirection = this._setUpDirection.bind(this);
+    //@ts-ignore
+    this._upDirection._onValueChanged = this._setUpDirection;
   }
 
   /**
@@ -97,6 +106,7 @@ export class CharacterController extends Collider {
       throw "only allow single shape on controller!";
     }
     super.addShape(shape);
+    this._updateFlag.flag = true;
   }
 
   /**
@@ -116,11 +126,12 @@ export class CharacterController extends Collider {
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
+      const shapes = this.shapes;
       (<ICharacterController>this._nativeCollider).setWorldPosition(transform.worldPosition);
 
       const worldScale = transform.lossyWorldScale;
-      for (let i = 0, n = this.shapes.length; i < n; i++) {
-        this.shapes[i]._nativeShape.setWorldScale(worldScale);
+      for (let i = 0, n = shapes.length; i < n; i++) {
+        shapes[i]._nativeShape.setWorldScale(worldScale);
       }
       this._updateFlag.flag = false;
     }
@@ -151,5 +162,9 @@ export class CharacterController extends Collider {
    */
   _onDisable() {
     this.engine.physicsManager._removeCharacterController(this);
+  }
+
+  private _setUpDirection(): void {
+    (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
   }
 }

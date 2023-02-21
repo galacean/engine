@@ -1,5 +1,3 @@
-import "./Extension";
-import { ShadowFeature } from "./ShadowFeature";
-import { Scene } from "../Scene";
-
-Scene.registerFeature(ShadowFeature);
+export { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
+export { ShadowResolution } from "./enum/ShadowResolution";
+export { ShadowType } from "./enum/ShadowType";
