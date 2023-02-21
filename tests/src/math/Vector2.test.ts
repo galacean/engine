@@ -203,4 +203,9 @@ describe("Vector2 test", () => {
     expect(toString(a.scale(2))).to.eq(toString(a));
     expect(toString(a)).to.eq("vec2(6, 8)");
   });
+
+  it("toJSON", () => {
+    const a = new Vector2(3, 4);
+    expect(a.toJSON()).to.deep.eq({ x: 3, y: 4 });
+  });
 });
