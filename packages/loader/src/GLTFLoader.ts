@@ -6,6 +6,7 @@ import {
   ContentRestoreInfo,
   Loader,
   LoadItem,
+  ModelMesh,
   resourceLoader,
   ResourceManager,
   Texture2D
@@ -91,7 +92,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
             .then(() => {
               // Restore mesh
               for (const meshInfo of restoreInfo.meshes) {
-                for (const restoreInfo of meshInfo.vertexBuffer) {
+                for (const restoreInfo of meshInfo.vertexBuffers) {
                   const buffer = buffers[restoreInfo.bufferIndex];
                   const byteOffset = restoreInfo.byteOffset;
                   const data = new restoreInfo.TypedArray(buffer, byteOffset, restoreInfo.length);
@@ -128,6 +129,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
                     restoreInfo.blendShape.frames[0].deltaTangents = tangents;
                   }
                 }
+                meshInfo.mesh.uploadData(true);
               }
               resolve(host);
             })
@@ -177,7 +179,8 @@ export class BufferTextureRestoreInfo {
  * @internal
  */
 export class ModelMeshRestoreInfo {
-  public vertexBuffer: BufferRestoreInfo[] = [];
+  public mesh: ModelMesh;
+  public vertexBuffers: BufferRestoreInfo[] = [];
   public indexBuffer: BufferRestoreInfo;
   public blendShapes: BlendShapeRestoreInfo[] = [];
 }

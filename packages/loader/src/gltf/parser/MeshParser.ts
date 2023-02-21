@@ -39,6 +39,7 @@ export class MeshParser extends Parser {
         primitivePromises[j] = new Promise((resolve) => {
           const mesh = new ModelMesh(engine, gltfMesh.name || j + "");
           const meshRestoreInfo = new ModelMeshRestoreInfo();
+          meshRestoreInfo.mesh = mesh;
           context.contentRestoreInfo.meshes.push(meshRestoreInfo);
 
           if (KHR_draco_mesh_compression) {
@@ -167,7 +168,7 @@ export class MeshParser extends Parser {
 
             const restoreInfo = accessorBuffer.restoreInfo;
             restoreInfo.buffer = vertexBuffer;
-            meshRestoreInfo.vertexBuffer.push(restoreInfo);
+            meshRestoreInfo.vertexBuffers.push(restoreInfo);
           }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
           vertexBindingInfos[meshId] = bufferBindIndex++;
@@ -182,7 +183,7 @@ export class MeshParser extends Parser {
 
         const restoreInfo = accessorBuffer.restoreInfo;
         restoreInfo.buffer = vertexBuffer;
-        meshRestoreInfo.vertexBuffer.push(restoreInfo);
+        meshRestoreInfo.vertexBuffers.push(restoreInfo);
 
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
         vertexBindingInfos[meshId] = bufferBindIndex++;
