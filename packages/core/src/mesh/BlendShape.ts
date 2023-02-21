@@ -94,6 +94,16 @@ export class BlendShape {
     return this._dataChangeManager.createFlag(BoolUpdateFlag);
   }
 
+  /**
+   * @internal
+   */
+  _releaseData(): void {
+    const frames = this._frames;
+    for (let i = 0, n = frames.length; i < n; i++) {
+      frames[i]._releaseData();
+    }
+  }
+
   private _addFrame(frame: BlendShapeFrame): void {
     const frames = this._frames;
     const frameCount = frames.length;

@@ -10,11 +10,11 @@ import {
   VertexElement
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
-import { BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFLoader";
+import { BlendShapeRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFLoader";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { BufferInfo, ParserContext } from "./ParserContext";
 
 export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
@@ -90,15 +90,7 @@ export class MeshParser extends Parser {
                 const attributeAccessorIdx = shapeAccessorIdx[attributeName];
                 if (attributeAccessorIdx) {
                   const accessor = glTF.accessors[attributeAccessorIdx];
-
-                  let shapeAccessors = meshRestoreInfo.blendShapeAccessors[shapeIndex];
-                  if (!shapeAccessors) {
-                    shapeAccessors = {};
-                    meshRestoreInfo.blendShapeAccessors.push(shapeAccessors);
-                  }
-                  shapeAccessors[attributeName] = accessor;
-
-                  return GLTFUtil.getAccessorData(glTF, accessor, buffers);
+                  return GLTFUtil.getAccessorBuffer(context, context.glTF.bufferViews, accessor);
                 } else {
                   return null;
                 }
@@ -134,7 +126,7 @@ export class MeshParser extends Parser {
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
-    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => BufferInfo,
     getIndexBufferData: () => TypedArray,
     keepMeshData: boolean
   ): Promise<ModelMesh> {
@@ -238,7 +230,7 @@ export class MeshParser extends Parser {
     }
 
     // BlendShapes
-    targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
+    targets && this._createBlendShape(mesh, meshRestoreInfo, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
 
@@ -255,26 +247,43 @@ export class MeshParser extends Parser {
 
   private _createBlendShape(
     mesh: ModelMesh,
+    meshRestoreInfo: ModelMeshRestoreInfo,
     glTFMesh: IMesh,
     glTFTargets: {
       [name: string]: number;
     }[],
-    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray
+    getBlendShapeData: (semantic: string, shapeIndex: number) => BufferInfo
   ): void {
     const blendShapeNames = glTFMesh.extras ? glTFMesh.extras.targetNames : null;
 
     for (let i = 0, n = glTFTargets.length; i < n; i++) {
       const name = blendShapeNames ? blendShapeNames[i] : `blendShape${i}`;
-      const deltaPosBuffer = getBlendShapeData("POSITION", i);
-      const deltaNorBuffer = getBlendShapeData("NORMAL", i);
-      const deltaTanBuffer = getBlendShapeData("TANGENT", i);
-      const deltaPositions = deltaPosBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaPosBuffer) : null;
-      const deltaNormals = deltaNorBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaNorBuffer) : null;
-      const deltaTangents = deltaTanBuffer ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaTanBuffer) : null;
+
+      const deltaPosBufferInfo = getBlendShapeData("POSITION", i);
+      const deltaNorBufferInfo = getBlendShapeData("NORMAL", i);
+      const deltaTanBufferInfo = getBlendShapeData("TANGENT", i);
+
+      const deltaPositions = deltaPosBufferInfo.data
+        ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaPosBufferInfo.data)
+        : null;
+      const deltaNormals = deltaNorBufferInfo?.data
+        ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaNorBufferInfo?.data)
+        : null;
+      const deltaTangents = deltaTanBufferInfo?.data
+        ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaTanBufferInfo?.data)
+        : null;
 
       const blendShape = new BlendShape(name);
       blendShape.addFrame(1.0, deltaPositions, deltaNormals, deltaTangents);
       mesh.addBlendShape(blendShape);
+      meshRestoreInfo.blendShapes.push(
+        new BlendShapeRestoreInfo(
+          blendShape,
+          deltaPosBufferInfo.restoreInfo,
+          deltaNorBufferInfo?.restoreInfo,
+          deltaTanBufferInfo?.restoreInfo
+        )
+      );
     }
   }
 
@@ -287,7 +296,7 @@ export class MeshParser extends Parser {
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
-    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => BufferInfo,
     getIndexBufferData: () => TypedArray,
     keepMeshData: boolean
   ): Promise<ModelMesh> {
@@ -400,7 +409,7 @@ export class MeshParser extends Parser {
     }
 
     // BlendShapes
-    targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
+    targets && this._createBlendShape(mesh, null, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
     return Promise.resolve(mesh);

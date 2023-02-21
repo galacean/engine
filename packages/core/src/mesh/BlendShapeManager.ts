@@ -32,8 +32,6 @@ export class BlendShapeManager {
   /** @internal */
   _blendShapes: BlendShape[] = [];
   /** @internal */
-  _blendShapeNames: string[];
-  /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
   /** @internal */
   _vertexTexture: Texture2DArray;
@@ -232,7 +230,7 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _update(vertexCountChange: boolean, noLongerAccessible: boolean): void {
+  _update(vertexCountChange: boolean, noLongerReadable: boolean): void {
     const { vertexCount } = this._modelMesh;
     const useTexture = this._useTextureMode();
     const createHost = this._layoutOrCountChange() || vertexCountChange;
@@ -241,7 +239,7 @@ export class BlendShapeManager {
       if (useTexture) {
         this._createTextureArray(vertexCount);
       } else {
-        this._createVertexBuffers(vertexCount, noLongerAccessible);
+        this._createVertexBuffers(vertexCount, noLongerReadable);
       }
       this._lastCreateHostInfo.set(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
     }
@@ -258,26 +256,11 @@ export class BlendShapeManager {
    * @internal
    */
   _releaseMemoryCache(): void {
-    const { _blendShapes: blendShapes } = this;
-    const { length: blendShapeCount } = blendShapes;
-
-    const blendShapeNamesMap = new Array<string>(blendShapeCount);
-    for (let i = 0; i < blendShapeCount; i++) {
-      blendShapeNamesMap[i] = blendShapes[i].name;
-    }
-    this._blendShapeNames = blendShapeNamesMap;
-
+    const blendShapes = this._blendShapes;
     for (let i = 0, n = blendShapes.length; i < n; i++) {
-      blendShapes[i]._layoutChangeManager.removeListener(this._updateLayoutChange);
+      blendShapes[i]._releaseData();
     }
 
-    const dataChangedFlags = this._subDataDirtyFlags;
-    for (let i = 0, n = dataChangedFlags.length; i < n; i++) {
-      dataChangedFlags[i].destroy();
-    }
-
-    this._subDataDirtyFlags = null;
-    this._blendShapes = null;
     this._vertices = null;
   }
 

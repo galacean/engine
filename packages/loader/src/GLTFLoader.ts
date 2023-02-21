@@ -1,6 +1,7 @@
 import {
   AssetPromise,
   AssetType,
+  BlendShape,
   Buffer,
   ContentRestoreInfo,
   Loader,
@@ -15,7 +16,7 @@ import { GLTFParser } from "./gltf/GLTFParser";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFUtil } from "./gltf/GLTFUtil";
 import { ParserContext } from "./gltf/parser/ParserContext";
-import { IAccessor, IBufferView } from "./gltf/Schema";
+import { IBufferView } from "./gltf/Schema";
 
 @resourceLoader(AssetType.Prefab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
@@ -102,6 +103,31 @@ export class GLTFLoader extends Loader<GLTFResource> {
                 const byteOffset = restoreInfo.byteOffset;
                 const data = new restoreInfo.TypedArray(buffer, byteOffset, restoreInfo.length);
                 restoreInfo.buffer.setData(data);
+
+                for (const restoreInfo of meshInfo.blendShapes) {
+                  const { position, normal, tangent } = restoreInfo;
+                  const buffer = buffers[position.bufferIndex];
+                  const byteOffset = position.byteOffset;
+                  const positionData = new position.TypedArray(buffer, byteOffset, position.length);
+                  const positions = GLTFUtil.floatBufferToVector3Array(<Float32Array>positionData);
+                  restoreInfo.blendShape.frames[0].deltaPositions = positions;
+
+                  if (normal) {
+                    const buffer = buffers[normal.bufferIndex];
+                    const byteOffset = normal.byteOffset;
+                    const normalData = new normal.TypedArray(buffer, byteOffset, normal.length);
+                    const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>normalData);
+                    restoreInfo.blendShape.frames[0].deltaNormals = normals;
+                  }
+
+                  if (tangent) {
+                    const buffer = buffers[tangent.bufferIndex];
+                    const byteOffset = tangent.byteOffset;
+                    const tangentData = new tangent.TypedArray(buffer, byteOffset, tangent.length);
+                    const tangents = GLTFUtil.floatBufferToVector3Array(<Float32Array>tangentData);
+                    restoreInfo.blendShape.frames[0].deltaTangents = tangents;
+                  }
+                }
               }
               resolve(host);
             })
@@ -153,7 +179,7 @@ export class BufferTextureRestoreInfo {
 export class ModelMeshRestoreInfo {
   public vertexBuffer: BufferRestoreInfo[] = [];
   public indexBuffer: BufferRestoreInfo;
-  public blendShapeAccessors: Record<string, IAccessor>[] = [];
+  public blendShapes: BlendShapeRestoreInfo[] = [];
 }
 
 /**
@@ -171,4 +197,16 @@ export class BufferRestoreInfo {
     this.byteOffset = byteOffset;
     this.length = length;
   }
+}
+
+/**
+ * @internal
+ */
+export class BlendShapeRestoreInfo {
+  constructor(
+    public blendShape: BlendShape,
+    public position: BufferRestoreInfo,
+    public normal?: BufferRestoreInfo,
+    public tangent?: BufferRestoreInfo
+  ) {}
 }
