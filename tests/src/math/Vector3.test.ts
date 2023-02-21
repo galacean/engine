@@ -257,4 +257,9 @@ describe("Vector3 test", () => {
     a.transformByQuat(new Quaternion(2, 3, 4, 5));
     expect(toString(a)).to.eq("vec3(108, 162, 216)");
   });
+
+  it("toJSON", () => {
+    const a = new Vector3(2, 3, 4);
+    expect(JSON.stringify(a)).to.eq('{"x":2,"y":3,"z":4}');
+  });
 });
