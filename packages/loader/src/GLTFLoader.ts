@@ -7,12 +7,13 @@ import { ParserContext } from "./gltf/parser/ParserContext";
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
     const url = item.url;
+    const { keepMeshData = false, pipeline } = item.params || {};
     const context = new ParserContext(url);
     const glTFResource = new GLTFResource(resourceManager.engine, url);
     const masterPromiseInfo = context.masterPromiseInfo;
 
     context.glTFResource = glTFResource;
-    context.keepMeshData = item.params?.keepMeshData ?? false;
+    context.keepMeshData = keepMeshData;
 
     masterPromiseInfo.onCancel(() => {
       const { chainPromises } = context;
@@ -21,7 +22,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
       }
     });
 
-    GLTFParser.defaultPipeline
+    (pipeline || GLTFParser.defaultPipeline)
       .parse(context)
       .then(masterPromiseInfo.resolve)
       .catch((e) => {

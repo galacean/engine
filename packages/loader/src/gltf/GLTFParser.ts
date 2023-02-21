@@ -27,7 +27,7 @@ export class GLTFParser {
 
   private _pipes: Parser[] = [];
 
-  private constructor(pipes: (new () => Parser)[]) {
+  constructor(pipes: (new () => Parser)[]) {
     pipes.forEach((pipe: new () => Parser, index: number) => {
       this._pipes[index] = new pipe();
     });
