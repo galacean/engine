@@ -303,6 +303,19 @@ export class Color implements IClone<Color>, ICopy<ColorLike, Color> {
 
     return (max + min) / 2;
   }
+
+  /**
+   * json serialization.
+   * return {r: number, g: number, b: number, a: number}
+   */
+  toJSON(): ColorLike {
+    return {
+      r: this._r,
+      g: this._g,
+      b: this._b,
+      a: this._a
+    };
+  }
 }
 
 interface ColorLike {
