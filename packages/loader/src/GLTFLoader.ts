@@ -86,6 +86,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
 
               return GLTFUtil.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
                 textureRestoreInfo.texture.setImageSource(image);
+                textureRestoreInfo.texture.generateMipmaps();
               });
             })
           )
