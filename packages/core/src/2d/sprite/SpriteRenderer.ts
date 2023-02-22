@@ -220,19 +220,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   /**
    * @override
-   * @internal
-   */
-  _onDestroy(): void {
-    super._onDestroy();
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
-    this._color = null;
-    this._sprite = null;
-    this._assembler = null;
-    this._renderData = null;
-  }
-
-  /**
-   * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
@@ -273,6 +260,19 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
       context.camera._renderPipeline.pushPrimitive(spriteElement);
     }
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
+    this._color = null;
+    this._sprite = null;
+    this._assembler = null;
+    this._renderData = null;
   }
 
   private _updateStencilState(): void {

@@ -76,18 +76,6 @@ export class Component extends EngineObject {
   _onDisable(): void {}
 
   /**
-   * @override
-   * @internal
-   */
-  _onDestroy(): void {
-    super._onDestroy();
-    this._entity._removeComponent(this);
-    if (this._entity.isActiveInHierarchy) {
-      this._enabled && this._onDisable();
-    }
-  }
-
-  /**
    * @internal
    */
   _setActive(value: boolean): void {
@@ -110,6 +98,18 @@ export class Component extends EngineObject {
         this._phasedActive = false;
         this._onDisable();
       }
+    }
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._entity._removeComponent(this);
+    if (this._entity.isActiveInHierarchy) {
+      this._enabled && this._onDisable();
     }
   }
 }

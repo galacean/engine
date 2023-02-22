@@ -325,7 +325,7 @@ export class Renderer extends Component {
    * @override
    * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
     super._onDestroy();
     this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 

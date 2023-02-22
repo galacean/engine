@@ -127,7 +127,7 @@ export class Collider extends Component {
    * @override
    * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
     super._onDestroy();
     this.clearShapes();
     this._nativeCollider.destroy();

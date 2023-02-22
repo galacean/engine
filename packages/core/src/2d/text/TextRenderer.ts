@@ -294,7 +294,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
     super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;

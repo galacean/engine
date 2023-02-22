@@ -93,7 +93,7 @@ export class FontAtlas extends ReferResource {
    * @override
    * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
     super._onDestroy();
     this._texture.destroy();
     this._texture = null;

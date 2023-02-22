@@ -488,7 +488,7 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
     super._onDestroy();
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();

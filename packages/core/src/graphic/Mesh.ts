@@ -207,7 +207,7 @@ export abstract class Mesh extends GraphicsResource {
    * @override
    * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
     super._onDestroy();
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;
