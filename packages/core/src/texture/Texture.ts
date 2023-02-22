@@ -184,7 +184,7 @@ export abstract class Texture extends GraphicsResource {
    * @override
    * @internal
    */
-  _onDestroy() {
+  protected _onDestroy() {
     super._onDestroy();
     this._platformTexture.destroy();
     this._platformTexture = null;

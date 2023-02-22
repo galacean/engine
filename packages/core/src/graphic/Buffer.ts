@@ -178,7 +178,7 @@ export class Buffer extends GraphicsResource {
    * @override
    * @internal
    */
-  _onDestroy() {
+  protected _onDestroy() {
     super._onDestroy();
     this._platformBuffer.destroy();
   }
