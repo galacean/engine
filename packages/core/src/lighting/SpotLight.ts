@@ -44,7 +44,6 @@ export class SpotLight extends Light {
   /** Angle, in radians, from falloff begins to ends. */
   penumbra: number = Math.PI / 12;
 
-  private _forward: Vector3 = new Vector3();
   private _inverseDirection: Vector3 = new Vector3();
   private _projectMatrix: Matrix = new Matrix();
 
@@ -59,8 +58,7 @@ export class SpotLight extends Light {
    * Get light direction.
    */
   get direction(): Vector3 {
-    this.entity.transform.getWorldForward(this._forward);
-    return this._forward;
+    return this.entity.transform.worldForward;
   }
 
   /**
