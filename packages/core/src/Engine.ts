@@ -369,12 +369,12 @@ export class Engine extends EventDispatcher {
 
     // Cancel animation
     this.pause();
-    
+
     this._spriteMaskManager.destroy();
     this._hardwareRenderer.destroy();
 
     this.removeAllEventListeners();
-    
+
     this._animate = null;
     this._sceneManager = null;
     this._resourceManager = null;
@@ -507,8 +507,8 @@ export class Engine extends EventDispatcher {
 
   private _onDeviceLost(): void {
     this._isDeviceLost = true;
-    console.log("Engine: Device lost.");
-    this.dispatch("deviceLost", this);
+    console.log("Device lost.");
+    this.dispatch("devicelost", this);
   }
 
   private _onDeviceRestored(): void {
@@ -525,8 +525,8 @@ export class Engine extends EventDispatcher {
       ._restoreResourcesContent()
       .then(() => {
         this._isDeviceLost = false;
-        console.log("Engine: Device restored.");
-        this.dispatch("deviceRestored", this);
+        console.log("Device restored.");
+        this.dispatch("devicerestored", this);
       })
       .catch((error) => {
         console.error(error);
