@@ -73,7 +73,7 @@ export interface Texture2DParams {
   mipmap: boolean;
 }
 
-class Texture2DContentRestoreInfo extends ContentRestoreInfo {
+class Texture2DContentRestoreInfo extends ContentRestoreInfo<Texture2D> {
   constructor(public url: string, public requestConfig: RequestConfig) {
     super();
   }

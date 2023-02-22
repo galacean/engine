@@ -38,7 +38,7 @@ export abstract class Loader<T> {
    * @param resource - The resource to add restore information
    * @param restoreInfo - The restore info
    */
-  addContentRestoreInfo(resource: EngineObject, restoreInfo: ContentRestoreInfo): void {
+  addContentRestoreInfo(resource: EngineObject, restoreInfo: ContentRestoreInfo<T>): void {
     restoreInfo._loader = this;
     resource.engine.resourceManager._addRestoreContentInfo(resource, restoreInfo);
   }
@@ -49,7 +49,7 @@ export abstract class Loader<T> {
    * @param restoreInfo - The restore info
    * @returns The promise of the restore content
    */
-  restoreContent(resource: EngineObject, restoreInfo: ContentRestoreInfo): AssetPromise<T> {
+  restoreContent(resource: EngineObject, restoreInfo: ContentRestoreInfo<T>): AssetPromise<T> {
     throw "Loader: Restore content not implemented.";
   }
 }

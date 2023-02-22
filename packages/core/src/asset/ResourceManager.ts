@@ -48,7 +48,7 @@ export class ResourceManager {
   /** Graphic resource pool, key is the `instanceID` of resource. */
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
   /** Restorable resource information pool, key is the `instanceID` of resource. */
-  private _restoreContentInfoPool: Record<number, ContentRestoreInfo> = Object.create(null);
+  private _restoreContentInfoPool: Record<number, ContentRestoreInfo<any>> = Object.create(null);
 
   /**
    * Create a ResourceManager.
@@ -193,7 +193,7 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addRestoreContentInfo(resource: EngineObject, restoreInfo: ContentRestoreInfo): void {
+  _addRestoreContentInfo(resource: EngineObject, restoreInfo: ContentRestoreInfo<any>): void {
     this._restoreContentInfoPool[resource.instanceId] = restoreInfo;
   }
 

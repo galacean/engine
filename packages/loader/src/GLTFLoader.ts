@@ -152,7 +152,7 @@ export interface GLTFParams {
 /**
  * @internal
  */
-export class GLTFContentRestoreInfo extends ContentRestoreInfo {
+export class GLTFContentRestoreInfo extends ContentRestoreInfo<GLTFResource> {
   isGLB: boolean;
   bufferRequests: BufferRequestInfo[] = [];
   glbBufferSlices: Vector2[] = [];

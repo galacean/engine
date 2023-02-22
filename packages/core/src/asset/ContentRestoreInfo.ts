@@ -1,6 +1,6 @@
 import { Loader } from "./Loader";
 
-export abstract class ContentRestoreInfo {
+export abstract class ContentRestoreInfo<T> {
   /** @internal */
-  _loader: Loader<any>;
+  _loader: Loader<T>;
 }
