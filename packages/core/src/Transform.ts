@@ -44,7 +44,7 @@ export class Transform extends Component {
   @ignoreClone
   private _worldRight: Vector3;
   @ignoreClone
-  private _up: Vector3;
+  private _worldUp: Vector3;
 
   @ignoreClone
   private _isParentDirty: boolean = true;
@@ -439,7 +439,7 @@ export class Transform extends Component {
    * The up direction in world space.
    */
   get worldUp(): Vector3 {
-    let worldUp = this._up;
+    let worldUp = this._worldUp;
     if (!worldUp) {
       this._worldForward = worldUp = new Vector3();
     }
