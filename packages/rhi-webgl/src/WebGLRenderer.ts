@@ -154,6 +154,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
     webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
+    
     this._webCanvas = webCanvas;
 
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;

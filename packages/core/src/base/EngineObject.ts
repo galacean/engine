@@ -40,7 +40,6 @@ export abstract class EngineObject {
     if (this._destroyed) return;
     this._onDestroy();
     this._destroyed = true;
-    this._engine = null;
   }
 
   protected _onDestroy(): void {

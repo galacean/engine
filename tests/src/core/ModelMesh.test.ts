@@ -186,58 +186,28 @@ describe("ModelMesh Test", function () {
     modelMesh.setIndices(null);
     modelMesh.setPositions(positions);
   });
-  // it("upload data with no longer used", () => {
-  //   modelMesh.uploadData(true);
-  //   expect(() => {
-  //     modelMesh.setIndices(indices);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.setPositions(positions);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.setColors(colors);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.setNormals(normals);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.setTangents(tangents);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.setBoneWeights(weights);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.setBoneIndices(joints);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.setUVs(uvs);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.setUVs(uvs);
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.getPositions();
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.getColors();
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.getNormals();
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.getTangents();
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.getBoneWeights();
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.getBoneIndices();
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.getUVs();
-  //   }).throw("Not allowed to access data while accessible is false.");
-  //   expect(() => {
-  //     modelMesh.blendShapes;
-  //   }).throw("Not allowed to access data while accessible is false.");
-  // });
+  it("upload data with no longer used", () => {
+    modelMesh.uploadData(true);
+    expect(() => {
+      modelMesh.getPositions();
+    }).throw("Not allowed to access data while accessible is false.");
+    expect(() => {
+      modelMesh.getColors();
+    }).throw("Not allowed to access data while accessible is false.");
+    expect(() => {
+      modelMesh.getNormals();
+    }).throw("Not allowed to access data while accessible is false.");
+    expect(() => {
+      modelMesh.getTangents();
+    }).throw("Not allowed to access data while accessible is false.");
+    expect(() => {
+      modelMesh.getBoneWeights();
+    }).throw("Not allowed to access data while accessible is false.");
+    expect(() => {
+      modelMesh.getBoneIndices();
+    }).throw("Not allowed to access data while accessible is false.");
+    expect(() => {
+      modelMesh.getUVs();
+    }).throw("Not allowed to access data while accessible is false.");
+  });
 });
