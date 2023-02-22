@@ -40,11 +40,11 @@ export class Transform extends Component {
   @deepClone
   private _worldMatrix: Matrix = new Matrix();
   @ignoreClone
-  private _worldForward: Vector3;
+  private _worldForward: Vector3 = null;
   @ignoreClone
-  private _worldRight: Vector3;
+  private _worldRight: Vector3 = null;
   @ignoreClone
-  private _worldUp: Vector3;
+  private _worldUp: Vector3 = null;
 
   @ignoreClone
   private _isParentDirty: boolean = true;
