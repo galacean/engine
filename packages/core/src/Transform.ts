@@ -413,10 +413,7 @@ export class Transform extends Component {
    * The forward direction in world space.
    */
   get worldForward(): Vector3 {
-    let worldForward = this._worldForward;
-    if (!worldForward) {
-      this._worldForward = worldForward = new Vector3();
-    }
+    const worldForward = (this._worldForward ||= new Vector3());
     const e = this.worldMatrix.elements;
     worldForward.set(-e[8], -e[9], -e[10]);
     return worldForward.normalize();
@@ -426,10 +423,7 @@ export class Transform extends Component {
    * The right direction in world space.
    */
   get worldRight(): Vector3 {
-    let worldRight = this._worldRight;
-    if (!worldRight) {
-      this._worldForward = worldRight = new Vector3();
-    }
+    const worldRight = (this._worldRight ||= new Vector3());
     const e = this.worldMatrix.elements;
     worldRight.set(e[0], e[1], e[2]);
     return worldRight.normalize();
@@ -439,10 +433,7 @@ export class Transform extends Component {
    * The up direction in world space.
    */
   get worldUp(): Vector3 {
-    let worldUp = this._worldUp;
-    if (!worldUp) {
-      this._worldForward = worldUp = new Vector3();
-    }
+    const worldUp = (this._worldUp ||= new Vector3());
     const e = this.worldMatrix.elements;
     worldUp.set(e[4], e[5], e[6]);
     return worldUp.normalize();
