@@ -240,11 +240,11 @@ export class Sprite extends ReferResource {
 
   /**
    * @override
+   * @internal
    */
   _onDestroy(): void {
-    if (this._texture) {
-      this._texture = null;
-    }
+    super._onDestroy();
+    this._texture = null;
   }
 
   private _calDefaultSize(): void {

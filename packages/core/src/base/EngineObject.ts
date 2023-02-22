@@ -38,9 +38,14 @@ export abstract class EngineObject {
    */
   destroy(): void {
     if (this._destroyed) return;
-
-    this._engine.resourceManager?._deleteAsset(this);
-    this._engine.resourceManager?._deleteRestoreContentInfo(this);
+    this._onDestroy();
     this._destroyed = true;
+    this._engine = null;
+  }
+
+  protected _onDestroy(): void {
+    const { resourceManager } = this._engine;
+    resourceManager._deleteAsset(this);
+    resourceManager._deleteRestoreContentInfo(this);
   }
 }

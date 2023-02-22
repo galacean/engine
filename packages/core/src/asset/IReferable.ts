@@ -2,9 +2,9 @@ export interface IReferable {
   /**
    * @internal
    */
-  _getRefCount(): number;
+  _getReferCount(): number;
   /**
    * @internal
    */
-  _addRefCount(count: number): void;
+  _addReferCount(count: number): void;
 }

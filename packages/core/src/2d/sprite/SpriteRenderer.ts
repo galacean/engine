@@ -219,15 +219,16 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
+   * @override
    * @internal
    */
   _onDestroy(): void {
+    super._onDestroy();
     this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._color = null;
     this._sprite = null;
     this._assembler = null;
     this._renderData = null;
-    super._onDestroy();
   }
 
   /**

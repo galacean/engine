@@ -1,4 +1,3 @@
-import { threadId } from "worker_threads";
 import { GraphicsResource } from "../asset/GraphicsResource";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
@@ -183,8 +182,10 @@ export abstract class Texture extends GraphicsResource {
 
   /**
    * @override
+   * @internal
    */
   _onDestroy() {
+    super._onDestroy();
     this._platformTexture.destroy();
     this._platformTexture = null;
   }

@@ -277,7 +277,7 @@ export class Camera extends Component {
     this._isInvViewProjDirty = transform.registerWorldChangeFlag();
     this._frustumViewChangeFlag = transform.registerWorldChangeFlag();
     this._renderPipeline = new BasicRenderPipeline(this);
-    this.shaderData._addRefCount(1);
+    this.shaderData._addReferCount(1);
   }
 
   /**
@@ -489,10 +489,11 @@ export class Camera extends Component {
    * @inheritdoc
    */
   _onDestroy(): void {
+    super._onDestroy();
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
-    this.shaderData._addRefCount(-1);
+    this.shaderData._addReferCount(-1);
   }
 
   private _projMatChange(): void {

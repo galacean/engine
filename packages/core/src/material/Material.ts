@@ -92,9 +92,9 @@ export class Material extends ReferResource implements IClone {
   /**
    * @override
    */
-  _addRefCount(value: number): void {
-    super._addRefCount(value);
-    this.shaderData._addRefCount(value);
+  _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this.shaderData._addReferCount(value);
   }
 
   /**
@@ -102,9 +102,4 @@ export class Material extends ReferResource implements IClone {
    * @todo:temporary solution
    */
   _preRender(renderElement: MeshRenderElement | SpriteElement) {}
-
-  /**
-   * @override
-   */
-  protected _onDestroy(): void {}
 }

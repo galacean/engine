@@ -161,10 +161,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
    * @inheritdoc
    */
   _onDestroy(): void {
+    super._onDestroy();
     this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._sprite = null;
     this._renderData = null;
-    super._onDestroy();
   }
 
   /**

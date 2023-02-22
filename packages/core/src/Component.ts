@@ -13,9 +13,6 @@ export class Component extends EngineObject {
   /** @internal */
   @ignoreClone
   _awoken: boolean = false;
-  /** @internal */
-  @ignoreClone
-  _destroyed: boolean = false;
 
   @ignoreClone
   private _phasedActive: boolean = false;
@@ -45,13 +42,6 @@ export class Component extends EngineObject {
   }
 
   /**
-   * Indicates whether the component is destroyed.
-   */
-  get destroyed(): boolean {
-    return this._destroyed;
-  }
-
-  /**
    * The entity which the component belongs to.
    */
   get entity(): Entity {
@@ -71,21 +61,6 @@ export class Component extends EngineObject {
   }
 
   /**
-   * Destroy this instance.
-   */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-    this._entity._removeComponent(this);
-    if (this._entity.isActiveInHierarchy) {
-      this._enabled && this._onDisable();
-    }
-    this._destroyed = true;
-    this._onDestroy();
-  }
-
-  /**
    * @internal
    */
   _onAwake(): void {}
@@ -101,9 +76,16 @@ export class Component extends EngineObject {
   _onDisable(): void {}
 
   /**
+   * @override
    * @internal
    */
-  _onDestroy(): void {}
+  _onDestroy(): void {
+    super._onDestroy();
+    this._entity._removeComponent(this);
+    if (this._entity.isActiveInHierarchy) {
+      this._enabled && this._onDisable();
+    }
+  }
 
   /**
    * @internal
@@ -117,7 +99,7 @@ export class Component extends EngineObject {
         this._onAwake();
       }
       // Developer maybe do `isActive = false` in `onAwake` method
-      // Enable condition is phased active state is false && current compoment is active in hierarchy
+      // Enable condition is phased active state is false && current component is active in hierarchy
       if (!this._phasedActive && entity._isActiveInHierarchy && this._enabled) {
         this._phasedActive = true;
         this._onEnable();

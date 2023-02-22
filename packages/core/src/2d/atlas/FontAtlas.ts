@@ -31,15 +31,6 @@ export class FontAtlas extends ReferResource {
     super(engine);
   }
 
-  /**
-   * @override
-   */
-  _onDestroy(): void {
-    this._texture.destroy();
-    this._texture = null;
-    this._charInfoMap = {};
-  }
-
   uploadCharTexture(charInfo: CharInfo): boolean {
     const { w: width, h: height, data } = charInfo;
     const { _space: space, texture } = this;
@@ -96,5 +87,16 @@ export class FontAtlas extends ReferResource {
 
   getCharInfo(char: string): CharInfo {
     return this._charInfoMap[char.charCodeAt(0)];
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onDestroy(): void {
+    super._onDestroy();
+    this._texture.destroy();
+    this._texture = null;
+    this._charInfoMap = {};
   }
 }

@@ -213,11 +213,11 @@ export class Script extends Component {
   }
 
   /**
-   * @internal
-   * @inheritDoc
    * @override
+   * @internal
    */
   _onDestroy(): void {
+    super._onDestroy();
     this._engine._componentsManager.addPendingDestroyScript(this);
   }
 
