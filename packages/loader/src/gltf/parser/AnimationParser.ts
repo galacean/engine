@@ -37,12 +37,28 @@ export class AnimationParser extends Parser {
 
     for (let i = 0; i < animationClipCount; i++) {
       const gltfAnimation = animations[i];
-      const { channels, samplers, name = `AnimationClip${i}` } = gltfAnimation;
+      const { channels, samplers, name = `AnimationClip${i}`, extensions = {} } = gltfAnimation;
+      const { OASIS_animation } = extensions;
+
       const animationClip = new AnimationClip(name);
       const sampleDataCollection = new Array<SampleData>();
 
       let duration = -1;
-
+      // parse evnets
+      if (OASIS_animation) {
+        gltf.extensions = gltf.extensions ?? {};
+        gltf.extensions["OASIS_animation"] = gltf.extensions["OASIS_animation"] ?? {};
+        gltf.extensions["OASIS_animation"][i] = Parser.createEngineResource(
+          "OASIS_animation",
+          OASIS_animation,
+          context
+        );
+        gltf.extensions["OASIS_animation"][i].then((events) => {
+          events.forEach((event) => {
+            animationClip.addEvent(event);
+          });
+        });
+      }
       // parse samplers
       for (let j = 0, m = samplers.length; j < m; j++) {
         const gltfSampler = samplers[j];

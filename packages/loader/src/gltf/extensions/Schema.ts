@@ -159,6 +159,14 @@ export interface IOasisMaterialRemap {
   isClone?: boolean;
 }
 
+export interface IOasisAnimation {
+  events: {
+    time: number;
+    functionName: string;
+    parameter: any;
+  }[];
+}
+
 export type ExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRDracoMeshCompression

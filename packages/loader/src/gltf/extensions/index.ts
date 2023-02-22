@@ -12,3 +12,4 @@ import "./KHR_mesh_quantization";
 import "./KHR_texture_basisu";
 import "./KHR_texture_transform";
 import "./OASIS_materials_remap";
+import "./OASIS_animation";
