@@ -73,7 +73,7 @@ export class BlendShapeManager {
     blendShape._layoutChangeManager.addListener(this._updateLayoutChange);
     this._updateLayoutChange(0, blendShape);
 
-    this._subDataDirtyFlags.push(blendShape._createSubDataDirtyFlag());
+    this._subDataDirtyFlags.push(blendShape._dataChangeManager.createFlag(BoolUpdateFlag));
   }
 
   /**

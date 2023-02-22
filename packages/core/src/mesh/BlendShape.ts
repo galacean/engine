@@ -1,6 +1,4 @@
 import { Vector3 } from "@oasis-engine/math";
-import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { BlendShapeFrame, BlendShapeFrameDirty } from "./BlendShapeFrame";
 
@@ -17,8 +15,9 @@ export class BlendShape {
   _useBlendShapeTangent: boolean = true;
   /** @internal */
   _layoutChangeManager: UpdateFlagManager = new UpdateFlagManager();
+  /** @internal */
+  _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
 
-  private _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
   private _frames: BlendShapeFrame[] = [];
 
   /**
@@ -84,20 +83,6 @@ export class BlendShape {
     frames.length = 0;
     this._updateUseNormalAndTangent(true, true);
     this._dataChangeManager.dispatch();
-  }
-
-  /**
-   * @internal
-   */
-  _addDataDirtyFlag(flag: UpdateFlag): void {
-    this._dataChangeManager.addFlag(flag);
-  }
-
-  /**
-   * @internal
-   */
-  _createSubDataDirtyFlag(): BoolUpdateFlag {
-    return this._dataChangeManager.createFlag(BoolUpdateFlag);
   }
 
   /**
