@@ -31,7 +31,7 @@ export class SceneParser extends Parser {
   parse(context: ParserContext) {
     const { glTFResource, glTF } = context;
     const { entities } = glTFResource;
-    const { nodes, cameras: gltfCameras } = glTF;
+    const { nodes, cameras } = glTF;
 
     if (!nodes) return;
     const defaultSceneRootPromiseInfo = context.defaultSceneRootPromiseInfo;
@@ -39,17 +39,17 @@ export class SceneParser extends Parser {
     const promises = [];
 
     for (let i = 0; i < nodes.length; i++) {
-      const gltfNode = nodes[i];
-      const { camera: cameraID, mesh: meshID, extensions = {} } = gltfNode;
+      const glTFNode = nodes[i];
+      const { camera: cameraID, mesh: meshID, extensions = {} } = glTFNode;
       const KHR_lights_punctual = <IKHRLightsPunctual_LightNode>extensions.KHR_lights_punctual;
       const entity = entities[i];
 
       if (cameraID !== undefined) {
-        this._createCamera(glTFResource, gltfCameras[cameraID], entity);
+        this._createCamera(glTFResource, cameras[cameraID], entity);
       }
 
       if (meshID !== undefined) {
-        promises.push(this._createRenderer(context, gltfNode, entity));
+        promises.push(this._createRenderer(context, glTFNode, entity));
       }
 
       if (KHR_lights_punctual) {
@@ -113,18 +113,18 @@ export class SceneParser extends Parser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: ParserContext, gltfNode: INode, entity: Entity) {
-    const { glTFResource, glTF: gltf } = context;
-    const { meshes: gltfMeshes } = gltf;
+  private _createRenderer(context: ParserContext, glTFNode: INode, entity: Entity) {
+    const { glTFResource, glTF } = context;
+    const { meshes: glTFMeshes } = glTF;
 
     const { engine, meshes, materials, skins } = glTFResource;
-    const { mesh: meshID, skin: skinID } = gltfNode;
-    const glTFMesh = gltfMeshes[meshID];
-    const gltfMeshPrimitives = glTFMesh.primitives;
-    const blendShapeWeights = gltfNode.weights || glTFMesh.weights;
+    const { mesh: meshID, skin: skinID } = glTFNode;
+    const glTFMesh = glTFMeshes[meshID];
+    const glTFMeshPrimitives = glTFMesh.primitives;
+    const blendShapeWeights = glTFNode.weights || glTFMesh.weights;
 
     const promises = [];
-    for (let i = 0; i < gltfMeshPrimitives.length; i++) {
+    for (let i = 0; i < glTFMeshPrimitives.length; i++) {
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
@@ -144,8 +144,8 @@ export class SceneParser extends Parser {
         renderer.mesh = mesh;
       }
 
-      const materialIndex = gltfMeshPrimitives[i].material;
-      const remapMaterials = gltf.extensions && gltf.extensions["OASIS_materials_remap"];
+      const materialIndex = glTFMeshPrimitives[i].material;
+      const remapMaterials = glTF.extensions && glTF.extensions["OASIS_materials_remap"];
       if (remapMaterials && remapMaterials[materialIndex]) {
         promises.push(
           remapMaterials[materialIndex].then((mtl) => {
@@ -157,7 +157,7 @@ export class SceneParser extends Parser {
         renderer.setMaterial(material);
       }
 
-      const { extensions = {} } = gltfMeshPrimitives[i];
+      const { extensions = {} } = glTFMeshPrimitives[i];
       const { KHR_materials_variants } = extensions;
       if (KHR_materials_variants) {
         Parser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context);
