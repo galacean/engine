@@ -38,8 +38,7 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   bind(): void {
-    const gl = this._gl;
-    gl.bindBuffer(this._glBindTarget, this._glBuffer);
+    this._gl.bindBuffer(this._glBindTarget, this._glBuffer);
   }
 
   setData(
@@ -97,8 +96,7 @@ export class GLBuffer implements IPlatformBuffer {
   }
 
   destroy(): void {
-    const gl = this._gl;
-    gl.deleteBuffer(this._glBuffer);
+    this._gl.deleteBuffer(this._glBuffer);
     this._gl = null;
     this._glBuffer = null;
   }

@@ -9,12 +9,10 @@ import { SetDataOptions } from "./enums/SetDataOptions";
  * Buffer.
  */
 export class Buffer extends GraphicsResource {
-  /** @internal */
-  _platformBuffer: IPlatformBuffer;
-
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
+  private _platformBuffer: IPlatformBuffer;
 
   /**
    * Buffer binding flag.
