@@ -44,7 +44,7 @@ export class ParserContext {
     promiseMap[`${url}`] = this._initPromiseInfo(this.masterPromiseInfo);
   }
 
-  private _initPromiseInfo(promiseInfo): AssetPromise<any> {
+  private _initPromiseInfo(promiseInfo: PromiseInfo<any>): AssetPromise<any> {
     const promise = new AssetPromise<any>((resolve, reject, setProgress, onCancel) => {
       promiseInfo.resolve = resolve;
       promiseInfo.reject = reject;
