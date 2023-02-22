@@ -459,7 +459,7 @@ export class GLTFUtil {
     }
 
     const glTFData = new Uint8Array(glb, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
-    const gltf: IGLTF = JSON.parse(GLTFUtil.decodeText(glTFData));
+    const glTF: IGLTF = JSON.parse(GLTFUtil.decodeText(glTFData));
 
     // read all buffers
     const buffers: ArrayBuffer[] = [];
@@ -484,7 +484,7 @@ export class GLTFUtil {
     }
 
     return {
-      glTF: gltf,
+      glTF,
       buffers
     };
   }
