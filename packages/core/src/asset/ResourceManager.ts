@@ -222,7 +222,6 @@ export class ResourceManager {
     const assetUrlPool = this._assetUrlPool;
 
     const restoreContentInfoPool = this._restoreContentInfoPool;
-
     const restorePromises = new Array<Promise<void>>();
     for (const k in restoreContentInfoPool) {
       const restoreInfo = restoreContentInfoPool[k];
@@ -242,6 +241,9 @@ export class ResourceManager {
     this._assetPool = null;
     this._assetUrlPool = null;
     this._referResourcePool = null;
+    this._graphicResourcePool = null;
+    this._restoreContentInfoPool = null;
+    this._loadingPromises = null;
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
