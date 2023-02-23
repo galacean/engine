@@ -95,37 +95,32 @@ export class GLTFLoader extends Loader<GLTFResource> {
               for (const meshInfo of restoreInfo.meshes) {
                 for (const restoreInfo of meshInfo.vertexBuffers) {
                   const buffer = buffers[restoreInfo.bufferIndex];
-                  const byteOffset = restoreInfo.byteOffset;
-                  const data = new restoreInfo.TypedArray(buffer, byteOffset, restoreInfo.length);
+                  const data = new restoreInfo.TypedArray(buffer, restoreInfo.byteOffset, restoreInfo.length);
                   restoreInfo.buffer.setData(data);
                 }
 
                 const restoreInfo = meshInfo.indexBuffer;
                 const buffer = buffers[restoreInfo.bufferIndex];
-                const byteOffset = restoreInfo.byteOffset;
-                const data = new restoreInfo.TypedArray(buffer, byteOffset, restoreInfo.length);
+                const data = new restoreInfo.TypedArray(buffer, restoreInfo.byteOffset, restoreInfo.length);
                 restoreInfo.buffer.setData(data);
 
                 for (const restoreInfo of meshInfo.blendShapes) {
                   const { position, normal, tangent } = restoreInfo;
                   const buffer = buffers[position.bufferIndex];
-                  const byteOffset = position.byteOffset;
-                  const positionData = new position.TypedArray(buffer, byteOffset, position.length);
+                  const positionData = new position.TypedArray(buffer, position.byteOffset, position.length);
                   const positions = GLTFUtil.floatBufferToVector3Array(<Float32Array>positionData);
                   restoreInfo.blendShape.frames[0].deltaPositions = positions;
 
                   if (normal) {
                     const buffer = buffers[normal.bufferIndex];
-                    const byteOffset = normal.byteOffset;
-                    const normalData = new normal.TypedArray(buffer, byteOffset, normal.length);
+                    const normalData = new normal.TypedArray(buffer, normal.byteOffset, normal.length);
                     const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>normalData);
                     restoreInfo.blendShape.frames[0].deltaNormals = normals;
                   }
 
                   if (tangent) {
                     const buffer = buffers[tangent.bufferIndex];
-                    const byteOffset = tangent.byteOffset;
-                    const tangentData = new tangent.TypedArray(buffer, byteOffset, tangent.length);
+                    const tangentData = new tangent.TypedArray(buffer, tangent.byteOffset, tangent.length);
                     const tangents = GLTFUtil.floatBufferToVector3Array(<Float32Array>tangentData);
                     restoreInfo.blendShape.frames[0].deltaTangents = tangents;
                   }
