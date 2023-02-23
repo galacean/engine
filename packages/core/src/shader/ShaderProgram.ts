@@ -231,12 +231,12 @@ export class ShaderProgram {
   }
 
   /**
-   * init and link program with shader.
+   * Init and link program with shader.
    */
   private _createProgram(vertexSource: string, fragmentSource: string): WebGLProgram | null {
     const gl = this._gl;
 
-    // create and compile shader
+    // Create and compile shader
     const vertexShader = this._createShader(gl.VERTEX_SHADER, vertexSource);
     if (!vertexShader) {
       return null;
@@ -247,8 +247,13 @@ export class ShaderProgram {
       return null;
     }
 
-    // link program and shader
+    // Create program and link shader
     const program = gl.createProgram();
+    if (!program) {
+      console.warn("Context lost while create program.");
+      return null;
+    }
+
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
