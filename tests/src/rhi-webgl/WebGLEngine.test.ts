@@ -98,7 +98,6 @@ describe("webgl engine test", () => {
     engine.forceLoseDevice();
     setTimeout(() => {
       expect(opLost).to.have.been.called.exactly(1);
-      console.log("sdsdsdsdd");
     }, 100);
 
     setTimeout(() => {
