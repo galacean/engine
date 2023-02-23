@@ -165,9 +165,9 @@ export class ShaderProgram {
    */
   bind(): boolean {
     const rhi: IHardwareRenderer = this._engine._hardwareRenderer;
-    if (rhi._currentBind !== this) {
+    if (rhi._currentBindShaderProgram !== this) {
       this._gl.useProgram(this._glProgram);
-      rhi._currentBind = this;
+      rhi._currentBindShaderProgram = this;
       return true;
     } else {
       return false;

@@ -66,11 +66,11 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
  */
 export class WebGLRenderer implements IHardwareRenderer {
   /** @internal */
-  _readFrameBuffer: WebGLFramebuffer;
+  _readFrameBuffer: WebGLFramebuffer = null;
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
-
-  _currentBind: any;
+  /** @internal */
+  _currentBindShaderProgram: any;
 
   private _options: WebGLRendererOptions;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
@@ -84,7 +84,6 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _activeTextureID: number;
   private _activeTextures: GLTexture[] = new Array(32);
 
-  // cache value
   private _lastViewport: Vector4 = new Vector4(null, null, null, null);
   private _lastScissor: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
@@ -154,7 +153,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     webCanvas.addEventListener("webglcontextlost", this._onWebGLContextLost, false);
     webCanvas.addEventListener("webglcontextrestored", this._onWebGLContextRestored, false);
     webCanvas.addEventListener("webglcontextcreationerror", this._onContextCreationError, false);
-    
+
     this._webCanvas = webCanvas;
 
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
@@ -382,15 +381,13 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   resetState(): void {
-    this._readFrameBuffer = undefined;
-
+    this._readFrameBuffer = null;
     this._enableGlobalDepthBias = false;
-
-    this._currentBind = undefined;
+    this._currentBindShaderProgram = null;
 
     const activeTextures = this._activeTextures;
     for (let i = 0, n = activeTextures.length; i < n; i++) {
-      activeTextures[i] = undefined;
+      activeTextures[i] = null;
     }
 
     this._lastViewport.set(null, null, null, null);

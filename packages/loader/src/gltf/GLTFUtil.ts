@@ -200,8 +200,8 @@ export class GLTFUtil {
    * @deprecated
    * Get accessor data.
    */
-  static getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
-    const bufferViews = gltf.bufferViews;
+  static getAccessorData(glTF: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
+    const bufferViews = glTF.bufferViews;
     const bufferView = bufferViews[accessor.bufferView];
     const arrayBuffer = buffers[bufferView.buffer];
     const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
