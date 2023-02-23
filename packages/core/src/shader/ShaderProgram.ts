@@ -61,8 +61,6 @@ export class ShaderProgram {
   private _isValid: boolean;
   private _engine: Engine;
   private _gl: WebGLRenderingContext;
-  private _vertexShader: WebGLShader;
-  private _fragmentShader: WebGLShader;
   private _glProgram: WebGLProgram;
   private _activeTextureUint: number = 0;
 
@@ -179,8 +177,6 @@ export class ShaderProgram {
    */
   destroy(): void {
     const gl = this._gl;
-    this._vertexShader && gl.deleteShader(this._vertexShader);
-    this._fragmentShader && gl.deleteShader(this._fragmentShader);
     this._glProgram && gl.deleteProgram(this._glProgram);
   }
 
@@ -258,14 +254,10 @@ export class ShaderProgram {
     gl.linkProgram(program);
     gl.validateProgram(program);
 
-    if (gl.isContextLost()) {
-      Logger.error("Context lost while linking program.");
-      gl.deleteShader(vertexShader);
-      gl.deleteShader(fragmentShader);
-      return null;
-    }
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
 
-    if (Logger.isEnabled && !gl.getProgramParameter(program, gl.LINK_STATUS)) {
+    if (Logger.isEnabled && !gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
       Logger.error(
         `Could not link WebGL program\n\n` +
           `Shader error: ${gl.getError()}\n\n` +
@@ -276,8 +268,6 @@ export class ShaderProgram {
       return null;
     }
 
-    this._vertexShader = vertexShader;
-    this._fragmentShader = fragmentShader;
     return program;
   }
 
@@ -293,13 +283,7 @@ export class ShaderProgram {
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
 
-    if (gl.isContextLost()) {
-      console.warn("Context lost while compiling shader.");
-      gl.deleteShader(shader);
-      return null;
-    }
-
-    if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
       console.warn(
         `Could not compile WebGL shader\n\n` +
           `Shader type: ${shaderType == gl.VERTEX_SHADER ? "vertex" : "fragment"}\n\n` +
