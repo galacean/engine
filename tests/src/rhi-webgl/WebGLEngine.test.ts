@@ -1,8 +1,7 @@
 import { Camera, Entity, Script } from "@oasis-engine/core";
+import { Vector3 } from "@oasis-engine/math";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
-import { Vector3 } from "@oasis-engine/math";
-
 
 describe("webgl engine test", () => {
   it("create a webgl engine", () => {
@@ -69,6 +68,8 @@ describe("webgl engine test", () => {
     childEntity.addComponent(ChildScript);
     rootEntity.addChild(parentEntity);
   });
+
+  it("engine device lost", () => {});
 });
 // npx cross-env TS_NODE_PROJECT=tsconfig.tests.json nyc --reporter=lcov floss -p tests/src/*.test.ts -r ts-node/register
 // npx cross-env TS_NODE_PROJECT=tsconfig.tests.json nyc --reporter=lcov floss --path tests -r ts-node/register
