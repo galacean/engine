@@ -26,9 +26,8 @@ class OASIS_animation extends ExtensionParser {
             });
           } else {
             event.parameter = eventData.parameter;
+            resolve(event);
           }
-
-          return event;
         });
       })
     );
