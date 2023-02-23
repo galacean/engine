@@ -424,7 +424,6 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   private _onWebGLContextRestored(event: WebGLContextEvent) {
-    console.log("------------------------");
     this._onDeviceRestored();
   }
 }
