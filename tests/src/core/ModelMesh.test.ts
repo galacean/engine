@@ -29,7 +29,7 @@ describe("ModelMesh Test", function () {
   const falsyWeights = [new Vector4()];
   const falsyJoints = [new Vector4()];
   it("init", () => {
-    expect(modelMesh.accessible).true;
+    expect(modelMesh.readable).true;
   });
 
   it("set position data", () => {
