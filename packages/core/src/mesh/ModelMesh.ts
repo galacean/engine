@@ -57,9 +57,9 @@ export class ModelMesh extends Mesh {
   private _vertexCountChanged: boolean = false;
 
   /**
-   * Whether to access data of the mesh.
+   * Whether to read data of the mesh.
    */
-  get accessible(): boolean {
+  get readable(): boolean {
     return this._readable;
   }
 
