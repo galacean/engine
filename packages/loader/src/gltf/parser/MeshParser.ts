@@ -10,7 +10,7 @@ import {
   VertexElement
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
-import { BlendShapeRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFLoader";
+import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFLoader";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
@@ -166,9 +166,7 @@ export class MeshParser extends Parser {
             vertexBuffer.setData(vertices);
             accessorBuffer.vertexBuffer = vertexBuffer;
 
-            const restoreInfo = accessorBuffer.restoreInfo;
-            restoreInfo.buffer = vertexBuffer;
-            meshRestoreInfo.vertexBuffers.push(restoreInfo);
+            meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
           }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
           vertexBindingInfos[meshId] = bufferBindIndex++;
@@ -181,9 +179,7 @@ export class MeshParser extends Parser {
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
 
-        const restoreInfo = accessorBuffer.restoreInfo;
-        restoreInfo.buffer = vertexBuffer;
-        meshRestoreInfo.vertexBuffers.push(restoreInfo);
+        meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
 
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
         vertexBindingInfos[meshId] = bufferBindIndex++;
@@ -225,7 +221,7 @@ export class MeshParser extends Parser {
       const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf.bufferViews, indexAccessor);
       mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>accessorBuffer.data);
       mesh.addSubMesh(0, indexAccessor.count, mode);
-      meshRestoreInfo.indexBuffer = accessorBuffer.restoreInfo.data;
+      meshRestoreInfo.indexBuffer = accessorBuffer.restoreInfo;
     } else {
       mesh.addSubMesh(0, vertexCount, mode);
     }
@@ -272,9 +268,9 @@ export class MeshParser extends Parser {
       meshRestoreInfo.blendShapes.push(
         new BlendShapeRestoreInfo(
           blendShape,
-          deltaPosBufferInfo.restoreInfo.data,
-          deltaNorBufferInfo?.restoreInfo.data,
-          deltaTanBufferInfo?.restoreInfo.data
+          deltaPosBufferInfo.restoreInfo,
+          deltaNorBufferInfo?.restoreInfo,
+          deltaTanBufferInfo?.restoreInfo
         )
       );
     }

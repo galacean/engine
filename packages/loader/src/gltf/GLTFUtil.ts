@@ -178,14 +178,14 @@ export class GLTFUtil {
         const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
         accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
-        bufferInfo.restoreInfo.data = new BufferDataRestoreInfo(bufferIndex, TypedArray, offset, count);
+        bufferInfo.restoreInfo = new BufferDataRestoreInfo(bufferIndex, TypedArray, offset, count);
       }
     } else {
       const offset = bufferByteOffset + byteOffset;
       const count = accessorCount * dataElementSize;
       const data = new TypedArray(buffer, offset, count);
       bufferInfo = new BufferInfo(data, false, elementStride);
-      bufferInfo.restoreInfo.data = new BufferDataRestoreInfo(bufferIndex, TypedArray, offset, count);
+      bufferInfo.restoreInfo = new BufferDataRestoreInfo(bufferIndex, TypedArray, offset, count);
     }
 
     if (accessor.sparse) {

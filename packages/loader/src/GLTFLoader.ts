@@ -187,8 +187,7 @@ export class ModelMeshRestoreInfo {
  * @internal
  */
 export class BufferRestoreInfo {
-  buffer: Buffer;
-  data: BufferDataRestoreInfo;
+  constructor(public buffer: Buffer, public data: BufferDataRestoreInfo) {}
 }
 
 /**
