@@ -19,7 +19,7 @@ export class BufferParser extends Parser {
       return request<ArrayBuffer>(url, requestConfig)
         .then((glb) => {
           context.contentRestoreInfo.bufferRequests.push(new BufferRequestInfo(url, requestConfig));
-          return GLTFUtil.parseGLB(context, glb, requestConfig);
+          return GLTFUtil.parseGLB(context, glb);
         })
         .then(({ glTF, buffers }) => {
           context.glTF = glTF;

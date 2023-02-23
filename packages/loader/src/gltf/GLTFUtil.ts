@@ -423,8 +423,7 @@ export class GLTFUtil {
    */
   static parseGLB(
     context: ParserContext,
-    glb: ArrayBuffer,
-    requestConfig: RequestConfig
+    glb: ArrayBuffer
   ): {
     glTF: IGLTF;
     buffers: ArrayBuffer[];
