@@ -190,8 +190,8 @@ export class GLTFUtil {
 
     if (accessor.sparse) {
       const data = GLTFUtil.processingSparseData(bufferViews, accessor, buffers, bufferInfo.data);
-      bufferInfo = new BufferInfo(data, false, bufferInfo.stride);
-      // @todo: need to support rebuild sparse data
+      bufferInfo.data = data;
+      // @todo: need to support sparse data restore
     }
     return bufferInfo;
   }
