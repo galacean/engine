@@ -266,7 +266,12 @@ export class ShaderProgram {
     }
 
     if (Logger.isEnabled && !gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      Logger.error("Could not link WebGL program. \n" + gl.getProgramInfoLog(program));
+      Logger.error(
+        `Could not link WebGL program\n\n` +
+          `Shader error: ${gl.getError()}\n\n` +
+          `Validate status: ${gl.getProgramParameter(program, gl.VALIDATE_STATUS)}\n\n` +
+          `Program information log: ${gl.getProgramInfoLog(program)}`
+      );
       gl.deleteProgram(program);
       return null;
     }
@@ -296,8 +301,10 @@ export class ShaderProgram {
 
     if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
       console.warn(
-        `Could not compile WebGL shader.\n${gl.getShaderInfoLog(shader)}`,
-        ShaderProgram._addLineNum(shaderSource)
+        `Could not compile WebGL shader\n\n` +
+          `Shader type: ${shaderType == gl.VERTEX_SHADER ? "vertex" : "fragment"}\n\n` +
+          `Shader information log:\n${gl.getShaderInfoLog(shader)}\n` +
+          `Shader source:\n${ShaderProgram._addLineNum(shaderSource)}`
       );
       gl.deleteShader(shader);
       return null;
