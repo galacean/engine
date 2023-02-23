@@ -1,6 +1,6 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
-import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BufferDataRestoreInfo } from "../GLTFLoader";
 import { BufferInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
@@ -178,14 +178,14 @@ export class GLTFUtil {
         const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
         accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
-        bufferInfo.restoreInfo.setRestoreInfo(bufferIndex, TypedArray, offset, count);
+        bufferInfo.restoreInfo.data = new BufferDataRestoreInfo(bufferIndex, TypedArray, offset, count);
       }
     } else {
       const offset = bufferByteOffset + byteOffset;
       const count = accessorCount * dataElementSize;
       const data = new TypedArray(buffer, offset, count);
       bufferInfo = new BufferInfo(data, false, elementStride);
-      bufferInfo.restoreInfo.setRestoreInfo(bufferIndex, TypedArray, offset, count);
+      bufferInfo.restoreInfo.data = new BufferDataRestoreInfo(bufferIndex, TypedArray, offset, count);
     }
 
     if (accessor.sparse) {

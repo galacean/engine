@@ -220,12 +220,12 @@ export class MeshParser extends Parser {
     mesh.setVertexElements(vertexElements);
 
     // Indices
-    let accessorBuffer;
     if (indices !== undefined) {
       const indexAccessor = gltf.accessors[indices];
-      accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf.bufferViews, indexAccessor);
+      const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf.bufferViews, indexAccessor);
       mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>accessorBuffer.data);
       mesh.addSubMesh(0, indexAccessor.count, mode);
+      meshRestoreInfo.indexBuffer = accessorBuffer.restoreInfo.data;
     } else {
       mesh.addSubMesh(0, vertexCount, mode);
     }
@@ -234,14 +234,6 @@ export class MeshParser extends Parser {
     targets && this._createBlendShape(mesh, meshRestoreInfo, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
-
-    // @todo: remove this
-    if (indices !== undefined) {
-      const restoreInfo = accessorBuffer.restoreInfo;
-      // @ts-ignore
-      restoreInfo.buffer = mesh._indexBufferBinding.buffer;
-      meshRestoreInfo.indexBuffer = restoreInfo;
-    }
 
     return Promise.resolve(mesh);
   }
@@ -280,9 +272,9 @@ export class MeshParser extends Parser {
       meshRestoreInfo.blendShapes.push(
         new BlendShapeRestoreInfo(
           blendShape,
-          deltaPosBufferInfo.restoreInfo,
-          deltaNorBufferInfo?.restoreInfo,
-          deltaTanBufferInfo?.restoreInfo
+          deltaPosBufferInfo.restoreInfo.data,
+          deltaNorBufferInfo?.restoreInfo.data,
+          deltaTanBufferInfo?.restoreInfo.data
         )
       );
     }

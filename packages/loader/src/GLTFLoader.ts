@@ -93,16 +93,18 @@ export class GLTFLoader extends Loader<GLTFResource> {
             .then(() => {
               // Restore mesh
               for (const meshInfo of restoreInfo.meshes) {
-                for (const restoreInfo of meshInfo.vertexBuffers) {
+                const mesh = meshInfo.mesh;
+                for (const bufferRestoreInfo of meshInfo.vertexBuffers) {
+                  const restoreInfo = bufferRestoreInfo.data;
                   const buffer = buffers[restoreInfo.bufferIndex];
                   const data = new restoreInfo.TypedArray(buffer, restoreInfo.byteOffset, restoreInfo.length);
-                  restoreInfo.buffer.setData(data);
+                  bufferRestoreInfo.buffer.setData(data);
                 }
 
                 const restoreInfo = meshInfo.indexBuffer;
                 const buffer = buffers[restoreInfo.bufferIndex];
                 const data = new restoreInfo.TypedArray(buffer, restoreInfo.byteOffset, restoreInfo.length);
-                restoreInfo.buffer.setData(data);
+                mesh.setIndices(data);
 
                 for (const restoreInfo of meshInfo.blendShapes) {
                   const { position, normal, tangent } = restoreInfo;
@@ -125,7 +127,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
                     restoreInfo.blendShape.frames[0].deltaTangents = tangents;
                   }
                 }
-                meshInfo.mesh.uploadData(true);
+                mesh.uploadData(true);
               }
               resolve(host);
             })
@@ -177,7 +179,7 @@ export class BufferTextureRestoreInfo {
 export class ModelMeshRestoreInfo {
   public mesh: ModelMesh;
   public vertexBuffers: BufferRestoreInfo[] = [];
-  public indexBuffer: BufferRestoreInfo;
+  public indexBuffer: BufferDataRestoreInfo;
   public blendShapes: BlendShapeRestoreInfo[] = [];
 }
 
@@ -186,16 +188,14 @@ export class ModelMeshRestoreInfo {
  */
 export class BufferRestoreInfo {
   buffer: Buffer;
-  bufferIndex: number;
-  TypedArray: any;
-  byteOffset: number;
-  length: number;
-  setRestoreInfo(bufferIndex: number, TypedArray: any, byteOffset: number, length: number) {
-    this.bufferIndex = bufferIndex;
-    this.TypedArray = TypedArray;
-    this.byteOffset = byteOffset;
-    this.length = length;
-  }
+  data: BufferDataRestoreInfo;
+}
+
+/**
+ * @internal
+ */
+export class BufferDataRestoreInfo {
+  constructor(public bufferIndex: number, public TypedArray: any, public byteOffset: number, public length: number) {}
 }
 
 /**
@@ -204,8 +204,8 @@ export class BufferRestoreInfo {
 export class BlendShapeRestoreInfo {
   constructor(
     public blendShape: BlendShape,
-    public position: BufferRestoreInfo,
-    public normal?: BufferRestoreInfo,
-    public tangent?: BufferRestoreInfo
+    public position: BufferDataRestoreInfo,
+    public normal?: BufferDataRestoreInfo,
+    public tangent?: BufferDataRestoreInfo
   ) {}
 }
