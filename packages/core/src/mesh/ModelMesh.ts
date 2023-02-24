@@ -683,7 +683,6 @@ export class ModelMesh extends Mesh {
       vertexBuffer?.destroy();
 
       const elementCount = this._bufferStrides[0] / 4;
-
       const vertexFloatCount = elementCount * this.vertexCount;
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
@@ -697,7 +696,13 @@ export class ModelMesh extends Mesh {
       this._vertexCountChanged = false;
     } else {
       if (this._vertexBufferUpdateFlag & VertexChangedFlags.All) {
-        const vertices = this._verticesFloat32;
+        let vertices = this._verticesFloat32;
+        if (!vertices) {
+          const elementCount = this._bufferStrides[0] / 4;
+          const vertexFloatCount = elementCount * this.vertexCount;
+          this._verticesFloat32 = vertices = new Float32Array(vertexFloatCount);
+        }
+
         this._updateVertices(vertices);
         vertexBuffer.setData(vertices);
       }
