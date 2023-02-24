@@ -35,12 +35,11 @@ class TextureCubeLoader extends Loader<TextureCube> {
           }
 
           const texture = new TextureCube(resourceManager.engine, width);
-
           for (let faceIndex = 0; faceIndex < 6; faceIndex++) {
             texture.setImageSource(TextureCubeFace.PositiveX + faceIndex, images[faceIndex], 0);
           }
-
           texture.generateMipmaps();
+
           resourceManager.addContentRestorer(new TextureCubeContentRestorer(texture, urls, requestConfig));
           resolve(texture);
         })
