@@ -552,13 +552,13 @@ export class Engine extends EventDispatcher {
     const { resourceManager } = this;
     // Restore graphic resources
     resourceManager._restoreGraphicResources();
-    console.log("Device resource restored.");
+    console.log("Graphic resource restored.");
 
     // Restore resources content
     resourceManager
       ._restoreResourcesContent()
       .then(() => {
-        console.log("Device resource content restored.");
+        console.log("Graphic resource content restored.\n\n" + "Device restored.");
         this.dispatch("devicerestored", this);
         this._isDeviceLost = false;
       })
