@@ -168,6 +168,7 @@ export abstract class Texture extends GraphicsResource {
   }
 
   /**
+   * @override
    * @internal
    */
   _rebuild(): void {
