@@ -1,4 +1,4 @@
-import { ContentRestoreInfo, Engine, EngineObject, Logger } from "..";
+import { ContentRestorer, Engine, EngineObject, Logger } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
@@ -48,7 +48,7 @@ export class ResourceManager {
   /** Graphic resource pool, key is the `instanceID` of resource. */
   private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
   /** Restorable resource information pool, key is the `instanceID` of resource. */
-  private _restoreContentInfoPool: Record<number, ContentRestoreInfo<any>> = Object.create(null);
+  private _contentRestorerPool: Record<number, ContentRestorer<any>> = Object.create(null);
 
   /**
    * Create a ResourceManager.
@@ -143,6 +143,14 @@ export class ResourceManager {
   }
 
   /**
+   * Add content restorer.
+   * @param restorer - The restorer
+   */
+  addContentRestorer<T extends EngineObject>(restorer: ContentRestorer<T>): void {
+    this._contentRestorerPool[restorer.resource.instanceId] = restorer;
+  }
+
+  /**
    * @internal
    */
   _addAsset(path: string, asset: EngineObject): void {
@@ -193,15 +201,15 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addRestoreContentInfo(resource: EngineObject, restoreInfo: ContentRestoreInfo<any>): void {
-    this._restoreContentInfoPool[resource.instanceId] = restoreInfo;
+  _addContentRestorer(resource: EngineObject, restoreInfo: ContentRestorer<any>): void {
+    this._contentRestorerPool[resource.instanceId] = restoreInfo;
   }
 
   /**
    * @internal
    */
-  _deleteRestoreContentInfo(resource: EngineObject): void {
-    delete this._restoreContentInfoPool[resource.instanceId];
+  _deleteContentRestorer(resource: EngineObject): void {
+    delete this._contentRestorerPool[resource.instanceId];
   }
 
   /**
@@ -218,16 +226,12 @@ export class ResourceManager {
    * @internal
    */
   _restoreResourcesContent(): Promise<void[]> {
-    const assetPool = this._assetPool;
-    const assetUrlPool = this._assetUrlPool;
-
-    const restoreContentInfoPool = this._restoreContentInfoPool;
+    const restoreContentInfoPool = this._contentRestorerPool;
     const restorePromises = new Array<Promise<void>>();
     for (const k in restoreContentInfoPool) {
       const restoreInfo = restoreContentInfoPool[k];
-      const url = assetPool[k];
-      const resource = <EngineObject>assetUrlPool[url];
-      restorePromises.push(restoreInfo._loader.restoreContent(resource, restoreInfo));
+      const promise = restoreInfo.restoreContent();
+      promise && restorePromises.push(promise);
     }
     return Promise.all(restorePromises);
   }
@@ -242,7 +246,7 @@ export class ResourceManager {
     this._assetUrlPool = null;
     this._referResourcePool = null;
     this._graphicResourcePool = null;
-    this._restoreContentInfoPool = null;
+    this._contentRestorerPool = null;
     this._loadingPromises = null;
   }
 

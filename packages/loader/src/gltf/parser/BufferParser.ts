@@ -13,12 +13,12 @@ export class BufferParser extends Parser {
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };
 
     const isGLB = this._isGLB(url);
-    context.contentRestoreInfo.isGLB = isGLB;
+    context.contentRestorer.isGLB = isGLB;
 
     if (isGLB) {
       return request<ArrayBuffer>(url, requestConfig)
         .then((glb) => {
-          context.contentRestoreInfo.bufferRequests.push(new BufferRequestInfo(url, requestConfig));
+          context.contentRestorer.bufferRequests.push(new BufferRequestInfo(url, requestConfig));
           return GLTFUtil.parseGLB(context, glb);
         })
         .then(({ glTF, buffers }) => {
@@ -30,7 +30,7 @@ export class BufferParser extends Parser {
         type: "json"
       }).then((glTF: IGLTF) => {
         context.glTF = glTF;
-        const restoreBufferRequests = context.contentRestoreInfo.bufferRequests;
+        const restoreBufferRequests = context.contentRestorer.bufferRequests;
         return Promise.all(
           glTF.buffers.map((buffer: IBuffer) => {
             const absoluteUrl = GLTFUtil.parseRelativeUrl(url, buffer.uri);

@@ -40,7 +40,7 @@ export class MeshParser extends Parser {
           const mesh = new ModelMesh(engine, gltfMesh.name || j + "");
           const meshRestoreInfo = new ModelMeshRestoreInfo();
           meshRestoreInfo.mesh = mesh;
-          context.contentRestoreInfo.meshes.push(meshRestoreInfo);
+          context.contentRestorer.meshes.push(meshRestoreInfo);
 
           if (KHR_draco_mesh_compression) {
             (<Promise<EngineObject>>(

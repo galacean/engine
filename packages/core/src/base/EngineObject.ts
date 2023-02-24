@@ -45,6 +45,6 @@ export abstract class EngineObject {
   protected _onDestroy(): void {
     const { resourceManager } = this._engine;
     resourceManager._deleteAsset(this);
-    resourceManager._deleteRestoreContentInfo(this);
+    resourceManager._deleteContentRestorer(this);
   }
 }

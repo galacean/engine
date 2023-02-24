@@ -54,7 +54,7 @@ export class TextureParser extends Parser {
                 this._parseSampler(texture, glTF.samplers[sampler]);
               }
               const bufferTextureRestoreInfo = new BufferTextureRestoreInfo();
-              context.contentRestoreInfo.bufferTextures.push(bufferTextureRestoreInfo);
+              context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
               bufferTextureRestoreInfo.texture = texture;
               bufferTextureRestoreInfo.mimeType = mimeType;
               bufferTextureRestoreInfo.bufferView = bufferView;

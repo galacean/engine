@@ -464,7 +464,7 @@ export class GLTFUtil {
     const buffers: ArrayBuffer[] = [];
     let byteOffset = GLB_HEADER_LENGTH + 2 * UINT32_LENGTH + chunkLength;
 
-    const restoreGLBBufferSlice = context.contentRestoreInfo.glbBufferSlices;
+    const restoreGLBBufferSlice = context.contentRestorer.glbBufferSlices;
     while (byteOffset < header.length) {
       chunkLength = dataView.getUint32(byteOffset, true);
       chunkType = dataView.getUint32(byteOffset + UINT32_LENGTH, true);

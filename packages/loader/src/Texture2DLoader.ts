@@ -1,9 +1,10 @@
 import {
   AssetPromise,
   AssetType,
-  ContentRestoreInfo,
+  ContentRestorer,
   Loader,
   LoadItem,
+  request,
   resourceLoader,
   ResourceManager,
   Texture2D,
@@ -42,23 +43,12 @@ class Texture2DLoader extends Loader<Texture2D> {
             texture.name = url.substring(index + 1);
           }
 
-          this.addContentRestoreInfo(texture, new Texture2DContentRestoreInfo(url, requestConfig));
+          resourceManager.addContentRestorer(new Texture2DContentRestorer(texture, url, requestConfig));
           resolve(texture);
         })
         .catch((e) => {
           reject(e);
         });
-    });
-  }
-
-  /**
-   * @override
-   */
-  restoreContent(host: Texture2D, restoreInfo: Texture2DContentRestoreInfo): AssetPromise<Texture2D> {
-    return this.request<HTMLImageElement>(restoreInfo.url, restoreInfo.requestConfig).then((image) => {
-      host.setImageSource(image);
-      host.generateMipmaps();
-      return host;
     });
   }
 }
@@ -73,8 +63,20 @@ export interface Texture2DParams {
   mipmap: boolean;
 }
 
-class Texture2DContentRestoreInfo extends ContentRestoreInfo<Texture2D> {
-  constructor(public url: string, public requestConfig: RequestConfig) {
-    super();
+class Texture2DContentRestorer extends ContentRestorer<Texture2D> {
+  constructor(resource: Texture2D, public url: string, public requestConfig: RequestConfig) {
+    super(resource);
+  }
+
+  /**
+   * @override
+   */
+  restoreContent(): AssetPromise<Texture2D> {
+    return request<HTMLImageElement>(this.url, this.requestConfig).then((image) => {
+      const resource = this.resource;
+      resource.setImageSource(image);
+      resource.generateMipmaps();
+      return resource;
+    });
   }
 }
