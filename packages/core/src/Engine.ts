@@ -1,5 +1,6 @@
 import { Color } from "@oasis-engine/math/src/Color";
 import { Font } from "./2d/text/Font";
+import { ContentRestorer } from "./asset/ContentRestorer";
 import { ResourceManager } from "./asset/ResourceManager";
 import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
@@ -457,6 +458,17 @@ export class Engine extends EventDispatcher {
     magentaTexture2D.setPixelBuffer(magentaPixel);
     magentaTexture2D.isGCIgnored = true;
 
+    this.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<Texture2D> {
+        constructor() {
+          super(magentaTexture2D);
+        }
+        restoreContent() {
+          this.resource.setPixelBuffer(magentaPixel);
+        }
+      })()
+    );
+
     const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
     magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
     magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
@@ -466,6 +478,22 @@ export class Engine extends EventDispatcher {
     magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
     magentaTextureCube.isGCIgnored = true;
 
+    this.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<TextureCube> {
+        constructor() {
+          super(magentaTextureCube);
+        }
+        restoreContent() {
+          this.resource.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
+          this.resource.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
+          this.resource.setPixelBuffer(TextureCubeFace.PositiveY, magentaPixel);
+          this.resource.setPixelBuffer(TextureCubeFace.NegativeY, magentaPixel);
+          this.resource.setPixelBuffer(TextureCubeFace.PositiveZ, magentaPixel);
+          this.resource.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
+        }
+      })()
+    );
+
     this._magentaTexture2D = magentaTexture2D;
     this._magentaTextureCube = magentaTextureCube;
 
@@ -473,6 +501,16 @@ export class Engine extends EventDispatcher {
       const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
       magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
       magentaTexture2DArray.isGCIgnored = true;
+      this.resourceManager.addContentRestorer(
+        new (class extends ContentRestorer<Texture2DArray> {
+          constructor() {
+            super(magentaTexture2DArray);
+          }
+          restoreContent() {
+            this.resource.setPixelBuffer(0, magentaPixel);
+          }
+        })()
+      );
       this._magentaTexture2DArray = magentaTexture2DArray;
     }
   }
