@@ -414,7 +414,7 @@ export class ShaderProgram {
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
               defaultTexture = this._engine._depthTexture2D;
-              shaderUniform.textureUseComporeMode = true;
+              shaderUniform.textureUseCompareMode = true;
               break;
           }
 
