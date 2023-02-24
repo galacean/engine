@@ -49,12 +49,8 @@ export class GLTFResource extends EngineObject {
   /**
    * @override
    */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    super.destroy();
+  protected _onDestroy(): void {
+    super._onDestroy();
     this.defaultSceneRoot.destroy();
 
     this.textures = null;
