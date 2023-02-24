@@ -239,9 +239,9 @@ export class PrimitiveMesh {
     const countReciprocal = 1.0 / count;
     const segmentsReciprocal = 1.0 / segments;
 
-    const positions: Vector3[] = new Array(vertexCount);
-    const normals: Vector3[] = new Array(vertexCount);
-    const uvs: Vector2[] = new Array(vertexCount);
+    const positions = new Array<Vector3>(vertexCount);
+    const normals = new Array<Vector3>(vertexCount);
+    const uvs = new Array<Vector2>(vertexCount);
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % count;
@@ -306,9 +306,9 @@ export class PrimitiveMesh {
     const halfHeight: number = height / 2;
     const halfDepth: number = depth / 2;
 
-    const positions: Vector3[] = new Array(24);
-    const normals: Vector3[] = new Array(24);
-    const uvs: Vector2[] = new Array(24);
+    const positions = new Array<Vector3>(24);
+    const normals = new Array<Vector3>(24);
+    const uvs = new Array<Vector2>(24);
 
     // Up
     positions[0] = new Vector3(-halfWidth, halfHeight, -halfDepth);
@@ -441,9 +441,9 @@ export class PrimitiveMesh {
     const horizontalSegmentsReciprocal = 1.0 / horizontalSegments;
     const verticalSegmentsReciprocal = 1.0 / verticalSegments;
 
-    const positions: Vector3[] = new Array(vertexCount);
-    const normals: Vector3[] = new Array(vertexCount);
-    const uvs: Vector2[] = new Array(vertexCount);
+    const positions = new Array<Vector3>(vertexCount);
+    const normals = new Array<Vector3>(vertexCount);
+    const uvs = new Array<Vector2>(vertexCount);
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;
@@ -514,9 +514,9 @@ export class PrimitiveMesh {
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
 
-    const positions: Vector3[] = new Array(totalVertexCount);
-    const normals: Vector3[] = new Array(totalVertexCount);
-    const uvs: Vector2[] = new Array(totalVertexCount);
+    const positions = new Array<Vector3>(totalVertexCount);
+    const normals = new Array<Vector3>(totalVertexCount);
+    const uvs = new Array<Vector2>(totalVertexCount);
 
     let indicesOffset = 0;
 
@@ -545,7 +545,7 @@ export class PrimitiveMesh {
       positions[i] = new Vector3(posX, posY, posZ);
       // Normal
       normals[i] = new Vector3(sinTheta, slope, cosTheta);
-      // Texcoord
+      // TexCoord
       uvs[i] = new Vector2(u, 1 - v);
     }
 
@@ -570,14 +570,14 @@ export class PrimitiveMesh {
     positions[torsoVertexCount] = new Vector3(0, -halfHeight, 0);
     // Bottom normal
     normals[torsoVertexCount] = new Vector3(0, -1, 0);
-    // Bottom texcoord
+    // Bottom texCoord
     uvs[torsoVertexCount] = new Vector2(0.5, 0.5);
 
     // Top position
     positions[torsoVertexCount + 1] = new Vector3(0, halfHeight, 0);
     // Top normal
     normals[torsoVertexCount + 1] = new Vector3(0, 1, 0);
-    // Top texcoord
+    // Top texCoord
     uvs[torsoVertexCount + 1] = new Vector2(0.5, 0.5);
 
     // Add cap vertices
@@ -658,9 +658,9 @@ export class PrimitiveMesh {
     const rectangleCount = radialSegments * tubularSegments;
     const indices = PrimitiveMesh._generateIndices(torusMesh.engine, vertexCount, rectangleCount * 6);
 
-    const positions: Vector3[] = new Array(vertexCount);
-    const normals: Vector3[] = new Array(vertexCount);
-    const uvs: Vector2[] = new Array(vertexCount);
+    const positions = new Array<Vector3>(vertexCount);
+    const normals = new Array<Vector3>(vertexCount);
+    const uvs = new Array<Vector2>(vertexCount);
 
     arc = (arc / 180) * Math.PI;
 
@@ -749,9 +749,9 @@ export class PrimitiveMesh {
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
 
-    const positions: Vector3[] = new Array(totalVertexCount);
-    const normals: Vector3[] = new Array(totalVertexCount);
-    const uvs: Vector2[] = new Array(totalVertexCount);
+    const positions = new Array<Vector3>(totalVertexCount);
+    const normals = new Array<Vector3>(totalVertexCount);
+    const uvs = new Array<Vector2>(totalVertexCount);
 
     let indicesOffset = 0;
 
