@@ -470,12 +470,9 @@ export class Engine extends EventDispatcher {
     );
 
     const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
+    for (let i = 0; i < 6; i++) {
+      magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
+    }
     magentaTextureCube.isGCIgnored = true;
 
     this.resourceManager.addContentRestorer(
@@ -484,12 +481,9 @@ export class Engine extends EventDispatcher {
           super(magentaTextureCube);
         }
         restoreContent() {
-          this.resource.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
-          this.resource.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
-          this.resource.setPixelBuffer(TextureCubeFace.PositiveY, magentaPixel);
-          this.resource.setPixelBuffer(TextureCubeFace.NegativeY, magentaPixel);
-          this.resource.setPixelBuffer(TextureCubeFace.PositiveZ, magentaPixel);
-          this.resource.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
+          for (let i = 0; i < 6; i++) {
+            this.resource.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
+          }
         }
       })()
     );
