@@ -1,6 +1,6 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { BufferDataRestoreInfo } from "../GLTFLoader";
+import { BufferDataRestoreInfo, BufferRestoreAccessor } from "../GLTFLoader";
 import { BufferInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
@@ -178,20 +178,22 @@ export class GLTFUtil {
         const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
         accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
-        bufferInfo.restoreInfo = new BufferDataRestoreInfo(bufferIndex, TypedArray, offset, count);
+        bufferInfo.restoreInfo = new BufferDataRestoreInfo(
+          new BufferRestoreAccessor(bufferIndex, TypedArray, offset, count)
+        );
       }
     } else {
       const offset = bufferByteOffset + byteOffset;
       const count = accessorCount * dataElementSize;
       const data = new TypedArray(buffer, offset, count);
       bufferInfo = new BufferInfo(data, false, elementStride);
-      bufferInfo.restoreInfo = new BufferDataRestoreInfo(bufferIndex, TypedArray, offset, count);
+      bufferInfo.restoreInfo = new BufferDataRestoreInfo(
+        new BufferRestoreAccessor(bufferIndex, TypedArray, offset, count)
+      );
     }
 
     if (accessor.sparse) {
-      const data = GLTFUtil.processingSparseData(bufferViews, accessor, buffers, bufferInfo.data);
-      bufferInfo.data = data;
-      // @todo: need to support sparse data restore
+      GLTFUtil.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
     }
     return bufferInfo;
   }
@@ -275,33 +277,42 @@ export class GLTFUtil {
     bufferViews: IBufferView[],
     accessor: IAccessor,
     buffers: ArrayBuffer[],
-    originData: TypedArray
-  ): TypedArray {
+    bufferInfo: BufferInfo
+  ): void {
+    const { restoreInfo } = bufferInfo;
     const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const TypedArray = GLTFUtil.getComponentType(accessor.componentType);
-    const data = originData.slice();
+    const data = bufferInfo.data.slice();
 
     const { count, indices, values } = accessor.sparse;
     const indicesBufferView = bufferViews[indices.bufferView];
     const valuesBufferView = bufferViews[values.bufferView];
-    const indicesArrayBuffer = buffers[indicesBufferView.buffer];
-    const valuesArrayBuffer = buffers[valuesBufferView.buffer];
+    const indicesBufferIndex = indicesBufferView.buffer;
+    const valuesBufferIndex = valuesBufferView.buffer;
+    const indicesArrayBuffer = buffers[indicesBufferIndex];
+    const valuesArrayBuffer = buffers[valuesBufferIndex];
     const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesBufferView.byteOffset ?? 0);
     const indicesByteLength = indicesBufferView.byteLength;
     const valuesByteOffset = (values.byteOffset ?? 0) + (valuesBufferView.byteOffset ?? 0);
     const valuesByteLength = valuesBufferView.byteLength;
 
+    restoreInfo.typeSize = accessorTypeSize;
+    restoreInfo.sparseCount = count;
+
     const IndexTypeArray = GLTFUtil.getComponentType(indices.componentType);
-    const indicesArray = new IndexTypeArray(
-      indicesArrayBuffer,
+
+    const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
+    const indicesArray = new IndexTypeArray(indicesArrayBuffer, indicesByteOffset, indexLength);
+    restoreInfo.sparseIndices = new BufferRestoreAccessor(
+      indicesBufferIndex,
+      IndexTypeArray,
       indicesByteOffset,
-      indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT
+      indexLength
     );
-    const valuesArray = new TypedArray(
-      valuesArrayBuffer,
-      valuesByteOffset,
-      valuesByteLength / TypedArray.BYTES_PER_ELEMENT
-    );
+
+    const valueLength = valuesByteLength / TypedArray.BYTES_PER_ELEMENT;
+    const valuesArray = new TypedArray(valuesArrayBuffer, valuesByteOffset, valueLength);
+    restoreInfo.sparseValues = new BufferRestoreAccessor(valuesBufferIndex, TypedArray, valuesByteOffset, valueLength);
 
     for (let i = 0; i < count; i++) {
       const replaceIndex = indicesArray[i];
@@ -310,7 +321,7 @@ export class GLTFUtil {
       }
     }
 
-    return data;
+    bufferInfo.data = data;
   }
 
   static getIndexFormat(type: AccessorComponentType): IndexFormat {

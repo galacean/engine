@@ -122,8 +122,11 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
                   bufferRestoreInfo.buffer.setData(vertexData);
                 }
 
-                const indexData = this._getBufferData(buffers, meshInfo.indexBuffer);
-                mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>indexData);
+                const { indexBuffer } = meshInfo;
+                if (indexBuffer) {
+                  const indexData = this._getBufferData(buffers, indexBuffer);
+                  mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>indexData);
+                }
 
                 for (const restoreInfo of meshInfo.blendShapes) {
                   const { position, normal, tangent } = restoreInfo;
@@ -155,8 +158,30 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
   }
 
   private _getBufferData(buffers: ArrayBuffer[], restoreInfo: BufferDataRestoreInfo): ArrayBufferView {
-    const buffer = buffers[restoreInfo.bufferIndex];
-    return new restoreInfo.TypedArray(buffer, restoreInfo.byteOffset, restoreInfo.length);
+    const main = restoreInfo.main;
+    const buffer = buffers[main.bufferIndex];
+    const data = new main.TypedArray(buffer, main.byteOffset, main.length);
+
+    const sparseCount = restoreInfo.sparseCount;
+    if (sparseCount) {
+      const sparseIndex = restoreInfo.sparseIndices;
+      const sparseIndexBuffer = buffers[sparseIndex.bufferIndex];
+      const sparseIndexData = new sparseIndex.TypedArray(sparseIndexBuffer, sparseIndex.byteOffset, sparseIndex.length);
+
+      const sparseValue = restoreInfo.sparseValues;
+      const sparseValueBuffer = buffers[sparseValue.bufferIndex];
+      const sparseValueData = new sparseValue.TypedArray(sparseValueBuffer, sparseValue.byteOffset, sparseValue.length);
+
+      const typeSize = restoreInfo.typeSize;
+      for (let i = 0; i < sparseCount; i++) {
+        const replaceIndex = sparseIndexData[i];
+        for (let j = 0; j < typeSize; j++) {
+          data[replaceIndex * typeSize + j] = sparseValueData[i * typeSize + j];
+        }
+      }
+    }
+
+    return data;
   }
 }
 
@@ -197,6 +222,19 @@ export class BufferRestoreInfo {
  * @internal
  */
 export class BufferDataRestoreInfo {
+  constructor(
+    public main: BufferRestoreAccessor,
+    public typeSize?: number,
+    public sparseCount?: number,
+    public sparseIndices?: BufferRestoreAccessor,
+    public sparseValues?: BufferRestoreAccessor
+  ) {}
+}
+
+/**
+ * @internal
+ */
+export class BufferRestoreAccessor {
   constructor(
     public bufferIndex: number,
     public TypedArray: new (buffer: ArrayBuffer, byteOffset: number, length?: number) => ArrayBufferView,
