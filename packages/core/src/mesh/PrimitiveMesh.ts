@@ -314,9 +314,9 @@ export class PrimitiveMesh {
     noLongerAccessible: boolean,
     isRestoreMode: boolean
   ): void {
-    const halfWidth: number = width / 2;
-    const halfHeight: number = height / 2;
-    const halfDepth: number = depth / 2;
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+    const halfDepth = depth / 2;
 
     const positions = new Array<Vector3>(24);
     const normals = new Array<Vector3>(24);
