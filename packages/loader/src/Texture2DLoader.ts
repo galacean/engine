@@ -1,16 +1,15 @@
 import {
   AssetPromise,
   AssetType,
-  ContentRestorer,
   Loader,
   LoadItem,
-  request,
   resourceLoader,
   ResourceManager,
   Texture2D,
   TextureFormat
 } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
+import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
@@ -61,22 +60,4 @@ export interface Texture2DParams {
   format: TextureFormat;
   /** Whether to use multi-level texture, default is true. */
   mipmap: boolean;
-}
-
-class Texture2DContentRestorer extends ContentRestorer<Texture2D> {
-  constructor(resource: Texture2D, public url: string, public requestConfig: RequestConfig) {
-    super(resource);
-  }
-
-  /**
-   * @override
-   */
-  restoreContent(): AssetPromise<Texture2D> {
-    return request<HTMLImageElement>(this.url, this.requestConfig).then((image) => {
-      const resource = this.resource;
-      resource.setImageSource(image);
-      resource.generateMipmaps();
-      return resource;
-    });
-  }
 }

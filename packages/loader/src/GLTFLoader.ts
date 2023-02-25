@@ -14,10 +14,9 @@ export class GLTFLoader extends Loader<GLTFResource> {
     const context = new ParserContext(url);
     const glTFResource = new GLTFResource(resourceManager.engine, url);
     const restorer = new GLTFContentRestorer(glTFResource);
-    context.contentRestorer = restorer;
-
     const masterPromiseInfo = context.masterPromiseInfo;
 
+    context.contentRestorer = restorer;
     context.glTFResource = glTFResource;
     context.keepMeshData = item.params?.keepMeshData ?? false;
 

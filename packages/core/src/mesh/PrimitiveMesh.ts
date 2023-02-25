@@ -1,8 +1,17 @@
 import { Vector2, Vector3 } from "@oasis-engine/math";
-import { ContentRestorer } from "../asset/ContentRestorer";
 import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { ModelMesh } from "./ModelMesh";
+import {
+  CapsuleRestoreInfo,
+  ConeRestoreInfo,
+  CuboidRestoreInfo,
+  CylinderRestoreInfo,
+  PlaneRestoreInfo,
+  PrimitiveMeshRestorer,
+  SphereRestoreInfo,
+  TorusRestoreInfo
+} from "./PrimitiveMeshRestorer";
 
 /**
  * Used to generate common primitive meshes.
@@ -184,7 +193,10 @@ export class PrimitiveMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setConeData(mesh, radius, height, radialSegments, heightSegments, noLongerAccessible, false);
     engine.resourceManager.addContentRestorer(
-      new PrimitiveMeshRestorer(mesh, new ConeRestoreInfo(radius, height, radialSegments, heightSegments, noLongerAccessible))
+      new PrimitiveMeshRestorer(
+        mesh,
+        new ConeRestoreInfo(radius, height, radialSegments, heightSegments, noLongerAccessible)
+      )
     );
     return mesh;
   }
@@ -1044,191 +1056,5 @@ export class PrimitiveMesh {
       indices[indicesOffset++] = c;
       indices[indicesOffset++] = d;
     }
-  }
-}
-
-class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
-  constructor(resource: ModelMesh, public primitiveInfo: PrimitiveRestoreInfo) {
-    super(resource);
-  }
-
-  /**
-   * @override
-   */
-  restoreContent(): void {
-    const primitiveInfo = this.primitiveInfo;
-    switch (primitiveInfo.type) {
-      case PrimitiveType.Sphere:
-        const sphereInfo = <SphereRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setSphereData(
-          this.resource,
-          sphereInfo.radius,
-          sphereInfo.segments,
-          sphereInfo.noLongerAccessible,
-          true
-        );
-        break;
-      case PrimitiveType.Cuboid:
-        const cuboidInfo = <CuboidRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setCuboidData(
-          this.resource,
-          cuboidInfo.width,
-          cuboidInfo.height,
-          cuboidInfo.depth,
-          cuboidInfo.noLongerAccessible,
-          true
-        );
-        break;
-      case PrimitiveType.Plane:
-        const planeInfo = <PlaneRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setPlaneData(
-          this.resource,
-          planeInfo.width,
-          planeInfo.height,
-          planeInfo.horizontalSegments,
-          planeInfo.verticalSegments,
-          planeInfo.noLongerAccessible,
-          true
-        );
-        break;
-      case PrimitiveType.Cylinder:
-        const cylinderInfo = <CylinderRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setCylinderData(
-          this.resource,
-          cylinderInfo.radiusTop,
-          cylinderInfo.radiusBottom,
-          cylinderInfo.height,
-          cylinderInfo.radialSegments,
-          cylinderInfo.heightSegments,
-          cylinderInfo.noLongerAccessible,
-          true
-        );
-        break;
-      case PrimitiveType.Torus:
-        const torusInfo = <TorusRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setTorusData(
-          this.resource,
-          torusInfo.radius,
-          torusInfo.tubeRadius,
-          torusInfo.radialSegments,
-          torusInfo.tubularSegments,
-          torusInfo.arc,
-          torusInfo.noLongerAccessible,
-          true
-        );
-        break;
-      case PrimitiveType.Cone:
-        const coneInfo = <ConeRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setConeData(
-          this.resource,
-          coneInfo.radius,
-          coneInfo.height,
-          coneInfo.radialSegments,
-          coneInfo.heightSegments,
-          coneInfo.noLongerAccessible,
-          true
-        );
-        break;
-      case PrimitiveType.Capsule:
-        const capsuleInfo = <CapsuleRestoreInfo>primitiveInfo;
-        PrimitiveMesh._setCapsuleData(
-          this.resource,
-          capsuleInfo.radius,
-          capsuleInfo.height,
-          capsuleInfo.radialSegments,
-          capsuleInfo.heightSegments,
-          capsuleInfo.noLongerAccessible,
-          true
-        );
-        break;
-    }
-  }
-}
-
-enum PrimitiveType {
-  Sphere,
-  Cuboid,
-  Plane,
-  Cylinder,
-  Torus,
-  Cone,
-  Capsule
-}
-
-class PrimitiveRestoreInfo {
-  constructor(public type: PrimitiveType, public noLongerAccessible: boolean) {}
-}
-
-class SphereRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public radius: number, public segments: number, public noLongerAccessible: boolean) {
-    super(PrimitiveType.Sphere, noLongerAccessible);
-  }
-}
-
-class CuboidRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public width: number, public height: number, public depth: number, public noLongerAccessible: boolean) {
-    super(PrimitiveType.Cuboid, noLongerAccessible);
-  }
-}
-
-class PlaneRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(
-    public width: number,
-    public height: number,
-    public horizontalSegments: number,
-    public verticalSegments: number,
-    public noLongerAccessible: boolean
-  ) {
-    super(PrimitiveType.Plane, noLongerAccessible);
-  }
-}
-
-class CylinderRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(
-    public radiusTop: number,
-    public radiusBottom: number,
-    public height: number,
-    public radialSegments: number,
-    public heightSegments: number,
-    public noLongerAccessible: boolean
-  ) {
-    super(PrimitiveType.Cylinder, noLongerAccessible);
-  }
-}
-
-class TorusRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(
-    public radius: number,
-    public tubeRadius: number,
-    public radialSegments: number,
-    public tubularSegments: number,
-    public arc: number,
-    public noLongerAccessible: boolean
-  ) {
-    super(PrimitiveType.Torus, noLongerAccessible);
-  }
-}
-
-class ConeRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(
-    public radius: number,
-    public height: number,
-    public radialSegments: number,
-    public heightSegments: number,
-    public noLongerAccessible: boolean
-  ) {
-    super(PrimitiveType.Cone, noLongerAccessible);
-  }
-}
-
-class CapsuleRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(
-    public radius: number,
-    public height: number,
-    public radialSegments: number,
-    public heightSegments: number,
-    public noLongerAccessible: boolean
-  ) {
-    super(PrimitiveType.Capsule, noLongerAccessible);
   }
 }
