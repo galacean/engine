@@ -186,11 +186,6 @@ export class WebGLRenderer implements IHardwareRenderer {
 
     this._gl = gl;
     this._initGLState(gl);
-
-    const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
-    if (debugRenderInfo != null) {
-      this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
-    }
   }
 
   createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
@@ -405,6 +400,11 @@ export class WebGLRenderer implements IHardwareRenderer {
     this._capability = new GLCapability(this);
     // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
     gl.activeTexture(gl.TEXTURE0);
+
+    const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    if (debugRenderInfo != null) {
+      this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
+    }
   }
 
   destroy(): void {
