@@ -1,6 +1,6 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { BufferDataRestoreInfo, BufferRestoreAccessor } from "../GLTFLoader";
+import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
 import { BufferInfo, ParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
 
@@ -179,7 +179,7 @@ export class GLTFUtil {
         const data = new TypedArray(buffer, offset, count);
         accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
         bufferInfo.restoreInfo = new BufferDataRestoreInfo(
-          new BufferRestoreAccessor(bufferIndex, TypedArray, offset, count)
+          new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
         );
       }
     } else {
@@ -188,7 +188,7 @@ export class GLTFUtil {
       const data = new TypedArray(buffer, offset, count);
       bufferInfo = new BufferInfo(data, false, elementStride);
       bufferInfo.restoreInfo = new BufferDataRestoreInfo(
-        new BufferRestoreAccessor(bufferIndex, TypedArray, offset, count)
+        new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
       );
     }
 
@@ -303,7 +303,7 @@ export class GLTFUtil {
 
     const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
     const indicesArray = new IndexTypeArray(indicesArrayBuffer, indicesByteOffset, indexLength);
-    restoreInfo.sparseIndices = new BufferRestoreAccessor(
+    restoreInfo.sparseIndices = new RestoreDataAccessor(
       indicesBufferIndex,
       IndexTypeArray,
       indicesByteOffset,
@@ -312,7 +312,7 @@ export class GLTFUtil {
 
     const valueLength = valuesByteLength / TypedArray.BYTES_PER_ELEMENT;
     const valuesArray = new TypedArray(valuesArrayBuffer, valuesByteOffset, valueLength);
-    restoreInfo.sparseValues = new BufferRestoreAccessor(valuesBufferIndex, TypedArray, valuesByteOffset, valueLength);
+    restoreInfo.sparseValues = new RestoreDataAccessor(valuesBufferIndex, TypedArray, valuesByteOffset, valueLength);
 
     for (let i = 0; i < count; i++) {
       const replaceIndex = indicesArray[i];

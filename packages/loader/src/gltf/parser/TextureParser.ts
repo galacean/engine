@@ -1,5 +1,5 @@
 import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@oasis-engine/core";
-import { BufferTextureRestoreInfo } from "../../GLTFLoader";
+import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
 import { GLTFUtil } from "../GLTFUtil";
 import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../Schema";
 import { Parser } from "./Parser";
@@ -53,11 +53,8 @@ export class TextureParser extends Parser {
               if (sampler !== undefined) {
                 this._parseSampler(texture, glTF.samplers[sampler]);
               }
-              const bufferTextureRestoreInfo = new BufferTextureRestoreInfo();
+              const bufferTextureRestoreInfo = new BufferTextureRestoreInfo(texture, bufferView, mimeType);
               context.contentRestorer.bufferTextures.push(bufferTextureRestoreInfo);
-              bufferTextureRestoreInfo.texture = texture;
-              bufferTextureRestoreInfo.mimeType = mimeType;
-              bufferTextureRestoreInfo.bufferView = bufferView;
 
               return texture;
             });

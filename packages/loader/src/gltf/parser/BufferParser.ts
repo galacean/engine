@@ -1,6 +1,6 @@
 import { AssetPromise, request } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
-import { BufferRequestInfo } from "../../GLTFLoader";
+import { BufferRequestInfo } from "../../GLTFContentRestorer";
 import { GLTFUtil } from "../GLTFUtil";
 import { IBuffer, IGLTF } from "../Schema";
 import { Parser } from "./Parser";

@@ -8,7 +8,7 @@ import {
   Texture2D,
   TypedArray
 } from "@oasis-engine/core";
-import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFLoader";
+import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
 import { IGLTF } from "../Schema";
 

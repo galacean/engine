@@ -10,7 +10,7 @@ import {
   VertexElement
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
-import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFLoader";
+import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFContentRestorer";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
