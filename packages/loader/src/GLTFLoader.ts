@@ -118,34 +118,28 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
               for (const meshInfo of this.meshes) {
                 const mesh = meshInfo.mesh;
                 for (const bufferRestoreInfo of meshInfo.vertexBuffers) {
-                  const restoreInfo = bufferRestoreInfo.data;
-                  const buffer = buffers[restoreInfo.bufferIndex];
-                  const data = new restoreInfo.TypedArray(buffer, restoreInfo.byteOffset, restoreInfo.length);
-                  bufferRestoreInfo.buffer.setData(data);
+                  const vertexData = this._getBufferData(buffers, bufferRestoreInfo.data);
+                  bufferRestoreInfo.buffer.setData(vertexData);
                 }
 
-                const restoreInfo = meshInfo.indexBuffer;
-                const buffer = buffers[restoreInfo.bufferIndex];
-                const data = new restoreInfo.TypedArray(buffer, restoreInfo.byteOffset, restoreInfo.length);
-                mesh.setIndices(data);
+                const indexData = this._getBufferData(buffers, meshInfo.indexBuffer);
+                mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>indexData);
 
                 for (const restoreInfo of meshInfo.blendShapes) {
                   const { position, normal, tangent } = restoreInfo;
-                  const buffer = buffers[position.bufferIndex];
-                  const positionData = new position.TypedArray(buffer, position.byteOffset, position.length);
+
+                  const positionData = this._getBufferData(buffers, position);
                   const positions = GLTFUtil.floatBufferToVector3Array(<Float32Array>positionData);
                   restoreInfo.blendShape.frames[0].deltaPositions = positions;
 
                   if (normal) {
-                    const buffer = buffers[normal.bufferIndex];
-                    const normalData = new normal.TypedArray(buffer, normal.byteOffset, normal.length);
+                    const normalData = this._getBufferData(buffers, normal);
                     const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>normalData);
                     restoreInfo.blendShape.frames[0].deltaNormals = normals;
                   }
 
                   if (tangent) {
-                    const buffer = buffers[tangent.bufferIndex];
-                    const tangentData = new tangent.TypedArray(buffer, tangent.byteOffset, tangent.length);
+                    const tangentData = this._getBufferData(buffers, tangent);
                     const tangents = GLTFUtil.floatBufferToVector3Array(<Float32Array>tangentData);
                     restoreInfo.blendShape.frames[0].deltaTangents = tangents;
                   }
@@ -158,6 +152,11 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
         })
         .catch(reject);
     });
+  }
+
+  private _getBufferData(buffers: ArrayBuffer[], restoreInfo: BufferDataRestoreInfo): ArrayBufferView {
+    const buffer = buffers[restoreInfo.bufferIndex];
+    return new restoreInfo.TypedArray(buffer, restoreInfo.byteOffset, restoreInfo.length);
   }
 }
 
@@ -198,7 +197,12 @@ export class BufferRestoreInfo {
  * @internal
  */
 export class BufferDataRestoreInfo {
-  constructor(public bufferIndex: number, public TypedArray: any, public byteOffset: number, public length: number) {}
+  constructor(
+    public bufferIndex: number,
+    public TypedArray: new (buffer: ArrayBuffer, byteOffset: number, length?: number) => ArrayBufferView,
+    public byteOffset: number,
+    public length: number
+  ) {}
 }
 
 /**
