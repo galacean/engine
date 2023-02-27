@@ -1,4 +1,4 @@
-import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@oasis-engine/core";
+import { AnimationClip, AssetPromise, EngineObject, Logger, Material, Mesh } from "@oasis-engine/core";
 import { GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
 import { ExtensionSchema } from "../extensions/Schema";
 import { GLTFParserContext } from "./GLTFParserContext";
@@ -14,11 +14,13 @@ export abstract class GLTFParser {
     ...extra
   ): void {
     const parsers = GLTFParser._extensionParsers[extensionName];
+    const length = parsers?.length;
 
-    if (parsers?.length) {
-      for (let i = 0; i < parsers.length; i++) {
-        parsers[i].parseEngineResource(extensionSchema, parseResource, context, ...extra);
+    if (length) {
+      if (length > 1) {
+        Logger.warn(`plugin:${extensionName} has been overridden`);
       }
+      parsers[length - 1].parseEngineResource(extensionSchema, parseResource, context, ...extra);
     }
   }
 
@@ -29,9 +31,13 @@ export abstract class GLTFParser {
     ...extra
   ): EngineObject | Promise<EngineObject> {
     const parsers = GLTFParser._extensionParsers[extensionName];
+    const length = parsers?.length;
 
-    if (parsers?.length) {
-      return parsers[parsers.length - 1].createEngineResource(extensionSchema, context, ...extra);
+    if (length) {
+      if (length > 1) {
+        Logger.warn(`plugin:${extensionName} has been overridden`);
+      }
+      return parsers[length - 1].createEngineResource(extensionSchema, context, ...extra);
     }
   }
 
