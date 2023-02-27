@@ -159,7 +159,7 @@ export interface IOasisMaterialRemap {
   isClone?: boolean;
 }
 
-export type ExtensionSchema =
+export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRDracoMeshCompression
   | IKHRMaterialsClearcoat

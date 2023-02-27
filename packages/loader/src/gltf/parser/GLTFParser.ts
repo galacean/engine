@@ -1,6 +1,6 @@
 import { AnimationClip, AssetPromise, EngineObject, Logger, Material, Mesh } from "@oasis-engine/core";
 import { GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
-import { ExtensionSchema } from "../extensions/GLTFExtensionSchema";
+import { GLTFExtensionSchema } from "../extensions/GLTFExtensionSchema";
 import { GLTFParserContext } from "./GLTFParserContext";
 
 export abstract class GLTFParser {
@@ -8,7 +8,7 @@ export abstract class GLTFParser {
 
   static parseEngineResource(
     extensionName: string,
-    extensionSchema: ExtensionSchema,
+    extensionSchema: GLTFExtensionSchema,
     parseResource: EngineObject,
     context: GLTFParserContext,
     ...extra
@@ -26,7 +26,7 @@ export abstract class GLTFParser {
 
   static createEngineResource(
     extensionName: string,
-    extensionSchema: ExtensionSchema,
+    extensionSchema: GLTFExtensionSchema,
     context: GLTFParserContext,
     ...extra
   ): EngineObject | Promise<EngineObject> {
