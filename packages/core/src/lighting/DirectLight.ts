@@ -25,16 +25,13 @@ export class DirectLight extends Light {
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
 
-  private _forward: Vector3 = new Vector3();
-
   private _reverseDirection: Vector3 = new Vector3();
 
   /**
    * Get direction.
    */
   get direction(): Vector3 {
-    this.entity.transform.getWorldForward(this._forward);
-    return this._forward;
+    return this.entity.transform.worldForward;
   }
 
   /**

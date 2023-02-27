@@ -135,7 +135,8 @@ export class CascadedShadowCasterPass {
       lightSide.set(lightWorldE[0], lightWorldE[1], lightWorldE[2]);
       lightUp.set(lightWorldE[4], lightWorldE[5], lightWorldE[6]);
       lightForward.set(-lightWorldE[8], -lightWorldE[9], -lightWorldE[10]);
-      camera.entity.transform.getWorldForward(CascadedShadowCasterPass._tempVector);
+      const cameraForward = CascadedShadowCasterPass._tempVector;
+      cameraForward.copyFrom(camera.entity.transform.worldForward);
 
       const shadowTileResolution = this._shadowTileResolution;
 
@@ -144,7 +145,7 @@ export class CascadedShadowCasterPass {
           splitDistance[j],
           splitDistance[j + 1],
           camera,
-          CascadedShadowCasterPass._tempVector.normalize(),
+          cameraForward,
           shadowSliceData
         );
         ShadowUtils.getDirectionLightShadowCullPlanes(
@@ -202,7 +203,7 @@ export class CascadedShadowCasterPass {
           const { x, y } = viewports[j];
 
           rhi.setGlobalDepthBias(1.0, 1.0);
-      
+
           rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
           // for no cascade is for the edge,for cascade is for the beyond maxCascade pixel can use (0,0,0) trick sample the shadowMap
           rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
