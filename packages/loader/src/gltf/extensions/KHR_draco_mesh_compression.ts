@@ -7,7 +7,7 @@ import { GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRDracoMeshCompression } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_draco_mesh_compression")
-class KHR_draco_mesh_compression extends GLTFExtensionParser {
+class KHR_draco_mesh_compression extends GLTFExtensionParser<IMeshPrimitive> {
   private static _decoder: DRACODecoder;
 
   initialize(): void {
@@ -16,13 +16,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     }
   }
 
-  createEngineResource(
-    schema: IKHRDracoMeshCompression,
-    context: GLTFParserContext,
-    meshIndex: number,
-    primitiveIndex: number,
-    gltfPrimitive: IMeshPrimitive
-  ) {
+  createEngineResource(context: GLTFParserContext, schema: IKHRDracoMeshCompression, gltfPrimitive: IMeshPrimitive) {
     const { gltf, buffers } = context;
     const { bufferViews, accessors } = gltf;
     const { bufferView: bufferViewIndex, attributes: gltfAttributeMap } = schema;

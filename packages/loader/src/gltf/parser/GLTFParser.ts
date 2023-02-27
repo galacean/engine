@@ -1,18 +1,18 @@
 import { AnimationClip, AssetPromise, EngineObject, Logger, Material, Mesh } from "@oasis-engine/core";
 import { GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
 import { GLTFExtensionSchema } from "../extensions/GLTFExtensionSchema";
+import { ExtensibleResource } from "../GLTFSchema";
 import { GLTFParserContext } from "./GLTFParserContext";
 
 export abstract class GLTFParser {
-  private static _extensionParsers: Record<string, GLTFExtensionParser[]> = {};
+  private static _extensionParsers: Record<string, GLTFExtensionParser<ExtensibleResource>[]> = {};
 
   static parseEngineResource(
     extensionName: string,
-    extensionSchema: GLTFExtensionSchema,
-    parseResource: EngineObject,
     context: GLTFParserContext,
-    resourceIndex: number,
-    ...extra
+    parseResource: EngineObject,
+    extensionSchema: GLTFExtensionSchema,
+    resourceInfo: ExtensibleResource
   ): void {
     const parsers = GLTFParser._extensionParsers[extensionName];
     const length = parsers?.length;
@@ -21,16 +21,15 @@ export abstract class GLTFParser {
       if (length > 1) {
         Logger.warn(`plugin:${extensionName} has been overridden`);
       }
-      parsers[length - 1].parseEngineResource(extensionSchema, parseResource, context, resourceIndex, ...extra);
+      parsers[length - 1].parseEngineResource(context, parseResource, extensionSchema, resourceInfo);
     }
   }
 
   static createEngineResource(
     extensionName: string,
-    extensionSchema: GLTFExtensionSchema,
     context: GLTFParserContext,
-    resourceIndex: number,
-    ...extra
+    extensionSchema: GLTFExtensionSchema,
+    resourceInfo: ExtensibleResource
   ): EngineObject | Promise<EngineObject> {
     const parsers = GLTFParser._extensionParsers[extensionName];
     const length = parsers?.length;
@@ -39,7 +38,7 @@ export abstract class GLTFParser {
       if (length > 1) {
         Logger.warn(`plugin:${extensionName} has been overridden`);
       }
-      return parsers[length - 1].createEngineResource(extensionSchema, context, resourceIndex, ...extra);
+      return parsers[length - 1].createEngineResource(context, extensionSchema, resourceInfo);
     }
   }
 
@@ -61,7 +60,7 @@ export abstract class GLTFParser {
   /**
    * @internal
    */
-  static _addExtensionParser(extensionName: string, extensionParser: GLTFExtensionParser) {
+  static _addExtensionParser(extensionName: string, extensionParser: GLTFExtensionParser<ExtensibleResource>) {
     if (!GLTFParser._extensionParsers[extensionName]) {
       GLTFParser._extensionParsers[extensionName] = [];
     }
@@ -76,7 +75,7 @@ export abstract class GLTFParser {
  * @param extensionName - Extension name
  */
 export function registerGLTFExtension(extensionName: string) {
-  return (parser: new () => GLTFExtensionParser) => {
+  return (parser: new () => GLTFExtensionParser<ExtensibleResource>) => {
     const extensionParser = new parser();
 
     GLTFParser._addExtensionParser(extensionName, extensionParser);

@@ -853,3 +853,5 @@ export interface IGLTF extends IProperty {
    */
   textures?: ITexture[];
 }
+
+export type ExtensibleResource = IMeshPrimitive | IMaterial | ITexture | INode;

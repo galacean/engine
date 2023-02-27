@@ -1,5 +1,6 @@
 import { PBRSpecularMaterial } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
+import { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { GLTFParser, registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
@@ -7,8 +8,8 @@ import { GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_pbrSpecularGlossiness")
-class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
-  createEngineResource(schema: IKHRMaterialsPbrSpecularGlossiness, context: GLTFParserContext): PBRSpecularMaterial {
+class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser<IMaterial> {
+  createEngineResource(context: GLTFParserContext, schema: IKHRMaterialsPbrSpecularGlossiness): PBRSpecularMaterial {
     const { engine, textures } = context.glTFResource;
     const material = new PBRSpecularMaterial(engine);
     const { diffuseFactor, diffuseTexture, specularFactor, glossinessFactor, specularGlossinessTexture } = schema;
@@ -28,10 +29,10 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
       if (KHR_texture_transform) {
         GLTFParser.parseEngineResource(
           "KHR_texture_transform",
-          KHR_texture_transform,
-          material,
           context,
-          diffuseTexture.index
+          material,
+          KHR_texture_transform,
+          diffuseTexture
         );
       }
     }

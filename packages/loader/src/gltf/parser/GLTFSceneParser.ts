@@ -53,7 +53,7 @@ export class GLTFSceneParser extends GLTFParser {
         const lightIndex = KHR_lights_punctual.light;
         const lights = (gltf.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
 
-        GLTFParser.parseEngineResource("KHR_lights_punctual", lights[lightIndex], entity, context, lightIndex);
+        GLTFParser.parseEngineResource("KHR_lights_punctual", context, entity, lights[lightIndex], gltfNode);
       }
     }
 
@@ -117,6 +117,7 @@ export class GLTFSceneParser extends GLTFParser {
     const blendShapeWeights = gltfNode.weights || glTFMesh.weights;
 
     for (let i = 0; i < gltfMeshPrimitives.length; i++) {
+      const gltfPrimitive = gltfMeshPrimitives[i];
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
@@ -136,14 +137,20 @@ export class GLTFSceneParser extends GLTFParser {
         renderer.mesh = mesh;
       }
 
-      const materialIndex = gltfMeshPrimitives[i].material;
+      const materialIndex = gltfPrimitive.material;
       const material = materials?.[materialIndex] || GLTFSceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
 
-      const { extensions = {} } = gltfMeshPrimitives[i];
+      const { extensions = {} } = gltfPrimitive;
       const { KHR_materials_variants } = extensions;
       if (KHR_materials_variants) {
-        GLTFParser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context, i);
+        GLTFParser.parseEngineResource(
+          "KHR_materials_variants",
+          context,
+          renderer,
+          KHR_materials_variants,
+          gltfPrimitive
+        );
       }
     }
   }

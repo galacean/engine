@@ -1,4 +1,5 @@
 import { PBRMaterial } from "@oasis-engine/core";
+import { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
@@ -6,8 +7,8 @@ import { GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsClearcoat } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_clearcoat")
-class KHR_materials_clearcoat extends GLTFExtensionParser {
-  parseEngineResource(schema: IKHRMaterialsClearcoat, material: PBRMaterial, context: GLTFParserContext): void {
+class KHR_materials_clearcoat extends GLTFExtensionParser<IMaterial> {
+  parseEngineResource(context: GLTFParserContext, material: PBRMaterial, schema: IKHRMaterialsClearcoat): void {
     const { textures } = context.glTFResource;
     const {
       clearcoatFactor = 0,
