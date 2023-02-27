@@ -1,7 +1,7 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
-import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
+import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
 
 const charCodeOfDot = ".".charCodeAt(0);
 const reEscapeChar = /\\(\\)?/g;

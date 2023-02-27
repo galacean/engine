@@ -10,9 +10,9 @@ import {
   MeshRenderer,
   SkinnedMeshRenderer
 } from "@oasis-engine/core";
-import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
+import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/GLTFExtensionSchema";
 import { GLTFResource } from "../GLTFResource";
-import { CameraType, ICamera, INode } from "../Schema";
+import { CameraType, ICamera, INode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";
 

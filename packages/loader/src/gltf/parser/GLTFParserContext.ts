@@ -9,7 +9,7 @@ import {
   TypedArray
 } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
-import { IGLTF } from "../Schema";
+import { IGLTF } from "../GLTFSchema";
 
 /**
  * @internal

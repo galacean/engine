@@ -2,7 +2,7 @@ import { DirectLight, Entity, PointLight, SpotLight } from "@oasis-engine/core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IKHRLightsPunctual_Light } from "./Schema";
+import { IKHRLightsPunctual_Light } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_lights_punctual")
 class KHR_lights_punctual extends GLTFExtensionParser {

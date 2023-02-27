@@ -4,7 +4,7 @@ import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { GLTFParser, registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IKHRMaterialsPbrSpecularGlossiness } from "./Schema";
+import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_pbrSpecularGlossiness")
 class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {

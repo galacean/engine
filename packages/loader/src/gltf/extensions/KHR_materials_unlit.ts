@@ -2,7 +2,7 @@ import { UnlitMaterial } from "@oasis-engine/core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IKHRMaterialsUnlit } from "./Schema";
+import { IKHRMaterialsUnlit } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_unlit")
 class KHR_materials_unlit extends GLTFExtensionParser {

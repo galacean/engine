@@ -14,7 +14,7 @@ import {
 } from "@oasis-engine/core";
 import { Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
-import { AccessorType, AnimationChannelTargetPath, AnimationSamplerInterpolation, IAnimationChannel } from "../Schema";
+import { AccessorType, AnimationChannelTargetPath, AnimationSamplerInterpolation, IAnimationChannel } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";
 

@@ -2,9 +2,9 @@ import { DRACODecoder } from "@oasis-engine/draco";
 import { GLTFUtil } from "../GLTFUtil";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
-import { IMeshPrimitive } from "../Schema";
+import { IMeshPrimitive } from "../GLTFSchema";
 import { GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IKHRDracoMeshCompression } from "./Schema";
+import { IKHRDracoMeshCompression } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_draco_mesh_compression")
 class KHR_draco_mesh_compression extends GLTFExtensionParser {

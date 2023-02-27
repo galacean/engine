@@ -2,7 +2,7 @@ import { Logger, PBRBaseMaterial, UnlitMaterial } from "@oasis-engine/core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IKHRTextureTransform } from "./Schema";
+import { IKHRTextureTransform } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_texture_transform")
 class KHR_texture_transform extends GLTFExtensionParser {

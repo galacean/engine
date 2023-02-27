@@ -1,6 +1,6 @@
 import { EngineObject } from "@oasis-engine/core";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
-import { ExtensionSchema } from "./Schema";
+import { ExtensionSchema } from "./GLTFExtensionSchema";
 
 export abstract class GLTFExtensionParser {
   initialize(): void {}

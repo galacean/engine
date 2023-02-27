@@ -1,6 +1,6 @@
 import { AnimationClip, AssetPromise, EngineObject, Logger, Material, Mesh } from "@oasis-engine/core";
 import { GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
-import { ExtensionSchema } from "../extensions/Schema";
+import { ExtensionSchema } from "../extensions/GLTFExtensionSchema";
 import { GLTFParserContext } from "./GLTFParserContext";
 
 export abstract class GLTFParser {

@@ -2,7 +2,7 @@ import { Renderer } from "@oasis-engine/core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IKHRMaterialVariants_Mapping } from "./Schema";
+import { IKHRMaterialVariants_Mapping } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_variants")
 class KHR_materials_variants extends GLTFExtensionParser {

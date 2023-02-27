@@ -11,7 +11,7 @@ import {
 } from "@oasis-engine/core";
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
-import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
+import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";
 

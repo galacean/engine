@@ -3,7 +3,7 @@ import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IKHRMaterialsClearcoat } from "./Schema";
+import { IKHRMaterialsClearcoat } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_clearcoat")
 class KHR_materials_clearcoat extends GLTFExtensionParser {

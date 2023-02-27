@@ -2,7 +2,7 @@ import { Material } from "@oasis-engine/core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IOasisMaterialRemap } from "./Schema";
+import { IOasisMaterialRemap } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("OASIS_materials_remap")
 class OasisMaterialsRemap extends GLTFExtensionParser {

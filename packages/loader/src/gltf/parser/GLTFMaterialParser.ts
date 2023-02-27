@@ -11,7 +11,7 @@ import {
   UnlitMaterial
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
-import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../Schema";
+import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";
 

@@ -14,4 +14,4 @@ import "./KHR_texture_transform";
 import "./OASIS_materials_remap";
 
 export { GLTFExtensionParser } from "./GLTFExtensionParser";
-export * from "./Schema";
+export * from "./GLTFExtensionSchema";
