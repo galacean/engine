@@ -1,14 +1,14 @@
 import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@oasis-engine/core";
-import { GLTFParser } from "./gltf/GLTFParser";
+import { GLTFPipeline } from "./gltf/GLTFPipeline";
 import { GLTFResource } from "./gltf/GLTFResource";
-import { ParserContext } from "./gltf/parser/ParserContext";
+import { GLTFParserContext } from "./gltf/parser/GLTFParserContext";
 
 @resourceLoader(AssetType.Prefab, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
     const url = item.url;
     const { keepMeshData = false, pipeline } = item.params || {};
-    const context = new ParserContext(url);
+    const context = new GLTFParserContext(url);
     const glTFResource = new GLTFResource(resourceManager.engine, url);
     const masterPromiseInfo = context.masterPromiseInfo;
 
@@ -22,7 +22,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
       }
     });
 
-    (pipeline || GLTFParser.defaultPipeline)
+    (pipeline || GLTFPipeline.defaultPipeline)
       .parse(context)
       .then(masterPromiseInfo.resolve)
       .catch((e) => {

@@ -14,7 +14,7 @@ import { IGLTF } from "../Schema";
 /**
  * @internal
  */
-export class ParserContext {
+export class GLTFParserContext {
   gltf: IGLTF;
   buffers: ArrayBuffer[];
   glTFResource: GLTFResource;

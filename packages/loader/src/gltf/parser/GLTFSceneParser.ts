@@ -13,21 +13,21 @@ import {
 import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../Schema";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class SceneParser extends Parser {
+export class GLTFSceneParser extends GLTFParser {
   private static _defaultMaterial: BlinnPhongMaterial;
 
   private static _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
-    if (!SceneParser._defaultMaterial) {
-      SceneParser._defaultMaterial = new BlinnPhongMaterial(engine);
+    if (!GLTFSceneParser._defaultMaterial) {
+      GLTFSceneParser._defaultMaterial = new BlinnPhongMaterial(engine);
     }
 
-    return SceneParser._defaultMaterial;
+    return GLTFSceneParser._defaultMaterial;
   }
 
-  parse(context: ParserContext) {
+  parse(context: GLTFParserContext) {
     const { glTFResource, gltf } = context;
     const { entities } = glTFResource;
     const { nodes, cameras: gltfCameras } = gltf;
@@ -53,7 +53,7 @@ export class SceneParser extends Parser {
         const lightIndex = KHR_lights_punctual.light;
         const lights = (gltf.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
 
-        Parser.parseEngineResource("KHR_lights_punctual", lights[lightIndex], entity, context);
+        GLTFParser.parseEngineResource("KHR_lights_punctual", lights[lightIndex], entity, context);
       }
     }
 
@@ -106,7 +106,7 @@ export class SceneParser extends Parser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: ParserContext, gltfNode: INode, entity: Entity) {
+  private _createRenderer(context: GLTFParserContext, gltfNode: INode, entity: Entity) {
     const { glTFResource, gltf } = context;
     const { meshes: gltfMeshes } = gltf;
 
@@ -137,18 +137,18 @@ export class SceneParser extends Parser {
       }
 
       const materialIndex = gltfMeshPrimitives[i].material;
-      const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
+      const material = materials?.[materialIndex] || GLTFSceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
 
       const { extensions = {} } = gltfMeshPrimitives[i];
       const { KHR_materials_variants } = extensions;
       if (KHR_materials_variants) {
-        Parser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context);
+        GLTFParser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context);
       }
     }
   }
 
-  private _createAnimator(context: ParserContext): void {
+  private _createAnimator(context: GLTFParserContext): void {
     if (!context.hasSkinned && !context.glTFResource.animations) {
       return;
     }

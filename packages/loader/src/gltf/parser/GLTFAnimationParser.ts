@@ -15,11 +15,11 @@ import {
 import { Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, AnimationChannelTargetPath, AnimationSamplerInterpolation, IAnimationChannel } from "../Schema";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class AnimationParser extends Parser {
-  parse(context: ParserContext): AssetPromise<AnimationClip[]> {
+export class GLTFAnimationParser extends GLTFParser {
+  parse(context: GLTFParserContext): AssetPromise<AnimationClip[]> {
     const { gltf, buffers, glTFResource } = context;
     const { entities } = glTFResource;
     const { animations, accessors } = gltf;

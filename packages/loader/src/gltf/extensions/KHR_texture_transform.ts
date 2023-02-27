@@ -1,15 +1,15 @@
 import { Logger, PBRBaseMaterial, UnlitMaterial } from "@oasis-engine/core";
-import { registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
-import { ExtensionParser } from "./ExtensionParser";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRTextureTransform } from "./Schema";
 
-@registerExtension("KHR_texture_transform")
-class KHR_texture_transform extends ExtensionParser {
+@registerGLTFExtension("KHR_texture_transform")
+class KHR_texture_transform extends GLTFExtensionParser {
   parseEngineResource(
     schema: IKHRTextureTransform,
     material: PBRBaseMaterial | UnlitMaterial,
-    context: ParserContext
+    context: GLTFParserContext
   ): void {
     const { offset, rotation, scale, texCoord } = schema;
 

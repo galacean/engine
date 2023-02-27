@@ -1,19 +1,19 @@
 import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@oasis-engine/core";
-import { ExtensionParser } from "../extensions/ExtensionParser";
+import { GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
 import { ExtensionSchema } from "../extensions/Schema";
-import { ParserContext } from "./ParserContext";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export abstract class Parser {
-  private static _extensionParsers: Record<string, ExtensionParser[]> = {};
+export abstract class GLTFParser {
+  private static _extensionParsers: Record<string, GLTFExtensionParser[]> = {};
 
   static parseEngineResource(
     extensionName: string,
     extensionSchema: ExtensionSchema,
     parseResource: EngineObject,
-    context: ParserContext,
+    context: GLTFParserContext,
     ...extra
   ): void {
-    const parsers = Parser._extensionParsers[extensionName];
+    const parsers = GLTFParser._extensionParsers[extensionName];
 
     if (parsers?.length) {
       for (let i = 0; i < parsers.length; i++) {
@@ -25,10 +25,10 @@ export abstract class Parser {
   static createEngineResource(
     extensionName: string,
     extensionSchema: ExtensionSchema,
-    context: ParserContext,
+    context: GLTFParserContext,
     ...extra
   ): EngineObject | Promise<EngineObject> {
-    const parsers = Parser._extensionParsers[extensionName];
+    const parsers = GLTFParser._extensionParsers[extensionName];
 
     if (parsers?.length) {
       return parsers[parsers.length - 1].createEngineResource(extensionSchema, context, ...extra);
@@ -36,12 +36,12 @@ export abstract class Parser {
   }
 
   static hasExtensionParser(extensionName: string): boolean {
-    const parsers = Parser._extensionParsers[extensionName];
+    const parsers = GLTFParser._extensionParsers[extensionName];
     return !!parsers?.length;
   }
 
   static initialize(extensionName: string) {
-    const parsers = Parser._extensionParsers[extensionName];
+    const parsers = GLTFParser._extensionParsers[extensionName];
 
     if (parsers?.length) {
       for (let i = 0; i < parsers.length; i++) {
@@ -53,24 +53,24 @@ export abstract class Parser {
   /**
    * @internal
    */
-  static _addExtensionParser(extensionName: string, extensionParser: ExtensionParser) {
-    if (!Parser._extensionParsers[extensionName]) {
-      Parser._extensionParsers[extensionName] = [];
+  static _addExtensionParser(extensionName: string, extensionParser: GLTFExtensionParser) {
+    if (!GLTFParser._extensionParsers[extensionName]) {
+      GLTFParser._extensionParsers[extensionName] = [];
     }
-    Parser._extensionParsers[extensionName].push(extensionParser);
+    GLTFParser._extensionParsers[extensionName].push(extensionParser);
   }
 
-  abstract parse(context: ParserContext): AssetPromise<any> | void | Material | AnimationClip | Mesh;
+  abstract parse(context: GLTFParserContext): AssetPromise<any> | void | Material | AnimationClip | Mesh;
 }
 
 /**
  * Declare ExtensionParser's decorator.
  * @param extensionName - Extension name
  */
-export function registerExtension(extensionName: string) {
-  return (parser: new () => ExtensionParser) => {
+export function registerGLTFExtension(extensionName: string) {
+  return (parser: new () => GLTFExtensionParser) => {
     const extensionParser = new parser();
 
-    Parser._addExtensionParser(extensionName, extensionParser);
+    GLTFParser._addExtensionParser(extensionName, extensionParser);
   };
 }

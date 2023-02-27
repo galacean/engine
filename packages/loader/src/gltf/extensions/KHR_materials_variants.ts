@@ -1,12 +1,12 @@
 import { Renderer } from "@oasis-engine/core";
-import { registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
-import { ExtensionParser } from "./ExtensionParser";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialVariants_Mapping } from "./Schema";
 
-@registerExtension("KHR_materials_variants")
-class KHR_materials_variants extends ExtensionParser {
-  parseEngineResource(schema: IKHRMaterialVariants_Mapping, renderer: Renderer, context: ParserContext): void {
+@registerGLTFExtension("KHR_materials_variants")
+class KHR_materials_variants extends GLTFExtensionParser {
+  parseEngineResource(schema: IKHRMaterialVariants_Mapping, renderer: Renderer, context: GLTFParserContext): void {
     const {
       gltf: {
         extensions: {

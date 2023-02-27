@@ -1,9 +1,9 @@
 import { Logger } from "@oasis-engine/core";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class Validator extends Parser {
-  parse(context: ParserContext): void {
+export class GLTFValidator extends GLTFParser {
+  parse(context: GLTFParserContext): void {
     const {
       asset: { version },
       extensionsUsed,
@@ -19,7 +19,7 @@ export class Validator extends Parser {
       Logger.info("extensionsUsed: ", extensionsUsed);
       for (let i = 0; i < extensionsUsed.length; i++) {
         const extensionUsed = extensionsUsed[i];
-        if (!Parser.hasExtensionParser(extensionUsed)) {
+        if (!GLTFParser.hasExtensionParser(extensionUsed)) {
           Logger.warn(`Extension ${extensionUsed} is not implemented, you can customize this extension in gltf.`);
         }
       }
@@ -30,10 +30,10 @@ export class Validator extends Parser {
       for (let i = 0; i < extensionsRequired.length; i++) {
         const extensionRequired = extensionsRequired[i];
 
-        if (!Parser.hasExtensionParser(extensionRequired)) {
+        if (!GLTFParser.hasExtensionParser(extensionRequired)) {
           Logger.error(`GLTF parser has not supported required extension ${extensionRequired}.`);
         } else {
-          Parser.initialize(extensionRequired);
+          GLTFParser.initialize(extensionRequired);
         }
       }
     }

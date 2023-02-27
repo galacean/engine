@@ -1,13 +1,13 @@
 import { DRACODecoder } from "@oasis-engine/draco";
 import { GLTFUtil } from "../GLTFUtil";
-import { registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { IMeshPrimitive } from "../Schema";
-import { ExtensionParser } from "./ExtensionParser";
+import { GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRDracoMeshCompression } from "./Schema";
 
-@registerExtension("KHR_draco_mesh_compression")
-class KHR_draco_mesh_compression extends ExtensionParser {
+@registerGLTFExtension("KHR_draco_mesh_compression")
+class KHR_draco_mesh_compression extends GLTFExtensionParser {
   private static _decoder: DRACODecoder;
 
   initialize(): void {
@@ -16,7 +16,7 @@ class KHR_draco_mesh_compression extends ExtensionParser {
     }
   }
 
-  createEngineResource(schema: IKHRDracoMeshCompression, context: ParserContext, gltfPrimitive: IMeshPrimitive) {
+  createEngineResource(schema: IKHRDracoMeshCompression, context: GLTFParserContext, gltfPrimitive: IMeshPrimitive) {
     const { gltf, buffers } = context;
     const { bufferViews, accessors } = gltf;
     const { bufferView: bufferViewIndex, attributes: gltfAttributeMap } = schema;

@@ -12,13 +12,13 @@ import {
 import { Vector3 } from "@oasis-engine/math";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class MeshParser extends Parser {
+export class GLTFMeshParser extends GLTFParser {
   private static _tempVector3 = new Vector3();
 
-  parse(context: ParserContext) {
+  parse(context: GLTFParserContext) {
     const { gltf, buffers, glTFResource } = context;
     const { engine } = glTFResource;
     if (!gltf.meshes) return;
@@ -40,7 +40,7 @@ export class MeshParser extends Parser {
 
           if (KHR_draco_mesh_compression) {
             (<Promise<EngineObject>>(
-              Parser.createEngineResource(
+              GLTFParser.createEngineResource(
                 "KHR_draco_mesh_compression",
                 KHR_draco_mesh_compression,
                 context,
@@ -115,7 +115,7 @@ export class MeshParser extends Parser {
   }
 
   private _parseMeshFromGLTFPrimitive(
-    context: ParserContext,
+    context: GLTFParserContext,
     mesh: ModelMesh,
     gltfMesh: IMesh,
     gltfPrimitive: IMeshPrimitive,
@@ -182,7 +182,7 @@ export class MeshParser extends Parser {
           min.copyFromArray(accessor.min);
           max.copyFromArray(accessor.max);
         } else {
-          const position = MeshParser._tempVector3;
+          const position = GLTFMeshParser._tempVector3;
           min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
           max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
@@ -274,7 +274,7 @@ export class MeshParser extends Parser {
       bounds.min.copyFromArray(accessor.min);
       bounds.max.copyFromArray(accessor.max);
     } else {
-      const position = MeshParser._tempVector3;
+      const position = GLTFMeshParser._tempVector3;
       const { min, max } = bounds;
 
       min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
