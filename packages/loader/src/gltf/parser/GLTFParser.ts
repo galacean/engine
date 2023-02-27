@@ -11,6 +11,7 @@ export abstract class GLTFParser {
     extensionSchema: GLTFExtensionSchema,
     parseResource: EngineObject,
     context: GLTFParserContext,
+    resourceIndex: number,
     ...extra
   ): void {
     const parsers = GLTFParser._extensionParsers[extensionName];
@@ -20,7 +21,7 @@ export abstract class GLTFParser {
       if (length > 1) {
         Logger.warn(`plugin:${extensionName} has been overridden`);
       }
-      parsers[length - 1].parseEngineResource(extensionSchema, parseResource, context, ...extra);
+      parsers[length - 1].parseEngineResource(extensionSchema, parseResource, context, resourceIndex, ...extra);
     }
   }
 
@@ -28,6 +29,7 @@ export abstract class GLTFParser {
     extensionName: string,
     extensionSchema: GLTFExtensionSchema,
     context: GLTFParserContext,
+    resourceIndex: number,
     ...extra
   ): EngineObject | Promise<EngineObject> {
     const parsers = GLTFParser._extensionParsers[extensionName];
@@ -37,7 +39,7 @@ export abstract class GLTFParser {
       if (length > 1) {
         Logger.warn(`plugin:${extensionName} has been overridden`);
       }
-      return parsers[length - 1].createEngineResource(extensionSchema, context, ...extra);
+      return parsers[length - 1].createEngineResource(extensionSchema, context, resourceIndex, ...extra);
     }
   }
 

@@ -26,7 +26,13 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
       material.baseTexture = textures[diffuseTexture.index];
       const KHR_texture_transform = diffuseTexture.extensions?.KHR_texture_transform;
       if (KHR_texture_transform) {
-        GLTFParser.parseEngineResource("KHR_texture_transform", KHR_texture_transform, material, context);
+        GLTFParser.parseEngineResource(
+          "KHR_texture_transform",
+          KHR_texture_transform,
+          material,
+          context,
+          diffuseTexture.index
+        );
       }
     }
 

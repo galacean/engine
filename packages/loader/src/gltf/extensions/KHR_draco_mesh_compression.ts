@@ -16,7 +16,13 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     }
   }
 
-  createEngineResource(schema: IKHRDracoMeshCompression, context: GLTFParserContext, gltfPrimitive: IMeshPrimitive) {
+  createEngineResource(
+    schema: IKHRDracoMeshCompression,
+    context: GLTFParserContext,
+    meshIndex: number,
+    primitiveIndex: number,
+    gltfPrimitive: IMeshPrimitive
+  ) {
     const { gltf, buffers } = context;
     const { bufferViews, accessors } = gltf;
     const { bufferView: bufferViewIndex, attributes: gltfAttributeMap } = schema;

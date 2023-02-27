@@ -44,6 +44,8 @@ export class GLTFMeshParser extends GLTFParser {
                 "KHR_draco_mesh_compression",
                 KHR_draco_mesh_compression,
                 context,
+                i,
+                j,
                 gltfPrimitive
               )
             ))

@@ -9,12 +9,14 @@ export abstract class GLTFExtensionParser {
     schema: GLTFExtensionSchema,
     parseResource: EngineObject,
     context: GLTFParserContext,
+    resourceIndex: number,
     ...extra
   ): void | Promise<void> {}
 
   createEngineResource(
     schema: GLTFExtensionSchema,
     context: GLTFParserContext,
+    resourceIndex: number,
     ...extra
   ): EngineObject | Promise<EngineObject> {
     return null;
