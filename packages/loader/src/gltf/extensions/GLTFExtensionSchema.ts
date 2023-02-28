@@ -175,4 +175,5 @@ export type GLTFExtensionSchema =
   | IKHRTextureBasisU
   | IKHRTextureTransform
   | IKHRXmp
-  | IKHRXmp_Node;
+  | IKHRXmp_Node
+  | Object;

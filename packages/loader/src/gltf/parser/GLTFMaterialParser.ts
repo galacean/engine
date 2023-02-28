@@ -5,10 +5,8 @@ import {
   Material,
   PBRBaseMaterial,
   PBRMaterial,
-  PBRSpecularMaterial,
   RenderFace,
-  TextureCoordinate,
-  UnlitMaterial
+  TextureCoordinate
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
 import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../GLTFSchema";
@@ -31,57 +29,56 @@ export class GLTFMaterialParser extends GLTFParser {
 
     const { engine } = glTFResource;
 
-    let promises = [];
+    let materialPromises = [];
 
     for (let i = 0; i < gltf.materials.length; i++) {
       const materialInfo = gltf.materials[i];
       const { extensions = {}, name = "" } = materialInfo;
 
-      const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat, ...otherExtensions } =
-        extensions;
       let material: BaseMaterial | Promise<BaseMaterial> = null;
 
-      for (let name in otherExtensions) {
-        if (GLTFParser.hasExtensionParser(name)) {
-          material = <Promise<any>>GLTFParser.createEngineResource(name, context, otherExtensions[name], materialInfo);
-          if (material) {
-            break;
-          }
+      const extensionArray = Object.keys(extensions);
+      for (let i = extensionArray.length - 1; i >= 0; --i) {
+        const extensionName = extensionArray[i];
+        const extensionSchema = extensions[extensionName];
+
+        material = <Promise<BaseMaterial> | BaseMaterial>(
+          GLTFParser.createAndParse(extensionName, context, extensionSchema, materialInfo)
+        );
+        if (material) {
+          break;
         }
       }
 
       if (!material) {
-        if (KHR_materials_unlit) {
-          material = <UnlitMaterial>(
-            GLTFParser.createEngineResource("KHR_materials_unlit", context, KHR_materials_unlit, materialInfo)
-          );
-        } else if (KHR_materials_pbrSpecularGlossiness) {
-          material = <PBRSpecularMaterial>(
-            GLTFParser.createEngineResource(
-              "KHR_materials_pbrSpecularGlossiness",
-              context,
-              KHR_materials_pbrSpecularGlossiness,
-              materialInfo
-            )
-          );
-        } else {
-          material = new PBRMaterial(engine);
-        }
+        material = new PBRMaterial(engine);
         material.name = name;
-        this._parseGLTFMaterial(material, materialInfo, context);
+        GLTFMaterialParser._parseGLTFMaterial(context, material, materialInfo);
       }
 
-      promises.push(material);
+      materialPromises.push(material);
     }
 
-    return AssetPromise.all(promises).then((materials) => {
+    return AssetPromise.all(materialPromises).then((materials) => {
       glTFResource.materials = materials;
+      for (let i = 0; i < gltf.materials.length; i++) {
+        const materialInfo = gltf.materials[i];
+        const material = materials[i];
+        const { extensions } = materialInfo;
+        for (let extensionName in extensions) {
+          const extensionSchema = extensions[extensionName];
+          GLTFParser.additiveParse(extensionName, context, material, extensionSchema, materialInfo);
+        }
+      }
       materialsPromiseInfo.resolve(materials);
       return materialsPromiseInfo.promise;
     });
   }
 
-  private _parseGLTFMaterial(material: BaseMaterial, materialInfo: IMaterial, context: GLTFParserContext) {
+  /**
+   * @internal
+   */
+  static _parseGLTFMaterial(context: GLTFParserContext, material: BaseMaterial, materialInfo: IMaterial) {
     const { textures } = context.glTFResource;
     const {
       extensions = {},
@@ -96,16 +93,6 @@ export class GLTFMaterialParser extends GLTFParser {
     } = materialInfo;
 
     const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat } = extensions;
-
-    if (KHR_materials_clearcoat) {
-      GLTFParser.parseEngineResource(
-        "KHR_materials_clearcoat",
-        context,
-        material,
-        KHR_materials_clearcoat,
-        materialInfo
-      );
-    }
 
     if (pbrMetallicRoughness) {
       const m = material as PBRBaseMaterial;
@@ -124,13 +111,7 @@ export class GLTFMaterialParser extends GLTFParser {
         m.baseTexture = textures[baseColorTexture.index];
         const KHR_texture_transform = baseColorTexture.extensions?.KHR_texture_transform;
         if (KHR_texture_transform) {
-          GLTFParser.parseEngineResource(
-            "KHR_texture_transform",
-            context,
-            material,
-            KHR_texture_transform,
-            materialInfo
-          );
+          GLTFParser.additiveParse("KHR_texture_transform", context, material, KHR_texture_transform, materialInfo);
         }
       }
 

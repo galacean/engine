@@ -53,7 +53,7 @@ export class GLTFSceneParser extends GLTFParser {
         const lightIndex = KHR_lights_punctual.light;
         const lights = (gltf.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
 
-        GLTFParser.parseEngineResource("KHR_lights_punctual", context, entity, lights[lightIndex], gltfNode);
+        GLTFParser.additiveParse("KHR_lights_punctual", context, entity, lights[lightIndex], gltfNode);
       }
     }
 
@@ -144,7 +144,7 @@ export class GLTFSceneParser extends GLTFParser {
       const { extensions = {} } = gltfPrimitive;
       const { KHR_materials_variants } = extensions;
       if (KHR_materials_variants) {
-        GLTFParser.parseEngineResource(
+        GLTFParser.additiveParse(
           "KHR_materials_variants",
           context,
           renderer,

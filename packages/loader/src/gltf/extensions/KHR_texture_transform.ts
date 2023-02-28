@@ -1,13 +1,14 @@
 import { Logger, PBRBaseMaterial, UnlitMaterial } from "@oasis-engine/core";
-import { ITextureInfo } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
-import { GLTFExtensionParser } from "./GLTFExtensionParser";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRTextureTransform } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_texture_transform")
-class KHR_texture_transform extends GLTFExtensionParser<ITextureInfo> {
-  parseEngineResource(
+class KHR_texture_transform extends GLTFExtensionParser {
+  mode = GLTFExtensionMode.AdditiveParse;
+
+  additiveParse(
     context: GLTFParserContext,
     material: PBRBaseMaterial | UnlitMaterial,
     schema: IKHRTextureTransform

@@ -1,9 +1,9 @@
-import { Logger } from "@oasis-engine/core";
+import { AssetPromise, Logger } from "@oasis-engine/core";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";
 
 export class GLTFValidator extends GLTFParser {
-  parse(context: GLTFParserContext): void {
+  parse(context: GLTFParserContext): AssetPromise<void> {
     const {
       asset: { version },
       extensionsUsed,
@@ -14,7 +14,7 @@ export class GLTFValidator extends GLTFParser {
     if (!(gltfVersion >= 2 && gltfVersion < 3)) {
       throw "Only support gltf 2.x.";
     }
-
+    const promises = [];
     if (extensionsUsed) {
       Logger.info("extensionsUsed: ", extensionsUsed);
       for (let i = 0; i < extensionsUsed.length; i++) {
@@ -33,9 +33,11 @@ export class GLTFValidator extends GLTFParser {
         if (!GLTFParser.hasExtensionParser(extensionRequired)) {
           Logger.error(`GLTF parser has not supported required extension ${extensionRequired}.`);
         } else {
-          GLTFParser.initialize(extensionRequired);
+          promises.push(GLTFParser.initialize(extensionRequired));
         }
       }
     }
+
+    return AssetPromise.all(promises).then(null);
   }
 }

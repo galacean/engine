@@ -4,12 +4,18 @@ import { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { GLTFParser, registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
-import { GLTFExtensionParser } from "./GLTFExtensionParser";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_pbrSpecularGlossiness")
-class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser<IMaterial> {
-  createEngineResource(context: GLTFParserContext, schema: IKHRMaterialsPbrSpecularGlossiness): PBRSpecularMaterial {
+class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
+  mode = GLTFExtensionMode.CreateAndParse;
+
+  createAndParse(
+    context: GLTFParserContext,
+    schema: IKHRMaterialsPbrSpecularGlossiness,
+    ownerSchema: IMaterial
+  ): PBRSpecularMaterial {
     const { engine, textures } = context.glTFResource;
     const material = new PBRSpecularMaterial(engine);
     const { diffuseFactor, diffuseTexture, specularFactor, glossinessFactor, specularGlossinessTexture } = schema;
@@ -27,13 +33,7 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser<IMaterial>
       material.baseTexture = textures[diffuseTexture.index];
       const KHR_texture_transform = diffuseTexture.extensions?.KHR_texture_transform;
       if (KHR_texture_transform) {
-        GLTFParser.parseEngineResource(
-          "KHR_texture_transform",
-          context,
-          material,
-          KHR_texture_transform,
-          diffuseTexture
-        );
+        GLTFParser.additiveParse("KHR_texture_transform", context, material, KHR_texture_transform, diffuseTexture);
       }
     }
 
@@ -54,6 +54,8 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser<IMaterial>
       GLTFMaterialParser._checkOtherTextureTransform(specularGlossinessTexture, "Specular glossiness");
     }
 
+    material.name = ownerSchema.name;
+    GLTFMaterialParser._parseGLTFMaterial(context, material, ownerSchema);
     return material;
   }
 }

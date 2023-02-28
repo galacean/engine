@@ -1,13 +1,14 @@
 import { DirectLight, Entity, PointLight, SpotLight } from "@oasis-engine/core";
-import { INode } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
-import { GLTFExtensionParser } from "./GLTFExtensionParser";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRLightsPunctual_Light } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_lights_punctual")
-class KHR_lights_punctual extends GLTFExtensionParser<INode> {
-  parseEngineResource(context: GLTFParserContext, entity: Entity, schema: IKHRLightsPunctual_Light): void {
+class KHR_lights_punctual extends GLTFExtensionParser {
+  mode = GLTFExtensionMode.AdditiveParse;
+
+  additiveParse(context: GLTFParserContext, entity: Entity, schema: IKHRLightsPunctual_Light): void {
     const { color, intensity = 1, type, range, spot } = schema;
     const glTFResource = context.glTFResource;
     let light: DirectLight | PointLight | SpotLight;

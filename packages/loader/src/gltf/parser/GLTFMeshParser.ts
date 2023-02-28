@@ -40,7 +40,7 @@ export class GLTFMeshParser extends GLTFParser {
 
           if (KHR_draco_mesh_compression) {
             (<Promise<EngineObject>>(
-              GLTFParser.createEngineResource(
+              GLTFParser.createAndParse(
                 "KHR_draco_mesh_compression",
                 context,
                 KHR_draco_mesh_compression,
