@@ -53,7 +53,7 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
     }
 
     material.name = ownerSchema.name;
-    GLTFMaterialParser._parseGLTFMaterial(context, material, ownerSchema);
+    GLTFMaterialParser._parseStandardProperty(context, material, ownerSchema);
     return material;
   }
 }

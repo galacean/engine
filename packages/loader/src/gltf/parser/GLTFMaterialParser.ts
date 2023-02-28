@@ -3,15 +3,18 @@ import {
   BaseMaterial,
   Logger,
   Material,
-  PBRBaseMaterial,
   PBRMaterial,
+  PBRSpecularMaterial,
   RenderFace,
-  TextureCoordinate
+  TextureCoordinate,
+  UnlitMaterial
 } from "@oasis-engine/core";
 import { Color } from "@oasis-engine/math";
 import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";
+
+type StandMaterialType = UnlitMaterial | PBRMaterial | PBRSpecularMaterial;
 
 export class GLTFMaterialParser extends GLTFParser {
   /**
@@ -35,14 +38,14 @@ export class GLTFMaterialParser extends GLTFParser {
       const materialInfo = gltf.materials[i];
       const { extensions = {}, name = "" } = materialInfo;
 
-      let material: BaseMaterial | Promise<BaseMaterial> = null;
+      let material: StandMaterialType | Promise<BaseMaterial> = null;
 
       const extensionArray = Object.keys(extensions);
       for (let i = extensionArray.length - 1; i >= 0; --i) {
         const extensionName = extensionArray[i];
         const extensionSchema = extensions[extensionName];
 
-        material = <Promise<BaseMaterial> | BaseMaterial>(
+        material = <StandMaterialType | Promise<BaseMaterial>>(
           GLTFParser.createAndParse(extensionName, context, extensionSchema, materialInfo)
         );
         if (material) {
@@ -53,7 +56,7 @@ export class GLTFMaterialParser extends GLTFParser {
       if (!material) {
         material = new PBRMaterial(engine);
         material.name = name;
-        GLTFMaterialParser._parseGLTFMaterial(context, material, materialInfo);
+        GLTFMaterialParser._parseStandardProperty(context, material, materialInfo);
       }
 
       materialPromises.push(material);
@@ -78,10 +81,9 @@ export class GLTFMaterialParser extends GLTFParser {
   /**
    * @internal
    */
-  static _parseGLTFMaterial(context: GLTFParserContext, material: BaseMaterial, materialInfo: IMaterial) {
+  static _parseStandardProperty(context: GLTFParserContext, material: StandMaterialType, materialInfo: IMaterial) {
     const { textures } = context.glTFResource;
     const {
-      extensions = {},
       pbrMetallicRoughness,
       normalTexture,
       occlusionTexture,
@@ -92,15 +94,12 @@ export class GLTFMaterialParser extends GLTFParser {
       doubleSided
     } = materialInfo;
 
-    const { KHR_materials_unlit, KHR_materials_pbrSpecularGlossiness, KHR_materials_clearcoat } = extensions;
-
     if (pbrMetallicRoughness) {
-      const m = material as PBRBaseMaterial;
       const { baseColorFactor, baseColorTexture, metallicFactor, roughnessFactor, metallicRoughnessTexture } =
         pbrMetallicRoughness;
 
       if (baseColorFactor) {
-        m.baseColor = new Color(
+        material.baseColor = new Color(
           Color.linearToGammaSpace(baseColorFactor[0]),
           Color.linearToGammaSpace(baseColorFactor[1]),
           Color.linearToGammaSpace(baseColorFactor[2]),
@@ -108,34 +107,31 @@ export class GLTFMaterialParser extends GLTFParser {
         );
       }
       if (baseColorTexture) {
-        m.baseTexture = textures[baseColorTexture.index];
+        material.baseTexture = textures[baseColorTexture.index];
         const KHR_texture_transform = baseColorTexture.extensions?.KHR_texture_transform;
         if (KHR_texture_transform) {
           GLTFParser.additiveParse("KHR_texture_transform", context, material, KHR_texture_transform, materialInfo);
         }
       }
 
-      if (!KHR_materials_unlit && !KHR_materials_pbrSpecularGlossiness) {
-        const m = material as PBRMaterial;
-        m.metallic = metallicFactor ?? 1;
-        m.roughness = roughnessFactor ?? 1;
+      if (material.constructor === PBRMaterial) {
+        material.metallic = metallicFactor ?? 1;
+        material.roughness = roughnessFactor ?? 1;
         if (metallicRoughnessTexture) {
-          m.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
+          material.roughnessMetallicTexture = textures[metallicRoughnessTexture.index];
           GLTFMaterialParser._checkOtherTextureTransform(metallicRoughnessTexture, "Roughness metallic");
         }
       }
     }
 
-    if (!KHR_materials_unlit) {
-      const m = material as PBRBaseMaterial;
-
+    if (material.constructor === PBRMaterial || material.constructor === PBRSpecularMaterial) {
       if (emissiveTexture) {
-        m.emissiveTexture = textures[emissiveTexture.index];
+        material.emissiveTexture = textures[emissiveTexture.index];
         GLTFMaterialParser._checkOtherTextureTransform(emissiveTexture, "Emissive");
       }
 
       if (emissiveFactor) {
-        m.emissiveColor = new Color(
+        material.emissiveColor = new Color(
           Color.linearToGammaSpace(emissiveFactor[0]),
           Color.linearToGammaSpace(emissiveFactor[1]),
           Color.linearToGammaSpace(emissiveFactor[2])
@@ -144,24 +140,24 @@ export class GLTFMaterialParser extends GLTFParser {
 
       if (normalTexture) {
         const { index, scale } = normalTexture;
-        m.normalTexture = textures[index];
+        material.normalTexture = textures[index];
         GLTFMaterialParser._checkOtherTextureTransform(normalTexture, "Normal");
 
         if (scale !== undefined) {
-          m.normalTextureIntensity = scale;
+          material.normalTextureIntensity = scale;
         }
       }
 
       if (occlusionTexture) {
         const { index, strength, texCoord } = occlusionTexture;
-        m.occlusionTexture = textures[index];
+        material.occlusionTexture = textures[index];
         GLTFMaterialParser._checkOtherTextureTransform(occlusionTexture, "Occlusion");
 
         if (strength !== undefined) {
-          m.occlusionTextureIntensity = strength;
+          material.occlusionTextureIntensity = strength;
         }
         if (texCoord === TextureCoordinate.UV1) {
-          m.occlusionTextureCoord = TextureCoordinate.UV1;
+          material.occlusionTextureCoord = TextureCoordinate.UV1;
         } else if (texCoord > TextureCoordinate.UV1) {
           Logger.warn("Occlusion texture uv coordinate must be UV0 or UV1.");
         }

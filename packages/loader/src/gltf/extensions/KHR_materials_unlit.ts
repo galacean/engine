@@ -12,7 +12,7 @@ class KHR_materials_unlit extends GLTFExtensionParser {
     const material = new UnlitMaterial(engine);
     material.name = ownerSchema.name;
 
-    GLTFMaterialParser._parseGLTFMaterial(context, material, ownerSchema);
+    GLTFMaterialParser._parseStandardProperty(context, material, ownerSchema);
     return material;
   }
 }
