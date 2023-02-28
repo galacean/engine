@@ -7,8 +7,11 @@ import { GLTFExtensionSchema } from "./GLTFExtensionSchema";
  * Base class of glTF extension parser.
  */
 export abstract class GLTFExtensionParser {
-  /** The extension mode. */
-  abstract readonly mode: GLTFExtensionMode;
+  /**
+   * @internal
+   * The extension mode.
+   */
+  _mode: GLTFExtensionMode;
 
   /**
    * Some plugins require initialization.

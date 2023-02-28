@@ -4,10 +4,8 @@ import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRTextureTransform } from "./GLTFExtensionSchema";
 
-@registerGLTFExtension("KHR_texture_transform")
+@registerGLTFExtension("KHR_texture_transform", GLTFExtensionMode.AdditiveParse)
 class KHR_texture_transform extends GLTFExtensionParser {
-  mode = GLTFExtensionMode.AdditiveParse;
-
   additiveParse(
     context: GLTFParserContext,
     material: PBRBaseMaterial | UnlitMaterial,

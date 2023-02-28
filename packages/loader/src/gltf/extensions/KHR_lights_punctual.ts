@@ -4,10 +4,8 @@ import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRLightsPunctual_Light } from "./GLTFExtensionSchema";
 
-@registerGLTFExtension("KHR_lights_punctual")
+@registerGLTFExtension("KHR_lights_punctual", GLTFExtensionMode.AdditiveParse)
 class KHR_lights_punctual extends GLTFExtensionParser {
-  mode = GLTFExtensionMode.AdditiveParse;
-
   additiveParse(context: GLTFParserContext, entity: Entity, schema: IKHRLightsPunctual_Light): void {
     const { color, intensity = 1, type, range, spot } = schema;
     const glTFResource = context.glTFResource;

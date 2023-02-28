@@ -6,10 +6,8 @@ import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRDracoMeshCompression } from "./GLTFExtensionSchema";
 
-@registerGLTFExtension("KHR_draco_mesh_compression")
+@registerGLTFExtension("KHR_draco_mesh_compression", GLTFExtensionMode.CreateAndParse)
 class KHR_draco_mesh_compression extends GLTFExtensionParser {
-  mode = GLTFExtensionMode.CreateAndParse;
-
   private static _decoder: DRACODecoder;
 
   initialize(): void {

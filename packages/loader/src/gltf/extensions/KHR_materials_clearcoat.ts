@@ -5,10 +5,8 @@ import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsClearcoat } from "./GLTFExtensionSchema";
 
-@registerGLTFExtension("KHR_materials_clearcoat")
+@registerGLTFExtension("KHR_materials_clearcoat", GLTFExtensionMode.AdditiveParse)
 class KHR_materials_clearcoat extends GLTFExtensionParser {
-  mode = GLTFExtensionMode.AdditiveParse;
-
   additiveParse(context: GLTFParserContext, material: PBRMaterial, schema: IKHRMaterialsClearcoat): void {
     const { textures } = context.glTFResource;
     const {

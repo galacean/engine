@@ -23,7 +23,7 @@ export abstract class GLTFParser {
     ownerSchema: GLTFExtensionOwnerSchema
   ): EngineObject | Promise<EngineObject> {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.CreateAndParse);
-    
+
     if (parser) {
       return parser.createAndParse(context, extensionSchema, ownerSchema);
     }
@@ -55,7 +55,7 @@ export abstract class GLTFParser {
       // only use the last parser.
       for (let i = length - 1; i >= 0; --i) {
         const currentParser = parsers[i];
-        if (currentParser.mode === mode) {
+        if (currentParser._mode === mode) {
           return currentParser;
         }
       }
@@ -79,10 +79,10 @@ export abstract class GLTFParser {
  * Declare ExtensionParser's decorator.
  * @param extensionName - Extension name
  */
-export function registerGLTFExtension(extensionName: string) {
+export function registerGLTFExtension(extensionName: string, mode: GLTFExtensionMode) {
   return (parser: new () => GLTFExtensionParser) => {
     const extensionParser = new parser();
-
+    extensionParser._mode = mode;
     GLTFParser._addExtensionParser(extensionName, extensionParser);
   };
 }

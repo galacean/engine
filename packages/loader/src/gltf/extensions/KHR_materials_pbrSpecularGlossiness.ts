@@ -7,10 +7,8 @@ import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
-@registerGLTFExtension("KHR_materials_pbrSpecularGlossiness")
+@registerGLTFExtension("KHR_materials_pbrSpecularGlossiness", GLTFExtensionMode.CreateAndParse)
 class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
-  mode = GLTFExtensionMode.CreateAndParse;
-
   createAndParse(
     context: GLTFParserContext,
     schema: IKHRMaterialsPbrSpecularGlossiness,

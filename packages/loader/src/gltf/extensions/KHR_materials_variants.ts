@@ -4,10 +4,8 @@ import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialVariants_Mapping } from "./GLTFExtensionSchema";
 
-@registerGLTFExtension("KHR_materials_variants")
+@registerGLTFExtension("KHR_materials_variants", GLTFExtensionMode.AdditiveParse)
 class KHR_materials_variants extends GLTFExtensionParser {
-  mode = GLTFExtensionMode.AdditiveParse;
-
   additiveParse(context: GLTFParserContext, renderer: Renderer, schema: IKHRMaterialVariants_Mapping): void {
     const {
       gltf: {
