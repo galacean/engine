@@ -1,7 +1,7 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { BufferInfo, ParserContext } from "./parser/ParserContext";
-import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
+import { BufferInfo, GLTFParserContext } from "./parser/ParserContext";
+import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
 
 const charCodeOfDot = ".".charCodeAt(0);
 const reEscapeChar = /\\(\\)?/g;
@@ -22,6 +22,9 @@ const rePropName = RegExp(
     "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
   "g"
 );
+
+
+
 
 /**
  * @internal
@@ -147,7 +150,7 @@ export class GLTFUtil {
     }
   }
 
-  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
+  static getAccessorBuffer(context: GLTFParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
     const { buffers } = context;
     const bufferViews = gltf.bufferViews;
 

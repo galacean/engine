@@ -1,11 +1,11 @@
 import { Entity, Skin } from "@galacean/engine-core";
 import { Matrix } from "@galacean/engine-math";
 import { GLTFUtil } from "../GLTFUtil";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class SkinParser extends Parser {
-  parse(context: ParserContext): void {
+export class GLTFSkinParser extends GLTFParser {
+  parse(context: GLTFParserContext): void {
     const { glTFResource, gltf, buffers } = context;
     const { entities } = glTFResource;
     const gltfSkins = gltf.skins;
