@@ -6,7 +6,6 @@ import { IKHRMaterialVariants_Mapping } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_variants", GLTFExtensionMode.AdditiveParse)
 class KHR_materials_variants extends GLTFExtensionParser {
-
   /**
    * @override
    */
@@ -21,10 +20,12 @@ class KHR_materials_variants extends GLTFExtensionParser {
     } = context;
     const { mappings } = schema;
 
+    if (!glTFResource.extensionData) glTFResource.extensionData = {};
+    glTFResource.extensionData.variants = [];
+
     for (let i = 0; i < mappings.length; i++) {
       const { material, variants } = mappings[i];
-      if (!glTFResource.variants) glTFResource.variants = [];
-      glTFResource.variants.push({
+      glTFResource.extensionData.variants.push({
         renderer,
         material: glTFResource.materials[material],
         variants: variants.map((index) => variantNames[index].name)
