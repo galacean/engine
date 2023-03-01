@@ -4,6 +4,9 @@ import { GLTFExtensionSchema } from "../extensions/GLTFExtensionSchema";
 import { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFParserContext } from "./GLTFParserContext";
 
+/**
+ * Base class of glTF parser.
+ */
 export abstract class GLTFParser {
   private static readonly _extensionParsers: Record<string, GLTFExtensionParser[]> = {};
 
