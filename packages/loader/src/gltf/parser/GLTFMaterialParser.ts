@@ -1,6 +1,5 @@
 import {
   AssetPromise,
-  BaseMaterial,
   Logger,
   Material,
   PBRMaterial,
@@ -13,8 +12,6 @@ import { Color } from "@oasis-engine/math";
 import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";
-
-type StandMaterialType = UnlitMaterial | PBRMaterial | PBRSpecularMaterial;
 
 export class GLTFMaterialParser extends GLTFParser {
   /**
@@ -29,7 +26,11 @@ export class GLTFMaterialParser extends GLTFParser {
   /**
    * @internal
    */
-  static _parseStandardProperty(context: GLTFParserContext, material: StandMaterialType, materialInfo: IMaterial) {
+  static _parseStandardProperty(
+    context: GLTFParserContext,
+    material: UnlitMaterial | PBRMaterial | PBRSpecularMaterial,
+    materialInfo: IMaterial
+  ) {
     const { textures } = context.glTFResource;
     const {
       pbrMetallicRoughness,
@@ -139,12 +140,14 @@ export class GLTFMaterialParser extends GLTFParser {
     for (let i = 0; i < gltf.materials.length; i++) {
       const materialInfo = gltf.materials[i];
 
-      let material: any = GLTFParser.createAndParseFromExtensions(materialInfo.extensions, context, materialInfo);
+      let material = <Material | Promise<Material>>(
+        GLTFParser.createAndParseFromExtensions(materialInfo.extensions, context, materialInfo)
+      );
 
       if (!material) {
         material = new PBRMaterial(engine);
         material.name = materialInfo.name;
-        GLTFMaterialParser._parseStandardProperty(context, material, materialInfo);
+        GLTFMaterialParser._parseStandardProperty(context, material as PBRMaterial, materialInfo);
       }
 
       materialPromises.push(material);

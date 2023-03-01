@@ -40,14 +40,14 @@ export abstract class GLTFExtensionParser {
   /**
    * Additive parse to the resource.
    * @param context - The parser context
-   * @param resource - The resource
+   * @param parseResource - The parsed resource
    * @param extensionSchema - The extension schema
    * @param extensionOwnerSchema - The extension owner schema
    * @returns The void or promise
    */
   additiveParse(
     context: GLTFParserContext,
-    resource: EngineObject,
+    parseResource: EngineObject,
     extensionSchema: GLTFExtensionSchema,
     extensionOwnerSchema: GLTFExtensionOwnerSchema,
     ...extra

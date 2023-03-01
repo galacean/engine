@@ -1,8 +1,14 @@
-import { Renderer } from "@oasis-engine/core";
+import { Material, Renderer } from "@oasis-engine/core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRMaterialVariants_Mapping } from "./GLTFExtensionSchema";
+
+export type IGLTFExtensionVariants = Array<{
+  renderer: Renderer;
+  material: Material;
+  variants: string[];
+}>;
 
 @registerGLTFExtension("KHR_materials_variants", GLTFExtensionMode.AdditiveParse)
 class KHR_materials_variants extends GLTFExtensionParser {
@@ -20,12 +26,13 @@ class KHR_materials_variants extends GLTFExtensionParser {
     } = context;
     const { mappings } = schema;
 
-    if (!glTFResource.extensionData) glTFResource.extensionData = {};
-    glTFResource.extensionData.variants = [];
+    if (!glTFResource.extensionsData) glTFResource.extensionsData = {};
+    const extensionData: IGLTFExtensionVariants = [];
+    glTFResource.extensionsData.variants = extensionData;
 
     for (let i = 0; i < mappings.length; i++) {
       const { material, variants } = mappings[i];
-      glTFResource.extensionData.variants.push({
+      extensionData.push({
         renderer,
         material: glTFResource.materials[material],
         variants: variants.map((index) => variantNames[index].name)

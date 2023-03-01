@@ -7,6 +7,11 @@ import { GLTFParserContext } from "./GLTFParserContext";
 export abstract class GLTFParser {
   private static readonly _extensionParsers: Record<string, GLTFExtensionParser[]> = {};
 
+  /**
+   * Initialize the parser.
+   * @remarks Some plugins require initialization.
+   * @returns The void or promise
+   */
   static initialize(extensionName: string): void | Promise<void> {
     const parsers = GLTFParser._extensionParsers[extensionName];
     const length = parsers?.length;
@@ -16,6 +21,14 @@ export abstract class GLTFParser {
     }
   }
 
+  /**
+   * Create and parse the resource from extensions.
+   * @param extensions - Related extensions field
+   * @param context - The parser context
+   * @param ownerSchema - The extension owner schema
+   * @param extra - Extra params
+   * @returns
+   */
   static createAndParseFromExtensions(
     extensions: { [key: string]: any } = {},
     context: GLTFParserContext,
@@ -38,6 +51,14 @@ export abstract class GLTFParser {
     }
   }
 
+  /**
+   * Additive parse to the resource from extensions.
+   * @param extensions - Related extensions field
+   * @param context - The parser context
+   * @param parseResource -  The parsed resource
+   * @param ownerSchema - The extension owner schema
+   * @param extra - Extra params
+   */
   static additiveParseFromExtensions(
     extensions: { [key: string]: any },
     context: GLTFParserContext,
@@ -51,10 +72,21 @@ export abstract class GLTFParser {
     }
   }
 
+  /**
+   * Whether the plugin is registered.
+   * @param extensionName - Extension name
+   * @returns Boolean
+   */
   static hasExtensionParser(extensionName: string): boolean {
     return !!GLTFParser._extensionParsers[extensionName]?.length;
   }
 
+  /**
+   * Get the last plugin by glTF extension mode.
+   * @param extensionName - Extension name
+   * @param mode - GLTF extension mode
+   * @returns GLTF extension parser
+   */
   static getExtensionParser(extensionName: string, mode: GLTFExtensionMode): GLTFExtensionParser | void {
     const parsers = GLTFParser._extensionParsers[extensionName];
     const length = parsers?.length;
