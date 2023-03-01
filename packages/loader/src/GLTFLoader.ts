@@ -13,7 +13,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
     const masterPromiseInfo = context.masterPromiseInfo;
 
     context.glTFResource = glTFResource;
-    context.keepMeshData = params.keepMeshData ?? false;
+    context.keepMeshData = params?.keepMeshData ?? false;
 
     masterPromiseInfo.onCancel(() => {
       const { chainPromises } = context;
@@ -22,7 +22,7 @@ export class GLTFLoader extends Loader<GLTFResource> {
       }
     });
 
-    (params.pipeline || GLTFPipeline.defaultPipeline)
+    (params?.pipeline || GLTFPipeline.defaultPipeline)
       ._parse(context)
       .then(masterPromiseInfo.resolve)
       .catch((e) => {

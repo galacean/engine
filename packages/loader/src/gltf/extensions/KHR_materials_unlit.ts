@@ -7,7 +7,6 @@ import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 
 @registerGLTFExtension("KHR_materials_unlit", GLTFExtensionMode.CreateAndParse)
 class KHR_materials_unlit extends GLTFExtensionParser {
-  
   /**
    * @override
    */

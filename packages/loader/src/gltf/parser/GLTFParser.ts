@@ -20,12 +20,13 @@ export abstract class GLTFParser {
     extensionName: string,
     context: GLTFParserContext,
     extensionSchema: GLTFExtensionSchema,
-    ownerSchema: GLTFExtensionOwnerSchema
+    ownerSchema: GLTFExtensionOwnerSchema,
+    ...extra
   ): EngineObject | Promise<EngineObject> {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.CreateAndParse);
 
     if (parser) {
-      return parser.createAndParse(context, extensionSchema, ownerSchema);
+      return parser.createAndParse(context, extensionSchema, ownerSchema, ...extra);
     }
   }
 
@@ -34,19 +35,21 @@ export abstract class GLTFParser {
     context: GLTFParserContext,
     parseResource: EngineObject,
     extensionSchema: GLTFExtensionSchema,
-    ownerSchema: GLTFExtensionOwnerSchema
+    ownerSchema: GLTFExtensionOwnerSchema,
+    ...extra
   ): void {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.AdditiveParse);
 
     if (parser) {
-      parser.additiveParse(context, parseResource, extensionSchema, ownerSchema);
+      parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
     }
   }
 
   static createAndParseFromExtensions(
     extensions: { [key: string]: any } = {},
     context: GLTFParserContext,
-    ownerSchema: GLTFExtensionOwnerSchema
+    ownerSchema: GLTFExtensionOwnerSchema,
+    ...extra
   ): EngineObject | void | Promise<EngineObject | void> {
     let resource: EngineObject | Promise<EngineObject> = null;
 
@@ -56,7 +59,7 @@ export abstract class GLTFParser {
       const extensionSchema = extensions[extensionName];
 
       resource = <EngineObject | Promise<EngineObject>>(
-        GLTFParser.createAndParse(extensionName, context, extensionSchema, ownerSchema)
+        GLTFParser.createAndParse(extensionName, context, extensionSchema, ownerSchema, ...extra)
       );
       if (resource) {
         return resource;
@@ -68,11 +71,12 @@ export abstract class GLTFParser {
     extensions: { [key: string]: any },
     context: GLTFParserContext,
     parseResource: EngineObject,
-    ownerSchema: GLTFExtensionOwnerSchema
+    ownerSchema: GLTFExtensionOwnerSchema,
+    ...extra
   ): void {
     for (let extensionName in extensions) {
       const extensionSchema = extensions[extensionName];
-      GLTFParser.additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema);
+      GLTFParser.additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema, ...extra);
     }
   }
 

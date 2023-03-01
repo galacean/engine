@@ -26,40 +26,6 @@ export class GLTFMaterialParser extends GLTFParser {
     }
   }
 
-  parse(context: GLTFParserContext): AssetPromise<Material[]> {
-    const { gltf, glTFResource, materialsPromiseInfo } = context;
-    if (!gltf.materials) return;
-
-    const { engine } = glTFResource;
-
-    let materialPromises = [];
-
-    for (let i = 0; i < gltf.materials.length; i++) {
-      const materialInfo = gltf.materials[i];
-      const { extensions, name = "" } = materialInfo;
-
-      let material: any = GLTFParser.createAndParseFromExtensions(extensions, context, materialInfo);
-
-      if (!material) {
-        material = new PBRMaterial(engine);
-        material.name = name;
-        GLTFMaterialParser._parseStandardProperty(context, material, materialInfo);
-      }
-
-      materialPromises.push(material);
-    }
-
-    return AssetPromise.all(materialPromises).then((materials) => {
-      glTFResource.materials = materials;
-      for (let i = 0; i < gltf.materials.length; i++) {
-        const materialInfo = gltf.materials[i];
-        GLTFParser.additiveParseFromExtensions(materialInfo.extensions, context, materials[i], materialInfo);
-      }
-      materialsPromiseInfo.resolve(materials);
-      return materialsPromiseInfo.promise;
-    });
-  }
-
   /**
    * @internal
    */
@@ -160,5 +126,38 @@ export class GLTFMaterialParser extends GLTFParser {
         material.alphaCutoff = alphaCutoff ?? 0.5;
         break;
     }
+  }
+
+  parse(context: GLTFParserContext): AssetPromise<Material[]> {
+    const { gltf, glTFResource, materialsPromiseInfo } = context;
+    if (!gltf.materials) return;
+
+    const { engine } = glTFResource;
+
+    let materialPromises = [];
+
+    for (let i = 0; i < gltf.materials.length; i++) {
+      const materialInfo = gltf.materials[i];
+
+      let material: any = GLTFParser.createAndParseFromExtensions(materialInfo.extensions, context, materialInfo);
+
+      if (!material) {
+        material = new PBRMaterial(engine);
+        material.name = materialInfo.name;
+        GLTFMaterialParser._parseStandardProperty(context, material, materialInfo);
+      }
+
+      materialPromises.push(material);
+    }
+
+    return AssetPromise.all(materialPromises).then((materials) => {
+      glTFResource.materials = materials;
+      for (let i = 0; i < gltf.materials.length; i++) {
+        const materialInfo = gltf.materials[i];
+        GLTFParser.additiveParseFromExtensions(materialInfo.extensions, context, materials[i], materialInfo);
+      }
+      materialsPromiseInfo.resolve(materials);
+      return materialsPromiseInfo.promise;
+    });
   }
 }

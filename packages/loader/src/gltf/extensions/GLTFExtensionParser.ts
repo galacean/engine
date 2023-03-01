@@ -31,7 +31,8 @@ export abstract class GLTFExtensionParser {
   createAndParse(
     context: GLTFParserContext,
     extensionSchema: GLTFExtensionSchema,
-    extensionOwnerSchema: GLTFExtensionOwnerSchema
+    extensionOwnerSchema: GLTFExtensionOwnerSchema,
+    ...extra
   ): EngineObject | Promise<EngineObject> {
     throw "Not implemented.";
   }
@@ -48,7 +49,8 @@ export abstract class GLTFExtensionParser {
     context: GLTFParserContext,
     resource: EngineObject,
     extensionSchema: GLTFExtensionSchema,
-    extensionOwnerSchema: GLTFExtensionOwnerSchema
+    extensionOwnerSchema: GLTFExtensionOwnerSchema,
+    ...extra
   ): void | Promise<void> {
     throw "Not implemented.";
   }
