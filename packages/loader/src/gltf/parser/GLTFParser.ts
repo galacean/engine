@@ -16,35 +16,6 @@ export abstract class GLTFParser {
     }
   }
 
-  static createAndParse(
-    extensionName: string,
-    context: GLTFParserContext,
-    extensionSchema: GLTFExtensionSchema,
-    ownerSchema: GLTFExtensionOwnerSchema,
-    ...extra
-  ): EngineObject | Promise<EngineObject> {
-    const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.CreateAndParse);
-
-    if (parser) {
-      return parser.createAndParse(context, extensionSchema, ownerSchema, ...extra);
-    }
-  }
-
-  static additiveParse(
-    extensionName: string,
-    context: GLTFParserContext,
-    parseResource: EngineObject,
-    extensionSchema: GLTFExtensionSchema,
-    ownerSchema: GLTFExtensionOwnerSchema,
-    ...extra
-  ): void {
-    const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.AdditiveParse);
-
-    if (parser) {
-      parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
-    }
-  }
-
   static createAndParseFromExtensions(
     extensions: { [key: string]: any } = {},
     context: GLTFParserContext,
@@ -59,7 +30,7 @@ export abstract class GLTFParser {
       const extensionSchema = extensions[extensionName];
 
       resource = <EngineObject | Promise<EngineObject>>(
-        GLTFParser.createAndParse(extensionName, context, extensionSchema, ownerSchema, ...extra)
+        GLTFParser._createAndParse(extensionName, context, extensionSchema, ownerSchema, ...extra)
       );
       if (resource) {
         return resource;
@@ -76,7 +47,7 @@ export abstract class GLTFParser {
   ): void {
     for (let extensionName in extensions) {
       const extensionSchema = extensions[extensionName];
-      GLTFParser.additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema, ...extra);
+      GLTFParser._additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema, ...extra);
     }
   }
 
@@ -107,6 +78,35 @@ export abstract class GLTFParser {
       GLTFParser._extensionParsers[extensionName] = [];
     }
     GLTFParser._extensionParsers[extensionName].push(extensionParser);
+  }
+
+  private static _createAndParse(
+    extensionName: string,
+    context: GLTFParserContext,
+    extensionSchema: GLTFExtensionSchema,
+    ownerSchema: GLTFExtensionOwnerSchema,
+    ...extra
+  ): EngineObject | Promise<EngineObject> {
+    const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.CreateAndParse);
+
+    if (parser) {
+      return parser.createAndParse(context, extensionSchema, ownerSchema, ...extra);
+    }
+  }
+
+  private static _additiveParse(
+    extensionName: string,
+    context: GLTFParserContext,
+    parseResource: EngineObject,
+    extensionSchema: GLTFExtensionSchema,
+    ownerSchema: GLTFExtensionOwnerSchema,
+    ...extra
+  ): void {
+    const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.AdditiveParse);
+
+    if (parser) {
+      parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
+    }
   }
 
   abstract parse(context: GLTFParserContext): AssetPromise<any> | void | Material | AnimationClip | Mesh;
