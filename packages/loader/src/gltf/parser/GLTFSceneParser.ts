@@ -10,7 +10,6 @@ import {
   MeshRenderer,
   SkinnedMeshRenderer
 } from "@oasis-engine/core";
-import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/GLTFExtensionSchema";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
@@ -38,7 +37,7 @@ export class GLTFSceneParser extends GLTFParser {
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
       const { camera: cameraID, mesh: meshID, extensions = {} } = gltfNode;
-      const KHR_lights_punctual = <IKHRLightsPunctual_LightNode>extensions.KHR_lights_punctual;
+
       const entity = entities[i];
 
       if (cameraID !== undefined) {
@@ -49,12 +48,7 @@ export class GLTFSceneParser extends GLTFParser {
         this._createRenderer(context, gltfNode, entity);
       }
 
-      if (KHR_lights_punctual) {
-        const lightIndex = KHR_lights_punctual.light;
-        const lights = (gltf.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
-
-        GLTFParser.additiveParse("KHR_lights_punctual", context, entity, lights[lightIndex], gltfNode);
-      }
+      GLTFParser.additiveParseFromExtensions(extensions, context, entity, gltfNode);
     }
 
     if (glTFResource.defaultSceneRoot) {
@@ -144,13 +138,7 @@ export class GLTFSceneParser extends GLTFParser {
       const { extensions = {} } = gltfPrimitive;
       const { KHR_materials_variants } = extensions;
       if (KHR_materials_variants) {
-        GLTFParser.additiveParse(
-          "KHR_materials_variants",
-          context,
-          renderer,
-          KHR_materials_variants,
-          gltfPrimitive
-        );
+        GLTFParser.additiveParse("KHR_materials_variants", context, renderer, KHR_materials_variants, gltfPrimitive);
       }
     }
   }
