@@ -171,17 +171,16 @@ export class GLTFMeshParser extends GLTFParser {
         const gltfPrimitive = gltfMesh.primitives[j];
 
         primitivePromises[j] = new Promise((resolve) => {
-          const mesh: any = GLTFParser.createAndParseFromExtensions(
-            gltfPrimitive.extensions,
-            context,
-            gltfPrimitive,
-            gltfMesh
+          const mesh = <ModelMesh | Promise<ModelMesh>>(
+            GLTFParser.createAndParseFromExtensions(gltfPrimitive.extensions, context, gltfPrimitive, gltfMesh)
           );
 
           if (mesh) {
-            AssetPromise.all([mesh]).then((mesh) => {
-              resolve(mesh[0]);
-            });
+            if (mesh instanceof ModelMesh) {
+              resolve(mesh);
+            } else {
+              mesh.then((mesh) => resolve(mesh));
+            }
           } else {
             const mesh = new ModelMesh(engine, gltfMesh.name || j + "");
             GLTFMeshParser._parseMeshFromGLTFPrimitive(
