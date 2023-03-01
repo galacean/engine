@@ -43,6 +43,39 @@ export abstract class GLTFParser {
     }
   }
 
+  static createAndParseFromExtensions(
+    extensions: { [key: string]: any } = {},
+    context: GLTFParserContext,
+    ownerSchema: GLTFExtensionOwnerSchema
+  ): EngineObject | void | Promise<EngineObject | void> {
+    let resource: EngineObject | Promise<EngineObject> = null;
+
+    const extensionArray = Object.keys(extensions);
+    for (let i = extensionArray.length - 1; i >= 0; --i) {
+      const extensionName = extensionArray[i];
+      const extensionSchema = extensions[extensionName];
+
+      resource = <EngineObject | Promise<EngineObject>>(
+        GLTFParser.createAndParse(extensionName, context, extensionSchema, ownerSchema)
+      );
+      if (resource) {
+        return resource;
+      }
+    }
+  }
+
+  static additiveParseFromExtensions(
+    extensions: { [key: string]: any },
+    context: GLTFParserContext,
+    parseResource: EngineObject,
+    ownerSchema: GLTFExtensionOwnerSchema
+  ): void {
+    for (let extensionName in extensions) {
+      const extensionSchema = extensions[extensionName];
+      GLTFParser.additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema);
+    }
+  }
+
   static hasExtensionParser(extensionName: string): boolean {
     return !!GLTFParser._extensionParsers[extensionName]?.length;
   }

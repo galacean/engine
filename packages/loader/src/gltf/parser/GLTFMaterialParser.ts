@@ -36,22 +36,9 @@ export class GLTFMaterialParser extends GLTFParser {
 
     for (let i = 0; i < gltf.materials.length; i++) {
       const materialInfo = gltf.materials[i];
-      const { extensions = {}, name = "" } = materialInfo;
+      const { extensions, name = "" } = materialInfo;
 
-      let material: StandMaterialType | Promise<BaseMaterial> = null;
-
-      const extensionArray = Object.keys(extensions);
-      for (let i = extensionArray.length - 1; i >= 0; --i) {
-        const extensionName = extensionArray[i];
-        const extensionSchema = extensions[extensionName];
-
-        material = <StandMaterialType | Promise<BaseMaterial>>(
-          GLTFParser.createAndParse(extensionName, context, extensionSchema, materialInfo)
-        );
-        if (material) {
-          break;
-        }
-      }
+      let material: any = GLTFParser.createAndParseFromExtensions(extensions, context, materialInfo);
 
       if (!material) {
         material = new PBRMaterial(engine);
@@ -66,12 +53,7 @@ export class GLTFMaterialParser extends GLTFParser {
       glTFResource.materials = materials;
       for (let i = 0; i < gltf.materials.length; i++) {
         const materialInfo = gltf.materials[i];
-        const material = materials[i];
-        const { extensions } = materialInfo;
-        for (let extensionName in extensions) {
-          const extensionSchema = extensions[extensionName];
-          GLTFParser.additiveParse(extensionName, context, material, extensionSchema, materialInfo);
-        }
+        GLTFParser.additiveParseFromExtensions(materialInfo.extensions, context, materials[i], materialInfo);
       }
       materialsPromiseInfo.resolve(materials);
       return materialsPromiseInfo.promise;
@@ -108,10 +90,7 @@ export class GLTFMaterialParser extends GLTFParser {
       }
       if (baseColorTexture) {
         material.baseTexture = textures[baseColorTexture.index];
-        const KHR_texture_transform = baseColorTexture.extensions?.KHR_texture_transform;
-        if (KHR_texture_transform) {
-          GLTFParser.additiveParse("KHR_texture_transform", context, material, KHR_texture_transform, materialInfo);
-        }
+        GLTFParser.additiveParseFromExtensions(baseColorTexture.extensions, context, material, baseColorTexture);
       }
 
       if (material.constructor === PBRMaterial) {
