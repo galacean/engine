@@ -172,7 +172,7 @@ export class GLTFMeshParser extends GLTFParser {
 
         primitivePromises[j] = new Promise((resolve) => {
           const mesh = <ModelMesh | Promise<ModelMesh>>(
-            GLTFParser.createAndParseFromExtensions(gltfPrimitive.extensions, context, gltfPrimitive, gltfMesh)
+            GLTFParser.executeExtensionsCreateAndParse(gltfPrimitive.extensions, context, gltfPrimitive, gltfMesh)
           );
 
           if (mesh) {

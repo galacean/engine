@@ -57,7 +57,7 @@ export class GLTFMaterialParser extends GLTFParser {
       }
       if (baseColorTexture) {
         material.baseTexture = textures[baseColorTexture.index];
-        GLTFParser.additiveParseFromExtensions(baseColorTexture.extensions, context, material, baseColorTexture);
+        GLTFParser.executeExtensionsAdditiveAndParse(baseColorTexture.extensions, context, material, baseColorTexture);
       }
 
       if (material.constructor === PBRMaterial) {
@@ -141,7 +141,7 @@ export class GLTFMaterialParser extends GLTFParser {
       const materialInfo = gltf.materials[i];
 
       let material = <Material | Promise<Material>>(
-        GLTFParser.createAndParseFromExtensions(materialInfo.extensions, context, materialInfo)
+        GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
       );
 
       if (!material) {
@@ -157,7 +157,7 @@ export class GLTFMaterialParser extends GLTFParser {
       glTFResource.materials = materials;
       for (let i = 0; i < gltf.materials.length; i++) {
         const materialInfo = gltf.materials[i];
-        GLTFParser.additiveParseFromExtensions(materialInfo.extensions, context, materials[i], materialInfo);
+        GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, materials[i], materialInfo);
       }
       materialsPromiseInfo.resolve(materials);
       return materialsPromiseInfo.promise;

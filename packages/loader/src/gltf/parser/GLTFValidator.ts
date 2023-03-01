@@ -33,7 +33,7 @@ export class GLTFValidator extends GLTFParser {
         if (!GLTFParser.hasExtensionParser(extensionRequired)) {
           Logger.error(`GLTF parser has not supported required extension ${extensionRequired}.`);
         } else {
-          promises.push(GLTFParser.initialize(extensionRequired));
+          promises.push(GLTFParser.executeExtensionsInitialize(extensionRequired));
         }
       }
     }

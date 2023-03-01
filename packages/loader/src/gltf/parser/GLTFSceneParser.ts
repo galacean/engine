@@ -48,7 +48,7 @@ export class GLTFSceneParser extends GLTFParser {
         this._createRenderer(context, gltfNode, entity);
       }
 
-      GLTFParser.additiveParseFromExtensions(extensions, context, entity, gltfNode);
+      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, gltfNode);
     }
 
     if (glTFResource.defaultSceneRoot) {
@@ -135,7 +135,7 @@ export class GLTFSceneParser extends GLTFParser {
       const material = materials?.[materialIndex] || GLTFSceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
 
-      GLTFParser.additiveParseFromExtensions(gltfPrimitive.extensions, context, renderer, gltfPrimitive);
+      GLTFParser.executeExtensionsAdditiveAndParse(gltfPrimitive.extensions, context, renderer, gltfPrimitive);
     }
   }
 

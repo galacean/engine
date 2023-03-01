@@ -9,7 +9,6 @@ import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_pbrSpecularGlossiness", GLTFExtensionMode.CreateAndParse)
 class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
-  
   /**
    * @override
    */
@@ -33,7 +32,7 @@ class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
 
     if (diffuseTexture) {
       material.baseTexture = textures[diffuseTexture.index];
-      GLTFParser.additiveParseFromExtensions(diffuseTexture.extensions, context, material, diffuseTexture);
+      GLTFParser.executeExtensionsAdditiveAndParse(diffuseTexture.extensions, context, material, diffuseTexture);
     }
 
     if (specularFactor) {
