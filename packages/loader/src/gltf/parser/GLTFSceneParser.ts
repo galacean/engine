@@ -36,7 +36,7 @@ export class GLTFSceneParser extends GLTFParser {
 
     for (let i = 0; i < nodes.length; i++) {
       const gltfNode = nodes[i];
-      const { camera: cameraID, mesh: meshID, extensions = {} } = gltfNode;
+      const { camera: cameraID, mesh: meshID, extensions } = gltfNode;
 
       const entity = entities[i];
 
@@ -135,11 +135,7 @@ export class GLTFSceneParser extends GLTFParser {
       const material = materials?.[materialIndex] || GLTFSceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
 
-      const { extensions = {} } = gltfPrimitive;
-      const { KHR_materials_variants } = extensions;
-      if (KHR_materials_variants) {
-        GLTFParser.additiveParse("KHR_materials_variants", context, renderer, KHR_materials_variants, gltfPrimitive);
-      }
+      GLTFParser.additiveParseFromExtensions(gltfPrimitive.extensions, context, renderer, gltfPrimitive);
     }
   }
 
