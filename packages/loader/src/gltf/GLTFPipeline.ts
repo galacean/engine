@@ -12,7 +12,13 @@ import { GLTFSkinParser } from "./parser/GLTFSkinParser";
 import { GLTFTextureParser } from "./parser/GLTFTextureParser";
 import { GLTFValidator } from "./parser/GLTFValidator";
 
+/**
+ * GLTF pipeline.
+ */
 export class GLTFPipeline {
+  /**
+   * Default pipeline.
+   */
   static defaultPipeline = new GLTFPipeline(
     GLTFBufferParser,
     GLTFValidator,
@@ -27,13 +33,20 @@ export class GLTFPipeline {
 
   private _parsers: GLTFParser[] = [];
 
+  /**
+   * Constructor of GLTFPipeline.
+   * @param parsers - Parsers to be executed in order
+   */
   constructor(...parsers: (new () => GLTFParser)[]) {
     parsers.forEach((pipe: new () => GLTFParser, index: number) => {
       this._parsers[index] = new pipe();
     });
   }
 
-  parse(context: GLTFParserContext): AssetPromise<GLTFResource> {
+  /**
+   * @internal
+   */
+  _parse(context: GLTFParserContext): AssetPromise<GLTFResource> {
     const glTFResource = context.glTFResource;
     let lastParser;
 

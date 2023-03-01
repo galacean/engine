@@ -10,12 +10,18 @@ import { IKHRDracoMeshCompression } from "./GLTFExtensionSchema";
 class KHR_draco_mesh_compression extends GLTFExtensionParser {
   private static _decoder: DRACODecoder;
 
+  /**
+   * @override
+   */
   initialize(): void {
     if (!KHR_draco_mesh_compression._decoder) {
       KHR_draco_mesh_compression._decoder = new DRACODecoder();
     }
   }
 
+  /**
+   * @override
+   */
   createAndParse(context: GLTFParserContext, schema: IKHRDracoMeshCompression, gltfPrimitive: IMeshPrimitive) {
     const { gltf, buffers } = context;
     const { bufferViews, accessors } = gltf;

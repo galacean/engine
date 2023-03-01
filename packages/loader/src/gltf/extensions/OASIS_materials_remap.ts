@@ -6,6 +6,9 @@ import { IOasisMaterialRemap } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("OASIS_materials_remap", GLTFExtensionMode.CreateAndParse)
 class OasisMaterialsRemap extends GLTFExtensionParser {
+  /**
+   * @override
+   */
   createAndParse(context: GLTFParserContext, schema: IOasisMaterialRemap): Promise<Material> {
     const { engine } = context.glTFResource;
     // @ts-ignore

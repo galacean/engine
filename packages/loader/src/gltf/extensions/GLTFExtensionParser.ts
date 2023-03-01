@@ -14,22 +14,24 @@ export abstract class GLTFExtensionParser {
   _mode: GLTFExtensionMode;
 
   /**
-   * Some plugins require initialization.
+   * Initialize the parser.
+   * @remarks Some plugins require initialization.
+   * @returns The void or promise
    */
   initialize(): void | Promise<void> {}
 
   /**
-   * Create a resource instance.
-   * @remarks This method overrides the default resource creation
+   * Create and parse the resource.
+   * @remarks This method overrides the default resource creation.
    * @param context - The parser context
    * @param extensionSchema - The extension schema
-   * @param ownerSchema - The extension owner schema
+   * @param extensionOwnerSchema - The extension owner schema
    * @returns The resource or promise
    */
   createAndParse(
     context: GLTFParserContext,
     extensionSchema: GLTFExtensionSchema,
-    ownerSchema: GLTFExtensionOwnerSchema
+    extensionOwnerSchema: GLTFExtensionOwnerSchema
   ): EngineObject | Promise<EngineObject> {
     throw "Not implemented.";
   }
@@ -39,14 +41,14 @@ export abstract class GLTFExtensionParser {
    * @param context - The parser context
    * @param resource - The resource
    * @param extensionSchema - The extension schema
-   * @param ownerSchema - The extension owner schema
+   * @param extensionOwnerSchema - The extension owner schema
    * @returns The void or promise
    */
   additiveParse(
     context: GLTFParserContext,
     resource: EngineObject,
     extensionSchema: GLTFExtensionSchema,
-    ownerSchema: GLTFExtensionOwnerSchema
+    extensionOwnerSchema: GLTFExtensionOwnerSchema
   ): void | Promise<void> {
     throw "Not implemented.";
   }

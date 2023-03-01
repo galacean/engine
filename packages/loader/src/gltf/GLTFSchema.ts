@@ -854,4 +854,5 @@ export interface IGLTF extends IProperty {
   textures?: ITexture[];
 }
 
+/** glTF extensible owner schema. */
 export type GLTFExtensionOwnerSchema = IMeshPrimitive | IMaterial | ITextureInfo | INode;

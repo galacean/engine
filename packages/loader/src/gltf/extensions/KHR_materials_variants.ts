@@ -6,6 +6,10 @@ import { IKHRMaterialVariants_Mapping } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_variants", GLTFExtensionMode.AdditiveParse)
 class KHR_materials_variants extends GLTFExtensionParser {
+
+  /**
+   * @override
+   */
   additiveParse(context: GLTFParserContext, renderer: Renderer, schema: IKHRMaterialVariants_Mapping): void {
     const {
       gltf: {
