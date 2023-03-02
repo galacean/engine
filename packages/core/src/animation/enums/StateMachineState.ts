@@ -1,7 +1,7 @@
 /**
- * Layer state.
+ * StateMachine state.
  */
-export enum LayerState {
+export enum StateMachineState {
   /** Standby state. */
   Standby, //CM: Standby 优化
   /** Playing state. */

@@ -1,7 +1,7 @@
-import { AnimatorState } from "../AnimatorState";
-import { AnimatorStatePlayState } from "../enums/AnimatorStatePlayState";
-import { WrapMode } from "../enums/WrapMode";
-import { AnimatorStateData } from "./AnimatorStateData";
+import { AnimatorState } from "./AnimatorState";
+import { AnimatorStatePlayState } from "./enums/AnimatorStatePlayState";
+import { WrapMode } from "./enums/WrapMode";
+import { AnimatorStateData } from "./internal/AnimatorStateData";
 
 /**
  * @internal
@@ -19,14 +19,16 @@ export class AnimatorStatePlayData {
     this.frameTime = offsetFrameTime;
     this.stateData = stateData;
     this.playState = AnimatorStatePlayState.UnStarted;
-    this.clipTime = state.clipStartTime * state.clip.length;
+    this.clipTime = offsetFrameTime + state.clipStartTime * state.clip.length;
     this.currentEventIndex = 0;
   }
 
   update(isBackwards: boolean): void {
     const state = this.state;
+    if (!state) return;
+
     let time = this.frameTime;
-    const duration = state._getDuration();
+    const duration = state.getDuration();
     this.playState = AnimatorStatePlayState.Playing;
     if (state.wrapMode === WrapMode.Loop) {
       time = duration ? time % duration : 0;

@@ -1,24 +1,44 @@
-import { AnimatorStateTransition } from "../AnimatorTransition";
-import { LayerState } from "../enums/LayerState";
-import { AnimatorStateData } from "./AnimatorStateData";
-import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
+import { AnimatorStateMachine } from "../AnimatorStateMachine";
+import { StateMachineState } from "../enums/StateMachineState";
+import { AnimatorStateMachineData } from "./AnimatorStateMachineData";
 
 /**
  * @internal
  */
 export class AnimatorLayerData {
-  animatorStateDataMap: Record<string, AnimatorStateData> = {};
-  srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
-  destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
-  layerState: LayerState = LayerState.Standby;
-  crossCurveMark: number = 0;
-  manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
-  crossFadeTransition: AnimatorStateTransition;
+  currentStateMachineData: AnimatorStateMachineData;
+  stateMachineMap: Record<string, AnimatorStateMachine> = {};
+  stateMachineDataMap: Record<string, AnimatorStateMachineData> = {};
 
-  switchPlayData(): void {
-    const srcPlayData = this.destPlayData;
-    const switchTemp = this.srcPlayData;
-    this.srcPlayData = srcPlayData;
-    this.destPlayData = switchTemp;
+  pushStateMachineData(stateMachine: AnimatorStateMachine) {
+    const currentPath = this.currentStateMachineData.path;
+    const newPath = `${currentPath}/${stateMachine.name}`;
+    const stateMachineData = this.getAnimatorStateMachineData(newPath, stateMachine);
+    stateMachineData.stateMachineState = StateMachineState.Playing;
+    stateMachineData.srcPlayData = this.currentStateMachineData.srcPlayData;
+    this.currentStateMachineData = stateMachineData;
+  }
+
+  popStateMachineData(): AnimatorStateMachineData {
+    const currentStateMachineData = this.currentStateMachineData;
+    const currentPath = currentStateMachineData.path;
+    if (currentPath) {
+      const newPath = currentPath.split("/").slice(0, -1).join("/");
+      const newStateMachineData = (this.currentStateMachineData = this.stateMachineDataMap[newPath]);
+      newStateMachineData.stateMachineState = StateMachineState.Playing;
+      newStateMachineData.srcPlayData = currentStateMachineData.srcPlayData;
+      return newStateMachineData;
+    }
+    return null;
+  }
+
+  getAnimatorStateMachineData(stateMachinePath: string, stateMachine: AnimatorStateMachine): AnimatorStateMachineData {
+    let animatorStateMachineData = this.stateMachineDataMap[stateMachinePath];
+    if (!animatorStateMachineData) {
+      this.stateMachineDataMap[stateMachinePath] = animatorStateMachineData = new AnimatorStateMachineData();
+      this.stateMachineMap[stateMachinePath] = stateMachine;
+    }
+    animatorStateMachineData.path = stateMachinePath;
+    return animatorStateMachineData;
   }
 }

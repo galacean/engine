@@ -1,5 +1,5 @@
 import { AnimationClip } from "./AnimationClip";
-import { AnimatorStateTransition } from "./AnimatorTransition";
+import { AnimatorStateTransition } from "./AnimatorStateTransition";
 import { WrapMode } from "./enums/WrapMode";
 import { StateMachineScript } from "./StateMachineScript";
 
@@ -71,7 +71,7 @@ export class AnimatorState {
   constructor(public readonly name: string) {}
 
   /**
-   * Add an outgoing transition to the destination state.
+   * Add an outgoing transition to to the destination state.
    * @param transition - The transition
    */
   addTransition(transition: AnimatorStateTransition): void {
@@ -117,13 +117,13 @@ export class AnimatorState {
   }
 
   /**
-   * @internal
+   * The duration of the state.
    */
-  _getDuration(): number {
+  getDuration(): number {
     if (this.clip) {
       return (this._clipEndTime - this._clipStartTime) * this.clip.length;
     }
-    return null;
+    return 0;
   }
 
   /**
