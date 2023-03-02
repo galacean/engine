@@ -7,7 +7,6 @@ import {
   Light,
   Material,
   ModelMesh,
-  Renderer,
   Skin,
   Texture2D
 } from "@oasis-engine/core";
@@ -38,8 +37,8 @@ export class GLTFResource extends EngineObject {
   sceneRoots: Entity[];
   /** Oasis RootEntity after SceneParser. */
   defaultSceneRoot: Entity;
-  /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
-  variants?: { renderer: Renderer; material: Material; variants: string[] }[];
+  /** Extensions data. */
+  extensionsData: Record<string, any>;
 
   constructor(engine: Engine, url: string) {
     super(engine);
@@ -66,6 +65,6 @@ export class GLTFResource extends EngineObject {
     this.cameras = null;
     this.lights = null;
     this.sceneRoots = null;
-    this.variants = null;
+    this.extensionsData = null;
   }
 }
