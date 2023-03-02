@@ -159,12 +159,11 @@ export class TextUtils {
 
           // Handle cur char.
           if (charsWidth + w > wrapWidth) {
+            isNotFirstLine = true;
             if (charsWidth === 0) {
               this._pushCharsToLines(lines, lineWidths, lineMaxSizes, char, w, ascent, descent);
-              isNotFirstLine = true;
             } else {
               this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
-              isNotFirstLine = true;
               if (isSpace) {
                 chars = "";
                 charsWidth = 0;
