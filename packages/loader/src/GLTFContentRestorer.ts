@@ -2,8 +2,8 @@ import { AssetPromise, BlendShape, Buffer, ContentRestorer, ModelMesh, request, 
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 import { Vector2 } from "@oasis-engine/math";
 import { GLTFResource } from "./gltf/GLTFResource";
+import { IBufferView } from "./gltf/GLTFSchema";
 import { GLTFUtil } from "./gltf/GLTFUtil";
-import { IBufferView } from "./gltf/Schema";
 
 /**
  * @internal

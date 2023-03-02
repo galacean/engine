@@ -1,28 +1,8 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
-import { BufferInfo, ParserContext } from "./parser/ParserContext";
-import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
-
-const charCodeOfDot = ".".charCodeAt(0);
-const reEscapeChar = /\\(\\)?/g;
-const rePropName = RegExp(
-  // Match anything that isn't a dot or bracket.
-  "[^.[\\]]+" +
-    "|" +
-    // Or match property names within brackets.
-    "\\[(?:" +
-    // Match a non-string expression.
-    "([^\"'][^[]*)" +
-    "|" +
-    // Or match strings (supports escaping characters).
-    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
-    ")\\]" +
-    "|" +
-    // Or match "" as the space between consecutive dots or empty brackets.
-    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
-  "g"
-);
+import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
+import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
 
 /**
  * @internal
@@ -148,7 +128,7 @@ export class GLTFUtil {
     }
   }
 
-  static getAccessorBuffer(context: ParserContext, bufferViews: IBufferView[], accessor: IAccessor): BufferInfo {
+  static getAccessorBuffer(context: GLTFParserContext, bufferViews: IBufferView[], accessor: IAccessor): BufferInfo {
     const { buffers } = context;
 
     const componentType = accessor.componentType;
@@ -433,7 +413,7 @@ export class GLTFUtil {
    * Parse the glb format.
    */
   static parseGLB(
-    context: ParserContext,
+    context: GLTFParserContext,
     glb: ArrayBuffer
   ): {
     glTF: IGLTF;
