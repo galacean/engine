@@ -44,7 +44,9 @@ export class TextUtils {
       } catch {
         canvas = document.createElement("canvas");
       }
-      const context = <CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>canvas.getContext("2d");
+      const context = <CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>(
+        canvas.getContext("2d", { willReadFrequently: true })
+      );
       textContext = { canvas, context };
       TextUtils._textContext = textContext;
     }
