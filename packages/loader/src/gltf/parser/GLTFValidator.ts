@@ -1,9 +1,9 @@
-import { Logger } from "@oasis-engine/core";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { AssetPromise, Logger } from "@oasis-engine/core";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class Validator extends Parser {
-  parse(context: ParserContext): void {
+export class GLTFValidator extends GLTFParser {
+  parse(context: GLTFParserContext): AssetPromise<void> {
     const {
       asset: { version },
       extensionsUsed,
@@ -14,12 +14,13 @@ export class Validator extends Parser {
     if (!(gltfVersion >= 2 && gltfVersion < 3)) {
       throw "Only support gltf 2.x.";
     }
-
+    const promises = [];
     if (extensionsUsed) {
       Logger.info("extensionsUsed: ", extensionsUsed);
       for (let i = 0; i < extensionsUsed.length; i++) {
-        if (!Parser.hasExtensionParser(extensionsUsed[i])) {
-          Logger.warn(`Extension ${extensionsUsed[i]} is not implemented, you can customize this extension in gltf.`);
+        const extensionUsed = extensionsUsed[i];
+        if (!GLTFParser.hasExtensionParser(extensionUsed)) {
+          Logger.warn(`Extension ${extensionUsed} is not implemented, you can customize this extension in gltf.`);
         }
       }
     }
@@ -29,12 +30,14 @@ export class Validator extends Parser {
       for (let i = 0; i < extensionsRequired.length; i++) {
         const extensionRequired = extensionsRequired[i];
 
-        if (!Parser.hasExtensionParser(extensionRequired)) {
+        if (!GLTFParser.hasExtensionParser(extensionRequired)) {
           Logger.error(`GLTF parser has not supported required extension ${extensionRequired}.`);
         } else {
-          Parser.initialize(extensionRequired);
+          promises.push(GLTFParser.executeExtensionsInitialize(extensionRequired));
         }
       }
     }
+
+    return AssetPromise.all(promises).then(null);
   }
 }

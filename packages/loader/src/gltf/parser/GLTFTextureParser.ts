@@ -1,17 +1,17 @@
 import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
-import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../Schema";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../GLTFSchema";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class TextureParser extends Parser {
+export class GLTFTextureParser extends GLTFParser {
   private static _wrapMap = {
     [GLTFTextureWrapMode.CLAMP_TO_EDGE]: TextureWrapMode.Clamp,
     [GLTFTextureWrapMode.MIRRORED_REPEAT]: TextureWrapMode.Mirror,
     [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
-  parse(context: ParserContext): AssetPromise<Texture2D[]> {
+  parse(context: GLTFParserContext): AssetPromise<Texture2D[]> {
     const { glTFResource, gltf, buffers } = context;
     const { engine, url } = glTFResource;
 
@@ -78,11 +78,11 @@ export class TextureParser extends Parser {
     }
 
     if (wrapS) {
-      texture.wrapModeU = TextureParser._wrapMap[wrapS];
+      texture.wrapModeU = GLTFTextureParser._wrapMap[wrapS];
     }
 
     if (wrapT) {
-      texture.wrapModeV = TextureParser._wrapMap[wrapT];
+      texture.wrapModeV = GLTFTextureParser._wrapMap[wrapT];
     }
   }
 }

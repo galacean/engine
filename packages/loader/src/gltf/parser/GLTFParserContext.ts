@@ -9,12 +9,12 @@ import {
   TypedArray
 } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
-import { IGLTF } from "../Schema";
+import { IGLTF } from "../GLTFSchema";
 
 /**
  * @internal
  */
-export class ParserContext {
+export class GLTFParserContext {
   gltf: IGLTF;
   buffers: ArrayBuffer[];
   glTFResource: GLTFResource;
