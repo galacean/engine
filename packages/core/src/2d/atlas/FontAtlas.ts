@@ -1,3 +1,4 @@
+import { Vector2 } from "@oasis-engine/math";
 import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
@@ -5,28 +6,16 @@ import { CharInfo } from "../text/CharInfo";
 
 /**
  * @internal
- * Font Atlas.
  */
 export class FontAtlas extends ReferResource {
-  private _charInfoMap: Record<number, CharInfo> = {};
-  private _texture: Texture2D;
+  texture: Texture2D;
+
+  _charInfoMap: Record<number, CharInfo> = {};
   private _space: number = 1;
   private _curX: number = 1;
   private _curY: number = 1;
   private _nextY: number = 1;
 
-  get texture(): Texture2D {
-    return this._texture;
-  }
-
-  set texture(value: Texture2D) {
-    this._texture = value;
-  }
-
-  /**
-   * Constructor a FontAtlas.
-   * @param engine - Engine to which the FontAtlas belongs
-   */
   constructor(engine: Engine) {
     super(engine);
   }
@@ -55,6 +44,7 @@ export class FontAtlas extends ReferResource {
     }
 
     if (width > 0 && height > 0 && data) {
+      charInfo.bufferOffset = new Vector2(this._curX, this._curY);
       texture.setPixelBuffer(data, 0, this._curX, this._curY, width, height);
       texture.generateMipmaps();
     }
@@ -95,8 +85,8 @@ export class FontAtlas extends ReferResource {
    */
   protected _onDestroy(): void {
     super._onDestroy();
-    this._texture.destroy();
-    this._texture = null;
+    this.texture.destroy();
+    this.texture = null;
     this._charInfoMap = {};
   }
 }
