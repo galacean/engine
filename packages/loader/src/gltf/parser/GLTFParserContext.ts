@@ -10,12 +10,12 @@ import {
 } from "@oasis-engine/core";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
-import { IGLTF } from "../Schema";
+import { IGLTF } from "../GLTFSchema";
 
 /**
  * @internal
  */
-export class ParserContext {
+export class GLTFParserContext {
   glTF: IGLTF;
   buffers: ArrayBuffer[];
   glTFResource: GLTFResource;

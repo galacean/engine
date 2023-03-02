@@ -2,12 +2,12 @@ import { AssetPromise, request } from "@oasis-engine/core";
 import { RequestConfig } from "@oasis-engine/core/types/asset/request";
 import { BufferRequestInfo } from "../../GLTFContentRestorer";
 import { GLTFUtil } from "../GLTFUtil";
-import { IBuffer, IGLTF } from "../Schema";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { IBuffer, IGLTF } from "../GLTFSchema";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class BufferParser extends Parser {
-  parse(context: ParserContext): AssetPromise<void> {
+export class GLTFBufferParser extends GLTFParser {
+  parse(context: GLTFParserContext): AssetPromise<void> {
     const glTFResource = context.glTFResource;
     const { url } = glTFResource;
     const requestConfig = <RequestConfig>{ type: "arraybuffer" };

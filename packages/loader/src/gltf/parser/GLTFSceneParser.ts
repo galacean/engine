@@ -3,7 +3,6 @@ import {
   AnimatorController,
   AnimatorControllerLayer,
   AnimatorStateMachine,
-  AssetPromise,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -11,24 +10,23 @@ import {
   MeshRenderer,
   SkinnedMeshRenderer
 } from "@oasis-engine/core";
-import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
-import { CameraType, ICamera, INode } from "../Schema";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { CameraType, ICamera, INode } from "../GLTFSchema";
+import { GLTFParser } from "./GLTFParser";
+import { GLTFParserContext } from "./GLTFParserContext";
 
-export class SceneParser extends Parser {
+export class GLTFSceneParser extends GLTFParser {
   private static _defaultMaterial: BlinnPhongMaterial;
 
   private static _getDefaultMaterial(engine: Engine): BlinnPhongMaterial {
-    if (!SceneParser._defaultMaterial) {
-      SceneParser._defaultMaterial = new BlinnPhongMaterial(engine);
+    if (!GLTFSceneParser._defaultMaterial) {
+      GLTFSceneParser._defaultMaterial = new BlinnPhongMaterial(engine);
     }
 
-    return SceneParser._defaultMaterial;
+    return GLTFSceneParser._defaultMaterial;
   }
 
-  parse(context: ParserContext) {
+  parse(context: GLTFParserContext) {
     const { glTFResource, glTF } = context;
     const { entities } = glTFResource;
     const { nodes, cameras } = glTF;
@@ -36,12 +34,10 @@ export class SceneParser extends Parser {
     if (!nodes) return;
     const defaultSceneRootPromiseInfo = context.defaultSceneRootPromiseInfo;
 
-    const promises = [];
-
     for (let i = 0; i < nodes.length; i++) {
       const glTFNode = nodes[i];
-      const { camera: cameraID, mesh: meshID, extensions = {} } = glTFNode;
-      const KHR_lights_punctual = <IKHRLightsPunctual_LightNode>extensions.KHR_lights_punctual;
+      const { camera: cameraID, mesh: meshID, extensions } = glTFNode;
+
       const entity = entities[i];
 
       if (cameraID !== undefined) {
@@ -49,26 +45,17 @@ export class SceneParser extends Parser {
       }
 
       if (meshID !== undefined) {
-        promises.push(this._createRenderer(context, glTFNode, entity));
+        this._createRenderer(context, glTFNode, entity);
       }
 
-      if (KHR_lights_punctual) {
-        const lightIndex = KHR_lights_punctual.light;
-        const lights = (glTF.extensions.KHR_lights_punctual as IKHRLightsPunctual).lights;
-
-        Parser.parseEngineResource("KHR_lights_punctual", lights[lightIndex], entity, context);
-      }
+      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, glTFNode);
     }
 
     if (glTFResource.defaultSceneRoot) {
       this._createAnimator(context);
     }
 
-    glTF.extensions && delete glTF.extensions["OASIS_materials_remap"];
-
-    AssetPromise.all(promises)
-      .then(() => defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot))
-      .catch(defaultSceneRootPromiseInfo.reject);
+    defaultSceneRootPromiseInfo.resolve(glTFResource.defaultSceneRoot);
 
     return defaultSceneRootPromiseInfo.promise;
   }
@@ -113,7 +100,7 @@ export class SceneParser extends Parser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: ParserContext, glTFNode: INode, entity: Entity) {
+  private _createRenderer(context: GLTFParserContext, glTFNode: INode, entity: Entity) {
     const { glTFResource, glTF } = context;
     const { meshes: glTFMeshes } = glTF;
 
@@ -123,8 +110,8 @@ export class SceneParser extends Parser {
     const glTFMeshPrimitives = glTFMesh.primitives;
     const blendShapeWeights = glTFNode.weights || glTFMesh.weights;
 
-    const promises = [];
     for (let i = 0; i < glTFMeshPrimitives.length; i++) {
+      const gltfPrimitive = glTFMeshPrimitives[i];
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 
@@ -144,29 +131,15 @@ export class SceneParser extends Parser {
         renderer.mesh = mesh;
       }
 
-      const materialIndex = glTFMeshPrimitives[i].material;
-      const remapMaterials = glTF.extensions && glTF.extensions["OASIS_materials_remap"];
-      if (remapMaterials && remapMaterials[materialIndex]) {
-        promises.push(
-          remapMaterials[materialIndex].then((mtl) => {
-            renderer.setMaterial(mtl);
-          })
-        );
-      } else {
-        const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
-        renderer.setMaterial(material);
-      }
+      const materialIndex = gltfPrimitive.material;
+      const material = materials?.[materialIndex] || GLTFSceneParser._getDefaultMaterial(engine);
+      renderer.setMaterial(material);
 
-      const { extensions = {} } = glTFMeshPrimitives[i];
-      const { KHR_materials_variants } = extensions;
-      if (KHR_materials_variants) {
-        Parser.parseEngineResource("KHR_materials_variants", KHR_materials_variants, renderer, context);
-      }
+      GLTFParser.executeExtensionsAdditiveAndParse(gltfPrimitive.extensions, context, renderer, gltfPrimitive);
     }
-    return Promise.all(promises);
   }
 
-  private _createAnimator(context: ParserContext): void {
+  private _createAnimator(context: GLTFParserContext): void {
     if (!context.hasSkinned && !context.glTFResource.animations) {
       return;
     }

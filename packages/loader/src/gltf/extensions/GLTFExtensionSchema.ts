@@ -1,4 +1,4 @@
-import { IMaterialNormalTextureInfo, ITextureInfo } from "../Schema";
+import { IMaterialNormalTextureInfo, ITextureInfo } from "../GLTFSchema";
 
 /**
  * Interfaces from the KHR_lights_punctual extension
@@ -159,7 +159,7 @@ export interface IOasisMaterialRemap {
   isClone?: boolean;
 }
 
-export type ExtensionSchema =
+export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRDracoMeshCompression
   | IKHRMaterialsClearcoat
@@ -175,4 +175,5 @@ export type ExtensionSchema =
   | IKHRTextureBasisU
   | IKHRTextureTransform
   | IKHRXmp
-  | IKHRXmp_Node;
+  | IKHRXmp_Node
+  | Object;

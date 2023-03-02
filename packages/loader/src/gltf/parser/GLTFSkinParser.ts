@@ -1,11 +1,11 @@
 import { Entity, Skin } from "@oasis-engine/core";
 import { Matrix } from "@oasis-engine/math";
+import { GLTFParserContext } from ".";
 import { GLTFUtil } from "../GLTFUtil";
-import { Parser } from "./Parser";
-import { ParserContext } from "./ParserContext";
+import { GLTFParser } from "./GLTFParser";
 
-export class SkinParser extends Parser {
-  parse(context: ParserContext): void {
+export class GLTFSkinParser extends GLTFParser {
+  parse(context: GLTFParserContext): void {
     const { glTFResource, glTF, buffers } = context;
     const { entities } = glTFResource;
     const gltfSkins = glTF.skins;
