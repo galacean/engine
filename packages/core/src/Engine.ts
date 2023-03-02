@@ -330,12 +330,7 @@ export class Engine extends EventDispatcher {
     this._resourceManager._destroy();
     this._magentaTexture2D.destroy(true);
     this._magentaTextureCube.destroy(true);
-    this._textDefaultFont.destroy(true);
-
-    const fontMap = this._fontMap;
-    for (let k in fontMap) {
-      fontMap[k].destroy();
-    }
+    this._textDefaultFont = null;
     this._fontMap = null;
 
     this.inputManager._destroy();
