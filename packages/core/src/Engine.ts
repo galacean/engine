@@ -88,6 +88,8 @@ export class Engine extends EventDispatcher {
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _canSpriteBatch: boolean = true;
+  /** @internal */
+  _fontMap: Record<string, Font> = {};
   /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
@@ -329,6 +331,12 @@ export class Engine extends EventDispatcher {
     this._magentaTexture2D.destroy(true);
     this._magentaTextureCube.destroy(true);
     this._textDefaultFont.destroy(true);
+
+    const fontMap = this._fontMap;
+    for (let k in fontMap) {
+      fontMap[k].destroy();
+    }
+    this._fontMap = null;
 
     this.inputManager._destroy();
     this.trigger(new Event("shutdown", this));

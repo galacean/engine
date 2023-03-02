@@ -7,8 +7,6 @@ import { SubFont } from "./SubFont";
  * Font.
  */
 export class Font extends RefObject {
-  private static _fontMap: Record<string, Font> = {};
-
   /**
    * Create a system font.
    * @param engine - Engine to which the font belongs
@@ -17,7 +15,7 @@ export class Font extends RefObject {
    */
   static createFromOS(engine: Engine, name: string): Font {
     if (name) {
-      const fontMap = Font._fontMap;
+      const fontMap = engine._fontMap;
       let font = fontMap[name];
       if (font) {
         return font;
@@ -68,6 +66,6 @@ export class Font extends RefObject {
       subFontMap[k].destroy();
     }
     this._subFontMap = null;
-    delete Font._fontMap[this._name];
+    delete this.engine._fontMap[this._name];
   }
 }
