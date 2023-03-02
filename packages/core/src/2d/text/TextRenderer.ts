@@ -433,7 +433,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _resetSubFont(): void {
-    this._subFont = this._font._getSubFont(this.fontSize, this.fontStyle);
+    const font = this._font;
+    this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
+    this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {

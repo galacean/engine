@@ -91,9 +91,8 @@ export class TextUtils {
   }
 
   static measureTextWithWrap(renderer: TextRenderer): TextMetrics {
-    const { fontSize, fontStyle, _subFont: subFont } = renderer;
-    const { name } = renderer.font;
-    const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
+    const { _subFont: subFont } = renderer;
+    const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lines = new Array<string>();
@@ -176,9 +175,8 @@ export class TextUtils {
   }
 
   static measureTextWithoutWrap(renderer: TextRenderer): TextMetrics {
-    const { fontSize, fontStyle, _subFont: subFont } = renderer;
-    const { name } = renderer.font;
-    const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
+    const { _subFont: subFont } = renderer;
+    const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lineCount = lines.length;
