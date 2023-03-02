@@ -108,13 +108,12 @@ export class TextUtils {
       const subText = subTexts[i];
       let chars = "";
       let charsWidth = 0;
-      let maxAscent = -1;
-      let maxDescent = -1;
+      let maxAscent = 0;
+      let maxDescent = 0;
       let wordChars = "";
       let wordCharsWidth = 0;
-      let wordMaxAscent = -1;
-      let wordMaxDescent = -1;
-      let curInEnglishWord = false;
+      let wordMaxAscent = 0;
+      let wordMaxDescent = 0;
       let isNotFirstLine = false;
 
       for (let j = 0, m = subText.length; j < m; ++j) {
@@ -127,18 +126,19 @@ export class TextUtils {
           continue;
         }
 
-        const isNotEnglish = isSpace || charCode > 255;
+        const isNotJoinWords = isSpace || charCode > 255;
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
         const descent = halfH - offsetY;
 
-        if (isNotEnglish) {
-          // If it is an English word before, need to handle the previous English word and chars.
-          if (curInEnglishWord) {
+        if (isNotJoinWords) {
+          // If it is a word before, need to handle the previous English word and chars.
+          if (wordChars.length > 0) {
             if (charsWidth + wordCharsWidth > wrapWidth) {
               this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
               isNotFirstLine = true;
+              width < charsWidth && (width = charsWidth);
               chars = wordChars;
               charsWidth = wordCharsWidth;
               maxAscent = wordMaxAscent;
@@ -150,31 +150,23 @@ export class TextUtils {
               maxDescent < wordMaxDescent && (maxDescent = wordMaxDescent);
             }
 
-            curInEnglishWord = false;
             wordChars = "";
-            wordCharsWidth = 0;
-            wordMaxAscent = -1;
-            wordMaxDescent = -1;
+            wordCharsWidth = wordMaxAscent = wordMaxDescent = 0;
           }
 
           // Handle cur char.
-          if (charsWidth + w > wrapWidth) {
+          if (charsWidth + w > wrapWidth && charsWidth > 0) {
+            this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
             isNotFirstLine = true;
-            if (charsWidth === 0) {
-              this._pushCharsToLines(lines, lineWidths, lineMaxSizes, char, w, ascent, descent);
+            width < charsWidth && (width = charsWidth);
+            if (isSpace) {
+              chars = "";
+              charsWidth = maxAscent = maxDescent = 0;
             } else {
-              this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
-              if (isSpace) {
-                chars = "";
-                charsWidth = 0;
-                maxAscent = -1;
-                maxDescent = -1;
-              } else {
-                chars = char;
-                charsWidth = charInfo.xAdvance;
-                maxAscent = ascent;
-                maxDescent = descent;
-              }
+              chars = char;
+              charsWidth = charInfo.xAdvance;
+              maxAscent = ascent;
+              maxDescent = descent;
             }
           } else {
             chars += char;
@@ -183,42 +175,28 @@ export class TextUtils {
             maxDescent < descent && (maxDescent = descent);
           }
         } else {
-          curInEnglishWord = true;
-          // Total width from chars and wordChars and char exceed wrap width.
-          if (charsWidth + wordCharsWidth + charInfo.w > wrapWidth) {
-            // Handle chars if it not empty.
+          if (wordCharsWidth + charInfo.w > wrapWidth) {
             if (charsWidth > 0) {
               this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
-              isNotFirstLine = true;
+              width < charsWidth && (width = charsWidth);
               chars = "";
-              charsWidth = 0;
-              maxAscent = -1;
-              maxDescent = -1;
+              charsWidth = maxAscent = maxDescent = 0;
             }
-
-            // Total width from wordChars and char exceed wrap width.
-            if (wordCharsWidth + charInfo.w > wrapWidth) {
-              // Push wordchars to a single line, char becomes the start of a new line.
-              this._pushCharsToLines(
-                lines,
-                lineWidths,
-                lineMaxSizes,
-                wordChars,
-                wordCharsWidth,
-                wordMaxAscent,
-                wordMaxDescent
-              );
-              isNotFirstLine = true;
-              wordChars = char;
-              wordCharsWidth = charInfo.xAdvance;
-              wordMaxAscent = ascent;
-              wordMaxDescent = descent;
-            } else {
-              wordChars += char;
-              wordCharsWidth += charInfo.xAdvance;
-              wordMaxAscent < ascent && (wordMaxAscent = maxAscent = ascent);
-              wordMaxDescent < descent && (wordMaxDescent = maxDescent = descent);
-            }
+            this._pushCharsToLines(
+              lines,
+              lineWidths,
+              lineMaxSizes,
+              wordChars,
+              wordCharsWidth,
+              wordMaxAscent,
+              wordMaxDescent
+            );
+            isNotFirstLine = true;
+            width < wordCharsWidth && (width = wordCharsWidth);
+            wordChars = char;
+            wordCharsWidth = charInfo.xAdvance;
+            wordMaxAscent = ascent;
+            wordMaxDescent = descent;
           } else {
             wordChars += char;
             wordCharsWidth += charInfo.xAdvance;
@@ -245,6 +223,7 @@ export class TextUtils {
             wordMaxDescent
           );
           isNotFirstLine = true;
+          width = Math.max(width, charsWidth, wordCharsWidth);
         } else {
           // Merge to chars.
           chars += wordChars;
@@ -257,6 +236,7 @@ export class TextUtils {
       if (charsWidth > 0) {
         this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
         isNotFirstLine = true;
+        width < charsWidth && (width = charsWidth);
       }
     }
 
