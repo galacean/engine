@@ -117,9 +117,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     const rhi = this.entity.engine._hardwareRenderer;
     let maxVertexUniformVectors = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
 
-    // Clamp it to 256 to avoid some problem:
+    // Limit size to 256 to avoid some problem:
     // For renderer is "Apple GPU", when uniform is large than 256 the skeleton matrix array access in shader very slow in Safari or WKWebview. This may be a apple bug, Chrome and Firefox is OK!
-    // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)",compile shader si very slow because of max uniform is 4096.
+    // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)", compile shader si very slow because of max uniform is 4096.
     maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
 
     this._maxVertexUniformVectors = maxVertexUniformVectors;
