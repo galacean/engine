@@ -21,7 +21,7 @@ void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
 
-    #if defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE)
+    #if defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) || defined(HAS_ANISOTROPY)
         mat3 tbn = getTBN();
     #endif
 
@@ -43,6 +43,11 @@ void initGeometry(out Geometry geometry){
         geometry.clearCoatDotNV = saturate( dot(geometry.clearCoatNormal, geometry.viewDir) );
     #endif
 
+    #ifdef HAS_ANISOTROPY
+        geometry.anisotropy = u_anisotropy;
+        geometry.anisotropicT = normalize(tbn * u_anisotropyDirection);
+        geometry.anisotropicB = normalize(cross(geometry.normal, geometry.anisotropicT));
+    #endif
 }
 
 void initMaterial(out Material material, const in Geometry geometry){
