@@ -66,6 +66,10 @@ export class Camera extends Component {
   /** @internal */
   @ignoreClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
+  /** @internal */
+  _replacementShader: Shader = null;
+  /** @internal */
+  _replacementSubShaderTag: string = null;
 
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
@@ -466,6 +470,24 @@ export class Camera extends Component {
     }
     this._renderPipeline.render(context, cubeFace, mipLevel);
     this._engine._renderCount++;
+  }
+
+  /**
+   * Set the replacement shader.
+   * @param shader - Replacement shader
+   * @param subShaderTag - Replacement sub shader tag
+   */
+  setReplacementShader(shader: Shader, subShaderTag: string): void {
+    this._replacementShader = shader;
+    this._replacementSubShaderTag = subShaderTag;
+  }
+
+  /**
+   * Reset the replacement shader.
+   */
+  resetReplacementShader(): void {
+    this._replacementShader = null;
+    this._replacementSubShaderTag = null;
   }
 
   /**
