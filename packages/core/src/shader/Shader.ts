@@ -45,18 +45,32 @@ export class Shader {
    */
   static create(name: string, shaderPasses: SubShader[]): Shader;
 
-  static create(name: string, vertexSourceOrSubShaders: string | SubShader[], fragmentSource?: string): Shader {
+  static create(
+    name: string,
+    vertexSourceOrShaderPassesOrSubShaders: SubShader[] | ShaderPass[] | string,
+    fragmentSource?: string
+  ): Shader {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[name]) {
       throw `Shader named "${name}" already exists.`;
     }
     let shader: Shader;
-    if (typeof vertexSourceOrSubShaders === "string") {
-      const shaderPass = new ShaderPass(vertexSourceOrSubShaders, fragmentSource);
+    if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
+      const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
       shaderPass.pipelineStage = ShaderString.getByName("Forward");
       shader = new Shader(name, [new SubShader("DefaultPass", [shaderPass])]);
     } else {
-      shader = new Shader(name, vertexSourceOrSubShaders);
+      if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
+        if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
+          shader = new Shader(name, [
+            new SubShader("DefaultPass", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
+          ]);
+        } else {
+          shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders);
+        }
+      } else {
+        throw "SubShader or ShaderPass count must large than 0.";
+      }
     }
     shaderMap[name] = shader;
     return shader;
