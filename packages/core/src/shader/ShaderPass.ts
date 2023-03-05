@@ -4,6 +4,7 @@ import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderProgram } from "./ShaderProgram";
+import { ShaderString } from "./ShaderString";
 
 /**
  * Shader pass containing vertex and fragment source.
@@ -11,8 +12,8 @@ import { ShaderProgram } from "./ShaderProgram";
 export class ShaderPass {
   private static _shaderPassCounter: number = 0;
 
-  /**  */
-  pipelineStage: string;
+  /** Pipeline stage. */
+  pipelineStage: ShaderString;
 
   /** @internal */
   _shaderPassId: number = 0;

@@ -1,4 +1,5 @@
 import { ShaderPass } from "./ShaderPass";
+import { ShaderString } from "./ShaderString";
 
 /**
  * Sub shader.
@@ -7,15 +8,8 @@ export class SubShader {
   /** Disable batch. */
   disableBatch: boolean = false;
 
-  private _replacementTags: Record<string, string>;
+  private _replacementTagsMap: Record<number, ShaderString>;
   private _passes: ShaderPass[] = [];
-
-  /**
-   * replacement tags.
-   */
-  get replacementTags(): Readonly<Record<string, string>> {
-    return this._replacementTags;
-  }
 
   /**
    * Sub shader passes.
@@ -41,15 +35,24 @@ export class SubShader {
 
   /**
    * Add a replacement tag.
-   * @param name - Name of the tag
+   * @param key - Key of the tag
    * @param value - Value of the tag
    */
-  addReplacementTag(name: string, value: string): void {
-    const tags = this._replacementTags;
-    if (tags[name]) {
-      throw `Tag named "${name}" already exists.`;
+  addReplacementTag(key: ShaderString, value: ShaderString): void {
+    const tags = this._replacementTagsMap;
+    if (tags[key._uniqueId]) {
+      throw `Tag named "${key}" already exists.`;
     }
 
-    tags[name] = value;
+    tags[key._uniqueId] = value;
+  }
+
+  /**
+   * Get a replacement tag.
+   * @param key - Key of the tag
+   * @returns Value of the tag
+   */
+  getReplacementTag(key: ShaderString): ShaderString {
+    return this._replacementTagsMap[key._uniqueId];
   }
 }

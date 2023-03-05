@@ -12,6 +12,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderString } from "./shader/ShaderString";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
@@ -69,7 +70,7 @@ export class Camera extends Component {
   /** @internal */
   _replacementShader: Shader = null;
   /** @internal */
-  _replacementSubShaderTag: string = null;
+  _replacementSubShaderTagKey: ShaderString = null;
 
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
@@ -475,11 +476,11 @@ export class Camera extends Component {
   /**
    * Set the replacement shader.
    * @param shader - Replacement shader
-   * @param replacementTag - Replacement sub shader tag
+   * @param replacementTagKey - Replacement tag key
    */
-  setReplacementShader(shader: Shader, replacementTag: string): void {
+  setReplacementShader(shader: Shader, replacementTagKey: ShaderString): void {
     this._replacementShader = shader;
-    this._replacementSubShaderTag = replacementTag;
+    this._replacementSubShaderTagKey = replacementTagKey;
   }
 
   /**
@@ -487,7 +488,7 @@ export class Camera extends Component {
    */
   resetReplacementShader(): void {
     this._replacementShader = null;
-    this._replacementSubShaderTag = null;
+    this._replacementSubShaderTagKey = null;
   }
 
   /**

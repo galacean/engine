@@ -4,6 +4,7 @@ import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
+import { ShaderString } from "./ShaderString";
 import { SubShader } from "./SubShader";
 
 /**
@@ -52,7 +53,7 @@ export class Shader {
     let shader: Shader;
     if (typeof vertexSourceOrSubShaders === "string") {
       const shaderPass = new ShaderPass(vertexSourceOrSubShaders, fragmentSource);
-      shaderPass.pipelineStage = "Forward";
+      shaderPass.pipelineStage = ShaderString.getByName("Forward");
       shader = new Shader(name, [new SubShader("DefaultPass", [shaderPass])]);
     } else {
       shader = new Shader(name, vertexSourceOrSubShaders);

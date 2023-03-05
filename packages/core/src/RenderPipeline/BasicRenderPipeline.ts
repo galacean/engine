@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector2 } from "@oasis-engine/math";
 import { SpriteMask } from "../2d";
 import { Background } from "../Background";
 import { Camera } from "../Camera";
@@ -12,6 +12,7 @@ import { Material } from "../material";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
+import { ShaderString } from "../shader/ShaderString";
 import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
@@ -25,8 +26,8 @@ import { RenderQueue } from "./RenderQueue";
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
-  private static _tempVector0 = new Vector3();
-  private static _tempVector1 = new Vector3();
+  private static _shadowCasterPipelineStage = ShaderString.getByName("ShadowCaster");
+  private static _forwardPipelineStage = ShaderString.getByName("Forward");
 
   /** @internal */
   _opaqueQueue: RenderQueue;
@@ -149,7 +150,7 @@ export class BasicRenderPipeline {
 
     camera.engine._spriteMaskManager.clear();
 
-    context.pipelineStage = "ShadowCaster";
+    context.pipelineStage = BasicRenderPipeline._shadowCasterPipelineStage;
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster._render(context);
     }
@@ -160,7 +161,7 @@ export class BasicRenderPipeline {
 
     context.applyVirtualCamera(camera._virtualCamera);
 
-    context.pipelineStage = "Forward";
+    context.pipelineStage = BasicRenderPipeline._forwardPipelineStage;
     this._callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
@@ -233,7 +234,8 @@ export class BasicRenderPipeline {
         for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
           const replacementSubShader = replacementSubShaders[i];
           if (
-            replacementSubShader.replacementTags[replacementTag] === materialSubShader.replacementTags[replacementTag]
+            replacementSubShader.getReplacementTag(replacementTag) ===
+            materialSubShader.getReplacementTag(replacementTag)
           ) {
             this.pushRenderDataWihShader(context, data, replacementSubShader.passes, renderStates);
           }
