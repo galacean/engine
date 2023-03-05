@@ -16,10 +16,8 @@ import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, TextureCubeFace } from "../texture";
-import { ClassPool } from "./ClassPool";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
-import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
 
@@ -224,9 +222,8 @@ export class BasicRenderPipeline {
    */
   pushRenderData(context: RenderContext, data: RenderData): void {
     const material = data.material;
-    const pool = context.camera.engine._renderElementPool;
     const renderStates = material.renderStates;
-    const materialShader = material.shader.subShaders[0];
+    const materialSubShader = material.shader.subShaders[0];
     const replacementShader = context.replacementShader;
 
     if (replacementShader) {
@@ -235,39 +232,43 @@ export class BasicRenderPipeline {
       if (replacementTag) {
         for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
           const replacementSubShader = replacementSubShaders[i];
-          if (replacementSubShader.replacementTags[replacementTag] === materialShader.replacementTags[replacementTag]) {
-            this.pushShaderPrimitive(context.pipelineStage, pool, data, replacementSubShader.passes, renderStates);
+          if (
+            replacementSubShader.replacementTags[replacementTag] === materialSubShader.replacementTags[replacementTag]
+          ) {
+            this.pushRenderDataWihShader(context, data, replacementSubShader.passes, renderStates);
           }
         }
       } else {
-        this.pushShaderPrimitive(context.pipelineStage, pool, data, replacementSubShaders[0].passes, renderStates);
+        this.pushRenderDataWihShader(context, data, replacementSubShaders[0].passes, renderStates);
       }
     } else {
-      this.pushShaderPrimitive(context.pipelineStage, pool, data, materialShader.passes, renderStates);
+      this.pushRenderDataWihShader(context, data, materialSubShader.passes, renderStates);
     }
   }
 
-  private pushShaderPrimitive(
-    pipelineStage: string,
-    shaderRenderElementPool: ClassPool<RenderElement>,
+  private pushRenderDataWihShader(
+    context: RenderContext,
     element: RenderData,
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
   ) {
+    const pipelineStage = context.pipelineStage;
+    const renderElementPool = context.camera.engine._renderElementPool;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       const shaderPass = shaderPasses[i];
       if (shaderPass.pipelineStage === pipelineStage) {
-        const shaderElement = shaderRenderElementPool.getFromPool();
-        shaderElement.set(element, shaderPass, renderStates[i]);
-        switch (shaderElement.renderState.renderQueueType) {
+        const renderElement = renderElementPool.getFromPool();
+
+        renderElement.set(element, shaderPass, renderStates[i]);
+        switch (renderElement.renderState.renderQueueType) {
           case RenderQueueType.Transparent:
-            this._transparentQueue.pushPrimitive(shaderElement);
+            this._transparentQueue.pushRenderElement(renderElement);
             break;
           case RenderQueueType.AlphaTest:
-            this._alphaTestQueue.pushPrimitive(shaderElement);
+            this._alphaTestQueue.pushRenderElement(renderElement);
             break;
           case RenderQueueType.Opaque:
-            this._opaqueQueue.pushPrimitive(shaderElement);
+            this._opaqueQueue.pushRenderElement(renderElement);
             break;
         }
       }

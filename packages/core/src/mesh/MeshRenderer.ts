@@ -122,11 +122,10 @@ export class MeshRenderer extends Renderer implements ICustomClone {
       const meshRenderDataPool = this._engine._meshRenderDataPool;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const material = materials[i];
-        if (material) {
-          const renderData = meshRenderDataPool.getFromPool();
-          renderData.set(this, material, mesh, subMeshes[i]);
-          renderPipeline.pushRenderData(context, renderData);
-        }
+        if (!material) continue;
+        const renderData = meshRenderDataPool.getFromPool();
+        renderData.set(this, material, mesh, subMeshes[i]);
+        renderPipeline.pushRenderData(context, renderData);
       }
     } else {
       Logger.error("mesh is null.");

@@ -37,7 +37,7 @@ export class RenderQueue {
   /**
    * Push a render element.
    */
-  pushPrimitive(element: RenderElement): void {
+  pushRenderElement(element: RenderElement): void {
     this.items.push(element);
   }
 
