@@ -52,6 +52,7 @@ export class Shader {
     let shader: Shader;
     if (typeof vertexSourceOrSubShaders === "string") {
       const shaderPass = new ShaderPass(vertexSourceOrSubShaders, fragmentSource);
+      shaderPass.pipelineStage = "Forward";
       shader = new Shader(name, [new SubShader("DefaultPass", [shaderPass])]);
     } else {
       shader = new Shader(name, vertexSourceOrSubShaders);

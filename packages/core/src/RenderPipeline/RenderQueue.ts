@@ -16,15 +16,15 @@ export class RenderQueue {
   /**
    * @internal
    */
-  static _compareFromNearToFar(a: RenderData, b: RenderData): number {
-    return a.component.priority - b.component.priority || a.component._distanceForSort - b.component._distanceForSort;
+  static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
+    return a.data.component.priority - b.data.component.priority || a.data.component._distanceForSort - b.data.component._distanceForSort;
   }
 
   /**
    * @internal
    */
-  static _compareFromFarToNear(a: RenderData, b: RenderData): number {
-    return a.component.priority - b.component.priority || b.component._distanceForSort - a.component._distanceForSort;
+  static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
+    return a.data.component.priority - b.data.component.priority || b.data.component._distanceForSort - a.data.component._distanceForSort;
   }
 
   readonly items: RenderElement[] = [];

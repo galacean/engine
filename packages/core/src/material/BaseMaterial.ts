@@ -2,6 +2,7 @@ import { Engine } from "../Engine";
 import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { ShaderMacro } from "../shader/ShaderMacro";
+import { RenderState } from "../shader/state/RenderState";
 import { BlendMode } from "./enums/BlendMode";
 import { RenderFace } from "./enums/RenderFace";
 import { Material } from "./Material";
@@ -34,13 +35,24 @@ export class BaseMaterial extends Material {
   }
 
   set shader(value: Shader) {
+    this._shader = value;
+
     const renderStates = this._renderStates;
     const lastStatesCount = renderStates.length;
-    super.shader = value;
-    const newStatesCount = renderStates.length;
 
-    for (let i = lastStatesCount; i < newStatesCount; i++) {
-      this.setBlendMode(i, BlendMode.Normal);
+    let maxPassCount = 0;
+    const subShaders = value.subShaders;
+    for (let i = 0; i < subShaders.length; i++) {
+      maxPassCount = Math.max(subShaders[i].passes.length, maxPassCount);
+    }
+
+    if (lastStatesCount < maxPassCount) {
+      for (let i = lastStatesCount; i < maxPassCount; i++) {
+        renderStates.push(new RenderState());
+        this.setBlendMode(i, BlendMode.Normal);
+      }
+    } else {
+      renderStates.length = maxPassCount;
     }
   }
 
