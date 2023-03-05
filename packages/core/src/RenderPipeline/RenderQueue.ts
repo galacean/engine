@@ -4,10 +4,10 @@ import { Layer } from "../Layer";
 import { Material } from "../material/Material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
-import { MeshRenderElement } from "./MeshRenderElement";
+import { MeshRenderData } from "./MeshRenderData";
+import { RenderData } from "./RenderData";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
-import { SpriteElement } from "./SpriteElement";
 
 /**
  * Render queue.
@@ -16,14 +16,14 @@ export class RenderQueue {
   /**
    * @internal
    */
-  static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
+  static _compareFromNearToFar(a: RenderData, b: RenderData): number {
     return a.component.priority - b.component.priority || a.component._distanceForSort - b.component._distanceForSort;
   }
 
   /**
    * @internal
    */
-  static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
+  static _compareFromFarToNear(a: RenderData, b: RenderData): number {
     return a.component.priority - b.component.priority || b.component._distanceForSort - a.component._distanceForSort;
   }
 
@@ -41,7 +41,7 @@ export class RenderQueue {
     this.items.push(element);
   }
 
-  render(camera: Camera, replaceMaterial: Material, mask: Layer, customShader: Shader): void {
+  render(camera: Camera, replaceMaterial: Material, mask: Layer): void {
     const items = this.items;
     if (items.length === 0) {
       return;
@@ -54,25 +54,23 @@ export class RenderQueue {
     const cameraData = camera.shaderData;
 
     for (let i = 0, n = items.length; i < n; i++) {
-      const item = items[i];
-      const renderPassFlag = item.component.entity.layer;
+      const renderItem = items[i];
+      const data = renderItem.data;
+      const renderPassFlag = data.component.entity.layer;
 
       if (!(renderPassFlag & mask)) {
         continue;
       }
 
-      if (!!(item as MeshRenderElement).mesh) {
+      if (!!(data as MeshRenderData).mesh) {
         this._spriteBatcher.flush(camera, replaceMaterial);
 
         const compileMacros = Shader._compileMacros;
-        const element = <MeshRenderElement>item;
+        const element = <MeshRenderData>data;
         const renderer = element.component;
         const material = element.material.destroyed ? engine._magentaMaterial : element.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
-
-        // @todo: temporary solution
-        (replaceMaterial || material)._preRender(element);
 
         // union render global macro and material self macro.
         ShaderMacroCollection.unionCollection(
@@ -81,13 +79,7 @@ export class RenderQueue {
           compileMacros
         );
 
-        // @todo: temporary solution
-        const program = (
-          customShader?.passes[0] ||
-          replaceMaterial?.shader.passes[0] ||
-          element.shaderPass
-        )._getShaderProgram(engine, compileMacros);
-
+        const program = renderItem.shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
@@ -142,12 +134,11 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        element.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+        renderItem.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
-        const spriteElement = <SpriteElement>item;
-        this._spriteBatcher.drawElement(spriteElement, camera, replaceMaterial);
+        this._spriteBatcher.drawElement(renderItem, camera, replaceMaterial);
       }
     }
 

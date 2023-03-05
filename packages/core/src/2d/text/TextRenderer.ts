@@ -5,6 +5,7 @@ import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { Renderer } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { SpriteRenderData } from "../../RenderPipeline/SpriteRenderData";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { TransformModifyFlags } from "../../Transform";
 import { FontStyle } from "../enums/FontStyle";
@@ -65,6 +66,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   @assignmentClone
   private _maskLayer: number = SpriteMaskLayer.Layer0;
+
+  @ignoreClone
+  private _charsRenderData: SpriteRenderData[] = [];
 
   /**
    * Rendering color for the Text.
@@ -379,35 +383,24 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
-    const spriteElementPool = this._engine._spriteElementPool;
-    const textElement = this._engine._textElementPool.getFromPool();
-    const charElements = textElement.charElements;
+    const spriteRenderDataPool = this._engine._spriteRenderDataPool;
+    const textElement = this._engine._textRenderDataPool.getFromPool();
+    const charsData = textElement.charsData;
     const material = this.getMaterial();
     const charRenderDatas = this._charRenderDatas;
     const charCount = charRenderDatas.length;
-    const passes = material.shader.passes;
-    const renderStates = material.renderStates;
 
     textElement.component = this;
     textElement.material = material;
-    charElements.length = charCount;
-    textElement.renderState = renderStates[0];
+    charsData.length = charCount;
 
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
-      const spriteElement = spriteElementPool.getFromPool();
-      spriteElement.setValue(
-        this,
-        charRenderData.renderData,
-        material,
-        charRenderData.texture,
-        renderStates[0],
-        passes[0],
-        i
-      );
-      charElements[i] = spriteElement;
+      const spriteRenderData = spriteRenderDataPool.getFromPool();
+      spriteRenderData.set(this, material, charRenderData.renderData, charRenderData.texture, i);
+      charsData[i] = spriteRenderData;
     }
-    context.camera._renderPipeline.pushPrimitive(textElement);
+    context.camera._renderPipeline.pushRenderData(context, textElement);
   }
 
   private _updateStencilState(): void {

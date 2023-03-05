@@ -11,10 +11,14 @@ import { Layer } from "../Layer";
 import { Material } from "../material";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
+import { ShaderPass } from "../shader/ShaderPass";
+import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, TextureCubeFace } from "../texture";
+import { ClassPool } from "./ClassPool";
 import { RenderContext } from "./RenderContext";
+import { RenderData } from "./RenderData";
 import { RenderElement } from "./RenderElement";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
@@ -146,6 +150,8 @@ export class BasicRenderPipeline {
     const transparentQueue = this._transparentQueue;
 
     camera.engine._spriteMaskManager.clear();
+
+    context.pipelineStage = "ShadowCaster";
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster._render(context);
     }
@@ -156,6 +162,7 @@ export class BasicRenderPipeline {
 
     context.applyVirtualCamera(camera._virtualCamera);
 
+    context.pipelineStage = "Forward";
     this._callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
@@ -191,8 +198,8 @@ export class BasicRenderPipeline {
       if (pass.renderOverride) {
         pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
       } else {
-        this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask, null);
-        this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask, null);
+        this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
@@ -200,7 +207,7 @@ export class BasicRenderPipeline {
             this._drawBackgroundTexture(engine, background);
           }
         }
-        this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask, null);
+        this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
       }
 
       renderTarget?._blitRenderTarget();
@@ -211,20 +218,59 @@ export class BasicRenderPipeline {
   }
 
   /**
-   * Push a render element to the render queue.
-   * @param element - Render element
+   * Push render data to render queue.
+   * @param context - Render context
+   * @param data - Render data
    */
-  pushPrimitive(element: RenderElement): void {
-    switch (element.renderState.renderQueueType) {
-      case RenderQueueType.Transparent:
-        this._transparentQueue.pushPrimitive(element);
-        break;
-      case RenderQueueType.AlphaTest:
-        this._alphaTestQueue.pushPrimitive(element);
-        break;
-      case RenderQueueType.Opaque:
-        this._opaqueQueue.pushPrimitive(element);
-        break;
+  pushRenderData(context: RenderContext, data: RenderData): void {
+    const material = data.material;
+    const pool = context.camera.engine._renderElementPool;
+    const renderStates = material.renderStates;
+    const materialShader = material.shader.subShaders[0];
+    const replacementShader = context.replacementShader;
+
+    if (replacementShader) {
+      const replacementSubShaders = replacementShader.subShaders;
+      const { replacementTag } = context;
+      if (replacementTag) {
+        for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
+          const replacementSubShader = replacementSubShaders[i];
+          if (replacementSubShader.replacementTags[replacementTag] === materialShader.replacementTags[replacementTag]) {
+            this.pushShaderPrimitive(context.pipelineStage, pool, data, replacementSubShader.passes, renderStates);
+          }
+        }
+      } else {
+        this.pushShaderPrimitive(context.pipelineStage, pool, data, replacementSubShaders[0].passes, renderStates);
+      }
+    } else {
+      this.pushShaderPrimitive(context.pipelineStage, pool, data, materialShader.passes, renderStates);
+    }
+  }
+
+  private pushShaderPrimitive(
+    pipelineStage: string,
+    shaderRenderElementPool: ClassPool<RenderElement>,
+    element: RenderData,
+    shaderPasses: ReadonlyArray<ShaderPass>,
+    renderStates: ReadonlyArray<RenderState>
+  ) {
+    for (let i = 0, n = shaderPasses.length; i < n; i++) {
+      const shaderPass = shaderPasses[i];
+      if (shaderPass.pipelineStage === pipelineStage) {
+        const shaderElement = shaderRenderElementPool.getFromPool();
+        shaderElement.set(element, shaderPass, renderStates[i]);
+        switch (shaderElement.renderState.renderQueueType) {
+          case RenderQueueType.Transparent:
+            this._transparentQueue.pushPrimitive(shaderElement);
+            break;
+          case RenderQueueType.AlphaTest:
+            this._alphaTestQueue.pushPrimitive(shaderElement);
+            break;
+          case RenderQueueType.Opaque:
+            this._opaqueQueue.pushPrimitive(shaderElement);
+            break;
+        }
+      }
     }
   }
 
@@ -241,7 +287,10 @@ export class BasicRenderPipeline {
       background._resizeBackgroundTexture();
     }
 
-    const program = _backgroundTextureMaterial.shader.passes[0]._getShaderProgram(engine, Shader._compileMacros);
+    const program = _backgroundTextureMaterial.shader.subShaders[0].passes[0]._getShaderProgram(
+      engine,
+      Shader._compileMacros
+    );
     program.bind();
     program.uploadAll(program.materialUniformBlock, _backgroundTextureMaterial.shaderData);
     program.uploadUnGroupTextures();

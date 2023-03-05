@@ -4,11 +4,11 @@ import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { RenderData2D } from "../data/RenderData2D";
+import { VertexData2D } from "../data/VertexData2D";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
@@ -26,10 +26,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
   /** @internal */
-  _maskElement: SpriteMaskElement;
+  _maskElement: RenderElement;
 
   /** @internal */
-  _renderData: RenderData2D;
+  _verticesData: VertexData2D;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -149,7 +149,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._renderData = new RenderData2D(4, [], []);
+    this._verticesData = new VertexData2D(4, [], []);
     SimpleSpriteAssembler.resetData(this);
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
@@ -163,7 +163,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   _onDestroy(): void {
     this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._sprite = null;
-    this._renderData = null;
+    this._verticesData = null;
     super._onDestroy();
   }
 
@@ -207,11 +207,15 @@ export class SpriteMask extends Renderer implements ICustomClone {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    const spriteMaskElementPool = this._engine._spriteMaskElementPool;
-    const maskElement = spriteMaskElementPool.getFromPool();
-    maskElement.setValue(this, this._renderData, this.getMaterial());
     context.camera._renderPipeline._allSpriteMasks.add(this);
-    this._maskElement = maskElement;
+
+    const renderData = this._engine._spriteMaskRenderDataPool.getFromPool();
+    const material = this.getMaterial();
+    renderData.setValue(this, material, this._verticesData);
+    
+    const renderElement = this._engine._renderElementPool.getFromPool();
+    renderElement.set(renderData, material.shader[0].shaderPasses[0], material.renderStates[0]);
+    this._maskElement = renderElement;
   }
 
   @ignoreClone

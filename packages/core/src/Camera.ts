@@ -475,11 +475,11 @@ export class Camera extends Component {
   /**
    * Set the replacement shader.
    * @param shader - Replacement shader
-   * @param subShaderTag - Replacement sub shader tag
+   * @param replacementTag - Replacement sub shader tag
    */
-  setReplacementShader(shader: Shader, subShaderTag: string): void {
+  setReplacementShader(shader: Shader, replacementTag: string): void {
     this._replacementShader = shader;
-    this._replacementSubShaderTag = subShaderTag;
+    this._replacementSubShaderTag = replacementTag;
   }
 
   /**

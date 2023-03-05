@@ -10,7 +10,7 @@ import { IAssembler } from "./IAssembler";
 export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer): void {
-    const { _renderData: renderData } = renderer;
+    const { _verticesData: renderData } = renderer;
     const { positions, uvs } = renderData;
     if (positions.length < 16) {
       for (let i = positions.length; i < 16; i++) {
@@ -23,7 +23,7 @@ export class SlicedSpriteAssembler {
 
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite } = renderer;
-    const { positions, uvs, triangles } = renderer._renderData;
+    const { positions, uvs, triangles } = renderer._verticesData;
     const { border } = sprite;
     const spriteUVs = sprite._getUVs();
     // Update local positions.
@@ -131,7 +131,7 @@ export class SlicedSpriteAssembler {
         triangles[indexOffset++] = start + realJCount;
       }
     }
-    renderer._renderData.vertexCount = realICount * realJCount;
+    renderer._verticesData.vertexCount = realICount * realJCount;
     triangles.length = (realICount - 1) * (realJCount - 1) * 6;
 
     const { min, max } = renderer._bounds;

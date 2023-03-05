@@ -14,12 +14,13 @@ import { Material } from "./material/Material";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
-import { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
+import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { SpriteElement } from "./RenderPipeline/SpriteElement";
-import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
-import { TextRenderElement } from "./RenderPipeline/TextRenderElement";
+import { SpriteMaskRenderData } from "./RenderPipeline/SpriteMaskRenderData";
+import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
+import { TextRenderData } from "./RenderPipeline/TextRenderData";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { BlendFactor } from "./shader/enums/BlendFactor";
@@ -58,10 +59,13 @@ export class Engine extends EventDispatcher {
   _componentsManager: ComponentsManager = new ComponentsManager();
   _hardwareRenderer: IHardwareRenderer;
   _lastRenderState: RenderState = new RenderState();
-  _renderElementPool: ClassPool<MeshRenderElement> = new ClassPool(MeshRenderElement);
-  _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
-  _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
-  _textElementPool: ClassPool<TextRenderElement> = new ClassPool(TextRenderElement);
+
+  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  _meshRenderDataPool: ClassPool<MeshRenderData> = new ClassPool(MeshRenderData);
+  _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
+  _spriteMaskRenderDataPool: ClassPool<SpriteMaskRenderData> = new ClassPool(SpriteMaskRenderData);
+  _textRenderDataPool: ClassPool<TextRenderData> = new ClassPool(TextRenderData);
+
   _spriteDefaultMaterial: Material;
   _spriteMaskDefaultMaterial: Material;
   _textDefaultFont: Font;
@@ -288,9 +292,10 @@ export class Engine extends EventDispatcher {
     this._frameInProcess = true;
 
     this._renderElementPool.resetPool();
-    this._spriteElementPool.resetPool();
-    this._spriteMaskElementPool.resetPool();
-    this._textElementPool.resetPool();
+    this._meshRenderDataPool.resetPool();
+    this._spriteRenderDataPool.resetPool();
+    this._spriteMaskRenderDataPool.resetPool();
+    this._textRenderDataPool.resetPool();
 
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;

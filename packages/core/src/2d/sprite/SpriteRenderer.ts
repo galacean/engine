@@ -10,7 +10,7 @@ import { ShaderProperty } from "../../shader/ShaderProperty";
 import { IAssembler } from "../assembler/IAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
-import { RenderData2D } from "../data/RenderData2D";
+import { VertexData2D } from "../data/VertexData2D";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -26,7 +26,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   /** @internal */
   @ignoreClone
-  _renderData: RenderData2D;
+  _verticesData: VertexData2D;
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
@@ -205,7 +205,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._renderData = new RenderData2D(4, [], [], null, this._color);
+    this._verticesData = new VertexData2D(4, [], [], null, this._color);
     this.drawMode = SpriteDrawMode.Simple;
     this.setMaterial(this._engine._spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
@@ -226,7 +226,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     this._color = null;
     this._sprite = null;
     this._assembler = null;
-    this._renderData = null;
+    this._verticesData = null;
     super._onDestroy();
   }
 
@@ -262,16 +262,12 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
     }
 
-    // Push primitive.
+    // Push render data
     const material = this.getMaterial();
-    const passes = material.shader.passes;
-    const renderStates = material.renderStates;
     const texture = this.sprite.texture;
-    for (let i = 0, n = passes.length; i < n; i++) {
-      const spriteElement = this._engine._spriteElementPool.getFromPool();
-      spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
-      context.camera._renderPipeline.pushPrimitive(spriteElement);
-    }
+    const renderData = this._engine._spriteRenderDataPool.getFromPool();
+    renderData.set(this, material, this._verticesData, texture);
+    context.camera._renderPipeline.pushRenderData(context, renderData);
   }
 
   private _updateStencilState(): void {

@@ -27,8 +27,6 @@ export { RefObject } from "./asset/RefObject";
 export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
 export { RenderQueue } from "./RenderPipeline/RenderQueue";
 export { RenderPass } from "./RenderPipeline/RenderPass";
-export { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
-export { SpriteElement } from "./RenderPipeline/SpriteElement";
 export * from "./base";
 
 export { Background } from "./Background";

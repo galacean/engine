@@ -16,6 +16,10 @@ export class RenderContext {
   camera: Camera;
   virtualCamera: VirtualCamera;
 
+  replacementShader: Shader;
+  replacementTag: string;
+  pipelineStage: string;
+
   applyVirtualCamera(virtualCamera: VirtualCamera): void {
     this.virtualCamera = virtualCamera;
     const shaderData = this.camera.shaderData;

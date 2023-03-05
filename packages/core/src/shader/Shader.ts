@@ -4,6 +4,7 @@ import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
+import { SubShader } from "./SubShader";
 
 /**
  * Shader for rendering.
@@ -38,17 +39,25 @@ export class Shader {
   /**
    * Create a shader.
    * @param name - Name of the shader
-   * @param shaderPasses - Shader passes
+   * @param SubShader - Sub shader
    * @returns Shader
    */
-  static create(name: string, shaderPasses: ShaderPass[]): Shader;
+  static create(name: string, shaderPasses: SubShader[]): Shader;
 
-  static create(name: string, vertexSourceOrShaderPasses: string | ShaderPass[], fragmentSource?: string): Shader {
+  static create(name: string, vertexSourceOrSubShaders: string | SubShader[], fragmentSource?: string): Shader {
     const shaderMap = Shader._shaderMap;
     if (shaderMap[name]) {
       throw `Shader named "${name}" already exists.`;
     }
-    return (shaderMap[name] = new Shader(name, vertexSourceOrShaderPasses, fragmentSource));
+    let shader: Shader;
+    if (typeof vertexSourceOrSubShaders === "string") {
+      const shaderPass = new ShaderPass(vertexSourceOrSubShaders, fragmentSource);
+      shader = new Shader(name, [new SubShader("DefaultPass", [shaderPass])]);
+    } else {
+      shader = new Shader(name, vertexSourceOrSubShaders);
+    }
+    shaderMap[name] = shader;
+    return shader;
   }
 
   /**
@@ -139,31 +148,24 @@ export class Shader {
     }
   }
 
-  /** The name of shader. */
-  readonly name: string;
+  private _subShaders: SubShader[] = [];
 
   /**
-   *  Shader passes.
+   * Sub shaders of the shader.
    */
-  get passes(): ReadonlyArray<ShaderPass> {
-    return this._passes;
+  get subShaders(): ReadonlyArray<SubShader> {
+    return this._subShaders;
   }
 
-  private _passes: ShaderPass[] = [];
-
-  private constructor(name: string, vertexSourceOrShaderPasses: string | ShaderPass[], fragmentSource?: string) {
+  private constructor(public readonly name: string, subShaders: SubShader[]) {
     this.name = name;
 
-    if (typeof vertexSourceOrShaderPasses === "string") {
-      this._passes.push(new ShaderPass(vertexSourceOrShaderPasses, fragmentSource));
-    } else {
-      const passCount = vertexSourceOrShaderPasses.length;
-      if (passCount < 1) {
-        throw "Shader pass count must large than 0.";
-      }
-      for (let i = 0; i < passCount; i++) {
-        this._passes.push(vertexSourceOrShaderPasses[i]);
-      }
+    const passCount = subShaders.length;
+    if (passCount < 1) {
+      throw "SubShader count must large than 0.";
+    }
+    for (let i = 0; i < passCount; i++) {
+      this._subShaders.push(subShaders[i]);
     }
   }
 
@@ -185,9 +187,12 @@ export class Shader {
     }
 
     let isValid = true;
-    const passes = this._passes;
-    for (let i = 0, n = passes.length; i < n; i++) {
-      isValid &&= passes[i]._getShaderProgram(engine, compileMacros).isValid;
+    const subShaders = this._subShaders;
+    for (let i = 0, n = subShaders.length; i < n; i++) {
+      const { passes } = subShaders[i];
+      for (let j = 0, m = passes.length; j < m; j++) {
+        isValid &&= passes[j]._getShaderProgram(engine, compileMacros).isValid;
+      }
     }
     return isValid;
   }

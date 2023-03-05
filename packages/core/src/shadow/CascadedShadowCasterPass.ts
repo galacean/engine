@@ -88,7 +88,6 @@ export class CascadedShadowCasterPass {
     const {
       _engine: engine,
       _camera: camera,
-      _shadowCasterShader: shadowCasterShader,
       _viewportOffsets: viewports,
       _shadowSliceData: shadowSliceData,
       _splitBoundSpheres: splitBoundSpheres,
@@ -209,8 +208,8 @@ export class CascadedShadowCasterPass {
           rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
           engine._renderCount++;
 
-          opaqueQueue.render(camera, null, Layer.Everything, shadowCasterShader);
-          alphaTestQueue.render(camera, null, Layer.Everything, shadowCasterShader);
+          opaqueQueue.render(camera, null, Layer.Everything);
+          alphaTestQueue.render(camera, null, Layer.Everything);
           rhi.setGlobalDepthBias(0, 0);
         }
       }

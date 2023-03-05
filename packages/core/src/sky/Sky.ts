@@ -59,7 +59,7 @@ export class Sky {
       materialShaderData._macroCollection,
       compileMacros
     );
-    const program = shader.passes[0]._getShaderProgram(engine, compileMacros);
+    const program = shader.subShaders[0].passes[0]._getShaderProgram(engine, compileMacros);
     program.bind();
     program.groupingOtherUniformBlock();
     program.uploadAll(program.cameraUniformBlock, cameraShaderData);

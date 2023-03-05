@@ -11,6 +11,9 @@ import { ShaderProgram } from "./ShaderProgram";
 export class ShaderPass {
   private static _shaderPassCounter: number = 0;
 
+  /**  */
+  pipelineStage: string;
+
   /** @internal */
   _shaderPassId: number = 0;
 

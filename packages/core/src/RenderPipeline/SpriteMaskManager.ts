@@ -3,6 +3,7 @@ import { SpriteRenderer } from "../2d/sprite/SpriteRenderer";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { SpriteMaskBatcher } from "./SpriteMaskBatcher";
+import { SpriteMaskRenderData } from "./SpriteMaskRenderData";
 
 /**
  * @internal
@@ -64,14 +65,14 @@ export class SpriteMaskManager {
 
         if (influenceLayers & addLayer) {
           const maskRenderElement = mask._maskElement;
-          maskRenderElement.isAdd = true;
+          (<SpriteMaskRenderData>maskRenderElement.data).isAdd = true;
           this._batcher.drawElement(maskRenderElement, camera, null);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
           const maskRenderElement = mask._maskElement;
-          maskRenderElement.isAdd = false;
+          (<SpriteMaskRenderData>maskRenderElement.data).isAdd = false;
           this._batcher.drawElement(maskRenderElement, camera, null);
         }
       }

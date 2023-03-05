@@ -3,7 +3,7 @@ import { Color, Vector2, Vector3 } from "@oasis-engine/math";
 /**
  * @internal
  */
-export class RenderData2D {
+export class VertexData2D {
   constructor(
     public vertexCount: number,
     public positions: Vector3[],

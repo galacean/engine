@@ -4,11 +4,12 @@ import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh
 import { Material } from "../material";
 import { BufferMesh } from "../mesh";
 import { ClassPool } from "./ClassPool";
-import { SpriteElement } from "./SpriteElement";
-import { SpriteMaskElement } from "./SpriteMaskElement";
-import { TextRenderElement } from "./TextRenderElement";
+import { RenderElement } from "./RenderElement";
+import { SpriteMaskRenderData } from "./SpriteMaskRenderData";
+import { SpriteRenderData } from "./SpriteRenderData";
+import { TextRenderData } from "./TextRenderData";
 
-type Element = SpriteElement | SpriteMaskElement;
+type SpriteData = SpriteRenderData | SpriteMaskRenderData;
 
 export abstract class Basic2DBatcher {
   /** The maximum number of vertex. */
@@ -20,7 +21,7 @@ export abstract class Basic2DBatcher {
   /** @internal */
   _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
   /** @internal */
-  _batchedQueue: Element[] = [];
+  _batchedQueue: RenderElement[] = [];
   /** @internal */
   _meshes: BufferMesh[] = [];
   /** @internal */
@@ -45,18 +46,20 @@ export abstract class Basic2DBatcher {
     this._initMeshes(engine);
   }
 
-  drawElement(
-    element: SpriteMaskElement | SpriteElement | TextRenderElement,
-    camera: Camera,
-    replaceMaterial: Material
-  ): void {
-    if (element.multiRenderData) {
-      const elements = (<TextRenderElement>element).charElements;
-      for (let i = 0, n = elements.length; i < n; ++i) {
-        this._drawSubElement(elements[i], camera, replaceMaterial);
+  drawElement(element: RenderElement, camera: Camera, replaceMaterial: Material): void {
+    const data = element.data;
+
+    if (data.multiRenderData) {
+      const charsData = (<TextRenderData>data).charsData;
+      const pool = camera.engine._renderElementPool;
+
+      for (let i = 0, n = charsData.length; i < n; ++i) {
+        const charRenderElement = pool.getFromPool();
+        charRenderElement.set(charsData[i], element.shaderPass, element.renderState);
+        this._drawSubElement(charRenderElement, camera, replaceMaterial);
       }
     } else {
-      this._drawSubElement(<SpriteMaskElement | SpriteElement>element, camera, replaceMaterial);
+      this._drawSubElement(element, camera, replaceMaterial);
     }
   }
 
@@ -75,8 +78,8 @@ export abstract class Basic2DBatcher {
     }
   }
 
-  private _drawSubElement(element: SpriteMaskElement | SpriteElement, camera: Camera, replaceMaterial: Material) {
-    const len = element.renderData.vertexCount;
+  private _drawSubElement(element: RenderElement, camera: Camera, replaceMaterial: Material) {
+    const len = (<SpriteRenderData | SpriteMaskRenderData>element.data).renderData.vertexCount;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
       this.flush(camera, replaceMaterial);
     }
@@ -178,21 +181,22 @@ export abstract class Basic2DBatcher {
     let vertexCount = 0;
     let curIndiceStartIndex = 0;
     let curMeshIndex = 0;
-    let preElement: Element = null;
+    let preElement: RenderElement = null;
     for (let i = 0, len = batchedQueue.length; i < len; i++) {
       const curElement = batchedQueue[i];
+      const curData= <SpriteData>curElement.data;
 
       // Batch vertex
-      vertexIndex = this.updateVertices(curElement, vertices, vertexIndex);
+      vertexIndex = this.updateVertices(curData, vertices, vertexIndex);
 
       // Batch indice
-      const { triangles } = curElement.renderData;
+      const { triangles } = curData.renderData;
       const triangleNum = triangles.length;
       for (let j = 0; j < triangleNum; j++) {
         indices[indiceIndex++] = triangles[j] + curIndiceStartIndex;
       }
 
-      curIndiceStartIndex += curElement.renderData.vertexCount;
+      curIndiceStartIndex += curData.renderData.vertexCount;
 
       if (preElement === null) {
         vertexCount += triangleNum;
@@ -233,12 +237,12 @@ export abstract class Basic2DBatcher {
   /**
    * @internal
    */
-  abstract canBatch(preElement: Element, curElement: Element): boolean;
+  abstract canBatch(preElement: RenderElement, curElement: RenderElement): boolean;
 
   /**
    * @internal
    */
-  abstract updateVertices(element: Element, vertices: Float32Array, vertexIndex: number): number;
+  abstract updateVertices(element: SpriteData, vertices: Float32Array, vertexIndex: number): number;
 
   /**
    * @internal
