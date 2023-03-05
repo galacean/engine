@@ -40,10 +40,18 @@ export class Shader {
   /**
    * Create a shader.
    * @param name - Name of the shader
-   * @param SubShader - Sub shader
+   * @param shaderPasses - Shader passes
    * @returns Shader
    */
-  static create(name: string, shaderPasses: SubShader[]): Shader;
+  static create(name: string, shaderPasses: ShaderPass[]): Shader;
+
+  /**
+   * Create a shader.
+   * @param name - Name of the shader
+   * @param SubShaders - Sub shaders
+   * @returns Shader
+   */
+  static create(name: string, SubShaders: SubShader[]): Shader;
 
   static create(
     name: string,
@@ -57,7 +65,6 @@ export class Shader {
     let shader: Shader;
     if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
       const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
-      shaderPass.pipelineStage = ShaderString.getByName("Forward");
       shader = new Shader(name, [new SubShader("DefaultPass", [shaderPass])]);
     } else {
       if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {

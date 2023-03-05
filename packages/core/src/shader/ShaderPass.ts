@@ -13,7 +13,7 @@ export class ShaderPass {
   private static _shaderPassCounter: number = 0;
 
   /** Pipeline stage. */
-  pipelineStage: ShaderString;
+  readonly pipelineStage: ShaderString;
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -21,11 +21,12 @@ export class ShaderPass {
   private _vertexSource: string;
   private _fragmentSource: string;
 
-  constructor(vertexSource: string, fragmentSource: string) {
+  constructor(vertexSource: string, fragmentSource: string, pipelineStage?: ShaderString) {
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
     this._vertexSource = vertexSource;
     this._fragmentSource = fragmentSource;
+    this.pipelineStage = pipelineStage || ShaderString.getByName("Forward");
   }
 
   /**
