@@ -4,7 +4,7 @@ import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderProgram } from "./ShaderProgram";
-import { ShaderTag } from "./ShaderString";
+import { ShaderTag } from "./ShaderTag";
 
 /**
  * Shader pass containing vertex and fragment source.

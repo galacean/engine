@@ -1,5 +1,5 @@
 import { ShaderPass } from "./ShaderPass";
-import { ShaderTag } from "./ShaderString";
+import { ShaderTag } from "./ShaderTag";
 
 /**
  * Sub shader.

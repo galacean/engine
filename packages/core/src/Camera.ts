@@ -12,7 +12,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { ShaderTag } from "./shader/ShaderString";
+import { ShaderTag } from "./shader/ShaderTag";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";

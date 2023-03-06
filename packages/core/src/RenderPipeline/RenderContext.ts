@@ -1,6 +1,6 @@
 import { Camera } from "../Camera";
 import { Shader } from "../shader";
-import { ShaderTag } from "../shader/ShaderString";
+import { ShaderTag } from "../shader/ShaderTag";
 import { VirtualCamera } from "../VirtualCamera";
 
 /**

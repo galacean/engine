@@ -9,6 +9,6 @@ export { StencilOperation } from "./enums/StencilOperation";
 export { Shader } from "./Shader";
 export { ShaderData } from "./ShaderData";
 export { ShaderPass } from "./ShaderPass";
-export { ShaderTag as ShaderString } from "./ShaderString";
+export { ShaderTag } from "./ShaderTag";
 export { ShaderProperty } from "./ShaderProperty";
 

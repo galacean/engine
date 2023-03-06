@@ -12,7 +12,7 @@ import { Material } from "../material";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
-import { ShaderTag } from "../shader/ShaderString";
+import { ShaderTag } from "../shader/ShaderTag";
 import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
