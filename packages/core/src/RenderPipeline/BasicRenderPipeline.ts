@@ -237,6 +237,7 @@ export class BasicRenderPipeline {
             subShader.getReplacementTag(replacementTagKey) === materialSubShader.getReplacementTag(replacementTagKey)
           ) {
             this.pushRenderDataWihShader(context, data, subShader.passes, renderStates);
+            break;
           }
         }
       } else {
