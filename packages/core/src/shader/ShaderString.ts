@@ -4,7 +4,6 @@
 export class ShaderString {
   private static _nameCounter: number = 0;
   private static _nameMap: Record<string, ShaderString> = Object.create(null);
-  private static _idMap: Record<number, ShaderString> = Object.create(null);
 
   /**
    * Get shader property by name.
@@ -12,15 +11,8 @@ export class ShaderString {
    * @returns Shader property
    */
   static getByName(name: string): ShaderString {
-    const propertyNameMap = ShaderString._nameMap;
-    if (propertyNameMap[name] != null) {
-      return propertyNameMap[name];
-    } else {
-      const property = new ShaderString(name);
-      propertyNameMap[name] = property;
-      ShaderString._idMap[property._uniqueId] = property;
-      return property;
-    }
+    const nameMap = ShaderString._nameMap;
+    return (nameMap[name] ||= new ShaderString(name));
   }
 
   /** Shader property name. */
