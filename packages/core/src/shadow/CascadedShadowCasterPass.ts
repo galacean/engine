@@ -195,7 +195,7 @@ export class CascadedShadowCasterPass {
           ShadowUtils.shadowCullFrustum(context, light, elements[k], shadowSliceData);
         }
 
-        if (opaqueQueue.items.length || alphaTestQueue.items.length) {
+        if (opaqueQueue.elements.length || alphaTestQueue.elements.length) {
           opaqueQueue.sort(RenderQueue._compareFromNearToFar);
           alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
 

@@ -1,11 +1,9 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
-import { Material } from "../material/Material";
 import { Shader } from "../shader";
 import { ShaderMacroCollection } from "../shader/ShaderMacroCollection";
 import { MeshRenderData } from "./MeshRenderData";
-import { RenderData } from "./RenderData";
 import { RenderElement } from "./RenderElement";
 import { SpriteBatcher } from "./SpriteBatcher";
 
@@ -17,17 +15,23 @@ export class RenderQueue {
    * @internal
    */
   static _compareFromNearToFar(a: RenderElement, b: RenderElement): number {
-    return a.data.component.priority - b.data.component.priority || a.data.component._distanceForSort - b.data.component._distanceForSort;
+    return (
+      a.data.component.priority - b.data.component.priority ||
+      a.data.component._distanceForSort - b.data.component._distanceForSort
+    );
   }
 
   /**
    * @internal
    */
   static _compareFromFarToNear(a: RenderElement, b: RenderElement): number {
-    return a.data.component.priority - b.data.component.priority || b.data.component._distanceForSort - a.data.component._distanceForSort;
+    return (
+      a.data.component.priority - b.data.component.priority ||
+      b.data.component._distanceForSort - a.data.component._distanceForSort
+    );
   }
 
-  readonly items: RenderElement[] = [];
+  readonly elements: RenderElement[] = [];
   private _spriteBatcher: SpriteBatcher;
 
   constructor(engine: Engine) {
@@ -38,12 +42,12 @@ export class RenderQueue {
    * Push a render element.
    */
   pushRenderElement(element: RenderElement): void {
-    this.items.push(element);
+    this.elements.push(element);
   }
 
   render(camera: Camera, mask: Layer): void {
-    const items = this.items;
-    if (items.length === 0) {
+    const elements = this.elements;
+    if (elements.length === 0) {
       return;
     }
 
@@ -53,8 +57,8 @@ export class RenderQueue {
     const sceneData = scene.shaderData;
     const cameraData = camera.shaderData;
 
-    for (let i = 0, n = items.length; i < n; i++) {
-      const renderItem = items[i];
+    for (let i = 0, n = elements.length; i < n; i++) {
+      const renderItem = elements[i];
       const data = renderItem.data;
       const renderPassFlag = data.component.entity.layer;
 
@@ -149,7 +153,7 @@ export class RenderQueue {
    * Clear collection.
    */
   clear(): void {
-    this.items.length = 0;
+    this.elements.length = 0;
     this._spriteBatcher.clear();
   }
 
@@ -165,7 +169,7 @@ export class RenderQueue {
    * Sort the elements.
    */
   sort(compareFunc: Function): void {
-    this._quickSort(this.items, 0, this.items.length, compareFunc);
+    this._quickSort(this.elements, 0, this.elements.length, compareFunc);
   }
 
   /**
