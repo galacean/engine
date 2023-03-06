@@ -234,7 +234,7 @@ export class BasicRenderPipeline {
         for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
           const subShader = replacementSubShaders[i];
           if (
-            subShader.getReplacementTag(replacementTagKey) === materialSubShader.getReplacementTag(replacementTagKey)
+            subShader.getReplacementTagValue(replacementTagKey) === materialSubShader.getReplacementTagValue(replacementTagKey)
           ) {
             this.pushRenderDataWihShader(context, data, subShader.passes, renderStates);
             break;

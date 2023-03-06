@@ -43,11 +43,11 @@ export class SubShader {
   }
 
   /**
-   * Get a replacement tag.
+   * Get a replacement tag value.
    * @param key - Key of the tag
    * @returns Value of the tag
    */
-  getReplacementTag(key: ShaderString): ShaderString {
+  getReplacementTagValue(key: ShaderString): ShaderString {
     return this._replacementTagsMap[key._uniqueId];
   }
 }
