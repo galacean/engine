@@ -28,19 +28,19 @@ import { ShaderString } from "./ShaderString";
 export class ShaderPool {
   static init(): void {
     const shadowCasterPass = new ShaderPass(shadowMapVs, shadowMapFs, ShaderString.getByName("ShadowCaster"));
-    const forwardPipelineStage = ShaderString.getByName("Forward");
+    const pipelineForward = ShaderString.getByName("Forward");
 
-    Shader.create("blinn-phong", [new ShaderPass(blinnPhongVs, blinnPhongFs, forwardPipelineStage), shadowCasterPass]);
-    Shader.create("pbr", [new ShaderPass(pbrVs, pbrFs, forwardPipelineStage), shadowCasterPass]);
-    Shader.create("pbr-specular", [new ShaderPass(pbrVs, pbrSpecularFs, forwardPipelineStage), shadowCasterPass]);
-    Shader.create("unlit", [new ShaderPass(unlitVs, unlitFs, forwardPipelineStage), shadowCasterPass]);
+    Shader.create("blinn-phong", [new ShaderPass(blinnPhongVs, blinnPhongFs, pipelineForward), shadowCasterPass]);
+    Shader.create("pbr", [new ShaderPass(pbrVs, pbrFs, pipelineForward), shadowCasterPass]);
+    Shader.create("pbr-specular", [new ShaderPass(pbrVs, pbrSpecularFs, pipelineForward), shadowCasterPass]);
+    Shader.create("unlit", [new ShaderPass(unlitVs, unlitFs, pipelineForward), shadowCasterPass]);
 
-    Shader.create("skybox", [new ShaderPass(skyboxVs, skyboxFs, forwardPipelineStage)]);
-    Shader.create("particle-shader", [new ShaderPass(particleVs, particleFs, forwardPipelineStage)]);
-    Shader.create("SpriteMask", [new ShaderPass(spriteMaskVs, spriteMaskFs, forwardPipelineStage)]);
-    Shader.create("Sprite", [new ShaderPass(spriteVs, spriteFs, forwardPipelineStage)]);
+    Shader.create("skybox", [new ShaderPass(skyboxVs, skyboxFs, pipelineForward)]);
+    Shader.create("particle-shader", [new ShaderPass(particleVs, particleFs, pipelineForward)]);
+    Shader.create("SpriteMask", [new ShaderPass(spriteMaskVs, spriteMaskFs, pipelineForward)]);
+    Shader.create("Sprite", [new ShaderPass(spriteVs, spriteFs, pipelineForward)]);
     Shader.create("background-texture", [
-      new ShaderPass(backgroundTextureVs, backgroundTextureFs, forwardPipelineStage)
+      new ShaderPass(backgroundTextureVs, backgroundTextureFs, pipelineForward)
     ]);
   }
 }
