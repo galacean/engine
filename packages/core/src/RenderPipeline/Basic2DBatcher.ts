@@ -77,16 +77,6 @@ export abstract class Basic2DBatcher {
     }
   }
 
-  private _drawSubElement(element: RenderElement, camera: Camera): void {
-    const len = (<SpriteRenderData | SpriteMaskRenderData>element.data).renderData.vertexCount;
-    if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
-      this.flush(camera);
-    }
-
-    this._vertexCount += len;
-    this._batchedQueue[this._elementCount++] = element;
-  }
-
   flush(camera: Camera): void {
     const batchedQueue = this._batchedQueue;
 
@@ -132,6 +122,16 @@ export abstract class Basic2DBatcher {
       indiceBuffers[i].destroy();
     }
     this._indiceBuffers = null;
+  }
+
+  private _drawSubElement(element: RenderElement, camera: Camera): void {
+    const len = (<SpriteRenderData | SpriteMaskRenderData>element.data).renderData.vertexCount;
+    if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
+      this.flush(camera);
+    }
+
+    this._vertexCount += len;
+    this._batchedQueue[this._elementCount++] = element;
   }
 
   private _createMesh(engine: Engine, index: number): BufferMesh {
