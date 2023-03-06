@@ -5,17 +5,17 @@ import { RenderData } from "./RenderData";
 
 export class SpriteMaskRenderData extends RenderData {
   isAdd: boolean = true;
-  renderData: VertexData2D;
+  verticesData: VertexData2D;
 
   constructor() {
     super();
     this.multiRenderData = false;
   }
 
-  setValue(component: Renderer, material: Material, renderData: VertexData2D): void {
+  setValue(component: Renderer, material: Material, verticesData: VertexData2D): void {
     this.component = component;
     this.material = material;
 
-    this.renderData = renderData;
+    this.verticesData = verticesData;
   }
 }

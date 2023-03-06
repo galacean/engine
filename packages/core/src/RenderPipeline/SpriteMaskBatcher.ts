@@ -37,7 +37,7 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
   }
 
   updateVertices(element: SpriteMaskRenderData, vertices: Float32Array, vertexIndex: number): number {
-    const { positions, uvs, vertexCount } = element.renderData;
+    const { positions, uvs, vertexCount } = element.verticesData;
     for (let i = 0; i < vertexCount; i++) {
       const curPos = positions[i];
       const curUV = uvs[i];

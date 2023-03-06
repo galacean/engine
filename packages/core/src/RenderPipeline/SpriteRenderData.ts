@@ -5,7 +5,7 @@ import { Texture2D } from "../texture";
 import { RenderData } from "./RenderData";
 
 export class SpriteRenderData extends RenderData {
-  renderData: VertexData2D;
+  verticesData: VertexData2D;
   texture: Texture2D;
   dataIndex: number; // Add for CanvasRenderer plugin.
 
@@ -17,14 +17,14 @@ export class SpriteRenderData extends RenderData {
   set(
     component: Renderer,
     material: Material,
-    renderDate: VertexData2D,
+    verticesData: VertexData2D,
     texture: Texture2D,
     dataIndex: number = 0
   ): void {
     this.component = component;
     this.material = material;
 
-    this.renderData = renderDate;
+    this.verticesData = verticesData;
     this.texture = texture;
     this.dataIndex = dataIndex;
   }
