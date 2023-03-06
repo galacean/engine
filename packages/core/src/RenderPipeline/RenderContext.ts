@@ -18,7 +18,7 @@ export class RenderContext {
   virtualCamera: VirtualCamera;
 
   replacementShader: Shader;
-  replacementTag: ShaderString;
+  replacementTagKey: ShaderString;
   pipelineStage: ShaderString;
 
   applyVirtualCamera(virtualCamera: VirtualCamera): void {

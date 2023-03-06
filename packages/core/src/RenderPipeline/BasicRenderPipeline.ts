@@ -222,22 +222,21 @@ export class BasicRenderPipeline {
    * @param data - Render data
    */
   pushRenderData(context: RenderContext, data: RenderData): void {
-    const material = data.material;
-    const renderStates = material.renderStates;
+    const { material } = data;
+    const { renderStates } = material;
     const materialSubShader = material.shader.subShaders[0];
     const replacementShader = context.replacementShader;
 
     if (replacementShader) {
       const replacementSubShaders = replacementShader.subShaders;
-      const { replacementTag } = context;
-      if (replacementTag) {
+      const { replacementTagKey } = context;
+      if (replacementTagKey) {
         for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
-          const replacementSubShader = replacementSubShaders[i];
+          const subShader = replacementSubShaders[i];
           if (
-            replacementSubShader.getReplacementTag(replacementTag) ===
-            materialSubShader.getReplacementTag(replacementTag)
+            subShader.getReplacementTag(replacementTagKey) === materialSubShader.getReplacementTag(replacementTagKey)
           ) {
-            this.pushRenderDataWihShader(context, data, replacementSubShader.passes, renderStates);
+            this.pushRenderDataWihShader(context, data, subShader.passes, renderStates);
           }
         }
       } else {

@@ -125,12 +125,12 @@ export abstract class Basic2DBatcher {
   }
 
   private _drawSubElement(element: RenderElement, camera: Camera): void {
-    const len = (<SpriteRenderData | SpriteMaskRenderData>element.data).renderData.vertexCount;
-    if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
+    const vertexCount = (<SpriteRenderData | SpriteMaskRenderData>element.data).renderData.vertexCount;
+    if (this._vertexCount + vertexCount > Basic2DBatcher.MAX_VERTEX_COUNT) {
       this.flush(camera);
     }
 
-    this._vertexCount += len;
+    this._vertexCount += vertexCount;
     this._batchedQueue[this._elementCount++] = element;
   }
 
