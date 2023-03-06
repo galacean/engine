@@ -480,7 +480,7 @@ export class Camera extends Component {
    *
    * @remarks
    * If replacementTagKey is not specified, the first sub shader will be replaced.
-   * If replacementTagKey is specified, the replacement shader will find the first sub shader which has the same replacement tag value get by replacementTagKey.
+   * If replacementTagKey is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
    */
   setReplacementShader(shader: Shader, replacementTagKey?: ShaderString): void {
     this._replacementShader = shader;

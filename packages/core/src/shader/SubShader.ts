@@ -5,7 +5,7 @@ import { ShaderString } from "./ShaderString";
  * Sub shader.
  */
 export class SubShader {
-  private _replacementTagsMap: Record<number, ShaderString>;
+  private _tagsMap: Record<number, ShaderString>;
   private _passes: ShaderPass[];
 
   /**
@@ -29,25 +29,35 @@ export class SubShader {
   }
 
   /**
-   * Add a replacement tag.
+   * Add a tag.
+   * @param keyName - Name of the tag key
+   * @param valueName - Name of the tag value
+   */
+  addTag(keyName: string, valueName: string): void;
+  /**
+   * Add a tag.
    * @param key - Key of the tag
    * @param value - Value of the tag
    */
-  addReplacementTag(key: ShaderString, value: ShaderString): void {
-    const tags = this._replacementTagsMap;
-    if (tags[key._uniqueId]) {
-      throw `Tag named "${key}" already exists.`;
-    }
+  addTag(key: ShaderString, value: ShaderString): void;
 
-    tags[key._uniqueId] = value;
+  addTag(keyOrKeyName: ShaderString | string, valueOrValueName: ShaderString | string): void {
+    const key = typeof keyOrKeyName === "string" ? ShaderString.getByName(keyOrKeyName) : keyOrKeyName;
+    const value = typeof valueOrValueName === "string" ? ShaderString.getByName(valueOrValueName) : valueOrValueName;
+    const tags = this._tagsMap;
+
+    if (tags[key._uniqueId]) {
+      throw `Tag named "${key.name}" already exists.`;
+    }
+    tags[value._uniqueId] = value;
   }
 
   /**
-   * Get a replacement tag value.
+   * Get a tag value.
    * @param key - Key of the tag
    * @returns Value of the tag
    */
-  getReplacementTagValue(key: ShaderString): ShaderString {
-    return this._replacementTagsMap[key._uniqueId];
+  getTagValue(key: ShaderString): ShaderString {
+    return this._tagsMap[key._uniqueId];
   }
 }
