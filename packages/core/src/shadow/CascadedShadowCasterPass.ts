@@ -208,8 +208,8 @@ export class CascadedShadowCasterPass {
           rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
           engine._renderCount++;
 
-          opaqueQueue.render(camera, null, Layer.Everything);
-          alphaTestQueue.render(camera, null, Layer.Everything);
+          opaqueQueue.render(camera, Layer.Everything);
+          alphaTestQueue.render(camera, Layer.Everything);
           rhi.setGlobalDepthBias(0, 0);
         }
       }

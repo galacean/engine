@@ -1,7 +1,6 @@
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../graphic";
-import { Material } from "../material";
 import { BufferMesh } from "../mesh";
 import { ClassPool } from "./ClassPool";
 import { RenderElement } from "./RenderElement";
@@ -46,7 +45,7 @@ export abstract class Basic2DBatcher {
     this._initMeshes(engine);
   }
 
-  drawElement(element: RenderElement, camera: Camera, replaceMaterial: Material): void {
+  drawElement(element: RenderElement, camera: Camera): void {
     const data = element.data;
 
     if (data.multiRenderData) {
@@ -56,10 +55,10 @@ export abstract class Basic2DBatcher {
       for (let i = 0, n = charsData.length; i < n; ++i) {
         const charRenderElement = pool.getFromPool();
         charRenderElement.set(charsData[i], element.shaderPass, element.renderState);
-        this._drawSubElement(charRenderElement, camera, replaceMaterial);
+        this._drawSubElement(charRenderElement, camera);
       }
     } else {
-      this._drawSubElement(element, camera, replaceMaterial);
+      this._drawSubElement(element, camera);
     }
   }
 
@@ -78,24 +77,24 @@ export abstract class Basic2DBatcher {
     }
   }
 
-  private _drawSubElement(element: RenderElement, camera: Camera, replaceMaterial: Material) {
+  private _drawSubElement(element: RenderElement, camera: Camera): void {
     const len = (<SpriteRenderData | SpriteMaskRenderData>element.data).renderData.vertexCount;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
-      this.flush(camera, replaceMaterial);
+      this.flush(camera);
     }
 
     this._vertexCount += len;
     this._batchedQueue[this._elementCount++] = element;
   }
 
-  flush(camera: Camera, replaceMaterial: Material): void {
+  flush(camera: Camera): void {
     const batchedQueue = this._batchedQueue;
 
     if (batchedQueue.length === 0) {
       return;
     }
     this._updateData(this._engine);
-    this.drawBatches(camera, replaceMaterial);
+    this.drawBatches(camera);
 
     if (!Basic2DBatcher._canUploadSameBuffer) {
       this._flushId++;
@@ -184,7 +183,7 @@ export abstract class Basic2DBatcher {
     let preElement: RenderElement = null;
     for (let i = 0, len = batchedQueue.length; i < len; i++) {
       const curElement = batchedQueue[i];
-      const curData= <SpriteData>curElement.data;
+      const curData = <SpriteData>curElement.data;
 
       // Batch vertex
       vertexIndex = this.updateVertices(curData, vertices, vertexIndex);
@@ -247,5 +246,5 @@ export abstract class Basic2DBatcher {
   /**
    * @internal
    */
-  abstract drawBatches(camera: Camera, replaceMaterial: Material): void;
+  abstract drawBatches(camera: Camera): void;
 }

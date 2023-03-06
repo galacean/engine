@@ -41,7 +41,7 @@ export class RenderQueue {
     this.items.push(element);
   }
 
-  render(camera: Camera, replaceMaterial: Material, mask: Layer): void {
+  render(camera: Camera, mask: Layer): void {
     const items = this.items;
     if (items.length === 0) {
       return;
@@ -63,7 +63,7 @@ export class RenderQueue {
       }
 
       if (!!(data as MeshRenderData).mesh) {
-        this._spriteBatcher.flush(camera, replaceMaterial);
+        this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
         const element = <MeshRenderData>data;
@@ -138,11 +138,11 @@ export class RenderQueue {
 
         rhi.drawPrimitive(element.mesh, element.subMesh, program);
       } else {
-        this._spriteBatcher.drawElement(renderItem, camera, replaceMaterial);
+        this._spriteBatcher.drawElement(renderItem, camera);
       }
     }
 
-    this._spriteBatcher.flush(camera, replaceMaterial);
+    this._spriteBatcher.flush(camera);
   }
 
   /**

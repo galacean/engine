@@ -29,7 +29,7 @@ export class SpriteMaskManager {
 
     this._batcher.clear();
     this._processMasksDiff(camera, renderer);
-    this._batcher.flush(camera, null);
+    this._batcher.flush(camera);
   }
 
   postRender(renderer: SpriteRenderer): void {
@@ -66,14 +66,14 @@ export class SpriteMaskManager {
         if (influenceLayers & addLayer) {
           const maskRenderElement = mask._maskElement;
           (<SpriteMaskRenderData>maskRenderElement.data).isAdd = true;
-          this._batcher.drawElement(maskRenderElement, camera, null);
+          this._batcher.drawElement(maskRenderElement, camera);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
           const maskRenderElement = mask._maskElement;
           (<SpriteMaskRenderData>maskRenderElement.data).isAdd = false;
-          this._batcher.drawElement(maskRenderElement, camera, null);
+          this._batcher.drawElement(maskRenderElement, camera);
         }
       }
     }

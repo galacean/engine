@@ -197,8 +197,8 @@ export class BasicRenderPipeline {
       if (pass.renderOverride) {
         pass.render(camera, this._opaqueQueue, this._alphaTestQueue, this._transparentQueue);
       } else {
-        this._opaqueQueue.render(camera, pass.replaceMaterial, pass.mask);
-        this._alphaTestQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._opaqueQueue.render(camera, pass.mask);
+        this._alphaTestQueue.render(camera, pass.mask);
         if (camera.clearFlags & CameraClearFlags.Color) {
           if (background.mode === BackgroundMode.Sky) {
             background.sky._render(context);
@@ -206,7 +206,7 @@ export class BasicRenderPipeline {
             this._drawBackgroundTexture(engine, background);
           }
         }
-        this._transparentQueue.render(camera, pass.replaceMaterial, pass.mask);
+        this._transparentQueue.render(camera, pass.mask);
       }
 
       renderTarget?._blitRenderTarget();
