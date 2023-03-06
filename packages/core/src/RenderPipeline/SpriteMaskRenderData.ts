@@ -12,10 +12,9 @@ export class SpriteMaskRenderData extends RenderData {
     this.multiRenderData = false;
   }
 
-  setValue(component: Renderer, material: Material, verticesData: VertexData2D): void {
+  set(component: Renderer, material: Material, verticesData: VertexData2D): void {
     this.component = component;
     this.material = material;
-
     this.verticesData = verticesData;
   }
 }

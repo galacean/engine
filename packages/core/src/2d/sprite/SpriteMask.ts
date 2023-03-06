@@ -211,7 +211,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
 
     const renderData = this._engine._spriteMaskRenderDataPool.getFromPool();
     const material = this.getMaterial();
-    renderData.setValue(this, material, this._verticesData);
+    renderData.set(this, material, this._verticesData);
 
     const renderElement = this._engine._renderElementPool.getFromPool();
     renderElement.set(renderData, material.shader[0].shaderPasses[0], material.renderStates[0]);
