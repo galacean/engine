@@ -58,8 +58,8 @@ export class RenderQueue {
     const cameraData = camera.shaderData;
 
     for (let i = 0, n = elements.length; i < n; i++) {
-      const renderItem = elements[i];
-      const data = renderItem.data;
+      const element = elements[i];
+      const data = element.data;
       const renderPassFlag = data.component.entity.layer;
 
       if (!(renderPassFlag & mask)) {
@@ -70,9 +70,9 @@ export class RenderQueue {
         this._spriteBatcher.flush(camera);
 
         const compileMacros = Shader._compileMacros;
-        const element = <MeshRenderData>data;
-        const renderer = element.component;
-        const material = element.material.destroyed ? engine._magentaMaterial : element.material;
+        const meshData = <MeshRenderData>data;
+        const renderer = meshData.component;
+        const material = meshData.material.destroyed ? engine._magentaMaterial : meshData.material;
         const rendererData = renderer.shaderData;
         const materialData = material.shaderData;
 
@@ -83,7 +83,7 @@ export class RenderQueue {
           compileMacros
         );
 
-        const program = renderItem.shaderPass._getShaderProgram(engine, compileMacros);
+        const program = element.shaderPass._getShaderProgram(engine, compileMacros);
         if (!program.isValid) {
           continue;
         }
@@ -138,11 +138,11 @@ export class RenderQueue {
             program.uploadUnGroupTextures();
           }
         }
-        renderItem.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
+        element.renderState._apply(engine, renderer.entity.transform._isFrontFaceInvert());
 
-        rhi.drawPrimitive(element.mesh, element.subMesh, program);
+        rhi.drawPrimitive(meshData.mesh, meshData.subMesh, program);
       } else {
-        this._spriteBatcher.drawElement(renderItem, camera);
+        this._spriteBatcher.drawElement(element, camera);
       }
     }
 
