@@ -7,8 +7,6 @@ export class RenderElement {
   shaderPass: ShaderPass;
   renderState: RenderState;
 
-  multiRenderData: boolean;
-
   set(data: RenderData, shaderPass: ShaderPass, renderState: RenderState): void {
     this.data = data;
     this.shaderPass = shaderPass;
