@@ -113,7 +113,6 @@ export abstract class Mesh extends RefObject {
       startOrSubMesh = new SubMesh(startOrSubMesh, count, topology);
     }
     this._subMeshes.push(startOrSubMesh);
-    this._updateFlagManager.dispatch(MeshModifyFlags.SubMesh);
     return startOrSubMesh;
   }
 
@@ -127,7 +126,6 @@ export abstract class Mesh extends RefObject {
     if (index !== -1) {
       subMeshes.splice(index, 1);
     }
-    this._updateFlagManager.dispatch(MeshModifyFlags.SubMesh);
   }
 
   /**
@@ -135,7 +133,6 @@ export abstract class Mesh extends RefObject {
    */
   clearSubMesh(): void {
     this._subMeshes.length = 0;
-    this._updateFlagManager.dispatch(MeshModifyFlags.SubMesh);
   }
 
   /**
@@ -239,6 +236,5 @@ export abstract class Mesh extends RefObject {
  */
 export enum MeshModifyFlags {
   Bounds = 0x1,
-  VertexElements = 0x2,
-  SubMesh = 0x4
+  VertexElements = 0x2
 }
