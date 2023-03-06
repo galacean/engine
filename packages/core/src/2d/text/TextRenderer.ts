@@ -5,7 +5,6 @@ import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { Renderer } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { SpriteRenderData } from "../../RenderPipeline/SpriteRenderData";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { TransformModifyFlags } from "../../Transform";
 import { FontStyle } from "../enums/FontStyle";
@@ -66,9 +65,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   @assignmentClone
   private _maskLayer: number = SpriteMaskLayer.Layer0;
-
-  @ignoreClone
-  private _charsRenderData: SpriteRenderData[] = [];
 
   /**
    * Rendering color for the Text.
@@ -384,14 +380,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
 
     const spriteRenderDataPool = this._engine._spriteRenderDataPool;
-    const textElement = this._engine._textRenderDataPool.getFromPool();
-    const charsData = textElement.charsData;
+    const textData = this._engine._textRenderDataPool.getFromPool();
+    const charsData = textData.charsData;
     const material = this.getMaterial();
     const charRenderDatas = this._charRenderDatas;
     const charCount = charRenderDatas.length;
 
-    textElement.component = this;
-    textElement.material = material;
+    textData.component = this;
+    textData.material = material;
     charsData.length = charCount;
 
     for (let i = 0; i < charCount; ++i) {
@@ -400,7 +396,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       spriteRenderData.set(this, material, charRenderData.renderData, charRenderData.texture, i);
       charsData[i] = spriteRenderData;
     }
-    context.camera._renderPipeline.pushRenderData(context, textElement);
+    context.camera._renderPipeline.pushRenderData(context, textData);
   }
 
   private _updateStencilState(): void {
