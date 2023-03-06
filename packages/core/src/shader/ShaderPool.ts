@@ -19,7 +19,6 @@ import unlitFs from "../shaderlib/extra/unlit.fs.glsl";
 import unlitVs from "../shaderlib/extra/unlit.vs.glsl";
 import { Shader } from "./Shader";
 import { ShaderPass } from "./ShaderPass";
-import { ShaderString } from "./ShaderString";
 
 /**
  * Internal shader pool.
@@ -27,20 +26,17 @@ import { ShaderString } from "./ShaderString";
  */
 export class ShaderPool {
   static init(): void {
-    const shadowCasterPass = new ShaderPass(shadowMapVs, shadowMapFs, ShaderString.getByName("ShadowCaster"));
-    const pipelineForward = ShaderString.getByName("Forward");
+    const shadowCasterPass = new ShaderPass(shadowMapVs, shadowMapFs, "ShadowCaster");
 
-    Shader.create("blinn-phong", [new ShaderPass(blinnPhongVs, blinnPhongFs, pipelineForward), shadowCasterPass]);
-    Shader.create("pbr", [new ShaderPass(pbrVs, pbrFs, pipelineForward), shadowCasterPass]);
-    Shader.create("pbr-specular", [new ShaderPass(pbrVs, pbrSpecularFs, pipelineForward), shadowCasterPass]);
-    Shader.create("unlit", [new ShaderPass(unlitVs, unlitFs, pipelineForward), shadowCasterPass]);
+    Shader.create("blinn-phong", [new ShaderPass(blinnPhongVs, blinnPhongFs, "Forward"), shadowCasterPass]);
+    Shader.create("pbr", [new ShaderPass(pbrVs, pbrFs, "Forward"), shadowCasterPass]);
+    Shader.create("pbr-specular", [new ShaderPass(pbrVs, pbrSpecularFs, "Forward"), shadowCasterPass]);
+    Shader.create("unlit", [new ShaderPass(unlitVs, unlitFs, "Forward"), shadowCasterPass]);
 
-    Shader.create("skybox", [new ShaderPass(skyboxVs, skyboxFs, pipelineForward)]);
-    Shader.create("particle-shader", [new ShaderPass(particleVs, particleFs, pipelineForward)]);
-    Shader.create("SpriteMask", [new ShaderPass(spriteMaskVs, spriteMaskFs, pipelineForward)]);
-    Shader.create("Sprite", [new ShaderPass(spriteVs, spriteFs, pipelineForward)]);
-    Shader.create("background-texture", [
-      new ShaderPass(backgroundTextureVs, backgroundTextureFs, pipelineForward)
-    ]);
+    Shader.create("skybox", [new ShaderPass(skyboxVs, skyboxFs, "Forward")]);
+    Shader.create("particle-shader", [new ShaderPass(particleVs, particleFs, "Forward")]);
+    Shader.create("SpriteMask", [new ShaderPass(spriteMaskVs, spriteMaskFs, "Forward")]);
+    Shader.create("Sprite", [new ShaderPass(spriteVs, spriteFs, "Forward")]);
+    Shader.create("background-texture", [new ShaderPass(backgroundTextureVs, backgroundTextureFs, "Forward")]);
   }
 }

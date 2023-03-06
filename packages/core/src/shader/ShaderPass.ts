@@ -21,12 +21,34 @@ export class ShaderPass {
   private _vertexSource: string;
   private _fragmentSource: string;
 
-  constructor(vertexSource: string, fragmentSource: string, pipelineStage?: ShaderString) {
+  /**
+   * Create a shader pass.
+   * @param vertexSource - Vertex shader source
+   * @param fragmentSource - Fragment shader source
+   * @param pipelineStageName - Pipeline stage name
+   */
+  constructor(vertexSource: string, fragmentSource: string, pipelineStageName?: string);
+
+  /**
+   * Create a shader pass.
+   * @param vertexSource - Vertex shader source
+   * @param fragmentSource - Fragment shader source
+   * @param pipelineStage - Pipeline stage
+   */
+  constructor(vertexSource: string, fragmentSource: string, pipelineStage?: ShaderString);
+
+  constructor(vertexSource: string, fragmentSource: string, pipelineStageOrName?: string | ShaderString) {
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
     this._vertexSource = vertexSource;
     this._fragmentSource = fragmentSource;
-    this.pipelineStage = pipelineStage || ShaderString.getByName("Forward");
+
+    if (pipelineStageOrName) {
+      this.pipelineStage =
+        typeof pipelineStageOrName === "string" ? ShaderString.getByName(pipelineStageOrName) : pipelineStageOrName;
+    } else {
+      this.pipelineStage = ShaderString.getByName("Forward");
+    }
   }
 
   /**

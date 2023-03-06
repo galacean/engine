@@ -39,7 +39,6 @@ export class CascadedShadowCasterPass {
 
   private readonly _camera: Camera;
   private readonly _engine: Engine;
-  private readonly _shadowCasterShader: Shader;
   private readonly _supportDepthTexture: boolean;
 
   private _shadowMapResolution: number;
@@ -67,7 +66,6 @@ export class CascadedShadowCasterPass {
     this._engine = camera.engine;
 
     this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
-    this._shadowCasterShader = Shader.find("shadow-map");
     this._shadowSliceData.virtualCamera.isOrthographic = true;
   }
 
