@@ -4,7 +4,6 @@ import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
 import { ShaderProperty } from "./ShaderProperty";
-import { ShaderString } from "./ShaderString";
 import { SubShader } from "./SubShader";
 
 /**
@@ -171,7 +170,7 @@ export class Shader {
     }
   }
 
-  private _subShaders: SubShader[] = [];
+  private _subShaders: SubShader[];
 
   /**
    * Sub shaders of the shader.
@@ -187,9 +186,7 @@ export class Shader {
     if (passCount < 1) {
       throw "SubShader count must large than 0.";
     }
-    for (let i = 0; i < passCount; i++) {
-      this._subShaders.push(subShaders[i]);
-    }
+    this._subShaders = subShaders.slice();
   }
 
   /**

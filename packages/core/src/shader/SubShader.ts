@@ -5,11 +5,8 @@ import { ShaderString } from "./ShaderString";
  * Sub shader.
  */
 export class SubShader {
-  /** Disable batch. */
-  disableBatch: boolean = false;
-
   private _replacementTagsMap: Record<number, ShaderString>;
-  private _passes: ShaderPass[] = [];
+  private _passes: ShaderPass[];
 
   /**
    * Sub shader passes.
@@ -28,9 +25,7 @@ export class SubShader {
     if (passCount < 1) {
       throw " count must large than 0.";
     }
-    for (let i = 0; i < passCount; i++) {
-      this._passes.push(passes[i]);
-    }
+    this._passes = passes.slice();
   }
 
   /**
