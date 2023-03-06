@@ -13,16 +13,16 @@ export class SimpleSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
 
   static resetData(renderer: SpriteRenderer | SpriteMask): void {
-    const { _verticesData: renderData } = renderer;
-    const vertexCount = (renderData.vertexCount = 4);
-    const { positions, uvs } = renderData;
+    const { _verticesData: verticesData } = renderer;
+    const vertexCount = (verticesData.vertexCount = 4);
+    const { positions, uvs } = verticesData;
     if (positions.length < vertexCount) {
       for (let i = positions.length; i < vertexCount; i++) {
         positions.push(new Vector3());
         uvs.push(new Vector2());
       }
     }
-    renderData.triangles = SimpleSpriteAssembler._rectangleTriangles;
+    verticesData.triangles = SimpleSpriteAssembler._rectangleTriangles;
   }
 
   static updatePositions(renderer: SpriteRenderer | SpriteMask): void {

@@ -10,15 +10,15 @@ import { IAssembler } from "./IAssembler";
 export class SlicedSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer): void {
-    const { _verticesData: renderData } = renderer;
-    const { positions, uvs } = renderData;
+    const { _verticesData: verticesData } = renderer;
+    const { positions, uvs } = verticesData;
     if (positions.length < 16) {
       for (let i = positions.length; i < 16; i++) {
         positions.push(new Vector3());
         uvs.push(new Vector2());
       }
     }
-    renderData.triangles = [];
+    verticesData.triangles = [];
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
