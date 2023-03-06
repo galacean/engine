@@ -1,6 +1,6 @@
 import { Camera } from "../Camera";
 import { Shader } from "../shader";
-import { ShaderString } from "../shader/ShaderString";
+import { ShaderTag } from "../shader/ShaderString";
 import { VirtualCamera } from "../VirtualCamera";
 
 /**
@@ -18,8 +18,8 @@ export class RenderContext {
   virtualCamera: VirtualCamera;
 
   replacementShader: Shader;
-  replacementTagKey: ShaderString;
-  pipelineStage: ShaderString;
+  replacementTagKey: ShaderTag;
+  pipelineStage: ShaderTag;
 
   applyVirtualCamera(virtualCamera: VirtualCamera): void {
     this.virtualCamera = virtualCamera;

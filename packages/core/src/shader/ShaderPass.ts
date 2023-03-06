@@ -4,7 +4,7 @@ import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderProgram } from "./ShaderProgram";
-import { ShaderString } from "./ShaderString";
+import { ShaderTag } from "./ShaderString";
 
 /**
  * Shader pass containing vertex and fragment source.
@@ -13,7 +13,7 @@ export class ShaderPass {
   private static _shaderPassCounter: number = 0;
 
   /** Pipeline stage. */
-  readonly pipelineStage: ShaderString;
+  readonly pipelineStage: ShaderTag;
 
   /** @internal */
   _shaderPassId: number = 0;
@@ -35,9 +35,9 @@ export class ShaderPass {
    * @param fragmentSource - Fragment shader source
    * @param pipelineStage - Pipeline stage
    */
-  constructor(vertexSource: string, fragmentSource: string, pipelineStage?: ShaderString);
+  constructor(vertexSource: string, fragmentSource: string, pipelineStage?: ShaderTag);
 
-  constructor(vertexSource: string, fragmentSource: string, pipelineStageOrName?: string | ShaderString) {
+  constructor(vertexSource: string, fragmentSource: string, pipelineStageOrName?: string | ShaderTag) {
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
     this._vertexSource = vertexSource;
@@ -45,9 +45,9 @@ export class ShaderPass {
 
     if (pipelineStageOrName) {
       this.pipelineStage =
-        typeof pipelineStageOrName === "string" ? ShaderString.getByName(pipelineStageOrName) : pipelineStageOrName;
+        typeof pipelineStageOrName === "string" ? ShaderTag.getByName(pipelineStageOrName) : pipelineStageOrName;
     } else {
-      this.pipelineStage = ShaderString.getByName("Forward");
+      this.pipelineStage = ShaderTag.getByName("Forward");
     }
   }
 

@@ -1,18 +1,18 @@
 /**
- * ShaderString is a class that represents a shader string.
+ * Shader tag.
  */
-export class ShaderString {
+export class ShaderTag {
   private static _nameCounter: number = 0;
-  private static _nameMap: Record<string, ShaderString> = Object.create(null);
+  private static _nameMap: Record<string, ShaderTag> = Object.create(null);
 
   /**
    * Get shader property by name.
    * @param name - Name of the shader property
    * @returns Shader property
    */
-  static getByName(name: string): ShaderString {
-    const nameMap = ShaderString._nameMap;
-    return (nameMap[name] ||= new ShaderString(name));
+  static getByName(name: string): ShaderTag {
+    const nameMap = ShaderTag._nameMap;
+    return (nameMap[name] ||= new ShaderTag(name));
   }
 
   /** Shader property name. */
@@ -23,6 +23,6 @@ export class ShaderString {
 
   private constructor(name: string) {
     this.name = name;
-    this._uniqueId = ShaderString._nameCounter++;
+    this._uniqueId = ShaderTag._nameCounter++;
   }
 }

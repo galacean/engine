@@ -1,11 +1,11 @@
 import { ShaderPass } from "./ShaderPass";
-import { ShaderString } from "./ShaderString";
+import { ShaderTag } from "./ShaderString";
 
 /**
  * Sub shader.
  */
 export class SubShader {
-  private _tagsMap: Record<number, ShaderString>;
+  private _tagsMap: Record<number, ShaderTag>;
   private _passes: ShaderPass[];
 
   /**
@@ -39,11 +39,11 @@ export class SubShader {
    * @param key - Key of the tag
    * @param value - Value of the tag
    */
-  addTag(key: ShaderString, value: ShaderString): void;
+  addTag(key: ShaderTag, value: ShaderTag): void;
 
-  addTag(keyOrKeyName: ShaderString | string, valueOrValueName: ShaderString | string): void {
-    const key = typeof keyOrKeyName === "string" ? ShaderString.getByName(keyOrKeyName) : keyOrKeyName;
-    const value = typeof valueOrValueName === "string" ? ShaderString.getByName(valueOrValueName) : valueOrValueName;
+  addTag(keyOrKeyName: ShaderTag | string, valueOrValueName: ShaderTag | string): void {
+    const key = typeof keyOrKeyName === "string" ? ShaderTag.getByName(keyOrKeyName) : keyOrKeyName;
+    const value = typeof valueOrValueName === "string" ? ShaderTag.getByName(valueOrValueName) : valueOrValueName;
     const tags = this._tagsMap;
 
     if (tags[key._uniqueId]) {
@@ -57,7 +57,7 @@ export class SubShader {
    * @param key - Key of the tag
    * @returns Value of the tag
    */
-  getTagValue(key: ShaderString): ShaderString {
+  getTagValue(key: ShaderTag): ShaderTag {
     return this._tagsMap[key._uniqueId];
   }
 }

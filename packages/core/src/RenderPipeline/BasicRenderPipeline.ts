@@ -12,7 +12,7 @@ import { Material } from "../material";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
-import { ShaderString } from "../shader/ShaderString";
+import { ShaderTag } from "../shader/ShaderString";
 import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
@@ -26,8 +26,8 @@ import { RenderQueue } from "./RenderQueue";
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
-  private static _shadowCasterPipelineStage = ShaderString.getByName("ShadowCaster");
-  private static _forwardPipelineStage = ShaderString.getByName("Forward");
+  private static _shadowCasterPipelineStage = ShaderTag.getByName("ShadowCaster");
+  private static _forwardPipelineStage = ShaderTag.getByName("Forward");
 
   /** @internal */
   _opaqueQueue: RenderQueue;
