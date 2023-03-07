@@ -150,7 +150,7 @@ export class BasicRenderPipeline {
 
     camera.engine._spriteMaskManager.clear();
 
-    context.pipelineStage = BasicRenderPipeline._shadowCasterPipelineStage;
+    context.pipelineStageValue = BasicRenderPipeline._shadowCasterPipelineStage;
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster._render(context);
     }
@@ -161,7 +161,7 @@ export class BasicRenderPipeline {
 
     context.applyVirtualCamera(camera._virtualCamera);
 
-    context.pipelineStage = BasicRenderPipeline._forwardPipelineStage;
+    context.pipelineStageValue = BasicRenderPipeline._forwardPipelineStage;
     this._callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
@@ -233,9 +233,7 @@ export class BasicRenderPipeline {
       if (replacementTagKey) {
         for (let i = 0, n = replacementSubShaders.length; i < n; i++) {
           const subShader = replacementSubShaders[i];
-          if (
-            subShader.getTagValue(replacementTagKey) === materialSubShader.getTagValue(replacementTagKey)
-          ) {
+          if (subShader.getTagValue(replacementTagKey) === materialSubShader.getTagValue(replacementTagKey)) {
             this.pushRenderDataWihShader(context, data, subShader.passes, renderStates);
             break;
           }
@@ -254,11 +252,12 @@ export class BasicRenderPipeline {
     shaderPasses: ReadonlyArray<ShaderPass>,
     renderStates: ReadonlyArray<RenderState>
   ) {
-    const pipelineStage = context.pipelineStage;
+    const pipelineStage = context.pipelineStageValue;
     const renderElementPool = context.camera.engine._renderElementPool;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       const shaderPass = shaderPasses[i];
-      if (shaderPass.pipelineStage === pipelineStage) {
+      debugger;
+      if (shaderPass.getTagValue(RenderContext.pipelineStageKey) === pipelineStage) {
         const renderElement = renderElementPool.getFromPool();
 
         renderElement.set(element, shaderPass, renderStates[i]);

@@ -26,17 +26,24 @@ import { ShaderPass } from "./ShaderPass";
  */
 export class ShaderPool {
   static init(): void {
-    const shadowCasterPass = new ShaderPass(shadowMapVs, shadowMapFs, "ShadowCaster");
+    const shadowCasterPassTags = {
+      PipelineStage: "ShadowCaster"
+    };
+    const forwardPassTags = {
+      PipelineStage: "Forward"
+    };
 
-    Shader.create("blinn-phong", [new ShaderPass(blinnPhongVs, blinnPhongFs, "Forward"), shadowCasterPass]);
-    Shader.create("pbr", [new ShaderPass(pbrVs, pbrFs, "Forward"), shadowCasterPass]);
-    Shader.create("pbr-specular", [new ShaderPass(pbrVs, pbrSpecularFs, "Forward"), shadowCasterPass]);
-    Shader.create("unlit", [new ShaderPass(unlitVs, unlitFs, "Forward"), shadowCasterPass]);
+    const shadowCasterPass = new ShaderPass(shadowMapVs, shadowMapFs, shadowCasterPassTags);
 
-    Shader.create("skybox", [new ShaderPass(skyboxVs, skyboxFs, "Forward")]);
-    Shader.create("particle-shader", [new ShaderPass(particleVs, particleFs, "Forward")]);
-    Shader.create("SpriteMask", [new ShaderPass(spriteMaskVs, spriteMaskFs, "Forward")]);
-    Shader.create("Sprite", [new ShaderPass(spriteVs, spriteFs, "Forward")]);
-    Shader.create("background-texture", [new ShaderPass(backgroundTextureVs, backgroundTextureFs, "Forward")]);
+    Shader.create("blinn-phong", [new ShaderPass(blinnPhongVs, blinnPhongFs, forwardPassTags), shadowCasterPass]);
+    Shader.create("pbr", [new ShaderPass(pbrVs, pbrFs, forwardPassTags), shadowCasterPass]);
+    Shader.create("pbr-specular", [new ShaderPass(pbrVs, pbrSpecularFs, forwardPassTags), shadowCasterPass]);
+    Shader.create("unlit", [new ShaderPass(unlitVs, unlitFs, forwardPassTags), shadowCasterPass]);
+
+    Shader.create("skybox", [new ShaderPass(skyboxVs, skyboxFs, forwardPassTags)]);
+    Shader.create("particle-shader", [new ShaderPass(particleVs, particleFs, forwardPassTags)]);
+    Shader.create("SpriteMask", [new ShaderPass(spriteMaskVs, spriteMaskFs, forwardPassTags)]);
+    Shader.create("Sprite", [new ShaderPass(spriteVs, spriteFs, forwardPassTags)]);
+    Shader.create("background-texture", [new ShaderPass(backgroundTextureVs, backgroundTextureFs, forwardPassTags)]);
   }
 }

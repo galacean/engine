@@ -49,7 +49,7 @@ export class SubShader {
     if (tags[key._uniqueId]) {
       throw `Tag named "${key.name}" already exists.`;
     }
-    tags[value._uniqueId] = value;
+    tags[key._uniqueId] = value;
   }
 
   /**

@@ -8,8 +8,8 @@ import { VirtualCamera } from "../VirtualCamera";
  * Rendering context.
  */
 export class RenderContext {
-  /** @internal */
-  static _vpMatrixProperty = Shader.getPropertyByName("u_VPMat");
+  static vpMatrixProperty = Shader.getPropertyByName("u_VPMat");
+  static pipelineStageKey: ShaderTag = ShaderTag.getByName("PipelineStage");
 
   private static _viewMatrixProperty = Shader.getPropertyByName("u_viewMat");
   private static _projectionMatrixProperty = Shader.getPropertyByName("u_projMat");
@@ -19,13 +19,13 @@ export class RenderContext {
 
   replacementShader: Shader;
   replacementTagKey: ShaderTag;
-  pipelineStage: ShaderTag;
+  pipelineStageValue: ShaderTag;
 
   applyVirtualCamera(virtualCamera: VirtualCamera): void {
     this.virtualCamera = virtualCamera;
     const shaderData = this.camera.shaderData;
     shaderData.setMatrix(RenderContext._viewMatrixProperty, virtualCamera.viewMatrix);
     shaderData.setMatrix(RenderContext._projectionMatrixProperty, virtualCamera.projectionMatrix);
-    shaderData.setMatrix(RenderContext._vpMatrixProperty, virtualCamera.viewProjectionMatrix);
+    shaderData.setMatrix(RenderContext.vpMatrixProperty, virtualCamera.viewProjectionMatrix);
   }
 }

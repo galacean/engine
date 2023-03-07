@@ -12,43 +12,75 @@ import { ShaderTag } from "./ShaderTag";
 export class ShaderPass {
   private static _shaderPassCounter: number = 0;
 
-  /** Pipeline stage. */
-  readonly pipelineStage: ShaderTag;
-
   /** @internal */
   _shaderPassId: number = 0;
 
   private _vertexSource: string;
   private _fragmentSource: string;
+  private _tagsMap: Record<number, ShaderTag> = Object.create(null);
 
   /**
    * Create a shader pass.
    * @param vertexSource - Vertex shader source
    * @param fragmentSource - Fragment shader source
-   * @param pipelineStageName - Pipeline stage name
+   * @param tags - Tags
    */
-  constructor(vertexSource: string, fragmentSource: string, pipelineStageName?: string);
+  constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, string>);
 
   /**
    * Create a shader pass.
    * @param vertexSource - Vertex shader source
    * @param fragmentSource - Fragment shader source
-   * @param pipelineStage - Pipeline stage
+   * @param tags - Tags
    */
-  constructor(vertexSource: string, fragmentSource: string, pipelineStage?: ShaderTag);
+  constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, string>);
 
-  constructor(vertexSource: string, fragmentSource: string, pipelineStageOrName?: string | ShaderTag) {
+  constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, string>) {
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
     this._vertexSource = vertexSource;
     this._fragmentSource = fragmentSource;
 
-    if (pipelineStageOrName) {
-      this.pipelineStage =
-        typeof pipelineStageOrName === "string" ? ShaderTag.getByName(pipelineStageOrName) : pipelineStageOrName;
+    if (tags) {
+      for (const key in tags) {
+        this.addTag(key, tags[key]);
+      }
     } else {
-      this.pipelineStage = ShaderTag.getByName("Forward");
+      this.addTag("PipelineStage", "Forward");
     }
+  }
+
+  /**
+   * Add a tag.
+   * @param keyName - Name of the tag key
+   * @param valueName - Name of the tag value
+   */
+  addTag(keyName: string, valueName: string): void;
+  /**
+   * Add a tag.
+   * @param key - Key of the tag
+   * @param value - Value of the tag
+   */
+  addTag(key: ShaderTag, value: ShaderTag): void;
+
+  addTag(keyOrKeyName: ShaderTag | string, valueOrValueName: ShaderTag | string): void {
+    const key = typeof keyOrKeyName === "string" ? ShaderTag.getByName(keyOrKeyName) : keyOrKeyName;
+    const value = typeof valueOrValueName === "string" ? ShaderTag.getByName(valueOrValueName) : valueOrValueName;
+    const tags = this._tagsMap;
+
+    if (tags[key._uniqueId]) {
+      throw `Tag named "${key.name}" already exists.`;
+    }
+    tags[key._uniqueId] = value;
+  }
+
+  /**
+   * Get a tag value.
+   * @param key - Key of the tag
+   * @returns Value of the tag
+   */
+  getTagValue(key: ShaderTag): ShaderTag {
+    return this._tagsMap[key._uniqueId];
   }
 
   /**
