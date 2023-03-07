@@ -64,12 +64,12 @@ export class Shader {
     let shader: Shader;
     if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
       const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
-      shader = new Shader(name, [new SubShader("DefaultPass", [shaderPass])]);
+      shader = new Shader(name, [new SubShader("Default", [shaderPass])]);
     } else {
       if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
         if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
           shader = new Shader(name, [
-            new SubShader("DefaultPass", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
+            new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
           ]);
         } else {
           shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders);
