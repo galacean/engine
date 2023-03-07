@@ -10,7 +10,7 @@ export { Entity } from "./Entity";
 export { Component } from "./Component";
 export { Script } from "./Script";
 export { Renderer } from "./Renderer";
-export { dependentComponents } from "./ComponentsDependencies";
+export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";

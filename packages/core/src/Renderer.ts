@@ -1,7 +1,7 @@
 import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependentComponents } from "./ComponentsDependencies";
+import { dependentComponents, DependentMode } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -13,9 +13,9 @@ import { Transform, TransformModifyFlags } from "./Transform";
 
 /**
  * Basis for all renderers.
- * @decorator `@dependentComponents(Transform)`
+ * @decorator `@dependentComponents(DependentMode.CheckOnly, Transform)`
  */
-@dependentComponents(Transform)
+@dependentComponents(DependentMode.CheckOnly, Transform)
 export class Renderer extends Component {
   private static _tempVector0 = new Vector3();
 

@@ -3,7 +3,7 @@ import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependentComponents } from "./ComponentsDependencies";
+import { dependentComponents, DependentMode } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
@@ -26,9 +26,9 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
- * @decorator `@dependentComponents(Transform)`
+ * @decorator `@dependentComponents(DependentMode.CheckOnly, Transform)`
  */
-@dependentComponents(Transform)
+@dependentComponents(DependentMode.CheckOnly, Transform)
 export class Camera extends Component {
   /** @internal */
   private static _inverseViewMatrixProperty = Shader.getPropertyByName("u_viewInvMat");
