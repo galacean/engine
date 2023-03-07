@@ -1,16 +1,16 @@
 import { ShaderTag } from "./ShaderTag";
 
 export class ShaderPart {
-  private _tagsMap: Record<number, ShaderTag>;
+  private _tagsMap: Record<number, ShaderTag> = Object.create(null);
 
   /**
-   * Add a tag.
+   * Set tag by name.
    * @param keyName - Name of the tag key
    * @param valueName - Name of the tag value
    */
   setTag(keyName: string, valueName: string): void;
   /**
-   * Add a tag.
+   * Set tag.
    * @param key - Key of the tag
    * @param value - Value of the tag
    */
@@ -30,16 +30,14 @@ export class ShaderPart {
   /**
    * Delete a tag by key name.
    * @param KeyName - Key name of the tag
-   * @returns Value of the tag
    */
-  deleteTag(KeyName: string);
+  deleteTag(KeyName: string): void;
 
   /**
-   * Delete a tag.
+   * Delete a tag by key.
    * @param key - Key of the tag
-   * @returns Value of the tag
    */
-  deleteTag(key: ShaderTag);
+  deleteTag(key: ShaderTag): void;
 
   deleteTag(keyOrKeyName: ShaderTag | string): void {
     delete this._tagsMap[
@@ -48,11 +46,22 @@ export class ShaderPart {
   }
 
   /**
-   * Get a tag value.
+   * Get tag value by key name.
+   * @param keyName - Key name of the tag
+   * @returns Value of the tag
+   */
+  getTagValue(keyName: ShaderTag | string): ShaderTag;
+
+  /**
+   * Get tag value by key.
    * @param key - Key of the tag
    * @returns Value of the tag
    */
-  getTagValue(key: ShaderTag): ShaderTag {
-    return this._tagsMap[key._uniqueId];
+  getTagValue(key: ShaderTag | string): ShaderTag;
+
+  getTagValue(keyOrKeyName: ShaderTag | string): ShaderTag {
+    return this._tagsMap[
+      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+    ];
   }
 }

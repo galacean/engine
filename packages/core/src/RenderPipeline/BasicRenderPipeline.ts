@@ -256,7 +256,6 @@ export class BasicRenderPipeline {
     const renderElementPool = context.camera.engine._renderElementPool;
     for (let i = 0, n = shaderPasses.length; i < n; i++) {
       const shaderPass = shaderPasses[i];
-      debugger;
       if (shaderPass.getTagValue(RenderContext.pipelineStageKey) === pipelineStage) {
         const renderElement = renderElementPool.getFromPool();
 
