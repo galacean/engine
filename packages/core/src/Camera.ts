@@ -448,6 +448,8 @@ export class Camera extends Component {
 
     context.camera = this;
     context.virtualCamera = virtualCamera;
+    context.replacementShader = this._replacementShader;
+    context.replacementTagKey = this._replacementSubShaderTagKey;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {
