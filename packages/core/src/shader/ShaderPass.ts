@@ -25,19 +25,19 @@ export class ShaderPass extends ShaderPart {
    * @param fragmentSource - Fragment shader source
    * @param tags - Tags
    */
-  constructor(vertexSource: string, fragmentSource: string, tags?: Record<string, string>) {
+  constructor(
+    vertexSource: string,
+    fragmentSource: string,
+    tags: Record<string, string> = { PipelineStage: "Forward" }
+  ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
 
     this._vertexSource = vertexSource;
     this._fragmentSource = fragmentSource;
 
-    if (tags) {
-      for (const key in tags) {
-        this.setTag(key, tags[key]);
-      }
-    } else {
-      this.setTag("PipelineStage", "Forward");
+    for (const key in tags) {
+      this.setTag(key, tags[key]);
     }
   }
 
