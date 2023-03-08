@@ -1,15 +1,17 @@
-import { Shader, ShaderTag } from "@oasis-engine/core";
+import { Shader, ShaderMacro, ShaderPass, ShaderProperty, ShaderTag, SubShader } from "@oasis-engine/core";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
-import { ShaderProperty } from "packages/core/src";
-import { ShaderMacro } from "packages/core/src/shader/ShaderMacro";
 
 chai.use(spies);
 
 describe("Shader", () => {
   describe("Custom Shader", () => {
     it("Shader", () => {
-      const customShader = Shader.create("custom", customVS, customFS);
+      // Create shader
+      let customShader = Shader.create("customByStringCreate", customVS, customFS);
+      customShader = Shader.create("customByPassCreate", [new ShaderPass(customVS, customFS)]);
+      customShader = Shader.create("custom", [new SubShader("Default", [new ShaderPass(customVS, customFS)])]);
+
       // Base struct created by Shader.create
       expect(customShader.subShaders).length(1);
       expect(customShader.subShaders[0].passes).length(1);
