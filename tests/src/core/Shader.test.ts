@@ -1,4 +1,13 @@
-import { Shader, ShaderMacro, ShaderPass, ShaderProperty, ShaderTag, SubShader } from "@oasis-engine/core";
+import {
+  BlinnPhongMaterial, Camera, DirectLight, MeshRenderer,
+  PrimitiveMesh, Shader,
+  ShaderMacro,
+  ShaderPass,
+  ShaderProperty,
+  ShaderTag,
+  SubShader
+} from "@oasis-engine/core";
+import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
 
@@ -25,7 +34,12 @@ describe("Shader", () => {
 
       // Shader macro
       const customMacro = ShaderMacro.getByName("CUSTOM_MACRO");
+
+      // Shader macro with value
+      const customMacroValue = ShaderMacro.getByName("CUSTOM_MACRO", "Value");
       expect(customMacro.name).to.equal("CUSTOM_MACRO");
+      expect(customMacroValue.name).to.equal("CUSTOM_MACRO");
+      expect(customMacroValue.value).to.equal("Value");
 
       // Compile variant
     });
@@ -78,6 +92,34 @@ describe("Shader", () => {
       shaderPass.deleteTag(ShaderTag.getByName("customTagKey"));
       getTag = shaderPass.getTagValue(ShaderTag.getByName("customTagKey"));
       expect(getTag).to.undefined;
+    });
+
+    it("Render and compile", () => {
+      const engine = new WebGLEngine(document.createElement("canvas"));
+      // Get scene and create root entity
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity("Root");
+
+      // Create light
+      const lightEntity = rootEntity.createChild("Light");
+      const directLight = lightEntity.addComponent(DirectLight);
+      lightEntity.transform.setRotation(-45, -45, 0);
+      directLight.intensity = 0.4;
+
+      // Create camera
+      const cameraEntity = rootEntity.createChild("Camera");
+      cameraEntity.addComponent(Camera);
+      cameraEntity.transform.setPosition(0, 0, 12);
+
+      // Create sphere
+      const meshEntity = rootEntity.createChild("Sphere");
+      const meshRenderer = meshEntity.addComponent(MeshRenderer);
+      const material = new BlinnPhongMaterial(engine);
+      meshRenderer.setMaterial(material);
+      meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
+
+      // Call update will compile shader internally
+      engine.update();
     });
   });
 });
