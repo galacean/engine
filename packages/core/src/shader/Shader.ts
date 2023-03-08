@@ -1,5 +1,4 @@
 import { Engine } from "../Engine";
-import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPass } from "./ShaderPass";
@@ -18,14 +17,8 @@ export class Shader {
     "GL_OES_standard_derivatives",
     "GL_EXT_draw_buffers"
   ];
-  /** @internal */
-  static _propertyIdMap: Record<number, ShaderProperty> = Object.create(null);
 
   private static _shaderMap: Record<string, Shader> = Object.create(null);
-  private static _propertyNameMap: Record<string, ShaderProperty> = Object.create(null);
-  private static _macroMaskMap: string[][] = [];
-  private static _macroCounter: number = 0;
-  private static _macroMap: Record<string, ShaderMacro> = Object.create(null);
 
   /**
    * Create a shader.
@@ -88,86 +81,6 @@ export class Shader {
     return Shader._shaderMap[name];
   }
 
-  /**
-   * Get shader macro by name.
-   * @param name - Name of the shader macro
-   * @returns Shader macro
-   */
-  static getMacroByName(name: string): ShaderMacro;
-
-  /**
-   * Get shader macro by name.
-   * @param name - Name of the shader macro
-   * @param value - Value of the shader macro
-   * @returns Shader macro
-   */
-  static getMacroByName(name: string, value: string): ShaderMacro;
-
-  static getMacroByName(name: string, value?: string): ShaderMacro {
-    const key = value ? name + ` ` + value : name;
-    let macro = Shader._macroMap[key];
-    if (!macro) {
-      const maskMap = Shader._macroMaskMap;
-      const counter = Shader._macroCounter;
-      const index = Math.floor(counter / 32);
-      const bit = counter % 32;
-
-      macro = new ShaderMacro(name, value, index, 1 << bit);
-      Shader._macroMap[key] = macro;
-      if (index == maskMap.length) {
-        maskMap.length++;
-        maskMap[index] = new Array<string>(32);
-      }
-      maskMap[index][bit] = key;
-      Shader._macroCounter++;
-    }
-    return macro;
-  }
-
-  /**
-   * Get shader property by name.
-   * @param name - Name of the shader property
-   * @returns Shader property
-   */
-  static getPropertyByName(name: string): ShaderProperty {
-    const propertyNameMap = Shader._propertyNameMap;
-    if (propertyNameMap[name] != null) {
-      return propertyNameMap[name];
-    } else {
-      const property = new ShaderProperty(name);
-      propertyNameMap[name] = property;
-      Shader._propertyIdMap[property._uniqueId] = property;
-      return property;
-    }
-  }
-
-  /**
-   * @internal
-   */
-  static _getShaderPropertyGroup(propertyName: string): ShaderDataGroup | null {
-    const shaderProperty = Shader._propertyNameMap[propertyName];
-    return shaderProperty?._group;
-  }
-
-  /**
-   * @internal
-   */
-  static _getNamesByMacros(macros: ShaderMacroCollection, out: string[]): void {
-    const maskMap = Shader._macroMaskMap;
-    const mask = macros._mask;
-    out.length = 0;
-    for (let i = 0, n = macros._length; i < n; i++) {
-      const subMaskMap = maskMap[i];
-      const subMask = mask[i];
-      const m = subMask < 0 ? 32 : Math.floor(Math.log2(subMask)) + 1; // if is negative must contain 1 << 31.
-      for (let j = 0; j < m; j++) {
-        if (subMask & (1 << j)) {
-          out.push(subMaskMap[j]);
-        }
-      }
-    }
-  }
-
   private _subShaders: SubShader[];
 
   /**
@@ -218,5 +131,39 @@ export class Shader {
       if (isValid) return true;
     }
     return false;
+  }
+
+  /**
+   * @deprecated Please use `ShaderMacro.getByName` instead
+   *
+   * Get shader macro by name.
+   * @param name - Name of the shader macro
+   * @returns Shader macro
+   */
+  static getMacroByName(name: string): ShaderMacro;
+
+  /**
+   * @deprecated Please use `ShaderMacro.getByName` instead
+   *
+   * Get shader macro by name.
+   * @param name - Name of the shader macro
+   * @param value - Value of the shader macro
+   * @returns Shader macro
+   */
+  static getMacroByName(name: string, value: string): ShaderMacro;
+
+  static getMacroByName(name: string, value?: string): ShaderMacro {
+    return ShaderMacro.getByName(name, value);
+  }
+
+  /**
+   * @deprecated Please use `ShaderProperty.getByName` instead
+   *
+   * Get shader property by name.
+   * @param name - Name of the shader property
+   * @returns Shader property
+   */
+  static getPropertyByName(name: string): ShaderProperty {
+    return ShaderProperty.getByName(name);
   }
 }

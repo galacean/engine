@@ -2,6 +2,7 @@ import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
+import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
 import { ShaderPart } from "./ShaderPart";
 import { ShaderProgram } from "./ShaderProgram";
@@ -52,7 +53,7 @@ export class ShaderPass extends ShaderPart {
 
     const isWebGL2: boolean = engine._hardwareRenderer.isWebGL2;
     const macroNameList = [];
-    Shader._getNamesByMacros(macroCollection, macroNameList);
+    ShaderMacro._getNamesByMacros(macroCollection, macroNameList);
     const macroNameStr = ShaderFactory.parseCustomMacros(macroNameList);
     const versionStr = isWebGL2 ? "#version 300 es" : "#version 100";
     const graphicAPI = isWebGL2 ? "#define GRAPHICS_API_WEBGL2" : "#define GRAPHICS_API_WEBGL1";

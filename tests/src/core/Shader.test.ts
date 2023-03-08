@@ -1,6 +1,8 @@
 import { Shader, ShaderTag } from "@oasis-engine/core";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
+import { ShaderProperty } from "packages/core/src";
+import { ShaderMacro } from "packages/core/src/shader/ShaderMacro";
 
 chai.use(spies);
 
@@ -16,11 +18,11 @@ describe("Shader", () => {
       expect(customShader).equal(Shader.find("custom"));
 
       // Shader property
-      const customProperty = Shader.getPropertyByName("customProperty");
+      const customProperty = ShaderProperty.getByName("customProperty");
       expect(customProperty.name).to.equal("customProperty");
 
       // Shader macro
-      const customMacro = Shader.getMacroByName("CUSTOM_MACRO");
+      const customMacro = ShaderMacro.getByName("CUSTOM_MACRO");
       expect(customMacro.name).to.equal("CUSTOM_MACRO");
 
       // Compile variant

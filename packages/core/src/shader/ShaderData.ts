@@ -583,7 +583,7 @@ export class ShaderData implements IRefObject, IClone {
     }
 
     const propertyValueMap = this._propertyValueMap;
-    const propertyIdMap = Shader._propertyIdMap;
+    const propertyIdMap = ShaderProperty._propertyIdMap;
     for (let key in propertyValueMap) {
       properties.push(propertyIdMap[key]);
     }
