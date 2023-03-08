@@ -68,9 +68,7 @@ export class Shader {
     } else {
       if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
         if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
-          shader = new Shader(name, [
-            new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
-          ]);
+          shader = new Shader(name, [new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)]);
         } else {
           shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders);
         }
@@ -206,14 +204,19 @@ export class Shader {
       compileMacros.enable(Shader.getMacroByName(macros[i]));
     }
 
-    let isValid = true;
     const subShaders = this._subShaders;
     for (let i = 0, n = subShaders.length; i < n; i++) {
+      let isValid: boolean;
       const { passes } = subShaders[i];
       for (let j = 0, m = passes.length; j < m; j++) {
-        isValid &&= passes[j]._getShaderProgram(engine, compileMacros).isValid;
+        if (isValid === undefined) {
+          isValid = passes[j]._getShaderProgram(engine, compileMacros).isValid;
+        } else {
+          isValid &&= passes[j]._getShaderProgram(engine, compileMacros).isValid;
+        }
       }
+      if (isValid) return true;
     }
-    return isValid;
+    return false;
   }
 }
