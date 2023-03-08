@@ -40,10 +40,10 @@ export class Shader {
   /**
    * Create a shader.
    * @param name - Name of the shader
-   * @param SubShaders - Sub shaders
+   * @param subShaders - Sub shaders
    * @returns Shader
    */
-  static create(name: string, SubShaders: SubShader[]): Shader;
+  static create(name: string, subShaders: SubShader[]): Shader;
 
   static create(
     name: string,
