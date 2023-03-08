@@ -45,9 +45,9 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("OASIS_COLORSPACE_GAMMA");
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = Shader.getMacroByName("OASIS_NO_DEPTH_TEXTURE");
+  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("OASIS_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
 

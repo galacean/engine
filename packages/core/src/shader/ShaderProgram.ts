@@ -328,7 +328,7 @@ export class ShaderProgram {
 
       const location = gl.getUniformLocation(program, name);
       shaderUniform.name = name;
-      shaderUniform.propertyId = Shader.getPropertyByName(name)._uniqueId;
+      shaderUniform.propertyId = ShaderProperty.getByName(name)._uniqueId;
       shaderUniform.location = location;
 
       switch (type) {

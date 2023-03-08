@@ -12,6 +12,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTag } from "./shader/ShaderTag";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
@@ -31,9 +32,9 @@ class MathTemp {
 @dependentComponents(DependentMode.CheckOnly, Transform)
 export class Camera extends Component {
   /** @internal */
-  private static _inverseViewMatrixProperty = Shader.getPropertyByName("u_viewInvMat");
+  private static _inverseViewMatrixProperty = ShaderProperty.getByName("u_viewInvMat");
   /** @internal */
-  private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
+  private static _cameraPositionProperty = ShaderProperty.getByName("u_cameraPos");
 
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);

@@ -14,7 +14,7 @@ import { SpriteRenderData } from "./SpriteRenderData";
  * @internal
  */
 export class SpriteBatcher extends Basic2DBatcher {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
+  private static _textureProperty: ShaderProperty = ShaderProperty.getByName("u_spriteTexture");
 
   createVertexElements(vertexElements: VertexElement[]): number {
     vertexElements[0] = new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0);

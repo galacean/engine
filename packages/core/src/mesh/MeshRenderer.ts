@@ -7,16 +7,17 @@ import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader/Shader";
+import { ShaderMacro } from "../shader/ShaderMacro";
 
 /**
  * MeshRenderer Component.
  */
 export class MeshRenderer extends Renderer implements ICustomClone {
-  private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
-  private static _uv1Macro = Shader.getMacroByName("O3_HAS_UV1");
-  private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
-  private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
-  private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+  private static _uvMacro = ShaderMacro.getByName("O3_HAS_UV");
+  private static _uv1Macro = ShaderMacro.getByName("O3_HAS_UV1");
+  private static _normalMacro = ShaderMacro.getByName("O3_HAS_NORMAL");
+  private static _tangentMacro = ShaderMacro.getByName("O3_HAS_TANGENT");
+  private static _vertexColorMacro = ShaderMacro.getByName("O3_HAS_VERTEXCOLOR");
 
   /** @internal */
   @ignoreClone

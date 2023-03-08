@@ -114,7 +114,7 @@ export class Shader {
     const compileMacros = Shader._compileMacros;
     compileMacros.clear();
     for (let i = 0, n = macros.length; i < n; i++) {
-      compileMacros.enable(Shader.getMacroByName(macros[i]));
+      compileMacros.enable(ShaderMacro.getByName(macros[i]));
     }
 
     const subShaders = this._subShaders;

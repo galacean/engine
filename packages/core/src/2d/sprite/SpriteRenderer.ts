@@ -22,7 +22,7 @@ import { Sprite } from "./Sprite";
  */
 export class SpriteRenderer extends Renderer implements ICustomClone {
   /** @internal */
-  static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
+  static _textureProperty: ShaderProperty = ShaderProperty.getByName("u_spriteTexture");
 
   /** @internal */
   @ignoreClone
