@@ -1,10 +1,14 @@
 import {
-  BlinnPhongMaterial, Camera, DirectLight, MeshRenderer,
-  PrimitiveMesh, Shader,
+  BlinnPhongMaterial,
+  Camera,
+  DirectLight,
+  MeshRenderer,
+  PrimitiveMesh,
+  Shader,
   ShaderMacro,
   ShaderPass,
   ShaderProperty,
-  ShaderTag,
+  ShaderTagProperty,
   SubShader
 } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
@@ -59,13 +63,13 @@ describe("Shader", () => {
       expect(getTag).to.undefined;
 
       // Add tag
-      subShader.setTag(ShaderTag.getByName("customTagKey"), ShaderTag.getByName("customTagValue"));
-      getTag = subShader.getTagValue(ShaderTag.getByName("customTagKey"));
-      expect(getTag).to.equal(ShaderTag.getByName("customTagValue"));
+      subShader.setTag(ShaderTagProperty.getByName("customTagKey"), ShaderTagProperty.getByName("customTagValue"));
+      getTag = subShader.getTagValue(ShaderTagProperty.getByName("customTagKey"));
+      expect(getTag).to.equal(ShaderTagProperty.getByName("customTagValue"));
 
       // Delete tag
-      subShader.deleteTag(ShaderTag.getByName("customTagKey"));
-      getTag = subShader.getTagValue(ShaderTag.getByName("customTagKey"));
+      subShader.deleteTag(ShaderTagProperty.getByName("customTagKey"));
+      getTag = subShader.getTagValue(ShaderTagProperty.getByName("customTagKey"));
       expect(getTag).to.undefined;
     });
 
@@ -84,13 +88,13 @@ describe("Shader", () => {
       expect(getTag).to.undefined;
 
       // Add tag
-      shaderPass.setTag(ShaderTag.getByName("customTagKey"), ShaderTag.getByName("customTagValue"));
-      getTag = shaderPass.getTagValue(ShaderTag.getByName("customTagKey"));
-      expect(getTag).to.equal(ShaderTag.getByName("customTagValue"));
+      shaderPass.setTag(ShaderTagProperty.getByName("customTagKey"), ShaderTagProperty.getByName("customTagValue"));
+      getTag = shaderPass.getTagValue(ShaderTagProperty.getByName("customTagKey"));
+      expect(getTag).to.equal(ShaderTagProperty.getByName("customTagValue"));
 
       // Delete tag
-      shaderPass.deleteTag(ShaderTag.getByName("customTagKey"));
-      getTag = shaderPass.getTagValue(ShaderTag.getByName("customTagKey"));
+      shaderPass.deleteTag(ShaderTagProperty.getByName("customTagKey"));
+      getTag = shaderPass.getTagValue(ShaderTagProperty.getByName("customTagKey"));
       expect(getTag).to.undefined;
     });
 
