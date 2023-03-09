@@ -1,10 +1,10 @@
-import { ShaderTag } from "./ShaderTag";
+import { ShaderTagProperty } from "./ShaderTagProperty";
 
 /**
  * Base class for shader structure.
  */
 export abstract class ShaderPart {
-  private _tagsMap: Record<number, ShaderTag> = Object.create(null);
+  private _tagsMap: Record<number, ShaderTagProperty> = Object.create(null);
 
   /**
    * Set tag by name.
@@ -18,11 +18,11 @@ export abstract class ShaderPart {
    * @param key - Key of the tag
    * @param value - Value of the tag
    */
-  setTag(key: ShaderTag, value: ShaderTag): void;
+  setTag(key: ShaderTagProperty, value: ShaderTagProperty): void;
 
-  setTag(keyOrKeyName: ShaderTag | string, valueOrValueName: ShaderTag | string): void {
-    const key = typeof keyOrKeyName === "string" ? ShaderTag.getByName(keyOrKeyName) : keyOrKeyName;
-    const value = typeof valueOrValueName === "string" ? ShaderTag.getByName(valueOrValueName) : valueOrValueName;
+  setTag(keyOrKeyName: ShaderTagProperty | string, valueOrValueName: ShaderTagProperty | string): void {
+    const key = typeof keyOrKeyName === "string" ? ShaderTagProperty.getByName(keyOrKeyName) : keyOrKeyName;
+    const value = typeof valueOrValueName === "string" ? ShaderTagProperty.getByName(valueOrValueName) : valueOrValueName;
     const tags = this._tagsMap;
 
     if (tags[key._uniqueId]) {
@@ -41,11 +41,11 @@ export abstract class ShaderPart {
    * Delete a tag by key.
    * @param key - Key of the tag
    */
-  deleteTag(key: ShaderTag): void;
+  deleteTag(key: ShaderTagProperty): void;
 
-  deleteTag(keyOrKeyName: ShaderTag | string): void {
+  deleteTag(keyOrKeyName: ShaderTagProperty | string): void {
     delete this._tagsMap[
-      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+      typeof keyOrKeyName == "string" ? ShaderTagProperty.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
     ];
   }
 
@@ -54,18 +54,18 @@ export abstract class ShaderPart {
    * @param keyName - Key name of the tag
    * @returns Value of the tag
    */
-  getTagValue(keyName: string): ShaderTag;
+  getTagValue(keyName: string): ShaderTagProperty;
 
   /**
    * Get tag value by key.
    * @param key - Key of the tag
    * @returns Value of the tag
    */
-  getTagValue(key: ShaderTag): ShaderTag;
+  getTagValue(key: ShaderTagProperty): ShaderTagProperty;
 
-  getTagValue(keyOrKeyName: ShaderTag | string): ShaderTag {
+  getTagValue(keyOrKeyName: ShaderTagProperty | string): ShaderTagProperty {
     return this._tagsMap[
-      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+      typeof keyOrKeyName == "string" ? ShaderTagProperty.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
     ];
   }
 }
