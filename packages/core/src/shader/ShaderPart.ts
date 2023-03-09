@@ -12,6 +12,7 @@ export abstract class ShaderPart {
    * @param valueName - Name of the tag value
    */
   setTag(keyName: string, valueName: string): void;
+  
   /**
    * Set tag.
    * @param key - Key of the tag

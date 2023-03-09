@@ -17,6 +17,7 @@ import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, TextureCubeFace } from "../texture";
+import { PipelineStage } from "./enums/PipelineStage";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderPass } from "./RenderPass";
@@ -26,8 +27,8 @@ import { RenderQueue } from "./RenderQueue";
  * Basic render pipeline.
  */
 export class BasicRenderPipeline {
-  private static _shadowCasterPipelineStage = ShaderTag.getByName("ShadowCaster");
-  private static _forwardPipelineStage = ShaderTag.getByName("Forward");
+  private static _shadowCasterPipelineStageValue = ShaderTag.getByName(PipelineStage.ShadowCaster);
+  private static _forwardPipelineStageValue = ShaderTag.getByName(PipelineStage.Forward);
 
   /** @internal */
   _opaqueQueue: RenderQueue;
@@ -150,7 +151,7 @@ export class BasicRenderPipeline {
 
     camera.engine._spriteMaskManager.clear();
 
-    context.pipelineStageValue = BasicRenderPipeline._shadowCasterPipelineStage;
+    context.pipelineStageValue = BasicRenderPipeline._shadowCasterPipelineStageValue;
     if (scene.castShadows && scene._sunLight?.shadowType !== ShadowType.None) {
       this._cascadedShadowCaster._render(context);
     }
@@ -161,7 +162,7 @@ export class BasicRenderPipeline {
 
     context.applyVirtualCamera(camera._virtualCamera);
 
-    context.pipelineStageValue = BasicRenderPipeline._forwardPipelineStage;
+    context.pipelineStageValue = BasicRenderPipeline._forwardPipelineStageValue;
     this._callRender(context);
     opaqueQueue.sort(RenderQueue._compareFromNearToFar);
     alphaTestQueue.sort(RenderQueue._compareFromNearToFar);

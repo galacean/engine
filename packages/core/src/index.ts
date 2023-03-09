@@ -24,9 +24,7 @@ export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { RefObject } from "./asset/RefObject";
 
-export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-export { RenderQueue } from "./RenderPipeline/RenderQueue";
-export { RenderPass } from "./RenderPipeline/RenderPass";
+export * from "./RenderPipeline";
 export * from "./base";
 
 export { Background } from "./Background";

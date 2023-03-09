@@ -1,3 +1,4 @@
+import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import backgroundTextureFs from "../shaderlib/extra/background-texture.fs.glsl";
 import backgroundTextureVs from "../shaderlib/extra/background-texture.vs.glsl";
 import blinnPhongFs from "../shaderlib/extra/blinn-phong.fs.glsl";
@@ -27,10 +28,10 @@ import { ShaderPass } from "./ShaderPass";
 export class ShaderPool {
   static init(): void {
     const shadowCasterPassTags = {
-      PipelineStage: "ShadowCaster"
+      pipelineStage: PipelineStage.ShadowCaster
     };
     const forwardPassTags = {
-      PipelineStage: "Forward"
+      pipelineStage: PipelineStage.Forward
     };
 
     const shadowCasterPass = new ShaderPass(shadowMapVs, shadowMapFs, shadowCasterPassTags);

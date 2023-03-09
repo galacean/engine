@@ -1,5 +1,6 @@
 import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
+import { PipelineStage } from "../RenderPipeline/enums/PipelineStage";
 import { ShaderFactory } from "../shaderlib/ShaderFactory";
 import { Shader } from "./Shader";
 import { ShaderMacro } from "./ShaderMacro";
@@ -28,7 +29,7 @@ export class ShaderPass extends ShaderPart {
   constructor(
     vertexSource: string,
     fragmentSource: string,
-    tags: Record<string, string> = { PipelineStage: "Forward" }
+    tags: Record<string, string> = { pipelineStage: PipelineStage.Forward }
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
