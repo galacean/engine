@@ -1,6 +1,9 @@
 import { ShaderTag } from "./ShaderTag";
 
-export class ShaderPart {
+/**
+ * Base class for shader structure.
+ */
+export abstract class ShaderPart {
   private _tagsMap: Record<number, ShaderTag> = Object.create(null);
 
   /**
@@ -50,14 +53,14 @@ export class ShaderPart {
    * @param keyName - Key name of the tag
    * @returns Value of the tag
    */
-  getTagValue(keyName: ShaderTag | string): ShaderTag;
+  getTagValue(keyName: string): ShaderTag;
 
   /**
    * Get tag value by key.
    * @param key - Key of the tag
    * @returns Value of the tag
    */
-  getTagValue(key: ShaderTag | string): ShaderTag;
+  getTagValue(key: ShaderTag): ShaderTag;
 
   getTagValue(keyOrKeyName: ShaderTag | string): ShaderTag {
     return this._tagsMap[
