@@ -25,5 +25,4 @@ stats.html
 tsconfig.tsbuildinfo
 oasis-npm
 api
-pnpm-lock.yaml
 yarn.lock
