@@ -64,7 +64,7 @@ export abstract class ShaderPart {
 
   deleteTag(keyOrKeyName: ShaderTag | string): void {
     delete this._tagsMap[
-      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+      (typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName) : keyOrKeyName)._uniqueId
     ];
   }
 }
