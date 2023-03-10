@@ -53,9 +53,9 @@ describe("Shader", () => {
       const subShader = customShader.subShaders[0];
 
       // Add tag by name
-      subShader.setTag("customTagKey", "customTagValue");
+      subShader.setTagValue("customTagKey", "customTagValue");
       let getTag = subShader.getTagValue("customTagKey");
-      expect(getTag.name).to.equal("customTagValue");
+      expect(getTag).to.equal("customTagValue");
 
       // Delete tag by name
       subShader.deleteTag("customTagKey");
@@ -63,7 +63,7 @@ describe("Shader", () => {
       expect(getTag).to.undefined;
 
       // Add tag
-      subShader.setTag(ShaderTag.getByName("customTagKey"), "customTagValue");
+      subShader.setTagValue(ShaderTag.getByName("customTagKey"), "customTagValue");
       getTag = subShader.getTagValue(ShaderTag.getByName("customTagKey"));
       expect(getTag).to.equal(ShaderTag.getByName("customTagValue"));
 
@@ -78,7 +78,7 @@ describe("Shader", () => {
       const shaderPass = customShader.subShaders[0].passes[0];
 
       // Add tag by name
-      shaderPass.setTag("customTagKey", "customTagValue");
+      shaderPass.setTagValue("customTagKey", "customTagValue");
       let getTag = shaderPass.getTagValue("customTagKey");
       expect(getTag).to.equal("customTagValue");
 
@@ -88,7 +88,7 @@ describe("Shader", () => {
       expect(getTag).to.undefined;
 
       // Add tag
-      shaderPass.setTag(ShaderTag.getByName("customTagKey"), "customTagValue");
+      shaderPass.setTagValue(ShaderTag.getByName("customTagKey"), "customTagValue");
       getTag = shaderPass.getTagValue(ShaderTag.getByName("customTagKey"));
       expect(getTag).to.equal(ShaderTag.getByName("customTagValue"));
 
