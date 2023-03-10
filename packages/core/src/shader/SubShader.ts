@@ -28,7 +28,7 @@ export class SubShader extends ShaderPart {
     this._passes = passes.slice();
 
     for (const key in tags) {
-      this.setTag(key, tags[key]);
+      this.setTagValue(key, tags[key]);
     }
   }
 }

@@ -71,7 +71,7 @@ export class Camera extends Component {
   /** @internal */
   _replacementShader: Shader = null;
   /** @internal */
-  _replacementSubShaderTagKey: ShaderTag = null;
+  _replacementSubShaderTag: ShaderTag = null;
 
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
@@ -450,7 +450,7 @@ export class Camera extends Component {
     context.camera = this;
     context.virtualCamera = virtualCamera;
     context.replacementShader = this._replacementShader;
-    context.replacementTagKey = this._replacementSubShaderTagKey;
+    context.replacementTag = this._replacementSubShaderTag;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {
@@ -487,7 +487,7 @@ export class Camera extends Component {
    */
   setReplacementShader(shader: Shader, replacementTagKey?: ShaderTag): void {
     this._replacementShader = shader;
-    this._replacementSubShaderTagKey = replacementTagKey;
+    this._replacementSubShaderTag = replacementTagKey;
   }
 
   /**
@@ -495,7 +495,7 @@ export class Camera extends Component {
    */
   resetReplacementShader(): void {
     this._replacementShader = null;
-    this._replacementSubShaderTagKey = null;
+    this._replacementSubShaderTag = null;
   }
 
   /**

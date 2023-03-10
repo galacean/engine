@@ -11,16 +11,16 @@ export abstract class ShaderPart {
    * @param keyName - Key name of the tag
    * @param value - Tag value
    */
-  setTag(keyName: string, value: number | string | boolean): void;
+  setTagValue<T extends number | string | boolean>(keyName: string, value: T): void;
 
   /**
    * Set tag.
    * @param key - Key of the tag
    * @param value - Tag value
    */
-  setTag(key: ShaderTag, value: number | string | boolean): void;
+  setTagValue<T extends number | string | boolean>(key: ShaderTag, value: T): void;
 
-  setTag(keyOrKeyName: ShaderTag | string, value: number | string | boolean): void {
+  setTagValue<T extends number | string | boolean>(keyOrKeyName: ShaderTag | string, value: T): void {
     const key = typeof keyOrKeyName === "string" ? ShaderTag.getByName(keyOrKeyName) : keyOrKeyName;
     const tags = this._tagsMap;
 
@@ -28,6 +28,28 @@ export abstract class ShaderPart {
       throw `Tag named "${key.name}" already exists.`;
     }
     tags[key._uniqueId] = value;
+  }
+
+  /**
+   * Get tag by key name.
+   * @param keyName - Key name of the tag
+   * @returns Tag value
+   */
+  getTagValue<T extends number | string | boolean>(keyName: string): T;
+
+  /**
+   * Get tag value by key.
+   * @param key - Key of the tag
+   * @returns Tag value
+   */
+  getTagValue<T extends number | string | boolean>(key: ShaderTag): T;
+
+  getTagValue<T extends number | string | boolean>(keyOrKeyName: ShaderTag | string): T {
+    return <T>(
+      this._tagsMap[
+        typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+      ]
+    );
   }
 
   /**
@@ -44,26 +66,6 @@ export abstract class ShaderPart {
 
   deleteTag(keyOrKeyName: ShaderTag | string): void {
     delete this._tagsMap[
-      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
-    ];
-  }
-
-  /**
-   * Get tag by key name.
-   * @param keyName - Key name of the tag
-   * @returns Tag value
-   */
-  getTagValue(keyName: string): number | string | boolean;
-
-  /**
-   * Get tag value by key.
-   * @param key - Key of the tag
-   * @returns Tag value
-   */
-  getTagValue(key: ShaderTag): number | string | boolean;
-
-  getTagValue(keyOrKeyName: ShaderTag | string): number | string | boolean {
-    return this._tagsMap[
       typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
     ];
   }
