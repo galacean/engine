@@ -45,11 +45,9 @@ export abstract class ShaderPart {
   getTagValue<T extends number | string | boolean>(key: ShaderTag): T;
 
   getTagValue<T extends number | string | boolean>(keyOrKeyName: ShaderTag | string): T {
-    return <T>(
-      this._tagsMap[
-        typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
-      ]
-    );
+    return this._tagsMap[
+      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+    ] as T;
   }
 
   /**
