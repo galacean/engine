@@ -479,15 +479,29 @@ export class Camera extends Component {
   /**
    * Set the replacement shader.
    * @param shader - Replacement shader
-   * @param replacementTagKey - Sub shader tag key
+   * @param replacementTagName - Sub shader tag name
    *
    * @remarks
-   * If replacementTagKey is not specified, the first sub shader will be replaced.
-   * If replacementTagKey is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   * If replacementTagName is not specified, the first sub shader will be replaced.
+   * If replacementTagName is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
    */
-  setReplacementShader(shader: Shader, replacementTagKey?: ShaderTag): void {
+  setReplacementShader(shader: Shader, replacementTagName?: string);
+
+  /**
+   * Set the replacement shader.
+   * @param shader - Replacement shader
+   * @param replacementTag - Sub shader tag
+   *
+   * @remarks
+   * If replacementTag is not specified, the first sub shader will be replaced.
+   * If replacementTag is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   */
+  setReplacementShader(shader: Shader, replacementTag?: ShaderTag);
+
+  setReplacementShader(shader: Shader, replacementTag?: string | ShaderTag): void {
     this._replacementShader = shader;
-    this._replacementSubShaderTag = replacementTagKey;
+    this._replacementSubShaderTag =
+      typeof replacementTag === "string" ? ShaderTag.getByName(replacementTag) : replacementTag;
   }
 
   /**
