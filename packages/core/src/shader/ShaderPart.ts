@@ -1,28 +1,27 @@
-import { ShaderTagProperty } from "./ShaderTagProperty";
+import { ShaderTag } from "./ShaderTag";
 
 /**
  * Base class for shader structure.
  */
 export abstract class ShaderPart {
-  private _tagsMap: Record<number, ShaderTagProperty> = Object.create(null);
+  private _tagsMap: Record<number, number | string | boolean> = Object.create(null);
 
   /**
-   * Set tag by name.
-   * @param keyName - Name of the tag key
-   * @param valueName - Name of the tag value
+   * Set tag by key name.
+   * @param keyName - Key name of the tag
+   * @param value - Tag value
    */
-  setTag(keyName: string, valueName: string): void;
-  
+  setTag(keyName: string, value: number | string | boolean): void;
+
   /**
    * Set tag.
    * @param key - Key of the tag
-   * @param value - Value of the tag
+   * @param value - Tag value
    */
-  setTag(key: ShaderTagProperty, value: ShaderTagProperty): void;
+  setTag(key: ShaderTag, value: number | string | boolean): void;
 
-  setTag(keyOrKeyName: ShaderTagProperty | string, valueOrValueName: ShaderTagProperty | string): void {
-    const key = typeof keyOrKeyName === "string" ? ShaderTagProperty.getByName(keyOrKeyName) : keyOrKeyName;
-    const value = typeof valueOrValueName === "string" ? ShaderTagProperty.getByName(valueOrValueName) : valueOrValueName;
+  setTag(keyOrKeyName: ShaderTag | string, value: number | string | boolean): void {
+    const key = typeof keyOrKeyName === "string" ? ShaderTag.getByName(keyOrKeyName) : keyOrKeyName;
     const tags = this._tagsMap;
 
     if (tags[key._uniqueId]) {
@@ -41,31 +40,31 @@ export abstract class ShaderPart {
    * Delete a tag by key.
    * @param key - Key of the tag
    */
-  deleteTag(key: ShaderTagProperty): void;
+  deleteTag(key: ShaderTag): void;
 
-  deleteTag(keyOrKeyName: ShaderTagProperty | string): void {
+  deleteTag(keyOrKeyName: ShaderTag | string): void {
     delete this._tagsMap[
-      typeof keyOrKeyName == "string" ? ShaderTagProperty.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
     ];
   }
 
   /**
-   * Get tag value by key name.
+   * Get tag by key name.
    * @param keyName - Key name of the tag
-   * @returns Value of the tag
+   * @returns Tag value
    */
-  getTagValue(keyName: string): ShaderTagProperty;
+  getTagValue(keyName: string): number | string | boolean;
 
   /**
    * Get tag value by key.
    * @param key - Key of the tag
-   * @returns Value of the tag
+   * @returns Tag value
    */
-  getTagValue(key: ShaderTagProperty): ShaderTagProperty;
+  getTagValue(key: ShaderTag): number | string | boolean;
 
-  getTagValue(keyOrKeyName: ShaderTagProperty | string): ShaderTagProperty {
+  getTagValue(keyOrKeyName: ShaderTag | string): number | string | boolean {
     return this._tagsMap[
-      typeof keyOrKeyName == "string" ? ShaderTagProperty.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
     ];
   }
 }

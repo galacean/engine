@@ -2,7 +2,7 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../graphic";
 import { BufferMesh } from "../mesh";
-import { ShaderTagProperty } from "../shader";
+import { ShaderTag } from "../shader/ShaderTag";
 import { ClassPool } from "./ClassPool";
 import { RenderElement } from "./RenderElement";
 import { SpriteMaskRenderData } from "./SpriteMaskRenderData";
@@ -12,8 +12,7 @@ import { TextRenderData } from "./TextRenderData";
 type SpriteData = SpriteRenderData | SpriteMaskRenderData;
 
 export abstract class Basic2DBatcher {
-  protected static _disableBatchTagKey: ShaderTagProperty = ShaderTagProperty.getByName("spriteDisableBatching");
-  protected static _disableBatchTagValue: ShaderTagProperty = ShaderTagProperty.getByName("true");
+  protected static _disableBatchTag: ShaderTag = ShaderTag.getByName("spriteDisableBatching");
 
   /** The maximum number of vertex. */
   static MAX_VERTEX_COUNT: number = 4096;

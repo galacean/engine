@@ -11,6 +11,6 @@ export { ShaderData } from "./ShaderData";
 export { ShaderMacro } from "./ShaderMacro";
 export { ShaderPass } from "./ShaderPass";
 export { ShaderProperty } from "./ShaderProperty";
-export { ShaderTagProperty } from "./ShaderTagProperty";
+export { ShaderTag } from "./ShaderTag";
 export { SubShader } from "./SubShader";
 

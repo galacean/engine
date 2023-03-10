@@ -6,7 +6,6 @@ import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Shader } from "../shader/Shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 
 /**
