@@ -2,6 +2,7 @@ import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../graphic";
 import { BufferMesh } from "../mesh";
+import { ShaderTag } from "../shader";
 import { ClassPool } from "./ClassPool";
 import { RenderElement } from "./RenderElement";
 import { SpriteMaskRenderData } from "./SpriteMaskRenderData";
@@ -39,6 +40,8 @@ export abstract class Basic2DBatcher {
   _vertexCount: number = 0;
   /** @internal */
   _elementCount: number = 0;
+  /** @internal */
+  _disableBatchTagKey: ShaderTag = ShaderTag.getByName("SpriteDisableBatch");
 
   constructor(engine: Engine) {
     this._engine = engine;

@@ -24,7 +24,7 @@ export class SpriteBatcher extends Basic2DBatcher {
   }
 
   canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
-    if (!this._engine._canSpriteBatch) {
+    if (!this._engine._canSpriteBatch || curElement.shaderPass.getTagValue(this._disableBatchTagKey)) {
       return false;
     }
 
