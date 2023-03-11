@@ -8,7 +8,7 @@ import {
   ShaderMacro,
   ShaderPass,
   ShaderProperty,
-  ShaderTag,
+  ShaderTagKey,
   SubShader
 } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
@@ -63,13 +63,13 @@ describe("Shader", () => {
       expect(getTag).to.undefined;
 
       // Add tag
-      subShader.setTag(ShaderTag.getByName("customTagKey"), "customTagValue");
-      getTag = subShader.getTagValue(ShaderTag.getByName("customTagKey"));
-      expect(getTag).to.equal(ShaderTag.getByName("customTagValue"));
+      subShader.setTag(ShaderTagKey.getByName("customTagKey"), "customTagValue");
+      getTag = subShader.getTagValue(ShaderTagKey.getByName("customTagKey"));
+      expect(getTag).to.equal(ShaderTagKey.getByName("customTagValue"));
 
       // Delete tag
-      subShader.deleteTag(ShaderTag.getByName("customTagKey"));
-      getTag = subShader.getTagValue(ShaderTag.getByName("customTagKey"));
+      subShader.deleteTag(ShaderTagKey.getByName("customTagKey"));
+      getTag = subShader.getTagValue(ShaderTagKey.getByName("customTagKey"));
       expect(getTag).to.undefined;
     });
 
@@ -88,13 +88,13 @@ describe("Shader", () => {
       expect(getTag).to.undefined;
 
       // Add tag
-      shaderPass.setTag(ShaderTag.getByName("customTagKey"), "customTagValue");
-      getTag = shaderPass.getTagValue(ShaderTag.getByName("customTagKey"));
-      expect(getTag).to.equal(ShaderTag.getByName("customTagValue"));
+      shaderPass.setTag(ShaderTagKey.getByName("customTagKey"), "customTagValue");
+      getTag = shaderPass.getTagValue(ShaderTagKey.getByName("customTagKey"));
+      expect(getTag).to.equal(ShaderTagKey.getByName("customTagValue"));
 
       // Delete tag
-      shaderPass.deleteTag(ShaderTag.getByName("customTagKey"));
-      getTag = shaderPass.getTagValue(ShaderTag.getByName("customTagKey"));
+      shaderPass.deleteTag(ShaderTagKey.getByName("customTagKey"));
+      getTag = shaderPass.getTagValue(ShaderTagKey.getByName("customTagKey"));
       expect(getTag).to.undefined;
     });
 
