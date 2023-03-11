@@ -65,7 +65,7 @@ describe("Shader", () => {
       // Add tag
       subShader.setTag(ShaderTagKey.getByName("customTagKey"), "customTagValue");
       getTag = subShader.getTagValue(ShaderTagKey.getByName("customTagKey"));
-      expect(getTag).to.equal(ShaderTagKey.getByName("customTagValue"));
+      expect(getTag).to.equal("customTagValue");
 
       // Delete tag
       subShader.deleteTag(ShaderTagKey.getByName("customTagKey"));
@@ -90,7 +90,7 @@ describe("Shader", () => {
       // Add tag
       shaderPass.setTag(ShaderTagKey.getByName("customTagKey"), "customTagValue");
       getTag = shaderPass.getTagValue(ShaderTagKey.getByName("customTagKey"));
-      expect(getTag).to.equal(ShaderTagKey.getByName("customTagValue"));
+      expect(getTag).to.equal("customTagValue");
 
       // Delete tag
       shaderPass.deleteTag(ShaderTagKey.getByName("customTagKey"));
