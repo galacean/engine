@@ -1,18 +1,18 @@
 /**
- * Shader tag.
+ * Shader tag key.
  */
-export class ShaderTag {
+export class ShaderTagKey {
   private static _nameCounter: number = 0;
-  private static _nameMap: Record<string, ShaderTag> = Object.create(null);
+  private static _nameMap: Record<string, ShaderTagKey> = Object.create(null);
 
   /**
    * Get shader property by name.
    * @param name - Name of the shader property
    * @returns Shader property
    */
-  static getByName(name: string): ShaderTag {
-    const nameMap = ShaderTag._nameMap;
-    return (nameMap[name] ||= new ShaderTag(name));
+  static getByName(name: string): ShaderTagKey {
+    const nameMap = ShaderTagKey._nameMap;
+    return (nameMap[name] ||= new ShaderTagKey(name));
   }
 
   /** Shader tag property name. */
@@ -23,6 +23,6 @@ export class ShaderTag {
 
   private constructor(name: string) {
     this.name = name;
-    this._uniqueId = ShaderTag._nameCounter++;
+    this._uniqueId = ShaderTagKey._nameCounter++;
   }
 }

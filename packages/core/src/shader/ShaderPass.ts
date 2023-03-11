@@ -38,7 +38,7 @@ export class ShaderPass extends ShaderPart {
     this._fragmentSource = fragmentSource;
 
     for (const key in tags) {
-      this.setTagValue(key, tags[key]);
+      this.setTag(key, tags[key]);
     }
   }
 

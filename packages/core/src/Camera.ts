@@ -13,7 +13,7 @@ import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
-import { ShaderTag } from "./shader/ShaderTag";
+import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
@@ -71,7 +71,7 @@ export class Camera extends Component {
   /** @internal */
   _replacementShader: Shader = null;
   /** @internal */
-  _replacementSubShaderTag: ShaderTag = null;
+  _replacementSubShaderTag: ShaderTagKey = null;
 
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
@@ -496,12 +496,12 @@ export class Camera extends Component {
    * If replacementTag is not specified, the first sub shader will be replaced.
    * If replacementTag is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
    */
-  setReplacementShader(shader: Shader, replacementTag?: ShaderTag);
+  setReplacementShader(shader: Shader, replacementTag?: ShaderTagKey);
 
-  setReplacementShader(shader: Shader, replacementTag?: string | ShaderTag): void {
+  setReplacementShader(shader: Shader, replacementTag?: string | ShaderTagKey): void {
     this._replacementShader = shader;
     this._replacementSubShaderTag =
-      typeof replacementTag === "string" ? ShaderTag.getByName(replacementTag) : replacementTag;
+      typeof replacementTag === "string" ? ShaderTagKey.getByName(replacementTag) : replacementTag;
   }
 
   /**

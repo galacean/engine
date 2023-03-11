@@ -1,4 +1,4 @@
-import { ShaderTag } from "./ShaderTag";
+import { ShaderTagKey } from "./ShaderTagKey";
 
 /**
  * Base class for shader structure.
@@ -11,23 +11,41 @@ export abstract class ShaderPart {
    * @param keyName - Key name of the tag
    * @param value - Tag value
    */
-  setTagValue<T extends number | string | boolean>(keyName: string, value: T): void;
+  setTag<T extends number | string | boolean>(keyName: string, value: T): void;
 
   /**
    * Set tag.
    * @param key - Key of the tag
    * @param value - Tag value
    */
-  setTagValue<T extends number | string | boolean>(key: ShaderTag, value: T): void;
+  setTag<T extends number | string | boolean>(key: ShaderTagKey, value: T): void;
 
-  setTagValue<T extends number | string | boolean>(keyOrKeyName: ShaderTag | string, value: T): void {
-    const key = typeof keyOrKeyName === "string" ? ShaderTag.getByName(keyOrKeyName) : keyOrKeyName;
+  setTag<T extends number | string | boolean>(keyOrKeyName: ShaderTagKey | string, value: T): void {
+    const key = typeof keyOrKeyName === "string" ? ShaderTagKey.getByName(keyOrKeyName) : keyOrKeyName;
     const tags = this._tagsMap;
 
     if (tags[key._uniqueId]) {
       throw `Tag named "${key.name}" already exists.`;
     }
     tags[key._uniqueId] = value;
+  }
+
+  /**
+   * Delete a tag by key name.
+   * @param KeyName - Key name of the tag
+   */
+  deleteTag(KeyName: string): void;
+
+  /**
+   * Delete a tag by key.
+   * @param key - Key of the tag
+   */
+  deleteTag(key: ShaderTagKey): void;
+
+  deleteTag(keyOrKeyName: ShaderTagKey | string): void {
+    delete this._tagsMap[
+      (typeof keyOrKeyName == "string" ? ShaderTagKey.getByName(keyOrKeyName) : keyOrKeyName)._uniqueId
+    ];
   }
 
   /**
@@ -42,29 +60,11 @@ export abstract class ShaderPart {
    * @param key - Key of the tag
    * @returns Tag value
    */
-  getTagValue<T extends number | string | boolean>(key: ShaderTag): T;
+  getTagValue<T extends number | string | boolean>(key: ShaderTagKey): T;
 
-  getTagValue<T extends number | string | boolean>(keyOrKeyName: ShaderTag | string): T {
+  getTagValue<T extends number | string | boolean>(keyOrKeyName: ShaderTagKey | string): T {
     return this._tagsMap[
-      typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
+      typeof keyOrKeyName == "string" ? ShaderTagKey.getByName(keyOrKeyName)._uniqueId : keyOrKeyName._uniqueId
     ] as T;
-  }
-
-  /**
-   * Delete a tag by key name.
-   * @param KeyName - Key name of the tag
-   */
-  deleteTag(KeyName: string): void;
-
-  /**
-   * Delete a tag by key.
-   * @param key - Key of the tag
-   */
-  deleteTag(key: ShaderTag): void;
-
-  deleteTag(keyOrKeyName: ShaderTag | string): void {
-    delete this._tagsMap[
-      (typeof keyOrKeyName == "string" ? ShaderTag.getByName(keyOrKeyName) : keyOrKeyName)._uniqueId
-    ];
   }
 }
