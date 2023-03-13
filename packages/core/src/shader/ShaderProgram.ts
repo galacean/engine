@@ -10,6 +10,7 @@ import { Texture } from "../texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { Shader } from "./Shader";
 import { ShaderData } from "./ShaderData";
+import { ShaderProperty } from "./ShaderProperty";
 import { ShaderUniform } from "./ShaderUniform";
 import { ShaderUniformBlock } from "./ShaderUniformBlock";
 
@@ -187,7 +188,7 @@ export class ShaderProgram {
   private _groupingSubOtherUniforms(uniforms: ShaderUniform[], isTexture: boolean): void {
     for (let i = uniforms.length - 1; i >= 0; i--) {
       const uniform = uniforms[i];
-      const group = Shader._getShaderPropertyGroup(uniform.name);
+      const group = ShaderProperty._getShaderPropertyGroup(uniform.name);
       if (group !== undefined) {
         uniforms.splice(uniforms.indexOf(uniform), 1);
         this._groupingUniform(uniform, group, isTexture);
@@ -327,7 +328,7 @@ export class ShaderProgram {
 
       const location = gl.getUniformLocation(program, name);
       shaderUniform.name = name;
-      shaderUniform.propertyId = Shader.getPropertyByName(name)._uniqueId;
+      shaderUniform.propertyId = ShaderProperty.getByName(name)._uniqueId;
       shaderUniform.location = location;
 
       switch (type) {
@@ -449,7 +450,7 @@ export class ShaderProgram {
           break;
       }
 
-      const group = Shader._getShaderPropertyGroup(name);
+      const group = ShaderProperty._getShaderPropertyGroup(name);
       this._groupingUniform(shaderUniform, group, isTexture);
     });
 

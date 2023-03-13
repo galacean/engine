@@ -1,31 +1,32 @@
 import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependentComponents } from "./ComponentsDependencies";
+import { dependentComponents, DependentMode } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { Shader } from "./shader";
+import { Shader, ShaderProperty } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
+import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { Transform, TransformModifyFlags } from "./Transform";
 
 /**
  * Basis for all renderers.
- * @decorator `@dependentComponents(Transform)`
+ * @decorator `@dependentComponents(DependentMode.CheckOnly, Transform)`
  */
-@dependentComponents(Transform)
+@dependentComponents(DependentMode.CheckOnly, Transform)
 export class Renderer extends Component {
   private static _tempVector0 = new Vector3();
 
-  private static _receiveShadowMacro = Shader.getMacroByName("OASIS_RECEIVE_SHADOWS");
-  private static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
-  private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
-  private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
-  private static _mvpMatrixProperty = Shader.getPropertyByName("u_MVPMat");
-  private static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");
-  private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
+  private static _receiveShadowMacro = ShaderMacro.getByName("OASIS_RECEIVE_SHADOWS");
+  private static _localMatrixProperty = ShaderProperty.getByName("u_localMat");
+  private static _worldMatrixProperty = ShaderProperty.getByName("u_modelMat");
+  private static _mvMatrixProperty = ShaderProperty.getByName("u_MVMat");
+  private static _mvpMatrixProperty = ShaderProperty.getByName("u_MVPMat");
+  private static _mvInvMatrixProperty = ShaderProperty.getByName("u_MVInvMat");
+  private static _normalMatrixProperty = ShaderProperty.getByName("u_normalMat");
 
   /** ShaderData related to renderer. */
   @deepClone

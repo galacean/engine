@@ -43,8 +43,9 @@ export abstract class RefObject extends EngineObject implements IRefObject {
     if (refCount > 0) {
       this._addRefCount(-refCount);
     }
-    this._engine = null;
+    
     this._onDestroy();
+    this._engine = null;
     
     return true;
   }

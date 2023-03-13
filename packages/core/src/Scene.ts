@@ -7,7 +7,7 @@ import { Entity } from "./Entity";
 import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
-import { Shader } from "./shader";
+import { ShaderProperty } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -19,8 +19,8 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _fogColorProperty = Shader.getPropertyByName("oasis_FogColor");
-  private static _fogParamsProperty = Shader.getPropertyByName("oasis_FogParams");
+  private static _fogColorProperty = ShaderProperty.getByName("oasis_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("oasis_FogParams");
 
   /** Scene name. */
   name: string;

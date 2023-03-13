@@ -3,7 +3,7 @@ import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependentComponents } from "./ComponentsDependencies";
+import { dependentComponents, DependentMode } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
@@ -12,6 +12,8 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderProperty } from "./shader/ShaderProperty";
+import { ShaderTagKey } from "./shader/ShaderTagKey";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
@@ -25,14 +27,14 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
- * @decorator `@dependentComponents(Transform)`
+ * @decorator `@dependentComponents(DependentMode.CheckOnly, Transform)`
  */
-@dependentComponents(Transform)
+@dependentComponents(DependentMode.CheckOnly, Transform)
 export class Camera extends Component {
   /** @internal */
-  private static _inverseViewMatrixProperty = Shader.getPropertyByName("u_viewInvMat");
+  private static _inverseViewMatrixProperty = ShaderProperty.getByName("u_viewInvMat");
   /** @internal */
-  private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
+  private static _cameraPositionProperty = ShaderProperty.getByName("u_cameraPos");
 
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
@@ -66,6 +68,10 @@ export class Camera extends Component {
   /** @internal */
   @ignoreClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
+  /** @internal */
+  _replacementShader: Shader = null;
+  /** @internal */
+  _replacementSubShaderTag: ShaderTagKey = null;
 
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
@@ -443,6 +449,8 @@ export class Camera extends Component {
 
     context.camera = this;
     context.virtualCamera = virtualCamera;
+    context.replacementShader = this._replacementShader;
+    context.replacementTag = this._replacementSubShaderTag;
 
     // compute cull frustum.
     if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {
@@ -466,6 +474,42 @@ export class Camera extends Component {
     }
     this._renderPipeline.render(context, cubeFace, mipLevel);
     this._engine._renderCount++;
+  }
+
+  /**
+   * Set the replacement shader.
+   * @param shader - Replacement shader
+   * @param replacementTagName - Sub shader tag name
+   *
+   * @remarks
+   * If replacementTagName is not specified, the first sub shader will be replaced.
+   * If replacementTagName is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   */
+  setReplacementShader(shader: Shader, replacementTagName?: string);
+
+  /**
+   * Set the replacement shader.
+   * @param shader - Replacement shader
+   * @param replacementTag - Sub shader tag
+   *
+   * @remarks
+   * If replacementTag is not specified, the first sub shader will be replaced.
+   * If replacementTag is specified, the replacement shader will find the first sub shader which has the same tag value get by replacementTagKey.
+   */
+  setReplacementShader(shader: Shader, replacementTag?: ShaderTagKey);
+
+  setReplacementShader(shader: Shader, replacementTag?: string | ShaderTagKey): void {
+    this._replacementShader = shader;
+    this._replacementSubShaderTag =
+      typeof replacementTag === "string" ? ShaderTagKey.getByName(replacementTag) : replacementTag;
+  }
+
+  /**
+   * Reset and clear the replacement shader.
+   */
+  resetReplacementShader(): void {
+    this._replacementShader = null;
+    this._replacementSubShaderTag = null;
   }
 
   /**

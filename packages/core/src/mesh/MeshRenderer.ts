@@ -6,17 +6,17 @@ import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Shader } from "../shader/Shader";
+import { ShaderMacro } from "../shader/ShaderMacro";
 
 /**
  * MeshRenderer Component.
  */
 export class MeshRenderer extends Renderer implements ICustomClone {
-  private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
-  private static _uv1Macro = Shader.getMacroByName("O3_HAS_UV1");
-  private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
-  private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
-  private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+  private static _uvMacro = ShaderMacro.getByName("O3_HAS_UV");
+  private static _uv1Macro = ShaderMacro.getByName("O3_HAS_UV1");
+  private static _normalMacro = ShaderMacro.getByName("O3_HAS_NORMAL");
+  private static _tangentMacro = ShaderMacro.getByName("O3_HAS_TANGENT");
+  private static _vertexColorMacro = ShaderMacro.getByName("O3_HAS_VERTEXCOLOR");
 
   /** @internal */
   @ignoreClone
@@ -116,20 +116,16 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
       }
 
+      const materials = this._materials;
       const subMeshes = mesh.subMeshes;
       const renderPipeline = context.camera._renderPipeline;
-      const renderElementPool = this._engine._renderElementPool;
+      const meshRenderDataPool = this._engine._meshRenderDataPool;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
-        const material = this._materials[i];
-        if (material) {
-          const renderStates = material.renderStates;
-          const shaderPasses = material.shader.passes;
-          for (let j = 0, m = shaderPasses.length; j < m; j++) {
-            const element = renderElementPool.getFromPool();
-            element.setValue(this, mesh, subMeshes[i], material, renderStates[j], shaderPasses[j]);
-            renderPipeline.pushPrimitive(element);
-          }
-        }
+        const material = materials[i];
+        if (!material) continue;
+        const renderData = meshRenderDataPool.getFromPool();
+        renderData.set(this, material, mesh, subMeshes[i]);
+        renderPipeline.pushRenderData(context, renderData);
       }
     } else {
       Logger.error("mesh is null.");

@@ -10,7 +10,7 @@ export { Entity } from "./Entity";
 export { Component } from "./Component";
 export { Script } from "./Script";
 export { Renderer } from "./Renderer";
-export { dependentComponents } from "./ComponentsDependencies";
+export { dependentComponents, DependentMode } from "./ComponentsDependencies";
 export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
@@ -24,11 +24,7 @@ export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
 export { RefObject } from "./asset/RefObject";
 
-export { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-export { RenderQueue } from "./RenderPipeline/RenderQueue";
-export { RenderPass } from "./RenderPipeline/RenderPass";
-export { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
-export { SpriteElement } from "./RenderPipeline/SpriteElement";
+export * from "./RenderPipeline";
 export * from "./base";
 
 export { Background } from "./Background";
