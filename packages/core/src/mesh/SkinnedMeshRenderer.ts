@@ -310,8 +310,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     let subRootBoneCount = 0;
     const children = rootEntity.children;
     for (let i = 0, n = children.length; i < n; i++) {
-      const child = children[i];
-      const index = jointEntities.indexOf(child);
+      const rootChild = children[i];
+      const index = jointEntities.indexOf(rootChild);
       if (index !== -1) {
         Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
         subRootBoneCount++;
@@ -319,7 +319,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         subRootBoneCount += this._computeApproximateBindMatrix(
           jointEntities,
           inverseBindMatrices,
-          child,
+          rootChild,
           approximateBindMatrix
         );
       }
