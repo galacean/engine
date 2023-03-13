@@ -99,9 +99,4 @@ export class Material extends ReferResource implements IClone {
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
   }
-
-  /**
-   * @override
-   */
-  protected _onDestroy(): void {}
 }
