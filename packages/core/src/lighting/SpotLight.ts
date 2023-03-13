@@ -7,12 +7,12 @@ import { Light } from "./Light";
  * Spot light.
  */
 export class SpotLight extends Light {
-  private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightColor");
-  private static _positionProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightPosition");
-  private static _directionProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightDirection");
-  private static _distanceProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightDistance");
-  private static _angleCosProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightAngleCos");
-  private static _penumbraCosProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightPenumbraCos");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightColor");
+  private static _positionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPosition");
+  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDirection");
+  private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDistance");
+  private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightAngleCos");
+  private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPenumbraCos");
 
   private static _combinedData = {
     color: new Float32Array(3 * Light._maxLight),

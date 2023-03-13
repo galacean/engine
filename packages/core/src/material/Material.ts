@@ -2,8 +2,6 @@ import { IClone } from "@oasis-engine/design";
 import { ReferResource } from "../asset/ReferResource";
 import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";
-import { MeshRenderElement } from "../RenderPipeline/MeshRenderElement";
-import { SpriteElement } from "../RenderPipeline/SpriteElement";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -35,14 +33,19 @@ export class Material extends ReferResource implements IClone {
 
     const renderStates = this._renderStates;
     const lastStatesCount = renderStates.length;
-    const passCount = value.passes.length;
 
-    if (lastStatesCount < passCount) {
-      for (let i = lastStatesCount; i < passCount; i++) {
+    let maxPassCount = 0;
+    const subShaders = value.subShaders;
+    for (let i = 0; i < subShaders.length; i++) {
+      maxPassCount = Math.max(subShaders[i].passes.length, maxPassCount);
+    }
+
+    if (lastStatesCount < maxPassCount) {
+      for (let i = lastStatesCount; i < maxPassCount; i++) {
         renderStates.push(new RenderState());
       }
     } else {
-      renderStates.length = passCount;
+      renderStates.length = maxPassCount;
     }
   }
 
@@ -98,8 +101,7 @@ export class Material extends ReferResource implements IClone {
   }
 
   /**
-   * @internal
-   * @todo:temporary solution
+   * @override
    */
-  _preRender(renderElement: MeshRenderElement | SpriteElement) {}
+  protected _onDestroy(): void {}
 }

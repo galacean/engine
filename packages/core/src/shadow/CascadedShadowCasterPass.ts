@@ -7,7 +7,7 @@ import { Layer } from "../Layer";
 import { DirectLight } from "../lighting";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
-import { Shader } from "../shader";
+import { Shader, ShaderProperty } from "../shader";
 import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
@@ -21,14 +21,14 @@ import { ShadowUtils } from "./ShadowUtils";
  * Cascade shadow caster.
  */
 export class CascadedShadowCasterPass {
-  private static _lightShadowBiasProperty = Shader.getPropertyByName("u_shadowBias");
-  private static _lightDirectionProperty = Shader.getPropertyByName("u_lightDirection");
+  private static _lightShadowBiasProperty = ShaderProperty.getByName("u_shadowBias");
+  private static _lightDirectionProperty = ShaderProperty.getByName("u_lightDirection");
 
-  private static _shadowMatricesProperty = Shader.getPropertyByName("u_shadowMatrices");
-  private static _shadowMapSize = Shader.getPropertyByName("u_shadowMapSize");
-  private static _shadowInfosProperty = Shader.getPropertyByName("u_shadowInfo");
-  private static _shadowMapsProperty = Shader.getPropertyByName("u_shadowMap");
-  private static _shadowSplitSpheresProperty = Shader.getPropertyByName("u_shadowSplitSpheres");
+  private static _shadowMatricesProperty = ShaderProperty.getByName("u_shadowMatrices");
+  private static _shadowMapSize = ShaderProperty.getByName("u_shadowMapSize");
+  private static _shadowInfosProperty = ShaderProperty.getByName("u_shadowInfo");
+  private static _shadowMapsProperty = ShaderProperty.getByName("u_shadowMap");
+  private static _shadowSplitSpheresProperty = ShaderProperty.getByName("u_shadowSplitSpheres");
 
   private static _maxCascades: number = 4;
   private static _cascadesSplitDistance: number[] = new Array(CascadedShadowCasterPass._maxCascades + 1);
@@ -39,7 +39,6 @@ export class CascadedShadowCasterPass {
 
   private readonly _camera: Camera;
   private readonly _engine: Engine;
-  private readonly _shadowCasterShader: Shader;
   private readonly _supportDepthTexture: boolean;
 
   private _shadowMapResolution: number;
@@ -67,7 +66,6 @@ export class CascadedShadowCasterPass {
     this._engine = camera.engine;
 
     this._supportDepthTexture = camera.engine._hardwareRenderer.canIUse(GLCapabilityType.depthTexture);
-    this._shadowCasterShader = Shader.find("shadow-map");
     this._shadowSliceData.virtualCamera.isOrthographic = true;
   }
 
@@ -88,7 +86,6 @@ export class CascadedShadowCasterPass {
     const {
       _engine: engine,
       _camera: camera,
-      _shadowCasterShader: shadowCasterShader,
       _viewportOffsets: viewports,
       _shadowSliceData: shadowSliceData,
       _splitBoundSpheres: splitBoundSpheres,
@@ -196,7 +193,7 @@ export class CascadedShadowCasterPass {
           ShadowUtils.shadowCullFrustum(context, light, elements[k], shadowSliceData);
         }
 
-        if (opaqueQueue.items.length || alphaTestQueue.items.length) {
+        if (opaqueQueue.elements.length || alphaTestQueue.elements.length) {
           opaqueQueue.sort(RenderQueue._compareFromNearToFar);
           alphaTestQueue.sort(RenderQueue._compareFromNearToFar);
 
@@ -209,8 +206,8 @@ export class CascadedShadowCasterPass {
           rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
           engine._renderCount++;
 
-          opaqueQueue.render(camera, null, Layer.Everything, shadowCasterShader);
-          alphaTestQueue.render(camera, null, Layer.Everything, shadowCasterShader);
+          opaqueQueue.render(camera, Layer.Everything);
+          alphaTestQueue.render(camera, Layer.Everything);
           rhi.setGlobalDepthBias(0, 0);
         }
       }

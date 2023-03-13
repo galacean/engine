@@ -15,12 +15,13 @@ import { Material } from "./material/Material";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
-import { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
+import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { SpriteElement } from "./RenderPipeline/SpriteElement";
-import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
-import { TextRenderElement } from "./RenderPipeline/TextRenderElement";
+import { SpriteMaskRenderData } from "./RenderPipeline/SpriteMaskRenderData";
+import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
+import { TextRenderData } from "./RenderPipeline/TextRenderData";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { BlendFactor } from "./shader/enums/BlendFactor";
@@ -45,9 +46,9 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("OASIS_COLORSPACE_GAMMA");
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = Shader.getMacroByName("OASIS_NO_DEPTH_TEXTURE");
+  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("OASIS_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
 
@@ -64,14 +65,18 @@ export class Engine extends EventDispatcher {
   _hardwareRenderer: IHardwareRenderer;
   /* @internal */
   _lastRenderState: RenderState = new RenderState();
+
   /* @internal */
-  _renderElementPool: ClassPool<MeshRenderElement> = new ClassPool(MeshRenderElement);
+  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+   /* @internal */
+  _meshRenderDataPool: ClassPool<MeshRenderData> = new ClassPool(MeshRenderData);
   /* @internal */
-  _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
+  _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
   /* @internal */
-  _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
+  _spriteMaskRenderDataPool: ClassPool<SpriteMaskRenderData> = new ClassPool(SpriteMaskRenderData);
   /* @internal */
-  _textElementPool: ClassPool<TextRenderElement> = new ClassPool(TextRenderElement);
+  _textRenderDataPool: ClassPool<TextRenderData> = new ClassPool(TextRenderData);
+
   /* @internal */
   _spriteDefaultMaterial: Material;
   /* @internal */
@@ -307,9 +312,10 @@ export class Engine extends EventDispatcher {
     this._frameInProcess = true;
 
     this._renderElementPool.resetPool();
-    this._spriteElementPool.resetPool();
-    this._spriteMaskElementPool.resetPool();
-    this._textElementPool.resetPool();
+    this._meshRenderDataPool.resetPool();
+    this._spriteRenderDataPool.resetPool();
+    this._spriteMaskRenderDataPool.resetPool();
+    this._textRenderDataPool.resetPool();
 
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;

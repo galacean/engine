@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3, Matrix } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
@@ -342,6 +342,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * @override
    */
+  protected _updateShaderData(context: RenderContext): void {
+    // @ts-ignore
+    this._updateTransformShaderData(context, Matrix._identity);
+  }
+
+  /**
+   * @override
+   */
   protected _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
@@ -378,35 +386,24 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
-    const spriteElementPool = this._engine._spriteElementPool;
-    const textElement = this._engine._textElementPool.getFromPool();
-    const charElements = textElement.charElements;
+    const spriteRenderDataPool = this._engine._spriteRenderDataPool;
+    const textData = this._engine._textRenderDataPool.getFromPool();
+    const charsData = textData.charsData;
     const material = this.getMaterial();
     const charRenderDatas = this._charRenderDatas;
     const charCount = charRenderDatas.length;
-    const passes = material.shader.passes;
-    const renderStates = material.renderStates;
 
-    textElement.component = this;
-    textElement.material = material;
-    charElements.length = charCount;
-    textElement.renderState = renderStates[0];
+    textData.component = this;
+    textData.material = material;
+    charsData.length = charCount;
 
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
-      const spriteElement = spriteElementPool.getFromPool();
-      spriteElement.setValue(
-        this,
-        charRenderData.renderData,
-        material,
-        charRenderData.texture,
-        renderStates[0],
-        passes[0],
-        i
-      );
-      charElements[i] = spriteElement;
+      const spriteRenderData = spriteRenderDataPool.getFromPool();
+      spriteRenderData.set(this, material, charRenderData.renderData, charRenderData.texture, i);
+      charsData[i] = spriteRenderData;
     }
-    context.camera._renderPipeline.pushPrimitive(textElement);
+    context.camera._renderPipeline.pushRenderData(context, textData);
   }
 
   private _updateStencilState(): void {
