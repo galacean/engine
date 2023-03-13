@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3, Matrix } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
@@ -338,6 +338,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
    */
   _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateShaderData(context: RenderContext): void {
+    // @ts-ignore
+    this._updateTransformShaderData(context, Matrix._identity);
   }
 
   /**

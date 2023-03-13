@@ -1,4 +1,4 @@
-import { BoundingBox, Color } from "@oasis-engine/math";
+import { BoundingBox, Color, Matrix } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
@@ -228,6 +228,14 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     this._assembler = null;
     this._verticesData = null;
     super._onDestroy();
+  }
+
+  /**
+   * @override
+   */
+  protected _updateShaderData(context: RenderContext): void {
+    // @ts-ignore
+    this._updateTransformShaderData(context, Matrix._identity);
   }
 
   /**
