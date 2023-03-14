@@ -485,10 +485,14 @@ export class Animator extends Component {
     const layerData = this._animatorLayersData[layerIndex];
     const { currentStateMachineData } = layerData;
     const { srcPlayData } = currentStateMachineData;
-    const { clipTime: lastClipTime, stateData } = srcPlayData;
+    const { clipTime: lastClipTime, state, stateData, playState: lastPlayState } = srcPlayData;
     const { eventHandlers } = stateData || {};
     const additive = blendingMode === AnimatorLayerBlendingMode.Additive;
     firstLayer && (weight = 1.0);
+
+    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
+      this._callAnimatorScriptOnEnter(state, layerIndex);
+    }
 
     srcPlayData.update(this.speed < 0);
 
@@ -583,9 +587,6 @@ export class Animator extends Component {
       stateMachineData.stateMachineState = StateMachineState.Standby;
     }
 
-    if (lastPlayState === AnimatorStatePlayState.UnStarted) {
-      this._callAnimatorScriptOnEnter(state, layerIndex);
-    }
     if (playState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(state, layerIndex);
     } else {
