@@ -1,4 +1,4 @@
-import { MathUtil, Vector3, Color } from "@oasis-engine/math";
+import { MathUtil, Vector3, Color, BoundingBox } from "@oasis-engine/math";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
@@ -44,6 +44,11 @@ export enum ParticleRendererBlendMode {
 export class ParticleRenderer extends MeshRenderer {
   /** The max number of indices that Uint16Array can support. */
   private static _uint16VertexLimit: number = 65535;
+  /** Infinite bounding box are not clipped. */
+  private static _infiniteBounds: BoundingBox = new BoundingBox(
+    new Vector3(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER),
+    new Vector3(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)
+  );
 
   private static _getRandom(): number {
     return Math.random() - 0.5;
@@ -529,6 +534,13 @@ export class ParticleRenderer extends MeshRenderer {
     }
 
     this._blendMode = value;
+  }
+
+  /**
+   * The bounding volume of the ParticleRenderer.
+   */
+  get bounds(): BoundingBox {
+    return ParticleRenderer._infiniteBounds;
   }
 
   constructor(props) {
