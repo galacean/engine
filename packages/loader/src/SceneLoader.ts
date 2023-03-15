@@ -24,6 +24,7 @@ class SceneLoader extends Loader<Scene> {
           // @ts-ignore
           engine.resourceManager.initVirtualResources(data.files);
           return SceneParser.parse(engine, data).then((scene) => {
+            // parse ambient light
             const ambient = data.scene.ambient;
             let ambientLightPromise = Promise.resolve();
             if (ambient.ambientLight) {
@@ -72,6 +73,16 @@ class SceneLoader extends Loader<Scene> {
                 }
                 break;
             }
+
+            // parse shadow
+            const shadow = data.scene.shadow;
+            if (shadow) {
+              if (shadow.castShadows != undefined) scene.castShadows = shadow.castShadows;
+              if (shadow.shadowResolution != undefined) scene.shadowResolution = shadow.shadowResolution;
+              if (shadow.shadowDistance != undefined) scene.shadowDistance = shadow.shadowDistance;
+              if (shadow.shadowCascades != undefined) scene.shadowCascades = shadow.shadowCascades;
+            }
+
             return Promise.all([ambientLightPromise, backgroundPromise]).then(() => {
               resolve(scene);
             });
