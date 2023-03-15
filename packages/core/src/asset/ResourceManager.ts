@@ -201,13 +201,6 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addContentRestorer(resource: EngineObject, restoreInfo: ContentRestorer<any>): void {
-    this._contentRestorerPool[resource.instanceId] = restoreInfo;
-  }
-
-  /**
-   * @internal
-   */
   _deleteContentRestorer(resource: EngineObject): void {
     delete this._contentRestorerPool[resource.instanceId];
   }
