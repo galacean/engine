@@ -1,6 +1,10 @@
 {
   "name": "@oasis-engine/physics-physx",
+<<<<<<< HEAD
   "version": "1.0.0-alpha.0",
+=======
+  "version": "0.9.0-beta.70",
+>>>>>>> main
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"

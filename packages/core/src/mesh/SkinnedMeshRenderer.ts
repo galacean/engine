@@ -115,11 +115,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const rhi = this.entity.engine._hardwareRenderer;
     let maxVertexUniformVectors = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    if (rhi.renderer === "Apple GPU") {
-      // When uniform is large than 256, the skeleton matrix array access in shader very slow in Safari or WKWebview.
-      // This may be a apple bug, Chrome and Firefox is OK!
-      maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
-    }
+
+    // Limit size to 256 to avoid some problem:
+    // For renderer is "Apple GPU", when uniform is large than 256 the skeleton matrix array access in shader very slow in Safari or WKWebview. This may be a apple bug, Chrome and Firefox is OK!
+    // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)", compile shader si very slow because of max uniform is 4096.
+    maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
+
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
     this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
@@ -274,17 +275,14 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     } else {
       // Root bone is not in joints list, we can only compute approximate inverse bind matrix
       // Average all root bone's children inverse bind matrix
-      let subRootBoneCount = 0;
       const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-      const inverseBindMatrices = skin.inverseBindMatrices;
-      const rootBoneChildren = rootBone.children;
-      for (let i = 0; i < jointCount; i++) {
-        const index = jointEntities.indexOf(rootBoneChildren[i]);
-        if (index !== -1) {
-          Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
-          subRootBoneCount++;
-        }
-      }
+      let subRootBoneCount = this._computeApproximateBindMatrix(
+        jointEntities,
+        skin.inverseBindMatrices,
+        rootBone,
+        approximateBindMatrix
+      );
+
       if (subRootBoneCount !== 0) {
         Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
         BoundingBox.transform(this._mesh.bounds, approximateBindMatrix, this._localBounds);
@@ -300,6 +298,33 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     } else {
       shaderData.disableMacro("O3_HAS_SKIN");
     }
+  }
+
+  private _computeApproximateBindMatrix(
+    jointEntities: Entity[],
+    inverseBindMatrices: Matrix[],
+    rootEntity: Entity,
+    approximateBindMatrix: Matrix
+  ): number {
+    let subRootBoneCount = 0;
+    const children = rootEntity.children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const rootChild = children[i];
+      const index = jointEntities.indexOf(rootChild);
+      if (index !== -1) {
+        Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
+        subRootBoneCount++;
+      } else {
+        subRootBoneCount += this._computeApproximateBindMatrix(
+          jointEntities,
+          inverseBindMatrices,
+          rootChild,
+          approximateBindMatrix
+        );
+      }
+    }
+
+    return subRootBoneCount;
   }
 
   private _findByEntityName(rootEntity: Entity, name: string): Entity {
