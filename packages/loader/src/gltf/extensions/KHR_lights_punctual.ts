@@ -10,7 +10,7 @@ class KHR_lights_punctual extends GLTFExtensionParser {
    * @override
    */
   additiveParse(context: GLTFParserContext, entity: Entity, extensionSchema: IKHRLightsPunctual_LightNode): void {
-    const lightsSchema = (<IKHRLightsPunctual>context.gltf.extensions.KHR_lights_punctual).lights;
+    const lightsSchema = (<IKHRLightsPunctual>context.glTF.extensions.KHR_lights_punctual).lights;
     const lightSchema = lightsSchema[extensionSchema.light];
 
     const { color, intensity = 1, type, range, spot } = lightSchema;

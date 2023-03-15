@@ -194,7 +194,7 @@ export class Scene extends EngineObject {
     this.name = name || "";
 
     const shaderData = this.shaderData;
-    shaderData._addRefCount(1);
+    shaderData._addReferCount(1);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
 
@@ -423,7 +423,7 @@ export class Scene extends EngineObject {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
-    this.shaderData._addRefCount(-1);
+    this.shaderData._addReferCount(-1);
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {

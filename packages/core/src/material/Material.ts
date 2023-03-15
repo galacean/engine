@@ -1,5 +1,5 @@
 import { IClone } from "@oasis-engine/design";
-import { RefObject } from "../asset/RefObject";
+import { ReferResource } from "../asset/ReferResource";
 import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
@@ -10,7 +10,7 @@ import { RenderState } from "../shader/state/RenderState";
 /**
  * Material.
  */
-export class Material extends RefObject implements IClone {
+export class Material extends ReferResource implements IClone {
   /** Name. */
   name: string;
   /** Shader data. */
@@ -95,13 +95,8 @@ export class Material extends RefObject implements IClone {
   /**
    * @override
    */
-  _addRefCount(value: number): void {
-    super._addRefCount(value);
-    this.shaderData._addRefCount(value);
+  _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this.shaderData._addReferCount(value);
   }
-
-  /**
-   * @override
-   */
-  protected _onDestroy(): void {}
 }

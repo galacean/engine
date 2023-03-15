@@ -4,7 +4,7 @@ import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";
 import { RendererUpdateFlags } from "../Renderer";
 import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Shader, ShaderProperty } from "../shader";
+import { ShaderProperty } from "../shader";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { Texture2D } from "../texture/Texture2D";
@@ -17,7 +17,6 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _tempMatrix = new Matrix();
   private static _jointCountProperty = ShaderProperty.getByName("u_jointCount");
   private static _jointSamplerProperty = ShaderProperty.getByName("u_jointSampler");
   private static _jointMatrixProperty = ShaderProperty.getByName("u_jointMatrix");

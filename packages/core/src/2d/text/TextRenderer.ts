@@ -132,8 +132,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set font(value: Font) {
     const lastFont = this._font;
     if (lastFont !== value) {
-      lastFont && lastFont._addRefCount(-1);
-      value && value._addRefCount(1);
+      lastFont && lastFont._addReferCount(-1);
+      value && value._addReferCount(1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -287,14 +287,15 @@ export class TextRenderer extends Renderer implements ICustomClone {
   _init(): void {
     const { engine } = this;
     this._font = engine._textDefaultFont;
-    this._font._addRefCount(1);
+    this._font._addReferCount(1);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
   /**
    * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
+    super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
@@ -303,12 +304,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
     charRenderDatas.length = 0;
 
     if (this._font) {
-      this._font._addRefCount(-1);
+      this._font._addReferCount(-1);
       this._font = null;
     }
     this._subFont && (this._subFont = null);
-
-    super._onDestroy();
   }
 
   /**
@@ -431,7 +430,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _resetSubFont(): void {
-    this._subFont = this._font._getSubFont(this.fontSize, this.fontStyle);
+    const font = this._font;
+    this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
+    this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {

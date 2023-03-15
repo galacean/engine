@@ -1,4 +1,4 @@
-import { RefObject } from "../../asset/RefObject";
+import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
 import { FontStyle } from "../enums/FontStyle";
 import { SubFont } from "./SubFont";
@@ -6,7 +6,7 @@ import { SubFont } from "./SubFont";
 /**
  * Font.
  */
-export class Font extends RefObject {
+export class Font extends ReferResource {
   /**
    * Create a system font.
    * @param engine - Engine to which the font belongs
@@ -59,8 +59,10 @@ export class Font extends RefObject {
 
   /**
    * @override
+   * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
+    super._onDestroy();
     const subFontMap = this._subFontMap;
     for (let k in subFontMap) {
       subFontMap[k].destroy();

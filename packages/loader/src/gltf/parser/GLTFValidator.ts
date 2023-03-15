@@ -8,11 +8,11 @@ export class GLTFValidator extends GLTFParser {
       asset: { version },
       extensionsUsed,
       extensionsRequired
-    } = context.gltf;
+    } = context.glTF;
 
-    const gltfVersion = Number(version);
-    if (!(gltfVersion >= 2 && gltfVersion < 3)) {
-      throw "Only support gltf 2.x.";
+    const glTFVersion = Number(version);
+    if (!(glTFVersion >= 2 && glTFVersion < 3)) {
+      throw "Only support glTF 2.x.";
     }
     const promises = [];
     if (extensionsUsed) {

@@ -18,11 +18,12 @@ export type { EngineSettings } from "./EngineSettings";
 
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
+export { ContentRestorer } from "./asset/ContentRestorer";
 export { ResourceManager, resourceLoader } from "./asset/ResourceManager";
 export { AssetPromise } from "./asset/AssetPromise";
 export type { LoadItem } from "./asset/LoadItem";
 export { AssetType } from "./asset/AssetType";
-export { RefObject } from "./asset/RefObject";
+export { ReferResource } from "./asset/ReferResource";
 
 export * from "./RenderPipeline";
 export * from "./base";

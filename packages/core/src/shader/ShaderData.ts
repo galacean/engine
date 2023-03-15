@@ -1,6 +1,6 @@
 import { IClone } from "@oasis-engine/design";
 import { Color, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { IRefObject } from "../asset/IRefObject";
+import { IReferable } from "../asset/IReferable";
 import { CloneManager } from "../clone/CloneManager";
 import { Texture } from "../texture/Texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
@@ -13,7 +13,7 @@ import { ShaderProperty } from "./ShaderProperty";
 /**
  * Shader data collection,Correspondence includes shader properties data and macros data.
  */
-export class ShaderData implements IRefObject, IClone {
+export class ShaderData implements IReferable, IClone {
   /** @internal */
   _group: ShaderDataGroup;
   /** @internal */
@@ -406,10 +406,10 @@ export class ShaderData implements IRefObject, IClone {
   setTexture(property: ShaderProperty, value: Texture): void;
 
   setTexture(property: string | ShaderProperty, value: Texture): void {
-    if (this._getRefCount() > 0) {
+    if (this._getReferCount() > 0) {
       const lastValue = this.getPropertyValue<Texture>(property);
-      lastValue && lastValue._addRefCount(-1);
-      value && value._addRefCount(1);
+      lastValue && lastValue._addReferCount(-1);
+      value && value._addReferCount(1);
     }
     this._setPropertyValue(property, ShaderPropertyType.Texture, value);
   }
@@ -447,16 +447,16 @@ export class ShaderData implements IRefObject, IClone {
   setTextureArray(property: ShaderProperty, value: Texture[]): void;
 
   setTextureArray(property: string | ShaderProperty, value: Texture[]): void {
-    if (this._getRefCount() > 0) {
+    if (this._getReferCount() > 0) {
       const lastValue = this.getPropertyValue<Texture[]>(property);
       if (lastValue) {
         for (let i = 0, n = lastValue.length; i < n; i++) {
-          lastValue[i]._addRefCount(-1);
+          lastValue[i]._addReferCount(-1);
         }
       }
       if (value) {
         for (let i = 0, n = value.length; i < n; i++) {
-          value[i]._addRefCount(1);
+          value[i]._addReferCount(1);
         }
       }
     }
@@ -664,21 +664,21 @@ export class ShaderData implements IRefObject, IClone {
   /**
    * @internal
    */
-  _getRefCount(): number {
+  _getReferCount(): number {
     return this._refCount;
   }
 
   /**
    * @internal
    */
-  _addRefCount(value: number): void {
+  _addReferCount(value: number): void {
     this._refCount += value;
     const properties = this._propertyValueMap;
     for (const k in properties) {
       const property = properties[k];
       // @todo: Separate array to speed performance.
       if (property && property instanceof Texture) {
-        property._addRefCount(value);
+        property._addReferCount(value);
       }
     }
   }

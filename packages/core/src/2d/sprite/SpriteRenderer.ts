@@ -219,18 +219,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @internal
-   */
-  _onDestroy(): void {
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
-    this._color = null;
-    this._sprite = null;
-    this._assembler = null;
-    this._verticesData = null;
-    super._onDestroy();
-  }
-
-  /**
    * @override
    */
   protected _updateShaderData(context: RenderContext): void {
@@ -276,6 +264,19 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     const renderData = this._engine._spriteRenderDataPool.getFromPool();
     renderData.set(this, material, this._verticesData, texture);
     context.camera._renderPipeline.pushRenderData(context, renderData);
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
+    this._color = null;
+    this._sprite = null;
+    this._assembler = null;
+    this._verticesData = null;
   }
 
   private _updateStencilState(): void {

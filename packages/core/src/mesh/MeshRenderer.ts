@@ -47,11 +47,11 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    * @override
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
     if (mesh && !mesh.destroyed) {
-      mesh._addRefCount(-1);
+      mesh._addReferCount(-1);
       this._mesh = null;
     }
   }
@@ -135,11 +135,11 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
-      lastMesh._addRefCount(-1);
+      lastMesh._addReferCount(-1);
       lastMesh._updateFlagManager.removeListener(this._onMeshChanged);
     }
     if (mesh) {
-      mesh._addRefCount(1);
+      mesh._addReferCount(1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
       this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }

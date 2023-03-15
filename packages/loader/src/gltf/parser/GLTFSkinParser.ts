@@ -1,14 +1,14 @@
 import { Entity, Skin } from "@oasis-engine/core";
 import { Matrix } from "@oasis-engine/math";
+import { GLTFParserContext } from ".";
 import { GLTFUtil } from "../GLTFUtil";
 import { GLTFParser } from "./GLTFParser";
-import { GLTFParserContext } from "./GLTFParserContext";
 
 export class GLTFSkinParser extends GLTFParser {
   parse(context: GLTFParserContext): void {
-    const { glTFResource, gltf, buffers } = context;
+    const { glTFResource, glTF, buffers } = context;
     const { entities } = glTFResource;
-    const gltfSkins = gltf.skins;
+    const gltfSkins = glTF.skins;
 
     if (!gltfSkins) return;
 
@@ -23,8 +23,8 @@ export class GLTFSkinParser extends GLTFParser {
       skin.inverseBindMatrices.length = jointCount;
 
       // parse IBM
-      const accessor = gltf.accessors[inverseBindMatrices];
-      const buffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor).data;
+      const accessor = glTF.accessors[inverseBindMatrices];
+      const buffer = GLTFUtil.getAccessorBuffer(context, glTF.bufferViews, accessor).data;
       for (let i = 0; i < jointCount; i++) {
         const inverseBindMatrix = new Matrix();
         inverseBindMatrix.copyFromArray(buffer, i * 16);

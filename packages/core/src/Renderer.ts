@@ -144,7 +144,7 @@ export class Renderer extends Component {
     super(entity);
     const prototype = Renderer.prototype;
     this._overrideUpdate = this.update !== prototype.update;
-    this.shaderData._addRefCount(1);
+    this.shaderData._addReferCount(1);
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
 
@@ -253,7 +253,7 @@ export class Renderer extends Component {
 
     for (let i = count, n = internalMaterials.length; i < n; i++) {
       const internalMaterial = internalMaterials[i];
-      internalMaterial && internalMaterial._addRefCount(-1);
+      internalMaterial && internalMaterial._addReferCount(-1);
     }
 
     internalMaterials.length !== count && (internalMaterials.length = count);
@@ -264,8 +264,8 @@ export class Renderer extends Component {
       const material = materials[i];
       if (internalMaterial !== material) {
         internalMaterials[i] = material;
-        internalMaterial && internalMaterial._addRefCount(-1);
-        material && material._addRefCount(1);
+        internalMaterial && internalMaterial._addReferCount(-1);
+        material && material._addReferCount(1);
       }
     }
   }
@@ -323,16 +323,18 @@ export class Renderer extends Component {
   }
 
   /**
+   * @override
    * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
+    super._onDestroy();
     this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 
-    this.shaderData._addRefCount(-1);
+    this.shaderData._addReferCount(-1);
 
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
-      materials[i]?._addRefCount(-1);
+      materials[i]?._addReferCount(-1);
     }
   }
 
@@ -377,8 +379,8 @@ export class Renderer extends Component {
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
     insMaterial.name = insMaterial.name + "(Instance)";
-    material._addRefCount(-1);
-    insMaterial._addRefCount(1);
+    material._addReferCount(-1);
+    insMaterial._addReferCount(1);
     this._materialsInstanced[index] = true;
     this._materials[index] = insMaterial;
     return insMaterial;
@@ -395,8 +397,8 @@ export class Renderer extends Component {
       const materialsInstance = this._materialsInstanced;
       index < materialsInstance.length && (materialsInstance[index] = false);
 
-      internalMaterial && internalMaterial._addRefCount(-1);
-      material && material._addRefCount(1);
+      internalMaterial && internalMaterial._addReferCount(-1);
+      material && material._addReferCount(1);
       materials[index] = material;
     }
   }

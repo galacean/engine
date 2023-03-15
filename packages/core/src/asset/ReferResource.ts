@@ -1,11 +1,11 @@
 import { EngineObject } from "../base/EngineObject";
 import { Engine } from "../Engine";
-import { IRefObject } from "./IRefObject";
+import { IReferable } from "./IReferable";
 
 /**
  * The base class of assets, with reference counting capability.
  */
-export abstract class RefObject extends EngineObject implements IRefObject {
+export abstract class ReferResource extends EngineObject implements IReferable {
   /** Whether to ignore the garbage collection check, if it is true, it will not be affected by ResourceManager.gc(). */
   isGCIgnored: boolean = false;
 
@@ -20,47 +20,34 @@ export abstract class RefObject extends EngineObject implements IRefObject {
 
   protected constructor(engine: Engine) {
     super(engine);
-    engine.resourceManager._addRefObject(this.instanceId, this);
+    engine.resourceManager._addReferResource(this);
   }
 
   /**
+   * @override
    * Destroy self.
    * @param force - Whether to force the destruction, if it is false, refCount = 0 can be released successfully.
    * @returns Whether the release was successful.
    */
   destroy(force: boolean = false): boolean {
-    if (this._destroyed) return true;
-    if (!force && this._refCount !== 0) return false;
-    const resourceManager = this._engine.resourceManager;
-    // resourceManager maybe null,because engine has destroyed.
-    // TODO:the right way to fix this is to ensure destroy all when call engine.destroy,thus don't need to add this project.
-    if (resourceManager) {
-      super.destroy();
-      resourceManager._deleteRefObject(this.instanceId);
+    if (!force && this._refCount !== 0) {
+      return false;
     }
-
-    const refCount = this._getRefCount();
-    if (refCount > 0) {
-      this._addRefCount(-refCount);
-    }
-    
-    this._onDestroy();
-    this._engine = null;
-    
+    super.destroy();
     return true;
   }
 
   /**
    * @internal
    */
-  _getRefCount(): number {
+  _getReferCount(): number {
     return this._refCount;
   }
 
   /**
    * @internal
    */
-  _addRefCount(value: number): void {
+  _addReferCount(value: number): void {
     this._refCount += value;
   }
 
@@ -72,8 +59,14 @@ export abstract class RefObject extends EngineObject implements IRefObject {
   }
 
   /**
-   * Called when the resource is destroyed.
-   * Subclasses can override this function.
+   * @override
    */
-  protected abstract _onDestroy(): void;
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._engine.resourceManager._deleteReferResource(this);
+    const refCount = this._getReferCount();
+    if (refCount > 0) {
+      this._addReferCount(-refCount);
+    }
+  }
 }

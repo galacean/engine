@@ -8,6 +8,7 @@ import {
   Texture2D,
   TypedArray
 } from "@oasis-engine/core";
+import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
 import { IGLTF } from "../GLTFSchema";
 
@@ -15,12 +16,11 @@ import { IGLTF } from "../GLTFSchema";
  * @internal
  */
 export class GLTFParserContext {
-  gltf: IGLTF;
+  glTF: IGLTF;
   buffers: ArrayBuffer[];
   glTFResource: GLTFResource;
   keepMeshData: boolean;
   hasSkinned: boolean = false;
-  /** chain asset promise */
   chainPromises: AssetPromise<any>[] = [];
   accessorBufferCache: Record<string, BufferInfo> = {};
 
@@ -32,6 +32,8 @@ export class GLTFParserContext {
   masterPromiseInfo: PromiseInfo<GLTFResource> = new PromiseInfo<GLTFResource>();
   promiseMap: Record<string, AssetPromise<any>> = {};
 
+  contentRestorer: GLTFContentRestorer;
+
   constructor(url: string) {
     const promiseMap = this.promiseMap;
     promiseMap[`${url}?q=textures`] = this._initPromiseInfo(this.texturesPromiseInfo);
@@ -42,7 +44,7 @@ export class GLTFParserContext {
     promiseMap[`${url}`] = this._initPromiseInfo(this.masterPromiseInfo);
   }
 
-  private _initPromiseInfo(promiseInfo): AssetPromise<any> {
+  private _initPromiseInfo(promiseInfo: PromiseInfo<any>): AssetPromise<any> {
     const promise = new AssetPromise<any>((resolve, reject, setProgress, onCancel) => {
       promiseInfo.resolve = resolve;
       promiseInfo.reject = reject;
@@ -58,8 +60,11 @@ export class GLTFParserContext {
  * @internal
  */
 export class BufferInfo {
-  vertxBuffer: Buffer;
+  vertexBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
+
+  restoreInfo: BufferDataRestoreInfo;
+
   constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
 }
 

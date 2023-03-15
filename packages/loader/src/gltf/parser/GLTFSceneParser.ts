@@ -27,28 +27,28 @@ export class GLTFSceneParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext) {
-    const { glTFResource, gltf } = context;
+    const { glTFResource, glTF } = context;
     const { entities } = glTFResource;
-    const { nodes, cameras: gltfCameras } = gltf;
+    const { nodes, cameras } = glTF;
 
     if (!nodes) return;
     const defaultSceneRootPromiseInfo = context.defaultSceneRootPromiseInfo;
 
     for (let i = 0; i < nodes.length; i++) {
-      const gltfNode = nodes[i];
-      const { camera: cameraID, mesh: meshID, extensions } = gltfNode;
+      const glTFNode = nodes[i];
+      const { camera: cameraID, mesh: meshID, extensions } = glTFNode;
 
       const entity = entities[i];
 
       if (cameraID !== undefined) {
-        this._createCamera(glTFResource, gltfCameras[cameraID], entity);
+        this._createCamera(glTFResource, cameras[cameraID], entity);
       }
 
       if (meshID !== undefined) {
-        this._createRenderer(context, gltfNode, entity);
+        this._createRenderer(context, glTFNode, entity);
       }
 
-      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, gltfNode);
+      GLTFParser.executeExtensionsAdditiveAndParse(extensions, context, entity, glTFNode);
     }
 
     if (glTFResource.defaultSceneRoot) {
@@ -100,18 +100,18 @@ export class GLTFSceneParser extends GLTFParser {
     camera.enabled = false;
   }
 
-  private _createRenderer(context: GLTFParserContext, gltfNode: INode, entity: Entity) {
-    const { glTFResource, gltf } = context;
-    const { meshes: gltfMeshes } = gltf;
+  private _createRenderer(context: GLTFParserContext, glTFNode: INode, entity: Entity) {
+    const { glTFResource, glTF } = context;
+    const { meshes: glTFMeshes } = glTF;
 
     const { engine, meshes, materials, skins } = glTFResource;
-    const { mesh: meshID, skin: skinID } = gltfNode;
-    const glTFMesh = gltfMeshes[meshID];
-    const gltfMeshPrimitives = glTFMesh.primitives;
-    const blendShapeWeights = gltfNode.weights || glTFMesh.weights;
+    const { mesh: meshID, skin: skinID } = glTFNode;
+    const glTFMesh = glTFMeshes[meshID];
+    const glTFMeshPrimitives = glTFMesh.primitives;
+    const blendShapeWeights = glTFNode.weights || glTFMesh.weights;
 
-    for (let i = 0; i < gltfMeshPrimitives.length; i++) {
-      const gltfPrimitive = gltfMeshPrimitives[i];
+    for (let i = 0; i < glTFMeshPrimitives.length; i++) {
+      const gltfPrimitive = glTFMeshPrimitives[i];
       const mesh = meshes[meshID][i];
       let renderer: MeshRenderer | SkinnedMeshRenderer;
 

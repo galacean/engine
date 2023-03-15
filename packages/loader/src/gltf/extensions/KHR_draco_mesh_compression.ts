@@ -5,7 +5,7 @@ import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtil } from "../GLTFUtil";
 import { GLTFMeshParser } from "../parser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
-import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { BufferInfo, GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IKHRDracoMeshCompression } from "./GLTFExtensionSchema";
 
@@ -29,15 +29,15 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
   createAndParse(
     context: GLTFParserContext,
     schema: IKHRDracoMeshCompression,
-    gltfPrimitive: IMeshPrimitive,
-    gltfMesh: IMesh
+    glTFPrimitive: IMeshPrimitive,
+    glTFMesh: IMesh
   ) {
     const {
-      gltf,
+      glTF,
       buffers,
       glTFResource: { engine }
     } = context;
-    const { bufferViews, accessors } = gltf;
+    const { bufferViews, accessors } = glTF;
     const { bufferView: bufferViewIndex, attributes: gltfAttributeMap } = schema;
 
     const attributeMap = {};
@@ -45,13 +45,13 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     for (let attributeName in gltfAttributeMap) {
       attributeMap[attributeName] = gltfAttributeMap[attributeName];
     }
-    for (let attributeName in gltfPrimitive.attributes) {
+    for (let attributeName in glTFPrimitive.attributes) {
       if (gltfAttributeMap[attributeName] !== undefined) {
-        const accessorDef = accessors[gltfPrimitive.attributes[attributeName]];
+        const accessorDef = accessors[glTFPrimitive.attributes[attributeName]];
         attributeTypeMap[attributeName] = GLTFUtil.getComponentType(accessorDef.componentType).name;
       }
     }
-    const indexAccessor = accessors[gltfPrimitive.indices];
+    const indexAccessor = accessors[glTFPrimitive.indices];
     const indexType = GLTFUtil.getComponentType(indexAccessor.componentType).name;
     const taskConfig = {
       attributeIDs: attributeMap,
@@ -61,12 +61,12 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     };
     const buffer = GLTFUtil.getBufferViewData(bufferViews[bufferViewIndex], buffers);
     return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
-      const mesh = new ModelMesh(engine, gltfMesh.name);
+      const mesh = new ModelMesh(engine, glTFMesh.name);
       return this._parseMeshFromGLTFPrimitiveDraco(
         mesh,
-        gltfMesh,
-        gltfPrimitive,
-        gltf,
+        glTFMesh,
+        glTFPrimitive,
+        glTF,
         (attributeSemantic) => {
           for (let j = 0; j < decodedGeometry.attributes.length; j++) {
             if (decodedGeometry.attributes[j].name === attributeSemantic) {
@@ -92,7 +92,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     gltfPrimitive: IMeshPrimitive,
     gltf: IGLTF,
     getVertexBufferData: (semantic: string) => TypedArray,
-    getBlendShapeData: (semantic: string, shapeIndex: number) => TypedArray,
+    getBlendShapeData: (semantic: string, shapeIndex: number) => BufferInfo,
     getIndexBufferData: () => TypedArray,
     keepMeshData: boolean
   ): Promise<ModelMesh> {
@@ -205,7 +205,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     }
 
     // BlendShapes
-    targets && GLTFMeshParser._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
+    targets && GLTFMeshParser._createBlendShape(mesh, null, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
     return Promise.resolve(mesh);

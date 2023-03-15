@@ -130,15 +130,15 @@ export class GLTFMaterialParser extends GLTFParser {
   }
 
   parse(context: GLTFParserContext): AssetPromise<Material[]> {
-    const { gltf, glTFResource, materialsPromiseInfo } = context;
-    if (!gltf.materials) return;
+    const { glTF, glTFResource, materialsPromiseInfo } = context;
+    if (!glTF.materials) return;
 
     const { engine } = glTFResource;
 
     let materialPromises = [];
 
-    for (let i = 0; i < gltf.materials.length; i++) {
-      const materialInfo = gltf.materials[i];
+    for (let i = 0; i < glTF.materials.length; i++) {
+      const materialInfo = glTF.materials[i];
 
       let material = <Material | Promise<Material>>(
         GLTFParser.executeExtensionsCreateAndParse(materialInfo.extensions, context, materialInfo)
@@ -155,8 +155,8 @@ export class GLTFMaterialParser extends GLTFParser {
 
     return AssetPromise.all(materialPromises).then((materials) => {
       glTFResource.materials = materials;
-      for (let i = 0; i < gltf.materials.length; i++) {
-        const materialInfo = gltf.materials[i];
+      for (let i = 0; i < glTF.materials.length; i++) {
+        const materialInfo = glTF.materials[i];
         GLTFParser.executeExtensionsAdditiveAndParse(materialInfo.extensions, context, materials[i], materialInfo);
       }
       materialsPromiseInfo.resolve(materials);

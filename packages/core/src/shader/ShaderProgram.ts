@@ -62,8 +62,6 @@ export class ShaderProgram {
   private _isValid: boolean;
   private _engine: Engine;
   private _gl: WebGLRenderingContext;
-  private _vertexShader: WebGLShader;
-  private _fragmentShader: WebGLShader;
   private _glProgram: WebGLProgram;
   private _activeTextureUint: number = 0;
 
@@ -166,9 +164,9 @@ export class ShaderProgram {
    */
   bind(): boolean {
     const rhi: IHardwareRenderer = this._engine._hardwareRenderer;
-    if (rhi._currentBind !== this) {
+    if (rhi._currentBindShaderProgram !== this) {
       this._gl.useProgram(this._glProgram);
-      rhi._currentBind = this;
+      rhi._currentBindShaderProgram = this;
       return true;
     } else {
       return false;
@@ -180,8 +178,6 @@ export class ShaderProgram {
    */
   destroy(): void {
     const gl = this._gl;
-    this._vertexShader && gl.deleteShader(this._vertexShader);
-    this._fragmentShader && gl.deleteShader(this._fragmentShader);
     this._glProgram && gl.deleteProgram(this._glProgram);
   }
 
@@ -236,12 +232,12 @@ export class ShaderProgram {
   }
 
   /**
-   * init and link program with shader.
+   * Init and link program with shader.
    */
   private _createProgram(vertexSource: string, fragmentSource: string): WebGLProgram | null {
     const gl = this._gl;
 
-    // create and compile shader
+    // Create and compile shader
     const vertexShader = this._createShader(gl.VERTEX_SHADER, vertexSource);
     if (!vertexShader) {
       return null;
@@ -252,28 +248,32 @@ export class ShaderProgram {
       return null;
     }
 
-    // link program and shader
+    // Create program and link shader
     const program = gl.createProgram();
+    if (!program) {
+      console.warn("Context lost while create program.");
+      return null;
+    }
+
     gl.attachShader(program, vertexShader);
     gl.attachShader(program, fragmentShader);
     gl.linkProgram(program);
     gl.validateProgram(program);
 
-    if (gl.isContextLost()) {
-      Logger.error("Context lost while linking program.");
-      gl.deleteShader(vertexShader);
-      gl.deleteShader(fragmentShader);
-      return null;
-    }
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
 
-    if (Logger.isEnabled && !gl.getProgramParameter(program, gl.LINK_STATUS)) {
-      Logger.error("Could not link WebGL program. \n" + gl.getProgramInfoLog(program));
+    if (Logger.isEnabled && !gl.getProgramParameter(program, gl.LINK_STATUS) && !gl.isContextLost()) {
+      Logger.error(
+        `Could not link WebGL program\n\n` +
+          `Shader error: ${gl.getError()}\n\n` +
+          `Validate status: ${gl.getProgramParameter(program, gl.VALIDATE_STATUS)}\n\n` +
+          `Program information log: ${gl.getProgramInfoLog(program)}`
+      );
       gl.deleteProgram(program);
       return null;
     }
 
-    this._vertexShader = vertexShader;
-    this._fragmentShader = fragmentShader;
     return program;
   }
 
@@ -289,16 +289,12 @@ export class ShaderProgram {
     gl.shaderSource(shader, shaderSource);
     gl.compileShader(shader);
 
-    if (gl.isContextLost()) {
-      console.warn("Context lost while compiling shader.");
-      gl.deleteShader(shader);
-      return null;
-    }
-
-    if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+    if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS) && !gl.isContextLost()) {
       console.warn(
-        `Could not compile WebGL shader.\n${gl.getShaderInfoLog(shader)}`,
-        ShaderProgram._addLineNum(shaderSource)
+        `Could not compile WebGL shader\n\n` +
+          `Shader type: ${shaderType == gl.VERTEX_SHADER ? "vertex" : "fragment"}\n\n` +
+          `Shader information log:\n${gl.getShaderInfoLog(shader)}\n` +
+          `Shader source:\n${ShaderProgram._addLineNum(shaderSource)}`
       );
       gl.deleteShader(shader);
       return null;
@@ -419,7 +415,7 @@ export class ShaderProgram {
               break;
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
               defaultTexture = this._engine._depthTexture2D;
-              shaderUniform.textureUseComporeMode = true;
+              shaderUniform.textureUseCompareMode = true;
               break;
           }
 

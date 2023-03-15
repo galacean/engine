@@ -12,10 +12,10 @@ import {
 } from "@oasis-engine/core";
 
 /**
- * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.
+ * Product after glTF parser, usually, `defaultSceneRoot` is only needed to use.
  */
 export class GLTFResource extends EngineObject {
-  /** GLTF file url. */
+  /** glTF file url. */
   url: string;
   /** Oasis Texture2D after TextureParser. */
   textures?: Texture2D[];
@@ -31,7 +31,7 @@ export class GLTFResource extends EngineObject {
   entities: Entity[];
   /** Oasis Camera after SceneParser. */
   cameras?: Camera[];
-  /** GLTF can export lights in extension KHR_lights_punctual */
+  /** glTF can export lights in extension KHR_lights_punctual. */
   lights?: Light[];
   /** Oasis RootEntities after SceneParser. */
   sceneRoots: Entity[];
@@ -48,12 +48,8 @@ export class GLTFResource extends EngineObject {
   /**
    * @override
    */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    super.destroy();
+  protected _onDestroy(): void {
+    super._onDestroy();
     this.defaultSceneRoot.destroy();
 
     this.textures = null;

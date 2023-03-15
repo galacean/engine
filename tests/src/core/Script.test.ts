@@ -39,7 +39,7 @@ describe("Script", () => {
       expect(testScript.onDisable).to.have.been.called.exactly(0);
     });
 
-    it("Parent onAwakeb call inAtive child", () => {
+    it("Parent onAwake call inAtive child", () => {
       class ParentScript extends Script {
         onAwake() {
           console.log("ParentScript_onAwake");

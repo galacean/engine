@@ -214,15 +214,6 @@ export class Script extends Component {
 
   /**
    * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onDestroy(): void {
-    this._engine._componentsManager.addPendingDestroyScript(this);
-  }
-
-  /**
-   * @internal
    */
   _handlingInValid(): void {
     const componentsManager = this.engine._componentsManager;
@@ -239,5 +230,14 @@ export class Script extends Component {
 
     this._entity._removeScript(this);
     this._waitHandlingInValid = false;
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._engine._componentsManager.addPendingDestroyScript(this);
   }
 }

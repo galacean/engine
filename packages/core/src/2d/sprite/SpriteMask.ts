@@ -157,17 +157,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
-   * @inheritdoc
-   */
-  _onDestroy(): void {
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
-    this._sprite = null;
-    this._verticesData = null;
-    super._onDestroy();
-  }
-
-  /**
    * @internal
    */
   _cloneTo(target: SpriteMask): void {
@@ -216,6 +205,17 @@ export class SpriteMask extends Renderer implements ICustomClone {
     const renderElement = this._engine._renderElementPool.getFromPool();
     renderElement.set(renderData, material.shader.subShaders[0].passes[0], material.renderStates[0]);
     this._maskElement = renderElement;
+  }
+
+  /**
+   * @override
+   * @inheritdoc
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
+    this._sprite = null;
+    this._verticesData = null;
   }
 
   @ignoreClone

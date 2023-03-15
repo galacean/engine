@@ -20,9 +20,9 @@ import { GLTFParserContext } from "./GLTFParserContext";
 
 export class GLTFAnimationParser extends GLTFParser {
   parse(context: GLTFParserContext): AssetPromise<AnimationClip[]> {
-    const { gltf, buffers, glTFResource } = context;
+    const { glTF, buffers, glTFResource } = context;
     const { entities } = glTFResource;
-    const { animations, accessors } = gltf;
+    const { animations, accessors, bufferViews } = glTF;
     if (!animations) {
       return;
     }
@@ -49,8 +49,8 @@ export class GLTFAnimationParser extends GLTFParser {
         const inputAccessor = accessors[gltfSampler.input];
         const outputAccessor = accessors[gltfSampler.output];
 
-        const input = GLTFUtil.getAccessorBuffer(context, gltf, inputAccessor).data;
-        let output = GLTFUtil.getAccessorBuffer(context, gltf, outputAccessor).data;
+        const input = GLTFUtil.getAccessorBuffer(context, bufferViews, inputAccessor).data;
+        let output = GLTFUtil.getAccessorBuffer(context, bufferViews, outputAccessor).data;
 
         if (outputAccessor.normalized) {
           const scale = GLTFUtil.getNormalizedComponentScale(outputAccessor.componentType);
