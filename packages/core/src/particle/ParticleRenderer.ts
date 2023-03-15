@@ -670,6 +670,13 @@ export class ParticleRenderer extends MeshRenderer {
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride / 4;
     this._vertices = vertices;
+
+    const { bounds } = mesh;
+    const minValue = Number.MIN_SAFE_INTEGER;
+    const maxValue = Number.MAX_SAFE_INTEGER;
+    bounds.min.set(minValue, minValue, minValue);
+    bounds.max.set(maxValue, maxValue, maxValue);
+
     return mesh;
   }
 
