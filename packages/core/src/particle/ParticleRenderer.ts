@@ -44,11 +44,6 @@ export enum ParticleRendererBlendMode {
 export class ParticleRenderer extends MeshRenderer {
   /** The max number of indices that Uint16Array can support. */
   private static _uint16VertexLimit: number = 65535;
-  /** Infinite bounding box are not clipped. */
-  private static _infiniteBounds: BoundingBox = new BoundingBox(
-    new Vector3(Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER, Number.MIN_SAFE_INTEGER),
-    new Vector3(Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER, Number.MAX_SAFE_INTEGER)
-  );
 
   private static _getRandom(): number {
     return Math.random() - 0.5;
@@ -536,13 +531,6 @@ export class ParticleRenderer extends MeshRenderer {
     this._blendMode = value;
   }
 
-  /**
-   * The bounding volume of the ParticleRenderer.
-   */
-  get bounds(): BoundingBox {
-    return ParticleRenderer._infiniteBounds;
-  }
-
   constructor(props) {
     super(props);
 
@@ -682,6 +670,13 @@ export class ParticleRenderer extends MeshRenderer {
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride / 4;
     this._vertices = vertices;
+
+    const { bounds } = mesh;
+    const minValue = Number.MIN_SAFE_INTEGER;
+    const maxValue = Number.MAX_SAFE_INTEGER;
+    bounds.min.set(minValue, minValue, minValue);
+    bounds.max.set(maxValue, maxValue, maxValue);
+
     return mesh;
   }
 
