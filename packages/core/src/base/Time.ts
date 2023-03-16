@@ -12,8 +12,8 @@ export class Time {
   private _frameCount: number = 0;
   private _deltaTime: number = 0;
   private _unscaledDeltaTime: number = 0;
-  private _time: number = 0;
-  private _unscaledTime: number = 0;
+  private _elapsedTime: number = 0;
+  private _unscaledElapsedTime: number = 0;
   private _timeScale: number = 1.0;
   private _lastSystemTime: number;
 
@@ -42,17 +42,17 @@ export class Time {
   }
 
   /**
-   * The time in seconds of this frame.
+   * The elapsed time in seconds of this frame.
    */
-  get time(): number {
-    return this._time;
+  get elapsedTime(): number {
+    return this._elapsedTime;
   }
 
   /**
-   * The unscaled time in seconds of this frame.
+   * The unscaled elapsed time in seconds of this frame.
    */
-  get unscaledTime(): number {
-    return this._unscaledTime;
+  get unscaledElapsedTime(): number {
+    return this._unscaledElapsedTime;
   }
 
   /**
@@ -89,9 +89,9 @@ export class Time {
     const deltaTime = unscaledDeltaTime * this._timeScale;
 
     this._unscaledDeltaTime = unscaledDeltaTime;
-    this._unscaledTime += unscaledDeltaTime;
+    this._unscaledElapsedTime += unscaledDeltaTime;
     this._deltaTime = deltaTime;
-    this._time += deltaTime;
+    this._elapsedTime += deltaTime;
     this._frameCount++;
 
     this._lastSystemTime = currentSystemTime;
@@ -104,7 +104,7 @@ export class Time {
     const timeValue = this._timeValue;
     const deltaTimeValue = this._deltaTimeValue;
 
-    const time = this._time;
+    const time = this._elapsedTime;
     timeValue.set(time, Math.sin(time), Math.cos(time), 0);
     shaderData.setVector4(Time._timeProperty, timeValue);
 
