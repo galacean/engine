@@ -3,11 +3,10 @@
  */
 export class Time {
   private _frameCount: number = 0;
-  private _clock: { now: () => number };
-  private _time: number = 0;
-  private _unscaledTime: number = 0;
   private _deltaTime: number = 0;
   private _unscaledDeltaTime: number = 0;
+  private _time: number = 0;
+  private _unscaledTime: number = 0;
   private _timeScale: number = 1.0;
   private _lastSystemTime: number;
 
@@ -29,7 +28,7 @@ export class Time {
    * The unscaled interval in seconds from the last frame to the current frame.
    */
   get unscaledDeltaTime(): number {
-    return this._deltaTime / this._timeScale;
+    return this._unscaledDeltaTime;
   }
 
   /**
@@ -43,7 +42,7 @@ export class Time {
    * The unscaled time in seconds of this frame.
    */
   get unscaledTime(): number {
-    return this._time / this._timeScale;
+    return this._unscaledTime;
   }
 
   /**
@@ -61,29 +60,30 @@ export class Time {
    * Constructor of the Time.
    */
   constructor() {
-    this._clock = performance ? performance : Date;
-    const now = this._clock.now() / 1000;
-    this._lastSystemTime = now;
+    this._lastSystemTime = performance.now() / 1000;
   }
 
   /**
    * @internal
    */
   _reset() {
-    this._lastSystemTime = this._clock.now() / 1000;
+    this._lastSystemTime = performance.now() / 1000;
   }
 
   /**
    * @internal
    */
   _tick(): void {
-    const systemTime = this._clock.now() / 1000;
-    const deltaTime = (systemTime - this._lastSystemTime) * this._timeScale;
+    const currentSystemTime = performance.now() / 1000;
+    const unscaledDeltaTime = currentSystemTime - this._lastSystemTime;
+    const deltaTime = unscaledDeltaTime * this._timeScale;
 
+    this._unscaledDeltaTime = unscaledDeltaTime;
+    this._unscaledTime += unscaledDeltaTime;
     this._deltaTime = deltaTime;
     this._time += deltaTime;
     this._frameCount++;
 
-    this._lastSystemTime = systemTime;
+    this._lastSystemTime = currentSystemTime;
   }
 }
