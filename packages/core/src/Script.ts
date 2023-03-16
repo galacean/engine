@@ -51,13 +51,13 @@ export class Script extends Component {
 
   /**
    * The main loop, called frame by frame.
-   * @param deltaTime - The deltaTime when the script update.
+   * @param deltaTime - The delta time since last frame in seconds
    */
   onUpdate(deltaTime: number): void {}
 
   /**
    * Called after the onUpdate finished, called frame by frame.
-   * @param deltaTime - The deltaTime when the script update.
+   * @param deltaTime - The delta time since last frame in seconds
    */
   onLateUpdate(deltaTime: number): void {}
 
