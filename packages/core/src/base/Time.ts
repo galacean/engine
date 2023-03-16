@@ -28,28 +28,28 @@ export class Time {
   }
 
   /**
-   * The interval in seconds from the last frame to the current frame.
+   * The delta time in seconds from the last frame to the current frame.
    */
   get deltaTime(): number {
     return this._deltaTime;
   }
 
   /**
-   * The unscaled interval in seconds from the last frame to the current frame.
+   * The unscaled delta time in seconds from the last frame to the current frame.
    */
   get unscaledDeltaTime(): number {
     return this._unscaledDeltaTime;
   }
 
   /**
-   * The elapsed time in seconds of this frame.
+   * The elapsed time in seconds since the start of the engine.
    */
   get elapsedTime(): number {
     return this._elapsedTime;
   }
 
   /**
-   * The unscaled elapsed time in seconds of this frame.
+   * The unscaled elapsed time in seconds since the start of the engine.
    */
   get unscaledElapsedTime(): number {
     return this._unscaledElapsedTime;
