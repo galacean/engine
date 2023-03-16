@@ -306,7 +306,7 @@ export class Engine extends EventDispatcher {
     }
 
     const time = this._time;
-    time._tick();
+    time._update();
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;

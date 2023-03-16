@@ -73,7 +73,7 @@ export class Time {
   /**
    * @internal
    */
-  _tick(): void {
+  _update(): void {
     const currentSystemTime = performance.now() / 1000;
     const unscaledDeltaTime = currentSystemTime - this._lastSystemTime;
     const deltaTime = unscaledDeltaTime * this._timeScale;
