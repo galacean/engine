@@ -1,4 +1,4 @@
-import { Entity, Script } from "@oasis-engine/core";
+import { Camera, dependentComponents, DependentMode, Entity, Script } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
@@ -39,7 +39,7 @@ describe("Script", () => {
       expect(testScript.onDisable).to.have.been.called.exactly(0);
     });
 
-    it("Parent onAwakeb call inAtive child", () => {
+    it("Parent onAwake call inAtive child", () => {
       class ParentScript extends Script {
         onAwake() {
           console.log("ParentScript_onAwake");
@@ -249,6 +249,29 @@ describe("Script", () => {
         expect(script.onDisable).to.have.been.called.exactly(1);
         expect(script.onDestroy).to.have.been.called.exactly(1);
       }, 1000);
+    });
+
+    it("Dependent components", () => {
+      @dependentComponents(DependentMode.CheckOnly, Camera)
+      class CheckScript extends Script {}
+
+      @dependentComponents(DependentMode.AutoAdd, Camera)
+      class AutoAddScript extends Script {}
+
+      const engine = new WebGLEngine(document.createElement("canvas"));
+      const scene = engine.sceneManager.activeScene;
+      const rootEntity = scene.createRootEntity("root");
+      engine.run();
+
+      const entity1 = rootEntity.createChild("entity");
+      expect(() => {
+        entity1.addComponent(CheckScript);
+      }).throw(`Should add Camera1 before adding CheckScript`);
+
+      const entity2 = rootEntity.createChild("entity");
+      entity2.addComponent(AutoAddScript);
+      const camera = entity2.getComponent(Camera);
+      expect(camera).to.not.null;
     });
   });
 });

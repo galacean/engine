@@ -148,7 +148,6 @@ export class PhysicsManager {
     if (gravity !== value) {
       gravity.copyFrom(value);
     }
-    this._nativePhysicsManager.setGravity(gravity);
   }
 
   /**
@@ -165,6 +164,10 @@ export class PhysicsManager {
 
   constructor(engine: Engine) {
     this._engine = engine;
+
+    this._setGravity = this._setGravity.bind(this);
+    //@ts-ignore
+    this._gravity._onValueChanged = this._setGravity;
   }
 
   /**
@@ -398,5 +401,9 @@ export class PhysicsManager {
     for (let i = this._colliders.length - 1; i >= 0; --i) {
       elements[i]._onLateUpdate();
     }
+  }
+
+  private _setGravity(): void {
+    this._nativePhysicsManager.setGravity(this._gravity);
   }
 }

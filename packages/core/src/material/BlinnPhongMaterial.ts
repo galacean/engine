@@ -1,6 +1,7 @@
 import { Color, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { Texture2D } from "../texture/Texture2D";
 import { BaseMaterial } from "./BaseMaterial";
 
@@ -8,9 +9,9 @@ import { BaseMaterial } from "./BaseMaterial";
  * Blinn-phong Material.
  */
 export class BlinnPhongMaterial extends BaseMaterial {
-  private static _specularColorProp = Shader.getPropertyByName("u_specularColor");
-  private static _shininessProp = Shader.getPropertyByName("u_shininess");
-  private static _specularTextureProp = Shader.getPropertyByName("u_specularTexture");
+  private static _specularColorProp = ShaderProperty.getByName("u_specularColor");
+  private static _shininessProp = ShaderProperty.getByName("u_shininess");
+  private static _specularTextureProp = ShaderProperty.getByName("u_specularTexture");
 
   /**
    * Base color.

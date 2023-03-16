@@ -17,9 +17,9 @@ export abstract class ColliderShape {
   protected _id: number;
   protected _material: PhysicsMaterial;
   private _isTrigger: boolean = false;
-  private _contactOffset: number = 0;
   private _rotation: Vector3 = new Vector3();
   private _position: Vector3 = new Vector3();
+  private _contactOffset: number = 0.02;
 
   /**
    * @internal
@@ -45,13 +45,15 @@ export abstract class ColliderShape {
   /**
    * Contact offset for this shape.
    */
-  get contactOffset() {
+  get contactOffset(): number {
     return this._contactOffset;
   }
 
   set contactOffset(value: number) {
-    this._contactOffset = value;
-    this._nativeShape.setContactOffset(value);
+    if (this._contactOffset !== value) {
+      this._contactOffset = value;
+      this._nativeShape.setContactOffset(value);
+    }
   }
 
   /**
@@ -62,8 +64,10 @@ export abstract class ColliderShape {
   }
 
   set material(value: PhysicsMaterial) {
-    this._material = value;
-    this._nativeShape.setMaterial(value._nativeMaterial);
+    if (this._material !== value) {
+      this._material = value;
+      this._nativeShape.setMaterial(value._nativeMaterial);
+    }
   }
 
   /**
@@ -100,8 +104,10 @@ export abstract class ColliderShape {
   }
 
   set isTrigger(value: boolean) {
-    this._isTrigger = value;
-    this._nativeShape.setIsTrigger(value);
+    if (this._isTrigger !== value) {
+      this._isTrigger = value;
+      this._nativeShape.setIsTrigger(value);
+    }
   }
 
   protected constructor() {

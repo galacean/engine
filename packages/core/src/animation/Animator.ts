@@ -23,12 +23,13 @@ import { KeyframeValueType } from "./Keyframe";
  */
 export class Animator extends Component {
   /** Culling mode of this Animator. */
-  public cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
+  cullingMode: AnimatorCullingMode = AnimatorCullingMode.None;
+  /** The playback speed of the Animator, 1.0 is normal playback speed. */
+  @assignmentClone
+  speed: number = 1.0;
 
   protected _animatorController: AnimatorController;
 
-  @assignmentClone
-  protected _speed: number = 1.0;
   @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
 
@@ -46,17 +47,6 @@ export class Animator extends Component {
 
   @ignoreClone
   private _controlledRenderers: Renderer[] = [];
-
-  /**
-   * The playback speed of the Animator, 1.0 is normal playback speed.
-   */
-  get speed(): number {
-    return this._speed;
-  }
-
-  set speed(value: number) {
-    this._speed = value;
-  }
 
   /**
    * All layers from the AnimatorController which belongs this Animator.
@@ -143,10 +133,6 @@ export class Animator extends Component {
    * @param deltaTime - The deltaTime when the animation update
    */
   update(deltaTime: number): void {
-    if (this.speed === 0) {
-      return;
-    }
-
     let animationUpdate: boolean;
     if (this.cullingMode === AnimatorCullingMode.Complete) {
       animationUpdate = false;
@@ -169,6 +155,7 @@ export class Animator extends Component {
       this._checkAutoPlay();
       return;
     }
+
     deltaTime *= this.speed;
     for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const animatorLayerData = this._getAnimatorLayerData(i);
@@ -473,7 +460,7 @@ export class Animator extends Component {
 
     for (let i = curveBindings.length - 1; i >= 0; i--) {
       const owner = curveOwners[i];
-      owner && owner.evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight, additive);
+      owner?.evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight, additive);
     }
 
     playData.frameTime += state.speed * delta;
