@@ -1,7 +1,14 @@
+import { Vector4 } from "@oasis-engine/math";
+import { ShaderData } from "../shader/ShaderData";
+import { ShaderProperty } from "../shader/ShaderProperty";
+
 /**
  * Tools for get time information.
  */
 export class Time {
+  private static _timeProperty = ShaderProperty.getByName("u_Time");
+  private static _deltaTimeProperty = ShaderProperty.getByName("u_DeltaTime");
+
   private _frameCount: number = 0;
   private _deltaTime: number = 0;
   private _unscaledDeltaTime: number = 0;
@@ -9,6 +16,9 @@ export class Time {
   private _unscaledTime: number = 0;
   private _timeScale: number = 1.0;
   private _lastSystemTime: number;
+
+  private _timeValue: Vector4 = new Vector4();
+  private _deltaTimeValue: Vector4 = new Vector4();
 
   /*
    * The total number of frames since the start of the engine.
@@ -85,5 +95,21 @@ export class Time {
     this._frameCount++;
 
     this._lastSystemTime = currentSystemTime;
+  }
+
+  /**
+   * @internal
+   */
+  _updateSceneShaderData(shaderData: ShaderData): void {
+    const timeValue = this._timeValue;
+    const deltaTimeValue = this._deltaTimeValue;
+
+    const time = this._time;
+    timeValue.set(time, Math.sin(time), Math.cos(time), 0);
+    shaderData.setVector4(Time._timeProperty, timeValue);
+
+    const deltaTime = this._deltaTime;
+    deltaTimeValue.set(deltaTime, 0, 0, 0);
+    shaderData.setVector4(Time._deltaTimeProperty, deltaTimeValue);
   }
 }
