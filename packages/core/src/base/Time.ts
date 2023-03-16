@@ -2,9 +2,7 @@
  * Tools for get time information.
  */
 export class Time {
-  /** @internal */
-  _frameCount: number = 0;
-
+  private _frameCount: number = 0;
   private _clock: { now: () => number };
   private _time: number = 0;
   private _unscaledTime: number = 0;
