@@ -68,7 +68,7 @@ export class Engine extends EventDispatcher {
 
   /* @internal */
   _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
-   /* @internal */
+  /* @internal */
   _meshRenderDataPool: ClassPool<MeshRenderData> = new ClassPool(MeshRenderData);
   /* @internal */
   _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
@@ -158,21 +158,21 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Get the resource manager.
+   * The resource manager.
    */
   get resourceManager(): ResourceManager {
     return this._resourceManager;
   }
 
   /**
-   * Get the scene manager.
+   * The scene manager.
    */
   get sceneManager(): SceneManager {
     return this._sceneManager;
   }
 
   /**
-   * Get the Time class.
+   * The time information of the engine.
    */
   get time(): Time {
     return this._time;
