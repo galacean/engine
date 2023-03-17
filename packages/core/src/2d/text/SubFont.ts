@@ -111,13 +111,13 @@ export class SubFont {
           for (let k in charInfoMap) {
             const charInfo = charInfoMap[k];
             const data = TextUtils.measureChar(charInfo.char, nativeFontString).data;
-      
+
             if (charInfo.w > 0 && charInfo.h > 0 && data) {
               const { bufferOffset } = charInfo;
               texture.setPixelBuffer(data, 0, bufferOffset.x, bufferOffset.y, charInfo.w, charInfo.h);
             }
-            texture.generateMipmaps();
           }
+          texture.generateMipmaps();
         }
       })()
     );
