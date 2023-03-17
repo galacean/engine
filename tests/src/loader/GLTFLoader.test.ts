@@ -2,10 +2,12 @@ import {
   AssetType,
   BlinnPhongMaterial,
   Entity,
+  ModelMesh,
   PBRMaterial,
   PBRSpecularMaterial,
   PointLight,
   RenderFace,
+  SkinnedMeshRenderer,
   SpotLight,
   TextureCoordinate,
   TextureFilterMode,
@@ -51,11 +53,19 @@ class GLTFCustomBufferParser extends GLTFParser {
       accessors: [
         {
           bufferView: 0,
+          byteOffset: 0,
           componentType: 5126,
-          count: 25,
-          type: "VEC3",
-          max: [1, 1, 1],
-          min: [0, 0, 0]
+          count: 3,
+          max: [2.0],
+          min: [0.0],
+          type: "SCALAR",
+          normalized: true
+        },
+        {
+          bufferView: 0,
+          componentType: 5126,
+          count: 3,
+          type: "VEC3"
         }
       ],
       images: [
@@ -129,6 +139,7 @@ class GLTFCustomBufferParser extends GLTFParser {
           translation: [1, 0, 0],
           rotation: [Math.PI, 0, 0, 0],
           scale: [2, 2, 2],
+          mesh: 0,
           extensions: {
             Custom_Light: {}
           }
@@ -221,6 +232,62 @@ class GLTFCustomBufferParser extends GLTFParser {
             Custom_Material: { baseColorFactor: [1, 1, 0, 1] }
           }
         }
+      ],
+      animations: [
+        {
+          channels: [
+            {
+              sampler: 0,
+              target: {
+                node: 0,
+                path: "rotation"
+              }
+            }
+          ],
+          name: "animation",
+          samplers: [
+            {
+              input: 0,
+              interpolation: "LINEAR",
+              output: 1
+            }
+          ]
+        }
+      ],
+      meshes: [
+        {
+          name: "mesh",
+          primitives: [
+            {
+              attributes: {
+                NORMAL: 1,
+                POSITION: 1,
+                TANGENT: 1,
+                TEXCOORD_0: 1
+              },
+              indices: 1,
+              material: 0,
+              mode: 4,
+              targets: [
+                {
+                  POSITION: 1,
+                  TANGENT: 1,
+                  NORMAL: 1
+                },
+                {
+                  POSITION: 1,
+                  TANGENT: 1,
+                  NORMAL: 1
+                }
+              ],
+              extensions: {}
+            }
+          ],
+          weights: [1, 1],
+          extras: {
+            targetNames: ["bs0", "bs1"]
+          }
+        }
       ]
     };
 
@@ -277,7 +344,7 @@ describe("glTF Loader test", function () {
         )
       }
     });
-    const { materials, entities, defaultSceneRoot, textures } = glTFResource;
+    const { materials, entities, defaultSceneRoot, textures, meshes } = glTFResource;
 
     // material
     expect(materials.length).to.equal(4);
@@ -340,6 +407,17 @@ describe("glTF Loader test", function () {
     expect(materials[0].clearCoatNormalTexture).to.exist;
     expect(materials[2].baseTexture).to.exist;
     expect(materials[2].specularGlossinessTexture).to.exist;
+
+    // mesh
+    expect(meshes.length).to.equal(1);
+    expect(meshes[0].length).to.equal(1);
+    expect(meshes[0][0]).to.instanceOf(ModelMesh);
+    expect(meshes[0][0].blendShapeCount).to.equal(2);
+    expect(meshes[0][0].getBlendShapeName(0)).to.equal("bs0");
+    expect(meshes[0][0].getBlendShapeName(1)).to.equal("bs1");
+    const renderer = entities[1].getComponent(SkinnedMeshRenderer);
+    expect(renderer).to.exist;
+    expect(renderer.blendShapeWeights).to.deep.include([1, 1]);
 
     glTFResource.destroy();
     expect(glTFResource.materials).to.be.null;
