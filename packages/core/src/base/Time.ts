@@ -23,7 +23,7 @@ export class Time {
    * Maximum delta time allowed per frame in seconds.
    *
    * @remarks
-   * When the frame rate is low or stutter occurs, `deltaTime` will not exceed this value.
+   * When the frame rate is low or stutter occurs, `deltaTime` will not exceed the value of `maximumDeltaTime` * `timeScale`.
    */
   maximumDeltaTime: number = 0.333333;
 
@@ -84,8 +84,8 @@ export class Time {
    */
   _update(): void {
     const currentSystemTime = performance.now() / 1000;
-    
-    const unscaledDeltaTime = currentSystemTime - this._lastSystemTime;    
+
+    const unscaledDeltaTime = currentSystemTime - this._lastSystemTime;
     this._unscaledDeltaTime = unscaledDeltaTime;
     this._unscaledElapsedTime += unscaledDeltaTime;
 
