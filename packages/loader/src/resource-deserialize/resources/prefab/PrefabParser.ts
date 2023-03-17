@@ -1,6 +1,5 @@
-import { Engine, Entity } from "@oasis-engine/core";
-import type { IEntity, IPrefabFile } from "./PrefabDesign";
-import { ReflectionParser } from "./ReflectionParser";
+import { Entity } from "@oasis-engine/core";
+import type { IEntity } from "./PrefabDesign";
 
 export class PrefabParser {
   static parseChildren(entitiesConfig: Map<string, IEntity>, entities: Map<string, Entity>, parentId: string) {
