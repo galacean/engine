@@ -3,7 +3,7 @@ import { GLTFParser } from "./gltf/GLTFParser";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { ParserContext } from "./gltf/parser/ParserContext";
 
-@resourceLoader(AssetType.Prefab, ["gltf", "glb"])
+@resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
   load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
     const url = item.url;
