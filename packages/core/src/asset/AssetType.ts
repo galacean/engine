@@ -26,11 +26,11 @@ export enum AssetType {
   /** Mesh. */
   Mesh = "mesh",
   /** AnimationClip. */
-  AnimationClip = "AnimationClip",
+  AnimationClip = "animation-clip",
   /** AnimatorController. */
-  AnimatorController = "AnimatorController",
+  AnimatorController = "animator-controller",
   /** Prefab.*/
-  Prefab = "prefab",
+  GLTF = "gltf",
   /** Compress Texture. */
   KTX = "ktx",
   /** Cube Compress Texture. */
@@ -44,7 +44,7 @@ export enum AssetType {
   /** Scene. */
   Scene = "scene",
   /** HDR to cube. */
-  HDR = "HDR",
+  HDR = "hdr",
   /** Font. */
   Font = "font",
   /** Source Font, include ttf、 otf and woff. */
