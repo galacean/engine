@@ -6,7 +6,7 @@ import { ShaderProperty } from "../shader/ShaderProperty";
  * Provide time related information.
  */
 export class Time {
-  private static _timeProperty = ShaderProperty.getByName("u_Time");
+  private static _elapsedTimeProperty = ShaderProperty.getByName("u_ElapsedTime");
   private static _deltaTimeProperty = ShaderProperty.getByName("u_DeltaTime");
 
   private _frameCount: number = 0;
@@ -16,7 +16,7 @@ export class Time {
   private _unscaledElapsedTime: number = 0;
   private _lastSystemTime: number;
 
-  private _timeValue: Vector4 = new Vector4();
+  private _elapsedTimeValue: Vector4 = new Vector4();
   private _deltaTimeValue: Vector4 = new Vector4();
 
   /**
@@ -101,12 +101,12 @@ export class Time {
    * @internal
    */
   _updateSceneShaderData(shaderData: ShaderData): void {
-    const timeValue = this._timeValue;
+    const elapsedTimeValue = this._elapsedTimeValue;
     const deltaTimeValue = this._deltaTimeValue;
 
     const time = this._elapsedTime;
-    timeValue.set(time, Math.sin(time), Math.cos(time), 0);
-    shaderData.setVector4(Time._timeProperty, timeValue);
+    elapsedTimeValue.set(time, Math.sin(time), Math.cos(time), 0);
+    shaderData.setVector4(Time._elapsedTimeProperty, elapsedTimeValue);
 
     const deltaTime = this._deltaTime;
     deltaTimeValue.set(deltaTime, 0, 0, 0);
