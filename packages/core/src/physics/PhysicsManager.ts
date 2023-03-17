@@ -278,7 +278,7 @@ export class PhysicsManager {
    * @internal
    */
   _update(deltaTime: number): void {
-    const { fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
+    const { fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
     const componentsManager = this._engine._componentsManager;
 
     const simulateTime = this._restTime + deltaTime;
