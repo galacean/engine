@@ -45,17 +45,17 @@ export class Time {
   }
 
   /**
-   * The unscaled delta time in seconds from the last frame to the current frame.
-   */
-  get unscaledDeltaTime(): number {
-    return this._unscaledDeltaTime;
-  }
-
-  /**
    * The amount of elapsed time in seconds since the start of the engine.
    */
   get elapsedTime(): number {
     return this._elapsedTime;
+  }
+
+  /**
+   * The unscaled delta time in seconds from the last frame to the current frame.
+   */
+  get unscaledDeltaTime(): number {
+    return this._unscaledDeltaTime;
   }
 
   /**
