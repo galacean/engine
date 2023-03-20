@@ -128,15 +128,6 @@ export class PhysicsManager {
   fixedTimeStep: number = 1 / 60;
 
   /**
-   * The max allowed time step in seconds one frame.
-   *
-   * @remarks
-   * When the frame rate is low or stutter occurs, the maximum execution time of physics will not exceed this value.
-   * So physics will slow down a bit when performance hitch occurs.
-   */
-  maxAllowedTimeStep: number = 1 / 3;
-
-  /**
    * The gravity of physics scene.
    */
   get gravity(): Vector3 {
@@ -148,18 +139,6 @@ export class PhysicsManager {
     if (gravity !== value) {
       gravity.copyFrom(value);
     }
-  }
-
-  /**
-   * @deprecated
-   * Please use `maxAllowedTimeStep` instead.
-   */
-  get maxSumTimeStep(): number {
-    return this.maxAllowedTimeStep;
-  }
-
-  set maxSumTimeStep(value: number) {
-    this.maxAllowedTimeStep = value;
   }
 
   constructor(engine: Engine) {
@@ -299,10 +278,10 @@ export class PhysicsManager {
    * @internal
    */
   _update(deltaTime: number): void {
-    const { fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
+    const { fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
     const componentsManager = this._engine._componentsManager;
 
-    const simulateTime = Math.min(this.maxAllowedTimeStep, this._restTime + deltaTime);
+    const simulateTime = this._restTime + deltaTime;
     const step = Math.floor(simulateTime / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {

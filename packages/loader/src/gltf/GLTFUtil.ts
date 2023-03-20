@@ -1,27 +1,8 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
 import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { BufferInfo, ParserContext } from "./parser/ParserContext";
-import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./Schema";
-
-const charCodeOfDot = ".".charCodeAt(0);
-const reEscapeChar = /\\(\\)?/g;
-const rePropName = RegExp(
-  // Match anything that isn't a dot or bracket.
-  "[^.[\\]]+" +
-    "|" +
-    // Or match property names within brackets.
-    "\\[(?:" +
-    // Match a non-string expression.
-    "([^\"'][^[]*)" +
-    "|" +
-    // Or match strings (supports escaping characters).
-    "([\"'])((?:(?!\\2)[^\\\\]|\\\\.)*?)\\2" +
-    ")\\]" +
-    "|" +
-    // Or match "" as the space between consecutive dots or empty brackets.
-    "(?=(?:\\.|\\[\\])(?:\\.|\\[\\]|$))",
-  "g"
-);
+import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
+import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
+import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
 
 /**
  * @internal
@@ -147,21 +128,21 @@ export class GLTFUtil {
     }
   }
 
-  static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
+  static getAccessorBuffer(context: GLTFParserContext, bufferViews: IBufferView[], accessor: IAccessor): BufferInfo {
     const { buffers } = context;
-    const bufferViews = gltf.bufferViews;
 
     const componentType = accessor.componentType;
     const bufferView = bufferViews[accessor.bufferView];
 
-    const buffer = buffers[bufferView.buffer];
+    const bufferIndex = bufferView.buffer;
+    const buffer = buffers[bufferIndex];
     const bufferByteOffset = bufferView.byteOffset || 0;
     const byteOffset = accessor.byteOffset || 0;
 
     const TypedArray = GLTFUtil.getComponentType(componentType);
-    const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+    const dataElementSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
-    const elementStride = dataElmentSize * dataElementBytes;
+    const elementStride = dataElementSize * dataElementBytes;
     const accessorCount = accessor.count;
     const bufferStride = bufferView.byteStride;
 
@@ -177,17 +158,22 @@ export class GLTFUtil {
         const count = accessorCount * (bufferStride / dataElementBytes);
         const data = new TypedArray(buffer, offset, count);
         accessorBufferCache[bufferCacheKey] = bufferInfo = new BufferInfo(data, true, bufferStride);
+        bufferInfo.restoreInfo = new BufferDataRestoreInfo(
+          new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
+        );
       }
     } else {
       const offset = bufferByteOffset + byteOffset;
-      const count = accessorCount * dataElmentSize;
+      const count = accessorCount * dataElementSize;
       const data = new TypedArray(buffer, offset, count);
       bufferInfo = new BufferInfo(data, false, elementStride);
+      bufferInfo.restoreInfo = new BufferDataRestoreInfo(
+        new RestoreDataAccessor(bufferIndex, TypedArray, offset, count)
+      );
     }
 
     if (accessor.sparse) {
-      const data = GLTFUtil.processingSparseData(gltf, accessor, buffers, bufferInfo.data);
-      bufferInfo = new BufferInfo(data, false, bufferInfo.stride);
+      GLTFUtil.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
     }
     return bufferInfo;
   }
@@ -196,8 +182,8 @@ export class GLTFUtil {
    * @deprecated
    * Get accessor data.
    */
-  static getAccessorData(gltf: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
-    const bufferViews = gltf.bufferViews;
+  static getAccessorData(glTF: IGLTF, accessor: IAccessor, buffers: ArrayBuffer[]): TypedArray {
+    const bufferViews = glTF.bufferViews;
     const bufferView = bufferViews[accessor.bufferView];
     const arrayBuffer = buffers[bufferView.buffer];
     const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
@@ -258,47 +244,55 @@ export class GLTFUtil {
   }
 
   static getBufferViewData(bufferView: IBufferView, buffers: ArrayBuffer[]): ArrayBuffer {
-    const { buffer, byteOffset = 0, byteLength } = bufferView;
-    const arrayBuffer = buffers[buffer];
+    const { byteOffset = 0 } = bufferView;
+    const arrayBuffer = buffers[bufferView.buffer];
 
-    return arrayBuffer.slice(byteOffset, byteOffset + byteLength);
+    return arrayBuffer.slice(byteOffset, byteOffset + bufferView.byteLength);
   }
 
   /**
    * Get accessor data.
    */
   static processingSparseData(
-    gltf: IGLTF,
+    bufferViews: IBufferView[],
     accessor: IAccessor,
     buffers: ArrayBuffer[],
-    originData: TypedArray
-  ): TypedArray {
-    const bufferViews = gltf.bufferViews;
+    bufferInfo: BufferInfo
+  ): void {
+    const { restoreInfo } = bufferInfo;
     const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
     const TypedArray = GLTFUtil.getComponentType(accessor.componentType);
-    const data = originData.slice();
+    const data = bufferInfo.data.slice();
 
     const { count, indices, values } = accessor.sparse;
     const indicesBufferView = bufferViews[indices.bufferView];
     const valuesBufferView = bufferViews[values.bufferView];
-    const indicesArrayBuffer = buffers[indicesBufferView.buffer];
-    const valuesArrayBuffer = buffers[valuesBufferView.buffer];
+    const indicesBufferIndex = indicesBufferView.buffer;
+    const valuesBufferIndex = valuesBufferView.buffer;
+    const indicesArrayBuffer = buffers[indicesBufferIndex];
+    const valuesArrayBuffer = buffers[valuesBufferIndex];
     const indicesByteOffset = (indices.byteOffset ?? 0) + (indicesBufferView.byteOffset ?? 0);
     const indicesByteLength = indicesBufferView.byteLength;
     const valuesByteOffset = (values.byteOffset ?? 0) + (valuesBufferView.byteOffset ?? 0);
     const valuesByteLength = valuesBufferView.byteLength;
 
+    restoreInfo.typeSize = accessorTypeSize;
+    restoreInfo.sparseCount = count;
+
     const IndexTypeArray = GLTFUtil.getComponentType(indices.componentType);
-    const indicesArray = new IndexTypeArray(
-      indicesArrayBuffer,
+
+    const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
+    const indicesArray = new IndexTypeArray(indicesArrayBuffer, indicesByteOffset, indexLength);
+    restoreInfo.sparseIndices = new RestoreDataAccessor(
+      indicesBufferIndex,
+      IndexTypeArray,
       indicesByteOffset,
-      indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT
+      indexLength
     );
-    const valuesArray = new TypedArray(
-      valuesArrayBuffer,
-      valuesByteOffset,
-      valuesByteLength / TypedArray.BYTES_PER_ELEMENT
-    );
+
+    const valueLength = valuesByteLength / TypedArray.BYTES_PER_ELEMENT;
+    const valuesArray = new TypedArray(valuesArrayBuffer, valuesByteOffset, valueLength);
+    restoreInfo.sparseValues = new RestoreDataAccessor(valuesBufferIndex, TypedArray, valuesByteOffset, valueLength);
 
     for (let i = 0; i < count; i++) {
       const replaceIndex = indicesArray[i];
@@ -307,7 +301,7 @@ export class GLTFUtil {
       }
     }
 
-    return data;
+    bufferInfo.data = data;
   }
 
   static getIndexFormat(type: AccessorComponentType): IndexFormat {
@@ -418,8 +412,11 @@ export class GLTFUtil {
   /**
    * Parse the glb format.
    */
-  static parseGLB(glb: ArrayBuffer): {
-    gltf: IGLTF;
+  static parseGLB(
+    context: GLTFParserContext,
+    glb: ArrayBuffer
+  ): {
+    glTF: IGLTF;
     buffers: ArrayBuffer[];
   } {
     const UINT32_LENGTH = 4;
@@ -452,12 +449,13 @@ export class GLTFUtil {
     }
 
     const glTFData = new Uint8Array(glb, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
-    const gltf: IGLTF = JSON.parse(GLTFUtil.decodeText(glTFData));
+    const glTF: IGLTF = JSON.parse(GLTFUtil.decodeText(glTFData));
 
     // read all buffers
     const buffers: ArrayBuffer[] = [];
     let byteOffset = GLB_HEADER_LENGTH + 2 * UINT32_LENGTH + chunkLength;
 
+    const restoreGLBBufferSlice = context.contentRestorer.glbBufferSlices;
     while (byteOffset < header.length) {
       chunkLength = dataView.getUint32(byteOffset, true);
       chunkType = dataView.getUint32(byteOffset + UINT32_LENGTH, true);
@@ -470,12 +468,13 @@ export class GLTFUtil {
       const currentOffset = byteOffset + 2 * UINT32_LENGTH;
       const buffer = glb.slice(currentOffset, currentOffset + chunkLength);
       buffers.push(buffer);
+      restoreGLBBufferSlice.push(new Vector2(currentOffset, chunkLength));
 
       byteOffset += chunkLength + 2 * UINT32_LENGTH;
     }
 
     return {
-      gltf,
+      glTF,
       buffers
     };
   }

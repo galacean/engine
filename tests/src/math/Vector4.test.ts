@@ -209,4 +209,9 @@ describe("Vector4 test", () => {
     expect(toString(a.scale(2))).to.eq(toString(a));
     expect(toString(a)).to.eq("vec4(6, 8, 0, 0)");
   });
+
+  it("toJSON", () => {
+    const a = new Vector4(3, 4, 5, 0);
+    expect(JSON.stringify(a)).to.eq('{"x":3,"y":4,"z":5,"w":0}');
+  });
 });

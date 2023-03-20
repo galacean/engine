@@ -51,13 +51,13 @@ export class Script extends Component {
 
   /**
    * The main loop, called frame by frame.
-   * @param deltaTime - The deltaTime when the script update.
+   * @param deltaTime - The delta time since last frame in seconds
    */
   onUpdate(deltaTime: number): void {}
 
   /**
    * Called after the onUpdate finished, called frame by frame.
-   * @param deltaTime - The deltaTime when the script update.
+   * @param deltaTime - The delta time since last frame in seconds
    */
   onLateUpdate(deltaTime: number): void {}
 
@@ -214,15 +214,6 @@ export class Script extends Component {
 
   /**
    * @internal
-   * @inheritDoc
-   * @override
-   */
-  _onDestroy(): void {
-    this._engine._componentsManager.addPendingDestroyScript(this);
-  }
-
-  /**
-   * @internal
    */
   _handlingInValid(): void {
     const componentsManager = this.engine._componentsManager;
@@ -239,5 +230,14 @@ export class Script extends Component {
 
     this._entity._removeScript(this);
     this._waitHandlingInValid = false;
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._engine._componentsManager.addPendingDestroyScript(this);
   }
 }

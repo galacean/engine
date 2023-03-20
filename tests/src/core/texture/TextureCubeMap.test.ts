@@ -9,6 +9,7 @@ describe("TextureCube", () => {
 
   const canvas = document.createElement("canvas");
   const engine = new WebGLEngine(canvas);
+  // @ts-ignore
   const rhi = engine._hardwareRenderer;
   const isWebGL2 = rhi.isWebGL2;
 

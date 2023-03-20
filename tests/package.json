@@ -16,9 +16,11 @@
   ],
   "dependencies": {
     "@oasis-engine/core": "workspace:*",
+    "@oasis-engine/loader": "workspace:*",
     "@oasis-engine/design": "workspace:*",
     "@oasis-engine/math": "workspace:*",
     "@oasis-engine/rhi-webgl": "workspace:*",
     "@oasis-engine/physics-lite": "workspace:*"
+    
   }
 }
