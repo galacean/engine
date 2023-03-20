@@ -8,8 +8,8 @@ describe("Time", () => {
     expect(engine.time.frameCount).to.be.equal(0);
     expect(engine.time.elapsedTime).to.be.equal(0);
     expect(engine.time.deltaTime).to.be.equal(0);
-    expect(engine.time.unscaledElapsedTime).to.be.equal(0);
-    expect(engine.time.unscaledDeltaTime).to.be.equal(0);
+    expect(engine.time.actualElapsedTime).to.be.equal(0);
+    expect(engine.time.actualDeltaTime).to.be.equal(0);
 
     expect(engine.time.timeScale).to.be.equal(1);
     engine.time.timeScale = 2;
