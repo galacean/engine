@@ -319,7 +319,7 @@ export class BasicRenderPipeline {
           continue;
         }
       }
-      renderer._renderFrameCount = engine.time._frameCount;
+      renderer._renderFrameCount = engine.time.frameCount;
       renderer._prepareRender(context);
     }
   }

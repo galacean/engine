@@ -14,7 +14,6 @@ describe("physics manager test", () => {
     engine.physicsManager.initialize(LitePhysics);
 
     expect(engine.physicsManager.gravity.y).to.eq(-9.81);
-    expect(engine.physicsManager.maxSumTimeStep).to.eq(1 / 3);
     expect(engine.physicsManager.fixedTimeStep).to.eq(1 / 60);
   });
 
