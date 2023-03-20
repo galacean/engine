@@ -11,20 +11,15 @@ export class Time {
 
   private _frameCount: number = 0;
   private _deltaTime: number = 0;
-  private _unscaledDeltaTime: number = 0;
+  private _actualDeltaTime: number = 0;
   private _elapsedTime: number = 0;
-  private _unscaledElapsedTime: number = 0;
+  private _actualElapsedTime: number = 0;
   private _lastSystemTime: number;
 
   private _elapsedTimeValue: Vector4 = new Vector4();
   private _deltaTimeValue: Vector4 = new Vector4();
 
-  /**
-   * Maximum delta time allowed per frame in seconds.
-   *
-   * @remarks
-   * When the frame rate is low or stutter occurs, `deltaTime` will not exceed the value of `maximumDeltaTime` * `timeScale`.
-   */
+  /** Maximum delta time allowed per frame in seconds. */
   maximumDeltaTime: number = 0.333333;
 
   /** The scale of time. */
@@ -39,6 +34,8 @@ export class Time {
 
   /**
    * The delta time in seconds from the last frame to the current frame.
+   *
+   * @remarks When the frame rate is low or stutter occurs, `deltaTime` will not exceed the value of `maximumDeltaTime` * `timeScale`.
    */
   get deltaTime(): number {
     return this._deltaTime;
@@ -52,17 +49,19 @@ export class Time {
   }
 
   /**
-   * The unscaled delta time in seconds from the last frame to the current frame.
+   * The actual delta time in seconds from the last frame to the current frame.
+   *
+   * @remarks The actual delta time is not affected by `maximumDeltaTime` and `timeScale`.
    */
-  get unscaledDeltaTime(): number {
-    return this._unscaledDeltaTime;
+  get actualDeltaTime(): number {
+    return this._actualDeltaTime;
   }
 
   /**
-   * The amount of unscaled elapsed time in seconds since the start of the engine.
+   * The amount of actual elapsed time in seconds since the start of the engine.
    */
-  get unscaledElapsedTime(): number {
-    return this._unscaledElapsedTime;
+  get actualElapsedTime(): number {
+    return this._actualElapsedTime;
   }
 
   /**
@@ -85,11 +84,11 @@ export class Time {
   _update(): void {
     const currentSystemTime = performance.now() / 1000;
 
-    const unscaledDeltaTime = currentSystemTime - this._lastSystemTime;
-    this._unscaledDeltaTime = unscaledDeltaTime;
-    this._unscaledElapsedTime += unscaledDeltaTime;
+    const actualDeltaTime = currentSystemTime - this._lastSystemTime;
+    this._actualDeltaTime = actualDeltaTime;
+    this._actualElapsedTime += actualDeltaTime;
 
-    const deltaTime = Math.min(unscaledDeltaTime, this.maximumDeltaTime) * this.timeScale;
+    const deltaTime = Math.min(actualDeltaTime, this.maximumDeltaTime) * this.timeScale;
     this._deltaTime = deltaTime;
     this._elapsedTime += deltaTime;
     this._frameCount++;
