@@ -68,11 +68,15 @@ export abstract class GLTFParser {
     parseResource: EngineObject,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): void {
+  ): Promise<void[]> {
+    let promises = [];
     for (let extensionName in extensions) {
       const extensionSchema = extensions[extensionName];
-      GLTFParser._additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema, ...extra);
+      promises.push(
+        GLTFParser._additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema, ...extra)
+      );
     }
+    return Promise.all(promises);
   }
 
   /**
@@ -136,11 +140,11 @@ export abstract class GLTFParser {
     extensionSchema: GLTFExtensionSchema,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): void {
+  ): void | Promise<void> {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.AdditiveParse);
 
     if (parser) {
-      parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
+      return parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
     }
   }
 

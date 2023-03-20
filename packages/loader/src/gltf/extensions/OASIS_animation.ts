@@ -1,19 +1,22 @@
-import { AnimationEvent } from "@oasis-engine/core";
-import { registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
-import { ExtensionParser } from "./ExtensionParser";
-import { IOasisAnimation } from "./Schema";
+import { AnimationClip, AnimationEvent } from "@oasis-engine/core";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
+import { IOasisAnimation } from "./GLTFExtensionSchema";
 
 // @ts-ignore
-@registerExtension("OASIS_animation")
-class OASIS_animation extends ExtensionParser {
+@registerGLTFExtension("OASIS_animation", GLTFExtensionMode.AdditiveParse)
+class OASIS_animation extends GLTFExtensionParser {
+  /**
+   * @override
+   */
   // @ts-ignore
-  createEngineResource(schema: IOasisAnimation, context: ParserContext): Promise<AnimationEvent[]> {
+  additiveParse(context: GLTFParserContext, animationClip: AnimationClip, schema: IOasisAnimation): Promise<void> {
     const { engine } = context.glTFResource;
     const { events } = schema;
     return Promise.all(
       events.map((eventData) => {
-        return new Promise<AnimationEvent>((resolve) => {
+        return new Promise<void>((resolve) => {
           const event = new AnimationEvent();
           event.functionName = eventData.functionName;
           event.time = eventData.time;
@@ -22,14 +25,18 @@ class OASIS_animation extends ExtensionParser {
             engine.resourceManager.getResourceByRef(eventData.parameter).then((asset) => {
               eventData.parameter = asset;
               event.parameter = eventData.parameter;
-              resolve(event);
+              animationClip.addEvent(event);
+              resolve();
             });
           } else {
             event.parameter = eventData.parameter;
-            resolve(event);
+            animationClip.addEvent(event);
+            resolve();
           }
         });
       })
-    );
+    ).then((res) => {
+      return null;
+    });
   }
 }
