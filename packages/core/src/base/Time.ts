@@ -108,8 +108,7 @@ export class Time {
     elapsedTimeValue.set(time, Math.sin(time), Math.cos(time), 0);
     shaderData.setVector4(Time._elapsedTimeProperty, elapsedTimeValue);
 
-    const deltaTime = this._deltaTime;
-    deltaTimeValue.set(deltaTime, 0, 0, 0);
+    deltaTimeValue.set(this._deltaTime, 0, 0, 0);
     shaderData.setVector4(Time._deltaTimeProperty, deltaTimeValue);
   }
 }
