@@ -379,12 +379,13 @@ export class Scene extends EngineObject {
    */
   _updateShaderData(): void {
     const shaderData = this.shaderData;
-    const time = this._engine.time;
-    const lightManager = this._engine._lightManager;
+    const engine = this._engine;
+    const lightManager = engine._lightManager;
 
-    time._updateSceneShaderData(shaderData);
+    engine.time._updateSceneShaderData(shaderData);
 
     lightManager._updateShaderData(this.shaderData);
+
     const sunLightIndex = lightManager._getSunLightIndex();
     if (sunLightIndex !== -1) {
       this._sunLight = lightManager._directLights.get(sunLightIndex);
