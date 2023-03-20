@@ -307,6 +307,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     switch (type) {
       case SpriteModifyFlags.texture:
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
+        // When the width and height of `SpriteRenderer` are `undefined`,
+        // the texture of `Sprite` will affect the position of `SpriteRenderer`.
+        if (this._width === undefined || this._height === undefined) {
+          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        }
         break;
       case SpriteModifyFlags.size:
         this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
@@ -319,7 +324,12 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
         break;
       case SpriteModifyFlags.atlasRegion:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
+        // Same as when `texture` is changed
+        if (this._width === undefined || this._height === undefined) {
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        } else {
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
+        }
         break;
       case SpriteModifyFlags.pivot:
         this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
