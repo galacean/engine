@@ -101,8 +101,7 @@ export class Time {
    * @internal
    */
   _updateSceneShaderData(shaderData: ShaderData): void {
-    const elapsedTimeValue = this._elapsedTimeValue;
-    const deltaTimeValue = this._deltaTimeValue;
+    const { _elapsedTimeValue: elapsedTimeValue, _deltaTimeValue: deltaTimeValue } = this;
 
     const time = this._elapsedTime;
     elapsedTimeValue.set(time, Math.sin(time), Math.cos(time), 0);
