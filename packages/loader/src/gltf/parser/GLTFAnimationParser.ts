@@ -242,11 +242,14 @@ export class GLTFAnimationParser extends GLTFParser {
             animationInfo.extensions,
             context,
             animationClips[i],
-            animationInfo
+            animationInfo,
+            glTFResource
           )
         );
       }
-      animationClipsPromiseInfo.resolve(animationClips);
+      Promise.all(promises).then(() => {
+        animationClipsPromiseInfo.resolve(animationClips);
+      });
       return animationClipsPromiseInfo.promise;
     });
   }

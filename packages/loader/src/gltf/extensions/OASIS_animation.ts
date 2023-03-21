@@ -1,4 +1,6 @@
 import { AnimationClip, AnimationEvent } from "@oasis-engine/core";
+import { GLTFResource } from "../GLTFResource";
+import { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
@@ -11,7 +13,13 @@ class OASIS_animation extends GLTFExtensionParser {
    * @override
    */
   // @ts-ignore
-  additiveParse(context: GLTFParserContext, animationClip: AnimationClip, schema: IOasisAnimation): Promise<void> {
+  additiveParse(
+    context: GLTFParserContext,
+    animationClip: AnimationClip,
+    schema: IOasisAnimation,
+    ownerSchema: GLTFExtensionOwnerSchema,
+    glTFResource: GLTFResource
+  ): Promise<void> {
     const { engine } = context.glTFResource;
     const { events } = schema;
     return Promise.all(
@@ -20,13 +28,20 @@ class OASIS_animation extends GLTFExtensionParser {
           const event = new AnimationEvent();
           event.functionName = eventData.functionName;
           event.time = eventData.time;
-          if (eventData?.parameter?.refId) {
+          const ref = eventData?.parameter;
+          const refId = ref?.refId;
+          if (refId) {
             // @ts-ignore
-            engine.resourceManager.getResourceByRef(eventData.parameter).then((asset) => {
+            const isSubAsset = engine.resourceManager._editorResourceConfig[refId].path === glTFResource.url;
+            // @ts-ignore
+            engine.resourceManager.getResourceByRef(ref).then((asset) => {
               event.parameter = asset;
               resolve();
             });
             animationClip.addEvent(event);
+            if (isSubAsset) {
+              resolve();
+            }
           } else {
             event.parameter = eventData.parameter;
             animationClip.addEvent(event);
