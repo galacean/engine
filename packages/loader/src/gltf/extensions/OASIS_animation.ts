@@ -23,11 +23,10 @@ class OASIS_animation extends GLTFExtensionParser {
           if (eventData?.parameter?.refId) {
             // @ts-ignore
             engine.resourceManager.getResourceByRef(eventData.parameter).then((asset) => {
-              eventData.parameter = asset;
-              event.parameter = eventData.parameter;
-              animationClip.addEvent(event);
+              event.parameter = asset;
               resolve();
             });
+            animationClip.addEvent(event);
           } else {
             event.parameter = eventData.parameter;
             animationClip.addEvent(event);

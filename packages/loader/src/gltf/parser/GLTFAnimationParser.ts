@@ -230,9 +230,6 @@ export class GLTFAnimationParser extends GLTFParser {
       }
 
       animationClipPromises.push(animationClip);
-
-      // @ts-ignore
-      GLTFParser.executeExtensionsAdditiveAndParse(animationInfo.extensions, context, animationClip, animationInfo);
     }
 
     return AssetPromise.all(animationClipPromises).then((animationClips) => {
@@ -249,9 +246,7 @@ export class GLTFAnimationParser extends GLTFParser {
           )
         );
       }
-      Promise.all(promises).then(() => {
-        animationClipsPromiseInfo.resolve(animationClips);
-      });
+      animationClipsPromiseInfo.resolve(animationClips);
       return animationClipsPromiseInfo.promise;
     });
   }
