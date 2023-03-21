@@ -234,7 +234,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    console.log("_updateBounds");
     if (!this.sprite?.texture || !this.width || !this.height) {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
