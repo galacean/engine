@@ -47,7 +47,7 @@ export class Sprite extends RefObject {
     if (this._texture !== value) {
       this._texture = value;
       this._dispatchSpriteChange(SpriteModifyFlags.texture);
-      (this._width === undefined || this.height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
+      (this._width === undefined || this._height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
     }
   }
 
@@ -106,7 +106,7 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.atlasRegion);
-    (this._width === undefined || this.height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
+    (this._width === undefined || this._height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
   }
 
   /**
@@ -121,7 +121,7 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.atlasRegionOffset);
-    (this._width === undefined || this.height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
+    (this._width === undefined || this._height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
   }
 
   /**
@@ -137,7 +137,7 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.region);
-    (this._width === undefined || this.height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
+    (this._width === undefined || this._height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
   }
 
   /**
