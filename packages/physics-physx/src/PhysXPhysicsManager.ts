@@ -148,7 +148,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
         lastPXManager && characterController._destroyPXController();
         characterController._createPXController(this, shape);
       }
-      this._pxScene.addController(characterController._pxController);
     }
     characterController._pxManager = this;
   }
@@ -157,9 +156,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
-    if (characterController._shape) {
-      this._pxScene.removeController(characterController._pxController);
-    }
+    characterController._pxController = null;
     characterController._pxManager = null;
   }
 
