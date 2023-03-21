@@ -3,6 +3,7 @@ import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { Pointer } from "./input";
 import { ColliderShape } from "./physics";
+import { Collision } from "./physics/Collision";
 
 /**
  * Script class, used for logic writing.
@@ -79,42 +80,44 @@ export class Script extends Component {
   onPhysicsUpdate(): void {}
 
   /**
-   * Called when the collision enter.
+   * Called when the trigger enter.
    * @param other - ColliderShape
    */
   onTriggerEnter(other: ColliderShape): void {}
 
   /**
-   * Called when the collision stay.
-   * @remarks onTriggerStay is called every frame while the collision stay.
+   * Called when the trigger stay.
+   * @remarks onTriggerStay is called every frame while the trigger stay.
    * @param other - ColliderShape
    */
   onTriggerExit(other: ColliderShape): void {}
 
   /**
-   * Called when the collision exit.
+   * Called when the trigger exit.
    * @param other - ColliderShape
    */
   onTriggerStay(other: ColliderShape): void {}
 
   /**
    * Called when the collision enter.
-   * @param other - ColliderShape
+   * @param other - The Collision data associated with this collision event.
+   * @remark The Collision data will be invalid after this call, you should copy the data if needed
    */
-  onCollisionEnter(other: ColliderShape): void {}
+  onCollisionEnter(other: Collision): void {}
 
   /**
    * Called when the collision stay.
-   * @remarks onTriggerStay is called every frame while the collision stay.
-   * @param other - ColliderShape
+   * @param other - The Collision data associated with this collision event.
+   * @remark The Collision data will be invalid after this call, you should copy the data if needed
    */
-  onCollisionExit(other: ColliderShape): void {}
+  onCollisionExit(other: Collision): void {}
 
   /**
    * Called when the collision exit.
-   * @param other - ColliderShape
+   * @param other - The Collision data associated with this collision event.
+   * @remark The Collision data will be invalid after this call, you should copy the data if needed
    */
-  onCollisionStay(other: ColliderShape): void {}
+  onCollisionStay(other: Collision): void {}
 
   /**
    * Called when the pointer is down while over the ColliderShape.
