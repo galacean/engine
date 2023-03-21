@@ -117,13 +117,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render width.
    */
   get width(): number {
-    if (this._width === undefined && this._sprite) {
-      this.width = this._sprite.width;
-    }
+    this._width === undefined && this._sprite && (this.width = this._sprite.width);
     return this._width;
   }
 
   set width(value: number) {
+    // Update width if undefined
+    this._width === undefined && this._sprite && (this._width = this._sprite.width);
     if (this._width !== value) {
       this._width = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -134,13 +134,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render height.
    */
   get height(): number {
-    if (this._height === undefined && this._sprite) {
-      this.height = this._sprite.height;
-    }
+    this._height === undefined && this._sprite && (this.height = this._sprite.height);
     return this._height;
   }
 
   set height(value: number) {
+    // Update height if undefined
+    this._height === undefined && this._sprite && (this._height = this._sprite.height);
     if (this._height !== value) {
       this._height = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -234,6 +234,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
+    console.log("_updateBounds");
     if (!this.sprite?.texture || !this.width || !this.height) {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
