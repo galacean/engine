@@ -47,6 +47,7 @@ export class Sprite extends RefObject {
     if (this._texture !== value) {
       this._texture = value;
       this._dispatchSpriteChange(SpriteModifyFlags.texture);
+      (this._width === undefined || this.height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
     }
   }
 
@@ -105,6 +106,7 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.atlasRegion);
+    (this._width === undefined || this.height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
   }
 
   /**
@@ -119,6 +121,7 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.atlasRegionOffset);
+    (this._width === undefined || this.height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
   }
 
   /**
@@ -134,6 +137,7 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.region);
+    (this._width === undefined || this.height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
   }
 
   /**
@@ -251,11 +255,11 @@ export class Sprite extends RefObject {
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
       const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
-      this.width =
+      this._width =
         ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
         _region.width *
         pixelsPerUnitReciprocal;
-      this.height =
+      this._height =
         ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
         _region.height *
         pixelsPerUnitReciprocal;

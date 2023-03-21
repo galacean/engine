@@ -304,7 +304,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
+        // When the width and height of `SpriteRenderer` are `undefined`,
+        // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
+        if (this._drawMode === SpriteDrawMode.Sliced || this._width === undefined || this._height === undefined) {
+          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        }
         break;
       case SpriteModifyFlags.border:
         this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All);
