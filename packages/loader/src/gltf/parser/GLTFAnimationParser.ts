@@ -217,8 +217,7 @@ export class GLTFAnimationParser extends GLTFParser {
 
     for (let i = 0; i < animationClipCount; i++) {
       const animationInfo = animations[i];
-      const { channels, samplers, name = `AnimationClip${i}`, extensions = {} } = animationInfo;
-      const { OASIS_animation } = extensions;
+      const { name = `AnimationClip${i}` } = animationInfo;
 
       let animationClip = <AnimationClip>(
         GLTFParser.executeExtensionsCreateAndParse(animationInfo.extensions, context, animationInfo)
@@ -242,8 +241,7 @@ export class GLTFAnimationParser extends GLTFParser {
             animationInfo.extensions,
             context,
             animationClips[i],
-            animationInfo,
-            glTFResource
+            animationInfo
           )
         );
       }

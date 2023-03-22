@@ -6,20 +6,12 @@ import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IOasisAnimation } from "./GLTFExtensionSchema";
 
-// @ts-ignore
-@registerGLTFExtension("OASIS_animation", GLTFExtensionMode.AdditiveParse)
+@registerGLTFExtension("OASIS_animation_event", GLTFExtensionMode.AdditiveParse)
 class OASIS_animation extends GLTFExtensionParser {
   /**
    * @override
    */
-  // @ts-ignore
-  additiveParse(
-    context: GLTFParserContext,
-    animationClip: AnimationClip,
-    schema: IOasisAnimation,
-    ownerSchema: GLTFExtensionOwnerSchema,
-    glTFResource: GLTFResource
-  ): Promise<void> {
+  additiveParse(context: GLTFParserContext, animationClip: AnimationClip, schema: IOasisAnimation): Promise<void> {
     const { engine } = context.glTFResource;
     const { events } = schema;
     return Promise.all(
