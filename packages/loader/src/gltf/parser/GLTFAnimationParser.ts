@@ -126,14 +126,14 @@ export class GLTFAnimationParser extends GLTFParser {
   }
 
   private static _addCurve(
-    animationchannelTargetPath: AnimationChannelTargetPath,
+    animationChannelTargetPath: AnimationChannelTargetPath,
     gltfChannel: IAnimationChannel,
     sampleDataCollection: SampleData[]
   ) {
     const sampleData = sampleDataCollection[gltfChannel.sampler];
     const { input, output, outputSize } = sampleData;
 
-    switch (animationchannelTargetPath) {
+    switch (animationChannelTargetPath) {
       case AnimationChannelTargetPath.TRANSLATION:
       case AnimationChannelTargetPath.SCALE: {
         const curve = new AnimationVector3Curve();
