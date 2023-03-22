@@ -230,24 +230,18 @@ export class GLTFAnimationParser extends GLTFParser {
 
       animationClipPromises.push(animationClip);
     }
-
     return AssetPromise.all(animationClipPromises).then((animationClips) => {
       glTFResource.animations = animationClips;
-      let promises = [];
       for (let i = 0; i < glTF.animations.length; i++) {
         const animationInfo = glTF.animations[i];
-        promises.push(
-          GLTFParser.executeExtensionsAdditiveAndParse(
-            animationInfo.extensions,
-            context,
-            animationClips[i],
-            animationInfo
-          )
+        GLTFParser.executeExtensionsAdditiveAndParse(
+          animationInfo.extensions,
+          context,
+          animationClips[i],
+          animationInfo
         );
       }
-      Promise.all(promises).then(() => {
-        animationClipsPromiseInfo.resolve(animationClips);
-      });
+      animationClipsPromiseInfo.resolve(animationClips);
       return animationClipsPromiseInfo.promise;
     });
   }

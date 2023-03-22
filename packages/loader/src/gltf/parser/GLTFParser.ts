@@ -68,15 +68,11 @@ export abstract class GLTFParser {
     parseResource: EngineObject,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): Promise<void[]> {
-    let promises = [];
+  ): void {
     for (let extensionName in extensions) {
       const extensionSchema = extensions[extensionName];
-      promises.push(
-        GLTFParser._additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema, ...extra)
-      );
+      GLTFParser._additiveParse(extensionName, context, parseResource, extensionSchema, ownerSchema, ...extra);
     }
-    return Promise.all(promises);
   }
 
   /**
