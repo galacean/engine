@@ -174,7 +174,7 @@ export type GLTFExtensionSchema =
   | IKHRMaterialsIor
   | IKHRMaterialsUnlit
   | IKHRMaterialsPbrSpecularGlossiness
-  | IKHRMaterialsSheen
+  | IKHRMaterialsSheenw
   | IKHRMaterialsSpecular
   | IKHRMaterialsTransmission
   | IKHRMaterialsTranslucency

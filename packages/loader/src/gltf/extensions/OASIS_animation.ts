@@ -28,25 +28,9 @@ class OASIS_animation extends GLTFExtensionParser {
           const event = new AnimationEvent();
           event.functionName = eventData.functionName;
           event.time = eventData.time;
-          const ref = eventData?.parameter;
-          const refId = ref?.refId;
-          if (refId) {
-            // @ts-ignore
-            const isSubAsset = engine.resourceManager._editorResourceConfig[refId].path === glTFResource.url;
-            // @ts-ignore
-            engine.resourceManager.getResourceByRef(ref).then((asset) => {
-              event.parameter = asset;
-              resolve();
-            });
-            animationClip.addEvent(event);
-            if (isSubAsset) {
-              resolve();
-            }
-          } else {
-            event.parameter = eventData.parameter;
-            animationClip.addEvent(event);
-            resolve();
-          }
+          event.parameter = eventData.parameter;
+          animationClip.addEvent(event);
+          resolve();
         });
       })
     ).then((res) => {
