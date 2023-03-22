@@ -7,9 +7,9 @@ import { Light } from "./Light";
  * Point light.
  */
 export class PointLight extends Light {
-  private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_pointLightColor");
-  private static _positionProperty: ShaderProperty = Shader.getPropertyByName("u_pointLightPosition");
-  private static _distanceProperty: ShaderProperty = Shader.getPropertyByName("u_pointLightDistance");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_pointLightColor");
+  private static _positionProperty: ShaderProperty = ShaderProperty.getByName("u_pointLightPosition");
+  private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("u_pointLightDistance");
 
   private static _combinedData = {
     color: new Float32Array(3 * Light._maxLight),

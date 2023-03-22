@@ -7,7 +7,7 @@ import { Entity } from "./Entity";
 import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
-import { Shader } from "./shader";
+import { ShaderProperty } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -19,8 +19,8 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _fogColorProperty = Shader.getPropertyByName("oasis_FogColor");
-  private static _fogParamsProperty = Shader.getPropertyByName("oasis_FogParams");
+  private static _fogColorProperty = ShaderProperty.getByName("oasis_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("oasis_FogParams");
 
   /** Scene name. */
   name: string;
@@ -194,7 +194,7 @@ export class Scene extends EngineObject {
     this.name = name || "";
 
     const shaderData = this.shaderData;
-    shaderData._addRefCount(1);
+    shaderData._addReferCount(1);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
 
@@ -379,9 +379,13 @@ export class Scene extends EngineObject {
    */
   _updateShaderData(): void {
     const shaderData = this.shaderData;
-    const lightManager = this._engine._lightManager;
+    const engine = this._engine;
+    const lightManager = engine._lightManager;
+
+    engine.time._updateSceneShaderData(shaderData);
 
     lightManager._updateShaderData(this.shaderData);
+
     const sunLightIndex = lightManager._getSunLightIndex();
     if (sunLightIndex !== -1) {
       this._sunLight = lightManager._directLights.get(sunLightIndex);
@@ -423,7 +427,7 @@ export class Scene extends EngineObject {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
-    this.shaderData._addRefCount(-1);
+    this.shaderData._addReferCount(-1);
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {

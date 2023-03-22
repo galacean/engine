@@ -55,31 +55,21 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     this._onTriggerStay = onTriggerStay;
 
     const triggerCallback = {
-      onContactBegin: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onContactBegin: (index1, index2) => {
         this._onContactEnter(index1, index2);
       },
-      onContactEnd: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onContactEnd: (index1, index2) => {
         this._onContactExit(index1, index2);
       },
-      onContactPersist: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onContactPersist: (index1, index2) => {
         this._onContactStay(index1, index2);
       },
-      onTriggerBegin: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onTriggerBegin: (index1, index2) => {
         const event = index1 < index2 ? this._getTrigger(index1, index2) : this._getTrigger(index2, index1);
         event.state = TriggerEventState.Enter;
         this._currentEvents.add(event);
       },
-      onTriggerEnd: (obj1, obj2) => {
-        const index1 = obj1.getQueryFilterData().word0;
-        const index2 = obj2.getQueryFilterData().word0;
+      onTriggerEnd: (index1, index2) => {
         let event: TriggerEvent;
         if (index1 < index2) {
           const subMap = this._eventMap[index1];
@@ -158,7 +148,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
         lastPXManager && characterController._destroyPXController();
         characterController._createPXController(this, shape);
       }
-      this._pxScene.addController(characterController._pxController);
     }
     characterController._pxManager = this;
   }
@@ -167,9 +156,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
-    if (characterController._shape) {
-      this._pxScene.removeController(characterController._pxController);
-    }
+    characterController._pxController = null;
     characterController._pxManager = null;
   }
 
@@ -195,8 +182,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
 
     const raycastCallback = {
-      preFilter: (filterData, shape, actor) => {
-        const index = shape.getQueryFilterData().word0;
+      preFilter: (filterData, index, actor) => {
         if (onRaycast(index)) {
           return 2; // eBLOCK
         } else {
@@ -221,7 +207,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       position.set(pxPosition.x, pxPosition.y, pxPosition.z);
       normal.set(pxNormal.x, pxNormal.y, pxNormal.z);
 
-      hit(pxHitResult.getShape().getQueryFilterData().word0, pxHitResult.distance, position, normal);
+      hit(pxHitResult.getShape().getUUID(), pxHitResult.distance, position, normal);
     }
     return result;
   }

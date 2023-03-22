@@ -1,5 +1,5 @@
 import { Color, Vector4 } from "@oasis-engine/math";
-import { Logger } from "..";
+import { Logger, ShaderProperty } from "..";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
@@ -10,15 +10,15 @@ import { TextureCoordinate } from "./enums/TextureCoordinate";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
-  private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionIntensity");
-  private static _occlusionTextureCoordProp = Shader.getPropertyByName("u_occlusionTextureCoord");
-  private static _occlusionTextureProp = Shader.getPropertyByName("u_occlusionTexture");
+  private static _occlusionTextureIntensityProp = ShaderProperty.getByName("u_occlusionIntensity");
+  private static _occlusionTextureCoordProp = ShaderProperty.getByName("u_occlusionTextureCoord");
+  private static _occlusionTextureProp = ShaderProperty.getByName("u_occlusionTexture");
 
-  private static _clearCoatProp = Shader.getPropertyByName("u_clearCoat");
-  private static _clearCoatTextureProp = Shader.getPropertyByName("u_clearCoatTexture");
-  private static _clearCoatRoughnessProp = Shader.getPropertyByName("u_clearCoatRoughness");
-  private static _clearCoatRoughnessTextureProp = Shader.getPropertyByName("u_clearCoatRoughnessTexture");
-  private static _clearCoatNormalTextureProp = Shader.getPropertyByName("u_clearCoatNormalTexture");
+  private static _clearCoatProp = ShaderProperty.getByName("u_clearCoat");
+  private static _clearCoatTextureProp = ShaderProperty.getByName("u_clearCoatTexture");
+  private static _clearCoatRoughnessProp = ShaderProperty.getByName("u_clearCoatRoughness");
+  private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("u_clearCoatRoughnessTexture");
+  private static _clearCoatNormalTextureProp = ShaderProperty.getByName("u_clearCoatNormalTexture");
 
   /**
    * Base color.

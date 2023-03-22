@@ -1,7 +1,8 @@
 import { Color } from "@oasis-engine/math/src/Color";
 import { Font } from "./2d/text/Font";
+import { ContentRestorer } from "./asset/ContentRestorer";
 import { ResourceManager } from "./asset/ResourceManager";
-import { Event, EventDispatcher, Logger, Time } from "./base";
+import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { Canvas } from "./Canvas";
 import { ComponentsManager } from "./ComponentsManager";
@@ -14,12 +15,13 @@ import { Material } from "./material/Material";
 import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
-import { MeshRenderElement } from "./RenderPipeline/MeshRenderElement";
+import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { SpriteElement } from "./RenderPipeline/SpriteElement";
-import { SpriteMaskElement } from "./RenderPipeline/SpriteMaskElement";
+import { RenderElement } from "./RenderPipeline/RenderElement";
 import { SpriteMaskManager } from "./RenderPipeline/SpriteMaskManager";
-import { TextRenderElement } from "./RenderPipeline/TextRenderElement";
+import { SpriteMaskRenderData } from "./RenderPipeline/SpriteMaskRenderData";
+import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
+import { TextRenderData } from "./RenderPipeline/TextRenderData";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
 import { BlendFactor } from "./shader/enums/BlendFactor";
@@ -44,27 +46,44 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _gammaMacro: ShaderMacro = Shader.getMacroByName("OASIS_COLORSPACE_GAMMA");
+  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("OASIS_COLORSPACE_GAMMA");
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = Shader.getMacroByName("OASIS_NO_DEPTH_TEXTURE");
+  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("OASIS_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
 
   /** Physics manager of Engine. */
   readonly physicsManager: PhysicsManager;
+  /** Input manager of Engine. */
   readonly inputManager: InputManager;
 
+  /* @internal */
   _lightManager: LightManager = new LightManager();
+  /* @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
+  /* @internal */
   _hardwareRenderer: IHardwareRenderer;
+  /* @internal */
   _lastRenderState: RenderState = new RenderState();
-  _renderElementPool: ClassPool<MeshRenderElement> = new ClassPool(MeshRenderElement);
-  _spriteElementPool: ClassPool<SpriteElement> = new ClassPool(SpriteElement);
-  _spriteMaskElementPool: ClassPool<SpriteMaskElement> = new ClassPool(SpriteMaskElement);
-  _textElementPool: ClassPool<TextRenderElement> = new ClassPool(TextRenderElement);
+
+  /* @internal */
+  _renderElementPool: ClassPool<RenderElement> = new ClassPool(RenderElement);
+  /* @internal */
+  _meshRenderDataPool: ClassPool<MeshRenderData> = new ClassPool(MeshRenderData);
+  /* @internal */
+  _spriteRenderDataPool: ClassPool<SpriteRenderData> = new ClassPool(SpriteRenderData);
+  /* @internal */
+  _spriteMaskRenderDataPool: ClassPool<SpriteMaskRenderData> = new ClassPool(SpriteMaskRenderData);
+  /* @internal */
+  _textRenderDataPool: ClassPool<TextRenderData> = new ClassPool(TextRenderData);
+
+  /* @internal */
   _spriteDefaultMaterial: Material;
+  /* @internal */
   _spriteMaskDefaultMaterial: Material;
+  /* @internal */
   _textDefaultFont: Font;
+  /* @internal */
   _renderContext: RenderContext = new RenderContext();
 
   /* @internal */
@@ -88,6 +107,8 @@ export class Engine extends EventDispatcher {
   _spriteMaskManager: SpriteMaskManager;
   /** @internal */
   _canSpriteBatch: boolean = true;
+  /** @internal */
+  _fontMap: Record<string, Font> = {};
   /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
@@ -106,7 +127,8 @@ export class Engine extends EventDispatcher {
   private _targetFrameInterval: number = 1000 / 60;
   private _destroyed: boolean = false;
   private _frameInProcess: boolean = false;
-  private _waittingDestroy: boolean = false;
+  private _waitingDestroy: boolean = false;
+  private _isDeviceLost: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -136,21 +158,21 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Get the resource manager.
+   * The resource manager.
    */
   get resourceManager(): ResourceManager {
     return this._resourceManager;
   }
 
   /**
-   * Get the scene manager.
+   * The scene manager.
    */
   get sceneManager(): SceneManager {
     return this._sceneManager;
   }
 
   /**
-   * Get the Time class.
+   * The time information of the engine.
    */
   get time(): Time {
     return this._time;
@@ -207,7 +229,7 @@ export class Engine extends EventDispatcher {
   constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, settings?: EngineSettings) {
     super();
     this._hardwareRenderer = hardwareRenderer;
-    this._hardwareRenderer.init(canvas);
+    this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
     this.physicsManager = new PhysicsManager(this);
 
@@ -271,7 +293,7 @@ export class Engine extends EventDispatcher {
   resume(): void {
     if (!this._isPaused) return;
     this._isPaused = false;
-    this.time.reset();
+    this.time._reset();
     this._requestId = requestAnimationFrame(this._animate);
   }
 
@@ -279,16 +301,21 @@ export class Engine extends EventDispatcher {
    * Update the engine loop manually. If you call engine.run(), you generally don't need to call this function.
    */
   update(): void {
+    if (this._isDeviceLost) {
+      return;
+    }
+
     const time = this._time;
-    time.tick();
+    time._update();
 
     const deltaTime = time.deltaTime;
     this._frameInProcess = true;
 
     this._renderElementPool.resetPool();
-    this._spriteElementPool.resetPool();
-    this._spriteMaskElementPool.resetPool();
-    this._textElementPool.resetPool();
+    this._meshRenderDataPool.resetPool();
+    this._spriteRenderDataPool.resetPool();
+    this._spriteMaskRenderDataPool.resetPool();
+    this._textRenderDataPool.resetPool();
 
     const scene = this._sceneManager._activeScene;
     const componentsManager = this._componentsManager;
@@ -296,7 +323,7 @@ export class Engine extends EventDispatcher {
       scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
 
       componentsManager.callScriptOnStart();
-      this.physicsManager._initialized && this.physicsManager._update(deltaTime / 1000.0);
+      this.physicsManager._initialized && this.physicsManager._update(deltaTime);
       this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
@@ -304,10 +331,10 @@ export class Engine extends EventDispatcher {
       this._render(scene);
     }
 
-    if (!this._waittingDestroy) {
+    if (!this._waitingDestroy) {
       componentsManager.handlingInvalidScripts();
     }
-    if (this._waittingDestroy) {
+    if (this._waitingDestroy) {
       this._destroy();
     }
     this._frameInProcess = false;
@@ -318,7 +345,23 @@ export class Engine extends EventDispatcher {
    */
   run(): void {
     this.resume();
-    this.trigger(new Event("run", this));
+    this.dispatch("run", this);
+  }
+
+  /**
+   * Force lose device.
+   * @remarks Used to simulate the phenomenon after the real loss of device.
+   */
+  forceLoseDevice(): void {
+    this._hardwareRenderer.forceLoseDevice();
+  }
+
+  /**
+   * Force restore device.
+   * @remarks Used to simulate the phenomenon after the real restore of device.
+   */
+  forceRestoreDevice(): void {
+    this._hardwareRenderer.forceRestoreDevice();
   }
 
   private _destroy(): void {
@@ -328,26 +371,27 @@ export class Engine extends EventDispatcher {
     this._resourceManager._destroy();
     this._magentaTexture2D.destroy(true);
     this._magentaTextureCube.destroy(true);
-    this._textDefaultFont.destroy(true);
+    this._textDefaultFont = null;
+    this._fontMap = null;
 
     this.inputManager._destroy();
-    this.trigger(new Event("shutdown", this));
+    this.dispatch("shutdown", this);
 
-    // -- cancel animation
+    // Cancel animation
     this.pause();
 
-    this._animate = null;
+    this._spriteMaskManager.destroy();
+    this._hardwareRenderer.destroy();
 
+    this.removeAllEventListeners();
+
+    this._animate = null;
     this._sceneManager = null;
     this._resourceManager = null;
     this._canvas = null;
     this._time = null;
 
-    // delete mask manager
-    this._spriteMaskManager.destroy();
-
-    this.removeAllEventListeners();
-    this._waittingDestroy = false;
+    this._waitingDestroy = false;
     this._destroyed = true;
   }
 
@@ -361,7 +405,7 @@ export class Engine extends EventDispatcher {
     }
 
     if (this._frameInProcess) {
-      this._waittingDestroy = true;
+      this._waitingDestroy = true;
     } else {
       this._destroy();
     }
@@ -385,7 +429,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * @intenral
+   * @internal
    */
   _render(scene: Scene): void {
     const cameras = scene._activeCameras;
@@ -402,7 +446,7 @@ export class Engine extends EventDispatcher {
         camera.render();
         componentsManager.callCameraOnEndRender(camera);
 
-        // temp solution for webgl implement bug
+        // Temp solution for webgl implement bug
         if (this._hardwareRenderer._options._forceFlush) {
           this._hardwareRenderer.flush();
         }
@@ -423,14 +467,35 @@ export class Engine extends EventDispatcher {
     magentaTexture2D.setPixelBuffer(magentaPixel);
     magentaTexture2D.isGCIgnored = true;
 
+    this.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<Texture2D> {
+        constructor() {
+          super(magentaTexture2D);
+        }
+        restoreContent() {
+          this.resource.setPixelBuffer(magentaPixel);
+        }
+      })()
+    );
+
     const magentaTextureCube = new TextureCube(this, 1, TextureFormat.R8G8B8A8, false);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeX, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveY, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeY, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveZ, magentaPixel);
-    magentaTextureCube.setPixelBuffer(TextureCubeFace.NegativeZ, magentaPixel);
+    for (let i = 0; i < 6; i++) {
+      magentaTextureCube.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
+    }
     magentaTextureCube.isGCIgnored = true;
+
+    this.resourceManager.addContentRestorer(
+      new (class extends ContentRestorer<TextureCube> {
+        constructor() {
+          super(magentaTextureCube);
+        }
+        restoreContent() {
+          for (let i = 0; i < 6; i++) {
+            this.resource.setPixelBuffer(TextureCubeFace.PositiveX + i, magentaPixel);
+          }
+        }
+      })()
+    );
 
     this._magentaTexture2D = magentaTexture2D;
     this._magentaTextureCube = magentaTextureCube;
@@ -439,6 +504,16 @@ export class Engine extends EventDispatcher {
       const magentaTexture2DArray = new Texture2DArray(this, 1, 1, 1, TextureFormat.R8G8B8A8, false);
       magentaTexture2DArray.setPixelBuffer(0, magentaPixel);
       magentaTexture2DArray.isGCIgnored = true;
+      this.resourceManager.addContentRestorer(
+        new (class extends ContentRestorer<Texture2DArray> {
+          constructor() {
+            super(magentaTexture2DArray);
+          }
+          restoreContent() {
+            this.resource.setPixelBuffer(0, magentaPixel);
+          }
+        })()
+      );
       this._magentaTexture2DArray = magentaTexture2DArray;
     }
   }
@@ -469,5 +544,35 @@ export class Engine extends EventDispatcher {
     renderState.depthState.enabled = false;
     material.isGCIgnored = true;
     return material;
+  }
+
+  private _onDeviceLost(): void {
+    this._isDeviceLost = true;
+    console.log("Device lost.");
+    this.dispatch("devicelost", this);
+  }
+
+  private _onDeviceRestored(): void {
+    this._hardwareRenderer.resetState();
+    this._lastRenderState = new RenderState();
+    // Clear shader pools
+    this._shaderProgramPools.length = 0;
+
+    const { resourceManager } = this;
+    // Restore graphic resources
+    resourceManager._restoreGraphicResources();
+    console.log("Graphic resource restored.");
+
+    // Restore resources content
+    resourceManager
+      ._restoreResourcesContent()
+      .then(() => {
+        console.log("Graphic resource content restored.\n\n" + "Device restored.");
+        this.dispatch("devicerestored", this);
+        this._isDeviceLost = false;
+      })
+      .catch((error) => {
+        console.error(error);
+      });
   }
 }

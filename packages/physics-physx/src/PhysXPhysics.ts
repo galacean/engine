@@ -100,8 +100,9 @@ export class PhysXPhysics {
    * Destroy PhysXPhysics.
    */
   public static destroy(): void {
-    this._pxFoundation.release();
+    this._physX.PxCloseExtensions();
     this._pxPhysics.release();
+    this._pxFoundation.release();
     this._physX = null;
     this._pxFoundation = null;
     this._pxPhysics = null;

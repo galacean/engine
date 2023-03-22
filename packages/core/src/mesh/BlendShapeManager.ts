@@ -9,6 +9,8 @@ import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
+import { ShaderMacro } from "../shader/ShaderMacro";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { Texture2DArray, TextureFilterMode, TextureFormat } from "../texture";
 import { BlendShape } from "./BlendShape";
 import { ModelMesh } from "./ModelMesh";
@@ -18,21 +20,19 @@ import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
  * @internal
  */
 export class BlendShapeManager {
-  private static _blendShapeMacro = Shader.getMacroByName("OASIS_BLENDSHAPE");
-  private static _blendShapeTextureMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TEXTURE");
-  private static _blendShapeNormalMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_NORMAL");
-  private static _blendShapeTangentMacro = Shader.getMacroByName("OASIS_BLENDSHAPE_TANGENT");
+  private static _blendShapeMacro = ShaderMacro.getByName("OASIS_BLENDSHAPE");
+  private static _blendShapeTextureMacro = ShaderMacro.getByName("OASIS_BLENDSHAPE_TEXTURE");
+  private static _blendShapeNormalMacro = ShaderMacro.getByName("OASIS_BLENDSHAPE_NORMAL");
+  private static _blendShapeTangentMacro = ShaderMacro.getByName("OASIS_BLENDSHAPE_TANGENT");
 
-  private static _blendShapeWeightsProperty = Shader.getPropertyByName("u_blendShapeWeights");
-  private static _blendShapeTextureProperty = Shader.getPropertyByName("u_blendShapeTexture");
-  private static _blendShapeTextureInfoProperty = Shader.getPropertyByName("u_blendShapeTextureInfo");
+  private static _blendShapeWeightsProperty = ShaderProperty.getByName("u_blendShapeWeights");
+  private static _blendShapeTextureProperty = ShaderProperty.getByName("u_blendShapeTexture");
+  private static _blendShapeTextureInfoProperty = ShaderProperty.getByName("u_blendShapeTextureInfo");
 
   /** @internal */
   _blendShapeCount: number = 0;
   /** @internal */
   _blendShapes: BlendShape[] = [];
-  /** @internal */
-  _blendShapeNames: string[];
   /** @internal */
   _subDataDirtyFlags: BoolUpdateFlag[] = [];
   /** @internal */
@@ -75,7 +75,7 @@ export class BlendShapeManager {
     blendShape._layoutChangeManager.addListener(this._updateLayoutChange);
     this._updateLayoutChange(0, blendShape);
 
-    this._subDataDirtyFlags.push(blendShape._createSubDataDirtyFlag());
+    this._subDataDirtyFlags.push(blendShape._dataChangeManager.createFlag(BoolUpdateFlag));
   }
 
   /**
@@ -232,7 +232,7 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _update(vertexCountChange: boolean, noLongerAccessible: boolean): void {
+  _update(vertexCountChange: boolean, noLongerReadable: boolean): void {
     const { vertexCount } = this._modelMesh;
     const useTexture = this._useTextureMode();
     const createHost = this._layoutOrCountChange() || vertexCountChange;
@@ -241,7 +241,7 @@ export class BlendShapeManager {
       if (useTexture) {
         this._createTextureArray(vertexCount);
       } else {
-        this._createVertexBuffers(vertexCount, noLongerAccessible);
+        this._createVertexBuffers(vertexCount, noLongerReadable);
       }
       this._lastCreateHostInfo.set(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
     }
@@ -258,26 +258,11 @@ export class BlendShapeManager {
    * @internal
    */
   _releaseMemoryCache(): void {
-    const { _blendShapes: blendShapes } = this;
-    const { length: blendShapeCount } = blendShapes;
-
-    const blendShapeNamesMap = new Array<string>(blendShapeCount);
-    for (let i = 0; i < blendShapeCount; i++) {
-      blendShapeNamesMap[i] = blendShapes[i].name;
-    }
-    this._blendShapeNames = blendShapeNamesMap;
-
+    const blendShapes = this._blendShapes;
     for (let i = 0, n = blendShapes.length; i < n; i++) {
-      blendShapes[i]._layoutChangeManager.removeListener(this._updateLayoutChange);
+      blendShapes[i]._releaseData();
     }
 
-    const dataChangedFlags = this._subDataDirtyFlags;
-    for (let i = 0, n = dataChangedFlags.length; i < n; i++) {
-      dataChangedFlags[i].destroy();
-    }
-
-    this._subDataDirtyFlags = null;
-    this._blendShapes = null;
     this._vertices = null;
   }
 
