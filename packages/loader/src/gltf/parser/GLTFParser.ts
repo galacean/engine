@@ -136,11 +136,11 @@ export abstract class GLTFParser {
     extensionSchema: GLTFExtensionSchema,
     ownerSchema: GLTFExtensionOwnerSchema,
     ...extra
-  ): void | Promise<void> {
+  ): void {
     const parser = GLTFParser.getExtensionParser(extensionName, GLTFExtensionMode.AdditiveParse);
 
     if (parser) {
-      return parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
+      parser.additiveParse(context, parseResource, extensionSchema, ownerSchema, ...extra);
     }
   }
 
