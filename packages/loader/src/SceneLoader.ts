@@ -58,7 +58,6 @@ class SceneLoader extends Loader<Scene> {
                     const sky = scene.background.sky;
                     const skyMaterial = new SkyBoxMaterial(engine);
                     skyMaterial.textureCubeMap = light.specularTexture;
-                    skyMaterial.textureDecodeRGBM = true;
                     sky.material = skyMaterial;
                     sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);
                   });
