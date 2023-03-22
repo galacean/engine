@@ -82,7 +82,7 @@ export class SceneParser {
     }
   }
 
-  private _parseComponents() {
+  private _parseComponents(): Promise<any[]> {
     const entitiesConfig = this.context.originalData.entities;
     const entityMap = this.context.entityMap;
 
@@ -103,6 +103,7 @@ export class SceneParser {
         promises.push(promise);
       }
     }
+    return Promise.all(promises);
   }
 
   private _clearAndResolveScene() {
