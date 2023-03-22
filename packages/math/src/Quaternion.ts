@@ -757,6 +757,19 @@ export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Qua
     out[outOffset + 3] = this._w;
   }
 
+  /**
+   * Serialize this quaternion to a JSON representation.
+   * @returns A JSON Object representation of this quaternion
+   */
+  toJSON(): QuaternionLike {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z,
+      w: this._w
+    };
+  }
+
   private _toYawPitchRoll(out: Vector3): void {
     // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
     const { _x: x, _y: y, _z: z, _w: w } = this;

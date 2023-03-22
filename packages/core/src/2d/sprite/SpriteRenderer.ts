@@ -117,13 +117,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render width.
    */
   get width(): number {
-    if (this._width === undefined && this._sprite) {
-      this.width = this._sprite.width;
-    }
+    this._width === undefined && this._sprite && (this.width = this._sprite.width);
     return this._width;
   }
 
   set width(value: number) {
+    // Update width if undefined
+    this._width === undefined && this._sprite && (this._width = this._sprite.width);
     if (this._width !== value) {
       this._width = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -134,13 +134,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render height.
    */
   get height(): number {
-    if (this._height === undefined && this._sprite) {
-      this.height = this._sprite.height;
-    }
+    this._height === undefined && this._sprite && (this.height = this._sprite.height);
     return this._height;
   }
 
   set height(value: number) {
+    // Update height if undefined
+    this._height === undefined && this._sprite && (this._height = this._sprite.height);
     if (this._height !== value) {
       this._height = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -304,7 +304,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
+        // When the width and height of `SpriteRenderer` are `undefined`,
+        // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
+        if (this._drawMode === SpriteDrawMode.Sliced || this._width === undefined || this._height === undefined) {
+          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        }
         break;
       case SpriteModifyFlags.border:
         this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All);

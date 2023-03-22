@@ -1,4 +1,5 @@
 import {
+  AssetPromise,
   BlendShape,
   Buffer,
   BufferBindFlag,
@@ -18,24 +19,18 @@ export class MeshParser extends Parser {
   private static _tempVector3 = new Vector3();
 
   parse(context: ParserContext) {
-    const { meshIndex, subMeshIndex, glTFResource } = context;
-    const { engine, gltf, buffers } = glTFResource;
+    const { gltf, buffers, glTFResource } = context;
+    const { engine } = glTFResource;
     if (!gltf.meshes) return;
 
+    const meshesPromiseInfo = context.meshesPromiseInfo;
     const meshPromises: Promise<ModelMesh[]>[] = [];
 
     for (let i = 0; i < gltf.meshes.length; i++) {
-      if (meshIndex >= 0 && meshIndex !== i) {
-        continue;
-      }
       const gltfMesh = gltf.meshes[i];
       const primitivePromises: Promise<ModelMesh>[] = [];
 
       for (let j = 0; j < gltfMesh.primitives.length; j++) {
-        if (subMeshIndex >= 0 && subMeshIndex !== j) {
-          continue;
-        }
-
         const gltfPrimitive = gltfMesh.primitives[j];
         const { extensions = {} } = gltfPrimitive;
         const { KHR_draco_mesh_compression } = extensions;
@@ -48,7 +43,7 @@ export class MeshParser extends Parser {
               Parser.createEngineResource(
                 "KHR_draco_mesh_compression",
                 KHR_draco_mesh_compression,
-                glTFResource,
+                context,
                 gltfPrimitive
               )
             ))
@@ -109,17 +104,14 @@ export class MeshParser extends Parser {
       meshPromises[i] = Promise.all(primitivePromises);
     }
 
-    return Promise.all(meshPromises).then((meshes: ModelMesh[][]) => {
-      if (meshIndex >= 0) {
-        const mesh = meshes[meshIndex]?.[subMeshIndex];
-        if (mesh) {
-          return mesh;
-        } else {
-          throw `meshIndex-subMeshIndex index not find in: ${meshIndex}-${subMeshIndex}`;
-        }
-      }
-      glTFResource.meshes = meshes;
-    });
+    AssetPromise.all(meshPromises)
+      .then((meshes: ModelMesh[][]) => {
+        glTFResource.meshes = meshes;
+        meshesPromiseInfo.resolve(meshes);
+      })
+      .catch(meshesPromiseInfo.reject);
+
+    return meshesPromiseInfo.promise;
   }
 
   private _parseMeshFromGLTFPrimitive(
@@ -134,7 +126,7 @@ export class MeshParser extends Parser {
     keepMeshData: boolean
   ): Promise<ModelMesh> {
     const { accessors } = gltf;
-    const { buffers } = context.glTFResource;
+    const { buffers } = context;
     const { attributes, targets, indices, mode } = gltfPrimitive;
 
     const engine = mesh.engine;

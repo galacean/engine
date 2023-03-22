@@ -148,7 +148,7 @@ export class GLTFUtil {
   }
 
   static getAccessorBuffer(context: ParserContext, gltf: IGLTF, accessor: IAccessor): BufferInfo {
-    const { buffers } = context.glTFResource;
+    const { buffers } = context;
     const bufferViews = gltf.bufferViews;
 
     const componentType = accessor.componentType;
@@ -413,36 +413,6 @@ export class GLTFUtil {
     }
 
     return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
-  }
-
-  static parseUrl(path: string): { query: string; baseUrl: string } {
-    return { query: this.getParameterByName("q", path), baseUrl: path.slice(0, path.indexOf("?")) };
-  }
-
-  static getParameterByName(name, url = window.location.href) {
-    name = name.replace(/[\[\]]/g, "\\$&");
-    var regex = new RegExp("[?&]" + name + "(=([^&#]*)|&|#|$)"),
-      results = regex.exec(url);
-    if (!results) return null;
-    if (!results[2]) return "";
-    return decodeURIComponent(results[2].replace(/\+/g, " "));
-  }
-
-  static stringToPath(string): string[] {
-    const result = [];
-    if (string.charCodeAt(0) === charCodeOfDot) {
-      result.push("");
-    }
-    string.replace(rePropName, (match, expression, quote, subString) => {
-      let key = match;
-      if (quote) {
-        key = subString.replace(reEscapeChar, "$1");
-      } else if (expression) {
-        key = expression.trim();
-      }
-      result.push(key);
-    });
-    return result;
   }
 
   /**

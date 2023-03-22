@@ -16,8 +16,10 @@ export class SphereColliderShape extends ColliderShape {
   }
 
   set radius(value: number) {
-    this._radius = value;
-    (<ISphereColliderShape>this._nativeShape).setRadius(value);
+    if (this._radius !== value) {
+      this._radius = value;
+      (<ISphereColliderShape>this._nativeShape).setRadius(value);
+    }
   }
 
   constructor() {

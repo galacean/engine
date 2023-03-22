@@ -28,6 +28,10 @@ void main() {
 
     gl_FragColor = baseColor;
 
+    #ifndef OASIS_TRANSPARENT
+        gl_FragColor.a = 1.0;
+    #endif
+
     #include <FogFragment>
 
      #ifndef OASIS_COLORSPACE_GAMMA

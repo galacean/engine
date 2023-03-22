@@ -36,11 +36,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   @ignoreClone
   private _localBounds: BoundingBox = new BoundingBox();
   @ignoreClone
-  private _jointMatrixs: Float32Array;
+  private _jointMatrices: Float32Array;
   @ignoreClone
   private _jointTexture: Texture2D;
   @ignoreClone
-  private _jointEntitys: Entity[];
+  private _jointEntities: Entity[];
 
   /** @internal */
   @ignoreClone
@@ -102,7 +102,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   set rootBone(value: Entity) {
-    this._rootBone = value;
+    this._skin.skeleton = value.name;
+    this._hasInitSkin = false;
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
   }
 
@@ -115,11 +116,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const rhi = this.entity.engine._hardwareRenderer;
     let maxVertexUniformVectors = rhi.renderStates.getParameter(rhi.gl.MAX_VERTEX_UNIFORM_VECTORS);
-    if (rhi.renderer === "Apple GPU") {
-      // When uniform is large than 256, the skeleton matrix array access in shader very slow in Safari or WKWebview.
-      // This may be a apple bug, Chrome and Firefox is OK!
-      maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
-    }
+
+    // Limit size to 256 to avoid some problem:
+    // For renderer is "Apple GPU", when uniform is large than 256 the skeleton matrix array access in shader very slow in Safari or WKWebview. This may be a apple bug, Chrome and Firefox is OK!
+    // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)", compile shader si very slow because of max uniform is 4096.
+    maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
+
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
     this._onLocalBoundsChanged = this._onLocalBoundsChanged.bind(this);
@@ -143,17 +145,17 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     if (skin) {
       const ibms = skin.inverseBindMatrices;
       const worldToLocal = this._rootBone.getInvModelMatrix();
-      const { _jointEntitys: joints, _jointMatrixs: jointMatrixs } = this;
+      const { _jointEntities: joints, _jointMatrices: jointMatrices } = this;
 
       for (let i = joints.length - 1; i >= 0; i--) {
         const joint = joints[i];
         const offset = i * 16;
         if (joint) {
-          Utils._floatMatrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrixs, offset);
+          Utils._floatMatrixMultiply(joint.transform.worldMatrix, ibms[i].elements, 0, jointMatrices, offset);
         } else {
-          jointMatrixs.set(ibms[i].elements, offset);
+          jointMatrices.set(ibms[i].elements, offset);
         }
-        Utils._floatMatrixMultiply(worldToLocal, jointMatrixs, offset, jointMatrixs, offset);
+        Utils._floatMatrixMultiply(worldToLocal, jointMatrices, offset, jointMatrices, offset);
       }
     }
   }
@@ -204,13 +206,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           this._jointTexture?.destroy();
           shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
           shaderData.enableMacro("O3_JOINTS_NUM", remainUniformJointCount.toString());
-          shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._jointMatrixs);
+          shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._jointMatrices);
         }
         jointDataCreateCache.set(jointCount, bsUniformOccupiesCount);
       }
 
       if (this._jointTexture) {
-        this._jointTexture.setPixelBuffer(this._jointMatrixs);
+        this._jointTexture.setPixelBuffer(this._jointMatrices);
       }
     }
   }
@@ -227,7 +229,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @override
    */
   protected _registerEntityTransformListener(): void {
-    // Cancle register listener to entity transform.
+    // Cancel register listener to entity transform.
   }
 
   /**
@@ -255,12 +257,12 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const joints = skin.joints;
     const jointCount = joints.length;
-    const jointEntitys = new Array<Entity>(jointCount);
+    const jointEntities = new Array<Entity>(jointCount);
     for (let i = jointCount - 1; i >= 0; i--) {
-      jointEntitys[i] = this._findByEntityName(this.entity, joints[i]);
+      jointEntities[i] = this._findByEntityName(this.entity, joints[i]);
     }
-    this._jointEntitys = jointEntitys;
-    this._jointMatrixs = new Float32Array(jointCount * 16);
+    this._jointEntities = jointEntities;
+    this._jointMatrices = new Float32Array(jointCount * 16);
 
     const lastRootBone = this._rootBone;
     const rootBone = this._findByEntityName(this.entity, skin.skeleton);
@@ -274,19 +276,20 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     } else {
       // Root bone is not in joints list, we can only compute approximate inverse bind matrix
       // Average all root bone's children inverse bind matrix
-      let subRootBoneCount = 0;
       const approximateBindMatrix = new Matrix(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-      const inverseBindMatrices = skin.inverseBindMatrices;
-      const rootBoneChildren = rootBone.children;
-      for (let i = 0; i < jointCount; i++) {
-        const index = jointEntitys.indexOf(rootBoneChildren[i]);
-        if (index !== -1) {
-          Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
-          subRootBoneCount++;
-        }
+      let subRootBoneCount = this._computeApproximateBindMatrix(
+        jointEntities,
+        skin.inverseBindMatrices,
+        rootBone,
+        approximateBindMatrix
+      );
+
+      if (subRootBoneCount !== 0) {
+        Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
+        BoundingBox.transform(this._mesh.bounds, approximateBindMatrix, this._localBounds);
+      } else {
+        this._localBounds.copyFrom(this._mesh.bounds);
       }
-      Matrix.multiplyScalar(approximateBindMatrix, 1.0 / subRootBoneCount, approximateBindMatrix);
-      BoundingBox.transform(this._mesh.bounds, approximateBindMatrix, this._localBounds);
     }
 
     this._rootBone = rootBone;
@@ -298,17 +301,44 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  private _findByEntityName(rootEnitity: Entity, name: string): Entity {
-    if (!rootEnitity) {
+  private _computeApproximateBindMatrix(
+    jointEntities: Entity[],
+    inverseBindMatrices: Matrix[],
+    rootEntity: Entity,
+    approximateBindMatrix: Matrix
+  ): number {
+    let subRootBoneCount = 0;
+    const children = rootEntity.children;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const rootChild = children[i];
+      const index = jointEntities.indexOf(rootChild);
+      if (index !== -1) {
+        Matrix.add(approximateBindMatrix, inverseBindMatrices[index], approximateBindMatrix);
+        subRootBoneCount++;
+      } else {
+        subRootBoneCount += this._computeApproximateBindMatrix(
+          jointEntities,
+          inverseBindMatrices,
+          rootChild,
+          approximateBindMatrix
+        );
+      }
+    }
+
+    return subRootBoneCount;
+  }
+
+  private _findByEntityName(rootEntity: Entity, name: string): Entity {
+    if (!rootEntity) {
       return null;
     }
 
-    const result = rootEnitity.findByName(name);
+    const result = rootEntity.findByName(name);
     if (result) {
       return result;
     }
 
-    return this._findByEntityName(rootEnitity.parent, name);
+    return this._findByEntityName(rootEntity.parent, name);
   }
 
   private _checkBlendShapeWeightLength(): void {
