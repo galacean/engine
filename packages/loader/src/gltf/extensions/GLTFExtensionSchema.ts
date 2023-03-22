@@ -159,6 +159,14 @@ export interface IOasisMaterialRemap {
   isClone?: boolean;
 }
 
+export interface IOasisAnimation {
+  events: {
+    time: number;
+    functionName: string;
+    parameter: any;
+  }[];
+}
+
 export type GLTFExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRDracoMeshCompression
@@ -176,4 +184,5 @@ export type GLTFExtensionSchema =
   | IKHRTextureTransform
   | IKHRXmp
   | IKHRXmp_Node
+  | IOasisAnimation
   | Object;
