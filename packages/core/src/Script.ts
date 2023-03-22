@@ -86,36 +86,36 @@ export class Script extends Component {
   onTriggerEnter(other: ColliderShape): void {}
 
   /**
-   * Called when the trigger stay.
-   * @remarks onTriggerStay is called every frame while the trigger stay.
+   * Called when the trigger exit.
    * @param other - ColliderShape
    */
   onTriggerExit(other: ColliderShape): void {}
 
   /**
-   * Called when the trigger exit.
+   * Called when the trigger stay.
+   * @remarks onTriggerStay is called every frame while the trigger stay.
    * @param other - ColliderShape
    */
   onTriggerStay(other: ColliderShape): void {}
 
   /**
    * Called when the collision enter.
-   * @param other - The Collision data associated with this collision event.
-   * @remark The Collision data will be invalid after this call, you should copy the data if needed
+   * @param other - The Collision data associated with this collision event
+   * @remarks The Collision data will be invalid after this call, you should copy the data if needed.
    */
   onCollisionEnter(other: Collision): void {}
 
   /**
-   * Called when the collision stay.
-   * @param other - The Collision data associated with this collision event.
-   * @remark The Collision data will be invalid after this call, you should copy the data if needed
+   * Called when the collision exit.
+   * @param other - The Collision data associated with this collision event
+   * @remarks The Collision data will be invalid after this call, you should copy the data if needed.
    */
   onCollisionExit(other: Collision): void {}
 
   /**
-   * Called when the collision exit.
-   * @param other - The Collision data associated with this collision event.
-   * @remark The Collision data will be invalid after this call, you should copy the data if needed
+   * Called when the collision stay.
+   * @param other - The Collision data associated with this collision event
+   * @remarks The Collision data will be invalid after this call, you should copy the data if needed.
    */
   onCollisionStay(other: Collision): void {}
 
