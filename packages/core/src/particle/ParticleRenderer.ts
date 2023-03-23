@@ -1,4 +1,6 @@
-import { MathUtil, Vector3, Color } from "@oasis-engine/math";
+import { Color, MathUtil, Vector3 } from "@oasis-engine/math";
+import { GLCapabilityType } from "../base/Constant";
+import { ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
@@ -6,14 +8,12 @@ import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { Material } from "../material/Material";
+import { BufferMesh } from "../mesh/BufferMesh";
+import { MeshRenderer } from "../mesh/MeshRenderer";
+import { CullMode, Shader } from "../shader";
 import { BlendFactor } from "../shader/enums/BlendFactor";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
-import { Shader, CullMode } from "../shader";
 import { Texture } from "../texture";
-import { MeshRenderer } from "../mesh/MeshRenderer";
-import { GLCapabilityType } from "../base/Constant";
-import { BufferMesh } from "../mesh/BufferMesh";
-import { ignoreClone } from "../clone/CloneManager";
 
 enum DirtyFlagType {
   Position = 0x1,
@@ -560,7 +560,7 @@ export class ParticleRenderer extends MeshRenderer {
       this._updateDirtyFlag = 0;
     }
 
-    this._time += deltaTime / 1000;
+    this._time += deltaTime;
     this.shaderData.setFloat("u_time", this._time);
   }
 
@@ -670,6 +670,13 @@ export class ParticleRenderer extends MeshRenderer {
     this._vertexBuffer = vertexBuffer;
     this._vertexStride = vertexStride / 4;
     this._vertices = vertices;
+
+    const { bounds } = mesh;
+    const minValue = Number.MIN_SAFE_INTEGER;
+    const maxValue = Number.MAX_SAFE_INTEGER;
+    bounds.min.set(minValue, minValue, minValue);
+    bounds.max.set(maxValue, maxValue, maxValue);
+
     return mesh;
   }
 

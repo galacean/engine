@@ -1,9 +1,10 @@
-import { Engine, EngineObject, Logger } from "..";
+import { ContentRestorer, Engine, EngineObject, Logger } from "..";
 import { ObjectValues } from "../base/Util";
 import { AssetPromise } from "./AssetPromise";
+import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
 import { LoadItem } from "./LoadItem";
-import { RefObject } from "./RefObject";
+import { ReferResource } from "./ReferResource";
 
 /**
  * ResourceManager
@@ -35,14 +36,19 @@ export class ResourceManager {
   /** The default timeout period for loading assets, in milliseconds. */
   timeout: number = Infinity;
 
-  /** Asset path pool, key is asset ID, value is asset path */
-  private _assetPool: { [key: number]: string } = Object.create(null);
-  /** Asset pool, the key is the asset path and the value is the asset. */
-  private _assetUrlPool: { [key: string]: Object } = Object.create(null);
-  /** Reference counted object pool, key is the object ID, and reference counted objects are put into this pool. */
-  private _refObjectPool: { [key: number]: RefObject } = Object.create(null);
-  /** Loading promises. */
-  private _loadingPromises: { [url: string]: AssetPromise<any> } = {};
+  private _loadingPromises: Record<string, AssetPromise<any>> = {};
+
+  /** Asset path pool, key is the `instanceID` of resource, value is asset path. */
+  private _assetPool: Record<number, string> = Object.create(null);
+  /** Asset url pool, key is the asset path and the value is the asset. */
+  private _assetUrlPool: Record<string, Object> = Object.create(null);
+
+  /** Referable resource pool, key is the `instanceID` of resource. */
+  private _referResourcePool: Record<number, ReferResource> = Object.create(null);
+  /** Graphic resource pool, key is the `instanceID` of resource. */
+  private _graphicResourcePool: Record<number, GraphicsResource> = Object.create(null);
+  /** Restorable resource information pool, key is the `instanceID` of resource. */
+  private _contentRestorerPool: Record<number, ContentRestorer<any>> = Object.create(null);
 
   /**
    * Create a ResourceManager.
@@ -137,6 +143,14 @@ export class ResourceManager {
   }
 
   /**
+   * Add content restorer.
+   * @param restorer - The restorer
+   */
+  addContentRestorer<T extends EngineObject>(restorer: ContentRestorer<T>): void {
+    this._contentRestorerPool[restorer.resource.instanceId] = restorer;
+  }
+
+  /**
    * @internal
    */
   _addAsset(path: string, asset: EngineObject): void {
@@ -159,15 +173,60 @@ export class ResourceManager {
   /**
    * @internal
    */
-  _addRefObject(id: number, asset: RefObject): void {
-    this._refObjectPool[id] = asset;
+  _addReferResource(resource: ReferResource): void {
+    this._referResourcePool[resource.instanceId] = resource;
   }
 
   /**
    * @internal
    */
-  _deleteRefObject(id: number): void {
-    delete this._refObjectPool[id];
+  _deleteReferResource(resource: EngineObject): void {
+    delete this._referResourcePool[resource.instanceId];
+  }
+
+  /**
+   * @internal
+   */
+  _addGraphicResource(resource: GraphicsResource): void {
+    this._graphicResourcePool[resource.instanceId] = resource;
+  }
+
+  /**
+   * @internal
+   */
+  _deleteGraphicResource(resource: EngineObject): void {
+    delete this._graphicResourcePool[resource.instanceId];
+  }
+
+  /**
+   * @internal
+   */
+  _deleteContentRestorer(resource: EngineObject): void {
+    delete this._contentRestorerPool[resource.instanceId];
+  }
+
+  /**
+   * @internal
+   */
+  _restoreGraphicResources(): void {
+    const graphicResourcePool = this._graphicResourcePool;
+    for (const id in graphicResourcePool) {
+      graphicResourcePool[id]._rebuild();
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _restoreResourcesContent(): Promise<void[]> {
+    const restoreContentInfoPool = this._contentRestorerPool;
+    const restorePromises = new Array<Promise<void>>();
+    for (const k in restoreContentInfoPool) {
+      const restoreInfo = restoreContentInfoPool[k];
+      const promise = restoreInfo.restoreContent();
+      promise && restorePromises.push(promise);
+    }
+    return Promise.all(restorePromises);
   }
 
   /**
@@ -178,7 +237,10 @@ export class ResourceManager {
     this._gc(true);
     this._assetPool = null;
     this._assetUrlPool = null;
-    this._refObjectPool = null;
+    this._referResourcePool = null;
+    this._graphicResourcePool = null;
+    this._contentRestorerPool = null;
+    this._loadingPromises = null;
   }
 
   private _assignDefaultOptions(assetInfo: LoadItem): LoadItem | never {
@@ -202,20 +264,20 @@ export class ResourceManager {
 
     // Parse url
     const { assetBaseURL, queryPath } = this._parseURL(url);
-    const pathes = queryPath ? this._parseQueryPath(queryPath) : [];
+    const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Check cache
     const cacheObject = this._assetUrlPool[assetBaseURL];
     if (cacheObject) {
       return new AssetPromise((resolve) => {
-        resolve(this._getResolveResource(cacheObject, pathes) as T);
+        resolve(this._getResolveResource(cacheObject, paths) as T);
       });
     }
 
     // Get asset url
     let assetURL = assetBaseURL;
     if (queryPath) {
-      assetURL += "?q=" + pathes.shift();
+      assetURL += "?q=" + paths.shift();
     }
 
     // Check is loading
@@ -225,7 +287,7 @@ export class ResourceManager {
       return new AssetPromise((resolve, reject) => {
         loadingPromise
           .then((resource: EngineObject) => {
-            resolve(this._getResolveResource(resource, pathes) as T);
+            resolve(this._getResolveResource(resource, paths) as T);
           })
           .catch((error: Error) => {
             reject(error);
@@ -280,7 +342,7 @@ export class ResourceManager {
       const subAssetPromise = promise[assetURL];
       return new AssetPromise((resolve, reject) => {
         subAssetPromise.then((resource: EngineObject) => {
-          resolve(this._getResolveResource(resource, pathes) as T);
+          resolve(this._getResolveResource(resource, paths) as T);
         });
         subAssetPromise.catch((error: Error) => {
           reject(error);
@@ -290,7 +352,7 @@ export class ResourceManager {
   }
 
   private _gc(forceDestroy: boolean): void {
-    const objects = ObjectValues(this._refObjectPool);
+    const objects = ObjectValues(this._referResourcePool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored || forceDestroy) {
         objects[i].destroy();
@@ -298,11 +360,11 @@ export class ResourceManager {
     }
   }
 
-  private _getResolveResource(resource: any, pathes: string[]): any {
+  private _getResolveResource(resource: any, paths: string[]): any {
     let subResource = resource;
-    if (pathes) {
-      for (let i = 0, n = pathes.length; i < n; i++) {
-        const path = pathes[i];
+    if (paths) {
+      for (let i = 0, n = paths.length; i < n; i++) {
+        const path = paths[i];
         subResource = subResource[path];
       }
     }
@@ -394,12 +456,12 @@ export class ResourceManager {
 /**
  * Declare ResourceLoader's decorator.
  * @param assetType - Type of asset
- * @param extnames - Name of file extension
+ * @param extNames - Name of file extension
  */
-export function resourceLoader(assetType: string, extnames: string[], useCache: boolean = true) {
+export function resourceLoader(assetType: string, extNames: string[], useCache: boolean = true) {
   return <T extends Loader<any>>(Target: { new (useCache: boolean): T }) => {
     const loader = new Target(useCache);
-    ResourceManager._addLoader(assetType, loader, extnames);
+    ResourceManager._addLoader(assetType, loader, extNames);
   };
 }
 

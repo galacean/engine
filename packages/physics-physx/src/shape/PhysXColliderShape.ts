@@ -134,7 +134,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
       true,
       new PhysXPhysics._physX.PxShapeFlags(this._shapeFlags)
     );
-    this._pxShape.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(id, 0, 0, 0));
+    this._pxShape.setUUID(id);
   }
 
   private _modifyFlag(flag: ShapeFlag, value: boolean): void {

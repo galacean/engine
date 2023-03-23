@@ -7,11 +7,14 @@ import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
+import { Collision } from "./Collision";
 
 /**
  * A physics manager is a collection of colliders and constraints which can interact.
  */
 export class PhysicsManager {
+  private static _collision = new Collision();
+
   /** @internal */
   static _nativePhysics: IPhysics;
   /** @internal */
@@ -32,13 +35,21 @@ export class PhysicsManager {
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onCollisionEnter(shape2);
+      if (!script._waitHandlingInValid) {
+        let collision = PhysicsManager._collision;
+        collision.shape = shape2;
+        script.onCollisionEnter(collision);
+      }
     }
 
     scripts = shape2.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onCollisionEnter(shape1);
+      if (!script._waitHandlingInValid) {
+        let collision = PhysicsManager._collision;
+        collision.shape = shape1;
+        script.onCollisionEnter(collision);
+      }
     }
   };
   private _onContactExit = (obj1: number, obj2: number) => {
@@ -48,13 +59,21 @@ export class PhysicsManager {
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onCollisionExit(shape2);
+      if (!script._waitHandlingInValid) {
+        let collision = PhysicsManager._collision;
+        collision.shape = shape2;
+        script.onCollisionExit(collision);
+      }
     }
 
     scripts = shape2.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onCollisionExit(shape1);
+      if (!script._waitHandlingInValid) {
+        let collision = PhysicsManager._collision;
+        collision.shape = shape1;
+        script.onCollisionExit(collision);
+      }
     }
   };
   private _onContactStay = (obj1: number, obj2: number) => {
@@ -64,13 +83,21 @@ export class PhysicsManager {
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onCollisionStay(shape2);
+      if (!script._waitHandlingInValid) {
+        let collision = PhysicsManager._collision;
+        collision.shape = shape2;
+        script.onCollisionStay(collision);
+      }
     }
 
     scripts = shape2.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
       const script = scripts.get(i);
-      script._waitHandlingInValid || script.onCollisionStay(shape1);
+      if (!script._waitHandlingInValid) {
+        let collision = PhysicsManager._collision;
+        collision.shape = shape1;
+        script.onCollisionStay(collision);
+      }
     }
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
@@ -128,15 +155,6 @@ export class PhysicsManager {
   fixedTimeStep: number = 1 / 60;
 
   /**
-   * The max allowed time step in seconds one frame.
-   *
-   * @remarks
-   * When the frame rate is low or stutter occurs, the maximum execution time of physics will not exceed this value.
-   * So physics will slow down a bit when performance hitch occurs.
-   */
-  maxAllowedTimeStep: number = 1 / 3;
-
-  /**
    * The gravity of physics scene.
    */
   get gravity(): Vector3 {
@@ -148,18 +166,6 @@ export class PhysicsManager {
     if (gravity !== value) {
       gravity.copyFrom(value);
     }
-  }
-
-  /**
-   * @deprecated
-   * Please use `maxAllowedTimeStep` instead.
-   */
-  get maxSumTimeStep(): number {
-    return this.maxAllowedTimeStep;
-  }
-
-  set maxSumTimeStep(value: number) {
-    this.maxAllowedTimeStep = value;
   }
 
   constructor(engine: Engine) {
@@ -299,10 +305,10 @@ export class PhysicsManager {
    * @internal
    */
   _update(deltaTime: number): void {
-    const { fixedTimeStep: fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
+    const { fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
     const componentsManager = this._engine._componentsManager;
 
-    const simulateTime = Math.min(this.maxAllowedTimeStep, this._restTime + deltaTime);
+    const simulateTime = this._restTime + deltaTime;
     const step = Math.floor(simulateTime / fixedTimeStep);
     this._restTime = simulateTime - step * fixedTimeStep;
     for (let i = 0; i < step; i++) {

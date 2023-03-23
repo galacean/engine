@@ -1,10 +1,10 @@
+import { Vector2 } from "@oasis-engine/math";
 import { Engine } from "../../Engine";
-import { CharInfo } from "./CharInfo";
 import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";
-import { TextRenderer } from "./TextRenderer";
-import { Vector2 } from "@oasis-engine/math";
+import { CharInfo } from "./CharInfo";
 import { SubFont } from "./SubFont";
+import { TextRenderer } from "./TextRenderer";
 
 /**
  * @internal
@@ -44,7 +44,9 @@ export class TextUtils {
       } catch {
         canvas = document.createElement("canvas");
       }
-      const context = <CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>canvas.getContext("2d");
+      const context = <CanvasRenderingContext2D | OffscreenCanvasRenderingContext2D>(
+        canvas.getContext("2d", { willReadFrequently: true })
+      );
       textContext = { canvas, context };
       TextUtils._textContext = textContext;
     }
@@ -91,9 +93,8 @@ export class TextUtils {
   }
 
   static measureTextWithWrap(renderer: TextRenderer): TextMetrics {
-    const { fontSize, fontStyle, _subFont: subFont } = renderer;
-    const { name } = renderer.font;
-    const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
+    const { _subFont: subFont } = renderer;
+    const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const subTexts = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lines = new Array<string>();
@@ -104,6 +105,7 @@ export class TextUtils {
     const wrapWidth = renderer.width * _pixelsPerUnit;
     let width = 0;
 
+    subFont.nativeFontString = fontString;
     for (let i = 0, n = subTexts.length; i < n; ++i) {
       const subText = subTexts[i];
       let chars = "";
@@ -256,9 +258,8 @@ export class TextUtils {
   }
 
   static measureTextWithoutWrap(renderer: TextRenderer): TextMetrics {
-    const { fontSize, fontStyle, _subFont: subFont } = renderer;
-    const { name } = renderer.font;
-    const fontString = TextUtils.getNativeFontString(name, fontSize, fontStyle);
+    const { _subFont: subFont } = renderer;
+    const fontString = subFont.nativeFontString;
     const fontSizeInfo = TextUtils.measureFont(fontString);
     const lines = renderer.text.split(/(?:\r\n|\r|\n)/);
     const lineCount = lines.length;
@@ -266,12 +267,14 @@ export class TextUtils {
     const lineMaxSizes = new Array<FontSizeInfo>();
     const { _pixelsPerUnit } = Engine;
     const lineHeight = fontSizeInfo.size + renderer.lineSpacing * _pixelsPerUnit;
+
     let width = 0;
     let height = renderer.height * _pixelsPerUnit;
     if (renderer.overflowMode === OverflowMode.Overflow) {
       height = lineHeight * lineCount;
     }
 
+    subFont.nativeFontString = fontString;
     for (let i = 0; i < lineCount; ++i) {
       const line = lines[i];
       let curWidth = 0;
@@ -397,6 +400,7 @@ export class TextUtils {
         data = new Uint8Array(colorData.buffer, top * lineIntegerW, size * lineIntegerW);
       }
       return {
+        char,
         x: 0,
         y: 0,
         w: width,

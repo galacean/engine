@@ -1,12 +1,15 @@
 import { Material } from "@oasis-engine/core";
-import { registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
-import { ExtensionParser } from "./ExtensionParser";
-import { IOasisMaterialRemap } from "./Schema";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
+import { IOasisMaterialRemap } from "./GLTFExtensionSchema";
 
-@registerExtension("OASIS_materials_remap")
-class OasisMaterialsRemap extends ExtensionParser {
-  createEngineResource(schema: IOasisMaterialRemap, context: ParserContext): Promise<Material> {
+@registerGLTFExtension("OASIS_materials_remap", GLTFExtensionMode.CreateAndParse)
+class OasisMaterialsRemap extends GLTFExtensionParser {
+  /**
+   * @override
+   */
+  createAndParse(context: GLTFParserContext, schema: IOasisMaterialRemap): Promise<Material> {
     const { engine } = context.glTFResource;
     // @ts-ignore
     return engine.resourceManager.getResourceByRef<Material>(schema);
