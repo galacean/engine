@@ -16,7 +16,7 @@ export class ComponentsDependencies {
    * @internal
    */
   static _addCheck(entity: Entity, type: ComponentConstructor): void {
-    while (true) {
+    while (type !== Component) {
       const dependentInfo = ComponentsDependencies._dependenciesMap.get(type);
       if (dependentInfo) {
         const { components, mode } = dependentInfo;
@@ -32,7 +32,6 @@ export class ComponentsDependencies {
         }
       }
       type = Object.getPrototypeOf(type);
-      if (type === Component) break;
     }
   }
 
@@ -40,7 +39,7 @@ export class ComponentsDependencies {
    * @internal
    */
   static _removeCheck(entity: Entity, type: ComponentConstructor): void {
-    while (true) {
+    while (type !== Component) {
       const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
       if (invDependencies) {
         for (let i = 0, len = invDependencies.length; i < len; i++) {
@@ -50,7 +49,6 @@ export class ComponentsDependencies {
         }
       }
       type = Object.getPrototypeOf(type);
-      if (type === Component) break;
     }
   }
 
