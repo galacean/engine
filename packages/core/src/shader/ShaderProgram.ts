@@ -8,7 +8,6 @@ import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRender
 import { Scene } from "../Scene";
 import { Texture } from "../texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
-import { Shader } from "./Shader";
 import { ShaderData } from "./ShaderData";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderUniform } from "./ShaderUniform";

@@ -1,3 +1,4 @@
+import { Logger } from "../base";
 import { ShaderTagKey } from "./ShaderTagKey";
 
 /**
@@ -25,9 +26,9 @@ export abstract class ShaderPart {
     const tags = this._tagsMap;
 
     if (tags[key._uniqueId]) {
-      throw `Tag named "${key.name}" already exists.`;
+      Logger.warn(`The value of tag named "${key.name}" is being replaced.`);
     }
-    tags[key._uniqueId] = value;
+    this._tagsMap[key._uniqueId] = value;
   }
 
   /**
