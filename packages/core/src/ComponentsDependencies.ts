@@ -15,20 +15,24 @@ export class ComponentsDependencies {
   /**
    * @internal
    */
-  static _addCheck(entity: Entity, target: ComponentConstructor): void {
-    const dependentInfo = ComponentsDependencies._dependenciesMap.get(target);
-    if (dependentInfo) {
-      const { components, mode } = dependentInfo;
-      for (let i = 0, n = components.length; i < n; i++) {
-        const dependentComponent = components[i];
-        if (!entity.getComponent(dependentComponent)) {
-          if (mode === DependentMode.AutoAdd) {
-            entity.addComponent(dependentComponent);
-          } else {
-            throw `Should add ${dependentComponent.name} before adding ${target.name}`;
+  static _addCheck(entity: Entity, type: ComponentConstructor): void {
+    while (true) {
+      const dependentInfo = ComponentsDependencies._dependenciesMap.get(type);
+      if (dependentInfo) {
+        const { components, mode } = dependentInfo;
+        for (let i = 0, n = components.length; i < n; i++) {
+          const dependentComponent = components[i];
+          if (!entity.getComponent(dependentComponent)) {
+            if (mode === DependentMode.AutoAdd) {
+              entity.addComponent(dependentComponent);
+            } else {
+              throw `Should add ${dependentComponent.name} before adding ${type.name}`;
+            }
           }
         }
       }
+      type = Object.getPrototypeOf(type);
+      if (type === Component) break;
     }
   }
 
@@ -36,13 +40,17 @@ export class ComponentsDependencies {
    * @internal
    */
   static _removeCheck(entity: Entity, type: ComponentConstructor): void {
-    const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
-    if (invDependencies) {
-      for (let i = 0, len = invDependencies.length; i < len; i++) {
-        if (entity.getComponent(invDependencies[i])) {
-          throw `Should remove ${invDependencies[i].name} before adding ${type.name}`;
+    while (true) {
+      const invDependencies = ComponentsDependencies._invDependenciesMap.get(type);
+      if (invDependencies) {
+        for (let i = 0, len = invDependencies.length; i < len; i++) {
+          if (entity.getComponent(invDependencies[i])) {
+            throw `Should remove ${invDependencies[i].name} before adding ${type.name}`;
+          }
         }
       }
+      type = Object.getPrototypeOf(type);
+      if (type === Component) break;
     }
   }
 
