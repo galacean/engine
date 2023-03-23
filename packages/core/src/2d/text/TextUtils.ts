@@ -224,7 +224,6 @@ export class TextUtils {
             wordMaxAscent,
             wordMaxDescent
           );
-          isNotFirstLine = true;
           width = Math.max(width, charsWidth, wordCharsWidth);
         } else {
           // Merge to chars.
@@ -237,7 +236,6 @@ export class TextUtils {
 
       if (charsWidth > 0) {
         this._pushCharsToLines(lines, lineWidths, lineMaxSizes, chars, charsWidth, maxAscent, maxDescent);
-        isNotFirstLine = true;
         width < charsWidth && (width = charsWidth);
       }
     }
