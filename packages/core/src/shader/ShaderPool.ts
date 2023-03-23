@@ -5,6 +5,8 @@ import blinnPhongFs from "../shaderlib/extra/blinn-phong.fs.glsl";
 import blinnPhongVs from "../shaderlib/extra/blinn-phong.vs.glsl";
 import particleFs from "../shaderlib/extra/particle.fs.glsl";
 import particleVs from "../shaderlib/extra/particle.vs.glsl";
+import trailFs from "../shaderlib/extra/trail.fs.glsl";
+import trailVs from "../shaderlib/extra/trail.vs.glsl";
 import pbrSpecularFs from "../shaderlib/extra/pbr-specular.fs.glsl";
 import pbrFs from "../shaderlib/extra/pbr.fs.glsl";
 import pbrVs from "../shaderlib/extra/pbr.vs.glsl";
@@ -43,6 +45,7 @@ export class ShaderPool {
 
     Shader.create("skybox", [new ShaderPass(skyboxVs, skyboxFs, forwardPassTags)]);
     Shader.create("particle-shader", [new ShaderPass(particleVs, particleFs, forwardPassTags)]);
+    Shader.create("trail-shader", [new ShaderPass(trailVs, trailFs, forwardPassTags)]);
     Shader.create("SpriteMask", [new ShaderPass(spriteMaskVs, spriteMaskFs, forwardPassTags)]);
     Shader.create("Sprite", [new ShaderPass(spriteVs, spriteFs, forwardPassTags)]);
     Shader.create("background-texture", [new ShaderPass(backgroundTextureVs, backgroundTextureFs, forwardPassTags)]);
