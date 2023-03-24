@@ -25,10 +25,10 @@ export abstract class ShaderPart {
     const key = typeof keyOrKeyName === "string" ? ShaderTagKey.getByName(keyOrKeyName) : keyOrKeyName;
     const tags = this._tagsMap;
 
-    if (tags[key._uniqueId]) {
+    if (tags[key._uniqueId] !== undefined) {
       Logger.warn(`The value of tag named "${key.name}" is being replaced.`);
     }
-    this._tagsMap[key._uniqueId] = value;
+    tags[key._uniqueId] = value;
   }
 
   /**
