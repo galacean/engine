@@ -34,6 +34,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private _eventPool: TriggerEvent[] = [];
 
   constructor(
+    physXPhysics: PhysXPhysics,
     onContactEnter?: (obj1: number, obj2: number) => void,
     onContactExit?: (obj1: number, obj2: number) => void,
     onContactStay?: (obj1: number, obj2: number) => void,
@@ -41,6 +42,14 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
   ) {
+    this._physXPhysics = physXPhysics;
+
+    const physX = physXPhysics._physX;
+
+    this._pxRaycastHit = new physX.PxRaycastHit();
+    this._pxFilterData = new physX.PxQueryFilterData();
+    this._pxFilterData.flags = new physX.PxQueryFlags(QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER);
+
     this._onContactEnter = onContactEnter;
     this._onContactExit = onContactExit;
     this._onContactStay = onContactStay;
@@ -78,14 +87,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       }
     };
 
-    const PHYSXSimulationCallbackInstance =
-      this._physXPhysics._physX.PxSimulationEventCallback.implement(triggerCallback);
-    const sceneDesc = this._physXPhysics._physX.getDefaultSceneDesc(
-      this._physXPhysics._pxPhysics.getTolerancesScale(),
-      0,
-      PHYSXSimulationCallbackInstance
-    );
-    this._pxScene = this._physXPhysics._pxPhysics.createScene(sceneDesc);
+    const pxPhysics = physXPhysics._pxPhysics;
+    const physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(triggerCallback);
+    const sceneDesc = physX.getDefaultSceneDesc(pxPhysics.getTolerancesScale(), 0, physXSimulationCallbackInstance);
+    this._pxScene = pxPhysics.createScene(sceneDesc);
   }
 
   /**
@@ -205,18 +210,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       hit(pxHitResult.getShape().getUUID(), pxHitResult.distance, position, normal);
     }
     return result;
-  }
-
-  /**
-   * @internal
-   */
-  _init(physXPhysics: PhysXPhysics): void {
-    this._physXPhysics = physXPhysics;
-    this._pxRaycastHit = new physXPhysics._physX.PxRaycastHit();
-    this._pxFilterData = new physXPhysics._physX.PxQueryFilterData();
-    this._pxFilterData.flags = new physXPhysics._physX.PxQueryFlags(
-      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER
-    );
   }
 
   /**

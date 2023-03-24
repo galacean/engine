@@ -139,6 +139,7 @@ export class PhysXPhysics implements IPhysics {
     onTriggerStay?: (obj1: number, obj2: number) => void
   ): IPhysicsManager {
     const manager = new PhysXPhysicsManager(
+      this,
       onContactBegin,
       onContactEnd,
       onContactStay,
@@ -146,7 +147,6 @@ export class PhysXPhysics implements IPhysics {
       onTriggerEnd,
       onTriggerStay
     );
-    manager._init(this);
     return manager;
   }
 
