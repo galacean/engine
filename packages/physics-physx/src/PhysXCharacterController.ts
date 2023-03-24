@@ -18,6 +18,13 @@ export class PhysXCharacterController implements ICharacterController {
   _pxManager: PhysXPhysicsManager;
   /** @internal */
   _shape: PhysXColliderShape;
+
+  private _physXPhysics: PhysXPhysics;
+
+  constructor(physXPhysics: PhysXPhysics) {
+    this._physXPhysics = physXPhysics;
+  }
+
   /**
    * {@inheritDoc ICharacterController.move }
    */
@@ -98,12 +105,12 @@ export class PhysXCharacterController implements ICharacterController {
   _createPXController(pxManager: PhysXPhysicsManager, shape: PhysXColliderShape): void {
     let desc: any;
     if (shape instanceof PhysXBoxColliderShape) {
-      desc = new PhysXPhysics._physX.PxBoxControllerDesc();
+      desc = new this._physXPhysics._physX.PxBoxControllerDesc();
       desc.halfHeight = shape._halfSize.x;
       desc.halfSideExtent = shape._halfSize.y;
       desc.halfForwardExtent = shape._halfSize.z;
     } else if (shape instanceof PhysXCapsuleColliderShape) {
-      desc = new PhysXPhysics._physX.PxCapsuleControllerDesc();
+      desc = new this._physXPhysics._physX.PxCapsuleControllerDesc();
       desc.radius = shape._radius;
       desc.height = shape._halfHeight * 2;
       desc.climbingMode = 1; // constraint mode

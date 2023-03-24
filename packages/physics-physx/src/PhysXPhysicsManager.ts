@@ -15,13 +15,16 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
-  private static _pxRaycastHit: any;
-  private static _pxFilterData: any;
 
-  static _init() {
-    PhysXPhysicsManager._pxRaycastHit = new PhysXPhysics._physX.PxRaycastHit();
-    PhysXPhysicsManager._pxFilterData = new PhysXPhysics._physX.PxQueryFilterData();
-    PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics._physX.PxQueryFlags(
+  private _physXPhysics: PhysXPhysics;
+  private _pxRaycastHit: any;
+  private _pxFilterData: any;
+
+  _init(physXPhysics: PhysXPhysics) {
+    this._physXPhysics = physXPhysics;
+    this._pxRaycastHit = new physXPhysics._physX.PxRaycastHit();
+    this._pxFilterData = new physXPhysics._physX.PxQueryFilterData();
+    this._pxFilterData.flags = new physXPhysics._physX.PxQueryFlags(
       QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER
     );
   }
@@ -84,13 +87,14 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       }
     };
 
-    const PHYSXSimulationCallbackInstance = PhysXPhysics._physX.PxSimulationEventCallback.implement(triggerCallback);
-    const sceneDesc = PhysXPhysics._physX.getDefaultSceneDesc(
-      PhysXPhysics._pxPhysics.getTolerancesScale(),
+    const PHYSXSimulationCallbackInstance =
+      this._physXPhysics._physX.PxSimulationEventCallback.implement(triggerCallback);
+    const sceneDesc = this._physXPhysics._physX.getDefaultSceneDesc(
+      this._physXPhysics._pxPhysics.getTolerancesScale(),
       0,
       PHYSXSimulationCallbackInstance
     );
-    this._pxScene = PhysXPhysics._pxPhysics.createScene(sceneDesc);
+    this._pxScene = this._physXPhysics._pxPhysics.createScene(sceneDesc);
   }
 
   /**
@@ -178,7 +182,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const { _pxRaycastHit: pxHitResult } = PhysXPhysicsManager;
+    const { _pxRaycastHit: pxHitResult } = this;
     distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
 
     const raycastCallback = {
@@ -197,8 +201,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       ray.direction,
       distance,
       pxHitResult,
-      PhysXPhysicsManager._pxFilterData,
-      PhysXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
+      this._pxFilterData,
+      this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
     );
 
     if (result && hit != undefined) {

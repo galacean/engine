@@ -49,14 +49,15 @@ export enum WebGLMode {
 }
 
 /**
- * WebGL renderer options.
+ * WebGL graphic device options.
  */
-export interface WebGLRendererOptions extends WebGLContextAttributes {
+export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
+
   /**
    * @internal
-   * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for exmaple iPhone13(iOS 15.4.1).
+   * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for example iPhone13(iOS 15.4.1).
    */
   _forceFlush?: boolean;
 }
@@ -72,7 +73,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   /** @internal */
   _currentBindShaderProgram: any;
 
-  private _options: WebGLRendererOptions;
+  private _options: WebGLGraphicDeviceOptions;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _extensions;
@@ -120,7 +121,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     return this.capability.canIUseMoreJoints;
   }
 
-  constructor(initializeOptions: WebGLRendererOptions = {}) {
+  constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
     const options = {
       webGLMode: WebGLMode.Auto,
       stencil: true,

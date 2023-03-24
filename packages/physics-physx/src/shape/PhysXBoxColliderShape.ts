@@ -12,18 +12,12 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   /** @internal */
   _halfSize: Vector3 = new Vector3();
 
-  /**
-   * Init Box Shape and alloc PhysX objects.
-   * @param uniqueID - UniqueID mark Shape.
-   * @param size - Size of Shape.
-   * @param material - Material of PhysXCollider.
-   */
-  constructor(uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
-    super();
+  constructor(physXPhysics: PhysXPhysics, uniqueID: number, size: Vector3, material: PhysXPhysicsMaterial) {
+    super(physXPhysics);
 
     this._halfSize.set(size.x * 0.5, size.y * 0.5, size.z * 0.5);
 
-    this._pxGeometry = new PhysXPhysics._physX.PxBoxGeometry(
+    this._pxGeometry = new physXPhysics._physX.PxBoxGeometry(
       this._halfSize.x * this._scale.x,
       this._halfSize.y * this._scale.y,
       this._halfSize.z * this._scale.z

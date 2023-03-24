@@ -1,3 +1,4 @@
+import { IPhysics } from "@oasis-engine/design";
 import { Color } from "@oasis-engine/math/src/Color";
 import { Font } from "./2d/text/Font";
 import { ContentRestorer } from "./asset/ContentRestorer";
@@ -220,13 +221,7 @@ export class Engine extends EventDispatcher {
     return this._destroyed;
   }
 
-  /**
-   * Create engine.
-   * @param canvas - The canvas to use for rendering
-   * @param hardwareRenderer - Graphics API renderer
-   * @param settings - Engine Settings
-   */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, settings?: EngineSettings) {
+  protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
     super();
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
@@ -264,7 +259,7 @@ export class Engine extends EventDispatcher {
     this._backgroundTextureMaterial = backgroundTextureMaterial;
 
     const innerSettings = this._settings;
-    const colorSpace = settings?.colorSpace || ColorSpace.Linear;
+    const colorSpace = configuration.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
   }
@@ -518,6 +513,22 @@ export class Engine extends EventDispatcher {
     }
   }
 
+  protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
+    return new Promise((resolve, reject) => {
+      const physics = configuration.physics;
+      if (physics) {
+        physics
+          .initialize()
+          .then(() => {
+            resolve(this);
+          })
+          .catch(reject);
+      } else {
+        resolve(this);
+      }
+    });
+  }
+
   private _createSpriteMaterial(): Material {
     const material = new Material(this, Shader.find("Sprite"));
     const renderState = material.renderState;
@@ -575,4 +586,14 @@ export class Engine extends EventDispatcher {
         console.error(error);
       });
   }
+}
+
+/**
+ * Engine configuration.
+ */
+export interface EngineConfiguration {
+  /** Physics. */
+  physics?: IPhysics;
+  /** Color space. */
+  colorSpace?: ColorSpace;
 }
