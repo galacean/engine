@@ -29,7 +29,7 @@ export class ShaderPass extends ShaderPart {
   constructor(
     vertexSource: string,
     fragmentSource: string,
-    tags: Record<string, string> = { pipelineStage: PipelineStage.Forward }
+    tags: Record<string, number | string | boolean> = { pipelineStage: PipelineStage.Forward }
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
