@@ -133,7 +133,8 @@ export class TextUtils {
           continue;
         }
 
-        const unableFromWord = isSpace || charCode > 255;
+        // The char code scope of Chinese is [\u4e00-\u9fa5]
+        const unableFromWord = isSpace || (charCode >= 19968 && charCode <= 40869);
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
@@ -207,14 +208,14 @@ export class TextUtils {
       }
 
       if (wordWidth > 0) {
-        // If the total width from chars and wordChars exceed wrap width
+        // If the total width from line and word exceed wrap width
         if (lineWidth + wordWidth > wrapWidth) {
           // Push chars to a single line
           this._pushLine(lines, lineWidths, lineMaxSizes, line, lineWidth, lineMaxAscent, lineMaxDescent);
           textWidth = Math.max(textWidth, lineWidth);
 
           lineWidth = 0;
-          // Push wordChars to a single line
+          // Push word to a single line
           this._pushLine(lines, lineWidths, lineMaxSizes, word, wordWidth, wordMaxAscent, wordMaxDescent);
           textWidth = Math.max(textWidth, wordWidth);
         } else {
