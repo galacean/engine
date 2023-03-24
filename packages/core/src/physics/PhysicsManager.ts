@@ -18,6 +18,9 @@ export class PhysicsManager {
   /** @internal */
   static _nativePhysics: IPhysics;
 
+  /** @internal */
+  _initialized: boolean = false;
+
   private _engine: Engine;
   private _restTime: number = 0;
 
@@ -291,6 +294,7 @@ export class PhysicsManager {
       this._onTriggerExit,
       this._onTriggerStay
     );
+    this._initialized = true;
   }
 
   /**
