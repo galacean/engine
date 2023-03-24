@@ -520,6 +520,7 @@ export class Engine extends EventDispatcher {
         physics
           .initialize()
           .then(() => {
+            this.physicsManager._initialize(physics);
             resolve(this);
           })
           .catch(reject);

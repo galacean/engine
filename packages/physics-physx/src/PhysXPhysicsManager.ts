@@ -20,15 +20,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private _pxRaycastHit: any;
   private _pxFilterData: any;
 
-  _init(physXPhysics: PhysXPhysics) {
-    this._physXPhysics = physXPhysics;
-    this._pxRaycastHit = new physXPhysics._physX.PxRaycastHit();
-    this._pxFilterData = new physXPhysics._physX.PxQueryFilterData();
-    this._pxFilterData.flags = new physXPhysics._physX.PxQueryFlags(
-      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER
-    );
-  }
-
   private _pxScene: any;
 
   private readonly _onContactEnter?: (obj1: number, obj2: number) => void;
@@ -214,6 +205,18 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       hit(pxHitResult.getShape().getUUID(), pxHitResult.distance, position, normal);
     }
     return result;
+  }
+
+  /**
+   * @internal
+   */
+  _init(physXPhysics: PhysXPhysics): void {
+    this._physXPhysics = physXPhysics;
+    this._pxRaycastHit = new physXPhysics._physX.PxRaycastHit();
+    this._pxFilterData = new physXPhysics._physX.PxQueryFilterData();
+    this._pxFilterData.flags = new physXPhysics._physX.PxQueryFlags(
+      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER
+    );
   }
 
   /**
