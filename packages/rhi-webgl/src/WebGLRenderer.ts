@@ -51,7 +51,7 @@ export enum WebGLMode {
 /**
  * WebGL graphic device options.
  */
-export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
+export interface WebGLRendererOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
 
@@ -73,7 +73,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   /** @internal */
   _currentBindShaderProgram: any;
 
-  private _options: WebGLGraphicDeviceOptions;
+  private _options: WebGLRendererOptions;
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
   private _renderStates;
   private _extensions;
@@ -121,7 +121,7 @@ export class WebGLRenderer implements IHardwareRenderer {
     return this.capability.canIUseMoreJoints;
   }
 
-  constructor(initializeOptions: WebGLGraphicDeviceOptions = {}) {
+  constructor(initializeOptions: WebGLRendererOptions = {}) {
     const options = {
       webGLMode: WebGLMode.Auto,
       stencil: true,
