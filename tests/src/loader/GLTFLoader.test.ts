@@ -328,7 +328,7 @@ class CustomLight extends GLTFExtensionParser {
 describe("glTF Loader test", function () {
   it("Pipeline Parser", async () => {
     const glTFResource: any = await engine.resourceManager.load({
-      type: AssetType.Prefab,
+      type: AssetType.GLTF,
       url: "",
       params: {
         pipeline: new GLTFPipeline(
