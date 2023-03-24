@@ -133,8 +133,8 @@ export class TextUtils {
           continue;
         }
 
-        // The char code scope of Chinese is [\u4e00-\u9fa5]
-        const unableFromWord = isSpace || (charCode >= 19968 && charCode <= 40869);
+        // The char code scope of Chinese is [\u4e00-\u9fff]
+        const unableFromWord = isSpace || (charCode >= 0x4e00 && charCode <= 0x9fff);
         const { w, offsetY } = charInfo;
         const halfH = charInfo.h * 0.5;
         const ascent = halfH + offsetY;
