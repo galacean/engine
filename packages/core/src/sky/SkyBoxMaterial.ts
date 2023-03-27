@@ -18,7 +18,6 @@ export class SkyBoxMaterial extends Material {
   private static _exposureProp = ShaderProperty.getByName("u_exposure");
   private static _decodeSkyRGBMMacro = ShaderMacro.getByName("DECODE_SKY_RGBM");
 
-  private _rotation: number = 0;
   private _decodeRGBM: boolean = true;
 
   /**
@@ -52,12 +51,11 @@ export class SkyBoxMaterial extends Material {
    * The euler angle to rotate around the y-axis.
    */
   get rotation(): number {
-    return this._rotation;
+    return this.shaderData.getFloat(SkyBoxMaterial._rotationProp);
   }
 
   set rotation(v: number) {
-    this._rotation = v;
-    this.shaderData.setFloat(SkyBoxMaterial._rotationProp, (v * Math.PI) / 180);
+    this.shaderData.setFloat(SkyBoxMaterial._rotationProp, v);
   }
 
   /**
