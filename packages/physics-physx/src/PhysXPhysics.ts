@@ -10,6 +10,7 @@ import {
   IPhysicsMaterial,
   IPlaneColliderShape,
   ISphereColliderShape,
+  ISphericalJoint,
   ISpringJoint,
   IStaticCollider
 } from "@oasis-engine/design";
@@ -18,6 +19,7 @@ import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";
 import { PhysXSpringJoint } from "./joint/PhysXSpringJoint";
+import { PhysXSphericalJoint } from "./joint/PhysXSphericalJoint";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXDynamicCollider } from "./PhysXDynamicCollider";
@@ -219,6 +221,13 @@ export class PhysXPhysics {
    */
   static createSpringJoint(collider: PhysXCollider): ISpringJoint {
     return new PhysXSpringJoint(collider);
+  }
+
+  /**
+   * {@inheritDoc IPhysics.createSpringJoint }
+   */
+  static createSphericalJoint(collider: PhysXCollider): ISphericalJoint {
+    return new PhysXSphericalJoint(collider);
   }
 
   private static _init(physX: any): void {
