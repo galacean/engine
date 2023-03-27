@@ -28,7 +28,7 @@ export class WebGLEngine extends Engine {
 }
 
 /**
- * Engine configuration.
+ * WebGL engine configuration.
  */
 export interface WebGLEngineConfiguration extends EngineConfiguration {
   /** Canvas element or canvas id. */
