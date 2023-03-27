@@ -4,7 +4,7 @@ import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
 import { GLTFContentRestorer } from "./GLTFContentRestorer";
 
-@resourceLoader(AssetType.Prefab, ["gltf", "glb"])
+@resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
   /**
    * @override
