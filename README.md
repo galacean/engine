@@ -36,7 +36,7 @@ import { Engine, Scene, Entity } from "oasis-engine";
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
+// Create engine by passing in the HTMLCanvasElement id and adjust canvas size
 const engine = await WebGLEngine.create({ canvas: "canvas-id" });
 engine.canvas.resizeByClientSize();
 
