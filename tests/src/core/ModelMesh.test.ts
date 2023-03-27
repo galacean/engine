@@ -3,8 +3,8 @@ import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
 
-describe("ModelMesh Test", function () {
-  const engine = new WebGLEngine(document.createElement("canvas"));
+describe("ModelMesh Test", async function () {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   // @ts-ignore
   const modelMesh = new ModelMesh(engine);
   const positions = [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)];

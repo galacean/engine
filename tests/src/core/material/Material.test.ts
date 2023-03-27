@@ -3,9 +3,9 @@ import { Color, Matrix, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
 
-describe("Material", () => {
+describe("Material", async () => {
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  const engine = await WebGLEngine.create({ canvas });
 
   it("property", () => {
     const color = new Color(0.2, 0.1, 0.3, 1.0);

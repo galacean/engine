@@ -3,9 +3,9 @@ import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { Texture2D, UnlitMaterial } from "@oasis-engine/core";
 import { expect } from "chai";
 
-describe("UnlitMaterial", () => {
+describe("UnlitMaterial", async () => {
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  const engine = await WebGLEngine.create({ canvas });
 
   it("参数测试", () => {
     const material = new UnlitMaterial(engine);

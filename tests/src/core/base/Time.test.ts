@@ -2,8 +2,8 @@ import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
 
 describe("Time", () => {
-  it("Time basic", () => {
-    const engine = new WebGLEngine(document.createElement("canvas"));
+  it("Time basic", async () => {
+    const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
 
     expect(engine.time.frameCount).to.be.equal(0);
     expect(engine.time.elapsedTime).to.be.equal(0);

@@ -2,9 +2,9 @@ import { Sprite, SpriteMask, Texture2D } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
 
-describe("SpriteMask", () => {
+describe("SpriteMask", async () => {
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  const engine = await WebGLEngine.create({ canvas: canvas });
   const scene = engine.sceneManager.activeScene;
 
   engine.run();

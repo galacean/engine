@@ -3,9 +3,9 @@ import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { Texture2D, PBRSpecularMaterial } from "@oasis-engine/core";
 import { expect } from "chai";
 
-describe("PBRSpecularMaterial", () => {
+describe("PBRSpecularMaterial", async () => {
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  const engine = await WebGLEngine.create({ canvas });
 
   it("pbr specular 参数测试", () => {
     const material = new PBRSpecularMaterial(engine);

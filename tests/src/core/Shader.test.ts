@@ -98,8 +98,8 @@ describe("Shader", () => {
       expect(getTag).to.undefined;
     });
 
-    it("Render and compile", () => {
-      const engine = new WebGLEngine(document.createElement("canvas"));
+    it("Render and compile", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       // Get scene and create root entity
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("Root");

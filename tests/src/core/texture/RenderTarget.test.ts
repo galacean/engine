@@ -2,12 +2,12 @@ import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { RenderBufferDepthFormat, RenderTarget, Texture2D } from "@oasis-engine/core";
 import { expect } from "chai";
 
-describe("RenderTarget", () => {
+describe("RenderTarget", async () => {
   const width = 1024;
   const height = 1024;
 
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  const engine = await WebGLEngine.create({ canvas });
   // @ts-ignore
   const rhi = engine._hardwareRenderer;
   const isWebGL2 = rhi.isWebGL2;

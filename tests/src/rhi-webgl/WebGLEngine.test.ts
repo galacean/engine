@@ -7,13 +7,13 @@ import spies from "chai-spies";
 chai.use(spies);
 
 describe("webgl engine test", () => {
-  it("create a webgl engine", () => {
+  it("create a webgl engine", async () => {
     const canvas = document.createElement("canvas");
-    const engine = new WebGLEngine(canvas);
+    const engine = await WebGLEngine.create({ canvas });
     expect(engine).not.be.null;
   });
 
-  it("engine destroy", () => {
+  it("engine destroy", async () => {
     class ParentScript extends Script {
       onAwake() {
         console.log("ParentScript___onAwake");
@@ -50,7 +50,7 @@ describe("webgl engine test", () => {
     }
 
     const canvas = document.createElement("canvas");
-    const engine = new WebGLEngine(canvas);
+    const engine = await WebGLEngine.create({ canvas });
     engine.canvas.resizeByClientSize();
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
@@ -72,9 +72,9 @@ describe("webgl engine test", () => {
     rootEntity.addChild(parentEntity);
   });
 
-  it("engine device lost", () => {
+  it("engine device lost", async () => {
     const canvas = document.createElement("canvas");
-    const engine = new WebGLEngine(canvas);
+    const engine = await WebGLEngine.create({ canvas });
     engine.canvas.resizeByClientSize();
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
