@@ -13,12 +13,12 @@ import { IAssembler } from "./IAssembler";
 export class TiledSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
   static resetData(renderer: SpriteRenderer): void {
-    renderer._renderData.triangles ||= [];
+    renderer._verticesData.triangles ||= [];
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite, tileMode, tileStretchValue: stretch } = renderer;
-    const { positions, uvs, triangles } = renderer._renderData;
+    const { positions, uvs, triangles } = renderer._verticesData;
     // Calculate row and column.
     let posRow: number[] = [];
     let posColumn: number[] = [];
@@ -86,7 +86,7 @@ export class TiledSpriteAssembler {
       }
     }
 
-    renderer._renderData.vertexCount = positionOffset;
+    renderer._verticesData.vertexCount = positionOffset;
     triangles.length = trianglesOffset;
 
     const { min, max } = renderer._bounds;

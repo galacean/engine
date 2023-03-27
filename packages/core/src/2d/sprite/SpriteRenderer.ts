@@ -1,17 +1,16 @@
-import { BoundingBox, Color, MathUtil } from "@oasis-engine/math";
+import { BoundingBox, Color, MathUtil, Matrix } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
-import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { IAssembler } from "../assembler/IAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
 import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
-import { RenderData2D } from "../data/RenderData2D";
+import { VertexData2D } from "../data/VertexData2D";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -24,11 +23,11 @@ import { Sprite } from "./Sprite";
  */
 export class SpriteRenderer extends Renderer implements ICustomClone {
   /** @internal */
-  static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
+  static _textureProperty: ShaderProperty = ShaderProperty.getByName("u_spriteTexture");
 
   /** @internal */
   @ignoreClone
-  _renderData: RenderData2D;
+  _verticesData: VertexData2D;
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
@@ -247,7 +246,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._renderData = new RenderData2D(4, [], [], null, this._color);
+    this._verticesData = new VertexData2D(4, [], [], null, this._color);
     this.drawMode = SpriteDrawMode.Simple;
     this.setMaterial(this._engine._spriteDefaultMaterial);
     this._onSpriteChange = this._onSpriteChange.bind(this);
@@ -264,15 +263,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @internal
+   * @override
    */
-  _onDestroy(): void {
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
-    this._color = null;
-    this._sprite = null;
-    this._assembler = null;
-    this._renderData = null;
-    super._onDestroy();
+  protected _updateShaderData(context: RenderContext): void {
+    // @ts-ignore
+    this._updateTransformShaderData(context, Matrix._identity);
   }
 
   /**
@@ -307,16 +302,25 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
     }
 
-    // Push primitive.
+    // Push render data
     const material = this.getMaterial();
-    const passes = material.shader.passes;
-    const renderStates = material.renderStates;
     const texture = this.sprite.texture;
-    for (let i = 0, n = passes.length; i < n; i++) {
-      const spriteElement = this._engine._spriteElementPool.getFromPool();
-      spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
-      context.camera._renderPipeline.pushPrimitive(spriteElement);
-    }
+    const renderData = this._engine._spriteRenderDataPool.getFromPool();
+    renderData.set(this, material, this._verticesData, texture);
+    context.camera._renderPipeline.pushRenderData(context, renderData);
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
+    this._color = null;
+    this._sprite = null;
+    this._assembler = null;
+    this._verticesData = null;
   }
 
   private _updateStencilState(): void {

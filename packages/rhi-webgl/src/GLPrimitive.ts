@@ -57,8 +57,8 @@ export class GLPrimitive implements IPlatformPrimitive {
         if (useVao) {
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
         } else {
-          const { _nativeBuffer } = _indexBufferBinding.buffer;
-          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
+          const { _glBuffer } = _indexBufferBinding.buffer._platformBuffer;
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
           gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
         }
@@ -71,8 +71,8 @@ export class GLPrimitive implements IPlatformPrimitive {
           if (this._useVao) {
             gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, _instanceCount);
           } else {
-            const { _nativeBuffer } = _indexBufferBinding.buffer;
-            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _nativeBuffer);
+            const { _glBuffer } = _indexBufferBinding.buffer._platformBuffer;
+            gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _glBuffer);
             gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, _instanceCount);
             gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
           }
@@ -126,7 +126,7 @@ export class GLPrimitive implements IPlatformPrimitive {
       const element = attributes[name];
       if (element) {
         const { buffer, stride } = vertexBufferBindings[element.bindingIndex];
-        vbo = buffer._nativeBuffer;
+        vbo = buffer._platformBuffer._glBuffer;
         // prevent binding the vbo which already bound at the last loop, e.g. a buffer with multiple attributes.
         if (lastBoundVbo !== vbo) {
           lastBoundVbo = vbo;
@@ -165,7 +165,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     // @ts-ignore
     const { _indexBufferBinding } = this._primitive;
     if (_indexBufferBinding) {
-      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _indexBufferBinding.buffer._nativeBuffer);
+      gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _indexBufferBinding.buffer._platformBuffer._glBuffer);
     }
     this.bindBufferAndAttrib(shaderProgram);
 

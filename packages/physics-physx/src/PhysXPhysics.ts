@@ -74,10 +74,10 @@ export class PhysXPhysics {
 
       if (runtimeMode == PhysXRuntimeMode.JavaScript) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.56/libs/physx.release.js.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/1.0.0-alpha.4/libs/physx.release.js.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
         script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/0.9.0-beta.56/libs/physx.release.js";
+          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/1.0.0-alpha.4/libs/physx.release.js";
       }
     });
 
@@ -100,8 +100,9 @@ export class PhysXPhysics {
    * Destroy PhysXPhysics.
    */
   public static destroy(): void {
-    this._pxFoundation.release();
+    this._physX.PxCloseExtensions();
     this._pxPhysics.release();
+    this._pxFoundation.release();
     this._physX = null;
     this._pxFoundation = null;
     this._pxPhysics = null;

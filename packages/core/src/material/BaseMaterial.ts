@@ -1,5 +1,5 @@
 import { Engine } from "../Engine";
-import { BlendFactor, BlendOperation, CullMode, Shader } from "../shader";
+import { BlendFactor, BlendOperation, CullMode, Shader, ShaderProperty } from "../shader";
 import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { RenderState } from "../shader/state/RenderState";
@@ -8,20 +8,20 @@ import { RenderFace } from "./enums/RenderFace";
 import { Material } from "./Material";
 
 export class BaseMaterial extends Material {
-  protected static _baseColorProp = Shader.getPropertyByName("u_baseColor");
-  protected static _baseTextureProp = Shader.getPropertyByName("u_baseTexture");
-  protected static _baseTextureMacro: ShaderMacro = Shader.getMacroByName("BASETEXTURE");
-  protected static _tilingOffsetProp = Shader.getPropertyByName("u_tilingOffset");
-  protected static _normalTextureProp = Shader.getPropertyByName("u_normalTexture");
-  protected static _normalIntensityProp = Shader.getPropertyByName("u_normalIntensity");
-  protected static _normalTextureMacro: ShaderMacro = Shader.getMacroByName("NORMALTEXTURE");
-  protected static _emissiveColorProp = Shader.getPropertyByName("u_emissiveColor");
-  protected static _emissiveTextureProp = Shader.getPropertyByName("u_emissiveTexture");
-  protected static _emissiveTextureMacro: ShaderMacro = Shader.getMacroByName("EMISSIVETEXTURE");
-  protected static _transparentMacro: ShaderMacro = Shader.getMacroByName("OASIS_TRANSPARENT");
+  protected static _baseColorProp: ShaderProperty = ShaderProperty.getByName("u_baseColor");
+  protected static _baseTextureProp: ShaderProperty = ShaderProperty.getByName("u_baseTexture");
+  protected static _baseTextureMacro: ShaderMacro = ShaderMacro.getByName("BASETEXTURE");
+  protected static _tilingOffsetProp: ShaderProperty = ShaderProperty.getByName("u_tilingOffset");
+  protected static _normalTextureProp: ShaderProperty = ShaderProperty.getByName("u_normalTexture");
+  protected static _normalIntensityProp: ShaderProperty = ShaderProperty.getByName("u_normalIntensity");
+  protected static _normalTextureMacro: ShaderMacro = ShaderMacro.getByName("NORMALTEXTURE");
+  protected static _emissiveColorProp: ShaderProperty = ShaderProperty.getByName("u_emissiveColor");
+  protected static _emissiveTextureProp: ShaderProperty = ShaderProperty.getByName("u_emissiveTexture");
+  protected static _emissiveTextureMacro: ShaderMacro = ShaderMacro.getByName("EMISSIVETEXTURE");
+  protected static _transparentMacro: ShaderMacro = ShaderMacro.getByName("OASIS_TRANSPARENT");
 
-  private static _alphaCutoffProp = Shader.getPropertyByName("u_alphaCutoff");
-  private static _alphaCutoffMacro: ShaderMacro = Shader.getMacroByName("ALPHA_CUTOFF");
+  private static _alphaCutoffProp = ShaderProperty.getByName("u_alphaCutoff");
+  private static _alphaCutoffMacro: ShaderMacro = ShaderMacro.getByName("ALPHA_CUTOFF");
 
   private _renderFace: RenderFace = RenderFace.Front;
   private _isTransparent: boolean = false;
@@ -39,15 +39,20 @@ export class BaseMaterial extends Material {
 
     const renderStates = this._renderStates;
     const lastStatesCount = renderStates.length;
-    const passCount = value.passes.length;
 
-    if (lastStatesCount < passCount) {
-      for (let i = lastStatesCount; i < passCount; i++) {
+    let maxPassCount = 0;
+    const subShaders = value.subShaders;
+    for (let i = 0; i < subShaders.length; i++) {
+      maxPassCount = Math.max(subShaders[i].passes.length, maxPassCount);
+    }
+
+    if (lastStatesCount < maxPassCount) {
+      for (let i = lastStatesCount; i < maxPassCount; i++) {
         renderStates.push(new RenderState());
         this.setBlendMode(i, BlendMode.Normal);
       }
     } else {
-      renderStates.length = passCount;
+      renderStates.length = maxPassCount;
     }
   }
 

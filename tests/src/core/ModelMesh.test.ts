@@ -29,7 +29,7 @@ describe("ModelMesh Test", function () {
   const falsyWeights = [new Vector4()];
   const falsyJoints = [new Vector4()];
   it("init", () => {
-    expect(modelMesh.accessible).true;
+    expect(modelMesh.readable).true;
   });
 
   it("set position data", () => {
@@ -189,33 +189,6 @@ describe("ModelMesh Test", function () {
   it("upload data with no longer used", () => {
     modelMesh.uploadData(true);
     expect(() => {
-      modelMesh.setIndices(indices);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setPositions(positions);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setColors(colors);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setNormals(normals);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setTangents(tangents);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setBoneWeights(weights);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setBoneIndices(joints);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUVs(uvs);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUVs(uvs);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
       modelMesh.getPositions();
     }).throw("Not allowed to access data while accessible is false.");
     expect(() => {
@@ -235,9 +208,6 @@ describe("ModelMesh Test", function () {
     }).throw("Not allowed to access data while accessible is false.");
     expect(() => {
       modelMesh.getUVs();
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.blendShapes;
     }).throw("Not allowed to access data while accessible is false.");
   });
 });

@@ -7,8 +7,8 @@ import { Light } from "./Light";
  * Directional light.
  */
 export class DirectLight extends Light {
-  private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_directLightColor");
-  private static _directionProperty: ShaderProperty = Shader.getPropertyByName("u_directLightDirection");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_directLightColor");
+  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("u_directLightDirection");
 
   private static _combinedData = {
     color: new Float32Array(3 * Light._maxLight),
@@ -25,16 +25,13 @@ export class DirectLight extends Light {
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
 
-  private _forward: Vector3 = new Vector3();
-
   private _reverseDirection: Vector3 = new Vector3();
 
   /**
    * Get direction.
    */
   get direction(): Vector3 {
-    this.entity.transform.getWorldForward(this._forward);
-    return this._forward;
+    return this.entity.transform.worldForward;
   }
 
   /**

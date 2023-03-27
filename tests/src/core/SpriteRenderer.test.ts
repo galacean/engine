@@ -145,7 +145,7 @@ describe("SpriteRenderer", () => {
     spriteRenderer.width = 4;
     spriteRenderer.height = 5;
     // @ts-ignore
-    const renderData = spriteRenderer._renderData;
+    const renderData = spriteRenderer._verticesData;
     sprite.pivot = new Vector2(0.5, 0.5);
     // @ts-ignore
     spriteRenderer._assembler.updatePositions(spriteRenderer);
@@ -197,7 +197,7 @@ describe("SpriteRenderer", () => {
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
     // @ts-ignore
-    const renderData = spriteRenderer._renderData;
+    const renderData = spriteRenderer._verticesData;
     sprite.pivot = new Vector2(0, 0);
     sprite.border = new Vector4(0.3, 0.3, 0.3, 0.3);
     spriteRenderer.width = 0.5;
@@ -287,7 +287,7 @@ describe("SpriteRenderer", () => {
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     // @ts-ignore
-    const renderData = spriteRenderer._renderData;
+    const renderData = spriteRenderer._verticesData;
     sprite.pivot = new Vector2(0, 0);
     sprite.border = new Vector4(0.3, 0.3, 0.3, 0.3);
     spriteRenderer.width = 0.5;
