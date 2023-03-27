@@ -2,9 +2,11 @@ import { BaseMaterial, BlendMode, CullMode, RenderFace, Shader } from "@oasis-en
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
 
-describe("BaseMaterial", async () => {
-  const canvas = document.createElement("canvas");
-  const engine = await WebGLEngine.create({ canvas });
+describe("BaseMaterial", () => {
+  let engine: WebGLEngine;
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  });
 
   class TestMaterial extends BaseMaterial {
     constructor(engine) {

@@ -4,21 +4,18 @@ import { LitePhysics } from "@oasis-engine/physics-lite";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
 
-const canvasDOM = document.createElement("canvas");
-canvasDOM.width = 1024;
-canvasDOM.height = 1024;
-
 describe("physics manager test", () => {
-  it("constructor", async () => {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM, physics: new LitePhysics() });
+  let engine: WebGLEngine;
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new LitePhysics() });
+  });
 
+  it("constructor", async () => {
     expect(engine.physicsManager.gravity.y).to.eq(-9.81);
     expect(engine.physicsManager.fixedTimeStep).to.eq(1 / 60);
   });
 
   it("raycast", async () => {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM, physics: new LitePhysics() });
-
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
 

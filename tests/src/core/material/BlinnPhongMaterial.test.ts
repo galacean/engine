@@ -3,9 +3,11 @@ import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { BlinnPhongMaterial, Texture2D } from "@oasis-engine/core";
 import { expect } from "chai";
 
-describe("BlinnPhongMaterial", async () => {
-  const canvas = document.createElement("canvas");
-  const engine = await WebGLEngine.create({ canvas });
+describe("BlinnPhongMaterial",  () => {
+  let engine: WebGLEngine;
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  });
 
   it("参数测试", () => {
     const material = new BlinnPhongMaterial(engine);
