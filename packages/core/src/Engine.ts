@@ -38,6 +38,7 @@ import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
+import { XRManager } from "./xr";
 
 ShaderPool.init();
 
@@ -56,6 +57,8 @@ export class Engine extends EventDispatcher {
   readonly physicsManager: PhysicsManager;
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
+  /** XR manager of Engine */
+  readonly xrManager: XRManager;
 
   /* @internal */
   _lightManager: LightManager = new LightManager();
@@ -243,6 +246,7 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = false;
 
     this.inputManager = new InputManager(this);
+    this.xrManager = new XRManager();
 
     this._initMagentaTextures(hardwareRenderer);
 
@@ -375,6 +379,7 @@ export class Engine extends EventDispatcher {
     this._fontMap = null;
 
     this.inputManager._destroy();
+    this.xrManager.destroy();
     this.dispatch("shutdown", this);
 
     // Cancel animation
