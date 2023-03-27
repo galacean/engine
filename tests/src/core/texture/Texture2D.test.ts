@@ -57,24 +57,22 @@ describe("Texture2D", () => {
     });
 
     describe("设置颜色缓冲", () => {
-      const texture = new Texture2D(engine, width, height);
-      const buffer = new Uint8Array(width * height * 4);
-
-      it("默认匹配大小", () => {
+      it("设置数据", () => {
+        const texture = new Texture2D(engine, width, height);
+        const buffer = new Uint8Array(width * height * 4);
         expect(() => {
           texture.setPixelBuffer(buffer);
         }).not.to.throw;
-      });
-      it("设置 mip 数据", () => {
+
         expect(() => {
           texture.setPixelBuffer(buffer, 1);
         }).not.to.throw;
-      });
-      it("手动设置偏移和宽高", () => {
+
         expect(() => {
           texture.setPixelBuffer(buffer, 1, 0, 0, width, height);
         }).not.to.throw;
       });
+
       it("浮点纹理写入数据", () => {
         expect(() => {
           const texture = new Texture2D(engine, width, height, TextureFormat.R32G32B32A32);
