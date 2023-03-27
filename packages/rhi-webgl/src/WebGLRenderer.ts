@@ -49,7 +49,7 @@ export enum WebGLMode {
 }
 
 /**
- * WebGL graphic device options.
+ * WebGL renderer options.
  */
 export interface WebGLRendererOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
