@@ -77,14 +77,17 @@ describe("TextRenderer", () => {
     const textRenderer1 = textEntity.addComponent(TextRenderer);
     textRenderer1.width = 2;
     textRenderer1.height = 3;
+    textRenderer1.enableWrapping = true;
     textRenderer1.text = "helloworld dfd                       dlfgds    dd df\n    ds f";
     const textRenderer2 = textEntity.addComponent(TextRenderer);
     textRenderer2.width = 2;
     textRenderer2.height = 3;
+    textRenderer2.enableWrapping = true;
     textRenderer2.text = "a a a a a a a a a b    a    a";
     const textRenderer3 = textEntity.addComponent(TextRenderer);
     textRenderer3.width = 2;
     textRenderer3.height = 3;
+    textRenderer3.enableWrapping = true;
     textRenderer3.text = "hello world\nddl\nsdfjdslfsdfdssdfsdf";
   });
 });
