@@ -34,7 +34,6 @@ import {
 import { Color } from "@oasis-engine/math";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
-import { canvasDOM } from "../main";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
