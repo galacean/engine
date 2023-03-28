@@ -2,6 +2,6 @@ export { GLCompressedTextureInternalFormat } from "./type";
 export { WebCanvas } from "./WebCanvas";
 export { WebGLEngine } from "./WebGLEngine";
 export type { WebGLEngineConfiguration } from "./WebGLEngine";
-export { WebGLMode, WebGLRenderer } from "./WebGLRenderer";
-export type { WebGLRendererOptions } from "./WebGLRenderer";
+export { WebGLMode, WebGLGraphicDevice } from "./WebGLGraphicDevice";
+export type { WebGLGraphicDeviceOptions } from "./WebGLGraphicDevice";
 

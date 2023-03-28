@@ -1,7 +1,7 @@
 import { GLCapabilityType, Logger, Mesh, SubMesh } from "@oasis-engine/core";
 import { IPlatformPrimitive } from "@oasis-engine/design";
 import { WebGLExtension } from "./type";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * Improvement of VAO:
@@ -22,7 +22,7 @@ export class GLPrimitive implements IPlatformPrimitive {
   private vao: Map<number, WebGLVertexArrayObject> = new Map();
   private readonly _useVao: boolean;
 
-  constructor(rhi: WebGLRenderer, primitive: Mesh) {
+  constructor(rhi: WebGLGraphicDevice, primitive: Mesh) {
     this._primitive = primitive;
     this.canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
     this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);

@@ -344,7 +344,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Force lose device.
+   * Force lose graphic device.
    * @remarks Used to simulate the phenomenon after the real loss of device.
    */
   forceLoseDevice(): void {
@@ -352,7 +352,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Force restore device.
+   * Force restore graphic device.
    * @remarks Used to simulate the phenomenon after the real restore of device.
    */
   forceRestoreDevice(): void {

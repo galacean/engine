@@ -1,6 +1,6 @@
 import { Engine, EngineConfiguration } from "@oasis-engine/core";
 import { WebCanvas } from "./WebCanvas";
-import { WebGLRenderer, WebGLRendererOptions } from "./WebGLRenderer";
+import { WebGLGraphicDeviceOptions, WebGLGraphicDevice } from "./";
 
 /**
  * WebGL platform engine,support includes WebGL1.0 and WebGL2.0.
@@ -14,7 +14,7 @@ export class WebGLEngine extends Engine {
   static create(configuration: WebGLEngineConfiguration): Promise<WebGLEngine> {
     const canvas = configuration.canvas;
     const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
-    const webGLRenderer = new WebGLRenderer(configuration.rendererOptions);
+    const webGLRenderer = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
     const engine = new WebGLEngine(webCanvas, webGLRenderer, configuration);
     return engine._initialize(configuration) as Promise<WebGLEngine>;
   }
@@ -33,6 +33,6 @@ export class WebGLEngine extends Engine {
 export interface WebGLEngineConfiguration extends EngineConfiguration {
   /** Canvas element or canvas id. */
   canvas: HTMLCanvasElement | string;
-  /** Renderer options. */
-  rendererOptions?: WebGLRendererOptions;
+  /** Graphic device options. */
+  graphicDeviceOptions?: WebGLGraphicDeviceOptions;
 }
