@@ -197,12 +197,4 @@ void main () {
 	#elif defined(SUN_SIMPLE) 
 		v_SunColor = simpleSundiskIntensityFactor * clamp(cOut * sunScale,0.0,1.0) * oasis_SunlightColor.xyz / lightColorIntensity;
 	#endif
-
-	#if defined(OASIS_COLORSPACE_GAMMA)
-        v_GroundColor = sqrt(v_GroundColor);
-        v_SkyColor = sqrt(v_SkyColor);
-        #if defined(SUN_HIGH_QUALITY)|| defined(SUN_SIMPLE)
-            v_SunColor= sqrt(v_SunColor);
-        #endif
-    #endif
 }
