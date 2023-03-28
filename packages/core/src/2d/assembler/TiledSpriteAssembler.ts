@@ -123,8 +123,7 @@ export class TiledSpriteAssembler {
     let count: number = 0;
     if (fixedLeftAndRight >= width) {
       widthScale = width / fixedLeftAndRight;
-      posRow.add(expectWidth * left * widthScale);
-      posRow.add(fixedLeft * widthScale);
+      posRow.add(expectWidth * left * widthScale), posRow.add(fixedLeft * widthScale);
       posRow.add(width - expectWidth * (1 - right) * widthScale);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
     } else {
