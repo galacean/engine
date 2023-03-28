@@ -1,5 +1,6 @@
 import { MathUtil, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { DisorderedArray } from "../../DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Basic2DBatcher } from "../../RenderPipeline/Basic2DBatcher";
 import { Sprite } from "../sprite";
@@ -12,6 +13,10 @@ import { IAssembler } from "./IAssembler";
 @StaticInterfaceImplement<IAssembler>()
 export class TiledSpriteAssembler {
   static _worldMatrix: Matrix = new Matrix();
+  static _posRow: DisorderedArray<number> = new DisorderedArray<number>();
+  static _posColumn: DisorderedArray<number> = new DisorderedArray<number>();
+  static _uvRow: DisorderedArray<number> = new DisorderedArray<number>();
+  static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
   static resetData(renderer: SpriteRenderer): void {
     renderer._verticesData.triangles ||= [];
   }
@@ -20,10 +25,8 @@ export class TiledSpriteAssembler {
     const { width, height, sprite, tileMode, tileStretchValue: stretch } = renderer;
     const { positions, uvs, triangles } = renderer._verticesData;
     // Calculate row and column.
-    let posRow: number[] = [];
-    let posColumn: number[] = [];
-    let uvRow: number[] = [];
-    let uvColumn: number[] = [];
+    const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
+    posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     tileMode === SpriteTileMode.Adaptive
       ? this._calculateAdaptive(sprite, width, height, stretch, posRow, posColumn, uvRow, uvColumn)
       : this._calculateContinuous(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
@@ -61,10 +64,10 @@ export class TiledSpriteAssembler {
     let trianglesOffset = 0;
     for (let j = 0; j < columnLength; j++) {
       for (let i = 0; i < rowLength; i++) {
-        const uvLeft = uvRow[2 * i];
-        const uvBottom = uvColumn[2 * j];
-        const uvRight = uvRow[2 * i + 1];
-        const uvTop = uvColumn[2 * j + 1];
+        const uvLeft = uvRow.get(2 * i);
+        const uvBottom = uvColumn.get(2 * j);
+        const uvRight = uvRow.get(2 * i + 1);
+        const uvTop = uvColumn.get(2 * j + 1);
         if (isNaN(uvLeft) || isNaN(uvLeft) || isNaN(uvRight) || isNaN(uvTop)) {
           continue;
         }
@@ -75,10 +78,10 @@ export class TiledSpriteAssembler {
         triangles[trianglesOffset++] = positionOffset + 1;
         triangles[trianglesOffset++] = positionOffset + 3;
 
-        const left = posRow[i];
-        const bottom = posColumn[j];
-        const right = posRow[i + 1];
-        const top = posColumn[j + 1];
+        const left = posRow.get(i);
+        const bottom = posColumn.get(j);
+        const right = posRow.get(i + 1);
+        const top = posColumn.get(j + 1);
         fillDataFunc(positionOffset++, left, bottom, uvLeft, uvBottom);
         fillDataFunc(positionOffset++, right, bottom, uvRight, uvBottom);
         fillDataFunc(positionOffset++, left, top, uvLeft, uvTop);
@@ -90,8 +93,8 @@ export class TiledSpriteAssembler {
     triangles.length = trianglesOffset;
 
     const { min, max } = renderer._bounds;
-    min.set(posRow[0], posColumn[0], 0);
-    max.set(posRow[rowLength], posColumn[columnLength], 0);
+    min.set(posRow.get(0), posColumn.get(0), 0);
+    max.set(posRow.get(rowLength), posColumn.get(columnLength), 0);
     renderer._bounds.transform(worldMatrix);
   }
 
@@ -102,10 +105,10 @@ export class TiledSpriteAssembler {
     width: number,
     height: number,
     stretch: number,
-    posRow: number[],
-    posColumn: number[],
-    uvRow: number[],
-    uvColumn: number[]
+    posRow: DisorderedArray<number>,
+    posColumn: DisorderedArray<number>,
+    uvRow: DisorderedArray<number>,
+    uvColumn: DisorderedArray<number>
   ) {
     const { border } = sprite;
     const spritePositions = sprite._getPositions();
@@ -120,34 +123,34 @@ export class TiledSpriteAssembler {
     let count: number = 0;
     if (fixedLeftAndRight >= width) {
       widthScale = width / fixedLeftAndRight;
-      posRow.push(
-        expectWidth * left * widthScale,
-        fixedLeft * widthScale,
-        width - expectWidth * (1 - right) * widthScale
-      );
-      uvRow.push(spriteUV0.x, spriteUV1.x, spriteUV2.x, spriteUV3.x);
+      posRow.add(expectWidth * left * widthScale);
+      posRow.add(fixedLeft * widthScale);
+      posRow.add(width - expectWidth * (1 - right) * widthScale);
+      uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
     } else {
       const fixedCenterW = expectWidth - fixedLeftAndRight;
       count = fixedCenterW > MathUtil.zeroTolerance ? (width - fixedLeftAndRight) / fixedCenterW : 0;
       count = count % 1 >= stretch ? Math.ceil(count) : Math.floor(count);
       if (count === 0) {
-        posRow.push(expectWidth * left, fixedLeft, width - fixedRight, width - expectWidth * (1 - right));
-        uvRow.push(spriteUV0.x, spriteUV1.x, NaN, NaN, spriteUV2.x, spriteUV3.x);
+        posRow.add(expectWidth * left), posRow.add(fixedLeft), posRow.add(width - fixedRight);
+        posRow.add(width - expectWidth * (1 - right));
+        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(NaN), uvRow.add(NaN);
+        uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
       } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / 16 - 3) {
         widthScale = width / (fixedLeftAndRight + count * fixedCenterW);
-        posRow.push(expectWidth * left * widthScale, fixedLeft * widthScale);
-        uvRow.push(spriteUV0.x, spriteUV1.x, spriteUV1.x);
+        posRow.add(expectWidth * left * widthScale), posRow.add(fixedLeft * widthScale);
+        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV1.x);
         for (let i = 0, l = count - 1; i < l; i++) {
-          posRow.push(fixedLeft + (i + 1) * fixedCenterW * widthScale);
-          uvRow.push(spriteUV2.x, spriteUV1.x);
+          posRow.add(fixedLeft + (i + 1) * fixedCenterW * widthScale);
+          uvRow.add(spriteUV2.x), uvRow.add(spriteUV1.x);
         }
-        posRow.push(width - fixedRight * widthScale, width - expectWidth * (1 - right) * widthScale);
-        uvRow.push(spriteUV2.x, spriteUV2.x, spriteUV3.x);
+        posRow.add(width - fixedRight * widthScale), posRow.add(width - expectWidth * (1 - right) * widthScale);
+        uvRow.add(spriteUV2.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
       } else {
-        posRow.push(width * left, width * right);
-        posColumn.push(height * bottom, height * top);
-        uvRow.push(spriteUV0.x, spriteUV3.x);
-        uvColumn.push(spriteUV0.y, spriteUV3.y);
+        posRow.add(width * left), posRow.add(width * right);
+        posColumn.add(height * bottom), posColumn.add(height * top);
+        uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
+        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
         return;
       }
     }
@@ -158,35 +161,34 @@ export class TiledSpriteAssembler {
     let heightScale: number = 1;
     if (fixedTopAndBottom > height) {
       heightScale = height / fixedTopAndBottom;
-      posColumn.push(
-        expectHeight * bottom * heightScale,
-        fixedBottom * heightScale,
-        height - expectHeight * (1 - top) * heightScale
-      );
-      uvColumn.push(spriteUV0.y, spriteUV1.y, spriteUV2.y, spriteUV3.y);
+      posColumn.add(expectHeight * bottom * heightScale), posColumn.add(fixedBottom * heightScale);
+      posColumn.add(height - expectHeight * (1 - top) * heightScale);
+      uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
     } else {
       const fixedCenterH = expectHeight - fixedTopAndBottom;
       count = fixedCenterH > MathUtil.zeroTolerance ? (height - fixedTopAndBottom) / fixedCenterH : 0;
       count = count % 1 >= stretch ? Math.ceil(count) : Math.floor(count);
       if (count === 0) {
-        posColumn.push(expectHeight * bottom, fixedBottom, height - fixedTop, height - expectHeight * (1 - top));
-        uvColumn.push(spriteUV0.y, spriteUV1.y, NaN, NaN, spriteUV2.y, spriteUV3.y);
+        posColumn.add(expectHeight * bottom), posColumn.add(fixedBottom), posColumn.add(height - fixedTop);
+        posColumn.add(height - expectHeight * (1 - top));
+        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(NaN), uvColumn.add(NaN);
+        uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
       } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / posRow.length / 4 - 3) {
         heightScale = height / (fixedTopAndBottom + count * fixedCenterH);
-        posColumn.push(expectHeight * bottom * heightScale, fixedBottom * heightScale);
-        uvColumn.push(spriteUV0.y, spriteUV1.y, spriteUV1.y);
+        posColumn.add(expectHeight * bottom * heightScale), posColumn.add(fixedBottom * heightScale);
+        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV1.y);
         for (let i = 0, l = count - 1; i < l; i++) {
-          posColumn.push(fixedBottom + (i + 1) * fixedCenterH * heightScale);
-          uvColumn.push(spriteUV2.y, spriteUV1.y);
+          posColumn.add(fixedBottom + (i + 1) * fixedCenterH * heightScale);
+          uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV1.y);
         }
-        posColumn.push(height - fixedTop * heightScale, height - expectHeight * (1 - top) * heightScale);
-        uvColumn.push(spriteUV2.y, spriteUV2.y, spriteUV3.y);
+        posColumn.add(height - fixedTop * heightScale), posColumn.add(height - expectHeight * (1 - top) * heightScale);
+        uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
       } else {
         posRow.length = uvRow.length = 0;
-        posRow.push(width * left, width * right);
-        uvRow.push(spriteUV0.x, spriteUV3.x);
-        posColumn.push(height * bottom, height * top);
-        uvColumn.push(spriteUV0.y, spriteUV3.y);
+        posRow.add(width * left), posRow.add(width * right);
+        uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
+        posColumn.add(height * bottom), posColumn.add(height * top);
+        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       }
     }
   }
@@ -195,10 +197,10 @@ export class TiledSpriteAssembler {
     sprite: Sprite,
     width: number,
     height: number,
-    posRow: number[],
-    posColumn: number[],
-    uvRow: number[],
-    uvColumn: number[]
+    posRow: DisorderedArray<number>,
+    posColumn: DisorderedArray<number>,
+    uvRow: DisorderedArray<number>,
+    uvColumn: DisorderedArray<number>
   ) {
     const { zeroTolerance } = MathUtil;
     const { border } = sprite;
@@ -212,33 +214,33 @@ export class TiledSpriteAssembler {
     const fixedLeftAndRight = fixedLeft + fixedRight;
     if (fixedLeftAndRight >= width) {
       const widthScale = width / fixedLeftAndRight;
-      posRow.push(
-        expectWidth * left * widthScale,
-        fixedLeft * widthScale,
-        width - expectWidth * (1 - right) * widthScale
-      );
-      uvRow.push(spriteUV0.x, spriteUV1.x, spriteUV2.x, spriteUV3.x);
+      posRow.add(expectWidth * left * widthScale), posRow.add(fixedLeft * widthScale);
+      posRow.add(width - expectWidth * (1 - right) * widthScale);
+      uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
     } else {
       const fixedCenterW = expectWidth - fixedLeftAndRight;
       const count = fixedCenterW > zeroTolerance ? (width - fixedLeftAndRight) / fixedCenterW : 0;
       if (count === 0) {
-        posRow.push(expectWidth * left, fixedLeft, width - fixedRight, width - expectWidth * (1 - right));
-        uvRow.push(spriteUV0.x, spriteUV1.x, NaN, NaN, spriteUV2.x, spriteUV3.x);
+        posRow.add(expectWidth * left), posRow.add(fixedLeft), posRow.add(width - fixedRight);
+        posRow.add(width - expectWidth * (1 - right));
+        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(NaN), uvRow.add(NaN);
+        uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
       } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / 16 - 4) {
-        posRow.push(expectWidth * left, fixedLeft);
-        uvRow.push(spriteUV0.x, spriteUV1.x, spriteUV1.x);
+        posRow.add(expectWidth * left), posRow.add(fixedLeft);
+        uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV1.x);
         const countInteger = count | 0;
         for (let i = 0; i < countInteger; i++) {
-          posRow.push(fixedLeft + (i + 1) * fixedCenterW);
-          uvRow.push(spriteUV2.x, spriteUV1.x);
+          posRow.add(fixedLeft + (i + 1) * fixedCenterW);
+          uvRow.add(spriteUV2.x), uvRow.add(spriteUV1.x);
         }
-        posRow.push(width - fixedRight, width - expectWidth * (1 - right));
-        uvRow.push((spriteUV2.x - spriteUV1.x) * (count - countInteger) + spriteUV1.x, spriteUV2.x, spriteUV3.x);
+        posRow.add(width - fixedRight), posRow.add(width - expectWidth * (1 - right));
+        uvRow.add((spriteUV2.x - spriteUV1.x) * (count - countInteger) + spriteUV1.x);
+        uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
       } else {
-        posRow.push(width * left, width * right);
-        posColumn.push(height * bottom, height * top);
-        uvRow.push(spriteUV0.x, spriteUV3.x);
-        uvColumn.push(spriteUV0.y, spriteUV3.y);
+        posRow.add(width * left), posRow.add(width * right);
+        posColumn.add(height * bottom), posColumn.add(height * top);
+        uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
+        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
         return;
       }
     }
@@ -248,34 +250,34 @@ export class TiledSpriteAssembler {
     const fixedTopAndBottom = fixedTop + fixedBottom;
     if (fixedTopAndBottom >= height) {
       const heightScale = height / fixedTopAndBottom;
-      posColumn.push(
-        expectHeight * bottom * heightScale,
-        fixedBottom * heightScale,
-        height - expectHeight * (1 - top) * heightScale
-      );
-      uvColumn.push(spriteUV0.y, spriteUV1.y, spriteUV2.y, spriteUV3.y);
+      posColumn.add(expectHeight * bottom * heightScale), posColumn.add(fixedBottom * heightScale);
+      posColumn.add(height - expectHeight * (1 - top) * heightScale);
+      uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
     } else {
       const fixedCenterH = expectHeight - fixedTopAndBottom;
       const count = fixedCenterH > zeroTolerance ? (height - fixedTopAndBottom) / fixedCenterH : 0;
       if (count === 0) {
-        posColumn.push(expectHeight * bottom, fixedBottom, height - fixedTop, height - expectHeight * (1 - top));
-        uvColumn.push(spriteUV0.y, spriteUV1.y, NaN, NaN, spriteUV2.y, spriteUV3.y);
+        posColumn.add(expectHeight * bottom), posColumn.add(fixedBottom), posColumn.add(height - fixedTop);
+        posColumn.add(height - expectHeight * (1 - top));
+        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(NaN), uvColumn.add(NaN);
+        uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
       } else if (count <= Basic2DBatcher.MAX_VERTEX_COUNT / posRow.length / 4 - 4) {
-        posColumn.push(expectHeight * bottom, fixedBottom);
-        uvColumn.push(spriteUV0.y, spriteUV1.y, spriteUV1.y);
+        posColumn.add(expectHeight * bottom), posColumn.add(fixedBottom);
+        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV1.y);
         const countInteger = count | 0;
         for (let i = 0; i < countInteger; i++) {
-          posColumn.push(fixedBottom + (i + 1) * fixedCenterH);
-          uvColumn.push(spriteUV2.y, spriteUV1.y);
+          posColumn.add(fixedBottom + (i + 1) * fixedCenterH);
+          uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV1.y);
         }
-        posColumn.push(height - fixedTop, height - expectHeight * (1 - top));
-        uvColumn.push((spriteUV2.y - spriteUV1.y) * (count - countInteger) + spriteUV1.y, spriteUV2.y, spriteUV3.y);
+        posColumn.add(height - fixedTop), posColumn.add(height - expectHeight * (1 - top));
+        uvColumn.add((spriteUV2.y - spriteUV1.y) * (count - countInteger) + spriteUV1.y);
+        uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
       } else {
         posRow.length = uvRow.length = 0;
-        posRow.push(width * left, width * right);
-        uvRow.push(spriteUV0.x, spriteUV3.x);
-        posColumn.push(height * bottom, height * top);
-        uvColumn.push(spriteUV0.y, spriteUV3.y);
+        posRow.add(width * left), posRow.add(width * right);
+        uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
+        posColumn.add(height * bottom), posColumn.add(height * top);
+        uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV3.y);
       }
     }
   }
