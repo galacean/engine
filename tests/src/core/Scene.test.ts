@@ -1,11 +1,17 @@
-import { Entity } from "@oasis-engine/core";
+import { Engine, Entity, Scene } from "@oasis-engine/core";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
 
 describe("Scene", () => {
-  const engine = new WebGLEngine(document.createElement("canvas"));
-  const scene = engine.sceneManager.activeScene;
-  engine.run();
+  let engine: Engine;
+  let scene: Scene;
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  
+    engine.run();
+    scene = engine.sceneManager.activeScene;
+  });
+
   beforeEach(() => {
     scene.createRootEntity("root");
   });

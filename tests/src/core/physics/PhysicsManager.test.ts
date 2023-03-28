@@ -1,26 +1,21 @@
+import { BoxColliderShape, Layer, StaticCollider } from "@oasis-engine/core";
+import { Ray, Vector3 } from "@oasis-engine/math";
 import { LitePhysics } from "@oasis-engine/physics-lite";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { Ray, Vector3 } from "@oasis-engine/math";
-import { BoxColliderShape, Layer, StaticCollider } from "@oasis-engine/core";
 import { expect } from "chai";
 
-const canvasDOM = document.createElement("canvas");
-canvasDOM.width = 1024;
-canvasDOM.height = 1024;
-
 describe("physics manager test", () => {
-  it("constructor", () => {
-    const engine = new WebGLEngine(canvasDOM);
-    engine.physicsManager.initialize(LitePhysics);
+  let engine: WebGLEngine;
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas"), physics: new LitePhysics() });
+  });
 
+  it("constructor", async () => {
     expect(engine.physicsManager.gravity.y).to.eq(-9.81);
     expect(engine.physicsManager.fixedTimeStep).to.eq(1 / 60);
   });
 
-  it("raycast", () => {
-    const engine = new WebGLEngine(canvasDOM);
-    engine.physicsManager.initialize(LitePhysics);
-
+  it("raycast", async () => {
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity("root");
 

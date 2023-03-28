@@ -3,8 +3,8 @@ import { Vector3 } from "@oasis-engine/math";
 import { WebGLEngine } from "@oasis-engine/rhi-webgl";
 import { expect } from "chai";
 
-describe("MeshRenderer Test", function () {
-  const engine = new WebGLEngine(document.createElement("canvas"));
+describe("MeshRenderer Test", async function () {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
 

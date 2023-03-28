@@ -15,6 +15,7 @@ export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
+export type { EngineConfiguration } from "./Engine";
 
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";

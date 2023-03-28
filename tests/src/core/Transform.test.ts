@@ -9,8 +9,8 @@ canvasDOM.height = 1024;
 
 describe("Transform test", function () {
   let entity: Entity;
-  before(() => {
-    const engine = new WebGLEngine(canvasDOM);
+  before(async () => {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     entity = engine.sceneManager.activeScene.createRootEntity();
   });
 

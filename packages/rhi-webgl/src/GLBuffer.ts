@@ -1,6 +1,6 @@
 import { BufferBindFlag, BufferUsage, IPlatformBuffer, SetDataOptions } from "@oasis-engine/core";
 import { WebGLExtension } from "./type";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 export class GLBuffer implements IPlatformBuffer {
   private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
@@ -10,7 +10,7 @@ export class GLBuffer implements IPlatformBuffer {
   private _isWebGL2: boolean;
 
   constructor(
-    rhi: WebGLRenderer,
+    rhi: WebGLGraphicDevice,
     type: BufferBindFlag,
     byteLength: number,
     bufferUsage: BufferUsage = BufferUsage.Static,

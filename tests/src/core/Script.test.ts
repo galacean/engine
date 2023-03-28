@@ -7,7 +7,7 @@ chai.use(spies);
 
 describe("Script", () => {
   describe("onEnable/onDisable/onAwake", () => {
-    it("Add script to Entity", () => {
+    it("Add script to Entity", async () => {
       class TestScript extends Script {
         onAwake() {
           console.log("onAwake");
@@ -25,7 +25,7 @@ describe("Script", () => {
       TestScript.prototype.onEnable = chai.spy(TestScript.prototype.onEnable);
       TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
 
-      const engine = new WebGLEngine(document.createElement("canvas"));
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("root");
       engine.run();
@@ -39,7 +39,7 @@ describe("Script", () => {
       expect(testScript.onDisable).to.have.been.called.exactly(0);
     });
 
-    it("Parent onAwake call inAtive child", () => {
+    it("Parent onAwake call inAtive child", async () => {
       class ParentScript extends Script {
         onAwake() {
           console.log("ParentScript_onAwake");
@@ -98,7 +98,7 @@ describe("Script", () => {
       ChildScript.prototype.onEnable = chai.spy(ChildScript.prototype.onEnable);
       ChildScript.prototype.onDisable = chai.spy(ChildScript.prototype.onDisable);
 
-      const engine = new WebGLEngine(document.createElement("canvas"));
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("root");
       engine.run();
@@ -120,7 +120,7 @@ describe("Script", () => {
       expect(childScript.onDisable).to.have.been.called.exactly(0);
     });
 
-    it("Entity isActive = true after script call enabled = false", () => {
+    it("Entity isActive = true after script call enabled = false", async () => {
       class TestScript extends Script {
         onAwake() {
           console.log("TestScript_onAwake");
@@ -141,7 +141,7 @@ describe("Script", () => {
       TestScript.prototype.onEnable = chai.spy(TestScript.prototype.onEnable);
       TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
 
-      const engine = new WebGLEngine(document.createElement("canvas"));
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("root");
       engine.run();
@@ -160,7 +160,7 @@ describe("Script", () => {
       expect(script.onDisable).to.have.been.called.exactly(2);
     });
 
-    it("Engine destroy outside the main loop", () => {
+    it("Engine destroy outside the main loop", async () => {
       class TestScript extends Script {
         onAwake() {
           console.log("TestScript_onAwake");
@@ -188,7 +188,7 @@ describe("Script", () => {
       TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
       TestScript.prototype.onDestroy = chai.spy(TestScript.prototype.onDestroy);
 
-      const engine = new WebGLEngine(document.createElement("canvas"));
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("root");
       engine.run();
@@ -205,7 +205,7 @@ describe("Script", () => {
       expect(script.onDestroy).to.have.been.called.exactly(1);
     });
 
-    it("Engine destroy inside the main loop", () => {
+    it("Engine destroy inside the main loop", async () => {
       class TestScript extends Script {
         onAwake() {
           console.log("TestScript_onAwake");
@@ -234,7 +234,7 @@ describe("Script", () => {
       TestScript.prototype.onDisable = chai.spy(TestScript.prototype.onDisable);
       TestScript.prototype.onDestroy = chai.spy(TestScript.prototype.onDestroy);
 
-      const engine = new WebGLEngine(document.createElement("canvas"));
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("root");
       engine.run();
@@ -251,14 +251,14 @@ describe("Script", () => {
       }, 1000);
     });
 
-    it("Dependent components", () => {
-      @dependentComponents(Camera, DependentMode.CheckOnly)
+    it("Dependent components", async () => {
+      @dependentComponents(Camera,DependentMode.CheckOnly)
       class CheckScript extends Script {}
 
       @dependentComponents(Camera, DependentMode.AutoAdd)
       class AutoAddScript extends Script {}
 
-      const engine = new WebGLEngine(document.createElement("canvas"));
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("root");
       engine.run();
