@@ -514,20 +514,15 @@ export class Engine extends EventDispatcher {
   }
 
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    return new Promise((resolve, reject) => {
-      const physics = configuration.physics;
-      if (physics) {
-        physics
-          .initialize()
-          .then(() => {
-            this.physicsManager._initialize(physics);
-            resolve(this);
-          })
-          .catch(reject);
-      } else {
-        resolve(this);
-      }
-    });
+    const physics = configuration.physics;
+    if (physics) {
+      return physics.initialize().then(() => {
+        this.physicsManager._initialize(physics);
+        return this;
+      });
+    } else {
+      return Promise.resolve(this);
+    }
   }
 
   private _createSpriteMaterial(): Material {
