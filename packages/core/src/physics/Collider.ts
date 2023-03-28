@@ -9,9 +9,9 @@ import { ColliderShape } from "./shape/ColliderShape";
 
 /**
  * Base class for all colliders.
- * @decorator `@dependentComponents(Transform)`
+ * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
-@dependentComponents(DependentMode.CheckOnly, Transform)
+@dependentComponents(Transform, DependentMode.CheckOnly)
 export class Collider extends Component {
   /** @internal */
   @ignoreClone

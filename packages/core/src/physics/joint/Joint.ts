@@ -7,9 +7,9 @@ import { Collider } from "../Collider";
 
 /**
  * A base class providing common functionality for joints.
- * @decorator `@dependentComponents(DependentMode.CheckOnly,Collider)`
+ * @decorator `@dependentComponents(Collider, DependentMode.CheckOnly)`
  */
-@dependentComponents(DependentMode.CheckOnly, Collider)
+@dependentComponents(Collider, DependentMode.CheckOnly)
 export class Joint extends Component {
   protected _connectedCollider = new JointCollider();
   protected _collider = new JointCollider();

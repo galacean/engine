@@ -252,10 +252,10 @@ describe("Script", () => {
     });
 
     it("Dependent components", () => {
-      @dependentComponents(DependentMode.CheckOnly, Camera)
+      @dependentComponents(Camera, DependentMode.CheckOnly)
       class CheckScript extends Script {}
 
-      @dependentComponents(DependentMode.AutoAdd, Camera)
+      @dependentComponents(Camera, DependentMode.AutoAdd)
       class AutoAddScript extends Script {}
 
       const engine = new WebGLEngine(document.createElement("canvas"));
