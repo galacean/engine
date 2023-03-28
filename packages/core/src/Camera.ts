@@ -27,9 +27,9 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
- * @decorator `@dependentComponents(DependentMode.CheckOnly, Transform)`
+ * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
-@dependentComponents(DependentMode.CheckOnly, Transform)
+@dependentComponents(Transform, DependentMode.CheckOnly)
 export class Camera extends Component {
   /** @internal */
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("u_viewInvMat");

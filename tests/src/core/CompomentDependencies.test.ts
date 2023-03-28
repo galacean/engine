@@ -30,7 +30,7 @@ describe("Component dependencies test", function () {
   });
 });
 
-@dependentComponents(DependentMode.CheckOnly, MeshRenderer)
+@dependentComponents(MeshRenderer, DependentMode.CheckOnly)
 export class CustomScriptA extends Script {}
 
 export class CustomScriptB extends CustomScriptA {}

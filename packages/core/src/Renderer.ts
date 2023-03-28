@@ -1,3 +1,4 @@
+// @ts-ignore
 import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
@@ -5,7 +6,7 @@ import { dependentComponents, DependentMode } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { Shader, ShaderProperty } from "./shader";
+import { ShaderProperty } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacro } from "./shader/ShaderMacro";
@@ -14,9 +15,9 @@ import { Transform, TransformModifyFlags } from "./Transform";
 
 /**
  * Basis for all renderers.
- * @decorator `@dependentComponents(DependentMode.CheckOnly, Transform)`
+ * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
-@dependentComponents(DependentMode.CheckOnly, Transform)
+@dependentComponents(Transform, DependentMode.CheckOnly)
 export class Renderer extends Component {
   private static _tempVector0 = new Vector3();
 
