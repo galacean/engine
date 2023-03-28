@@ -1,7 +1,7 @@
 import { Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
-import { Shader, ShaderMacro } from "../shader";
+import { CompareFunction, CullMode, Shader, ShaderMacro } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 
 /**
@@ -136,6 +136,9 @@ export class SkyProceduralMaterial extends Material {
     this.skyTint = new Vector4(0.5, 0.5, 0.5, 1.0);
     this.groundTint = new Vector4(0.369, 0.349, 0.341, 1.0);
     this.exposure = 1.3;
+
+    this.renderState.rasterState.cullMode = CullMode.Off;
+    this.renderState.depthState.compareFunction = CompareFunction.LessEqual;
   }
 
   /**
