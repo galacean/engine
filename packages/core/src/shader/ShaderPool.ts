@@ -12,6 +12,8 @@ import shadowMapFs from "../shaderlib/extra/shadow-map.fs.glsl";
 import shadowMapVs from "../shaderlib/extra/shadow-map.vs.glsl";
 import skyboxFs from "../shaderlib/extra/skybox.fs.glsl";
 import skyboxVs from "../shaderlib/extra/skybox.vs.glsl";
+import skyProceduralFs from "../shaderlib/extra/SkyProcedural.fs.glsl";
+import skyProceduralVs from "../shaderlib/extra/SkyProcedural.vs.glsl";
 import spriteMaskFs from "../shaderlib/extra/sprite-mask.fs.glsl";
 import spriteMaskVs from "../shaderlib/extra/sprite-mask.vs.glsl";
 import spriteFs from "../shaderlib/extra/sprite.fs.glsl";
@@ -42,6 +44,8 @@ export class ShaderPool {
     Shader.create("unlit", [new ShaderPass(unlitVs, unlitFs, forwardPassTags), shadowCasterPass]);
 
     Shader.create("skybox", [new ShaderPass(skyboxVs, skyboxFs, forwardPassTags)]);
+    Shader.create("SkyProcedural", [new ShaderPass(skyProceduralVs, skyProceduralFs, forwardPassTags)]);
+
     Shader.create("particle-shader", [new ShaderPass(particleVs, particleFs, forwardPassTags)]);
     Shader.create("SpriteMask", [new ShaderPass(spriteMaskVs, spriteMaskFs, forwardPassTags)]);
     Shader.create("Sprite", [new ShaderPass(spriteVs, spriteFs, forwardPassTags)]);
