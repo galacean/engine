@@ -129,13 +129,13 @@ export class SkyProceduralMaterial extends Material {
    */
   constructor(engine: Engine) {
     super(engine, Shader.find("SkyProcedural"));
-    this.sunMode = SunMode.HighQuality;
+    this.sunMode = SunMode.Simple;
     this.sunSize = 0.04;
     this.sunSizeConvergence = 5;
     this.atmosphereThickness = 1.0;
     this.skyTint = new Color(0.5, 0.5, 0.5, 1.0);
     this.groundTint = new Color(0.369, 0.349, 0.341, 1.0);
-    this.exposure = 1.0;
+    this.exposure = 1.3;
 
     this.renderState.rasterState.cullMode = CullMode.Off;
     this.renderState.depthState.compareFunction = CompareFunction.LessEqual;

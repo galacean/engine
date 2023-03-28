@@ -180,8 +180,10 @@ void main () {
 	#endif
 
 	// if we want to calculate color in vprog:
-	// in case of linear: multiply by _Exposure in here (even in case of lerp it will be common multiplier, so we can skip mul in fshader)
-	v_GroundColor = u_Exposure * (cIn + COLOR_2_LINEAR(u_GroundTint) * cOut);//u_GroundColor*u_GroundColor is gamma space convert to linear space
+	// 1. in case of linear: multiply by _Exposure in here (even in case of lerp it will be common multiplier, so we can skip mul in fshader)
+	// 2. in case of gamma and SKYBOX_COLOR_IN_TARGET_COLOR_SPACE: do sqrt right away instead of doing that in fshader
+	
+	v_GroundColor = u_Exposure * (cIn + COLOR_2_LINEAR(u_GroundTint) * cOut);
 	v_SkyColor    = u_Exposure * (cIn * getRayleighPhase(-oasis_SunlightDirection, -eyeRay));
 
 	

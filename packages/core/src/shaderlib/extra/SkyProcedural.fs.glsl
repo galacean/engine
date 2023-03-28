@@ -24,12 +24,6 @@ varying vec3 v_SkyColor;
 	varying vec3 v_SunColor;
 #endif
 
-#if defined(OASIS_COLORSPACE_GAMMA)
-    #define LINEAR_2_OUTPUT(color) sqrt(color)
-#else
-	#define LINEAR_2_LINEAR(color) color
-#endif
-
 // Calculates the Mie phase function
 float getMiePhase(float eyeCos, float eyeCos2) {
 	float temp = 1.0 + MIE_G2 - 2.0 * MIE_G * eyeCos;
@@ -78,11 +72,6 @@ void main() {
 		if (y < 0.0)
 			col += v_SunColor * calcSunAttenuation(-oasis_SunlightDirection, -ray);
 	#endif
-
-	
-	// #ifdef OASIS_COLORSPACE_GAMMA
-	// 	col = LINEAR_2_LINEAR(col);
-    // #endif
 
 	gl_FragColor = vec4(col,1.0);
 
