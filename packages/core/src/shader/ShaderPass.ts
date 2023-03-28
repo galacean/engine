@@ -29,7 +29,7 @@ export class ShaderPass extends ShaderPart {
   constructor(
     vertexSource: string,
     fragmentSource: string,
-    tags: Record<string, string> = { pipelineStage: PipelineStage.Forward }
+    tags: Record<string, number | string | boolean> = { pipelineStage: PipelineStage.Forward }
   ) {
     super();
     this._shaderPassId = ShaderPass._shaderPassCounter++;
@@ -75,21 +75,18 @@ export class ShaderPass extends ShaderPart {
       precisionStr += "#define HAS_DERIVATIVES\n";
     }
 
-    let vertexSource = ShaderFactory.parseIncludes(
+    let vertexSource =
       ` ${versionStr}
         ${graphicAPI}
         ${macroNameStr}
-      ` + this._vertexSource
-    );
-
-    let fragmentSource = ShaderFactory.parseIncludes(
+      ` + ShaderFactory.parseIncludes(this._vertexSource);
+    let fragmentSource =
       ` ${versionStr}
         ${graphicAPI}
         ${isWebGL2 ? "" : ShaderFactory.parseExtension(Shader._shaderExtension)}
         ${precisionStr}
         ${macroNameStr}
-      ` + this._fragmentSource
-    );
+      ` + ShaderFactory.parseIncludes(this._fragmentSource);
 
     if (isWebGL2) {
       vertexSource = ShaderFactory.convertTo300(vertexSource);
