@@ -1,4 +1,4 @@
-import { Vector4 } from "@oasis-engine/math";
+import { Color, Vector4 } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { CompareFunction, CullMode, Shader, ShaderMacro } from "../shader";
@@ -93,23 +93,23 @@ export class SkyProceduralMaterial extends Material {
   /**
    * Sky tint.
    */
-  get skyTint(): Vector4 {
-    return this.shaderData.getVector4(SkyProceduralMaterial._skyTintProp);
+  get skyTint(): Color {
+    return this.shaderData.getColor(SkyProceduralMaterial._skyTintProp);
   }
 
-  set skyTint(value: Vector4) {
-    this.shaderData.setVector4(SkyProceduralMaterial._skyTintProp, value);
+  set skyTint(value: Color) {
+    this.shaderData.setColor(SkyProceduralMaterial._skyTintProp, value);
   }
 
   /**
    * Ground tint.
    */
-  get groundTint(): Vector4 {
-    return <Vector4>this.shaderData.getVector4(SkyProceduralMaterial._groundTintProp);
+  get groundTint(): Color {
+    return this.shaderData.getColor(SkyProceduralMaterial._groundTintProp);
   }
 
-  set groundTint(value: Vector4) {
-    this.shaderData.setVector4(SkyProceduralMaterial._groundTintProp, value);
+  set groundTint(value: Color) {
+    this.shaderData.setColor(SkyProceduralMaterial._groundTintProp, value);
   }
 
   /**
@@ -133,9 +133,9 @@ export class SkyProceduralMaterial extends Material {
     this.sunSize = 0.04;
     this.sunSizeConvergence = 5;
     this.atmosphereThickness = 1.0;
-    this.skyTint = new Vector4(0.5, 0.5, 0.5, 1.0);
-    this.groundTint = new Vector4(0.369, 0.349, 0.341, 1.0);
-    this.exposure = 1.3;
+    this.skyTint = new Color(0.5, 0.5, 0.5, 1.0);
+    this.groundTint = new Color(0.369, 0.349, 0.341, 1.0);
+    this.exposure = 1.0;
 
     this.renderState.rasterState.cullMode = CullMode.Off;
     this.renderState.depthState.compareFunction = CompareFunction.LessEqual;

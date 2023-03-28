@@ -1,8 +1,4 @@
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-	precision highp float;
-#else
-	precision mediump float;
-#endif
+#include <common>
 
 const float MIE_G = -0.990;
 const float MIE_G2 = 0.9801;
@@ -13,10 +9,8 @@ uniform float u_SunSizeConvergence;
 uniform vec4 oasis_SunlightColor;
 uniform vec3 oasis_SunlightDirection;
 
-
 varying vec3 v_GroundColor;
 varying vec3 v_SkyColor;
-
 
 #ifdef SUN_HIGH_QUALITY
 	varying vec3 v_Vertex;
@@ -30,12 +24,21 @@ varying vec3 v_SkyColor;
 	varying vec3 v_SunColor;
 #endif
 
+#if defined(OASIS_COLORSPACE_GAMMA)
+    #define LINEAR_2_OUTPUT(color) sqrt(color)
+#else
+	#define LINEAR_2_LINEAR(color) color
+#endif
+
 // Calculates the Mie phase function
 float getMiePhase(float eyeCos, float eyeCos2) {
 	float temp = 1.0 + MIE_G2 - 2.0 * MIE_G * eyeCos;
 	temp = pow(temp, pow(u_SunSize,0.65) * 10.0);
 	temp = max(temp,1.0e-4); // prevent division by zero, esp. in half precision
 	temp = 1.5 * ((1.0 - MIE_G2) / (2.0 + MIE_G2)) * (1.0 + eyeCos2) / temp;
+	#if defined(OASIS_COLORSPACE_GAMMA)
+        temp = pow(temp, .454545);
+    #endif
 	return temp;
 }
 
@@ -76,7 +79,15 @@ void main() {
 			col += v_SunColor * calcSunAttenuation(-oasis_SunlightDirection, -ray);
 	#endif
 
-	col = sqrt(col);// linear space convert to gamma space
-	gl_FragColor=vec4(col,1.0);
+	
+	// #ifdef OASIS_COLORSPACE_GAMMA
+	// 	col = LINEAR_2_LINEAR(col);
+    // #endif
+
+	gl_FragColor = vec4(col,1.0);
+
+	#ifndef OASIS_COLORSPACE_GAMMA
+        gl_FragColor = linearToGamma(gl_FragColor);
+    #endif
 }
 

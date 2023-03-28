@@ -1,9 +1,3 @@
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-	precision highp float;
-#else
-	precision mediump float;
-#endif
-
 #define OUTER_RADIUS 1.025
 #define RAYLEIGH (mix(0.0, 0.0025, pow(u_AtmosphereThickness,2.5)))// Rayleigh constant Rayleigh为夜空光和极光亮度单位
 #define MIE 0.0010             // Mie constant 米氏散射
@@ -57,6 +51,15 @@ varying vec3 v_SkyColor;
 	varying vec3 v_SunColor;
 #endif
 
+#if defined(OASIS_COLORSPACE_GAMMA)
+	#define COLOR_2_GAMMA(color) color
+	#define COLOR_2_LINEAR(color) color*color
+#else
+	#define GAMMA 2.2
+	#define COLOR_2_GAMMA(color) pow(color,vec3(1.0/GAMMA))
+	#define COLOR_2_LINEAR(color) color
+#endif
+
 // Calculates the Rayleigh phase function
 float getRayleighPhase(vec3 light, vec3 ray) 
 {
@@ -73,7 +76,7 @@ float scaleAngle(float inCos)
 void main () {
 	gl_Position = u_VPMat*vec4(POSITION.xyz,1.0);
 
-	vec3 skyTintInGammaSpace = u_SkyTint;//支持非GAMMA空间后要调整
+ 	vec3 skyTintInGammaSpace = COLOR_2_GAMMA(u_SkyTint);
 	vec3 scatteringWavelength = mix(c_DefaultScatteringWavelength-c_VariableRangeForScatteringWavelength,c_DefaultScatteringWavelength+c_VariableRangeForScatteringWavelength,vec3(1.0) - skyTintInGammaSpace); // using Tint in sRGB+ gamma allows for more visually linear interpolation and to keep (0.5) at (128, gray in sRGB) point
 	vec3 invWavelength = 1.0 / pow(scatteringWavelength, vec3(4.0));
 
@@ -178,7 +181,7 @@ void main () {
 
 	// if we want to calculate color in vprog:
 	// in case of linear: multiply by _Exposure in here (even in case of lerp it will be common multiplier, so we can skip mul in fshader)
-	v_GroundColor = u_Exposure * (cIn + u_GroundTint*u_GroundTint * cOut);//u_GroundColor*u_GroundColor is gamma space convert to linear space
+	v_GroundColor = u_Exposure * (cIn + COLOR_2_LINEAR(u_GroundTint) * cOut);//u_GroundColor*u_GroundColor is gamma space convert to linear space
 	v_SkyColor    = u_Exposure * (cIn * getRayleighPhase(-oasis_SunlightDirection, -eyeRay));
 
 	
@@ -192,4 +195,12 @@ void main () {
 	#elif defined(SUN_SIMPLE) 
 		v_SunColor = simpleSundiskIntensityFactor * clamp(cOut * sunScale,0.0,1.0) * oasis_SunlightColor.xyz / lightColorIntensity;
 	#endif
+
+	#if defined(OASIS_COLORSPACE_GAMMA)
+        v_GroundColor = sqrt(v_GroundColor);
+        v_SkyColor = sqrt(v_SkyColor);
+        #if defined(SUN_HIGH_QUALITY)|| defined(SUN_SIMPLE)
+            v_SunColor= sqrt(v_SunColor);
+        #endif
+    #endif
 }
