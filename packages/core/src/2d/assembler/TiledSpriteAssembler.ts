@@ -30,8 +30,8 @@ export class TiledSpriteAssembler {
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     tileMode === SpriteTileMode.Adaptive
-      ? this._calculateAdaptive(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
-      : this._calculateContinuous(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
+      ? this._calculateAdaptiveDividing(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
+      : this._calculateContinuousDividing(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
@@ -129,7 +129,7 @@ export class TiledSpriteAssembler {
 
   static updateUVs(renderer: SpriteRenderer): void {}
 
-  private static _calculateAdaptive(
+  private static _calculateAdaptiveDividing(
     sprite: Sprite,
     width: number,
     height: number,
@@ -154,40 +154,40 @@ export class TiledSpriteAssembler {
     const fixedTB = fixedT + fixedB;
     const fixedCH = expectHeight - fixedTB;
     let scale: number;
-    let uType: TiledType, vType: TiledType;
-    let uVertCount: number, vVertCount: number;
-    let uRepeatCount: number, vRepeatCount: number;
+    let rType: TiledType, cType: TiledType;
+    let rVertCount: number, cVertCount: number;
+    let rRepeatCount: number, cRepeatCount: number;
     if (fixedLR >= width) {
-      uVertCount = 3;
-      uType = TiledType.Compressed;
+      rVertCount = 3;
+      rType = TiledType.Compressed;
     } else {
       if (fixedCW > MathUtil.zeroTolerance) {
-        uRepeatCount = (width - fixedLR) / fixedCW;
-        uRepeatCount = uRepeatCount % 1 >= threshold ? Math.ceil(uRepeatCount) : Math.floor(uRepeatCount);
-        uVertCount = 4 + uRepeatCount - 1;
-        uType = TiledType.WithTiled;
+        rRepeatCount = (width - fixedLR) / fixedCW;
+        rRepeatCount = rRepeatCount % 1 >= threshold ? Math.ceil(rRepeatCount) : Math.floor(rRepeatCount);
+        rVertCount = 4 + rRepeatCount - 1;
+        rType = TiledType.WithTiled;
       } else {
-        uVertCount = 4;
-        uType = TiledType.WithoutTiled;
+        rVertCount = 4;
+        rType = TiledType.WithoutTiled;
       }
     }
 
     if (fixedTB >= height) {
-      vVertCount = 3;
-      vType = TiledType.Compressed;
+      cVertCount = 3;
+      cType = TiledType.Compressed;
     } else {
       if (fixedCH > MathUtil.zeroTolerance) {
-        vRepeatCount = (height - fixedTB) / fixedCH;
-        vRepeatCount = vRepeatCount % 1 >= threshold ? Math.ceil(vRepeatCount) : Math.floor(vRepeatCount);
-        vVertCount = 4 + vRepeatCount - 1;
-        vType = TiledType.WithTiled;
+        cRepeatCount = (height - fixedTB) / fixedCH;
+        cRepeatCount = cRepeatCount % 1 >= threshold ? Math.ceil(cRepeatCount) : Math.floor(cRepeatCount);
+        cVertCount = 4 + cRepeatCount - 1;
+        cType = TiledType.WithTiled;
       } else {
-        vVertCount = 4;
-        vType = TiledType.WithoutTiled;
+        cVertCount = 4;
+        cType = TiledType.WithoutTiled;
       }
     }
 
-    if ((uVertCount - 1) * (vVertCount - 1) * 4 > Basic2DBatcher.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Basic2DBatcher.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
@@ -196,7 +196,7 @@ export class TiledSpriteAssembler {
       return;
     }
 
-    switch (uType) {
+    switch (rType) {
       case TiledType.Compressed:
         scale = width / fixedLR;
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
@@ -210,10 +210,10 @@ export class TiledSpriteAssembler {
         uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
         break;
       case TiledType.WithTiled:
-        scale = width / (fixedLR + uRepeatCount * fixedCW);
+        scale = width / (fixedLR + rRepeatCount * fixedCW);
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
         uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV1.x);
-        for (let i = 0, l = uRepeatCount - 1; i < l; i++) {
+        for (let i = 0, l = rRepeatCount - 1; i < l; i++) {
           posRow.add(fixedL + (i + 1) * fixedCW * scale);
           uvRow.add(spriteUV2.x), uvRow.add(spriteUV1.x);
         }
@@ -224,7 +224,7 @@ export class TiledSpriteAssembler {
         break;
     }
 
-    switch (vType) {
+    switch (cType) {
       case TiledType.Compressed:
         scale = height / fixedTB;
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
@@ -238,10 +238,10 @@ export class TiledSpriteAssembler {
         uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
         break;
       case TiledType.WithTiled:
-        scale = height / (fixedTB + vRepeatCount * fixedCH);
+        scale = height / (fixedTB + cRepeatCount * fixedCH);
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
         uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV1.y);
-        for (let i = 0, l = vRepeatCount - 1; i < l; i++) {
+        for (let i = 0, l = cRepeatCount - 1; i < l; i++) {
           posColumn.add(fixedB + (i + 1) * fixedCH * scale);
           uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV1.y);
         }
@@ -253,7 +253,7 @@ export class TiledSpriteAssembler {
     }
   }
 
-  private static _calculateContinuous(
+  private static _calculateContinuousDividing(
     sprite: Sprite,
     width: number,
     height: number,
@@ -276,38 +276,38 @@ export class TiledSpriteAssembler {
     const fixedB = expectHeight * border.y;
     const fixedTB = fixedT + fixedB;
     const fixedCH = expectHeight - fixedTB;
-    let uType: TiledType, vType: TiledType;
-    let uVertCount: number, vVertCount: number;
-    let uRepeatCount: number, vRepeatCount: number;
+    let rType: TiledType, cType: TiledType;
+    let rVertCount: number, cVertCount: number;
+    let rRepeatCount: number, cRepeatCount: number;
     if (fixedLR >= width) {
-      uVertCount = 3;
-      uType = TiledType.Compressed;
+      rVertCount = 3;
+      rType = TiledType.Compressed;
     } else {
       if (fixedCW > MathUtil.zeroTolerance) {
-        uRepeatCount = (width - fixedLR) / fixedCW;
-        uVertCount = 4 + (uRepeatCount | 0);
-        uType = TiledType.WithTiled;
+        rRepeatCount = (width - fixedLR) / fixedCW;
+        rVertCount = 4 + (rRepeatCount | 0);
+        rType = TiledType.WithTiled;
       } else {
-        uVertCount = 4;
-        uType = TiledType.WithoutTiled;
+        rVertCount = 4;
+        rType = TiledType.WithoutTiled;
       }
     }
 
     if (fixedTB >= height) {
-      vVertCount = 3;
-      vType = TiledType.Compressed;
+      cVertCount = 3;
+      cType = TiledType.Compressed;
     } else {
       if (fixedCH > MathUtil.zeroTolerance) {
-        vRepeatCount = (height - fixedTB) / fixedCH;
-        vVertCount = 4 + (vRepeatCount | 0);
-        vType = TiledType.WithTiled;
+        cRepeatCount = (height - fixedTB) / fixedCH;
+        cVertCount = 4 + (cRepeatCount | 0);
+        cType = TiledType.WithTiled;
       } else {
-        vVertCount = 4;
-        vType = TiledType.WithoutTiled;
+        cVertCount = 4;
+        cType = TiledType.WithoutTiled;
       }
     }
 
-    if ((uVertCount - 1) * (vVertCount - 1) * 4 > Basic2DBatcher.MAX_VERTEX_COUNT) {
+    if ((rVertCount - 1) * (cVertCount - 1) * 4 > Basic2DBatcher.MAX_VERTEX_COUNT) {
       posRow.add(width * left), posRow.add(width * right);
       posColumn.add(height * bottom), posColumn.add(height * top);
       uvRow.add(spriteUV0.x), uvRow.add(spriteUV3.x);
@@ -316,7 +316,7 @@ export class TiledSpriteAssembler {
       return;
     }
 
-    switch (uType) {
+    switch (rType) {
       case TiledType.Compressed:
         const scale = width / fixedLR;
         posRow.add(expectWidth * left * scale), posRow.add(fixedL * scale);
@@ -332,20 +332,20 @@ export class TiledSpriteAssembler {
       case TiledType.WithTiled:
         posRow.add(expectWidth * left), posRow.add(fixedL);
         uvRow.add(spriteUV0.x), uvRow.add(spriteUV1.x), uvRow.add(spriteUV1.x);
-        const countInteger = uRepeatCount | 0;
+        const countInteger = rRepeatCount | 0;
         for (let i = 0; i < countInteger; i++) {
           posRow.add(fixedL + (i + 1) * fixedCW);
           uvRow.add(spriteUV2.x), uvRow.add(spriteUV1.x);
         }
         posRow.add(width - fixedR), posRow.add(width - expectWidth * (1 - right));
-        uvRow.add((spriteUV2.x - spriteUV1.x) * (uRepeatCount - countInteger) + spriteUV1.x);
+        uvRow.add((spriteUV2.x - spriteUV1.x) * (rRepeatCount - countInteger) + spriteUV1.x);
         uvRow.add(spriteUV2.x), uvRow.add(spriteUV3.x);
         break;
       default:
         break;
     }
 
-    switch (vType) {
+    switch (cType) {
       case TiledType.Compressed:
         const scale = height / fixedTB;
         posColumn.add(expectHeight * bottom * scale), posColumn.add(fixedB * scale);
@@ -361,13 +361,13 @@ export class TiledSpriteAssembler {
       case TiledType.WithTiled:
         posColumn.add(expectHeight * bottom), posColumn.add(fixedB);
         uvColumn.add(spriteUV0.y), uvColumn.add(spriteUV1.y), uvColumn.add(spriteUV1.y);
-        const countInteger = vRepeatCount | 0;
+        const countInteger = cRepeatCount | 0;
         for (let i = 0; i < countInteger; i++) {
           posColumn.add(fixedB + (i + 1) * fixedCH);
           uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV1.y);
         }
         posColumn.add(height - fixedT), posColumn.add(height - expectHeight * (1 - top));
-        uvColumn.add((spriteUV2.y - spriteUV1.y) * (vRepeatCount - countInteger) + spriteUV1.y);
+        uvColumn.add((spriteUV2.y - spriteUV1.y) * (cRepeatCount - countInteger) + spriteUV1.y);
         uvColumn.add(spriteUV2.y), uvColumn.add(spriteUV3.y);
         break;
       default:
