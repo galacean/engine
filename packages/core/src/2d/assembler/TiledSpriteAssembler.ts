@@ -51,47 +51,74 @@ export class TiledSpriteAssembler {
     const wE12 = (wE[12] = pWE[12] - localTransX * wE[0] - localTransY * wE[4]);
     const wE13 = (wE[13] = pWE[13] - localTransX * wE[1] - localTransY * wE[5]);
     const wE14 = (wE[14] = pWE[14] - localTransX * wE[2] - localTransY * wE[6]);
-
-    const fillDataFunc = (i: number, x: number, y: number, u: number, v: number) => {
-      uvs[i] ? uvs[i].set(u, v) : (uvs[i] = new Vector2(u, v));
-      positions[i]
-        ? positions[i].set(wE0 * x + wE4 * y + wE12, wE1 * x + wE5 * y + wE13, wE2 * x + wE6 * y + wE14)
-        : (positions[i] = new Vector3(wE0 * x + wE4 * y + wE12, wE1 * x + wE5 * y + wE13, wE2 * x + wE6 * y + wE14));
-    };
-
     // Assemble position and uv
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
-    let positionOffset = 0;
+    let count = 0;
     let trianglesOffset = 0;
     for (let j = 0; j < columnLength; j++) {
       for (let i = 0; i < rowLength; i++) {
-        const uvLeft = uvRow.get(2 * i);
-        const uvBottom = uvColumn.get(2 * j);
-        const uvRight = uvRow.get(2 * i + 1);
-        const uvTop = uvColumn.get(2 * j + 1);
-        if (isNaN(uvLeft) || isNaN(uvLeft) || isNaN(uvRight) || isNaN(uvTop)) {
+        const uvL = uvRow.get(2 * i);
+        const uvB = uvColumn.get(2 * j);
+        const uvR = uvRow.get(2 * i + 1);
+        const uvT = uvColumn.get(2 * j + 1);
+        if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
           continue;
         }
-        triangles[trianglesOffset++] = positionOffset;
-        triangles[trianglesOffset++] = positionOffset + 1;
-        triangles[trianglesOffset++] = positionOffset + 2;
-        triangles[trianglesOffset++] = positionOffset + 2;
-        triangles[trianglesOffset++] = positionOffset + 1;
-        triangles[trianglesOffset++] = positionOffset + 3;
+        triangles[trianglesOffset++] = count;
+        triangles[trianglesOffset++] = count + 1;
+        triangles[trianglesOffset++] = count + 2;
+        triangles[trianglesOffset++] = count + 2;
+        triangles[trianglesOffset++] = count + 1;
+        triangles[trianglesOffset++] = count + 3;
+        const l = posRow.get(i);
+        const b = posColumn.get(j);
+        const r = posRow.get(i + 1);
+        const t = posColumn.get(j + 1);
 
-        const left = posRow.get(i);
-        const bottom = posColumn.get(j);
-        const right = posRow.get(i + 1);
-        const top = posColumn.get(j + 1);
-        fillDataFunc(positionOffset++, left, bottom, uvLeft, uvBottom);
-        fillDataFunc(positionOffset++, right, bottom, uvRight, uvBottom);
-        fillDataFunc(positionOffset++, left, top, uvLeft, uvTop);
-        fillDataFunc(positionOffset++, right, top, uvRight, uvTop);
+        // left and bottom
+        uvs[count] ? uvs[count].set(uvL, uvB) : (uvs[count] = new Vector2(uvL, uvB));
+        let pos = positions[count];
+        if (pos) {
+          pos.set(wE0 * l + wE4 * b + wE12, wE1 * l + wE5 * b + wE13, wE2 * l + wE6 * b + wE14);
+        } else {
+          positions[count] = new Vector3(wE0 * l + wE4 * b + wE12, wE1 * l + wE5 * b + wE13, wE2 * l + wE6 * b + wE14);
+        }
+        count++;
+
+        // right and bottom
+        uvs[count] ? uvs[count].set(uvR, uvB) : (uvs[count] = new Vector2(uvR, uvB));
+        pos = positions[count];
+        if (pos) {
+          pos.set(wE0 * r + wE4 * b + wE12, wE1 * r + wE5 * b + wE13, wE2 * r + wE6 * b + wE14);
+        } else {
+          positions[count] = new Vector3(wE0 * r + wE4 * b + wE12, wE1 * r + wE5 * b + wE13, wE2 * r + wE6 * b + wE14);
+        }
+        count++;
+
+        // left and top
+        uvs[count] ? uvs[count].set(uvL, uvT) : (uvs[count] = new Vector2(uvL, uvT));
+        pos = positions[count];
+        if (pos) {
+          pos.set(wE0 * l + wE4 * t + wE12, wE1 * l + wE5 * t + wE13, wE2 * l + wE6 * t + wE14);
+        } else {
+          positions[count] = new Vector3(wE0 * l + wE4 * t + wE12, wE1 * l + wE5 * t + wE13, wE2 * l + wE6 * t + wE14);
+        }
+        count++;
+
+        // right and top
+        uvs[count] ? uvs[count].set(uvR, uvT) : (uvs[count] = new Vector2(uvR, uvT));
+        pos = positions[count];
+        if (pos) {
+          pos.set(wE0 * r + wE4 * t + wE12, wE1 * r + wE5 * t + wE13, wE2 * r + wE6 * t + wE14);
+        } else {
+          positions[count] = new Vector3(wE0 * r + wE4 * t + wE12, wE1 * r + wE5 * t + wE13, wE2 * r + wE6 * t + wE14);
+        }
+        count++;
       }
     }
 
-    renderer._verticesData.vertexCount = positionOffset;
+    renderer._verticesData.vertexCount = count;
     triangles.length = trianglesOffset;
 
     const { min, max } = renderer._bounds;
