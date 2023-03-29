@@ -453,22 +453,6 @@ describe("SpriteRenderer", () => {
     spriteRenderer._assembler.updatePositions(spriteRenderer);
     // @ts-ignore
     spriteRenderer._assembler.updateUVs(spriteRenderer);
-
-    let positionStr = "";
-    for (let i = 0; i < renderData.vertexCount; i++) {
-      const position = renderData.positions[i];
-      positionStr +=
-        `expect(Vector3.equals(renderData.positions[${i}], new Vector3(${position.x}, ${position.y}, ${position.z}))).to.eq(true)` +
-        "\n";
-    }
-    console.log(positionStr);
-
-    let uvStr = "";
-    for (let i = 0; i < renderData.vertexCount; i++) {
-      const uv = renderData.uvs[i];
-      uvStr += `expect(Vector2.equals(renderData.uvs[${i}], new Vector2(${uv.x}, ${uv.y}))).to.eq(true);` + "\n";
-    }
-    console.log(uvStr);
     expect(Vector3.equals(renderData.positions[0], new Vector3(0, 0, 0))).to.eq(true)
     expect(Vector3.equals(renderData.positions[1], new Vector3(0.25, 0, 0))).to.eq(true)
     expect(Vector3.equals(renderData.positions[2], new Vector3(0, 0.25, 0))).to.eq(true)
