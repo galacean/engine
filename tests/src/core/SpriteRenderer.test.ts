@@ -288,10 +288,10 @@ describe("SpriteRenderer", () => {
     spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     // @ts-ignore
     const renderData = spriteRenderer._verticesData;
-    sprite.pivot = new Vector2(0, 0);
-    sprite.border = new Vector4(0.3, 0.3, 0.3, 0.3);
     spriteRenderer.width = 0.5;
     spriteRenderer.height = 0.5;
+    sprite.pivot = new Vector2(0, 0);
+    sprite.border = new Vector4(0.5, 0.3, 0.5, 0.3);
     spriteRenderer.tileMode = SpriteTileMode.Continuous;
     // @ts-ignore
     spriteRenderer._assembler.updatePositions(spriteRenderer);
@@ -313,6 +313,178 @@ describe("SpriteRenderer", () => {
     expect(Vector3.equals(renderData.positions[13], new Vector3(0.5, 0.25, 0))).to.eq(true);
     expect(Vector3.equals(renderData.positions[14], new Vector3(0.25, 0.5, 0))).to.eq(true);
     expect(Vector3.equals(renderData.positions[15], new Vector3(0.5, 0.5, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[0], new Vector2(0, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[1], new Vector2(0.5, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[2], new Vector2(0, 0.7))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[3], new Vector2(0.5, 0.7))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[4], new Vector2(0.5, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[5], new Vector2(1, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[6], new Vector2(0.5, 0.7))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[7], new Vector2(1, 0.7))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[8], new Vector2(0, 0.3))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[9], new Vector2(0.5, 0.3))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[10], new Vector2(0, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[11], new Vector2(0.5, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[12], new Vector2(0.5, 0.3))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[13], new Vector2(1, 0.3))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[14], new Vector2(0.5, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[15], new Vector2(1, 0))).to.eq(true);
+
+    spriteRenderer.tileMode = SpriteTileMode.Adaptive;
+    // @ts-ignore
+    spriteRenderer._assembler.updatePositions(spriteRenderer);
+    // @ts-ignore
+    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    expect(Vector3.equals(renderData.positions[0], new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[1], new Vector3(0.25, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[2], new Vector3(0, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[3], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[4], new Vector3(0.25, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[5], new Vector3(0.5, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[6], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[7], new Vector3(0.5, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[8], new Vector3(0, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[9], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[10], new Vector3(0, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[11], new Vector3(0.25, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[12], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[13], new Vector3(0.5, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[14], new Vector3(0.25, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[15], new Vector3(0.5, 0.5, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[0], new Vector2(0, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[1], new Vector2(0.5, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[2], new Vector2(0, 0.7))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[3], new Vector2(0.5, 0.7))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[4], new Vector2(0.5, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[5], new Vector2(1, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[6], new Vector2(0.5, 0.7))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[7], new Vector2(1, 0.7))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[8], new Vector2(0, 0.3))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[9], new Vector2(0.5, 0.3))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[10], new Vector2(0, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[11], new Vector2(0.5, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[12], new Vector2(0.5, 0.3))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[13], new Vector2(1, 0.3))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[14], new Vector2(0.5, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[15], new Vector2(1, 0))).to.eq(true);
+
+    sprite.border = new Vector4(0.3, 0.5, 0.3, 0.5);
+    spriteRenderer.tileMode = SpriteTileMode.Continuous;
+    // @ts-ignore
+    spriteRenderer._assembler.updatePositions(spriteRenderer);
+    // @ts-ignore
+    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    expect(Vector3.equals(renderData.positions[0], new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[1], new Vector3(0.25, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[2], new Vector3(0, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[3], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[4], new Vector3(0.25, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[5], new Vector3(0.5, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[6], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[7], new Vector3(0.5, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[8], new Vector3(0, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[9], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[10], new Vector3(0, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[11], new Vector3(0.25, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[12], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[13], new Vector3(0.5, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[14], new Vector3(0.25, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[15], new Vector3(0.5, 0.5, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[0], new Vector2(0, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[1], new Vector2(0.3, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[2], new Vector2(0, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[3], new Vector2(0.3, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[4], new Vector2(0.7, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[5], new Vector2(1, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[6], new Vector2(0.7, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[7], new Vector2(1, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[8], new Vector2(0, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[9], new Vector2(0.3, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[10], new Vector2(0, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[11], new Vector2(0.3, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[12], new Vector2(0.7, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[13], new Vector2(1, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[14], new Vector2(0.7, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[15], new Vector2(1, 0))).to.eq(true);
+
+    spriteRenderer.tileMode = SpriteTileMode.Adaptive;
+    // @ts-ignore
+    spriteRenderer._assembler.updatePositions(spriteRenderer);
+    // @ts-ignore
+    spriteRenderer._assembler.updateUVs(spriteRenderer);
+    expect(Vector3.equals(renderData.positions[0], new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[1], new Vector3(0.25, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[2], new Vector3(0, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[3], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[4], new Vector3(0.25, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[5], new Vector3(0.5, 0, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[6], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[7], new Vector3(0.5, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[8], new Vector3(0, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[9], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[10], new Vector3(0, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[11], new Vector3(0.25, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[12], new Vector3(0.25, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[13], new Vector3(0.5, 0.25, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[14], new Vector3(0.25, 0.5, 0))).to.eq(true);
+    expect(Vector3.equals(renderData.positions[15], new Vector3(0.5, 0.5, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[0], new Vector2(0, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[1], new Vector2(0.3, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[2], new Vector2(0, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[3], new Vector2(0.3, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[4], new Vector2(0.7, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[5], new Vector2(1, 1))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[6], new Vector2(0.7, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[7], new Vector2(1, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[8], new Vector2(0, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[9], new Vector2(0.3, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[10], new Vector2(0, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[11], new Vector2(0.3, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[12], new Vector2(0.7, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[13], new Vector2(1, 0.5))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[14], new Vector2(0.7, 0))).to.eq(true);
+    expect(Vector2.equals(renderData.uvs[15], new Vector2(1, 0))).to.eq(true);
+
+    sprite.border = new Vector4(0.3, 0.3, 0.3, 0.3);
+    spriteRenderer.width = 0.5;
+    spriteRenderer.height = 0.5;
+    spriteRenderer.tileMode = SpriteTileMode.Continuous;
+    // @ts-ignore
+    spriteRenderer._assembler.updatePositions(spriteRenderer);
+    // @ts-ignore
+    spriteRenderer._assembler.updateUVs(spriteRenderer);
+
+    let positionStr = "";
+    for (let i = 0; i < renderData.vertexCount; i++) {
+      const position = renderData.positions[i];
+      positionStr +=
+        `expect(Vector3.equals(renderData.positions[${i}], new Vector3(${position.x}, ${position.y}, ${position.z}))).to.eq(true)` +
+        "\n";
+    }
+    console.log(positionStr);
+
+    let uvStr = "";
+    for (let i = 0; i < renderData.vertexCount; i++) {
+      const uv = renderData.uvs[i];
+      uvStr += `expect(Vector2.equals(renderData.uvs[${i}], new Vector2(${uv.x}, ${uv.y}))).to.eq(true);` + "\n";
+    }
+    console.log(uvStr);
+    expect(Vector3.equals(renderData.positions[0], new Vector3(0, 0, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[1], new Vector3(0.25, 0, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[2], new Vector3(0, 0.25, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[3], new Vector3(0.25, 0.25, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[4], new Vector3(0.25, 0, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[5], new Vector3(0.5, 0, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[6], new Vector3(0.25, 0.25, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[7], new Vector3(0.5, 0.25, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[8], new Vector3(0, 0.25, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[9], new Vector3(0.25, 0.25, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[10], new Vector3(0, 0.5, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[11], new Vector3(0.25, 0.5, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[12], new Vector3(0.25, 0.25, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[13], new Vector3(0.5, 0.25, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[14], new Vector3(0.25, 0.5, 0))).to.eq(true)
+    expect(Vector3.equals(renderData.positions[15], new Vector3(0.5, 0.5, 0))).to.eq(true)
     expect(Vector2.equals(renderData.uvs[0], new Vector2(0, 1))).to.eq(true);
     expect(Vector2.equals(renderData.uvs[1], new Vector2(0.3, 1))).to.eq(true);
     expect(Vector2.equals(renderData.uvs[2], new Vector2(0, 0.7))).to.eq(true);
