@@ -18,6 +18,7 @@ export class TiledSpriteAssembler {
   static _posColumn: DisorderedArray<number> = new DisorderedArray<number>();
   static _uvRow: DisorderedArray<number> = new DisorderedArray<number>();
   static _uvColumn: DisorderedArray<number> = new DisorderedArray<number>();
+
   static resetData(renderer: SpriteRenderer): void {
     renderer._verticesData.triangles ||= [];
   }
@@ -25,20 +26,20 @@ export class TiledSpriteAssembler {
   static updatePositions(renderer: SpriteRenderer): void {
     const { width, height, sprite, tileMode, tileStretchValue: stretch } = renderer;
     const { positions, uvs, triangles } = renderer._verticesData;
-    // Calculate row and column.
+    // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     tileMode === SpriteTileMode.Adaptive
       ? this._calculateAdaptive(sprite, width, height, stretch, posRow, posColumn, uvRow, uvColumn)
       : this._calculateContinuous(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
-    // Update renderer's worldMatrix.
+    // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
     const localTransX = renderer.width * pivotX;
     const localTransY = renderer.height * pivotY;
-    // Renderer's worldMatrix.
+    // Renderer's worldMatrix
     const { _worldMatrix: worldMatrix } = TiledSpriteAssembler;
     const { elements: wE } = worldMatrix;
-    // Parent's worldMatrix.
+    // Parent's worldMatrix
     const { elements: pWE } = renderer.entity.transform.worldMatrix;
     const sx = renderer.flipX ? -1 : 1;
     const sy = renderer.flipY ? -1 : 1;
@@ -58,7 +59,7 @@ export class TiledSpriteAssembler {
         : (positions[i] = new Vector3(wE0 * x + wE4 * y + wE12, wE1 * x + wE5 * y + wE13, wE2 * x + wE6 * y + wE14));
     };
 
-    // Assemble position and uv.
+    // Assemble position and uv
     const rowLength = posRow.length - 1;
     const columnLength = posColumn.length - 1;
     let positionOffset = 0;
