@@ -36,8 +36,10 @@ import { Engine, Scene, Entity } from "oasis-engine";
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and adjust canvas size
+// Create engine by passing in the HTMLCanvasElement id
 const engine = await WebGLEngine.create({ canvas: "canvas-id" });
+
+// Adjust canvas size
 engine.canvas.resizeByClientSize();
 
 // Get scene and create root entity
@@ -62,7 +64,7 @@ const material = new BlinnPhongMaterial(engine);
 meshRenderer.setMaterial(material);
 meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 
-// Run engine.
+// Run engine
 engine.run();
 ```
 
