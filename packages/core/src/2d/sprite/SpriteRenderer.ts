@@ -31,12 +31,12 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
-  @ignoreClone
+  @assignmentClone
   private _assembler: IAssembler;
-  @ignoreClone
+  @assignmentClone
   private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
-  @ignoreClone
-  private _tileStretchValue: number = 0.5;
+  @assignmentClone
+  private _tiledAdaptiveThreshold: number = 0.5;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -64,10 +64,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     return this._drawMode;
   }
 
-  set drawMode(drawMode: SpriteDrawMode) {
-    if (this._drawMode !== drawMode) {
-      this._drawMode = drawMode;
-      switch (drawMode) {
+  set drawMode(value: SpriteDrawMode) {
+    if (this._drawMode !== value) {
+      this._drawMode = value;
+      switch (value) {
         case SpriteDrawMode.Simple:
           this._assembler = SimpleSpriteAssembler;
           break;
@@ -92,9 +92,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     return this._tileMode;
   }
 
-  set tileMode(tileMode: SpriteTileMode) {
-    if (this._tileMode !== tileMode) {
-      this._tileMode = tileMode;
+  set tileMode(value: SpriteTileMode) {
+    if (this._tileMode !== value) {
+      this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
       }
@@ -102,16 +102,16 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * The stretch value of the sprite renderer, specified in normalized. (Only works in tiled mode.)
+   * Stretch Threshold in Tile Adaptive Mode, specified in normalized. (Only works in tiled adaptive mode.)
    */
-  get tileStretchValue(): number {
-    return this._tileStretchValue;
+  get tiledAdaptiveThreshold(): number {
+    return this._tiledAdaptiveThreshold;
   }
 
-  set tileStretchValue(stretchValue: number) {
-    if (stretchValue !== this._tileStretchValue) {
-      stretchValue = MathUtil.clamp(stretchValue, 0, 1);
-      this._tileStretchValue = stretchValue;
+  set tiledAdaptiveThreshold(value: number) {
+    if (value !== this._tiledAdaptiveThreshold) {
+      value = MathUtil.clamp(value, 0, 1);
+      this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
       }
@@ -256,9 +256,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _cloneTo(target: SpriteRenderer): void {
-    target._tileMode = this._tileMode;
-    target._tileStretchValue = this._tileStretchValue;
-    target.drawMode = this._drawMode;
+    target._assembler.resetData(target);
     target.sprite = this._sprite;
   }
 

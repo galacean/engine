@@ -74,19 +74,19 @@ describe("SpriteRenderer", () => {
     expect(spriteRenderer.tileMode).to.eq(SpriteTileMode.Continuous);
   });
 
-  it("get set tileStretchValue", () => {
+  it("get set tiledAdaptiveThreshold", () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
-    spriteRenderer.tileStretchValue = 0.3;
-    expect(spriteRenderer.tileStretchValue).to.eq(0.3);
-    spriteRenderer.tileStretchValue = 0.0;
-    expect(spriteRenderer.tileStretchValue).to.eq(0.0);
-    spriteRenderer.tileStretchValue = 1.0;
-    expect(spriteRenderer.tileStretchValue).to.eq(1.0);
-    spriteRenderer.tileStretchValue = -1.0;
-    expect(spriteRenderer.tileStretchValue).to.eq(0.0);
-    spriteRenderer.tileStretchValue = 2.0;
-    expect(spriteRenderer.tileStretchValue).to.eq(1.0);
+    spriteRenderer.tiledAdaptiveThreshold = 0.3;
+    expect(spriteRenderer.tiledAdaptiveThreshold).to.eq(0.3);
+    spriteRenderer.tiledAdaptiveThreshold = 0.0;
+    expect(spriteRenderer.tiledAdaptiveThreshold).to.eq(0.0);
+    spriteRenderer.tiledAdaptiveThreshold = 1.0;
+    expect(spriteRenderer.tiledAdaptiveThreshold).to.eq(1.0);
+    spriteRenderer.tiledAdaptiveThreshold = -1.0;
+    expect(spriteRenderer.tiledAdaptiveThreshold).to.eq(0.0);
+    spriteRenderer.tiledAdaptiveThreshold = 2.0;
+    expect(spriteRenderer.tiledAdaptiveThreshold).to.eq(1.0);
   });
 
   it("get spriteRenderer bounds", () => {

@@ -24,13 +24,13 @@ export class TiledSpriteAssembler {
   }
 
   static updatePositions(renderer: SpriteRenderer): void {
-    const { width, height, sprite, tileMode, tileStretchValue: stretch } = renderer;
+    const { width, height, sprite, tileMode, tiledAdaptiveThreshold: threshold } = renderer;
     const { positions, uvs, triangles } = renderer._verticesData;
     // Calculate row and column
     const { _posRow: posRow, _posColumn: posColumn, _uvRow: uvRow, _uvColumn: uvColumn } = this;
     posRow.length = posColumn.length = uvRow.length = uvColumn.length = 0;
     tileMode === SpriteTileMode.Adaptive
-      ? this._calculateAdaptive(sprite, width, height, stretch, posRow, posColumn, uvRow, uvColumn)
+      ? this._calculateAdaptive(sprite, width, height, threshold, posRow, posColumn, uvRow, uvColumn)
       : this._calculateContinuous(sprite, width, height, posRow, posColumn, uvRow, uvColumn);
     // Update renderer's worldMatrix
     const { x: pivotX, y: pivotY } = renderer.sprite.pivot;
@@ -133,7 +133,7 @@ export class TiledSpriteAssembler {
     sprite: Sprite,
     width: number,
     height: number,
-    stretch: number,
+    threshold: number,
     posRow: DisorderedArray<number>,
     posColumn: DisorderedArray<number>,
     uvRow: DisorderedArray<number>,
@@ -163,7 +163,7 @@ export class TiledSpriteAssembler {
     } else {
       if (fixedCW > MathUtil.zeroTolerance) {
         uRepeatCount = (width - fixedLR) / fixedCW;
-        uRepeatCount = uRepeatCount % 1 >= stretch ? Math.ceil(uRepeatCount) : Math.floor(uRepeatCount);
+        uRepeatCount = uRepeatCount % 1 >= threshold ? Math.ceil(uRepeatCount) : Math.floor(uRepeatCount);
         uVertCount = 4 + uRepeatCount - 1;
         uType = TiledType.WithTiled;
       } else {
@@ -178,7 +178,7 @@ export class TiledSpriteAssembler {
     } else {
       if (fixedCH > MathUtil.zeroTolerance) {
         vRepeatCount = (height - fixedTB) / fixedCH;
-        vRepeatCount = vRepeatCount % 1 >= stretch ? Math.ceil(vRepeatCount) : Math.floor(vRepeatCount);
+        vRepeatCount = vRepeatCount % 1 >= threshold ? Math.ceil(vRepeatCount) : Math.floor(vRepeatCount);
         vVertCount = 4 + vRepeatCount - 1;
         vType = TiledType.WithTiled;
       } else {
