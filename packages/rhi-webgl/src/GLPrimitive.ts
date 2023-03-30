@@ -31,14 +31,15 @@ export class GLPrimitive implements IPlatformPrimitive {
   /**
    * Draw the primitive.
    */
-  draw(shaderProgram: any, subMesh: SubMesh, bufferStructChanged: boolean): void {
+  draw(shaderProgram: any, subMesh: SubMesh): void {
     const gl = this._gl;
     const primitive = this._primitive;
     // @ts-ignore
     const useVao = this._useVao && primitive._enableVAO;
 
     if (useVao) {
-      if (bufferStructChanged) {
+      // @ts-ignore
+      if (primitive._bufferStructChanged) {
         this._clearVAO();
       }
       if (!this._vaoMap.has(shaderProgram.id)) {

@@ -184,7 +184,7 @@ export abstract class Mesh extends RefObject {
    * @internal
    */
   _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
-    this._platformPrimitive.draw(shaderProgram, subMesh, this._bufferStructChanged);
+    this._platformPrimitive.draw(shaderProgram, subMesh);
     this._bufferStructChanged = false;
   }
 

@@ -6,9 +6,8 @@ export interface IPlatformPrimitive {
    * Draw primitive.
    * @param tech - Shader
    * @param subPrimitive - Sub primitive
-   * @param bufferStructChanged - If the buffer structure has changed
    */
-  draw(tech: any, subPrimitive: any, bufferStructChanged: boolean): void;
+  draw(tech: any, subPrimitive: any): void;
 
   /**
    * Destroy.
