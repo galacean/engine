@@ -156,6 +156,7 @@ export abstract class Mesh extends RefObject {
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -178,6 +179,7 @@ export abstract class Mesh extends RefObject {
       binding._buffer._addRefCount(1);
     }
     this._vertexBufferBindings[index] = binding;
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -216,7 +218,6 @@ export abstract class Mesh extends RefObject {
     for (let i = 0, n = elements.length; i < n; i++) {
       this._addVertexElement(elements[i]);
     }
-    this._bufferStructChanged = true;
   }
 
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
