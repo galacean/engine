@@ -25,6 +25,8 @@ export abstract class Mesh extends RefObject {
   /** @internal */
   _glIndexByteCount: number;
   /** @internal */
+  _bufferStructChanged: boolean;
+  /** @internal */
   _platformPrimitive: IPlatformPrimitive;
 
   /** @internal */
@@ -183,6 +185,7 @@ export abstract class Mesh extends RefObject {
    */
   _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
     this._platformPrimitive.draw(shaderProgram, subMesh);
+    this._bufferStructChanged = false;
   }
 
   /**
@@ -213,16 +216,20 @@ export abstract class Mesh extends RefObject {
     for (let i = 0, n = elements.length; i < n; i++) {
       this._addVertexElement(elements[i]);
     }
+    this._bufferStructChanged = true;
   }
 
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
+    const lastBinding = this._indexBufferBinding;
     if (binding) {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);
       this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
+      (!lastBinding || lastBinding._buffer !== binding._buffer) && (this._bufferStructChanged = true);
     } else {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
+      lastBinding && (this._bufferStructChanged = true);
     }
   }
 
