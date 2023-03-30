@@ -57,11 +57,12 @@ export class TiledSpriteAssembler {
     let count = 0;
     let trianglesOffset = 0;
     for (let j = 0; j < columnLength; j++) {
+      const doubleJ = 2 * j;
       for (let i = 0; i < rowLength; i++) {
         const uvL = uvRow.get(2 * i);
-        const uvB = uvColumn.get(2 * j);
+        const uvB = uvColumn.get(doubleJ);
         const uvR = uvRow.get(2 * i + 1);
-        const uvT = uvColumn.get(2 * j + 1);
+        const uvT = uvColumn.get(doubleJ + 1);
         if (isNaN(uvL) || isNaN(uvL) || isNaN(uvR) || isNaN(uvT)) {
           continue;
         }
