@@ -167,6 +167,7 @@ export abstract class Mesh extends RefObject {
     this._vertexElementMap[semantic] = element;
     this._vertexElements.splice(i, 0, element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
   }
 
   /**
