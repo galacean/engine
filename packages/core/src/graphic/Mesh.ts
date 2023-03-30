@@ -225,15 +225,11 @@ export abstract class Mesh extends RefObject {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);
       this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
-      if (lastBinding && lastBinding._buffer !== binding._buffer) {
-        this._bufferStructChanged = true;
-      }
+      (!lastBinding || lastBinding._buffer !== binding._buffer) && (this._bufferStructChanged = true);
     } else {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
-      if (lastBinding) {
-        this._bufferStructChanged = true;
-      }
+      lastBinding && (this._bufferStructChanged = true);
     }
   }
 
