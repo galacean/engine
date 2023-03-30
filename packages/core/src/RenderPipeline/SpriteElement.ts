@@ -1,32 +1,33 @@
-import { Color, Vector2, Vector3 } from "@oasis-engine/math";
-import { Camera } from "../Camera";
+import { RenderData2D } from "../2d/data/RenderData2D";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
+import { ShaderPass } from "../shader";
+import { RenderState } from "../shader/state/RenderState";
+import { Texture2D } from "../texture";
+import { RenderElement } from "./RenderElement";
 
-export class SpriteElement {
-  component: Renderer;
-  positions: Vector3[];
-  uv: Vector2[];
-  triangles: number[];
-  color: Color;
-  material: Material;
-  camera: Camera;
+export class SpriteElement extends RenderElement {
+  renderData: RenderData2D;
+  texture: Texture2D;
+
+  constructor() {
+    super();
+    this.multiRenderData = false;
+  }
 
   setValue(
     component: Renderer,
-    positions: Vector3[],
-    uv: Vector2[],
-    triangles: number[],
-    color: Color,
+    renderDate: RenderData2D,
     material: Material,
-    camera: Camera
+    texture: Texture2D,
+    renderState: RenderState,
+    shaderPass: ShaderPass
   ): void {
     this.component = component;
-    this.positions = positions;
-    this.uv = uv;
-    this.triangles = triangles;
-    this.color = color;
+    this.renderData = renderDate;
     this.material = material;
-    this.camera = camera;
+    this.texture = texture;
+    this.renderState = renderState;
+    this.shaderPass = shaderPass;
   }
 }

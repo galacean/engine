@@ -15,6 +15,10 @@ export class GLCapability {
   _rhi: WebGLRenderer;
   capabilityList: Map<GLCapabilityType, boolean>;
 
+  get maxTextureSize(): boolean {
+    return this.rhi.renderStates.getParameter(this.rhi.gl.MAX_TEXTURE_SIZE);
+  }
+
   get canUseFloatTextureBlendShape(): boolean {
     return (
       this.canIUse(GLCapabilityType.shaderVertexID) &&
@@ -267,7 +271,7 @@ export class GLCapability {
         });
       }
       this._compatibleInterface(textureHalfFloat, {
-        HAFL_FLOAT: "HALF_FLOAT_OES"
+        HALF_FLOAT: "HALF_FLOAT_OES"
       });
       this._compatibleInterface(colorBufferHalfFloat, {
         RGBA16F: "RBGA16F_EXT"

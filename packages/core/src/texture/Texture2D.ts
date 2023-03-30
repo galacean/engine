@@ -9,15 +9,6 @@ import { Texture } from "./Texture";
  * Two-dimensional texture.
  */
 export class Texture2D extends Texture {
-  private _format: TextureFormat;
-
-  /**
-   * Texture format.
-   */
-  get format(): TextureFormat {
-    return this._format;
-  }
-
   /**
    * Create Texture2D.
    * @param engine - Define the engine to use to render this texture
@@ -40,6 +31,15 @@ export class Texture2D extends Texture {
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 
+    this._isDepthTexture =
+      format == TextureFormat.Depth ||
+      format == TextureFormat.DepthStencil ||
+      format == TextureFormat.Depth16 ||
+      format == TextureFormat.Depth24 ||
+      format == TextureFormat.Depth32 ||
+      format == TextureFormat.Depth24Stencil8 ||
+      format == TextureFormat.Depth32Stencil8;
+
     this._platformTexture = engine._hardwareRenderer.createPlatformTexture2D(this);
 
     this.filterMode = TextureFilterMode.Bilinear;
@@ -59,8 +59,8 @@ export class Texture2D extends Texture {
   setPixelBuffer(
     colorBuffer: ArrayBufferView,
     mipLevel: number = 0,
-    x?: number,
-    y?: number,
+    x: number = 0,
+    y: number = 0,
     width?: number,
     height?: number
   ): void {
@@ -81,8 +81,8 @@ export class Texture2D extends Texture {
     mipLevel: number = 0,
     flipY: boolean = false,
     premultiplyAlpha: boolean = false,
-    x?: number,
-    y?: number
+    x: number = 0,
+    y: number = 0
   ): void {
     (this._platformTexture as IPlatformTexture2D).setImageSource(imageSource, mipLevel, flipY, premultiplyAlpha, x, y);
   }
@@ -143,8 +143,8 @@ export class Texture2D extends Texture {
       (this._platformTexture as IPlatformTexture2D).getPixelBuffer(
         0,
         0,
-        this._width >> <number>xOrMipLevelOrOut,
-        this._height >> <number>xOrMipLevelOrOut,
+        this._width >> (<number>xOrMipLevelOrOut),
+        this._height >> (<number>xOrMipLevelOrOut),
         <number>xOrMipLevelOrOut,
         <ArrayBufferView>yOrMipLevel
       );

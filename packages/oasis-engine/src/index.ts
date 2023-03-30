@@ -1,41 +1,15 @@
-export * from "@oasis-engine/core";
-export * from "@oasis-engine/loader";
-export * from "@oasis-engine/math";
-export * from "@oasis-engine/rhi-webgl";
-import {
-  AmbientLight,
-  Camera,
-  Component,
-  DirectLight,
-  ParticleRenderer,
-  PointLight,
-  SpriteRenderer,
-  SpriteMask,
-  TextRenderer,
-  Animator,
-  StaticCollider,
-  DynamicCollider
-} from "@oasis-engine/core";
-import { GLTFModel, Parser, Model } from "@oasis-engine/loader";
-
-Parser.registerComponents("o3", {
-  GLTFModel,
-  SpriteRenderer,
-  SpriteMask,
-  TextRenderer,
-  PointLight,
-  AmbientLight,
-  DirectLight,
-  ParticleRenderer,
-  Camera,
-  Model,
-  Component,
-  StaticCollider,
-  DynamicCollider,
-  Animator
-});
-
+import * as CoreObjects from "@oasis-engine/core";
+import { Loader } from "@oasis-engine/core";
 //@ts-ignore
 export const version = `__buildVersion`;
 
 console.log(`oasis engine version: ${version}`);
+
+export * from "@oasis-engine/core";
+export * from "@oasis-engine/loader";
+export * from "@oasis-engine/math";
+export * from "@oasis-engine/rhi-webgl";
+
+for (let key in CoreObjects) {
+  Loader.registerClass(key, CoreObjects[key]);
+}

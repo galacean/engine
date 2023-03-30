@@ -1,35 +1,40 @@
 import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
-import { Sprite, SpriteMaskInteraction, SpriteMaskLayer } from "..";
-import { CompareFunction, Renderer, Shader, UpdateFlag } from "../..";
-import { Camera } from "../../Camera";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
+import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { ShaderProperty } from "../../shader/ShaderProperty";
-import { Texture2D } from "../../texture";
+import { Renderer } from "../../Renderer";
+import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { TransformModifyFlags } from "../../Transform";
 import { FontStyle } from "../enums/FontStyle";
+import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
+import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { TextHorizontalAlignment, TextVerticalAlignment } from "../enums/TextAlignment";
 import { OverflowMode } from "../enums/TextOverflow";
+import { CharRenderData } from "./CharRenderData";
+import { CharRenderDataPool } from "./CharRenderDataPool";
 import { Font } from "./Font";
+import { SubFont } from "./SubFont";
 import { TextUtils } from "./TextUtils";
 
 /**
  * Renders a text for 2D graphics.
  */
-export class TextRenderer extends Renderer {
-  private static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
-  private static _tempVec3: Vector3 = new Vector3();
+export class TextRenderer extends Renderer implements ICustomClone {
+  private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
+  private static _tempVec30: Vector3 = new Vector3();
+  private static _tempVec31: Vector3 = new Vector3();
 
-  /** @internal temp solution. */
+  /** @internal */
+  @assignmentClone
+  _subFont: SubFont = null;
+  /** @internal */
   @ignoreClone
-  _customLocalBounds: BoundingBox = null;
-  /** @internal temp solution. */
+  _charRenderDatas: CharRenderData[] = [];
   @ignoreClone
-  _customRootEntity: Entity = null;
+  _dirtyFlag: number = DirtyFlag.Font;
 
-  @ignoreClone
-  private _sprite: Sprite = null;
-  @deepClone
-  private _positions: Vector3[] = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
   @assignmentClone
@@ -38,6 +43,8 @@ export class TextRenderer extends Renderer {
   private _width: number = 0;
   @assignmentClone
   private _height: number = 0;
+  @ignoreClone
+  private _localBounds: BoundingBox = new BoundingBox();
   @assignmentClone
   private _font: Font = null;
   @assignmentClone
@@ -54,10 +61,6 @@ export class TextRenderer extends Renderer {
   private _enableWrapping: boolean = false;
   @assignmentClone
   private _overflowMode: OverflowMode = OverflowMode.Overflow;
-  @ignoreClone
-  private _dirtyFlag: number = DirtyFlag.Property;
-  @ignoreClone
-  private _isWorldMatrixDirty: UpdateFlag;
   @assignmentClone
   private _maskInteraction: SpriteMaskInteraction = SpriteMaskInteraction.None;
   @assignmentClone
@@ -72,7 +75,7 @@ export class TextRenderer extends Renderer {
 
   set color(value: Color) {
     if (this._color !== value) {
-      value.cloneTo(this._color);
+      this._color.copyFrom(value);
     }
   }
 
@@ -87,7 +90,7 @@ export class TextRenderer extends Renderer {
     value = value || "";
     if (this._text !== value) {
       this._text = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -101,7 +104,7 @@ export class TextRenderer extends Renderer {
   set width(value: number) {
     if (this._width !== value) {
       this._width = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -115,7 +118,7 @@ export class TextRenderer extends Renderer {
   set height(value: number) {
     if (this._height !== value) {
       this._height = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -127,9 +130,12 @@ export class TextRenderer extends Renderer {
   }
 
   set font(value: Font) {
-    if (this._font !== value) {
+    const lastFont = this._font;
+    if (lastFont !== value) {
+      lastFont && lastFont._addRefCount(-1);
+      value && value._addRefCount(1);
       this._font = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -143,7 +149,7 @@ export class TextRenderer extends Renderer {
   set fontSize(value: number) {
     if (this._fontSize !== value) {
       this._fontSize = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -157,7 +163,7 @@ export class TextRenderer extends Renderer {
   set fontStyle(value: FontStyle) {
     if (this.fontStyle !== value) {
       this._fontStyle = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Font);
     }
   }
 
@@ -171,7 +177,7 @@ export class TextRenderer extends Renderer {
   set lineSpacing(value: number) {
     if (this._lineSpacing !== value) {
       this._lineSpacing = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -185,7 +191,7 @@ export class TextRenderer extends Renderer {
   set horizontalAlignment(value: TextHorizontalAlignment) {
     if (this._horizontalAlignment !== value) {
       this._horizontalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -199,7 +205,7 @@ export class TextRenderer extends Renderer {
   set verticalAlignment(value: TextVerticalAlignment) {
     if (this._verticalAlignment !== value) {
       this._verticalAlignment = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -213,7 +219,7 @@ export class TextRenderer extends Renderer {
   set enableWrapping(value: boolean) {
     if (this._enableWrapping !== value) {
       this._enableWrapping = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -227,7 +233,7 @@ export class TextRenderer extends Renderer {
   set overflowMode(value: OverflowMode) {
     if (this._overflowMode !== value) {
       this._overflowMode = value;
-      this._setDirtyFlagTrue(DirtyFlag.Property);
+      this._setDirtyFlagTrue(DirtyFlag.Position);
     }
   }
 
@@ -256,66 +262,44 @@ export class TextRenderer extends Renderer {
     this._maskLayer = value;
   }
 
+  /**
+   * The bounding volume of the TextRenderer.
+   */
+  get bounds(): BoundingBox {
+    this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
+    this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
+    this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
+    this._isContainDirtyFlag(DirtyFlag.WorldBounds) && this._updateBounds(this._bounds);
+    this._setDirtyFlagFalse(DirtyFlag.Font);
+
+    return this._bounds;
+  }
+
   constructor(entity: Entity) {
     super(entity);
     const { engine } = this;
-    this._isWorldMatrixDirty = entity.transform.registerWorldChangeFlag();
-    this._sprite = new Sprite(engine);
-    this.font = Font.createFromOS(engine);
+    this._font = engine._textDefaultFont;
+    this._font._addRefCount(1);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
   /**
    * @internal
    */
-  _render(camera: Camera): void {
-    if (
-      this._text === "" ||
-      (this.enableWrapping && this.width <= 0) ||
-      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
-    ) {
-      this._clearTexture();
-      return;
-    }
-
-    const { _sprite: sprite } = this;
-    const isTextureDirty = this._isContainDirtyFlag(DirtyFlag.Property);
-    if (isTextureDirty) {
-      this._updateText();
-      this._setDirtyFlagFalse(DirtyFlag.Property);
-    }
-
-    if (this._isWorldMatrixDirty.flag || isTextureDirty) {
-      this._updatePosition();
-      this._isWorldMatrixDirty.flag = false;
-    }
-
-    if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
-      this._updateStencilState();
-      this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
-    }
-
-    this.shaderData.setTexture(TextRenderer._textureProperty, sprite.texture);
-    const spriteElementPool = this._engine._spriteElementPool;
-    const spriteElement = spriteElementPool.getFromPool();
-    spriteElement.setValue(
-      this,
-      this._positions,
-      sprite._uv,
-      sprite._triangles,
-      this.color,
-      this.getMaterial(),
-      camera
-    );
-    camera._renderPipeline.pushPrimitive(spriteElement);
-  }
-
-  /**
-   * @internal
-   */
   _onDestroy(): void {
-    this.engine._dynamicTextAtlasManager.removeSprite(this._sprite);
-    this._isWorldMatrixDirty.destroy();
+    // Clear render data.
+    const charRenderDatas = this._charRenderDatas;
+    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
+      TextRenderer._charRenderDataPool.put(charRenderDatas[i]);
+    }
+    charRenderDatas.length = 0;
+
+    if (this._font) {
+      this._font._addRefCount(-1);
+      this._font = null;
+    }
+    this._subFont && (this._subFont = null);
+
     super._onDestroy();
   }
 
@@ -324,75 +308,100 @@ export class TextRenderer extends Renderer {
    */
   _cloneTo(target: TextRenderer): void {
     target.font = this._font;
+    target._subFont = this._subFont;
+  }
+
+  /**
+   * @internal
+   */
+  _isContainDirtyFlag(type: number): boolean {
+    return (this._dirtyFlag & type) != 0;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagTrue(type: number): void {
+    this._dirtyFlag |= type;
+  }
+
+  /**
+   * @internal
+   */
+  _setDirtyFlagFalse(type: number): void {
+    this._dirtyFlag &= ~type;
   }
 
   /**
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
-    const sprite = this._sprite;
-    if (sprite && sprite.texture) {
-      if (this._customLocalBounds && this._customRootEntity) {
-        const worldMatrix = this._customRootEntity.transform.worldMatrix;
-        BoundingBox.transform(this._customLocalBounds, worldMatrix, worldBounds);
-      } else {
-        const localBounds = sprite.bounds;
-        const worldMatrix = this._entity.transform.worldMatrix;
-        BoundingBox.transform(localBounds, worldMatrix, worldBounds);
-      }
-    } else {
-      worldBounds.min.setValue(0, 0, 0);
-      worldBounds.max.setValue(0, 0, 0);
+    BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
+  }
+
+  /**
+   * @override
+   */
+  protected _render(context: RenderContext): void {
+    if (
+      this._text === "" ||
+      (this.enableWrapping && this.width <= 0) ||
+      (this.overflowMode === OverflowMode.Truncate && this.height <= 0)
+    ) {
+      return;
     }
-  }
 
-  private _isContainDirtyFlag(type: number): boolean {
-    return (this._dirtyFlag & type) != 0;
-  }
-
-  private _setDirtyFlagTrue(type: number): void {
-    this._dirtyFlag |= type;
-  }
-
-  private _setDirtyFlagFalse(type: number): void {
-    this._dirtyFlag &= ~type;
-  }
-
-  private _updateText(): void {
-    const { width: originWidth, height: originHeight, enableWrapping, overflowMode } = this;
-    const fontStr = TextUtils.getNativeFontString(this._font.name, this._fontSize, this._fontStyle);
-    const textMetrics = TextUtils.measureText(
-      this.text,
-      originWidth,
-      originHeight,
-      this.lineSpacing,
-      enableWrapping,
-      overflowMode,
-      fontStr
-    );
-    TextUtils.updateText(textMetrics, fontStr, this.horizontalAlignment, this.verticalAlignment);
-    this._updateTexture();
-  }
-
-  private _updateTexture(): void {
-    const trimData = TextUtils.trimCanvas();
-    const { width, height } = trimData;
-    const canvas = TextUtils.updateCanvas(width, height, trimData.data);
-    this._clearTexture();
-    const { _sprite: sprite } = this;
-    // If add fail, set texture for sprite.
-    if (!this.engine._dynamicTextAtlasManager.addSprite(sprite, canvas)) {
-      const texture = new Texture2D(this.engine, width, height);
-      texture.setImageSource(canvas);
-      texture.generateMipmaps();
-      sprite.texture = texture;
+    if (this._isContainDirtyFlag(DirtyFlag.MaskInteraction)) {
+      this._updateStencilState();
+      this._setDirtyFlagFalse(DirtyFlag.MaskInteraction);
     }
-    // Update sprite data.
-    sprite._updateMesh();
+
+    if (this._isContainDirtyFlag(DirtyFlag.SubFont)) {
+      this._resetSubFont();
+      this._setDirtyFlagFalse(DirtyFlag.SubFont);
+    }
+
+    if (this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds)) {
+      this._updateLocalData();
+      this._setDirtyFlagFalse(DirtyFlag.LocalPositionBounds);
+    }
+
+    if (this._isContainDirtyFlag(DirtyFlag.WorldPosition)) {
+      this._updatePosition();
+      this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
+    }
+
+    const spriteElementPool = this._engine._spriteElementPool;
+    const textElement = this._engine._textElementPool.getFromPool();
+    const charElements = textElement.charElements;
+    const material = this.getMaterial();
+    const charRenderDatas = this._charRenderDatas;
+    const charCount = charRenderDatas.length;
+    const passes = material.shader.passes;
+    const renderStates = material.renderStates;
+
+    textElement.component = this;
+    textElement.material = material;
+    charElements.length = charCount;
+    textElement.renderState = renderStates[0];
+
+    for (let i = 0; i < charCount; ++i) {
+      const charRenderData = charRenderDatas[i];
+      const spriteElement = spriteElementPool.getFromPool();
+      spriteElement.setValue(
+        this,
+        charRenderData.renderData,
+        material,
+        charRenderData.texture,
+        renderStates[0],
+        passes[0]
+      );
+      charElements[i] = spriteElement;
+    }
+    context.camera._renderPipeline.pushPrimitive(textElement);
   }
 
   private _updateStencilState(): void {
-    // Update stencil.
     const material = this.getInstanceMaterial();
     const stencilState = material.renderState.stencilState;
     const maskInteraction = this._maskInteraction;
@@ -415,30 +424,176 @@ export class TextRenderer extends Renderer {
     }
   }
 
-  private _updatePosition(): void {
-    const localPositions = this._sprite._positions;
-    const localVertexPos = TextRenderer._tempVec3;
-    const worldMatrix = this.entity.transform.worldMatrix;
+  private _resetSubFont(): void {
+    this._subFont = this._font._getSubFont(this.fontSize, this.fontStyle);
+  }
 
-    const { _positions } = this;
-    for (let i = 0, n = _positions.length; i < n; i++) {
-      const curVertexPos = localPositions[i];
-      localVertexPos.setValue(curVertexPos.x, curVertexPos.y, 0);
-      Vector3.transformToVec3(localVertexPos, worldMatrix, _positions[i]);
+  private _updatePosition(): void {
+    const { transform } = this.entity;
+    const e = transform.worldMatrix.elements;
+    const charRenderDatas = this._charRenderDatas;
+
+    // prettier-ignore
+    const e0 = e[0], e1 = e[1], e2 = e[2],
+    e4 = e[4], e5 = e[5], e6 = e[6],
+    e12 = e[12], e13 = e[13], e14 = e[14];
+
+    const up = TextRenderer._tempVec31.set(e4, e5, e6);
+    const right = TextRenderer._tempVec30.set(e0, e1, e2);
+
+    for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
+      const charRenderData = charRenderDatas[i];
+      const { localPositions } = charRenderData;
+      const { positions } = charRenderData.renderData;
+
+      const { x: topLeftX, y: topLeftY } = localPositions;
+
+      // Top-Left
+      const worldPosition0 = positions[0];
+      worldPosition0.x = topLeftX * e0 + topLeftY * e4 + e12;
+      worldPosition0.y = topLeftX * e1 + topLeftY * e5 + e13;
+      worldPosition0.z = topLeftX * e2 + topLeftY * e6 + e14;
+
+      // Right offset
+      const worldPosition1 = positions[1];
+      Vector3.scale(right, localPositions.z - topLeftX, worldPosition1);
+
+      // Top-Right
+      Vector3.add(worldPosition0, worldPosition1, worldPosition1);
+
+      // Up offset
+      const worldPosition2 = positions[2];
+      Vector3.scale(up, localPositions.w - topLeftY, worldPosition2);
+
+      // Bottom-Left
+      Vector3.add(worldPosition0, worldPosition2, positions[3]);
+      // Bottom-Right
+      Vector3.add(worldPosition1, worldPosition2, worldPosition2);
     }
   }
 
-  private _clearTexture(): void {
-    const { _sprite } = this;
-    // Remove sprite from dynamic atlas.
-    this.engine._dynamicTextAtlasManager.removeSprite(_sprite);
-    this.shaderData.setTexture(TextRenderer._textureProperty, null);
-    _sprite.atlasRegion = _sprite.region;
+  private _updateLocalData(): void {
+    const { color, horizontalAlignment, verticalAlignment, _charRenderDatas: charRenderDatas } = this;
+    const { min, max } = this._localBounds;
+    min.set(0, 0, 0);
+    max.set(0, 0, 0);
+    const { _pixelsPerUnit } = Engine;
+    const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
+    const charFont = this._subFont;
+    const rendererWidth = this.width * _pixelsPerUnit;
+    const halfRendererWidth = rendererWidth * 0.5;
+    const rendererHeight = this.height * _pixelsPerUnit;
+
+    const textMetrics = this.enableWrapping
+      ? TextUtils.measureTextWithWrap(this)
+      : TextUtils.measureTextWithoutWrap(this);
+    const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
+    const charRenderDataPool = TextRenderer._charRenderDataPool;
+    const halfLineHeight = lineHeight * 0.5;
+    const linesLen = lines.length;
+
+    let startY = 0;
+    const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
+    const bottomDiff = lineHeight * 0.5 - lineMaxSizes[linesLen - 1].descent - 1;
+    switch (verticalAlignment) {
+      case TextVerticalAlignment.Top:
+        startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
+        break;
+      case TextVerticalAlignment.Center:
+        startY = height * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
+        break;
+      case TextVerticalAlignment.Bottom:
+        startY = height - rendererHeight * 0.5 - halfLineHeight - bottomDiff;
+        break;
+    }
+
+    let renderDataCount = 0;
+    let minX = Number.MAX_SAFE_INTEGER;
+    let minY = Number.MAX_SAFE_INTEGER;
+    let maxX = Number.MIN_SAFE_INTEGER;
+    let maxY = Number.MIN_SAFE_INTEGER;
+    let lastLineIndex = linesLen - 1;
+    for (let i = 0; i < linesLen; ++i) {
+      const line = lines[i];
+      const lineWidth = lineWidths[i];
+
+      let startX = 0;
+      switch (horizontalAlignment) {
+        case TextHorizontalAlignment.Left:
+          startX = -halfRendererWidth;
+          break;
+        case TextHorizontalAlignment.Center:
+          startX = -lineWidth * 0.5;
+          break;
+        case TextHorizontalAlignment.Right:
+          startX = halfRendererWidth - lineWidth;
+          break;
+      }
+
+      for (let j = 0, m = line.length - 1; j <= m; ++j) {
+        const char = line[j];
+        const charInfo = charFont._getCharInfo(char);
+
+        if (charInfo.h > 0) {
+          const charRenderData = charRenderDatas[renderDataCount] || charRenderDataPool.get();
+          const { renderData, localPositions } = charRenderData;
+          charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
+          renderData.color = color;
+
+          renderData.uvs = charInfo.uvs;
+          const { w, ascent, descent } = charInfo;
+
+          const left = startX * pixelsPerUnitReciprocal;
+          const right = (startX + w) * pixelsPerUnitReciprocal;
+          const top = (startY + ascent) * pixelsPerUnitReciprocal;
+          const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
+
+          localPositions.set(left, top, right, bottom);
+          charRenderDatas[renderDataCount] = charRenderData;
+          renderDataCount++;
+
+          i === 0 && (maxY = Math.max(maxY, top));
+          i === lastLineIndex && (minY = Math.min(minY, bottom));
+          j === 0 && (minX = Math.min(minX, left));
+          j === m && (maxX = Math.max(maxX, right));
+        }
+        startX += charInfo.xAdvance;
+      }
+
+      startY -= lineHeight;
+    }
+
+    min.set(minX, minY, 0);
+    max.set(maxX, maxY, 0);
+
+    // Revert excess render data to pool.
+    const lastRenderDataCount = charRenderDatas.length;
+    if (lastRenderDataCount > renderDataCount) {
+      for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
+        charRenderDataPool.put(charRenderDatas[i]);
+      }
+      charRenderDatas.length = renderDataCount;
+    }
+
+    charFont._getLastIndex() > 0 &&
+      charRenderDatas.sort((a, b) => {
+        return a.texture.instanceId - b.texture.instanceId;
+      });
+  }
+
+  protected _onTransformChanged(bit: TransformModifyFlags): void {
+    super._onTransformChanged(bit);
+    this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
   }
 }
 
 enum DirtyFlag {
-  Property = 0x1,
-  MaskInteraction = 0x2,
-  All = 0x3
+  SubFont = 0x1,
+  LocalPositionBounds = 0x2,
+  WorldPosition = 0x4,
+  WorldBounds = 0x8,
+  MaskInteraction = 0x10,
+
+  Position = LocalPositionBounds | WorldPosition | WorldBounds,
+  Font = SubFont | Position
 }

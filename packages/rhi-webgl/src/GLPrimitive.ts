@@ -13,7 +13,7 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * GL platform primitive.
  */
 export class GLPrimitive implements IPlatformPrimitive {
-  private _attribLocArray: number[];
+  private _attribLocArray: number[] = [];
   private readonly _primitive: Mesh;
   private readonly _canUseInstancedArrays: boolean;
 
@@ -34,8 +34,10 @@ export class GLPrimitive implements IPlatformPrimitive {
   draw(shaderProgram: any, subMesh: SubMesh, bufferStructChanged: boolean): void {
     const gl = this._gl;
     const primitive = this._primitive;
+    // @ts-ignore
+    const useVao = this._useVao && primitive._enableVAO;
 
-    if (this._useVao) {
+    if (useVao) {
       if (bufferStructChanged) {
         this._clearVAO();
       }
@@ -54,7 +56,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
     if (!_instanceCount) {
       if (_indexBufferBinding) {
-        if (this._useVao) {
+        if (useVao) {
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
         } else {
           const { _nativeBuffer } = _indexBufferBinding.buffer;
@@ -68,7 +70,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     } else {
       if (this._canUseInstancedArrays) {
         if (_indexBufferBinding) {
-          if (this._useVao) {
+          if (useVao) {
             gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, _instanceCount);
           } else {
             const { _nativeBuffer } = _indexBufferBinding.buffer;
@@ -85,7 +87,7 @@ export class GLPrimitive implements IPlatformPrimitive {
     }
 
     // Unbind
-    if (this._useVao) {
+    if (useVao) {
       gl.bindVertexArray(null);
     } else {
       this._disableAttrib();
@@ -105,8 +107,9 @@ export class GLPrimitive implements IPlatformPrimitive {
     // @ts-ignore
     const vertexBufferBindings = primitive._vertexBufferBindings;
 
-    this._attribLocArray = [];
+    this._attribLocArray.length = 0;
     const attributeLocation = shaderProgram.attributeLocation;
+    // @ts-ignore
     const attributes = primitive._vertexElementMap;
 
     let vbo: WebGLBuffer;
@@ -127,8 +130,8 @@ export class GLPrimitive implements IPlatformPrimitive {
         }
 
         gl.enableVertexAttribArray(loc);
-        const { size, type, normalized } = element._glElementInfo;
-        gl.vertexAttribPointer(loc, size, type, normalized, stride, element.offset);
+        const elementInfo = element._glElementInfo;
+        gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
         if (this._canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, element.instanceStepRate);
         }

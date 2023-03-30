@@ -1,39 +1,34 @@
 import { Camera } from "./Camera";
-import { DisorderedArray } from "./DisorderedArray";
 import { Component } from "./Component";
+import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
 import { Script } from "./Script";
-import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { RenderContext } from "./RenderPipeline/RenderContext";
-import { Vector3 } from "@oasis-engine/math";
-import { Collider } from "./physics";
 
 /**
  * The manager of the components.
  */
 export class ComponentsManager {
-  private static _tempVector0 = new Vector3();
-  private static _tempVector1 = new Vector3();
+  /** @internal */
+  _renderers: DisorderedArray<Renderer> = new DisorderedArray();
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
-  private _destroyComponents: Script[] = [];
+  private _disableScripts: Script[] = [];
+
+  private _pendingDestroyScripts: Script[] = [];
+  private _disposeDestroyScripts: Script[] = [];
 
   // Animation
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
 
   // Render
-  private _renderers: DisorderedArray<Renderer> = new DisorderedArray();
   private _onUpdateRenderers: DisorderedArray<Renderer> = new DisorderedArray();
 
   // Delay dispose active/inActive Pool
   private _componentsContainerPool: Component[][] = [];
-
-  // Physics
-  private _colliders: DisorderedArray<Collider> = new DisorderedArray();
 
   addRenderer(renderer: Renderer) {
     renderer._rendererIndex = this._renderers.length;
@@ -55,17 +50,6 @@ export class ComponentsManager {
     const replaced = this._onStartScripts.deleteByIndex(script._onStartIndex);
     replaced && (replaced._onStartIndex = script._onStartIndex);
     script._onStartIndex = -1;
-  }
-
-  addCollider(collider: Collider) {
-    collider._index = this._colliders.length;
-    this._colliders.add(collider);
-  }
-
-  removeCollider(collider: Collider): void {
-    const replaced = this._colliders.deleteByIndex(collider._index);
-    replaced && (replaced._index = collider._index);
-    collider._index = -1;
   }
 
   addOnUpdateScript(script: Script) {
@@ -127,8 +111,12 @@ export class ComponentsManager {
     renderer._onUpdateIndex = -1;
   }
 
-  addDestroyComponent(component): void {
-    this._destroyComponents.push(component);
+  addDisableScript(component: Script): void {
+    this._disableScripts.push(component);
+  }
+
+  addPendingDestroyScript(component: Script): void {
+    this._pendingDestroyScripts.push(component);
   }
 
   callScriptOnStart(): void {
@@ -138,29 +126,31 @@ export class ComponentsManager {
       // The 'onStartScripts.length' maybe add if you add some Script with addComponent() in some Script's onStart()
       for (let i = 0; i < onStartScripts.length; i++) {
         const script = elements[i];
-        script._started = true;
-        script._onStartIndex = -1;
-        script.onStart();
+        if (!script._waitHandlingInValid) {
+          script._started = true;
+          script._onStartIndex = -1;
+          script.onStart();
+        }
       }
       onStartScripts.length = 0;
     }
   }
 
-  callScriptOnUpdate(deltaTime): void {
+  callScriptOnUpdate(deltaTime: number): void {
     const elements = this._onUpdateScripts._elements;
     for (let i = this._onUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (element._started) {
+      if (!element._waitHandlingInValid && element._started) {
         element.onUpdate(deltaTime);
       }
     }
   }
 
-  callScriptOnLateUpdate(deltaTime): void {
+  callScriptOnLateUpdate(deltaTime: number): void {
     const elements = this._onLateUpdateScripts._elements;
     for (let i = this._onLateUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (element._started) {
+      if (!element._waitHandlingInValid && element._started) {
         element.onLateUpdate(deltaTime);
       }
     }
@@ -170,13 +160,13 @@ export class ComponentsManager {
     const elements = this._onPhysicsUpdateScripts._elements;
     for (let i = this._onPhysicsUpdateScripts.length - 1; i >= 0; --i) {
       const element = elements[i];
-      if (element._started) {
+      if (!element._waitHandlingInValid && element._started) {
         element.onPhysicsUpdate();
       }
     }
   }
 
-  callAnimationUpdate(deltaTime): void {
+  callAnimationUpdate(deltaTime: number): void {
     const elements = this._onUpdateAnimations._elements;
     for (let i = this._onUpdateAnimations.length - 1; i >= 0; --i) {
       //@ts-ignore
@@ -191,87 +181,42 @@ export class ComponentsManager {
     }
   }
 
-  callRender(context: RenderContext): void {
-    const camera = context._camera;
-    const elements = this._renderers._elements;
-    for (let i = this._renderers.length - 1; i >= 0; --i) {
-      const element = elements[i];
-
-      // filter by camera culling mask.
-      if (!(camera.cullingMask & element._entity.layer)) {
-        continue;
-      }
-
-      // filter by camera frustum.
-      if (camera.enableFrustumCulling) {
-        element.isCulled = !camera._frustum.intersectsBox(element.bounds);
-        if (element.isCulled) {
-          continue;
-        }
-      }
-
-      const transform = camera.entity.transform;
-      const position = transform.worldPosition;
-      const center = element.bounds.getCenter(ComponentsManager._tempVector0);
-      if (camera.isOrthographic) {
-        const forward = transform.getWorldForward(ComponentsManager._tempVector1);
-        Vector3.subtract(center, position, center);
-        element._distanceForSort = Vector3.dot(center, forward);
-      } else {
-        element._distanceForSort = Vector3.distanceSquared(center, position);
-      }
-
-      element._updateShaderData(context);
-
-      element._render(camera);
-
-      // union camera global macro and renderer macro.
-      ShaderMacroCollection.unionCollection(
-        camera._globalShaderMacro,
-        element.shaderData._macroCollection,
-        element._globalShaderMacro
-      );
-    }
-  }
-
-  callComponentDestroy(): void {
-    const destroyComponents = this._destroyComponents;
-    const length = destroyComponents.length;
+  handlingInvalidScripts(): void {
+    const { _disableScripts: disableScripts } = this;
+    let length = disableScripts.length;
     if (length > 0) {
-      for (let i = length - 1; i >= 0; --i) {
-        destroyComponents[i].onDestroy();
+      for (let i = length - 1; i >= 0; i--) {
+        const disableScript = disableScripts[i];
+        disableScript._waitHandlingInValid && disableScript._handlingInValid();
       }
-      destroyComponents.length = 0;
+      disableScripts.length = 0;
+    }
+
+    const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
+    this._disposeDestroyScripts = disposeDestroyScripts;
+    this._pendingDestroyScripts = pendingDestroyScripts;
+    length = disposeDestroyScripts.length;
+    if (length > 0) {
+      for (let i = length - 1; i >= 0; i--) {
+        disposeDestroyScripts[i].onDestroy();
+      }
+      disposeDestroyScripts.length = 0;
     }
   }
 
-  callCameraOnBeginRender(camera: Camera) {
-    const camComps = camera.entity._components;
-    for (let i = camComps.length - 1; i >= 0; --i) {
-      const camComp = camComps[i];
-      (camComp as any).onBeginRender && (camComp as any).onBeginRender(camera);
+  callCameraOnBeginRender(camera: Camera): void {
+    const scripts = camera.entity._scripts;
+    for (let i = scripts.length - 1; i >= 0; --i) {
+      const script = scripts.get(i);
+      script._waitHandlingInValid || script.onBeginRender(camera);
     }
   }
 
-  callCameraOnEndRender(camera: Camera) {
-    const camComps = camera.entity._components;
-    for (let i = camComps.length - 1; i >= 0; --i) {
-      const camComp = camComps[i];
-      (camComp as any).onEndRender && (camComp as any).onEndRender(camera);
-    }
-  }
-
-  callColliderOnUpdate() {
-    const elements = this._colliders._elements;
-    for (let i = this._colliders.length - 1; i >= 0; --i) {
-      elements[i]._onUpdate();
-    }
-  }
-
-  callColliderOnLateUpdate() {
-    const elements = this._colliders._elements;
-    for (let i = this._colliders.length - 1; i >= 0; --i) {
-      elements[i]._onLateUpdate();
+  callCameraOnEndRender(camera: Camera): void {
+    const scripts = camera.entity._scripts;
+    for (let i = scripts.length - 1; i >= 0; --i) {
+      const script = scripts.get(i);
+      script._waitHandlingInValid || script.onEndRender(camera);
     }
   }
 

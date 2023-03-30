@@ -1,22 +1,20 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
-import { Camera } from "../Camera";
-import { Component } from "../Component";
+import { RenderData2D } from "../2d/data/RenderData2D";
 import { Material } from "../material/Material";
+import { Renderer } from "../Renderer";
+import { RenderElement } from "./RenderElement";
 
-export class SpriteMaskElement {
-  component: Component;
-  positions: Vector3[];
-  uv: Vector2[];
-  triangles: number[];
-  material: Material;
+export class SpriteMaskElement extends RenderElement {
+  renderData: RenderData2D;
   isAdd: boolean = true;
-  camera: Camera;
 
-  setValue(component: Component, positions: Vector3[], uv: Vector2[], triangles: number[], material: Material): void {
+  constructor() {
+    super();
+    this.multiRenderData = false;
+  }
+
+  setValue(component: Renderer, renderData: RenderData2D, material: Material): void {
     this.component = component;
-    this.positions = positions;
-    this.uv = uv;
-    this.triangles = triangles;
+    this.renderData = renderData;
     this.material = material;
   }
 }

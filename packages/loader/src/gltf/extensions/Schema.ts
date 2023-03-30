@@ -153,6 +153,12 @@ export interface IKHRXmp_Node {
   packet: number;
 }
 
+export interface IOasisMaterialRemap {
+  refId: string;
+  key?: string;
+  isClone?: boolean;
+}
+
 export type ExtensionSchema =
   | IKHRLightsPunctual_Light
   | IKHRDracoMeshCompression

@@ -3,12 +3,11 @@ const path = require("path");
 
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import babel from "@rollup/plugin-babel";
 import glslify from "rollup-plugin-glslify";
-import { terser } from "rollup-plugin-terser";
 import serve from "rollup-plugin-serve";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
+import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
 
 const camelCase = require("camelcase");
 
@@ -40,11 +39,18 @@ const commonPlugins = [
   glslify({
     include: [/\.glsl$/]
   }),
-  babel({
-    extensions,
-    babelHelpers: "bundled",
-    exclude: ["node_modules/**", "packages/**/node_modules/**"]
-  }),
+  swc(
+    defineRollupSwcOption({
+      include: /\.[mc]?[jt]sx?$/,
+      exclude: /node_modules/,
+      jsc: {
+        loose: true,
+        externalHelpers: true,
+        target: "es5"
+      },
+      sourceMaps: true
+    })
+  ),
   commonjs(),
   NODE_ENV === "development"
     ? serve({
@@ -56,7 +62,8 @@ const commonPlugins = [
 
 function config({ location, pkgJson }) {
   const input = path.join(location, "src", "index.ts");
-  const external = Object.keys(pkgJson.dependencies || {});
+  const dependencies = Object.assign({}, pkgJson.dependencies ?? {}, pkgJson.peerDependencies ?? {});
+  const external = Object.keys(dependencies);
   const name = pkgJson.name;
   commonPlugins.push(
     replace({
@@ -70,7 +77,7 @@ function config({ location, pkgJson }) {
       let file = path.join(location, "dist", "browser.js");
       const plugins = [...commonPlugins];
       if (compress) {
-        plugins.push(terser());
+        plugins.push(minify());
         file = path.join(location, "dist", "browser.min.js");
       }
 
@@ -126,6 +133,7 @@ function config({ location, pkgJson }) {
           },
           {
             file: path.join(location, pkgJson.main),
+            sourcemap: true,
             format: "commonjs"
           }
         ],

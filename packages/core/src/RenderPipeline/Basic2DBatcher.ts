@@ -1,10 +1,12 @@
+import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Buffer, BufferBindFlag, BufferUsage, IndexFormat, MeshTopology, SubMesh, VertexElement } from "../graphic";
+import { Material } from "../material";
 import { BufferMesh } from "../mesh";
-import { SystemInfo } from "../SystemInfo";
 import { ClassPool } from "./ClassPool";
 import { SpriteElement } from "./SpriteElement";
 import { SpriteMaskElement } from "./SpriteMaskElement";
+import { TextRenderElement } from "./TextRenderElement";
 
 type Element = SpriteElement | SpriteMaskElement;
 
@@ -13,6 +15,8 @@ export abstract class Basic2DBatcher {
   static MAX_VERTEX_COUNT: number = 4096;
   static _canUploadSameBuffer: boolean = true;
 
+  /** @internal */
+  _engine: Engine;
   /** @internal */
   _subMeshPool: ClassPool<SubMesh> = new ClassPool(SubMesh);
   /** @internal */
@@ -37,6 +41,8 @@ export abstract class Basic2DBatcher {
   _elementCount: number = 0;
 
   constructor(engine: Engine) {
+    this._engine = engine;
+
     const { MAX_VERTEX_COUNT } = Basic2DBatcher;
     this._vertices = new Float32Array(MAX_VERTEX_COUNT * 9);
     this._indices = new Uint16Array(MAX_VERTEX_COUNT * 3);
@@ -47,25 +53,39 @@ export abstract class Basic2DBatcher {
     }
   }
 
-  drawElement(element: Element): void {
-    const len = element.positions.length;
+  drawElement(
+    element: SpriteMaskElement | SpriteElement | TextRenderElement,
+    camera: Camera,
+    replaceMaterial: Material
+  ): void {
+    if (element.multiRenderData) {
+      const elements = (<TextRenderElement>element).charElements;
+      for (let i = 0, n = elements.length; i < n; ++i) {
+        this._drawSubElement(elements[i], camera, replaceMaterial);
+      }
+    } else {
+      this._drawSubElement(<SpriteMaskElement | SpriteElement>element, camera, replaceMaterial);
+    }
+  }
+
+  private _drawSubElement(element: SpriteMaskElement | SpriteElement, camera: Camera, replaceMaterial: Material) {
+    const len = element.renderData.vertexCount;
     if (this._vertexCount + len > Basic2DBatcher.MAX_VERTEX_COUNT) {
-      this.flush(element.camera.engine);
+      this.flush(camera, replaceMaterial);
     }
 
     this._vertexCount += len;
     this._batchedQueue[this._elementCount++] = element;
   }
 
-  flush(engine: Engine): void {
+  flush(camera: Camera, replaceMaterial: Material): void {
     const batchedQueue = this._batchedQueue;
 
     if (batchedQueue.length === 0) {
       return;
     }
-
-    this._updateData(engine);
-    this.drawBatches(engine);
+    this._updateData(this._engine);
+    this.drawBatches(camera, replaceMaterial);
 
     if (!Basic2DBatcher._canUploadSameBuffer) {
       this._flushId++;
@@ -159,13 +179,13 @@ export abstract class Basic2DBatcher {
       vertexIndex = this.updateVertices(curElement, vertices, vertexIndex);
 
       // Batch indice
-      const { triangles } = curElement;
+      const { triangles } = curElement.renderData;
       const triangleNum = triangles.length;
       for (let j = 0; j < triangleNum; j++) {
         indices[indiceIndex++] = triangles[j] + curIndiceStartIndex;
       }
 
-      curIndiceStartIndex += curElement.positions.length;
+      curIndiceStartIndex += curElement.renderData.vertexCount;
 
       if (preElement === null) {
         vertexCount += triangleNum;
@@ -216,5 +236,5 @@ export abstract class Basic2DBatcher {
   /**
    * @internal
    */
-  abstract drawBatches(engine: Engine): void;
+  abstract drawBatches(camera: Camera, replaceMaterial: Material): void;
 }

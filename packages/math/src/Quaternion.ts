@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix3x3 } from "./Matrix3x3";
 import { Vector3 } from "./Vector3";
@@ -6,7 +7,7 @@ import { Vector3 } from "./Vector3";
 /**
  * Represents a four dimensional mathematical quaternion.
  */
-export class Quaternion implements IClone {
+export class Quaternion implements IClone<Quaternion>, ICopy<QuaternionLike, Quaternion> {
   /** @internal */
   static readonly _tempVector3 = new Vector3();
   /** @internal */
@@ -246,48 +247,29 @@ export class Quaternion implements IClone {
    * Performs a spherical linear blend between two quaternions.
    * @param start - The first quaternion
    * @param end - The second quaternion
-   * @param t - The blend amount where 0 returns start and 1 end
+   * @param amount - The blend amount where 0 returns start and 1 end
    * @param out - The result of spherical linear blending between two quaternions
    */
-  static slerp(start: Quaternion, end: Quaternion, t: number, out: Quaternion): void {
-    const ax = start._x;
-    const ay = start._y;
-    const az = start._z;
-    const aw = start._w;
-    let bx = end._x;
-    let by = end._y;
-    let bz = end._z;
-    let bw = end._w;
+  static slerp(start: Quaternion, end: Quaternion, amount: number, out: Quaternion): void {
+    let opposite: number;
+    let inverse: number;
+    const dot = Quaternion.dot(start, end);
 
-    let scale0: number, scale1: number;
-    // calc cosine
-    let cosom = ax * bx + ay * by + az * bz + aw * bw;
-    // adjust signs (if necessary)
-    if (cosom < 0.0) {
-      cosom = -cosom;
-      bx = -bx;
-      by = -by;
-      bz = -bz;
-      bw = -bw;
-    }
-    // calculate coefficients
-    if (1.0 - cosom > MathUtil.zeroTolerance) {
-      // standard case (slerp)
-      const omega = Math.acos(cosom);
-      const sinom = Math.sin(omega);
-      scale0 = Math.sin((1.0 - t) * omega) / sinom;
-      scale1 = Math.sin(t * omega) / sinom;
+    if (Math.abs(dot) > 1.0 - MathUtil.zeroTolerance) {
+      inverse = 1.0 - amount;
+      opposite = amount * Math.sign(dot);
     } else {
-      // "from" and "to" quaternions are very close
-      //  ... so we can do a linear interpolation
-      scale0 = 1.0 - t;
-      scale1 = t;
+      const acos = Math.acos(Math.abs(dot));
+      const invSin = 1.0 / Math.sin(acos);
+
+      inverse = Math.sin((1.0 - amount) * acos) * invSin;
+      opposite = Math.sin(amount * acos) * invSin * Math.sign(dot);
     }
-    // calculate final values
-    out._x = scale0 * ax + scale1 * bx;
-    out._y = scale0 * ay + scale1 * by;
-    out._z = scale0 * az + scale1 * bz;
-    out._w = scale0 * aw + scale1 * bw;
+
+    out.x = inverse * start.x + opposite * end.x;
+    out.y = inverse * start.y + opposite * end.y;
+    out.z = inverse * start.z + opposite * end.z;
+    out.w = inverse * start.w + opposite * end.w;
     out._onValueChanged && out._onValueChanged();
   }
 
@@ -522,26 +504,11 @@ export class Quaternion implements IClone {
    * @param w - The w component of the quaternion
    * @returns This quaternion
    */
-  setValue(x: number, y: number, z: number, w: number): Quaternion {
+  set(x: number, y: number, z: number, w: number): Quaternion {
     this._x = x;
     this._y = y;
     this._z = z;
     this._w = w;
-    this._onValueChanged && this._onValueChanged();
-    return this;
-  }
-
-  /**
-   * Set the value of this quaternion by an array.
-   * @param array - The array
-   * @param offset - The start offset of the array
-   * @returns This quaternion
-   */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): Quaternion {
-    this._x = array[offset];
-    this._y = array[offset + 1];
-    this._z = array[offset + 2];
-    this._w = array[offset + 3];
     this._onValueChanged && this._onValueChanged();
     return this;
   }
@@ -650,40 +617,6 @@ export class Quaternion implements IClone {
   }
 
   /**
-   * Clone the value of this quaternion to an array.
-   * @param out - The array
-   * @param outOffset - The start offset of the array
-   */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    out[outOffset] = this._x;
-    out[outOffset + 1] = this._y;
-    out[outOffset + 2] = this._z;
-    out[outOffset + 3] = this._w;
-  }
-
-  /**
-   * Creates a clone of this quaternion.
-   * @returns A clone of this quaternion
-   */
-  clone(): Quaternion {
-    return new Quaternion(this._x, this._y, this._z, this._w);
-  }
-
-  /**
-   * Clones this quaternion to the specified quaternion.
-   * @param out - The specified quaternion
-   * @returns The specified quaternion
-   */
-  cloneTo(out: Quaternion): Quaternion {
-    out._x = this._x;
-    out._y = this._y;
-    out._z = this._z;
-    out._w = this._w;
-    out._onValueChanged && out._onValueChanged();
-    return out;
-  }
-
-  /**
    * Calculate this quaternion rotate around X axis.
    * @param rad - The rotation angle in radians
    * @returns This quaternion
@@ -775,26 +708,117 @@ export class Quaternion implements IClone {
     return this;
   }
 
-  private _toYawPitchRoll(out: Vector3): Vector3 {
-    const { _x, _y, _z, _w } = this;
-    const xx = _x * _x;
-    const yy = _y * _y;
-    const zz = _z * _z;
-    const xy = _x * _y;
-    const zw = _z * _w;
-    const zx = _z * _x;
-    const yw = _y * _w;
-    const yz = _y * _z;
-    const xw = _x * _w;
-
-    out._y = Math.asin(2.0 * (xw - yz));
-    if (Math.cos(out.y) > MathUtil.zeroTolerance) {
-      out._z = Math.atan2(2.0 * (xy + zw), 1.0 - 2.0 * (zz + xx));
-      out._x = Math.atan2(2.0 * (zx + yw), 1.0 - 2.0 * (yy + xx));
-    } else {
-      out._z = Math.atan2(-2.0 * (xy - zw), 1.0 - 2.0 * (yy + zz));
-      out._x = 0.0;
-    }
-    return out;
+  /**
+   * Creates a clone of this quaternion.
+   * @returns A clone of this quaternion
+   */
+  clone(): Quaternion {
+    return new Quaternion(this._x, this._y, this._z, this._w);
   }
+
+  /**
+   * Copy this quaternion from the specified quaternion.
+   * @param source - The specified quaternion
+   * @returns This quaternion
+   */
+  copyFrom(source: QuaternionLike): Quaternion {
+    this._x = source.x;
+    this._y = source.y;
+    this._z = source.z;
+    this._w = source.w;
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this quaternion from an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
+   * @returns This quaternion
+   */
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): Quaternion {
+    this._x = array[offset];
+    this._y = array[offset + 1];
+    this._z = array[offset + 2];
+    this._w = array[offset + 3];
+    this._onValueChanged && this._onValueChanged();
+    return this;
+  }
+
+  /**
+   * Copy the value of this quaternion to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
+    out[outOffset] = this._x;
+    out[outOffset + 1] = this._y;
+    out[outOffset + 2] = this._z;
+    out[outOffset + 3] = this._w;
+  }
+
+  /**
+   * Serialize this quaternion to a JSON representation.
+   * @returns A JSON Object representation of this quaternion
+   */
+  toJSON(): QuaternionLike {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z,
+      w: this._w
+    };
+  }
+
+  private _toYawPitchRoll(out: Vector3): void {
+    // https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
+    const { _x: x, _y: y, _z: z, _w: w } = this;
+    const xx = x * x;
+    const sinP = 2.0 * (x * w - y * z);
+
+    // use 90 degrees if out of range
+    out._y = Math.abs(sinP) >= 1 ? Math.sign(sinP) * (Math.PI / 2) : Math.asin(sinP);
+    out._x = Math.atan2(2.0 * (z * x + y * w), 1.0 - 2.0 * (y * y + xx));
+    out._z = Math.atan2(2.0 * (x * y + z * w), 1.0 - 2.0 * (z * z + xx));
+  }
+
+  // @todo: this is yaw roll pitch, we need to waw pitch roll order, this version has better performance
+  // private _toYawRollPitch(out: Vector3): Vector3 {
+  //   // http://www.euclideanspace.com/maths/geometry/rotations/conversions/quaternionToEuler/
+  //   const { _x: x, _y: y, _z: z, _w: w } = this;
+  //   const sqw = w * w;
+  //   const sqx = x * x;
+  //   const sqy = y * y;
+  //   const sqz = z * z;
+  //   const unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
+  //   const test = x * y + z * w;
+  //   if (test > (0.5 - MathUtil.zeroTolerance) * unit) {
+  //     // singularity at north pole
+  //     out._x = 2 * Math.atan2(x, w);
+  //     out._y = Math.PI / 2;
+  //     out._z = 0;
+  //     return;
+  //   }
+  //   if (test < -(0.5 - MathUtil.zeroTolerance) * unit) {
+  //     // singularity at south pole
+  //     out._x = -2 * Math.atan2(x, w);
+  //     out._y = -Math.PI / 2;
+  //     out._z = 0;
+  //     return;
+  //   }
+  //   out._x = Math.atan2(2 * y * w - 2 * x * z, sqx - sqy - sqz + sqw);
+  //   out._y = Math.asin((2 * test) / unit);
+  //   out._z = Math.atan2(2 * x * w - 2 * y * z, -sqx + sqy - sqz + sqw);
+  // }
+}
+
+interface QuaternionLike {
+  /** {@inheritDoc Quaternion.x} */
+  x: number;
+  /** {@inheritDoc Quaternion.y} */
+  y: number;
+  /** {@inheritDoc Quaternion.z} */
+  z: number;
+  /** {@inheritDoc Quaternion.w} */
+  w: number;
 }
