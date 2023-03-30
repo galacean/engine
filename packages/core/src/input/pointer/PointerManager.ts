@@ -112,9 +112,9 @@ export class PointerManager implements IInput {
     if (!this._hadListener) {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.addEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.addEventListener("pointerup", onPointerEvent);
-      htmlCanvas.addEventListener("pointerout", onPointerEvent);
       htmlCanvas.addEventListener("pointermove", onPointerEvent);
+      htmlCanvas.addEventListener("pointerup", onPointerEvent);
+      htmlCanvas.addEventListener("pointerleave", onPointerEvent);
       htmlCanvas.addEventListener("pointercancel", onPointerEvent);
       this._hadListener = true;
     }
@@ -127,9 +127,9 @@ export class PointerManager implements IInput {
     if (this._hadListener) {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerleave", onPointerEvent);
       htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
       this._downList.length = 0;
@@ -150,9 +150,9 @@ export class PointerManager implements IInput {
     if (this._hadListener) {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerup", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerleave", onPointerEvent);
       htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
     }
@@ -254,13 +254,7 @@ export class PointerManager implements IInput {
       const normalizedY = (latestEvent.clientY - rect.top) / clientH;
       const currX = normalizedX * canvasW;
       const currY = normalizedY * canvasH;
-      if (currX === position.x && currY === position.y) {
-        pointer.deltaPosition.set(0, 0);
-        pointer.phase = PointerPhase.Stationary;
-      } else {
-        pointer.deltaPosition.set(currX - position.x, currY - position.y);
-        pointer.phase = PointerPhase.Move;
-      }
+      pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
       pointer._firePointerDrag();
       const rayCastEntity = this._pointerRayCast(normalizedX, normalizedY);
@@ -287,7 +281,10 @@ export class PointerManager implements IInput {
             pointer.phase = PointerPhase.Up;
             pointer._firePointerUpAndClick(rayCastEntity);
             break;
-          case "pointerout":
+          case "pointermove":
+            pointer.phase = PointerPhase.Move;
+            break;
+          case "pointerleave":
           case "pointercancel":
             pointer.phase = PointerPhase.Leave;
             pointer._firePointerExitAndEnter(null);
@@ -345,7 +342,7 @@ export class PointerManager implements IInput {
           case "pointermove":
             pointer.phase = PointerPhase.Move;
             break;
-          case "pointerout":
+          case "pointerleave":
           case "pointercancel":
             pointer.phase = PointerPhase.Leave;
           default:
