@@ -80,17 +80,6 @@ export class KeyboardManager implements IInput {
             }
             curFrameUpList.add(codeKey);
             upKeyToFrameCountMap[codeKey] = frameCount;
-            // @todo
-            // Because on the mac, the keyup event is not responded to when the meta key is held down, 
-            // in order to maintain the correct keystroke record, it is necessary to clear the record 
-            // when the meta key is lifted.
-            // link: https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
-            // if (codeKey === Keys.MetaLeft || codeKey === Keys.MetaRight) {
-            //   for (let i = 0, len = curFrameHeldDownList.length; i < len; i++) {
-            //     curHeldDownKeyToIndexMap[curFrameHeldDownList.get(i)] = null;
-            //   }
-            //   curFrameHeldDownList.length = 0;
-            // }
             break;
           default:
             break;
