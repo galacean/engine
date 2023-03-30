@@ -1,8 +1,8 @@
 import { MathUtil, Matrix, Quaternion, Vector3 } from "oasis-engine";
-import { LiteUpdateFlagManager } from "./LiteUpdateFlagManager";
-import { LiteUpdateFlag } from "./LiteUpdateFlag";
-import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteCollider } from "./LiteCollider";
+import { LiteUpdateFlag } from "./LiteUpdateFlag";
+import { LiteUpdateFlagManager } from "./LiteUpdateFlagManager";
+import { LiteColliderShape } from "./shape/LiteColliderShape";
 
 /**
  * Used to implement transformation related functions.
@@ -39,7 +39,7 @@ export class LiteTransform {
 
   set position(value: Vector3) {
     if (this._position !== value) {
-      value.cloneTo(this._position);
+      this._position.copyFrom(value);
     }
     this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
     this._updateWorldPositionFlag();
@@ -64,7 +64,7 @@ export class LiteTransform {
 
   set rotationQuaternion(value: Quaternion) {
     if (this._rotationQuaternion !== value) {
-      value.cloneTo(this._rotationQuaternion);
+      this._rotationQuaternion.copyFrom(value);
     }
     this._setDirtyFlagTrue(TransformFlag.LocalMatrix | TransformFlag.LocalEuler);
     this._setDirtyFlagFalse(TransformFlag.LocalQuat);
@@ -81,7 +81,7 @@ export class LiteTransform {
       if (parent != null) {
         Quaternion.multiply(parent.worldRotationQuaternion, this.rotationQuaternion, this._worldRotationQuaternion);
       } else {
-        this.rotationQuaternion.cloneTo(this._worldRotationQuaternion);
+        this._worldRotationQuaternion.copyFrom(this.rotationQuaternion);
       }
       this._setDirtyFlagFalse(TransformFlag.WorldQuat);
     }
@@ -90,14 +90,14 @@ export class LiteTransform {
 
   set worldRotationQuaternion(value: Quaternion) {
     if (this._worldRotationQuaternion !== value) {
-      value.cloneTo(this._worldRotationQuaternion);
+      this._worldRotationQuaternion.copyFrom(value);
     }
     const parent = this._getParentTransform();
     if (parent) {
       Quaternion.invert(parent.worldRotationQuaternion, LiteTransform._tempQuat0);
       Quaternion.multiply(value, LiteTransform._tempQuat0, this._rotationQuaternion);
     } else {
-      value.cloneTo(this._rotationQuaternion);
+      this._rotationQuaternion.copyFrom(value);
     }
     this.rotationQuaternion = this._rotationQuaternion;
     this._setDirtyFlagFalse(TransformFlag.WorldQuat);
@@ -113,7 +113,7 @@ export class LiteTransform {
 
   set scale(value: Vector3) {
     if (this._scale !== value) {
-      value.cloneTo(this._scale);
+      this._scale.copyFrom(value);
     }
     this._setDirtyFlagTrue(TransformFlag.LocalMatrix);
     this._updateWorldScaleFlag();
@@ -133,7 +133,7 @@ export class LiteTransform {
 
   set localMatrix(value: Matrix) {
     if (this._localMatrix !== value) {
-      value.cloneTo(this._localMatrix);
+      this._localMatrix.copyFrom(value);
     }
     this._localMatrix.decompose(this._position, this._rotationQuaternion, this._scale);
     this._setDirtyFlagTrue(TransformFlag.LocalEuler);
@@ -151,7 +151,7 @@ export class LiteTransform {
       if (parent) {
         Matrix.multiply(parent.worldMatrix, this.localMatrix, this._worldMatrix);
       } else {
-        this.localMatrix.cloneTo(this._worldMatrix);
+        this._worldMatrix.copyFrom(this.localMatrix);
       }
       this._setDirtyFlagFalse(TransformFlag.WorldMatrix);
     }
@@ -160,14 +160,14 @@ export class LiteTransform {
 
   set worldMatrix(value: Matrix) {
     if (this._worldMatrix !== value) {
-      value.cloneTo(this._worldMatrix);
+      this._worldMatrix.copyFrom(value);
     }
     const parent = this._getParentTransform();
     if (parent) {
       Matrix.invert(parent.worldMatrix, LiteTransform._tempMat42);
-      Matrix.multiply(value, LiteTransform._tempMat42, this._localMatrix);
+      Matrix.multiply(LiteTransform._tempMat42, value, this._localMatrix);
     } else {
-      value.cloneTo(this._localMatrix);
+      this._localMatrix.copyFrom(value);
     }
     this.localMatrix = this._localMatrix;
     this._setDirtyFlagFalse(TransformFlag.WorldMatrix);
@@ -180,7 +180,7 @@ export class LiteTransform {
    * @param z - Z coordinate
    */
   setPosition(x: number, y: number, z: number): void {
-    this._position.setValue(x, y, z);
+    this._position.set(x, y, z);
     this.position = this._position;
   }
 
@@ -192,7 +192,7 @@ export class LiteTransform {
    * @param w - W component of quaternion
    */
   setRotationQuaternion(x: number, y: number, z: number, w: number): void {
-    this._rotationQuaternion.setValue(x, y, z, w);
+    this._rotationQuaternion.set(x, y, z, w);
     this.rotationQuaternion = this._rotationQuaternion;
   }
 
@@ -203,7 +203,7 @@ export class LiteTransform {
    * @param z - Scaling along Z axis
    */
   setScale(x: number, y: number, z: number): void {
-    this._scale.setValue(x, y, z);
+    this._scale.set(x, y, z);
     this.scale = this._scale;
   }
 

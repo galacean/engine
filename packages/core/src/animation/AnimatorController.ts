@@ -1,4 +1,4 @@
-import { UpdateFlag } from "../UpdateFlag";
+import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
 
@@ -32,7 +32,7 @@ export class AnimatorController {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
-    this._distributeUpdateFlag();
+    this._updateFlagManager.dispatch();
   }
 
   /**
@@ -43,7 +43,7 @@ export class AnimatorController {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
     delete this._layersMap[theLayer.name];
-    this._distributeUpdateFlag();
+    this._updateFlagManager.dispatch();
   }
 
   /**
@@ -54,17 +54,13 @@ export class AnimatorController {
     for (let name in this._layersMap) {
       delete this._layersMap[name];
     }
-    this._distributeUpdateFlag();
+    this._updateFlagManager.dispatch();
   }
 
   /**
    * @internal
    */
-  _registerChangeFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
-  }
-
-  private _distributeUpdateFlag(): void {
-    this._updateFlagManager.distribute();
+  _registerChangeFlag(): BoolUpdateFlag {
+    return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
 }

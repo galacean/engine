@@ -1,47 +1,39 @@
-import { AssetType } from "@oasis-engine/core";
-import { GLTFResource } from "../GLTFResource";
-import { IBuffer, IGLTF } from "../Schema";
+import { AssetPromise, request } from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
+import { IBuffer, IGLTF } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class BufferParser extends Parser {
-  parse(context: GLTFResource): Promise<void> {
-    const { url, engine } = context;
+  parse(context: ParserContext): AssetPromise<void> {
+    const glTFResource = context.glTFResource;
+    const { url } = glTFResource;
 
     if (this._isGLB(url)) {
-      return engine.resourceManager
-        .load<ArrayBuffer>({
-          url,
-          type: AssetType.Buffer
-        })
+      return request<ArrayBuffer>(url, { type: "arraybuffer" })
         .then(GLTFUtil.parseGLB)
         .then(({ gltf, buffers }) => {
           context.gltf = gltf;
           context.buffers = buffers;
         });
     } else {
-      return engine.resourceManager
-        .load<IGLTF>({
-          url,
-          type: AssetType.JSON
-        })
-        .then((gltf: IGLTF) => {
-          context.gltf = gltf;
-          return Promise.all(
-            gltf.buffers.map((buffer: IBuffer) => {
-              return engine.resourceManager.load<ArrayBuffer>({
-                type: AssetType.Buffer,
-                url: GLTFUtil.parseRelativeUrl(url, buffer.uri)
-              });
-            })
-          ).then((buffers: ArrayBuffer[]) => {
-            context.buffers = buffers;
-          });
+      return request(url, {
+        type: "json"
+      }).then((gltf: IGLTF) => {
+        context.gltf = gltf;
+        return Promise.all(
+          gltf.buffers.map((buffer: IBuffer) => {
+            return request<ArrayBuffer>(GLTFUtil.parseRelativeUrl(url, buffer.uri), { type: "arraybuffer" });
+          })
+        ).then((buffers: ArrayBuffer[]) => {
+          context.buffers = buffers;
         });
+      });
     }
   }
 
   private _isGLB(url: string): boolean {
-    return url.substring(url.lastIndexOf(".") + 1) === "glb";
+    const index = url.lastIndexOf(".");
+    return url.substring(index + 1, index + 4) === "glb";
   }
 }

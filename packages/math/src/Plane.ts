@@ -1,10 +1,11 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { Vector3 } from "./Vector3";
 
 /**
- * Represents a plane in three dimensional space.
+ * Represents a plane in three-dimensional space.
  */
-export class Plane implements IClone {
+export class Plane implements IClone<Plane>, ICopy<Plane, Plane> {
   /**
    * Normalize the normal vector of the specified plane.
    * @param p - The specified plane
@@ -63,7 +64,7 @@ export class Plane implements IClone {
    * @param distance - The distance of the plane along its normal to the origin
    */
   constructor(normal: Vector3 = null, distance: number = 0) {
-    normal && normal.cloneTo(this.normal);
+    normal && this.normal.copyFrom(normal);
     this.distance = distance;
   }
 
@@ -82,18 +83,18 @@ export class Plane implements IClone {
    */
   clone(): Plane {
     const out = new Plane();
-    this.cloneTo(out);
+    out.copyFrom(this);
     return out;
   }
 
   /**
-   * Clones this plane to the specified plane.
-   * @param out - The specified plane
-   * @returns The specified plane
+   * Copy this plane from the specified plane.
+   * @param source - The specified plane
+   * @returns This plane
    */
-  cloneTo(out: Plane): Plane {
-    this.normal.cloneTo(out.normal);
-    out.distance = this.distance;
-    return out;
+  copyFrom(source: Plane): Plane {
+    this.normal.copyFrom(source.normal);
+    this.distance = source.distance;
+    return this;
   }
 }

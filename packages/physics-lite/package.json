@@ -1,6 +1,10 @@
 {
   "name": "@oasis-engine/physics-lite",
-  "version": "0.6.7",
+  "version": "0.9.0-beta.73",
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -14,11 +18,11 @@
     "dist/**/*",
     "types/**/*"
   ],
-  "dependencies": {
-    "@oasis-engine/design": "0.6.7",
-    "oasis-engine": "0.6.7"
+  "devDependencies": {
+    "@oasis-engine/design": "workspace:*",
+    "oasis-engine": "workspace:*"
   },
-  "publishConfig": {
-    "access": "public"
+  "peerDependencies": {
+    "oasis-engine": "workspace:*"
   }
 }

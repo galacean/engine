@@ -1,16 +1,20 @@
 import { Entity } from "@oasis-engine/core";
 import { GLTFResource } from "../GLTFResource";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class EntityParser extends Parser {
   /** @internal */
   static _defaultName: String = "_GLTF_ENTITY_";
 
-  parse(context: GLTFResource): void {
+  parse(context: ParserContext): void {
     const {
-      engine,
+      glTFResource,
       gltf: { nodes }
     } = context;
+
+    const { engine } = glTFResource;
+
     if (!nodes) return;
 
     const entities: Entity[] = [];
@@ -23,7 +27,7 @@ export class EntityParser extends Parser {
       const { transform } = entity;
       if (matrix) {
         const localMatrix = transform.localMatrix;
-        localMatrix.setValueByArray(matrix);
+        localMatrix.copyFromArray(matrix);
         transform.localMatrix = localMatrix;
       } else {
         if (translation) {
@@ -40,16 +44,16 @@ export class EntityParser extends Parser {
       entities[i] = entity;
     }
 
-    context.entities = entities;
-    this._buildEntityTree(context);
-    this._createSceneRoots(context);
+    glTFResource.entities = entities;
+    this._buildEntityTree(context, glTFResource);
+    this._createSceneRoots(context, glTFResource);
   }
 
-  private _buildEntityTree(context: GLTFResource): void {
+  private _buildEntityTree(context: ParserContext, glTFResource: GLTFResource): void {
     const {
-      gltf: { nodes },
-      entities
+      gltf: { nodes }
     } = context;
+    const { entities } = glTFResource;
 
     for (let i = 0; i < nodes.length; i++) {
       const { children } = nodes[i];
@@ -65,12 +69,9 @@ export class EntityParser extends Parser {
     }
   }
 
-  private _createSceneRoots(context: GLTFResource): void {
-    const {
-      engine,
-      gltf: { scene: sceneID = 0, scenes },
-      entities
-    } = context;
+  private _createSceneRoots(context: ParserContext, glTFResource: GLTFResource): void {
+    const { scene: sceneID = 0, scenes } = context.gltf;
+    const { engine, entities } = glTFResource;
 
     if (!scenes) return;
 
@@ -92,7 +93,7 @@ export class EntityParser extends Parser {
       }
     }
 
-    context.sceneRoots = sceneRoots;
-    context.defaultSceneRoot = sceneRoots[sceneID];
+    glTFResource.sceneRoots = sceneRoots;
+    glTFResource.defaultSceneRoot = sceneRoots[sceneID];
   }
 }

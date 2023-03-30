@@ -1,5 +1,3 @@
-import { AssetType } from "./AssetType";
-
 /**
  * Used to describe loading asset.
  */
@@ -28,4 +26,8 @@ export type LoadItem = {
    * Retry interval time.
    */
   retryInterval?: number;
+  /**
+   * Additional parameters for specified loader.
+   */
+  params?: Record<string, any>;
 };

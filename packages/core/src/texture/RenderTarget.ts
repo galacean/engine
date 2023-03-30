@@ -3,8 +3,7 @@ import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
 import { TextureCubeFace } from "./enums/TextureCubeFace";
-import { RenderColorTexture } from "./RenderColorTexture";
-import { RenderDepthTexture } from "./RenderDepthTexture";
+import { Texture } from "./Texture";
 
 /**
  * The render target used for off-screen rendering.
@@ -12,16 +11,28 @@ import { RenderDepthTexture } from "./RenderDepthTexture";
 export class RenderTarget extends EngineObject {
   /** @internal */
   _platformRenderTarget: IPlatformRenderTarget;
+
   /** @internal */
-  _colorTextures: RenderColorTexture[];
-  /** @internal */
-  _depth: RenderDepthTexture | RenderBufferDepthFormat | null;
+  _depth: Texture | RenderBufferDepthFormat | null;
   /** @internal */
   _antiAliasing: number;
 
+  private _autoGenerateMipmaps: boolean = true;
   private _width: number;
   private _height: number;
-  private _depthTexture: RenderDepthTexture | null;
+  private _colorTextures: Texture[];
+  private _depthTexture: Texture | null;
+
+  /**
+   * Whether to automatically generate multi-level textures.
+   */
+  get autoGenerateMipmaps(): boolean {
+    return this._autoGenerateMipmaps;
+  }
+
+  set autoGenerateMipmaps(value: boolean) {
+    this._autoGenerateMipmaps = value;
+  }
 
   /**
    * Render target width.
@@ -47,7 +58,7 @@ export class RenderTarget extends EngineObject {
   /**
    * Depth texture.
    */
-  get depthTexture(): RenderDepthTexture | null {
+  get depthTexture(): Texture | null {
     return this._depthTexture;
   }
 
@@ -72,7 +83,7 @@ export class RenderTarget extends EngineObject {
     engine: Engine,
     width: number,
     height: number,
-    colorTexture: RenderColorTexture,
+    colorTexture: Texture,
     depthFormat?: RenderBufferDepthFormat | null,
     antiAliasing?: number
   );
@@ -91,8 +102,8 @@ export class RenderTarget extends EngineObject {
     engine: Engine,
     width: number,
     height: number,
-    colorTexture: RenderColorTexture | null,
-    depthTexture: RenderDepthTexture,
+    colorTexture: Texture | null,
+    depthTexture: Texture,
     antiAliasing?: number
   );
 
@@ -109,7 +120,7 @@ export class RenderTarget extends EngineObject {
     engine: Engine,
     width: number,
     height: number,
-    colorTextures: RenderColorTexture[],
+    colorTextures: Texture[],
     depthFormat?: RenderBufferDepthFormat | null,
     antiAliasing?: number
   );
@@ -127,8 +138,8 @@ export class RenderTarget extends EngineObject {
     engine: Engine,
     width: number,
     height: number,
-    colorTextures: RenderColorTexture[],
-    depthTexture: RenderDepthTexture,
+    colorTextures: Texture[],
+    depthTexture: Texture,
     antiAliasing?: number
   );
 
@@ -139,8 +150,8 @@ export class RenderTarget extends EngineObject {
     engine: Engine,
     width: number,
     height: number,
-    renderTexture: RenderColorTexture | Array<RenderColorTexture> | null,
-    depth: RenderDepthTexture | RenderBufferDepthFormat | null = RenderBufferDepthFormat.Depth,
+    renderTexture: Texture | Texture[] | null,
+    depth: Texture | RenderBufferDepthFormat | null = RenderBufferDepthFormat.Depth,
     antiAliasing: number = 1
   ) {
     super(engine);
@@ -151,12 +162,21 @@ export class RenderTarget extends EngineObject {
     this._depth = depth;
 
     if (renderTexture) {
-      this._colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
+      const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
+      for (let i = 0, n = colorTextures.length; i < n; i++) {
+        if (colorTextures[i]._isDepthTexture) {
+          throw "Render texture can't use depth format.";
+        }
+      }
+      this._colorTextures = colorTextures;
     } else {
       this._colorTextures = [];
     }
 
-    if (depth instanceof RenderDepthTexture) {
+    if (depth instanceof Texture) {
+      if (!depth._isDepthTexture) {
+        throw "Depth texture must use depth format.";
+      }
       this._depthTexture = depth;
     }
 
@@ -168,7 +188,7 @@ export class RenderTarget extends EngineObject {
    * Get the render color texture by index.
    * @param index
    */
-  getColorTexture(index: number = 0): RenderColorTexture | null {
+  getColorTexture(index: number = 0): Texture | null {
     return this._colorTextures[index];
   }
 
@@ -176,17 +196,13 @@ export class RenderTarget extends EngineObject {
    * Generate the mipmap of each attachment texture of the renderTarget according to the configuration.
    */
   generateMipmaps(): void {
-    const colorTextureCount = this.colorTextureCount;
-
-    if (this._depthTexture?.autoGenerateMipmaps) {
-      this._depthTexture.generateMipmaps();
-    }
-
-    for (let i = 0; i < colorTextureCount; i++) {
-      const colorTexture = this._colorTextures[i];
-      if (colorTexture.autoGenerateMipmaps) {
+    if (this._autoGenerateMipmaps) {
+      const colorTextures = this._colorTextures;
+      for (let i = 0, n = colorTextures.length; i < n; i++) {
+        const colorTexture = colorTextures[i];
         colorTexture.generateMipmaps();
       }
+      this._depthTexture && this._depthTexture.generateMipmaps();
     }
   }
 

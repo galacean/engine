@@ -13,40 +13,41 @@ import { WebGLRenderer } from "./WebGLRenderer";
  * GL platform primitive.
  */
 export class GLPrimitive implements IPlatformPrimitive {
-  protected attribLocArray: number[];
-  protected readonly _primitive: Mesh;
-  protected readonly canUseInstancedArrays: boolean;
+  private _attribLocArray: number[] = [];
+  private readonly _primitive: Mesh;
+  private readonly _canUseInstancedArrays: boolean;
 
-  private gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
-  private vaoVersion: number = 0;
-  private vao: Map<number, WebGLVertexArrayObject> = new Map();
+  private _gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
+  private _vaoMap: Map<number, WebGLVertexArrayObject> = new Map();
   private readonly _useVao: boolean;
 
   constructor(rhi: WebGLRenderer, primitive: Mesh) {
     this._primitive = primitive;
-    this.canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
+    this._canUseInstancedArrays = rhi.canIUse(GLCapabilityType.instancedArrays);
     this._useVao = rhi.canIUse(GLCapabilityType.vertexArrayObject);
-    this.gl = rhi.gl;
+    this._gl = rhi.gl;
   }
 
   /**
    * Draw the primitive.
    */
-  draw(shaderProgram: any, subMesh: SubMesh, vaoNeedUpdate?: boolean): void {
-    const gl = this.gl;
+  draw(shaderProgram: any, subMesh: SubMesh, bufferStructChanged: boolean): void {
+    const gl = this._gl;
     const primitive = this._primitive;
+    // @ts-ignore
+    const useVao = this._useVao && primitive._enableVAO;
 
-    if (this._useVao) {
-      if (vaoNeedUpdate) {
-        this.clearVAO();
+    if (useVao) {
+      if (bufferStructChanged) {
+        this._clearVAO();
       }
-      if (!this.vao.has(shaderProgram.id)) {
-        this.registerVAO(shaderProgram);
+      if (!this._vaoMap.has(shaderProgram.id)) {
+        this._registerVAO(shaderProgram);
       }
-      const vao = this.vao.get(shaderProgram.id);
+      const vao = this._vaoMap.get(shaderProgram.id);
       gl.bindVertexArray(vao);
     } else {
-      this.bindBufferAndAttrib(shaderProgram);
+      this._bindBufferAndAttrib(shaderProgram);
     }
 
     // @ts-ignore
@@ -55,7 +56,7 @@ export class GLPrimitive implements IPlatformPrimitive {
 
     if (!_instanceCount) {
       if (_indexBufferBinding) {
-        if (this._useVao) {
+        if (useVao) {
           gl.drawElements(topology, count, _glIndexType, start * _glIndexByteCount);
         } else {
           const { _nativeBuffer } = _indexBufferBinding.buffer;
@@ -67,9 +68,9 @@ export class GLPrimitive implements IPlatformPrimitive {
         gl.drawArrays(topology, start, count);
       }
     } else {
-      if (this.canUseInstancedArrays) {
+      if (this._canUseInstancedArrays) {
         if (_indexBufferBinding) {
-          if (this._useVao) {
+          if (useVao) {
             gl.drawElementsInstanced(topology, count, _glIndexType, start * _glIndexByteCount, _instanceCount);
           } else {
             const { _nativeBuffer } = _indexBufferBinding.buffer;
@@ -85,29 +86,30 @@ export class GLPrimitive implements IPlatformPrimitive {
       }
     }
 
-    // unbind
-    if (this._useVao) {
+    // Unbind
+    if (useVao) {
       gl.bindVertexArray(null);
     } else {
-      this.disableAttrib();
+      this._disableAttrib();
     }
   }
 
-  destroy() {
-    this._useVao && this.clearVAO();
+  destroy(): void {
+    this._useVao && this._clearVAO();
   }
 
   /**
    * Bind buffer and attribute.
    */
-  protected bindBufferAndAttrib(shaderProgram: any): void {
-    const gl = this.gl;
+  private _bindBufferAndAttrib(shaderProgram: any): void {
+    const gl = this._gl;
     const primitive = this._primitive;
     // @ts-ignore
     const vertexBufferBindings = primitive._vertexBufferBindings;
 
-    this.attribLocArray = [];
+    this._attribLocArray.length = 0;
     const attributeLocation = shaderProgram.attributeLocation;
+    // @ts-ignore
     const attributes = primitive._vertexElementMap;
 
     let vbo: WebGLBuffer;
@@ -128,12 +130,12 @@ export class GLPrimitive implements IPlatformPrimitive {
         }
 
         gl.enableVertexAttribArray(loc);
-        const { size, type, normalized } = element._glElementInfo;
-        gl.vertexAttribPointer(loc, size, type, normalized, stride, element.offset);
-        if (this.canUseInstancedArrays) {
+        const elementInfo = element._glElementInfo;
+        gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
+        if (this._canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, element.instanceStepRate);
         }
-        this.attribLocArray.push(loc);
+        this._attribLocArray.push(loc);
       } else {
         Logger.warn("vertex attribute not found: " + name);
       }
@@ -142,15 +144,15 @@ export class GLPrimitive implements IPlatformPrimitive {
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
   }
 
-  protected disableAttrib() {
-    const gl = this.gl;
-    for (let i = 0, l = this.attribLocArray.length; i < l; i++) {
-      gl.disableVertexAttribArray(this.attribLocArray[i]);
+  private _disableAttrib() {
+    const gl = this._gl;
+    for (let i = 0, l = this._attribLocArray.length; i < l; i++) {
+      gl.disableVertexAttribArray(this._attribLocArray[i]);
     }
   }
 
-  private registerVAO(shaderProgram: any): void {
-    const gl = this.gl;
+  private _registerVAO(shaderProgram: any): void {
+    const gl = this._gl;
     const vao = gl.createVertexArray();
 
     /** register VAO */
@@ -161,21 +163,21 @@ export class GLPrimitive implements IPlatformPrimitive {
     if (_indexBufferBinding) {
       gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, _indexBufferBinding.buffer._nativeBuffer);
     }
-    this.bindBufferAndAttrib(shaderProgram);
+    this._bindBufferAndAttrib(shaderProgram);
 
     /** unbind */
     gl.bindVertexArray(null);
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, null);
-    this.disableAttrib();
+    this._disableAttrib();
 
-    this.vao.set(shaderProgram.id, vao);
+    this._vaoMap.set(shaderProgram.id, vao);
   }
 
-  private clearVAO() {
-    const gl = this.gl;
-    this.vao.forEach((vao) => {
+  private _clearVAO(): void {
+    const gl = this._gl;
+    this._vaoMap.forEach((vao) => {
       gl.deleteVertexArray(vao);
     });
-    this.vao.clear();
+    this._vaoMap.clear();
   }
 }

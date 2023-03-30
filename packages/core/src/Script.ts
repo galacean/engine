@@ -1,6 +1,7 @@
 import { Camera } from "./Camera";
 import { ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
+import { Pointer } from "./input";
 import { ColliderShape } from "./physics";
 
 /**
@@ -29,7 +30,9 @@ export class Script extends Component {
   @ignoreClone
   _onPostRenderIndex: number = -1;
   @ignoreClone
-  _entityCacheIndex: number = -1;
+  _entityScriptsIndex: number = -1;
+  @ignoreClone
+  _waitHandlingInValid: boolean = false;
 
   /**
    * Called when be enabled first time, only once.
@@ -115,34 +118,40 @@ export class Script extends Component {
 
   /**
    * Called when the pointer is down while over the ColliderShape.
+   * @param pointer - The pointer that triggered
    */
-  onPointerDown(): void {}
+  onPointerDown(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is up while over the ColliderShape.
+   * @param pointer - The pointer that triggered
    */
-  onPointerUp(): void {}
+  onPointerUp(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is down and up with the same collider.
+   * @param pointer - The pointer that triggered
    */
-  onPointerClick(): void {}
+  onPointerClick(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is enters the ColliderShape.
+   * @param pointer - The pointer that triggered
    */
-  onPointerEnter(): void {}
+  onPointerEnter(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is no longer over the ColliderShape.
+   * @param pointer - The pointer that triggered
    */
-  onPointerExit(): void {}
+  onPointerExit(pointer: Pointer): void {}
 
   /**
    * Called when the pointer is down while over the ColliderShape and is still holding down.
+   * @param pointer - The pointer that triggered
    * @remarks onPointerDrag is called every frame while the pointer is down.
    */
-  onPointerDrag(): void {}
+  onPointerDrag(pointer: Pointer): void {}
 
   /**
    * Called when be disabled.
@@ -169,21 +178,26 @@ export class Script extends Component {
    * @override
    */
   _onEnable(): void {
-    const componentsManager = this.engine._componentsManager;
-    const prototype = Script.prototype;
-    if (!this._started) {
-      componentsManager.addOnStartScript(this);
+    if (this._waitHandlingInValid) {
+      this._waitHandlingInValid = false;
+    } else {
+      const { _componentsManager: componentsManager } = this.engine;
+      const { prototype } = Script;
+      if (!this._started) {
+        componentsManager.addOnStartScript(this);
+      }
+      if (this.onUpdate !== prototype.onUpdate) {
+        componentsManager.addOnUpdateScript(this);
+      }
+      if (this.onLateUpdate !== prototype.onLateUpdate) {
+        componentsManager.addOnLateUpdateScript(this);
+      }
+      if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
+        componentsManager.addOnPhysicsUpdateScript(this);
+      }
+      this._entity._addScript(this);
     }
-    if (this.onUpdate !== prototype.onUpdate) {
-      componentsManager.addOnUpdateScript(this);
-    }
-    if (this.onLateUpdate !== prototype.onLateUpdate) {
-      componentsManager.addOnLateUpdateScript(this);
-    }
-    if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
-      componentsManager.addOnPhysicsUpdateScript(this);
-    }
-    this._entity._addScript(this);
+
     this.onEnable();
   }
 
@@ -193,24 +207,8 @@ export class Script extends Component {
    * @override
    */
   _onDisable(): void {
-    const componentsManager = this.engine._componentsManager;
-    // Use "xxIndex" is more safe.
-    // When call onDisable it maybe it still not in script queue,for example write "entity.isActive = false" in onWake().
-    if (this._onStartIndex !== -1) {
-      componentsManager.removeOnStartScript(this);
-    }
-    if (this._onUpdateIndex !== -1) {
-      componentsManager.removeOnUpdateScript(this);
-    }
-    if (this._onLateUpdateIndex !== -1) {
-      componentsManager.removeOnLateUpdateScript(this);
-    }
-    if (this._onPhysicsUpdateIndex !== -1) {
-      componentsManager.removeOnPhysicsUpdateScript(this);
-    }
-    if (this._entityCacheIndex !== -1) {
-      this._entity._removeScript(this);
-    }
+    this._waitHandlingInValid = true;
+    this._engine._componentsManager.addDisableScript(this);
     this.onDisable();
   }
 
@@ -220,6 +218,26 @@ export class Script extends Component {
    * @override
    */
   _onDestroy(): void {
-    this.engine._componentsManager.addDestroyComponent(this);
+    this._engine._componentsManager.addPendingDestroyScript(this);
+  }
+
+  /**
+   * @internal
+   */
+  _handlingInValid(): void {
+    const componentsManager = this.engine._componentsManager;
+    const { prototype } = Script;
+    if (this.onUpdate !== prototype.onUpdate) {
+      componentsManager.removeOnUpdateScript(this);
+    }
+    if (this.onLateUpdate !== prototype.onLateUpdate) {
+      componentsManager.removeOnLateUpdateScript(this);
+    }
+    if (this.onPhysicsUpdate !== prototype.onPhysicsUpdate) {
+      componentsManager.removeOnPhysicsUpdateScript(this);
+    }
+
+    this._entity._removeScript(this);
+    this._waitHandlingInValid = false;
   }
 }

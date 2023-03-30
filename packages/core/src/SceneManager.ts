@@ -6,6 +6,9 @@ import { Scene } from "./Scene";
  * Scene manager.
  */
 export class SceneManager {
+  /** @internal */
+  _allScenes: Scene[] = [];
+  /** @internal */
   _activeScene: Scene;
 
   /**
@@ -58,5 +61,16 @@ export class SceneManager {
     for (let i: number = 0, n: number = oldRootEntities.length; i < n; i++) {
       destScene.addRootEntity(oldRootEntities[i]);
     }
+  }
+
+  /**
+   * @internal
+   */
+  _destroyAllScene(): void {
+    const allScenes = this._allScenes;
+    for (let i = 0, n = allScenes.length; i < n; i++) {
+      allScenes[i]._destroy();
+    }
+    allScenes.length = 0;
   }
 }

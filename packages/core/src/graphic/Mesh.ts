@@ -9,7 +9,6 @@ import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
 import { ShaderProgram } from "../shader/ShaderProgram";
-import { UpdateFlag } from "../UpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
@@ -18,13 +17,16 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 export abstract class Mesh extends RefObject {
   /** Name. */
   name: string;
-  /** The bounding volume of the mesh. */
-  readonly bounds: BoundingBox = new BoundingBox();
 
+  /** @internal */
   _vertexElementMap: Record<string, VertexElement> = {};
+  /** @internal */
   _glIndexType: number;
+  /** @internal */
   _glIndexByteCount: number;
-  _vaoDirty: boolean;
+  /** @internal */
+  _bufferStructChanged: boolean;
+  /** @internal */
   _platformPrimitive: IPlatformPrimitive;
 
   /** @internal */
@@ -35,9 +37,26 @@ export abstract class Mesh extends RefObject {
   _indexBufferBinding: IndexBufferBinding = null;
   /** @internal */
   _vertexElements: VertexElement[] = [];
+  /** @internal */
+  _enableVAO: boolean = true;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
+  private _bounds: BoundingBox = new BoundingBox();
   private _subMeshes: SubMesh[] = [];
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+
+  /**
+   * The bounding volume of the mesh.
+   */
+  get bounds(): BoundingBox {
+    return this._bounds;
+  }
+
+  set bounds(value: BoundingBox) {
+    if (this._bounds !== value) {
+      this._bounds.copyFrom(value);
+    }
+  }
 
   /**
    * First sub-mesh. Rendered using the first material.
@@ -62,6 +81,13 @@ export abstract class Mesh extends RefObject {
     super(engine);
     this.name = name;
     this._platformPrimitive = this._engine._hardwareRenderer.createPlatformPrimitive(this);
+    this._onBoundsChanged = this._onBoundsChanged.bind(this);
+
+    const bounds = this._bounds;
+    // @ts-ignore
+    bounds.min._onValueChanged = this._onBoundsChanged;
+    // @ts-ignore
+    bounds.max._onValueChanged = this._onBoundsChanged;
   }
 
   /**
@@ -112,19 +138,54 @@ export abstract class Mesh extends RefObject {
   }
 
   /**
-   * Register update flag, update flag will be true if the vertex element changes.
-   * @returns Update flag
+   * @internal
    */
-  registerUpdateFlag(): UpdateFlag {
-    return this._updateFlagManager.register();
+  _clearVertexElements(): void {
+    this._vertexElements.length = 0;
+    const vertexElementMap = this._vertexElementMap;
+    for (const k in vertexElementMap) {
+      delete vertexElementMap[k];
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _addVertexElement(element: VertexElement): void {
+    const { semantic } = element;
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.push(element);
+    this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+  }
+
+  /**
+   * @internal
+   */
+  _insertVertexElement(i: number, element: VertexElement): void {
+    const { semantic } = element;
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.splice(i, 0, element);
+    this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+  }
+
+  /**
+   * @internal
+   */
+  _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    if (this._getRefCount() > 0) {
+      const lastBinding = this._vertexBufferBindings[index];
+      lastBinding && lastBinding._buffer._addRefCount(-1);
+      binding._buffer._addRefCount(1);
+    }
+    this._vertexBufferBindings[index] = binding;
   }
 
   /**
    * @internal
    */
   _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
-    this._platformPrimitive.draw(shaderProgram, subMesh, this._vaoDirty);
-    this._vaoDirty = false;
+    this._platformPrimitive.draw(shaderProgram, subMesh, this._bufferStructChanged);
+    this._bufferStructChanged = false;
   }
 
   /**
@@ -155,19 +216,7 @@ export abstract class Mesh extends RefObject {
     for (let i = 0, n = elements.length; i < n; i++) {
       this._addVertexElement(elements[i]);
     }
-    this._vaoDirty = true;
-  }
-
-  protected _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    const lastBinding = this._vertexBufferBindings[index];
-    if (this._getRefCount() > 0) {
-      lastBinding && lastBinding._buffer._addRefCount(-1);
-      binding._buffer._addRefCount(1);
-    }
-    this._vertexBufferBindings[index] = binding;
-    if (lastBinding && (lastBinding._buffer !== binding._buffer || lastBinding._stride !== binding._stride)) {
-      this._vaoDirty = true;
-    }
+    this._bufferStructChanged = true;
   }
 
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
@@ -177,29 +226,26 @@ export abstract class Mesh extends RefObject {
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);
       this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
       if (lastBinding && lastBinding._buffer !== binding._buffer) {
-        this._vaoDirty = true;
+        this._bufferStructChanged = true;
       }
     } else {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
       if (lastBinding) {
-        this._vaoDirty = true;
+        this._bufferStructChanged = true;
       }
     }
   }
 
-  private _clearVertexElements(): void {
-    this._vertexElements.length = 0;
-    const vertexElementMap = this._vertexElementMap;
-    for (const k in vertexElementMap) {
-      delete vertexElementMap[k];
-    }
+  private _onBoundsChanged(): void {
+    this._updateFlagManager.dispatch(MeshModifyFlags.Bounds);
   }
+}
 
-  private _addVertexElement(element: VertexElement): void {
-    const { semantic } = element;
-    this._vertexElementMap[semantic] = element;
-    this._vertexElements.push(element);
-    this._updateFlagManager.distribute();
-  }
+/**
+ * @internal
+ */
+export enum MeshModifyFlags {
+  Bounds = 0x1,
+  VertexElements = 0x2
 }

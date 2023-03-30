@@ -1,0 +1,24 @@
+{
+  "name": "@oasis-engine/tests",
+  "private": true,
+  "version": "0.9.0-alpha.4",
+  "license": "MIT",
+  "main": "dist/main.js",
+  "module": "dist/module.js",
+  "types": "types/index.d.ts",
+  "debug": "src/index.ts",
+  "scripts": {
+    "b:types": "echo hi"
+  },
+  "files": [
+    "dist/**/*",
+    "types/**/*"
+  ],
+  "dependencies": {
+    "@oasis-engine/core": "workspace:*",
+    "@oasis-engine/design": "workspace:*",
+    "@oasis-engine/math": "workspace:*",
+    "@oasis-engine/rhi-webgl": "workspace:*",
+    "@oasis-engine/physics-lite": "workspace:*"
+  }
+}

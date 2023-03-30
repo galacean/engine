@@ -61,15 +61,17 @@ export class RasterState {
     }
 
     // apply polygonOffset.
-    if (depthBias !== lastState.depthBias || slopeScaledDepthBias !== lastState.slopeScaledDepthBias) {
-      if (depthBias !== 0 || slopeScaledDepthBias !== 0) {
-        gl.enable(gl.POLYGON_OFFSET_FILL);
-        gl.polygonOffset(slopeScaledDepthBias, depthBias);
-      } else {
-        gl.disable(gl.POLYGON_OFFSET_FILL);
+    if (!rhi._enableGlobalDepthBias) {
+      if (depthBias !== lastState.depthBias || slopeScaledDepthBias !== lastState.slopeScaledDepthBias) {
+        if (depthBias !== 0 || slopeScaledDepthBias !== 0) {
+          gl.enable(gl.POLYGON_OFFSET_FILL);
+          gl.polygonOffset(slopeScaledDepthBias, depthBias);
+        } else {
+          gl.disable(gl.POLYGON_OFFSET_FILL);
+        }
+        lastState.depthBias = depthBias;
+        lastState.slopeScaledDepthBias = slopeScaledDepthBias;
       }
-      lastState.depthBias = depthBias;
-      lastState.slopeScaledDepthBias = slopeScaledDepthBias;
     }
   }
 }

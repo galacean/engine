@@ -1,13 +1,13 @@
-import { BoundingFrustum, MathUtil, Matrix, Quaternion, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
 import { Logger } from "./base";
+import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependencies } from "./ComponentsDependencies";
+import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-import { RenderContext } from "./RenderPipeline/RenderContext";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -15,7 +15,7 @@ import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 import { RenderTarget } from "./texture/RenderTarget";
 import { Transform } from "./Transform";
-import { UpdateFlag } from "./UpdateFlag";
+import { VirtualCamera } from "./VirtualCamera";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -25,61 +25,14 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
+ * @decorator `@dependentComponents(Transform)`
  */
-@dependencies(Transform)
+@dependentComponents(Transform)
 export class Camera extends Component {
-  private static _viewMatrixProperty = Shader.getPropertyByName("u_viewMat");
-  private static _projectionMatrixProperty = Shader.getPropertyByName("u_projMat");
-  private static _vpMatrixProperty = Shader.getPropertyByName("u_VPMat");
+  /** @internal */
   private static _inverseViewMatrixProperty = Shader.getPropertyByName("u_viewInvMat");
-  private static _inverseProjectionMatrixProperty = Shader.getPropertyByName("u_projInvMat");
+  /** @internal */
   private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
-
-  /**
-   * Compute the inverse of the rotation translation matrix.
-   * @param rotation - The rotation used to calculate matrix
-   * @param translation - The translation used to calculate matrix
-   * @param out - The calculated matrix
-   */
-  private static _rotationTranslationInv(rotation: Quaternion, translation: Vector3, out: Matrix) {
-    const oe = out.elements;
-    const { x, y, z, w } = rotation;
-    let x2 = x + x;
-    let y2 = y + y;
-    let z2 = z + z;
-
-    let xx = x * x2;
-    let xy = x * y2;
-    let xz = x * z2;
-    let yy = y * y2;
-    let yz = y * z2;
-    let zz = z * z2;
-    let wx = w * x2;
-    let wy = w * y2;
-    let wz = w * z2;
-
-    oe[0] = 1 - (yy + zz);
-    oe[1] = xy + wz;
-    oe[2] = xz - wy;
-    oe[3] = 0;
-
-    oe[4] = xy - wz;
-    oe[5] = 1 - (xx + zz);
-    oe[6] = yz + wx;
-    oe[7] = 0;
-
-    oe[8] = xz + wy;
-    oe[9] = yz - wx;
-    oe[10] = 1 - (xx + yy);
-    oe[11] = 0;
-
-    oe[12] = translation.x;
-    oe[13] = translation.y;
-    oe[14] = translation.z;
-    oe[15] = 1;
-
-    out.invert();
-  }
 
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
@@ -92,13 +45,13 @@ export class Camera extends Component {
 
   /**
    * Determining what to clear when rendering by a Camera.
-   * @defaultValue `CameraClearFlags.DepthColor`
+   * @defaultValue `CameraClearFlags.All`
    */
-  clearFlags: CameraClearFlags = CameraClearFlags.DepthColor;
+  clearFlags: CameraClearFlags = CameraClearFlags.All;
 
   /**
    * Culling mask - which layers the camera renders.
-   * @remarks Support bit manipulation, corresponding to Entity's layer.
+   * @remarks Support bit manipulation, corresponding to `Layer`.
    */
   cullingMask: Layer = Layer.Everything;
 
@@ -110,8 +63,10 @@ export class Camera extends Component {
   /** @internal */
   @ignoreClone
   _renderPipeline: BasicRenderPipeline;
+  /** @internal */
+  @ignoreClone
+  _virtualCamera: VirtualCamera = new VirtualCamera();
 
-  private _isOrthographic: boolean = false;
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
@@ -124,17 +79,13 @@ export class Camera extends Component {
   private _renderTarget: RenderTarget = null;
 
   @ignoreClone
-  private _frustumViewChangeFlag: UpdateFlag;
+  private _frustumViewChangeFlag: BoolUpdateFlag;
   @ignoreClone
   private _transform: Transform;
   @ignoreClone
-  private _isViewMatrixDirty: UpdateFlag;
+  private _isViewMatrixDirty: BoolUpdateFlag;
   @ignoreClone
-  private _isInvViewProjDirty: UpdateFlag;
-  @deepClone
-  private _projectionMatrix: Matrix = new Matrix();
-  @deepClone
-  private _viewMatrix: Matrix = new Matrix();
+  private _isInvViewProjDirty: BoolUpdateFlag;
   @deepClone
   private _viewport: Vector4 = new Vector4(0, 0, 1, 1);
   @deepClone
@@ -204,7 +155,7 @@ export class Camera extends Component {
 
   set viewport(value: Vector4) {
     if (value !== this._viewport) {
-      value.cloneTo(this._viewport);
+      this._viewport.copyFrom(value);
     }
     this._projMatChange();
   }
@@ -213,11 +164,11 @@ export class Camera extends Component {
    * Whether it is orthogonal, the default is false. True will use orthographic projection, false will use perspective projection.
    */
   get isOrthographic(): boolean {
-    return this._isOrthographic;
+    return this._virtualCamera.isOrthographic;
   }
 
   set isOrthographic(value: boolean) {
-    this._isOrthographic = value;
+    this._virtualCamera.isOrthographic = value;
     this._projMatChange();
   }
 
@@ -237,12 +188,15 @@ export class Camera extends Component {
    * View matrix.
    */
   get viewMatrix(): Readonly<Matrix> {
+    const viewMatrix = this._virtualCamera.viewMatrix;
     if (this._isViewMatrixDirty.flag) {
       this._isViewMatrixDirty.flag = false;
       // Ignore scale.
-      Camera._rotationTranslationInv(this._transform.worldRotationQuaternion, this._transform.worldPosition, this._viewMatrix);
+      const transform = this._transform;
+      Matrix.rotationTranslation(transform.worldRotationQuaternion, transform.worldPosition, viewMatrix);
+      viewMatrix.invert();
     }
-    return this._viewMatrix;
+    return viewMatrix;
   }
 
   /**
@@ -250,38 +204,41 @@ export class Camera extends Component {
    * If it is manually set, the manual value will be maintained. Call resetProjectionMatrix() to restore it.
    */
   set projectionMatrix(value: Matrix) {
-    this._projectionMatrix = value;
+    this._virtualCamera.projectionMatrix.copyFrom(value);
     this._isProjMatSetting = true;
     this._projMatChange();
   }
 
   get projectionMatrix(): Matrix {
+    const virtualCamera = this._virtualCamera;
+    const projectionMatrix = virtualCamera.projectionMatrix;
     const canvas = this._entity.engine.canvas;
+
     if (
       (!this._isProjectionDirty || this._isProjMatSetting) &&
       this._lastAspectSize.x === canvas.width &&
       this._lastAspectSize.y === canvas.height
     ) {
-      return this._projectionMatrix;
+      return projectionMatrix;
     }
     this._isProjectionDirty = false;
     this._lastAspectSize.x = canvas.width;
     this._lastAspectSize.y = canvas.height;
     const aspectRatio = this.aspectRatio;
-    if (!this._isOrthographic) {
+    if (!virtualCamera.isOrthographic) {
       Matrix.perspective(
         MathUtil.degreeToRadian(this._fieldOfView),
         aspectRatio,
         this._nearClipPlane,
         this._farClipPlane,
-        this._projectionMatrix
+        projectionMatrix
       );
     } else {
       const width = this._orthographicSize * aspectRatio;
       const height = this._orthographicSize;
-      Matrix.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, this._projectionMatrix);
+      Matrix.ortho(-width, width, -height, height, this._nearClipPlane, this._farClipPlane, projectionMatrix);
     }
-    return this._projectionMatrix;
+    return projectionMatrix;
   }
 
   /**
@@ -309,8 +266,7 @@ export class Camera extends Component {
   }
 
   /**
-   * Create the Camera component.
-   * @param entity - Entity
+   * @internal
    */
   constructor(entity: Entity) {
     super(entity);
@@ -354,7 +310,7 @@ export class Camera extends Component {
     Vector3.transformToVec4(cameraPoint, this.projectionMatrix, viewportPoint);
 
     const w = viewportPoint.w;
-    out.setValue((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, -cameraPoint.z);
+    out.set((viewportPoint.x / w + 1.0) * 0.5, (1.0 - viewportPoint.y / w) * 0.5, -cameraPoint.z);
     return out;
   }
 
@@ -432,9 +388,13 @@ export class Camera extends Component {
 
   /**
    * Transform a point from world space to screen space.
+   *
+   * @remarks
+   * Screen space is defined in pixels, the left-top of the screen is (0,0), the right-top is (canvasPixelWidth,canvasPixelHeight).
+   *
    * @param point - Point in world space
-   * @param out - Point of screen space
-   * @returns Point of screen space
+   * @param out - The result will be stored
+   * @returns X and Y are the coordinates of the point in screen space, Z is the distance from the camera in world space
    */
   worldToScreenPoint(point: Vector3, out: Vector3): Vector3 {
     this.worldToViewportPoint(point, out);
@@ -471,16 +431,27 @@ export class Camera extends Component {
    * @param mipLevel - Set mip level the data want to write, only take effect in webgl2.0
    */
   render(cubeFace?: TextureCubeFace, mipLevel: number = 0): void {
-    // compute cull frustum.
     const context = this.engine._renderContext;
-    context._setContext(this);
+    const virtualCamera = this._virtualCamera;
+
+    const transform = this.entity.transform;
+    Matrix.multiply(this.projectionMatrix, this.viewMatrix, virtualCamera.viewProjectionMatrix);
+    virtualCamera.position.copyFrom(transform.worldPosition);
+    if (virtualCamera.isOrthographic) {
+      transform.getWorldForward(virtualCamera.forward);
+    }
+
+    context.camera = this;
+    context.virtualCamera = virtualCamera;
+
+    // compute cull frustum.
     if (this.enableFrustumCulling && (this._frustumViewChangeFlag.flag || this._isFrustumProjectDirty)) {
-      this._frustum.calculateFromMatrix(context._viewProjectMatrix);
+      this._frustum.calculateFromMatrix(virtualCamera.viewProjectionMatrix);
       this._frustumViewChangeFlag.flag = false;
       this._isFrustumProjectDirty = false;
     }
 
-    this._updateShaderData(context);
+    this._updateShaderData();
 
     // union scene and camera macro.
     ShaderMacroCollection.unionCollection(
@@ -501,7 +472,7 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onActive() {
+  _onEnable(): void {
     this.entity.scene._attachRenderCamera(this);
   }
 
@@ -509,7 +480,7 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onInActive() {
+  _onDisable(): void {
     this.entity.scene._detachRenderCamera(this);
   }
 
@@ -517,14 +488,14 @@ export class Camera extends Component {
    * @override
    * @inheritdoc
    */
-  _onDestroy() {
+  _onDestroy(): void {
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
     this.shaderData._addRefCount(-1);
   }
 
-  private _projMatChange() {
+  private _projMatChange(): void {
     this._isFrustumProjectDirty = true;
     this._isProjectionDirty = true;
     this._isInvProjMatDirty = true;
@@ -535,18 +506,14 @@ export class Camera extends Component {
     // Depth is a normalized value, 0 is nearPlane, 1 is farClipPlane.
     // Transform to clipping space matrix
     const clipPoint = MathTemp.tempVec3;
-    clipPoint.setValue(x * 2 - 1, 1 - y * 2, z * 2 - 1);
+    clipPoint.set(x * 2 - 1, 1 - y * 2, z * 2 - 1);
     Vector3.transformCoordinate(clipPoint, invViewProjMat, out);
     return out;
   }
 
-  private _updateShaderData(context: RenderContext): void {
+  private _updateShaderData(): void {
     const shaderData = this.shaderData;
-    shaderData.setMatrix(Camera._viewMatrixProperty, this.viewMatrix);
-    shaderData.setMatrix(Camera._projectionMatrixProperty, this.projectionMatrix);
-    shaderData.setMatrix(Camera._vpMatrixProperty, context._viewProjectMatrix);
     shaderData.setMatrix(Camera._inverseViewMatrixProperty, this._transform.worldMatrix);
-    shaderData.setMatrix(Camera._inverseProjectionMatrixProperty, this._getInverseProjectionMatrix());
     shaderData.setVector3(Camera._cameraPositionProperty, this._transform.worldPosition);
   }
 

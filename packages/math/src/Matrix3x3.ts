@@ -1,4 +1,5 @@
 import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
 import { MathUtil } from "./MathUtil";
 import { Matrix } from "./Matrix";
 import { Quaternion } from "./Quaternion";
@@ -7,7 +8,7 @@ import { Vector2 } from "./Vector2";
 /**
  * Represents a 3x3 mathematical matrix.
  */
-export class Matrix3x3 implements IClone {
+export class Matrix3x3 implements IClone<Matrix3x3>, ICopy<Matrix3x3, Matrix3x3> {
   /**
    * Determines the sum of two matrices.
    * @param left - The first matrix to add
@@ -515,7 +516,7 @@ export class Matrix3x3 implements IClone {
    * @param m33
    * @returns This matrix
    */
-  setValue(
+  set(
     m11: number,
     m12: number,
     m13: number,
@@ -541,98 +542,6 @@ export class Matrix3x3 implements IClone {
     e[8] = m33;
 
     return this;
-  }
-
-  /**
-   * Set the value of this matrix by an array.
-   * @param array - The array
-   * @param offset - The start offset of the array
-   * @returns This matrix
-   */
-  setValueByArray(array: ArrayLike<number>, offset: number = 0): Matrix3x3 {
-    const srce = this.elements;
-    for (let i = 0; i < 12; i++) {
-      srce[i] = array[i + offset];
-    }
-    return this;
-  }
-
-  /**
-   * Set the value of this 3x3 matrix by the specified 4x4 matrix.
-   * upper-left principle
-   * @param a - The specified 4x4 matrix
-   * @returns This 3x3 matrix
-   */
-  setValueByMatrix(a: Matrix): Matrix3x3 {
-    const ae = a.elements;
-    const e = this.elements;
-
-    e[0] = ae[0];
-    e[1] = ae[1];
-    e[2] = ae[2];
-
-    e[3] = ae[4];
-    e[4] = ae[5];
-    e[5] = ae[6];
-
-    e[6] = ae[8];
-    e[7] = ae[9];
-    e[8] = ae[10];
-
-    return this;
-  }
-
-  /**
-   * Clone the value of this matrix to an array.
-   * @param out - The array
-   * @param outOffset - The start offset of the array
-   */
-  toArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0) {
-    const e = this.elements;
-
-    out[outOffset] = e[0];
-    out[outOffset + 1] = e[1];
-    out[outOffset + 2] = e[2];
-    out[outOffset + 3] = e[3];
-    out[outOffset + 4] = e[4];
-    out[outOffset + 5] = e[5];
-    out[outOffset + 6] = e[6];
-    out[outOffset + 7] = e[7];
-    out[outOffset + 8] = e[8];
-  }
-
-  /**
-   * Creates a clone of this matrix.
-   * @returns A clone of this matrix
-   */
-  clone(): Matrix3x3 {
-    const e = this.elements;
-    let ret = new Matrix3x3(e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8]);
-    return ret;
-  }
-
-  /**
-   * Clones this matrix to the specified matrix.
-   * @param out - The specified matrix
-   * @returns The specified matrix
-   */
-  cloneTo(out: Matrix3x3): Matrix3x3 {
-    const e = this.elements;
-    const oe = out.elements;
-
-    oe[0] = e[0];
-    oe[1] = e[1];
-    oe[2] = e[2];
-
-    oe[3] = e[3];
-    oe[4] = e[4];
-    oe[5] = e[5];
-
-    oe[6] = e[6];
-    oe[7] = e[7];
-    oe[8] = e[8];
-
-    return out;
   }
 
   /**
@@ -756,6 +665,98 @@ export class Matrix3x3 implements IClone {
    */
   transpose(): Matrix3x3 {
     Matrix3x3.transpose(this, this);
+    return this;
+  }
+
+  /**
+   * Creates a clone of this matrix.
+   * @returns A clone of this matrix
+   */
+  clone(): Matrix3x3 {
+    const e = this.elements;
+    let ret = new Matrix3x3(e[0], e[1], e[2], e[3], e[4], e[5], e[6], e[7], e[8]);
+    return ret;
+  }
+
+  /**
+   * Copy this matrix from the specified matrix.
+   * @param source - The specified matrix
+   * @returns This matrix
+   */
+  copyFrom(source: Matrix3x3): Matrix3x3 {
+    const e = this.elements;
+    const se = source.elements;
+
+    e[0] = se[0];
+    e[1] = se[1];
+    e[2] = se[2];
+
+    e[3] = se[3];
+    e[4] = se[4];
+    e[5] = se[5];
+
+    e[6] = se[6];
+    e[7] = se[7];
+    e[8] = se[8];
+
+    return this;
+  }
+
+  /**
+   * Copy the value of this matrix from an array.
+   * @param array - The array
+   * @param offset - The start offset of the array
+   * @returns This matrix
+   */
+  copyFromArray(array: ArrayLike<number>, offset: number = 0): Matrix3x3 {
+    const srce = this.elements;
+    for (let i = 0; i < 12; i++) {
+      srce[i] = array[i + offset];
+    }
+    return this;
+  }
+
+  /**
+   * Copy the value of this matrix to an array.
+   * @param out - The array
+   * @param outOffset - The start offset of the array
+   */
+  copyToArray(out: number[] | Float32Array | Float64Array, outOffset: number = 0): void {
+    const e = this.elements;
+
+    out[outOffset] = e[0];
+    out[outOffset + 1] = e[1];
+    out[outOffset + 2] = e[2];
+    out[outOffset + 3] = e[3];
+    out[outOffset + 4] = e[4];
+    out[outOffset + 5] = e[5];
+    out[outOffset + 6] = e[6];
+    out[outOffset + 7] = e[7];
+    out[outOffset + 8] = e[8];
+  }
+
+  /**
+   * Copy the value of this 3x3 matrix from the specified 4x4 matrix.
+   * upper-left principle
+   * @param source - The specified 4x4 matrix
+   * @returns This 3x3 matrix
+   */
+  copyFromMatrix(source: Matrix): Matrix3x3 {
+    const ae = source.elements;
+    const e = this.elements;
+
+    e[0] = ae[0];
+    e[1] = ae[1];
+    e[2] = ae[2];
+
+    e[3] = ae[4];
+    e[4] = ae[5];
+    e[5] = ae[6];
+
+    e[6] = ae[8];
+    e[7] = ae[9];
+    e[8] = ae[10];
+
     return this;
   }
 }

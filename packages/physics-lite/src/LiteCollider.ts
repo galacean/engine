@@ -55,18 +55,24 @@ export abstract class LiteCollider implements ICollider {
    */
   getWorldTransform(outPosition: Vector3, outRotation: Quaternion): void {
     const { position, rotationQuaternion } = this._transform;
-    outPosition.setValue(position.x, position.y, position.z);
-    outRotation.setValue(rotationQuaternion.x, rotationQuaternion.y, rotationQuaternion.z, rotationQuaternion.w);
+    outPosition.set(position.x, position.y, position.z);
+    outRotation.set(rotationQuaternion.x, rotationQuaternion.y, rotationQuaternion.z, rotationQuaternion.w);
   }
+
+  /**
+   * {@inheritDoc ICollider.destroy }
+   */
+  destroy(): void {}
 
   /**
    * @internal
    */
-  _raycast(ray: Ray, hit: LiteHitResult): boolean {
+  _raycast(ray: Ray, onRaycast: (obj: number) => boolean, hit: LiteHitResult): boolean {
     hit.distance = Number.MAX_VALUE;
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      shapes[i]._raycast(ray, hit);
+      const shape = shapes[i];
+      onRaycast(shape._id) && shape._raycast(ray, hit);
     }
 
     return hit.distance != Number.MAX_VALUE;

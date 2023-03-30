@@ -1,7 +1,9 @@
 import { RefObject } from "../asset/RefObject";
 import { Logger } from "../base/Logger";
 import { IPlatformTexture } from "../renderingHardwareInterface";
+import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
+import { TextureFormat } from "./enums/TextureFormat";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 
 /**
@@ -14,7 +16,10 @@ export abstract class Texture extends RefObject {
   _platformTexture: IPlatformTexture;
   /** @internal */
   _mipmap: boolean;
+  /** @internal */
+  _isDepthTexture: boolean = false;
 
+  protected _format: TextureFormat;
   protected _width: number;
   protected _height: number;
   protected _mipmapCount: number;
@@ -23,6 +28,15 @@ export abstract class Texture extends RefObject {
   private _wrapModeV: TextureWrapMode;
   private _filterMode: TextureFilterMode;
   private _anisoLevel: number = 1;
+  private _depthCompareFunction: TextureDepthCompareFunction;
+  private _useDepthCompareMode: boolean = false;
+
+  /**
+   * Texture format.
+   */
+  get format(): TextureFormat {
+    return this._format;
+  }
 
   /**
    * The width of the texture.
@@ -115,12 +129,42 @@ export abstract class Texture extends RefObject {
   }
 
   /**
+   * Filter mode when texture as depth Texture.
+   * @remarks Only depth-related formats take effect.
+   */
+  get depthCompareFunction(): TextureDepthCompareFunction {
+    return this._depthCompareFunction;
+  }
+
+  set depthCompareFunction(value: TextureDepthCompareFunction) {
+    if (!this._engine._hardwareRenderer._isWebGL2) {
+      console.warn("depthCompareFunction only support WebGL2");
+      return;
+    }
+
+    if (value !== this._depthCompareFunction) {
+      this._depthCompareFunction = value;
+      this._platformTexture.depthCompareFunction = value;
+    }
+  }
+
+  /**
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
     if (!this._mipmap) return;
 
     this._platformTexture.generateMipmaps();
+  }
+
+  /**
+   * @internal
+   */
+  _setUseDepthCompareMode(value: boolean): void {
+    if (this._useDepthCompareMode !== value) {
+      this._platformTexture.setUseDepthCompareMode(value);
+      this._useDepthCompareMode = value;
+    }
   }
 
   /**

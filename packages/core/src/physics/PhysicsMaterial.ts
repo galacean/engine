@@ -33,8 +33,10 @@ export class PhysicsMaterial {
   }
 
   set bounciness(value: number) {
-    this._bounciness = value;
-    this._nativeMaterial.setBounciness(value);
+    if (this._bounciness !== value) {
+      this._bounciness = value;
+      this._nativeMaterial.setBounciness(value);
+    }
   }
 
   /**
@@ -45,8 +47,10 @@ export class PhysicsMaterial {
   }
 
   set dynamicFriction(value: number) {
-    this._dynamicFriction = value;
-    this._nativeMaterial.setDynamicFriction(value);
+    if (this._dynamicFriction !== value) {
+      this._dynamicFriction = value;
+      this._nativeMaterial.setDynamicFriction(value);
+    }
   }
 
   /**
@@ -57,8 +61,10 @@ export class PhysicsMaterial {
   }
 
   set staticFriction(value: number) {
-    this._staticFriction = value;
-    this._nativeMaterial.setStaticFriction(value);
+    if (this._staticFriction !== value) {
+      this._staticFriction = value;
+      this._nativeMaterial.setStaticFriction(value);
+    }
   }
 
   /**
@@ -69,8 +75,10 @@ export class PhysicsMaterial {
   }
 
   set bounceCombine(value: PhysicsMaterialCombineMode) {
-    this._bounceCombine = value;
-    this._nativeMaterial.setBounceCombine(value);
+    if (this._bounceCombine !== value) {
+      this._bounceCombine = value;
+      this._nativeMaterial.setBounceCombine(value);
+    }
   }
 
   /**
@@ -81,7 +89,16 @@ export class PhysicsMaterial {
   }
 
   set frictionCombine(value: PhysicsMaterialCombineMode) {
-    this._frictionCombine = value;
-    this._nativeMaterial.setFrictionCombine(value);
+    if (this._frictionCombine !== value) {
+      this._frictionCombine = value;
+      this._nativeMaterial.setFrictionCombine(value);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _destroy() {
+    this._nativeMaterial.destroy();
   }
 }

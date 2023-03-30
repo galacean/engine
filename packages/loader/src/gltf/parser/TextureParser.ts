@@ -1,29 +1,34 @@
-import { AssetType, Logger, Texture2D, TextureWrapMode } from "@oasis-engine/core";
-import { GLTFResource } from "../GLTFResource";
-import { ISampler } from "../Schema";
+import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@oasis-engine/core";
 import { GLTFUtil } from "../GLTFUtil";
+import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class TextureParser extends Parser {
   private static _wrapMap = {
-    33071: TextureWrapMode.Clamp,
-    33648: TextureWrapMode.Mirror,
-    10497: TextureWrapMode.Repeat
+    [GLTFTextureWrapMode.CLAMP_TO_EDGE]: TextureWrapMode.Clamp,
+    [GLTFTextureWrapMode.MIRRORED_REPEAT]: TextureWrapMode.Mirror,
+    [GLTFTextureWrapMode.REPEAT]: TextureWrapMode.Repeat
   };
 
-  parse(context: GLTFResource): void | Promise<void> {
-    const { gltf, buffers, engine, url } = context;
+  parse(context: ParserContext): AssetPromise<Texture2D[]> {
+    const { glTFResource, gltf, buffers } = context;
+    const { engine, url } = glTFResource;
 
     if (gltf.textures) {
-      return Promise.all(
+      const texturesPromiseInfo = context.texturesPromiseInfo;
+      AssetPromise.all(
         gltf.textures.map(({ sampler, source = 0, name: textureName }, index) => {
           const { uri, bufferView: bufferViewIndex, mimeType, name: imageName } = gltf.images[source];
-
           if (uri) {
+            // TODO: support ktx extension https://github.com/KhronosGroup/glTF/blob/main/extensions/2.0/Khronos/KHR_texture_basisu/README.md
+            const index = uri.lastIndexOf(".");
+            const ext = uri.substring(index + 1);
+            const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
             return engine.resourceManager
               .load<Texture2D>({
                 url: GLTFUtil.parseRelativeUrl(url, uri),
-                type: AssetType.Texture2D
+                type: type
               })
               .then((texture) => {
                 if (!texture.name) {
@@ -49,9 +54,13 @@ export class TextureParser extends Parser {
             });
           }
         })
-      ).then((textures: Texture2D[]) => {
-        context.textures = textures;
-      });
+      )
+        .then((textures: Texture2D[]) => {
+          glTFResource.textures = textures;
+          texturesPromiseInfo.resolve(textures);
+        })
+        .catch(texturesPromiseInfo.reject);
+      return texturesPromiseInfo.promise;
     }
   }
 
@@ -59,7 +68,13 @@ export class TextureParser extends Parser {
     const { magFilter, minFilter, wrapS, wrapT } = sampler;
 
     if (magFilter || minFilter) {
-      Logger.warn("texture use filterMode in engine");
+      if (magFilter === TextureMagFilter.NEAREST) {
+        texture.filterMode = TextureFilterMode.Point;
+      } else if (minFilter <= TextureMinFilter.LINEAR_MIPMAP_NEAREST) {
+        texture.filterMode = TextureFilterMode.Bilinear;
+      } else {
+        texture.filterMode = TextureFilterMode.Trilinear;
+      }
     }
 
     if (wrapS) {

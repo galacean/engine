@@ -1,5 +1,5 @@
 import { SpriteMask } from "../2d/sprite/SpriteMask";
-import { Engine } from "../Engine";
+import { Camera } from "../Camera";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexElement } from "../graphic/VertexElement";
 import { StencilOperation } from "../shader/enums/StencilOperation";
@@ -33,12 +33,10 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
   }
 
   updateVertices(element: SpriteMaskElement, vertices: Float32Array, vertexIndex: number): number {
-    const { positions, uv } = element;
-    const verticesNum = positions.length;
-    for (let i = 0; i < verticesNum; i++) {
+    const { positions, uvs, vertexCount } = element.renderData;
+    for (let i = 0; i < vertexCount; i++) {
       const curPos = positions[i];
-      const curUV = uv[i];
-
+      const curUV = uvs[i];
       vertices[vertexIndex++] = curPos.x;
       vertices[vertexIndex++] = curPos.y;
       vertices[vertexIndex++] = curPos.z;
@@ -49,10 +47,12 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
     return vertexIndex;
   }
 
-  drawBatches(engine: Engine): void {
+  drawBatches(camera: Camera): void {
+    const { _engine: engine, _batchedQueue: batchedQueue } = this;
     const mesh = this._meshes[this._flushId];
     const subMeshes = mesh.subMeshes;
-    const batchedQueue = this._batchedQueue;
+    const sceneData = camera.scene.shaderData;
+    const cameraData = camera.shaderData;
 
     for (let i = 0, len = subMeshes.length; i < len; i++) {
       const subMesh = subMeshes[i];
@@ -79,17 +79,15 @@ export class SpriteMaskBatcher extends Basic2DBatcher {
       stencilState.passOperationFront = op;
       stencilState.passOperationBack = op;
 
-      const program = material.shader._getShaderProgram(engine, compileMacros);
+      const program = material.shader.passes[0]._getShaderProgram(engine, compileMacros);
       if (!program.isValid) {
         return;
       }
 
-      const camera = spriteMaskElement.camera;
-
       program.bind();
       program.groupingOtherUniformBlock();
-      program.uploadAll(program.sceneUniformBlock, camera.scene.shaderData);
-      program.uploadAll(program.cameraUniformBlock, camera.shaderData);
+      program.uploadAll(program.sceneUniformBlock, sceneData);
+      program.uploadAll(program.cameraUniformBlock, cameraData);
       program.uploadAll(program.rendererUniformBlock, renderer.shaderData);
       program.uploadAll(program.materialUniformBlock, material.shaderData);
 

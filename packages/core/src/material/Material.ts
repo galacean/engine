@@ -2,12 +2,12 @@ import { IClone } from "@oasis-engine/design";
 import { RefObject } from "../asset/RefObject";
 import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";
-import { RenderElement } from "../RenderPipeline/RenderElement";
+import { MeshRenderElement } from "../RenderPipeline/MeshRenderElement";
+import { SpriteElement } from "../RenderPipeline/SpriteElement";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { RenderState } from "../shader/state/RenderState";
-import { RenderQueueType } from "./enums/RenderQueueType";
 
 /**
  * Material.
@@ -15,14 +15,50 @@ import { RenderQueueType } from "./enums/RenderQueueType";
 export class Material extends RefObject implements IClone {
   /** Name. */
   name: string;
-  /** Shader used by the material. */
-  shader: Shader;
-  /** Render queue type. */
-  renderQueueType: RenderQueueType = RenderQueueType.Opaque;
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Material);
-  /** Render state. */
-  readonly renderState: RenderState = new RenderState(); // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+
+  /** @internal */
+  _shader: Shader;
+  /** @internal */
+  _renderStates: RenderState[] = []; // todo: later will as a part of shaderData when shader effect frame is OK, that is more powerful and flexible.
+
+  /**
+   * Shader used by the material.
+   */
+  get shader(): Shader {
+    return this._shader;
+  }
+
+  set shader(value: Shader) {
+    this._shader = value;
+
+    const renderStates = this._renderStates;
+    const lastStatesCount = renderStates.length;
+    const passCount = value.passes.length;
+
+    if (lastStatesCount < passCount) {
+      for (let i = lastStatesCount; i < passCount; i++) {
+        renderStates.push(new RenderState());
+      }
+    } else {
+      renderStates.length = passCount;
+    }
+  }
+
+  /**
+   * First Render state.
+   */
+  get renderState(): RenderState {
+    return this._renderStates[0];
+  }
+
+  /**
+   * Render states.
+   */
+  get renderStates(): Readonly<RenderState[]> {
+    return this._renderStates;
+  }
 
   /**
    * Create a material instance.
@@ -49,9 +85,8 @@ export class Material extends RefObject implements IClone {
    */
   cloneTo(target: Material): void {
     target.shader = this.shader;
-    target.renderQueueType = this.renderQueueType;
     this.shaderData.cloneTo(target.shaderData);
-    CloneManager.deepCloneObject(this.renderState, target.renderState);
+    CloneManager.deepCloneObject(this.renderStates, target.renderStates);
   }
 
   /**
@@ -66,7 +101,7 @@ export class Material extends RefObject implements IClone {
    * @internal
    * @todo:temporary solution
    */
-  _preRender(renderElement: RenderElement) {}
+  _preRender(renderElement: MeshRenderElement | SpriteElement) {}
 
   /**
    * @override

@@ -1,9 +1,9 @@
 import { Color, SphericalHarmonics3 } from "@oasis-engine/math";
 import { Scene } from "../Scene";
-import { Shader } from "../shader";
+import { Shader, ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
-import { TextureCubeMap } from "../texture";
+import { TextureCube } from "../texture";
 import { DiffuseMode } from "./enums/DiffuseMode";
 
 /**
@@ -26,11 +26,11 @@ export class AmbientLight {
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);
   private _diffuseIntensity: number = 1.0;
-  private _specularReflection: TextureCubeMap;
+  private _specularTexture: TextureCube;
   private _specularIntensity: number = 1.0;
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
-  private _scene: Scene;
+  private _scenes: Scene[] = [];
   private _specularTextureDecodeRGBM: boolean = false;
 
   /**
@@ -42,12 +42,10 @@ export class AmbientLight {
 
   set specularTextureDecodeRGBM(value: boolean) {
     this._specularTextureDecodeRGBM = value;
-    if (!this._scene) return;
 
-    if (value) {
-      this._scene.shaderData.enableMacro(AmbientLight._decodeRGBMMacro);
-    } else {
-      this._scene.shaderData.disableMacro(AmbientLight._decodeRGBMMacro);
+    const scenes = this._scenes;
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      this._setSpecularTextureDecodeRGBM(scenes[i].shaderData);
     }
   }
 
@@ -60,12 +58,10 @@ export class AmbientLight {
 
   set diffuseMode(value: DiffuseMode) {
     this._diffuseMode = value;
-    if (!this._scene) return;
 
-    if (value === DiffuseMode.SphericalHarmonics) {
-      this._scene.shaderData.enableMacro(AmbientLight._shMacro);
-    } else {
-      this._scene.shaderData.disableMacro(AmbientLight._shMacro);
+    const scenes = this._scenes;
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      this._setDiffuseMode(scenes[i].shaderData);
     }
   }
 
@@ -79,7 +75,7 @@ export class AmbientLight {
 
   set diffuseSolidColor(value: Color) {
     if (value !== this._diffuseSolidColor) {
-      value.cloneTo(this._diffuseSolidColor);
+      this._diffuseSolidColor.copyFrom(value);
     }
   }
 
@@ -93,10 +89,12 @@ export class AmbientLight {
 
   set diffuseSphericalHarmonics(value: SphericalHarmonics3) {
     this._diffuseSphericalHarmonics = value;
-    if (!this._scene) return;
-
     if (value) {
-      this._scene.shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._preComputeSH(value, this._shArray));
+      this._preComputeSH(value, this._shArray);
+      const scenes = this._scenes;
+      for (let i = 0, n = scenes.length; i < n; i++) {
+        scenes[i].shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._shArray);
+      }
     }
   }
 
@@ -109,31 +107,27 @@ export class AmbientLight {
 
   set diffuseIntensity(value: number) {
     this._diffuseIntensity = value;
-    if (!this._scene) return;
 
-    this._scene.shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value);
+    const scenes = this._scenes;
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      scenes[i].shaderData.setFloat(AmbientLight._diffuseIntensityProperty, value);
+    }
   }
 
   /**
    * Specular reflection texture.
    * @remarks This texture must be baked from @oasis-engine/baker
    */
-  get specularTexture(): TextureCubeMap {
-    return this._specularReflection;
+  get specularTexture(): TextureCube {
+    return this._specularTexture;
   }
 
-  set specularTexture(value: TextureCubeMap) {
-    this._specularReflection = value;
-    if (!this._scene) return;
+  set specularTexture(value: TextureCube) {
+    this._specularTexture = value;
 
-    const shaderData = this._scene.shaderData;
-
-    if (value) {
-      shaderData.setTexture(AmbientLight._specularTextureProperty, value);
-      shaderData.setFloat(AmbientLight._mipLevelProperty, this._specularReflection.mipmapCount - 1);
-      shaderData.enableMacro(AmbientLight._specularMacro);
-    } else {
-      shaderData.disableMacro(AmbientLight._specularMacro);
+    const scenes = this._scenes;
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      this._setSpecularTexture(scenes[i].shaderData);
     }
   }
 
@@ -146,30 +140,65 @@ export class AmbientLight {
 
   set specularIntensity(value: number) {
     this._specularIntensity = value;
-    if (!this._scene) return;
 
-    this._scene.shaderData.setFloat(AmbientLight._specularIntensityProperty, value);
+    for (let i = 0, n = this._scenes.length; i < n; i++) {
+      this._scenes[i].shaderData.setFloat(AmbientLight._specularIntensityProperty, value);
+    }
   }
 
   /**
    * @internal
    */
-  _setScene(value: Scene) {
-    this._scene = value;
-    if (!value) return;
+  _addToScene(scene: Scene): void {
+    this._scenes.push(scene);
 
-    const { shaderData } = value;
+    const shaderData = scene.shaderData;
     shaderData.setColor(AmbientLight._diffuseColorProperty, this._diffuseSolidColor);
+    shaderData.setFloat(AmbientLight._diffuseIntensityProperty, this._diffuseIntensity);
+    shaderData.setFloat(AmbientLight._specularIntensityProperty, this._specularIntensity);
+    shaderData.setFloatArray(AmbientLight._diffuseSHProperty, this._shArray);
 
-    this.diffuseMode = this._diffuseMode;
-    this.diffuseSphericalHarmonics = this._diffuseSphericalHarmonics;
-    this.diffuseIntensity = this._diffuseIntensity;
-    this.specularTexture = this._specularReflection;
-    this.specularIntensity = this._specularIntensity;
-    this.specularTextureDecodeRGBM = this._specularTextureDecodeRGBM;
+    this._setDiffuseMode(shaderData);
+    this._setSpecularTextureDecodeRGBM(shaderData);
+    this._setSpecularTexture(shaderData);
   }
 
-  private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): Float32Array {
+  /**
+   * @internal
+   */
+  _removeFromScene(scene: Scene): void {
+    const scenes = this._scenes;
+    const index = scenes.indexOf(scene);
+    scenes.splice(index, 1);
+  }
+
+  private _setDiffuseMode(sceneShaderData: ShaderData): void {
+    if (this._diffuseMode === DiffuseMode.SphericalHarmonics) {
+      sceneShaderData.enableMacro(AmbientLight._shMacro);
+    } else {
+      sceneShaderData.disableMacro(AmbientLight._shMacro);
+    }
+  }
+
+  private _setSpecularTexture(sceneShaderData: ShaderData): void {
+    if (this._specularTexture) {
+      sceneShaderData.setTexture(AmbientLight._specularTextureProperty, this._specularTexture);
+      sceneShaderData.setFloat(AmbientLight._mipLevelProperty, this._specularTexture.mipmapCount - 1);
+      sceneShaderData.enableMacro(AmbientLight._specularMacro);
+    } else {
+      sceneShaderData.disableMacro(AmbientLight._specularMacro);
+    }
+  }
+
+  private _setSpecularTextureDecodeRGBM(sceneShaderData: ShaderData): void {
+    if (this._specularTextureDecodeRGBM) {
+      sceneShaderData.enableMacro(AmbientLight._decodeRGBMMacro);
+    } else {
+      sceneShaderData.disableMacro(AmbientLight._decodeRGBMMacro);
+    }
+  }
+
+  private _preComputeSH(sh: SphericalHarmonics3, out: Float32Array): void {
     /**
      * Basis constants
      *
@@ -228,7 +257,5 @@ export class AmbientLight {
     out[24] = src[24] * 0.429042; // kernel2 * basis8 = 0.429042
     out[25] = src[25] * 0.429042;
     out[26] = src[26] * 0.429042;
-
-    return out;
   }
 }

@@ -28,7 +28,7 @@ export class SpriteMaskManager {
 
     this._batcher.clear();
     this._processMasksDiff(camera, renderer);
-    this._batcher.flush(camera.engine);
+    this._batcher.flush(camera, null);
   }
 
   postRender(renderer: SpriteRenderer): void {
@@ -65,14 +65,14 @@ export class SpriteMaskManager {
         if (influenceLayers & addLayer) {
           const maskRenderElement = mask._maskElement;
           maskRenderElement.isAdd = true;
-          this._batcher.drawElement(maskRenderElement);
+          this._batcher.drawElement(maskRenderElement, camera, null);
           continue;
         }
 
         if (influenceLayers & reduceLayer) {
           const maskRenderElement = mask._maskElement;
           maskRenderElement.isAdd = false;
-          this._batcher.drawElement(maskRenderElement);
+          this._batcher.drawElement(maskRenderElement, camera, null);
         }
       }
     }

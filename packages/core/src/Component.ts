@@ -1,24 +1,26 @@
 import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
-import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { Scene } from "./Scene";
 
 /**
  * The base class of the components.
  */
-export abstract class Component extends EngineObject {
+export class Component extends EngineObject {
   /** @internal */
   @ignoreClone
   _entity: Entity;
   /** @internal */
   @ignoreClone
+  _awoken: boolean = false;
+  /** @internal */
+  @ignoreClone
   _destroyed: boolean = false;
 
+  @ignoreClone
+  private _phasedActive: boolean = false;
   @assignmentClone
   private _enabled: boolean = true;
-  @ignoreClone
-  private _awoken: boolean = false;
 
   /**
    * Indicates whether the component is enabled.
@@ -28,14 +30,17 @@ export abstract class Component extends EngineObject {
   }
 
   set enabled(value: boolean) {
-    if (value === this._enabled) {
-      return;
-    }
-    this._enabled = value;
-    if (value) {
-      this._entity.isActiveInHierarchy && this._onEnable();
-    } else {
-      this._entity.isActiveInHierarchy && this._onDisable();
+    if (value !== this._enabled) {
+      this._enabled = value;
+      if (this._entity.isActiveInHierarchy) {
+        if (value) {
+          this._phasedActive = true;
+          this._onEnable();
+        } else {
+          this._phasedActive = false;
+          this._onDisable();
+        }
+      }
     }
   }
 
@@ -75,7 +80,6 @@ export abstract class Component extends EngineObject {
     this._entity._removeComponent(this);
     if (this._entity.isActiveInHierarchy) {
       this._enabled && this._onDisable();
-      this._onInActive();
     }
     this._destroyed = true;
     this._onDestroy();
@@ -104,30 +108,26 @@ export abstract class Component extends EngineObject {
   /**
    * @internal
    */
-  _onActive(): void {}
-
-  /**
-   * @internal
-   */
-  _onInActive(): void {}
-
-  /**
-   * @internal
-   */
   _setActive(value: boolean): void {
+    const entity = this._entity;
     if (value) {
-      if (!this._awoken) {
+      // Awake condition is un awake && current entity is active in hierarchy
+      if (!this._awoken && entity._isActiveInHierarchy) {
         this._awoken = true;
         this._onAwake();
       }
-      // You can do isActive = false in onAwake function.
-      if (this._entity._isActiveInHierarchy) {
-        this._onActive();
-        this._enabled && this._onEnable();
+      // Developer maybe do `isActive = false` in `onAwake` method
+      // Enable condition is phased active state is false && current compoment is active in hierarchy
+      if (!this._phasedActive && entity._isActiveInHierarchy && this._enabled) {
+        this._phasedActive = true;
+        this._onEnable();
       }
     } else {
-      this._enabled && this._onDisable();
-      this._onInActive();
+      // Disable condition is phased active state is true && current compoment is inActive in hierarchy
+      if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
+        this._phasedActive = false;
+        this._onDisable();
+      }
     }
   }
 }

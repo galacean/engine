@@ -1,7 +1,7 @@
 import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
-import { Camera } from "./Camera";
-import { deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
+import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -9,12 +9,17 @@ import { Shader } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { UpdateFlag } from "./UpdateFlag";
+import { Transform, TransformModifyFlags } from "./Transform";
 
 /**
- * Renderable component.
+ * Basis for all renderers.
+ * @decorator `@dependentComponents(Transform)`
  */
-export abstract class Renderer extends Component {
+@dependentComponents(Transform)
+export class Renderer extends Component {
+  private static _tempVector0 = new Vector3();
+
+  private static _receiveShadowMacro = Shader.getMacroByName("OASIS_RECEIVE_SHADOWS");
   private static _localMatrixProperty = Shader.getPropertyByName("u_localMat");
   private static _worldMatrixProperty = Shader.getPropertyByName("u_modelMat");
   private static _mvMatrixProperty = Shader.getPropertyByName("u_MVMat");
@@ -25,9 +30,6 @@ export abstract class Renderer extends Component {
   /** ShaderData related to renderer. */
   @deepClone
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
-  /** Whether it is clipped by the frustum, needs to be turned on camera.enableFrustumCulling. */
-  @ignoreClone
-  isCulled: boolean = false;
 
   /** @internal */
   @ignoreClone
@@ -41,20 +43,19 @@ export abstract class Renderer extends Component {
   /** @internal */
   @ignoreClone
   _globalShaderMacro: ShaderMacroCollection = new ShaderMacroCollection();
-
-  /** @internal temp solution. */
+  /** @internal */
+  @deepClone
+  _bounds: BoundingBox = new BoundingBox();
   @ignoreClone
-  _renderSortId: number = 0;
+  _renderFrameCount: number;
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
   @shallowClone
   protected _materials: Material[] = [];
-
   @ignoreClone
-  private _transformChangeFlag: UpdateFlag;
-  @deepClone
-  private _bounds: BoundingBox = new BoundingBox(new Vector3(), new Vector3());
+  protected _dirtyUpdateFlag: number = 0;
+
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -65,6 +66,38 @@ export abstract class Renderer extends Component {
   private _normalMatrix: Matrix = new Matrix();
   @ignoreClone
   private _materialsInstanced: boolean[] = [];
+  @ignoreClone
+  private _priority: number = 0;
+  @assignmentClone
+  private _receiveShadows: boolean = true;
+
+  /**
+   * Whether it is culled in the current frame and does not participate in rendering.
+   */
+  get isCulled(): boolean {
+    return !(this._renderFrameCount === undefined || this._renderFrameCount === this._engine.time.frameCount - 1);
+  }
+
+  /**
+   * Whether receive shadow.
+   */
+  get receiveShadows(): boolean {
+    return this._receiveShadows;
+  }
+
+  set receiveShadows(value: boolean) {
+    if (this._receiveShadows !== value) {
+      if (value) {
+        this.shaderData.enableMacro(Renderer._receiveShadowMacro);
+      } else {
+        this.shaderData.disableMacro(Renderer._receiveShadowMacro);
+      }
+      this._receiveShadows = value;
+    }
+  }
+
+  /** Whether cast shadow. */
+  castShadows: boolean = true;
 
   /**
    * Material count.
@@ -85,12 +118,22 @@ export abstract class Renderer extends Component {
    * The bounding volume of the renderer.
    */
   get bounds(): BoundingBox {
-    const changeFlag = this._transformChangeFlag;
-    if (changeFlag.flag) {
+    if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._updateBounds(this._bounds);
-      changeFlag.flag = false;
+      this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
     return this._bounds;
+  }
+
+  /**
+   * The render priority of the renderer, lower values are rendered first and higher values are rendered last.
+   */
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    this._priority = value;
   }
 
   /**
@@ -100,8 +143,11 @@ export abstract class Renderer extends Component {
     super(entity);
     const prototype = Renderer.prototype;
     this._overrideUpdate = this.update !== prototype.update;
-    this._transformChangeFlag = this.entity.transform.registerWorldChangeFlag();
     this.shaderData._addRefCount(1);
+    this._onTransformChanged = this._onTransformChanged.bind(this);
+    this._registerEntityTransformListener();
+
+    this.shaderData.enableMacro(Renderer._receiveShadowMacro);
   }
 
   /**
@@ -164,26 +210,10 @@ export abstract class Renderer extends Component {
   setMaterial(index: number, material: Material): void;
 
   setMaterial(indexOrMaterial: number | Material, material: Material = null): void {
-    let index;
     if (typeof indexOrMaterial === "number") {
-      index = indexOrMaterial;
+      this._setMaterial(indexOrMaterial, material);
     } else {
-      index = 0;
-      material = indexOrMaterial;
-    }
-
-    const materials = this._materials;
-    if (index >= materials.length) {
-      materials.length = index + 1;
-    }
-
-    const materialsInstance = this._materialsInstanced;
-    const internalMaterial = materials[index];
-    if (internalMaterial !== material) {
-      materials[index] = material;
-      index < materialsInstance.length && (materialsInstance[index] = false);
-      internalMaterial && internalMaterial._addRefCount(-1);
-      material && material._addRefCount(1);
+      this._setMaterial(0, indexOrMaterial);
     }
   }
 
@@ -242,18 +272,85 @@ export abstract class Renderer extends Component {
   update(deltaTime: number): void {}
 
   /**
+   * @override
    * @internal
    */
-  _updateShaderData(context: RenderContext): void {
-    const shaderData = this.shaderData;
+  _onEnable(): void {
+    const componentsManager = this.engine._componentsManager;
+    if (this._overrideUpdate) {
+      componentsManager.addOnUpdateRenderers(this);
+    }
+    componentsManager.addRenderer(this);
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  _onDisable(): void {
+    const componentsManager = this.engine._componentsManager;
+    if (this._overrideUpdate) {
+      componentsManager.removeOnUpdateRenderers(this);
+    }
+    componentsManager.removeRenderer(this);
+  }
+
+  /**
+   * @internal
+   */
+  _prepareRender(context: RenderContext): void {
+    const virtualCamera = context.virtualCamera;
+    const cameraPosition = virtualCamera.position;
+    const boundsCenter = this.bounds.getCenter(Renderer._tempVector0);
+
+    if (virtualCamera.isOrthographic) {
+      Vector3.subtract(boundsCenter, cameraPosition, boundsCenter);
+      this._distanceForSort = Vector3.dot(boundsCenter, virtualCamera.forward);
+    } else {
+      this._distanceForSort = Vector3.distanceSquared(boundsCenter, cameraPosition);
+    }
+
+    this._updateShaderData(context);
+    this._render(context);
+
+    // union camera global macro and renderer macro.
+    ShaderMacroCollection.unionCollection(
+      context.camera._globalShaderMacro,
+      this.shaderData._macroCollection,
+      this._globalShaderMacro
+    );
+  }
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
+
+    this.shaderData._addRefCount(-1);
+
+    const materials = this._materials;
+    for (let i = 0, n = materials.length; i < n; i++) {
+      materials[i]?._addRefCount(-1);
+    }
+  }
+
+  protected _updateShaderData(context: RenderContext): void {
     const worldMatrix = this.entity.transform.worldMatrix;
+    this._updateTransformShaderData(context, worldMatrix);
+  }
+
+  protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
+    const shaderData = this.shaderData;
+    const virtualCamera = context.virtualCamera;
+
     const mvMatrix = this._mvMatrix;
     const mvpMatrix = this._mvpMatrix;
     const mvInvMatrix = this._mvInvMatrix;
     const normalMatrix = this._normalMatrix;
 
-    Matrix.multiply(context._camera.viewMatrix, worldMatrix, mvMatrix);
-    Matrix.multiply(context._viewProjectMatrix, worldMatrix, mvpMatrix);
+    Matrix.multiply(virtualCamera.viewMatrix, worldMatrix, mvMatrix);
+    Matrix.multiply(virtualCamera.viewProjectionMatrix, worldMatrix, mvpMatrix);
     Matrix.invert(mvMatrix, mvInvMatrix);
     Matrix.invert(worldMatrix, normalMatrix);
     normalMatrix.transpose();
@@ -266,45 +363,15 @@ export abstract class Renderer extends Component {
     shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
   }
 
-  _onEnable(): void {
-    const componentsManager = this.engine._componentsManager;
-    if (this._overrideUpdate) {
-      componentsManager.addOnUpdateRenderers(this);
-    }
-    componentsManager.addRenderer(this);
-  }
-
-  _onDisable(): void {
-    const componentsManager = this.engine._componentsManager;
-    if (this._overrideUpdate) {
-      componentsManager.removeOnUpdateRenderers(this);
-    }
-    componentsManager.removeRenderer(this);
-  }
-
-  /**
-   * @internal
-   */
-  abstract _render(camera: Camera): void;
-
-  /**
-   * @internal
-   */
-  _onDestroy(): void {
-    const flag = this._transformChangeFlag;
-    if (flag) {
-      flag.destroy();
-      this._transformChangeFlag = null;
-    }
-
-    this.shaderData._addRefCount(-1);
-
-    for (let i = 0, n = this._materials.length; i < n; i++) {
-      this._materials[i]._addRefCount(-1);
-    }
+  protected _registerEntityTransformListener(): void {
+    this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
   }
 
   protected _updateBounds(worldBounds: BoundingBox): void {}
+
+  protected _render(context: RenderContext): void {
+    throw "not implement";
+  }
 
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
@@ -315,4 +382,34 @@ export abstract class Renderer extends Component {
     this._materials[index] = insMaterial;
     return insMaterial;
   }
+
+  private _setMaterial(index: number, material: Material): void {
+    const materials = this._materials;
+    if (index >= materials.length) {
+      materials.length = index + 1;
+    }
+
+    const internalMaterial = materials[index];
+    if (internalMaterial !== material) {
+      const materialsInstance = this._materialsInstanced;
+      index < materialsInstance.length && (materialsInstance[index] = false);
+
+      internalMaterial && internalMaterial._addRefCount(-1);
+      material && material._addRefCount(1);
+      materials[index] = material;
+    }
+  }
+
+  @ignoreClone
+  protected _onTransformChanged(type: TransformModifyFlags): void {
+    this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+  }
+}
+
+/**
+ * @internal
+ */
+export enum RendererUpdateFlags {
+  /** Include world position and world bounds. */
+  WorldVolume = 0x1
 }

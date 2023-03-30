@@ -4,6 +4,10 @@ attribute vec3 POSITION;
     attribute vec2 TEXCOORD_0;
 #endif
 
+#ifdef O3_HAS_UV1
+    attribute vec2 TEXCOORD_1;
+#endif
+
 #ifdef O3_HAS_SKIN
     attribute vec4 JOINTS_0;
     attribute vec4 WEIGHTS_0;
@@ -36,14 +40,10 @@ attribute vec3 POSITION;
     attribute vec4 COLOR_0;
 #endif
 
-uniform mat4 u_localMat;
-uniform mat4 u_modelMat;
-uniform mat4 u_viewMat;
-uniform mat4 u_projMat;
-uniform mat4 u_MVMat;
-uniform mat4 u_MVPMat;
-uniform mat4 u_normalMat;
-uniform vec3 u_cameraPos;
+
+#include <transform_declare>
+#include <camera_declare>
+
 uniform vec4 u_tilingOffset;
 
 
