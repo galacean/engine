@@ -25,6 +25,8 @@ export abstract class Mesh extends RefObject {
   /** @internal */
   _glIndexByteCount: number;
   /** @internal */
+  _bufferStructChanged: boolean;
+  /** @internal */
   _platformPrimitive: IPlatformPrimitive;
 
   /** @internal */
