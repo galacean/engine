@@ -156,6 +156,7 @@ export abstract class Mesh extends GraphicsResource {
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -166,6 +167,7 @@ export abstract class Mesh extends GraphicsResource {
     this._vertexElementMap[semantic] = element;
     this._vertexElements.splice(i, 0, element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -178,6 +180,7 @@ export abstract class Mesh extends GraphicsResource {
       binding._buffer._addReferCount(1);
     }
     this._vertexBufferBindings[index] = binding;
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -224,7 +227,6 @@ export abstract class Mesh extends GraphicsResource {
     for (let i = 0, n = elements.length; i < n; i++) {
       this._addVertexElement(elements[i]);
     }
-    this._bufferStructChanged = true;
   }
 
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
