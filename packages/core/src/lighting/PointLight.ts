@@ -63,8 +63,8 @@ export class PointLight extends Light {
     const data = PointLight._combinedData;
 
     const cullingMask = this.cullingMask;
-    data.cullingMask[lightIndex] = (cullingMask >>> 16) & 65535;
-    data.cullingMask[lightIndex + 1] = cullingMask & 65535;
+    data.cullingMask[lightIndex] = cullingMask & 65535;
+    data.cullingMask[lightIndex + 1] = (cullingMask >>> 16) & 65535;
 
     data.color[colorStart] = lightColor.r;
     data.color[colorStart + 1] = lightColor.g;
