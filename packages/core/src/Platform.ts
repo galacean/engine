@@ -8,6 +8,8 @@ export enum Platform {
   IPhone,
   /** IPad platform. */
   IPad,
+  /** MacOS platform. */
+  Mac,
   /** Unknown platform. */
   Unknown
 }
