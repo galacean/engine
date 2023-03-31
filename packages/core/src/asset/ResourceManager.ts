@@ -271,20 +271,13 @@ export class ResourceManager {
               }
             }
           })
-          .catch((err: Error) => {
+          .catch(() => {
             for (let k in promise) delete loadingPromises[k];
-            return Promise.reject(err);
           });
       }
 
-      const subAssetPromise = promise[assetURL];
-      return new AssetPromise((resolve, reject) => {
-        subAssetPromise.then((resource: EngineObject) => {
-          resolve(this._getResolveResource(resource, pathes) as T);
-        });
-        subAssetPromise.catch((error: Error) => {
-          reject(error);
-        });
+      return promise[assetURL].then((resource: EngineObject) => {
+        return this._getResolveResource(resource, pathes) as T;
       });
     }
   }
