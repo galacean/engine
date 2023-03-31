@@ -2,7 +2,6 @@
 #ifdef O3_DIRECT_LIGHT_COUNT
 
     struct DirectLight {
-        mediump ivec2 cullingMask;
         vec3 color;
         vec3 direction;
     };
@@ -18,7 +17,6 @@
 #ifdef O3_POINT_LIGHT_COUNT
 
     struct PointLight {
-        mediump ivec2 cullingMask;
         vec3 color;
         vec3 position;
         float distance;
@@ -36,7 +34,6 @@
 #ifdef O3_SPOT_LIGHT_COUNT
 
     struct SpotLight {
-        mediump ivec2 cullingMask;
         vec3 color;
         vec3 position;
         vec3 direction;

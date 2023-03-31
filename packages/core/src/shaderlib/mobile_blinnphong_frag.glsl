@@ -18,8 +18,7 @@
 
     DirectLight directionalLight;
     for( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i++ ) {
-        directionalLight.cullingMask = ivec2(u_directLightCullingMask[i],u_directLightCullingMask[i+1]);
-        if(isRendererCulledByLight(oasis_RendererLayer.xy, directionalLight.cullingMask)) 
+        if(isRendererCulledByLight(oasis_RendererLayer.xy, ivec2(u_directLightCullingMask[i],u_directLightCullingMask[i+1]))) 
             continue;
 
         directionalLight.color = u_directLightColor[i];
@@ -45,8 +44,7 @@
     PointLight pointLight;
 
     for( int i = 0; i < O3_POINT_LIGHT_COUNT; i++ ) {
-        pointLight.cullingMask = ivec2(u_pointLightCullingMask[i],u_pointLightCullingMask[i+1]);
-        if(isRendererCulledByLight(oasis_RendererLayer.xy, pointLight.cullingMask)) 
+        if(isRendererCulledByLight(oasis_RendererLayer.xy, ivec2(u_pointLightCullingMask[i],u_pointLightCullingMask[i+1]))) 
             continue;
 
         pointLight.color = u_pointLightColor[i];
@@ -74,8 +72,7 @@
     SpotLight spotLight;
 
     for( int i = 0; i < O3_SPOT_LIGHT_COUNT; i++) {
-        spotLight.cullingMask = ivec2(u_spotLightCullingMask[i],u_spotLightCullingMask[i+1]);
-        if(isRendererCulledByLight(oasis_RendererLayer.xy, spotLight.cullingMask)) 
+        if(isRendererCulledByLight(oasis_RendererLayer.xy, ivec2(u_spotLightCullingMask[i],u_spotLightCullingMask[i+1]))) 
             continue;
         
         spotLight.color = u_spotLightColor[i];
