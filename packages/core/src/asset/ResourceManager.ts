@@ -244,17 +244,17 @@ export class ResourceManager {
     const promise = loader.load(item, this);
     if (promise instanceof AssetPromise) {
       loadingPromises[assetBaseURL] = promise;
-      promise
-        .then((resource: EngineObject) => {
+      promise.then(
+        (resource: EngineObject) => {
           if (loader.useCache) {
             this._addAsset(assetBaseURL, resource);
           }
           delete loadingPromises[assetBaseURL];
-        })
-        .catch((error: Error) => {
+        },
+        () => {
           delete loadingPromises[assetBaseURL];
-          return Promise.reject(error);
-        });
+        }
+      );
       return promise;
     } else {
       for (let subURL in promise) {
@@ -262,18 +262,19 @@ export class ResourceManager {
         const isMaster = assetBaseURL === subURL;
         loadingPromises[subURL] = subPromise;
 
-        subPromise
-          .then((resource: EngineObject) => {
+        subPromise.then(
+          (resource: EngineObject) => {
             if (isMaster) {
               if (loader.useCache) {
                 this._addAsset(subURL, resource);
                 for (let k in promise) delete loadingPromises[k];
               }
             }
-          })
-          .catch(() => {
+          },
+          () => {
             for (let k in promise) delete loadingPromises[k];
-          });
+          }
+        );
       }
 
       return promise[assetURL].then((resource: EngineObject) => {
