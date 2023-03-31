@@ -112,9 +112,9 @@ export class PointerManager implements IInput {
     if (!this._hadListener) {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.addEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.addEventListener("pointermove", onPointerEvent);
       htmlCanvas.addEventListener("pointerup", onPointerEvent);
       htmlCanvas.addEventListener("pointerleave", onPointerEvent);
+      htmlCanvas.addEventListener("pointermove", onPointerEvent);
       htmlCanvas.addEventListener("pointercancel", onPointerEvent);
       this._hadListener = true;
     }
@@ -127,9 +127,9 @@ export class PointerManager implements IInput {
     if (this._hadListener) {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       htmlCanvas.removeEventListener("pointerup", onPointerEvent);
       htmlCanvas.removeEventListener("pointerleave", onPointerEvent);
+      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
       this._downList.length = 0;
@@ -150,9 +150,9 @@ export class PointerManager implements IInput {
     if (this._hadListener) {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
-      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       htmlCanvas.removeEventListener("pointerup", onPointerEvent);
       htmlCanvas.removeEventListener("pointerleave", onPointerEvent);
+      htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
     }
