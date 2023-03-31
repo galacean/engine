@@ -475,19 +475,15 @@ export class GLTFUtil {
     };
   }
 
-  private static _formatRelativePath(value: string): string {
-    value = value.replace(/\/\.\//g, "/");
-
-    const parts = value.split("/");
-    for (let i = 0, n = parts.length; i < n; i++) {
-      if (parts[i] === "..") {
-        parts.splice(i - 1, 2);
-        i -= 2;
-      } else if (parts[i] === "." || parts[i] === "") {
-        parts.splice(i, 1);
-        i -= 1;
-      }
-    }
-    return parts.join("/");
+  private static _formatRelativePath(path: string): string {
+    return path
+      .split("/")
+      .filter(Boolean)
+      .reduce((acc, cur) => {
+        if (cur === "..") acc.pop();
+        else if (cur !== ".") acc.push(cur);
+        return acc;
+      }, [])
+      .join("/");
   }
 }
