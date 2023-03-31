@@ -50,7 +50,7 @@ export class PointerManager implements IInput {
     this._canvas = engine.canvas;
     this._htmlCanvas = htmlCanvas;
     htmlCanvas.oncontextmenu = (event: UIEvent) => {
-      return false;
+      event.cancelable && event.preventDefault();
     };
     this._onPointerEvent = this._onPointerEvent.bind(this);
     this._updatePointerWithPhysics = this._updatePointerWithPhysics.bind(this);
@@ -165,7 +165,6 @@ export class PointerManager implements IInput {
   }
 
   private _onPointerEvent(evt: PointerEvent) {
-    evt.cancelable && evt.preventDefault();
     evt.type === "pointerdown" && this._htmlCanvas.focus();
     this._nativeEvents.push(evt);
   }
