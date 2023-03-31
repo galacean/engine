@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
@@ -26,6 +26,7 @@ export class Renderer extends Component {
   private static _mvpMatrixProperty = Shader.getPropertyByName("u_MVPMat");
   private static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");
   private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
+  private static _rendererLayerProperty = Shader.getPropertyByName("oasis_RendererLayer");
 
   /** ShaderData related to renderer. */
   @deepClone
@@ -70,6 +71,9 @@ export class Renderer extends Component {
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;
+
+  @assignmentClone
+  private _rendererLayer: Vector4 = new Vector4();
 
   /**
    * Whether it is culled in the current frame and does not participate in rendering.
@@ -336,8 +340,14 @@ export class Renderer extends Component {
   }
 
   protected _updateShaderData(context: RenderContext): void {
-    const worldMatrix = this.entity.transform.worldMatrix;
+    const entity = this.entity;
+    const worldMatrix = entity.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
+
+    const layer = entity.layer;
+    const rendererLayer = this._rendererLayer;
+    rendererLayer.set((layer >>> 24) & 255, (layer >>> 16) & 255, (layer >>> 8) & 255, layer & 255);
+    this.shaderData.setVector4(Renderer._rendererLayerProperty, rendererLayer);
   }
 
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
