@@ -202,20 +202,20 @@ export class ResourceManager {
 
     // Parse url
     const { assetBaseURL, queryPath } = this._parseURL(url);
-    const pathes = queryPath ? this._parseQueryPath(queryPath) : [];
+    const paths = queryPath ? this._parseQueryPath(queryPath) : [];
 
     // Check cache
     const cacheObject = this._assetUrlPool[assetBaseURL];
     if (cacheObject) {
       return new AssetPromise((resolve) => {
-        resolve(this._getResolveResource(cacheObject, pathes) as T);
+        resolve(this._getResolveResource(cacheObject, paths) as T);
       });
     }
 
     // Get asset url
     let assetURL = assetBaseURL;
     if (queryPath) {
-      assetURL += "?q=" + pathes.shift();
+      assetURL += "?q=" + paths.shift();
     }
 
     // Check is loading
@@ -225,7 +225,7 @@ export class ResourceManager {
       return new AssetPromise((resolve, reject) => {
         loadingPromise
           .then((resource: EngineObject) => {
-            resolve(this._getResolveResource(resource, pathes) as T);
+            resolve(this._getResolveResource(resource, paths) as T);
           })
           .catch((error: Error) => {
             reject(error);
@@ -251,9 +251,7 @@ export class ResourceManager {
           }
           delete loadingPromises[assetBaseURL];
         },
-        () => {
-          delete loadingPromises[assetBaseURL];
-        }
+        () => delete loadingPromises[assetBaseURL]
       );
       return promise;
     } else {
@@ -277,9 +275,7 @@ export class ResourceManager {
         );
       }
 
-      return promise[assetURL].then((resource: EngineObject) => {
-        return this._getResolveResource(resource, pathes) as T;
-      });
+      return promise[assetURL].then((resource: EngineObject) => this._getResolveResource(resource, paths) as T);
     }
   }
 
@@ -292,11 +288,11 @@ export class ResourceManager {
     }
   }
 
-  private _getResolveResource(resource: any, pathes: string[]): any {
+  private _getResolveResource(resource: any, paths: string[]): any {
     let subResource = resource;
-    if (pathes) {
-      for (let i = 0, n = pathes.length; i < n; i++) {
-        const path = pathes[i];
+    if (paths) {
+      for (let i = 0, n = paths.length; i < n; i++) {
+        const path = paths[i];
         subResource = subResource[path];
       }
     }
