@@ -58,7 +58,7 @@ export class ParserContext {
  * @internal
  */
 export class BufferInfo {
-  vertxBuffer: Buffer;
+  vertexBuffer: Buffer;
   vertexBindingInfos: Record<number, number> = {};
   constructor(public data: TypedArray, public interleaved: boolean, public stride: number) {}
 }
