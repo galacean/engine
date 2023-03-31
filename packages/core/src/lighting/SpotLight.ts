@@ -16,7 +16,7 @@ export class SpotLight extends Light {
   private static _penumbraCosProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightPenumbraCos");
 
   private static _combinedData = {
-    cullingMask: new Int32Array(Light._maxLight * 4),
+    cullingMask: new Int32Array(Light._maxLight * 2),
     color: new Float32Array(Light._maxLight * 3),
     position: new Float32Array(Light._maxLight * 3),
     direction: new Float32Array(Light._maxLight * 3),
@@ -103,10 +103,8 @@ export class SpotLight extends Light {
     const data = SpotLight._combinedData;
 
     const cullingMask = this.cullingMask;
-    data.cullingMask[lightIndex] = (cullingMask >>> 24) & 255;
-    data.cullingMask[lightIndex + 1] = (cullingMask >>> 16) & 255;
-    data.cullingMask[lightIndex + 2] = (cullingMask >>> 8) & 255;
-    data.cullingMask[lightIndex + 3] = cullingMask & 255;
+    data.cullingMask[lightIndex] = (cullingMask >>> 16) & 65535;
+    data.cullingMask[lightIndex + 1] = cullingMask & 65535;
 
     data.color[colorStart] = color.r;
     data.color[colorStart + 1] = color.g;

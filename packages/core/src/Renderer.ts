@@ -346,7 +346,7 @@ export class Renderer extends Component {
 
     const layer = entity.layer;
     const rendererLayer = this._rendererLayer;
-    rendererLayer.set((layer >>> 24) & 255, (layer >>> 16) & 255, (layer >>> 8) & 255, layer & 255);
+    rendererLayer.set((layer >>> 16) & 65535, layer & 65535, 0, 0);
     this.shaderData.setVector4(Renderer._rendererLayerProperty, rendererLayer);
   }
 
