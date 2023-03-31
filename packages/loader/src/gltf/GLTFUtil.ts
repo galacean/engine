@@ -407,12 +407,7 @@ export class GLTFUtil {
       return relativeUrl;
     }
 
-    const char0 = relativeUrl.charAt(0);
-    if (char0 === ".") {
-      return GLTFUtil._formatRelativePath(relativeUrl + relativeUrl);
-    }
-
-    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
+    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + GLTFUtil._formatRelativePath(relativeUrl);
   }
 
   /**
@@ -481,11 +476,16 @@ export class GLTFUtil {
   }
 
   private static _formatRelativePath(value: string): string {
+    value = value.replace(/\/\.\//g, "/");
+
     const parts = value.split("/");
     for (let i = 0, n = parts.length; i < n; i++) {
-      if (parts[i] == "..") {
+      if (parts[i] === "..") {
         parts.splice(i - 1, 2);
         i -= 2;
+      } else if (parts[i] === "." || parts[i] === "") {
+        parts.splice(i, 1);
+        i -= 1;
       }
     }
     return parts.join("/");
