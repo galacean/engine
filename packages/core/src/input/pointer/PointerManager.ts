@@ -49,9 +49,6 @@ export class PointerManager implements IInput {
     this._engine = engine;
     this._canvas = engine.canvas;
     this._htmlCanvas = htmlCanvas;
-    htmlCanvas.oncontextmenu = (event: UIEvent) => {
-      event.cancelable && event.preventDefault();
-    };
     this._onPointerEvent = this._onPointerEvent.bind(this);
     this._updatePointerWithPhysics = this._updatePointerWithPhysics.bind(this);
     this._updatePointerWithoutPhysics = this._updatePointerWithoutPhysics.bind(this);
