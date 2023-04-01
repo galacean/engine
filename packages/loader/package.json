@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/loader",
-  "version": "1.0.0-alpha.4",
+  "version": "1.0.0-alpha.5",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
