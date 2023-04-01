@@ -146,12 +146,16 @@ export class Renderer extends Component {
   constructor(entity: Entity) {
     super(entity);
     const prototype = Renderer.prototype;
+    const shaderData = this.shaderData;
     this._overrideUpdate = this.update !== prototype.update;
-    this.shaderData._addRefCount(1);
+
+    shaderData._addRefCount(1);
+
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
 
-    this.shaderData.enableMacro(Renderer._receiveShadowMacro);
+    shaderData.enableMacro(Renderer._receiveShadowMacro);
+    shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
   }
 
   /**
@@ -345,9 +349,7 @@ export class Renderer extends Component {
     this._updateTransformShaderData(context, worldMatrix);
 
     const layer = entity.layer;
-    const rendererLayer = this._rendererLayer;
-    rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
-    this.shaderData.setVector4(Renderer._rendererLayerProperty, rendererLayer);
+    this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
