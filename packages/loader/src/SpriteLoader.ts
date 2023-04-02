@@ -13,21 +13,6 @@ import {
 @resourceLoader(AssetType.Sprite, ["sprite"], false)
 class SpriteLoader extends Loader<Sprite> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Sprite> {
-    const getSpriteByTexture2D = (data, resolve, reject) => {
-      resourceManager
-        // @ts-ignore
-        .getResourceByRef<Texture2D>(data.texture)
-        .then((texture) => {
-          const sprite = new Sprite(resourceManager.engine, texture);
-          sprite.region = data.region;
-          sprite.pivot = data.pivot;
-          resolve(sprite);
-        })
-        .catch((reason: any) => {
-          reject(reason);
-        });
-    };
-
     return new AssetPromise((resolve, reject) => {
       this.request<any>(item.url, {
         ...item,
@@ -44,19 +29,30 @@ class SpriteLoader extends Loader<Sprite> {
                 if (sprite) {
                   resolve(sprite);
                 } else {
-                  getSpriteByTexture2D(data, resolve, reject);
+                  this._getSpriteByTexture2D(resourceManager, data, resolve, reject);
                 }
               })
               .catch((reason: any) => {
-                getSpriteByTexture2D(data, resolve, reject);
+                this._getSpriteByTexture2D(resourceManager, data, resolve, reject);
               });
           } else {
-            getSpriteByTexture2D(data, resolve, reject);
+            this._getSpriteByTexture2D(resourceManager, data, resolve, reject);
           }
         })
-        .catch((reason: any) => {
-          reject(reason);
-        });
+        .catch(reject);
     });
+  }
+
+  private _getSpriteByTexture2D(resourceManager: ResourceManager, data, resolve, reject) {
+    resourceManager
+      // @ts-ignore
+      .getResourceByRef<Texture2D>(data.texture)
+      .then((texture) => {
+        const sprite = new Sprite(resourceManager.engine, texture);
+        sprite.region = data.region;
+        sprite.pivot = data.pivot;
+        resolve(sprite);
+      })
+      .catch(reject);
   }
 }
