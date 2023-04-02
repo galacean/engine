@@ -1,2 +1,2 @@
-uniform mediump ivec4 oasis_RendererLayer;
+uniform highp uvec4 oasis_RendererLayer;
 

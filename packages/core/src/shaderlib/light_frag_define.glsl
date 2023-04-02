@@ -6,7 +6,7 @@
         vec3 direction;
     };
 
-    uniform mediump int u_directLightCullingMask[O3_DIRECT_LIGHT_COUNT * 2];
+    uniform uint u_directLightCullingMask[O3_DIRECT_LIGHT_COUNT * 2];
     uniform vec3 u_directLightColor[O3_DIRECT_LIGHT_COUNT];
     uniform vec3 u_directLightDirection[O3_DIRECT_LIGHT_COUNT];
 
@@ -22,7 +22,7 @@
         float distance;
     };
 
-    uniform mediump int u_pointLightCullingMask[ O3_POINT_LIGHT_COUNT * 2 ];
+    uniform uint u_pointLightCullingMask[ O3_POINT_LIGHT_COUNT * 2 ];
     uniform vec3 u_pointLightColor[ O3_POINT_LIGHT_COUNT ];
     uniform vec3 u_pointLightPosition[ O3_POINT_LIGHT_COUNT ];
     uniform float u_pointLightDistance[ O3_POINT_LIGHT_COUNT ];
@@ -42,7 +42,7 @@
         float penumbraCos;
     };
 
-    uniform mediump int u_spotLightCullingMask[ O3_SPOT_LIGHT_COUNT * 2 ];
+    uniform uint u_spotLightCullingMask[ O3_SPOT_LIGHT_COUNT * 2 ];
     uniform vec3 u_spotLightColor[ O3_SPOT_LIGHT_COUNT ];
     uniform vec3 u_spotLightPosition[ O3_SPOT_LIGHT_COUNT ];
     uniform vec3 u_spotLightDirection[ O3_SPOT_LIGHT_COUNT ];
@@ -72,7 +72,7 @@ uniform EnvMapLight u_envMapLight;
 #endif
 
 
-bool isRendererCulledByLight(mediump ivec2 rendererLayer, mediump ivec2 lightCullingMask)
+bool isRendererCulledByLight(uvec2 rendererLayer, uvec2 lightCullingMask)
 {
     return !((rendererLayer.x & lightCullingMask.x) != 0 || (rendererLayer.y & lightCullingMask.y) != 0);
 }

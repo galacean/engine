@@ -84,7 +84,7 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
 
         DirectLight directionalLight;
         for ( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(oasis_RendererLayer.xy, ivec2(u_directLightCullingMask[i],u_directLightCullingMask[i+1]))) 
+            if(isRendererCulledByLight(oasis_RendererLayer.xy, uvec2(u_directLightCullingMask[i],u_directLightCullingMask[i+1]))) 
                 continue;
 
             directionalLight.color = u_directLightColor[i];
@@ -104,7 +104,7 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
         PointLight pointLight;
 
         for ( int i = 0; i < O3_POINT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(oasis_RendererLayer.xy, ivec2(u_pointLightCullingMask[i],u_pointLightCullingMask[i+1]))) 
+            if(isRendererCulledByLight(oasis_RendererLayer.xy, uvec2(u_pointLightCullingMask[i],u_pointLightCullingMask[i+1]))) 
                 continue;
 
             pointLight.color = u_pointLightColor[i];
@@ -121,7 +121,7 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
         SpotLight spotLight;
 
         for ( int i = 0; i < O3_SPOT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(oasis_RendererLayer.xy, ivec2(u_spotLightCullingMask[i],u_spotLightCullingMask[i+1]))) 
+            if(isRendererCulledByLight(oasis_RendererLayer.xy, uvec2(u_spotLightCullingMask[i],u_spotLightCullingMask[i+1]))) 
                 continue;
 
             spotLight.color = u_spotLightColor[i];
