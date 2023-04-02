@@ -114,7 +114,11 @@ void initMaterial(out Material material, const in Geometry geometry){
             material.clearCoatRoughness = max(material.clearCoatRoughness, getAARoughnessFactor(geometry.clearCoatNormal));
         #endif
 
-        material.opacity = baseColor.a;
+        #ifdef OASIS_TRANSPARENT
+            material.opacity = baseColor.a;
+        #else
+            material.opacity = 1.0;
+        #endif
 }
 
 // direct + indirect

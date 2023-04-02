@@ -70,7 +70,4 @@ vec3 totalRadiance =    reflectedLight.directDiffuse +
                         emissiveRadiance;
 
 vec4 targetColor =vec4(totalRadiance, material.opacity);
-#ifndef OASIS_COLORSPACE_GAMMA
-    targetColor = linearToGamma(targetColor);
-#endif
 gl_FragColor = targetColor;

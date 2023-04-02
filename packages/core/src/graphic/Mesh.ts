@@ -1,7 +1,6 @@
 import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@oasis-engine/math";
 import { RefObject } from "../asset/RefObject";
-import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
@@ -18,12 +17,16 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 export abstract class Mesh extends RefObject {
   /** Name. */
   name: string;
-  /** The bounding volume of the mesh. */
-  readonly bounds: BoundingBox = new BoundingBox();
 
+  /** @internal */
   _vertexElementMap: Record<string, VertexElement> = {};
+  /** @internal */
   _glIndexType: number;
+  /** @internal */
   _glIndexByteCount: number;
+  /** @internal */
+  _bufferStructChanged: boolean;
+  /** @internal */
   _platformPrimitive: IPlatformPrimitive;
 
   /** @internal */
@@ -36,9 +39,24 @@ export abstract class Mesh extends RefObject {
   _vertexElements: VertexElement[] = [];
   /** @internal */
   _enableVAO: boolean = true;
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
+  private _bounds: BoundingBox = new BoundingBox();
   private _subMeshes: SubMesh[] = [];
-  private _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+
+  /**
+   * The bounding volume of the mesh.
+   */
+  get bounds(): BoundingBox {
+    return this._bounds;
+  }
+
+  set bounds(value: BoundingBox) {
+    if (this._bounds !== value) {
+      this._bounds.copyFrom(value);
+    }
+  }
 
   /**
    * First sub-mesh. Rendered using the first material.
@@ -63,6 +81,13 @@ export abstract class Mesh extends RefObject {
     super(engine);
     this.name = name;
     this._platformPrimitive = this._engine._hardwareRenderer.createPlatformPrimitive(this);
+    this._onBoundsChanged = this._onBoundsChanged.bind(this);
+
+    const bounds = this._bounds;
+    // @ts-ignore
+    bounds.min._onValueChanged = this._onBoundsChanged;
+    // @ts-ignore
+    bounds.max._onValueChanged = this._onBoundsChanged;
   }
 
   /**
@@ -113,14 +138,6 @@ export abstract class Mesh extends RefObject {
   }
 
   /**
-   * Register update flag, update flag will be true if the vertex element changes.
-   * @returns Update flag
-   */
-  registerUpdateFlag(): BoolUpdateFlag {
-    return this._updateFlagManager.createFlag(BoolUpdateFlag);
-  }
-
-  /**
    * @internal
    */
   _clearVertexElements(): void {
@@ -138,7 +155,19 @@ export abstract class Mesh extends RefObject {
     const { semantic } = element;
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
-    this._updateFlagManager.dispatch();
+    this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
+  }
+
+  /**
+   * @internal
+   */
+  _insertVertexElement(i: number, element: VertexElement): void {
+    const { semantic } = element;
+    this._vertexElementMap[semantic] = element;
+    this._vertexElements.splice(i, 0, element);
+    this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -151,6 +180,7 @@ export abstract class Mesh extends RefObject {
       binding._buffer._addRefCount(1);
     }
     this._vertexBufferBindings[index] = binding;
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -158,6 +188,7 @@ export abstract class Mesh extends RefObject {
    */
   _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
     this._platformPrimitive.draw(shaderProgram, subMesh);
+    this._bufferStructChanged = false;
   }
 
   /**
@@ -191,13 +222,28 @@ export abstract class Mesh extends RefObject {
   }
 
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
+    const lastBinding = this._indexBufferBinding;
     if (binding) {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);
       this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
+      (!lastBinding || lastBinding._buffer !== binding._buffer) && (this._bufferStructChanged = true);
     } else {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
+      lastBinding && (this._bufferStructChanged = true);
     }
   }
+
+  private _onBoundsChanged(): void {
+    this._updateFlagManager.dispatch(MeshModifyFlags.Bounds);
+  }
+}
+
+/**
+ * @internal
+ */
+export enum MeshModifyFlags {
+  Bounds = 0x1,
+  VertexElements = 0x2
 }

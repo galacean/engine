@@ -22,7 +22,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     PhysXPhysicsManager._pxRaycastHit = new PhysXPhysics._physX.PxRaycastHit();
     PhysXPhysicsManager._pxFilterData = new PhysXPhysics._physX.PxQueryFilterData();
     PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics._physX.PxQueryFlags(
-      QueryFlag.STATIC | QueryFlag.DYNAMIC
+      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER
     );
   }
 
@@ -188,16 +188,31 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   raycast(
     ray: Ray,
     distance: number,
+    onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const { _pxRaycastHit: pxHitResult } = PhysXPhysicsManager;
+    distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
+
+    const raycastCallback = {
+      preFilter: (filterData, shape, actor) => {
+        const index = shape.getQueryFilterData().word0;
+        if (onRaycast(index)) {
+          return 2; // eBLOCK
+        } else {
+          return 0; // eNONE
+        }
+      },
+      postFilter: (filterData, hit) => {}
+    };
 
     const result = this._pxScene.raycastSingle(
       ray.origin,
       ray.direction,
       distance,
       pxHitResult,
-      PhysXPhysicsManager._pxFilterData
+      PhysXPhysicsManager._pxFilterData,
+      PhysXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
     );
 
     if (result && hit != undefined) {
@@ -267,6 +282,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 enum QueryFlag {
   STATIC = 1 << 0,
   DYNAMIC = 1 << 1,
+  PRE_FILTER = 1 << 2,
+  POST_FILTER = 1 << 3,
   ANY_HIT = 1 << 4,
   NO_BLOCK = 1 << 5
 }

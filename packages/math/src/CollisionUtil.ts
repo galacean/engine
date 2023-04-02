@@ -346,14 +346,14 @@ export class CollisionUtil {
    */
   static intersectsFrustumAndBox(frustum: BoundingFrustum, box: BoundingBox): boolean {
     const { min, max } = box;
-    const back = CollisionUtil._tempVec30;
+    const p = CollisionUtil._tempVec30;
 
     for (let i = 0; i < 6; ++i) {
       const plane = frustum.getPlane(i);
       const normal = plane.normal;
 
-      back.set(normal.x >= 0 ? min.x : max.x, normal.y >= 0 ? min.y : max.y, normal.z >= 0 ? min.z : max.z);
-      if (Vector3.dot(normal, back) > -plane.distance) {
+      p.set(normal.x >= 0 ? max.x : min.x, normal.y >= 0 ? max.y : min.y, normal.z >= 0 ? max.z : min.z);
+      if (Vector3.dot(normal, p) < -plane.distance) {
         return false;
       }
     }
@@ -369,8 +369,8 @@ export class CollisionUtil {
    */
   static frustumContainsBox(frustum: BoundingFrustum, box: BoundingBox): ContainmentType {
     const { min, max } = box;
-    const front = CollisionUtil._tempVec30;
-    const back = CollisionUtil._tempVec31;
+    const p = CollisionUtil._tempVec30;
+    const n = CollisionUtil._tempVec31;
     let result = ContainmentType.Contains;
 
     for (let i = 0; i < 6; ++i) {
@@ -378,32 +378,32 @@ export class CollisionUtil {
       const normal = plane.normal;
 
       if (normal.x >= 0) {
-        front.x = max.x;
-        back.x = min.x;
+        p.x = max.x;
+        n.x = min.x;
       } else {
-        front.x = min.x;
-        back.x = max.x;
+        p.x = min.x;
+        n.x = max.x;
       }
       if (normal.y >= 0) {
-        front.y = max.y;
-        back.y = min.y;
+        p.y = max.y;
+        n.y = min.y;
       } else {
-        front.y = min.y;
-        back.y = max.y;
+        p.y = min.y;
+        n.y = max.y;
       }
       if (normal.z >= 0) {
-        front.z = max.z;
-        back.z = min.z;
+        p.z = max.z;
+        n.z = min.z;
       } else {
-        front.z = min.z;
-        back.z = max.z;
+        p.z = min.z;
+        n.z = max.z;
       }
 
-      if (CollisionUtil.intersectsPlaneAndPoint(plane, back) === PlaneIntersectionType.Front) {
+      if (CollisionUtil.intersectsPlaneAndPoint(plane, p) === PlaneIntersectionType.Back) {
         return ContainmentType.Disjoint;
       }
 
-      if (CollisionUtil.intersectsPlaneAndPoint(plane, front) === PlaneIntersectionType.Front) {
+      if (CollisionUtil.intersectsPlaneAndPoint(plane, n) === PlaneIntersectionType.Back) {
         result = ContainmentType.Intersects;
       }
     }
@@ -423,7 +423,7 @@ export class CollisionUtil {
     for (let i = 0; i < 6; ++i) {
       const plane = frustum.getPlane(i);
       const intersectionType = CollisionUtil.intersectsPlaneAndSphere(plane, sphere);
-      if (intersectionType === PlaneIntersectionType.Front) {
+      if (intersectionType === PlaneIntersectionType.Back) {
         return ContainmentType.Disjoint;
       } else if (intersectionType === PlaneIntersectionType.Intersecting) {
         result = ContainmentType.Intersects;
