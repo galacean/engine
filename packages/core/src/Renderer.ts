@@ -72,7 +72,7 @@ export class Renderer extends Component {
   @assignmentClone
   private _receiveShadows: boolean = true;
 
-  @assignmentClone
+  @ignoreClone
   private _rendererLayer: Vector4 = new Vector4();
 
   /**
