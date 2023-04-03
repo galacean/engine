@@ -7,12 +7,14 @@ import { Light } from "./Light";
  * Directional light.
  */
 export class DirectLight extends Light {
+  private static _cullingMaskProperty: ShaderProperty = Shader.getPropertyByName("u_directLightCullingMask");
   private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_directLightColor");
   private static _directionProperty: ShaderProperty = Shader.getPropertyByName("u_directLightDirection");
 
   private static _combinedData = {
-    color: new Float32Array(3 * Light._maxLight),
-    direction: new Float32Array(3 * Light._maxLight)
+    cullingMask: new Int32Array(Light._maxLight * 2),
+    color: new Float32Array(Light._maxLight * 3),
+    direction: new Float32Array(Light._maxLight * 3)
   };
 
   /**
@@ -21,6 +23,7 @@ export class DirectLight extends Light {
   static _updateShaderData(shaderData: ShaderData): void {
     const data = DirectLight._combinedData;
 
+    shaderData.setIntArray(DirectLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(DirectLight._colorProperty, data.color);
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
@@ -63,6 +66,10 @@ export class DirectLight extends Light {
     const direction = this.direction;
 
     const data = DirectLight._combinedData;
+
+    const cullingMask = this.cullingMask;
+    data.cullingMask[lightIndex] = cullingMask & 65535;
+    data.cullingMask[lightIndex + 1] = (cullingMask >>> 16) & 65535;
 
     data.color[colorStart] = lightColor.r;
     data.color[colorStart + 1] = lightColor.g;

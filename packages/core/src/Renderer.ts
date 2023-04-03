@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
@@ -26,6 +26,7 @@ export class Renderer extends Component {
   private static _mvpMatrixProperty = Shader.getPropertyByName("u_MVPMat");
   private static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");
   private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
+  private static _rendererLayerProperty = Shader.getPropertyByName("oasis_RendererLayer");
 
   /** ShaderData related to renderer. */
   @deepClone
@@ -70,6 +71,9 @@ export class Renderer extends Component {
   private _priority: number = 0;
   @assignmentClone
   private _receiveShadows: boolean = true;
+
+  @ignoreClone
+  private _rendererLayer: Vector4 = new Vector4();
 
   /**
    * Whether it is culled in the current frame and does not participate in rendering.
@@ -142,12 +146,16 @@ export class Renderer extends Component {
   constructor(entity: Entity) {
     super(entity);
     const prototype = Renderer.prototype;
+    const shaderData = this.shaderData;
     this._overrideUpdate = this.update !== prototype.update;
-    this.shaderData._addRefCount(1);
+
+    shaderData._addRefCount(1);
+
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
 
-    this.shaderData.enableMacro(Renderer._receiveShadowMacro);
+    shaderData.enableMacro(Renderer._receiveShadowMacro);
+    shaderData.setVector4(Renderer._rendererLayerProperty, this._rendererLayer);
   }
 
   /**
@@ -336,8 +344,12 @@ export class Renderer extends Component {
   }
 
   protected _updateShaderData(context: RenderContext): void {
-    const worldMatrix = this.entity.transform.worldMatrix;
+    const entity = this.entity;
+    const worldMatrix = entity.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
+
+    const layer = entity.layer;
+    this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {

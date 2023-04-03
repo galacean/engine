@@ -7,13 +7,15 @@ import { Light } from "./Light";
  * Point light.
  */
 export class PointLight extends Light {
+  private static _cullingMaskProperty: ShaderProperty = Shader.getPropertyByName("u_pointLightCullingMask");
   private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_pointLightColor");
   private static _positionProperty: ShaderProperty = Shader.getPropertyByName("u_pointLightPosition");
   private static _distanceProperty: ShaderProperty = Shader.getPropertyByName("u_pointLightDistance");
 
   private static _combinedData = {
-    color: new Float32Array(3 * Light._maxLight),
-    position: new Float32Array(3 * Light._maxLight),
+    cullingMask: new Int32Array(Light._maxLight * 2),
+    color: new Float32Array(Light._maxLight * 3),
+    position: new Float32Array(Light._maxLight * 3),
     distance: new Float32Array(Light._maxLight)
   };
 
@@ -23,6 +25,7 @@ export class PointLight extends Light {
   static _updateShaderData(shaderData: ShaderData): void {
     const data = PointLight._combinedData;
 
+    shaderData.setIntArray(PointLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(PointLight._colorProperty, data.color);
     shaderData.setFloatArray(PointLight._positionProperty, data.position);
     shaderData.setFloatArray(PointLight._distanceProperty, data.distance);
@@ -58,6 +61,10 @@ export class PointLight extends Light {
     const lightPosition = this.position;
 
     const data = PointLight._combinedData;
+
+    const cullingMask = this.cullingMask;
+    data.cullingMask[lightIndex] = cullingMask & 65535;
+    data.cullingMask[lightIndex + 1] = (cullingMask >>> 16) & 65535;
 
     data.color[colorStart] = lightColor.r;
     data.color[colorStart + 1] = lightColor.g;
