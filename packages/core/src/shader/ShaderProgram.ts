@@ -447,6 +447,8 @@ export class ShaderProgram {
             gl.uniform1i(location, this._activeTextureUint++);
           }
           break;
+        default:
+          throw new Error("Unsupported uniform type");
       }
 
       const group = Shader._getShaderPropertyGroup(name);
