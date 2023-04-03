@@ -34,7 +34,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
         .then((atlasData) => {
           const { atlasItems } = atlasData;
           const atlasItemsLen = atlasItems.length;
-          const imagePromises = Promise.all(
+          const imagePromises = AssetPromise.all(
             atlasItems.map(({ img }) =>
               this.request<HTMLImageElement>(GLTFUtil.parseRelativeUrl(item.url, img), {
                 ...item,
