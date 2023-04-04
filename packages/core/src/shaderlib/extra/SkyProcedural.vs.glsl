@@ -1,4 +1,4 @@
-// This code uses the Unity skybox-Procedural shader algorithm, developed by Unity, and is licensed under the Unity Companion License. 
+// This code uses the Unity skybox-Procedural shader algorithm, developed by Unity and licensed under the Unity Companion License. 
 // The original implementation can be found at unity build-in shader(DefaultResourcesExtra/Skybox-Procedural.shader)
 
 #define OUTER_RADIUS 1.025

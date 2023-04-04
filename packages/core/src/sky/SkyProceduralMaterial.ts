@@ -8,8 +8,11 @@ import { ShaderProperty } from "../shader/ShaderProperty";
  * Sun mode.
  */
 export enum SunMode {
+  /** None */
   None,
+  /** Simple sun. */
   Simple,
+  /** High quality sun. */
   HighQuality
 }
 
