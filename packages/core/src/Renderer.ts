@@ -73,7 +73,7 @@ export class Renderer extends Component {
   private _receiveShadows: boolean = true;
 
   @ignoreClone
-  private _rendererLayer: Vector4 = new Vector4();
+  protected _rendererLayer: Vector4 = new Vector4();
 
   /**
    * Whether it is culled in the current frame and does not participate in rendering.

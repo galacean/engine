@@ -164,7 +164,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    * @override
    */
   protected _updateShaderData(context: RenderContext): void {
-    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : this.entity.transform.worldMatrix;
+    const entity = this.entity;
+    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
 
     const shaderData = this.shaderData;
@@ -215,6 +216,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         this._jointTexture.setPixelBuffer(this._jointMatrices);
       }
     }
+
+    const layer = entity.layer;
+    this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
   /**
