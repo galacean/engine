@@ -11,6 +11,8 @@ import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { Transform, TransformModifyFlags } from "./Transform";
 
+alert("s");
+
 /**
  * Basis for all renderers.
  * @decorator `@dependentComponents(Transform)`
