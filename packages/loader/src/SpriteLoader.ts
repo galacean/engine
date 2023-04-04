@@ -19,26 +19,24 @@ class SpriteLoader extends Loader<Sprite> {
         type: "json"
       })
         .then((data) => {
-          const belongTo = data.belongTo;
-          if (belongTo && belongTo.length > 0) {
+          if (data.belongToAtlas) {
             resourceManager
               // @ts-ignore
-              .getResourceByRef<SpriteAtlas>(belongTo[0])
+              .getResourceByRef<SpriteAtlas>(data.belongToAtlas)
               .then((atlas) => {
                 resolve(atlas.getSprite(data.fullPath));
               })
               .catch(reject);
-          } else {
+          } else if (data.texture) {
             resourceManager
               // @ts-ignore
               .getResourceByRef<Texture2D>(data.texture)
               .then((texture) => {
-                const sprite = new Sprite(resourceManager.engine, texture);
-                sprite.region = data.region;
-                sprite.pivot = data.pivot;
-                resolve(sprite);
+                resolve(new Sprite(resourceManager.engine, texture, data.region, data.pivot, data.border));
               })
               .catch(reject);
+          } else {
+            resolve(new Sprite(resourceManager.engine, null, data.region, data.pivot, data.border));
           }
         })
         .catch(reject)

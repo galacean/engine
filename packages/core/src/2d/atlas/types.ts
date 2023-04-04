@@ -38,5 +38,6 @@ export interface AtlasSprite {
   atlasRegionOffset: { x: number; y: number; z: number; w: number };
   region: { x: number; y: number; w: number; h: number };
   pivot: { x: number; y: number };
+  border: { x: number; y: number; z: number; w: number };
   pixelsPerUnit: number;
 }

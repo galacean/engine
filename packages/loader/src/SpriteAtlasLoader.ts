@@ -10,13 +10,14 @@ import {
   Texture2D
 } from "@oasis-engine/core";
 import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
-import { Rect, Vector2 } from "@oasis-engine/math";
+import { Rect, Vector2, Vector4 } from "@oasis-engine/math";
 import { GLTFUtil } from "./gltf/GLTFUtil";
 
 @resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)
 class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempRect: Rect = new Rect();
   private _tempVec2: Vector2 = new Vector2();
+  private _tempVec4: Vector4 = new Vector4();
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
     return new AssetPromise((resolve, reject, _, onCancel) => {
       const chainPromises = [];
@@ -46,7 +47,7 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
           return imagePromises.then((imgs) => {
             const { engine } = resourceManager;
             // Generate a SpriteAtlas object.
-            const { _tempRect: tempRect, _tempVec2: tempVec2 } = this;
+            const { _tempRect: tempRect, _tempVec2: tempVec2, _tempVec4: tempVec4 } = this;
             const spriteAtlas = new SpriteAtlas(engine);
             const { mipmap, anisoLevel, filterMode, wrapModeU, wrapModeV, format } = atlasData;
             for (let i = 0; i < atlasItemsLen; i++) {
@@ -66,13 +67,13 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
               const sourceHeightReciprocal = 1.0 / height;
               for (let j = sprites.length - 1; j >= 0; j--) {
                 const atlasSprite = sprites[j];
-                const { region, atlasRegionOffset, atlasRegion, pivot } = atlasSprite;
+                const { region, atlasRegionOffset, atlasRegion, pivot, border } = atlasSprite;
                 const sprite = new Sprite(
                   engine,
                   texture,
                   region ? tempRect.set(region.x, region.y, region.w, region.h) : undefined,
                   pivot ? tempVec2.set(pivot.x, pivot.y) : undefined,
-                  undefined,
+                  border ? tempVec4.set(border.x, border.y, border.z, border.w) : undefined,
                   atlasSprite.name
                 );
                 sprite.atlasRegion.set(
