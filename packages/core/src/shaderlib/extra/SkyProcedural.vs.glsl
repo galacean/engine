@@ -1,7 +1,10 @@
+// This code uses the Unity skybox-Procedural shader algorithm, developed by Unity, and is licensed under the Unity Companion License. 
+// The original implementation can be found at unity build-in shader(DefaultResourcesExtra/Skybox-Procedural.shader)
+
 #define OUTER_RADIUS 1.025
-#define RAYLEIGH (mix(0.0, 0.0025, pow(u_AtmosphereThickness,2.5)))// Rayleigh constant Rayleigh为夜空光和极光亮度单位
-#define MIE 0.0010             // Mie constant 米氏散射
-#define SUN_BRIGHTNESS 20.0    // Sun brightness
+#define RAYLEIGH (mix(0.0, 0.0025, pow(u_AtmosphereThickness,2.5)))	// Rayleigh constant
+#define MIE 0.0010	// Mie constant
+#define SUN_BRIGHTNESS 20.0	// Sun brightness
 #define MAX_SCATTER 50.0 // Maximum scattering value, to prevent math overflows on Adrenos
 
 const float SKY_GROUND_THRESHOLD = 0.02;
@@ -23,8 +26,8 @@ const float scaleOverScaleDepth = (1.0 / (OUTER_RADIUS - 1.0)) / 0.25;
 const float samples = 2.0; // THIS IS UNROLLED MANUALLY, DON'T TOUCH
 
 // RGB wavelengths        .35 (.62=158), .43 (.68=174), .525 (.75=190)
-const vec3 c_DefaultScatteringWavelength = vec3(0.65, 0.57, 0.475);//默认散射波长
-const vec3 c_VariableRangeForScatteringWavelength = vec3(0.15, 0.15, 0.15);//散射播放的可变范围
+const vec3 c_DefaultScatteringWavelength = vec3(0.65, 0.57, 0.475);
+const vec3 c_VariableRangeForScatteringWavelength = vec3(0.15, 0.15, 0.15);
 
 attribute vec4 POSITION;
 
@@ -90,7 +93,8 @@ void main () {
 
 	float far = 0.0;
 	vec3 cIn, cOut;
-	if (eyeRay.y >= 0.0) {// Sky
+	if (eyeRay.y >= 0.0) {
+		// Sky 
 		// Calculate the length of the "atmosphere"
 		far = sqrt(outerRadius2 + innerRadius2 * eyeRay.y * eyeRay.y - innerRadius2) - innerRadius * eyeRay.y;
 
@@ -134,7 +138,8 @@ void main () {
 		// Finally, scale the Mie and Rayleigh colors and set up the varying variables for the pixel shader
 		cIn = frontColor * (invWavelength * krESun);
 		cOut = frontColor * kmESun;
-	} else {// Ground
+	} else {
+		// Ground
 		far = (-cameraHeight) / (min(-0.001, eyeRay.y));
 		vec3 pos = cameraPos + far * eyeRay;
 
@@ -157,7 +162,7 @@ void main () {
 		vec3 frontColor = vec3(0.0, 0.0, 0.0);
 		vec3 attenuate;
 
-		// Loop removed because we kept hitting SM2.0 temp variable limits. Doesn't affect the image too much.
+		// Loop removed because we kept hitting SM2.0 temp variable limits. Doesn't affect the image too much
 		{
 			float height = length(samplePoint);
 			float depth = exp(scaleOverScaleDepth * (innerRadius - height));
@@ -181,14 +186,14 @@ void main () {
 
 	// if we want to calculate color in vprog:
 	// 1. in case of linear: multiply by _Exposure in here (even in case of lerp it will be common multiplier, so we can skip mul in fshader)
-	// 2. in case of gamma and SKYBOX_COLOR_IN_TARGET_COLOR_SPACE: do sqrt right away instead of doing that in fshader
+	// 2. in case of gamma: do sqrt right away instead of doing that in fshader
 	
 	v_GroundColor = u_Exposure * (cIn + COLOR_2_LINEAR(u_GroundTint) * cOut);
 	v_SkyColor    = u_Exposure * (cIn * getRayleighPhase(-oasis_SunlightDirection, -eyeRay));
 
 	
 	// The sun should have a stable intensity in its course in the sky. Moreover it should match the highlight of a purely specular material.
-	// This matching was done using the BRDF1 on the 5/31/2017
+	// This matching was done using the standard shader BRDF1 on the 5/31/2017
 	// Finally we want the sun to be always bright even in LDR thus the normalization of the lightColor for low intensity.
 	float lightColorIntensity = clamp(length(oasis_SunlightColor.xyz), 0.25, 1.0);
 

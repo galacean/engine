@@ -1,3 +1,6 @@
+// This code uses the Unity skybox-Procedural shader algorithm, developed by Unity, and is licensed under the Unity Companion License. 
+// The original implementation can be found at unity build-in shader(DefaultResourcesExtra/Skybox-Procedural.shader)
+
 #include <common>
 
 const float MIE_G = -0.990;
@@ -75,9 +78,10 @@ void main() {
 	#endif
 
     #ifdef OASIS_COLORSPACE_GAMMA
-		col = LINEAR_2_OUTPUT(col); //linear space convert to gamma space
-	 #endif
-	gl_FragColor=vec4(col,1.0);
+		col = LINEAR_2_OUTPUT(col); // linear space convert to gamma space
+	#endif
+
+	gl_FragColor = vec4(col,1.0);
 
 	#ifndef OASIS_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);
