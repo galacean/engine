@@ -1,15 +1,15 @@
 import { BoundingBox, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
-import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { Material } from "./material/Material";
 import { RenderContext } from "./RenderPipeline/RenderContext";
+import { Transform, TransformModifyFlags } from "./Transform";
+import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { Material } from "./material/Material";
 import { Shader } from "./shader";
-import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
-import { Transform, TransformModifyFlags } from "./Transform";
+import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 
 /**
  * Basis for all renderers.

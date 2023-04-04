@@ -89,6 +89,7 @@ export class SpotLight extends Light {
    * @internal
    */
   _appendData(lightIndex: number): void {
+    const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const positionStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
@@ -103,8 +104,8 @@ export class SpotLight extends Light {
     const data = SpotLight._combinedData;
 
     const cullingMask = this.cullingMask;
-    data.cullingMask[lightIndex] = cullingMask & 65535;
-    data.cullingMask[lightIndex + 1] = (cullingMask >>> 16) & 65535;
+    data.cullingMask[cullingMaskStart] = cullingMask & 65535;
+    data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
     data.color[colorStart] = color.r;
     data.color[colorStart + 1] = color.g;
