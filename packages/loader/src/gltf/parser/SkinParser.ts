@@ -33,7 +33,15 @@ export class SkinParser extends Parser {
 
       // get joints
       for (let i = 0; i < jointCount; i++) {
-        skin.joints[i] = entities[joints[i]].name;
+        const jointIndex = joints[i];
+        const jointName = entities[jointIndex].name;
+        skin.joints[i] = jointName;
+        // filter name repeat
+        for (let j = entities.length - 1; j >= 0; j--) {
+          if (jointIndex !== j && entities[j].name === jointName) {
+            entities[j].name = `${jointName}_${j}`;
+          }
+        }
       }
 
       // get skeleton
