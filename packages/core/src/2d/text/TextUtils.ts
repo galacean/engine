@@ -3,7 +3,7 @@ import { CharInfo } from "./CharInfo";
 import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";
 import { TextRenderer } from "./TextRenderer";
-import { Vector2 } from "@oasis-engine/math";
+import { Vector2 } from "@galacean/engine-math";
 import { SubFont } from "./SubFont";
 
 /**

@@ -1,5 +1,5 @@
 {
-  "name": "@oasis-engine/physics-lite",
+  "name": "@galacean/engine-physics-lite",
   "version": "0.9.0-beta.78",
   "publishConfig": {
     "access": "public",
@@ -19,10 +19,10 @@
     "types/**/*"
   ],
   "devDependencies": {
-    "@oasis-engine/design": "workspace:*",
-    "oasis-engine": "workspace:*"
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine": "workspace:*"
   },
   "peerDependencies": {
-    "oasis-engine": "workspace:*"
+    "@galacean/engine": "workspace:*"
   }
 }

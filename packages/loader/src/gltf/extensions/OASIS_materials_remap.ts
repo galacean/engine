@@ -1,4 +1,4 @@
-import { Material } from "@oasis-engine/core";
+import { Material } from "@galacean/engine-core";
 import { registerExtension } from "../parser/Parser";
 import { ParserContext } from "../parser/ParserContext";
 import { ExtensionParser } from "./ExtensionParser";

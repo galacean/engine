@@ -90,7 +90,7 @@ function config({ location, pkgJson }) {
 
       return {
         input,
-        external: name === "oasis-engine" ? {} : external,
+        external: name === "@galacean/engine" ? {} : external,
         output: [
           {
             file,
@@ -115,7 +115,7 @@ function config({ location, pkgJson }) {
           }
         ],
         external: Object.keys(pkgJson.dependencies || {})
-          .concat("@oasis-engine/miniprogram-adapter")
+          .concat("@galacean/engine-miniprogram-adapter")
           .map((name) => `${name}/dist/miniprogram`),
         plugins
       };

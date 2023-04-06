@@ -10,7 +10,7 @@ import {
   Renderer,
   Skin,
   Texture2D
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 
 /**
  * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.

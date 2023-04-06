@@ -1,7 +1,7 @@
-import { LitePhysics } from "@oasis-engine/physics-lite";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { Ray, Vector3 } from "@oasis-engine/math";
-import { BoxColliderShape, Layer, StaticCollider } from "@oasis-engine/core";
+import { LitePhysics } from "@galacean/engine-physics-lite";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { Ray, Vector3 } from "@galacean/engine-math";
+import { BoxColliderShape, Layer, StaticCollider } from "@galacean/engine-core";
 import { expect } from "chai";
 
 const canvasDOM = document.createElement("canvas");

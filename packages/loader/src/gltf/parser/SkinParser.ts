@@ -1,5 +1,5 @@
-import { Entity, Skin } from "@oasis-engine/core";
-import { Matrix } from "@oasis-engine/math";
+import { Entity, Skin } from "@galacean/engine-core";
+import { Matrix } from "@galacean/engine-math";
 import { GLTFUtil } from "../GLTFUtil";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";

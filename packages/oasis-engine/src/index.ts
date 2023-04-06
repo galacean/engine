@@ -1,14 +1,14 @@
-import * as CoreObjects from "@oasis-engine/core";
-import { Loader } from "@oasis-engine/core";
+import * as CoreObjects from "@galacean/engine-core";
+import { Loader } from "@galacean/engine-core";
 //@ts-ignore
 export const version = `__buildVersion`;
 
 console.log(`oasis engine version: ${version}`);
 
-export * from "@oasis-engine/core";
-export * from "@oasis-engine/loader";
-export * from "@oasis-engine/math";
-export * from "@oasis-engine/rhi-webgl";
+export * from "@galacean/engine-core";
+export * from "@galacean/engine-loader";
+export * from "@galacean/engine-math";
+export * from "@galacean/engine-rhi-webgl";
 
 for (let key in CoreObjects) {
   Loader.registerClass(key, CoreObjects[key]);

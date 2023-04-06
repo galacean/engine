@@ -1,6 +1,6 @@
 ### Please check if the PR fulfills these requirements
 
-- [ ] The commit message follows our [guidelines](https://github.com/oasis-engine/engine/blob/main/.github/COMMIT_MESSAGE_CONVENTION.md)
+- [ ] The commit message follows our [guidelines](https://github.com/galacean/engine/blob/main/.github/COMMIT_MESSAGE_CONVENTION.md)
 - [ ] Tests for the changes have been added (for bug fixes / features)
 - [ ] Docs have been added / updated (for bug fixes / features)
 

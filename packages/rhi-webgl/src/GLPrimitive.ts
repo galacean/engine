@@ -1,5 +1,5 @@
-import { GLCapabilityType, Logger, Mesh, SubMesh } from "@oasis-engine/core";
-import { IPlatformPrimitive } from "@oasis-engine/design";
+import { GLCapabilityType, Logger, Mesh, SubMesh } from "@galacean/engine-core";
+import { IPlatformPrimitive } from "@galacean/engine-design";
 import { WebGLExtension } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
 

@@ -3,8 +3,8 @@
  * ported from https://github.com/BabylonJS/Babylon.js/blob/master/src/Tools/babylon.khronosTextureContainer.ts
  */
 
-import { TextureFormat } from "@oasis-engine/core";
-import { GLCompressedTextureInternalFormat } from "@oasis-engine/rhi-webgl";
+import { TextureFormat } from "@galacean/engine-core";
+import { GLCompressedTextureInternalFormat } from "@galacean/engine-rhi-webgl";
 import { KTXContainer, Mipmap } from "./type";
 
 const HEADER_LEN = 12 + 13 * 4; // identifier + header elements (not including key value meta-data pairs)

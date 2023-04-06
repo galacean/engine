@@ -1,5 +1,5 @@
-import { IJoint } from "@oasis-engine/design";
-import { Vector3, Quaternion } from "@oasis-engine/math";
+import { IJoint } from "@galacean/engine-design";
+import { Vector3, Quaternion } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { Collider } from "../Collider";
 import { dependentComponents } from "../../ComponentsDependencies";

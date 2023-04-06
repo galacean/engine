@@ -1,4 +1,4 @@
-import { Color, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
 import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";

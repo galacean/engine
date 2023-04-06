@@ -1,9 +1,9 @@
 # Oasis Engine
 
-<a href="https://www.npmjs.com/package/oasis-engine"><img src="https://img.shields.io/npm/v/oasis-engine"/></a>
-![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
-![npm-download](https://img.shields.io/npm/dm/oasis-engine)
-[![codecov](https://codecov.io/gh/oasis-engine/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/oasis-engine/engine)
+<a href="https://www.npmjs.com/package/@galacean/engine"><img src="https://img.shields.io/npm/v/@galacean/engine"/></a>
+![npm-size](https://img.shields.io/bundlephobia/minzip/@galacean/engine)
+![npm-download](https://img.shields.io/npm/dm/@galacean/engine)
+[![codecov](https://codecov.io/gh/galacean/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/galacean/engine)
 
 Oasis is a **web-first** and **mobile-first** high-performance real-time interactive engine. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
@@ -21,19 +21,19 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time interac
 To install, use:
 
 ```sh
-npm install oasis-engine
+npm install @galacean/engine
 ```
 
 This will allow you to import engine entirely using:
 
 ```javascript
-import * as OASIS from "oasis-engine";
+import * as OASIS from "@galacean/engine";
 ```
 
 or individual classes using:
 
 ```javascript
-import { Engine, Scene, Entity } from "oasis-engine";
+import { Engine, Scene, Entity } from "@galacean/engine";
 ```
 
 ## Usage

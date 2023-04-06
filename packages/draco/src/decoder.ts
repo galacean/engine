@@ -1,4 +1,4 @@
-import { Logger, request } from "@oasis-engine/core";
+import { Logger, request } from "@galacean/engine-core";
 
 import { DRACOWorker, ITaskConfig } from "./DRACOWorker";
 

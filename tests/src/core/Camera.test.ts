@@ -1,6 +1,6 @@
-import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { Camera, Entity } from "@oasis-engine/core";
+import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { Camera, Entity } from "@galacean/engine-core";
 import { expect } from "chai";
 
 const canvasDOM = document.createElement("canvas");

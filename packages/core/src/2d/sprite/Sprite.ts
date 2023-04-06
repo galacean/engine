@@ -1,4 +1,4 @@
-import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
+import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";

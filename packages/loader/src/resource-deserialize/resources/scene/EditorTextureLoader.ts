@@ -4,7 +4,7 @@ import {
   LoadItem,
   resourceLoader,
   ResourceManager,
-  Texture2D} from "@oasis-engine/core";
+  Texture2D} from "@galacean/engine-core";
 import { decode } from "../..";
 
 @resourceLoader("EditorTexture2D", ["prefab"], true)

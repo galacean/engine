@@ -1,5 +1,5 @@
-import { IColliderShape, IPhysicsMaterial } from "@oasis-engine/design";
-import { Matrix, Ray, Vector3 } from "oasis-engine";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
+import { Matrix, Ray, Vector3 } from "@galacean/engine";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
 import { LiteTransform } from "../LiteTransform";

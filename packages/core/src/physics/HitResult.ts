@@ -1,5 +1,5 @@
 import { Entity } from "../Entity";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 
 /**
  * Structure used to get information back from a raycast or a sweep.

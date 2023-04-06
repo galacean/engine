@@ -1,4 +1,4 @@
-import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@oasis-engine/core";
+import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@galacean/engine-core";
 import { ExtensionParser } from "../extensions/ExtensionParser";
 import { ExtensionSchema } from "../extensions/Schema";
 import { ParserContext } from "./ParserContext";

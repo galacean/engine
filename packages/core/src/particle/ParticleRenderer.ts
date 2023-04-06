@@ -1,4 +1,4 @@
-import { MathUtil, Vector3, Color } from "@oasis-engine/math";
+import { MathUtil, Vector3, Color } from "@galacean/engine-math";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";

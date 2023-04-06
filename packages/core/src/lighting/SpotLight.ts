@@ -1,4 +1,4 @@
-import { Matrix, Vector3 } from "@oasis-engine/math";
+import { Matrix, Vector3 } from "@galacean/engine-math";
 import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";

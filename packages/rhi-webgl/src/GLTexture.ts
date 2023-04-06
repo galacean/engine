@@ -9,7 +9,7 @@ import {
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
 

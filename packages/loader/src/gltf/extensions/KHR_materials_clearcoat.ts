@@ -1,4 +1,4 @@
-import { PBRMaterial } from "@oasis-engine/core";
+import { PBRMaterial } from "@galacean/engine-core";
 import { MaterialParser } from "../parser/MaterialParser";
 import { registerExtension } from "../parser/Parser";
 import { ParserContext } from "../parser/ParserContext";

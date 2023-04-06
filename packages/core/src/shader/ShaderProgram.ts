@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";

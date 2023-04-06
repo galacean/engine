@@ -1,4 +1,4 @@
-import { EngineObject } from "@oasis-engine/core";
+import { EngineObject } from "@galacean/engine-core";
 import { ParserContext } from "../parser/ParserContext";
 import { ExtensionSchema } from "./Schema";
 

@@ -1,5 +1,5 @@
 import { WebGLRenderer } from "./WebGLRenderer";
-import { GLCapabilityType } from "@oasis-engine/core";
+import { GLCapabilityType } from "@galacean/engine-core";
 
 /**
  * GLContext extension.

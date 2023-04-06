@@ -1,5 +1,5 @@
 import { ColliderShape } from "./ColliderShape";
-import { ICapsuleColliderShape } from "@oasis-engine/design";
+import { ICapsuleColliderShape } from "@galacean/engine-design";
 import { PhysicsManager } from "../PhysicsManager";
 import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
 
