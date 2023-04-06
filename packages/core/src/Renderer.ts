@@ -1,16 +1,16 @@
 // @ts-ignore
-import { BoundingBox, Matrix, Vector3 } from "@galacean/engine-math";
-import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
 import { Component } from "./Component";
-import { dependentComponents, DependentMode } from "./ComponentsDependencies";
+import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
-import { ShaderProperty } from "./shader";
-import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { Transform, TransformModifyFlags } from "./Transform";
+import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
-import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { Material } from "./material";
 
 /**
  * Basis for all renderers.
@@ -20,14 +20,14 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 export class Renderer extends Component {
   private static _tempVector0 = new Vector3();
 
-  private static _receiveShadowMacro = ShaderProperty.getMacroByName("OASIS_RECEIVE_SHADOWS");
-  private static _localMatrixProperty = ShaderProperty.getPropertyByName("u_localMat");
-  private static _worldMatrixProperty = ShaderProperty.getPropertyByName("u_modelMat");
-  private static _mvMatrixProperty = ShaderProperty.getPropertyByName("u_MVMat");
-  private static _mvpMatrixProperty = ShaderProperty.getPropertyByName("u_MVPMat");
-  private static _mvInvMatrixProperty = ShaderProperty.getPropertyByName("u_MVInvMat");
-  private static _normalMatrixProperty = ShaderProperty.getPropertyByName("u_normalMat");
-  private static _rendererLayerProperty = ShaderProperty.getPropertyByName("oasis_RendererLayer");
+  private static _receiveShadowMacro = ShaderMacro.getByName("OASIS_RECEIVE_SHADOWS");
+  private static _localMatrixProperty = ShaderProperty.getByName("u_localMat");
+  private static _worldMatrixProperty = ShaderProperty.getByName("u_modelMat");
+  private static _mvMatrixProperty = ShaderProperty.getByName("u_MVMat");
+  private static _mvpMatrixProperty = ShaderProperty.getByName("u_MVPMat");
+  private static _mvInvMatrixProperty = ShaderProperty.getByName("u_MVInvMat");
+  private static _normalMatrixProperty = ShaderProperty.getByName("u_normalMat");
+  private static _rendererLayerProperty = ShaderProperty.getByName("oasis_RendererLayer");
 
   /** ShaderData related to renderer. */
   @deepClone
@@ -150,7 +150,7 @@ export class Renderer extends Component {
     const shaderData = this.shaderData;
     this._overrideUpdate = this.update !== prototype.update;
 
-    shaderData._addRefCount(1);
+    shaderData._addReferCount(1);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();

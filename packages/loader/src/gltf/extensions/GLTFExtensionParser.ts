@@ -1,4 +1,4 @@
-import { EngineObject } from "@oasis-engine/core";
+import { EngineObject } from "@galacean/engine-core";
 import { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionSchema } from "./GLTFExtensionSchema";

@@ -7,7 +7,7 @@ import {
   ResourceManager,
   AnimationClip,
   AnimationEvent
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.AnimationClip, ["ani"])

@@ -1,4 +1,4 @@
-import { BufferBindFlag, BufferUsage, IPlatformBuffer, SetDataOptions } from "@oasis-engine/core";
+import { BufferBindFlag, BufferUsage, IPlatformBuffer, SetDataOptions } from "@galacean/engine-core";
 import { WebGLExtension } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 

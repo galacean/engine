@@ -7,6 +7,7 @@ import { Light } from "./Light";
  * Point light.
  */
 export class PointLight extends Light {
+  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("u_pointLightCullingMask");
   private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_pointLightColor");
   private static _positionProperty: ShaderProperty = ShaderProperty.getByName("u_pointLightPosition");
   private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("u_pointLightDistance");

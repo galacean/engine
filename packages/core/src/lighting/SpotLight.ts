@@ -7,6 +7,7 @@ import { Light } from "./Light";
  * Spot light.
  */
 export class SpotLight extends Light {
+  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightCullingMask");
   private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightColor");
   private static _positionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPosition");
   private static _directionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDirection");

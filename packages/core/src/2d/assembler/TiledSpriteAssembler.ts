@@ -1,4 +1,4 @@
-import { MathUtil, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
+import { MathUtil, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { DisorderedArray } from "../../DisorderedArray";
 import { SpriteTileMode } from "../enums/SpriteTileMode";
