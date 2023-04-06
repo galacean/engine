@@ -85,7 +85,7 @@ export type KTXContainer = {
    */
   mipmaps?: Mipmap[];
   /**
-   * Oasis Engine native TextureFormat
+   * Galacean Engine native TextureFormat
    */
   engineFormat?: TextureFormat;
 };

@@ -26,7 +26,7 @@ const pkgs = fs
     };
   });
 
-// "oasisEngine" 、 "@oasisEngine/controls" ...
+// "@galacean/engine" 、 "@galacean/engine-math" ...
 function toGlobalName(pkgName) {
   return camelCase(pkgName);
 }

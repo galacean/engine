@@ -112,7 +112,7 @@ function getEngineFormat(internalFormat: GLint): TextureFormat {
       return TextureFormat.ASTC_12x12;
     default:
       const formatName: any = GLCompressedTextureInternalFormat[internalFormat];
-      throw new Error(`this format is not supported in Oasis Engine: ${formatName}`);
+      throw new Error(`this format is not supported in Galacean Engine: ${formatName}`);
   }
 }
 /**
@@ -126,7 +126,7 @@ export const khronosTextureContainerParser = {
    * @param facesExpected should be either 1 or 6, based whether a cube texture or or
    * @param threeDExpected provision for indicating that data should be a 3D texture, not implemented
    * @param textureArrayExpected provision for indicating that data should be a texture array, not implemented
-   * @param mapEngineFormat get Oasis Engine native TextureFormat?
+   * @param mapEngineFormat get Galacean Engine native TextureFormat?
    */
   parse(
     buffer: ArrayBuffer,

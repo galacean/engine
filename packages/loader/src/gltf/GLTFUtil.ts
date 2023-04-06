@@ -143,7 +143,7 @@ export class GLTFUtil {
       case AccessorComponentType.UNSIGNED_SHORT:
         return 1 / 65535;
       default:
-        throw new Error("Oasis.GLTFLoader: Unsupported normalized accessor component type.");
+        throw new Error("Galacean.GLTFLoader: Unsupported normalized accessor component type.");
     }
   }
 
