@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";

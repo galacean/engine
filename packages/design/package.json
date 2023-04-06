@@ -17,6 +17,6 @@
   ],
   "types": "types/index.d.ts",
   "dependencies": {
-    "@oasis-engine/math": "workspace:*"
+    "@galacean/engine-math": "workspace:*"
   }
 }

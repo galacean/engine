@@ -17,9 +17,9 @@ import {
   Texture2D,
   Texture2DArray,
   TextureCube
-} from "@oasis-engine/core";
-import { IPlatformPrimitive } from "@oasis-engine/design";
-import { Color, Vector4 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { IPlatformPrimitive } from "@galacean/engine-design";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";

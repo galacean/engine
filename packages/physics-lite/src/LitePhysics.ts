@@ -12,8 +12,8 @@ import {
   IFixedJoint,
   IHingeJoint,
   ISpringJoint,
-} from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+} from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { LiteDynamicCollider } from "./LiteDynamicCollider";
 import { LitePhysicsManager } from "./LitePhysicsManager";
 import { LitePhysicsMaterial } from "./LitePhysicsMaterial";

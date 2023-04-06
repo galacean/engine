@@ -1,6 +1,6 @@
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { Sprite, Texture2D } from "@oasis-engine/core";
-import { Rect, Vector2, Vector4 } from "@oasis-engine/math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { Sprite, Texture2D } from "@galacean/engine-core";
+import { Rect, Vector2, Vector4 } from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("TextRenderer", () => {

@@ -1,6 +1,6 @@
-import { IJoint } from "@oasis-engine/design";
+import { IJoint } from "@galacean/engine-design";
 import { PhysXCollider } from "../PhysXCollider";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 
 /**
  * a base interface providing common functionality for PhysX joints

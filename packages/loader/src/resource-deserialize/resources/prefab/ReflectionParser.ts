@@ -1,4 +1,4 @@
-import { Engine, Entity, Loader } from "@oasis-engine/core";
+import { Engine, Entity, Loader } from "@galacean/engine-core";
 import { IBasicType, IClassObject, IEntity, IAssetRef } from "./PrefabDesign";
 
 export class ReflectionParser {

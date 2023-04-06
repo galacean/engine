@@ -18,10 +18,10 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "workspace:*",
-    "@oasis-engine/math": "workspace:*"
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-math": "workspace:*"
   },
   "devDependencies": {
-    "@oasis-engine/design": "workspace:*"
+    "@galacean/engine-design": "workspace:*"
   }
 }

@@ -12,8 +12,8 @@ import {
   ISphereColliderShape,
   ISpringJoint,
   IStaticCollider
-} from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+} from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXRuntimeMode } from "./enum/PhysXRuntimeMode";
 import { PhysXFixedJoint } from "./joint/PhysXFixedJoint";
 import { PhysXHingeJoint } from "./joint/PhysXHingeJoint";

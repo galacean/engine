@@ -1,4 +1,4 @@
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";

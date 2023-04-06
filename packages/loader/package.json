@@ -18,9 +18,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "workspace:*",
-    "@oasis-engine/draco": "workspace:*",
-    "@oasis-engine/math": "workspace:*",
-    "@oasis-engine/rhi-webgl": "workspace:*"
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-draco": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-rhi-webgl": "workspace:*"
   }
 }

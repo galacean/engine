@@ -1,4 +1,4 @@
-import { Matrix, Quaternion, Vector3 } from "@oasis-engine/math";
+import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Buffer } from "../graphic/Buffer";
 import { BufferUsage } from "../graphic/enums/BufferUsage";

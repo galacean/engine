@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color } from "@galacean/engine-math";
 import { GLCapabilityType } from "../../base/Constant";
 import { IHardwareRenderer } from "../../renderingHardwareInterface/IHardwareRenderer";
 import { BlendFactor } from "../enums/BlendFactor";

@@ -17,6 +17,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "workspace:*"
+    "@galacean/engine-core": "workspace:*"
   }
 }

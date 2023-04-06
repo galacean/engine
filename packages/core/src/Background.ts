@@ -1,4 +1,4 @@
-import { Color, Vector2, Vector3 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3 } from "@galacean/engine-math";
 import { ModelMesh } from ".";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
