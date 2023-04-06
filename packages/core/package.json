@@ -1,6 +1,6 @@
 {
-  "name": "@galacean/engine-core",
-  "version": "0.9.0-beta.78",
+  "name": "@oasis-engine/core",
+  "version": "0.9.0-beta.79",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
