@@ -1,5 +1,5 @@
 {
-  "name": "@oasis-engine/physics-physx",
+  "name": "@galacean/engine-physics-physx",
   "version": "0.9.0-beta.79",
   "publishConfig": {
     "access": "public",
