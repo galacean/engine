@@ -18,8 +18,9 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
   private _tempRect: Rect = new Rect();
   private _tempVec2: Vector2 = new Vector2();
   private _tempVec4: Vector4 = new Vector4();
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<SpriteAtlas> {
-    return new AssetPromise((resolve, reject, _, onCancel) => {
+  load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
+    const promiseMap = {};
+    const atlasPromise = (promiseMap[`${item.url}`] = new AssetPromise<SpriteAtlas>((resolve, reject, _, onCancel) => {
       const chainPromises = [];
       onCancel(() => {
         for (let i = 0; i < chainPromises.length; i++) {
@@ -34,14 +35,16 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
       configPromise
         .then((atlasData) => {
           const { atlasItems } = atlasData;
-          const atlasItemsLen = atlasItems.length;
+          const atlasItemsLen = atlasItems?.length;
           const imagePromises = AssetPromise.all(
-            atlasItems.map(({ img }) =>
-              this.request<HTMLImageElement>(GLTFUtil.parseRelativeUrl(item.url, img), {
-                ...item,
-                type: "image"
-              })
-            )
+            atlasItems
+              ? atlasItems.map(({ img }) =>
+                  this.request<HTMLImageElement>(GLTFUtil.parseRelativeUrl(item.url, img), {
+                    ...item,
+                    type: "image"
+                  })
+                )
+              : []
           );
           chainPromises.push(imagePromises);
           return imagePromises.then((imgs) => {
@@ -99,9 +102,19 @@ class SpriteAtlasLoader extends Loader<SpriteAtlas> {
             resolve(spriteAtlas);
           });
         })
-        .catch((e) => {
-          reject(e);
-        });
+        .catch(reject);
+    }));
+    promiseMap[`${item.url}?q=sprites`] = new AssetPromise<Sprite[]>((resolve, reject, _, onCancel) => {
+      onCancel(() => {
+        atlasPromise.cancel();
+      });
+      atlasPromise
+        .then((spriteAtlas) => {
+          // @ts-ignore
+          resolve(spriteAtlas._sprites);
+        })
+        .catch(reject);
     });
+    return promiseMap;
   }
 }
