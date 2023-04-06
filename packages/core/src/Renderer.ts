@@ -27,7 +27,7 @@ export class Renderer extends Component {
   private static _mvpMatrixProperty = ShaderProperty.getByName("u_MVPMat");
   private static _mvInvMatrixProperty = ShaderProperty.getByName("u_MVInvMat");
   private static _normalMatrixProperty = ShaderProperty.getByName("u_normalMat");
-  private static _rendererLayerProperty = ShaderProperty.getByName("oasis_RendererLayer");
+  private static _rendererLayerProperty = ShaderProperty.getByName("galacean_RendererLayer");
 
   /** ShaderData related to renderer. */
   @deepClone

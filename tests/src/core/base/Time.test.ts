@@ -1,4 +1,4 @@
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("Time", () => {

@@ -10,8 +10,8 @@ import {
   ShaderProperty,
   ShaderTagKey,
   SubShader
-} from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+} from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
 

@@ -19,8 +19,8 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _fogColorProperty = ShaderProperty.getByName("oasis_FogColor");
-  private static _fogParamsProperty = ShaderProperty.getByName("oasis_FogParams");
+  private static _fogColorProperty = ShaderProperty.getByName("galacean_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("galacean_FogParams");
 
   /** Scene name. */
   name: string;

@@ -1,4 +1,4 @@
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
