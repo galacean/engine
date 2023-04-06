@@ -33,7 +33,15 @@ export class SkinParser extends Parser {
 
       // get joints
       for (let i = 0; i < jointCount; i++) {
-        skin.joints[i] = entities[joints[i]].name;
+        const jointIndex = joints[i];
+        const jointName = entities[jointIndex].name;
+        skin.joints[i] = jointName;
+        // @todo Temporary solution, but it can alleviate the current BUG, and the skinning data mechanism of SkinnedMeshRenderer will be completely refactored in the future
+        for (let j = entities.length - 1; j >= 0; j--) {
+          if (jointIndex !== j && entities[j].name === jointName) {
+            entities[j].name = `${jointName}_${j}`;
+          }
+        }
       }
 
       // get skeleton
