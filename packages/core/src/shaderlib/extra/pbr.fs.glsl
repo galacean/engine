@@ -19,7 +19,7 @@ void main() {
     #include <pbr_frag>
     #include <FogFragment>
     
-    #ifndef OASIS_COLORSPACE_GAMMA
+    #ifndef GALACEAN_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);
     #endif
 }

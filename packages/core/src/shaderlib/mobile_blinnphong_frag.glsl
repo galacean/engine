@@ -11,18 +11,18 @@
 
     #ifdef O3_DIRECT_LIGHT_COUNT
     shadowAttenuation = 1.0;
-    #ifdef OASIS_CALCULATE_SHADOWS
+    #ifdef GALACEAN_CALCULATE_SHADOWS
         shadowAttenuation *= sampleShadowMap();
         int sunIndex = int(u_shadowInfo.z);
     #endif
 
     DirectLight directionalLight;
     for( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i++ ) {
-        if(isRendererCulledByLight(oasis_RendererLayer.xy, u_directLightCullingMask[i])) 
+        if(isRendererCulledByLight(galacean_RendererLayer.xy, u_directLightCullingMask[i])) 
             continue;
 
         directionalLight.color = u_directLightColor[i];
-        #ifdef OASIS_CALCULATE_SHADOWS
+        #ifdef GALACEAN_CALCULATE_SHADOWS
             if (i == sunIndex) {
                 directionalLight.color *= shadowAttenuation;
             }
@@ -44,7 +44,7 @@
     PointLight pointLight;
 
     for( int i = 0; i < O3_POINT_LIGHT_COUNT; i++ ) {
-        if(isRendererCulledByLight(oasis_RendererLayer.xy, u_pointLightCullingMask[i])) 
+        if(isRendererCulledByLight(galacean_RendererLayer.xy, u_pointLightCullingMask[i])) 
             continue;
 
         pointLight.color = u_pointLightColor[i];
@@ -72,7 +72,7 @@
     SpotLight spotLight;
 
     for( int i = 0; i < O3_SPOT_LIGHT_COUNT; i++) {
-        if(isRendererCulledByLight(oasis_RendererLayer.xy, u_spotLightCullingMask[i])) 
+        if(isRendererCulledByLight(galacean_RendererLayer.xy, u_spotLightCullingMask[i])) 
             continue;
         
         spotLight.color = u_spotLightColor[i];

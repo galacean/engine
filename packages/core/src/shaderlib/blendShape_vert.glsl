@@ -1,18 +1,18 @@
-#ifdef OASIS_BLENDSHAPE
-	#ifdef OASIS_BLENDSHAPE_TEXTURE	
+#ifdef GALACEAN_BLENDSHAPE
+	#ifdef GALACEAN_BLENDSHAPE_TEXTURE	
 		int vertexOffset = gl_VertexID * u_blendShapeTextureInfo.x;
-		for(int i = 0; i < OASIS_BLENDSHAPE_COUNT; i++){
+		for(int i = 0; i < GALACEAN_BLENDSHAPE_COUNT; i++){
 			int vertexElementOffset = vertexOffset;
 			float weight = u_blendShapeWeights[i];
 			position.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 			
 			#ifndef OMIT_NORMAL
-				#if defined( O3_HAS_NORMAL ) && defined( OASIS_BLENDSHAPE_NORMAL )
+				#if defined( O3_HAS_NORMAL ) && defined( GALACEAN_BLENDSHAPE_NORMAL )
 					vertexElementOffset += 1;
 					normal += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 				#endif
 
-				#if defined( O3_HAS_TANGENT ) && defined(OASIS_BLENDSHAPE_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+				#if defined( O3_HAS_TANGENT ) && defined(GALACEAN_BLENDSHAPE_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
 					vertexElementOffset += 1;
 					tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 				#endif
@@ -22,7 +22,7 @@
 		position.xyz += POSITION_BS0 * u_blendShapeWeights[0];
 		position.xyz += POSITION_BS1 * u_blendShapeWeights[1];
 
-		#if defined( OASIS_BLENDSHAPE_NORMAL ) && defined( OASIS_BLENDSHAPE_TANGENT )
+		#if defined( GALACEAN_BLENDSHAPE_NORMAL ) && defined( GALACEAN_BLENDSHAPE_TANGENT )
 			#ifndef OMIT_NORMAL
 				#ifdef O3_HAS_NORMAL
 					normal += NORMAL_BS0 * u_blendShapeWeights[0];
@@ -34,19 +34,19 @@
 				#endif				
 			#endif
 		#else
-			#if defined( OASIS_BLENDSHAPE_NORMAL ) || defined( OASIS_BLENDSHAPE_TANGENT )
+			#if defined( GALACEAN_BLENDSHAPE_NORMAL ) || defined( GALACEAN_BLENDSHAPE_TANGENT )
 				#ifndef OMIT_NORMAL
 					position.xyz += POSITION_BS2 * u_blendShapeWeights[2];
 					position.xyz += POSITION_BS3 * u_blendShapeWeights[3];
 
-					#if defined( OASIS_BLENDSHAPE_NORMAL ) && defined( O3_HAS_NORMAL )
+					#if defined( GALACEAN_BLENDSHAPE_NORMAL ) && defined( O3_HAS_NORMAL )
 						normal += NORMAL_BS0 * u_blendShapeWeights[0];
 						normal += NORMAL_BS1 * u_blendShapeWeights[1];
 						normal += NORMAL_BS2 * u_blendShapeWeights[2];
 						normal += NORMAL_BS3 * u_blendShapeWeights[3];
 					#endif
 
-					#if defined(OASIS_BLENDSHAPE_TANGENT) && defined( O3_HAS_TANGENT ) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+					#if defined(GALACEAN_BLENDSHAPE_TANGENT) && defined( O3_HAS_TANGENT ) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
 						tangent.xyz += TANGENT_BS0 * u_blendShapeWeights[0];
 						tangent.xyz += TANGENT_BS1 * u_blendShapeWeights[1];
 						tangent.xyz += TANGENT_BS2 * u_blendShapeWeights[2];
