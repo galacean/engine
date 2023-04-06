@@ -1,4 +1,4 @@
-import { Color, Vector4 } from "@oasis-engine/math";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { Logger, ShaderProperty } from "..";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";

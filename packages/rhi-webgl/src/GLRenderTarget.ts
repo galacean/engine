@@ -7,7 +7,7 @@ import {
   TextureCube,
   TextureCubeFace,
   TextureFormat
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 

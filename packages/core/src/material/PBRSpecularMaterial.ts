@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
 import { ShaderMacro } from "../shader/ShaderMacro";

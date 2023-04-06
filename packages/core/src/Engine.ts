@@ -1,5 +1,5 @@
-import { IPhysics } from "@oasis-engine/design";
-import { Color } from "@oasis-engine/math/src/Color";
+import { IPhysics } from "@galacean/engine-design";
+import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { ContentRestorer } from "./asset/ContentRestorer";
 import { ResourceManager } from "./asset/ResourceManager";

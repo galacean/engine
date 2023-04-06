@@ -1,5 +1,5 @@
-import { Engine, TextureCube, TextureCubeFace, TextureFormat } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Engine, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("TextureCube", () => {

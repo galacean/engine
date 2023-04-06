@@ -5,7 +5,7 @@ import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
 import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 
 /**
  * InputManager manages device input such as mouse, touch, keyboard, etc.

@@ -1,4 +1,4 @@
-import { Entity } from "@oasis-engine/core";
+import { Entity } from "@galacean/engine-core";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";

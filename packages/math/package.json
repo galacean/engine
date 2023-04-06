@@ -1,5 +1,5 @@
 {
-  "name": "@oasis-engine/math",
+  "name": "@galacean/engine-math",
   "version": "1.0.0-alpha.5",
   "publishConfig": {
     "access": "public",

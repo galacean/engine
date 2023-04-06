@@ -1,5 +1,5 @@
 {
-  "name": "@oasis-engine/physics-physx",
+  "name": "@galacean/engine-physics-physx",
   "version": "1.0.0-alpha.5",
   "publishConfig": {
     "access": "public",
@@ -20,10 +20,10 @@
     "types/**/*"
   ],
   "devDependencies": {
-    "@oasis-engine/design": "workspace:*",
-    "oasis-engine": "workspace:*"
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine": "workspace:*"
   },
   "peerDependencies": {
-    "oasis-engine": "workspace:*"
+    "@galacean/engine": "workspace:*"
   }
 }

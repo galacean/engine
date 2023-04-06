@@ -1,4 +1,4 @@
-import { Vector3, Vector4 } from "@oasis-engine/math";
+import { Vector3, Vector4 } from "@galacean/engine-math";
 import { Texture2D } from "../../texture";
 import { VertexData2D } from "../data/VertexData2D";
 

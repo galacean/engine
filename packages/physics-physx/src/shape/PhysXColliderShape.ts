@@ -1,5 +1,5 @@
-import { IColliderShape } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { IColliderShape } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { DisorderedArray } from "../DisorderedArray";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";

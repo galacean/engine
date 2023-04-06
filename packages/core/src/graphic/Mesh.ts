@@ -1,5 +1,5 @@
-import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
-import { BoundingBox } from "@oasis-engine/math";
+import { IPlatformPrimitive } from "@galacean/engine-design/types/renderingHardwareInterface/IPlatformPrimitive";
+import { BoundingBox } from "@galacean/engine-math";
 import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
 import { BufferUtil } from "../graphic/BufferUtil";

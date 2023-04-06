@@ -1,5 +1,5 @@
 {
-  "name": "@oasis-engine/core",
+  "name": "@galacean/engine-core",
   "version": "1.0.0-alpha.5",
   "publishConfig": {
     "access": "public",
@@ -18,9 +18,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/math": "workspace:*"
+    "@galacean/engine-math": "workspace:*"
   },
   "devDependencies": {
-    "@oasis-engine/design": "workspace:*"
+    "@galacean/engine-design": "workspace:*"
   }
 }

@@ -1,6 +1,6 @@
-import { Texture2D, UnlitMaterial } from "@oasis-engine/core";
-import { Color, Vector4 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Texture2D, UnlitMaterial } from "@galacean/engine-core";
+import { Color, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("UnlitMaterial", () => {

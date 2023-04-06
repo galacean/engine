@@ -1,4 +1,4 @@
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
 import { ReferResource } from "../asset/ReferResource";
 import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";

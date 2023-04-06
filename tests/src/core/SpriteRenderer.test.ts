@@ -1,6 +1,6 @@
-import { BoundingBox, Color, Rect, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { Sprite, SpriteDrawMode, SpriteRenderer, SpriteTileMode, Texture2D, TextureFormat } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { BoundingBox, Color, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { Sprite, SpriteDrawMode, SpriteRenderer, SpriteTileMode, Texture2D, TextureFormat } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("SpriteRenderer", async () => {

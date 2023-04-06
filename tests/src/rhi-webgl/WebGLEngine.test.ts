@@ -1,6 +1,6 @@
-import { Camera, Entity, Script } from "@oasis-engine/core";
-import { Vector3 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Camera, Entity, Script } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
 

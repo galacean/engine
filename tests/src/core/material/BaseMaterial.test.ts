@@ -1,5 +1,5 @@
-import { BaseMaterial, BlendMode, CullMode, RenderFace, Shader } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { BaseMaterial, BlendMode, CullMode, RenderFace, Shader } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("BaseMaterial", () => {

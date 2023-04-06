@@ -1,6 +1,6 @@
-import { BlinnPhongMaterial, MeshRenderer, PrimitiveMesh } from "@oasis-engine/core";
-import { Vector3 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { BlinnPhongMaterial, MeshRenderer, PrimitiveMesh } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("MeshRenderer Test", async function () {

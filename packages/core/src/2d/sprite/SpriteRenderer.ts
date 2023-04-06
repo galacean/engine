@@ -1,4 +1,4 @@
-import { BoundingBox, Color, MathUtil, Matrix } from "@oasis-engine/math";
+import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";

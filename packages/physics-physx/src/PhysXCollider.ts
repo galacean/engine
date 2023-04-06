@@ -1,5 +1,5 @@
-import { ICollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { ICollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 

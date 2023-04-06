@@ -1,6 +1,6 @@
-import { Color } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { Texture2D, PBRSpecularMaterial } from "@oasis-engine/core";
+import { Color } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { Texture2D, PBRSpecularMaterial } from "@galacean/engine-core";
 import { expect } from "chai";
 
 describe("PBRSpecularMaterial",  () => {

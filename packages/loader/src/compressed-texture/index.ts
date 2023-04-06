@@ -1,6 +1,6 @@
 import { CompressedTextureData, CompressedCubeData } from "./type";
 import { khronosTextureContainerParser } from "./KhronosTextureContainer";
-import { TextureFormat } from "@oasis-engine/core";
+import { TextureFormat } from "@galacean/engine-core";
 
 export function parseSingleKTX(data: ArrayBuffer): CompressedTextureData {
   const ktx = khronosTextureContainerParser.parse(data, 1, true, true);

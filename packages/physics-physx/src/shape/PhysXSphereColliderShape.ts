@@ -1,5 +1,5 @@
-import { ISphereColliderShape } from "@oasis-engine/design";
-import { Vector3 } from "oasis-engine";
+import { ISphereColliderShape } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape } from "./PhysXColliderShape";

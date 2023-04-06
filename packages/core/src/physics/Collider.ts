@@ -1,4 +1,4 @@
-import { ICollider, IStaticCollider } from "@oasis-engine/design";
+import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";

@@ -1,6 +1,6 @@
-import { BlendShape, Engine, IndexFormat, ModelMesh } from "@oasis-engine/core";
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { BlendShape, Engine, IndexFormat, ModelMesh } from "@galacean/engine-core";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("ModelMesh Test", async function () {

@@ -13,8 +13,8 @@ import {
   Engine,
   Keyframe,
   KeyframeValueType
-} from "@oasis-engine/core";
-import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import type { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 import { ComponentMap } from "./ComponentMap";
