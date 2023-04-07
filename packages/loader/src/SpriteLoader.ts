@@ -13,7 +13,7 @@ import {
 @resourceLoader(AssetType.Sprite, ["sprite"], false)
 class SpriteLoader extends Loader<Sprite> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Sprite> {
-    return new AssetPromise((resolve, reject) =>
+    return new AssetPromise((resolve, reject) => {
       this.request<any>(item.url, {
         ...item,
         type: "json"
@@ -39,7 +39,7 @@ class SpriteLoader extends Loader<Sprite> {
             resolve(new Sprite(resourceManager.engine, null, data.region, data.pivot, data.border));
           }
         })
-        .catch(reject)
-    );
+        .catch(reject);
+    });
   }
 }
