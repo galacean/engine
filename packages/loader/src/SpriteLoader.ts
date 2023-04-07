@@ -8,7 +8,7 @@ import {
   Texture2D,
   ResourceManager,
   SpriteAtlas
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.Sprite, ["sprite"], false)
 class SpriteLoader extends Loader<Sprite> {
