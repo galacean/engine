@@ -1,4 +1,4 @@
-import { MathUtil, Matrix } from "@oasis-engine/math";
+import { MathUtil, Matrix } from "@galacean/engine-math";
 import { Logger } from "../base/Logger";
 import { Mesh } from "../graphic/Mesh";
 import { Material } from "../material";

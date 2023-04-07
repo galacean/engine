@@ -9,7 +9,7 @@ import {
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -233,7 +233,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       default:
-        throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
+        throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
   }
 
@@ -313,7 +313,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       default:
-        throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
+        throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
   }
 

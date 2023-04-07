@@ -1,4 +1,4 @@
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
 import { CloneMode } from "./enums/CloneMode";
 
 type TypeArray =

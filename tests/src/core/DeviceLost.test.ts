@@ -1,6 +1,6 @@
-import { BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, PrimitiveMesh } from "@oasis-engine/core";
-import "@oasis-engine/loader";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, PrimitiveMesh } from "@galacean/engine-core";
+import "@galacean/engine-loader";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;

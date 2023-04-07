@@ -1,6 +1,6 @@
-import { ModelMesh, TypedArray } from "@oasis-engine/core";
-import { DRACODecoder } from "@oasis-engine/draco";
-import { Vector3 } from "@oasis-engine/math";
+import { ModelMesh, TypedArray } from "@galacean/engine-core";
+import { DRACODecoder } from "@galacean/engine-draco";
+import { Vector3 } from "@galacean/engine-math";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtil } from "../GLTFUtil";
 import { GLTFMeshParser } from "../parser";

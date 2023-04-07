@@ -1,4 +1,4 @@
-import { IPhysicsMaterial } from "@oasis-engine/design";
+import { IPhysicsMaterial } from "@galacean/engine-design";
 import { PhysXPhysics } from "./PhysXPhysics";
 
 /**

@@ -1,4 +1,4 @@
-import { IPlatformTextureCube, Logger, TextureCube, TextureCubeFace, TextureFormat } from "@oasis-engine/core";
+import { IPlatformTextureCube, Logger, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 

@@ -1,7 +1,7 @@
-import { BoxColliderShape, Layer, StaticCollider } from "@oasis-engine/core";
-import { Ray, Vector3 } from "@oasis-engine/math";
-import { LitePhysics } from "@oasis-engine/physics-lite";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { BoxColliderShape, Layer, StaticCollider } from "@galacean/engine-core";
+import { Ray, Vector3 } from "@galacean/engine-math";
+import { LitePhysics } from "@galacean/engine-physics-lite";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("physics manager test", () => {

@@ -1,4 +1,4 @@
-import { Color, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
 import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
@@ -19,10 +19,10 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _fogColorProperty = ShaderProperty.getByName("oasis_FogColor");
-  private static _fogParamsProperty = ShaderProperty.getByName("oasis_FogParams");
-  private static _sunlightColorProperty = ShaderProperty.getByName("oasis_SunlightColor");
-  private static _sunlightDirectionProperty = ShaderProperty.getByName("oasis_SunlightDirection");
+  private static _fogColorProperty = ShaderProperty.getByName("galacean_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("galacean_FogParams");
+  private static _sunlightColorProperty = ShaderProperty.getByName("galacean_SunlightColor");
+  private static _sunlightDirectionProperty = ShaderProperty.getByName("galacean_SunlightDirection");
 
   /** Scene name. */
   name: string;
@@ -112,7 +112,7 @@ export class Scene extends EngineObject {
 
   set fogMode(value: FogMode) {
     if (this._fogMode !== value) {
-      this.shaderData.enableMacro("OASIS_FOG_MODE", value.toString());
+      this.shaderData.enableMacro("GALACEAN_FOG_MODE", value.toString());
       this._fogMode = value;
     }
   }
@@ -200,7 +200,7 @@ export class Scene extends EngineObject {
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
 
-    shaderData.enableMacro("OASIS_FOG_MODE", this._fogMode.toString());
+    shaderData.enableMacro("GALACEAN_FOG_MODE", this._fogMode.toString());
     shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);

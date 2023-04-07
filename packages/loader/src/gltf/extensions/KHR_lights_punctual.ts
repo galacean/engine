@@ -1,4 +1,4 @@
-import { DirectLight, Entity, PointLight, SpotLight } from "@oasis-engine/core";
+import { DirectLight, Entity, PointLight, SpotLight } from "@galacean/engine-core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";

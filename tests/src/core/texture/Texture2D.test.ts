@@ -1,5 +1,5 @@
-import { Engine, Texture2D, TextureFormat } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Engine, Texture2D, TextureFormat } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("Texture2D", () => {

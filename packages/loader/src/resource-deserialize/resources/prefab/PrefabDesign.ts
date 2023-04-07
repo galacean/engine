@@ -1,5 +1,5 @@
-import type { BackgroundMode } from "@oasis-engine/core";
-import { IReferable } from "@oasis-engine/core/types/asset/IReferable";
+import type { BackgroundMode } from "@galacean/engine-core";
+import { IReferable } from "@galacean/engine-core/types/asset/IReferable";
 import { IColor } from "../mesh/IModelMesh";
 
 export interface IPrefabFile {

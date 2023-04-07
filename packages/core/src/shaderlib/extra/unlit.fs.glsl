@@ -14,7 +14,7 @@ void main() {
 
     #ifdef BASETEXTURE
         vec4 textureColor = texture2D(u_baseTexture, v_uv);
-        #ifndef OASIS_COLORSPACE_GAMMA
+        #ifndef GALACEAN_COLORSPACE_GAMMA
             textureColor = gammaToLinear(textureColor);
         #endif
         baseColor *= textureColor;
@@ -34,7 +34,7 @@ void main() {
 
     #include <FogFragment>
 
-     #ifndef OASIS_COLORSPACE_GAMMA
+     #ifndef GALACEAN_COLORSPACE_GAMMA
         gl_FragColor = linearToGamma(gl_FragColor);
     #endif
 }

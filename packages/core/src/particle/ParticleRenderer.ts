@@ -1,4 +1,4 @@
-import { Color, MathUtil, Vector3 } from "@oasis-engine/math";
+import { Color, MathUtil, Vector3 } from "@galacean/engine-math";
 import { GLCapabilityType } from "../base/Constant";
 import { ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";

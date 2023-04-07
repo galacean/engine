@@ -8,9 +8,9 @@ import {
   Sprite,
   SpriteAtlas,
   Texture2D
-} from "@oasis-engine/core";
-import { AtlasConfig } from "@oasis-engine/core/types/2d/atlas/types";
-import { Rect, Vector2 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { AtlasConfig } from "@galacean/engine-core/types/2d/atlas/types";
+import { Rect, Vector2 } from "@galacean/engine-math";
 import { GLTFUtil } from "./gltf/GLTFUtil";
 
 @resourceLoader(AssetType.SpriteAtlas, ["atlas"], false)

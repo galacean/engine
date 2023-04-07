@@ -7,7 +7,7 @@ import {
   ResourceManager,
   TextureCubeFace,
   TextureCube
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { parseCubeKTX } from "./compressed-texture";
 
 @resourceLoader(AssetType.KTXCube, [])

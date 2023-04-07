@@ -64,11 +64,11 @@ vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMI
 
         #ifdef O3_DECODE_ENV_RGBM
             envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
-            #ifdef OASIS_COLORSPACE_GAMMA
+            #ifdef GALACEAN_COLORSPACE_GAMMA
                 envMapColor = linearToGamma(envMapColor);
             #endif
         #else
-             #ifndef OASIS_COLORSPACE_GAMMA
+             #ifndef GALACEAN_COLORSPACE_GAMMA
                 envMapColor = gammaToLinear(envMapColor);
             #endif
         #endif

@@ -1,9 +1,9 @@
-import { ModelMesh, BlendShape } from "@oasis-engine/core";
+import { ModelMesh, BlendShape } from "@galacean/engine-core";
 import { decoder } from "../../utils/Decorator";
-import type { Engine } from "@oasis-engine/core";
+import type { Engine } from "@galacean/engine-core";
 import type { BufferReader } from "../../utils/BufferReader";
 import { IEncodedModelMesh } from "./IModelMesh";
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 
 /**
  * @todo refactor 

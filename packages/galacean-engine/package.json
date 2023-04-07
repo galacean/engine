@@ -1,6 +1,6 @@
 {
-  "name": "oasis-engine",
-  "version": "1.0.0-alpha.4",
+  "name": "@galacean/engine",
+  "version": "1.0.0-alpha.6",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -19,12 +19,12 @@
   ],
   "homepage": "https://oasisengine.cn/",
   "repository": {
-    "url": "https://github.com/ant-galaxy/oasis-engine"
+    "url": "https://github.com/galacean/engine"
   },
   "dependencies": {
-    "@oasis-engine/core": "workspace:*",
-    "@oasis-engine/loader": "workspace:*",
-    "@oasis-engine/math": "workspace:*",
-    "@oasis-engine/rhi-webgl": "workspace:*"
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-loader": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-rhi-webgl": "workspace:*"
   }
 }

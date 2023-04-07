@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";

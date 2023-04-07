@@ -1,4 +1,4 @@
-import { AssetPromise, Logger } from "@oasis-engine/core";
+import { AssetPromise, Logger } from "@galacean/engine-core";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";
 
