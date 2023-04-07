@@ -1,8 +1,8 @@
 import { PhysXCollider } from "../PhysXCollider";
 import { PhysXJoint } from "./PhysXJoint";
-import { IHingeJoint } from "@oasis-engine/design";
+import { IHingeJoint } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { Quaternion, Vector3 } from "@galacean/engine";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.

@@ -1,4 +1,4 @@
-import { DRACODecoder } from "@oasis-engine/draco";
+import { DRACODecoder } from "@galacean/engine-draco";
 import { GLTFUtil } from "../GLTFUtil";
 import { registerExtension } from "../parser/Parser";
 import { ParserContext } from "../parser/ParserContext";

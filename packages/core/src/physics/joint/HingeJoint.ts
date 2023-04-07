@@ -1,9 +1,9 @@
 import { Joint } from "./Joint";
-import { IHingeJoint } from "@oasis-engine/design";
+import { IHingeJoint } from "@galacean/engine-design";
 import { PhysicsManager } from "../PhysicsManager";
 import { HingeJointFlag } from "../enums/HingeJointFlag";
 import { Collider } from "../Collider";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 import { JointMotor } from "./JointMotor";
 import { JointLimits } from "./JointLimits";
 

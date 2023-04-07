@@ -1,4 +1,4 @@
-import { MathUtil, Vector2 } from "@oasis-engine/math";
+import { MathUtil, Vector2 } from "@galacean/engine-math";
 import { expect } from "chai";
 
 function toString(v: Vector2): string {

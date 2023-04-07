@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector2, Vector3 } from "@galacean/engine-math";
 import { SpriteMask } from "../2d";
 import { Background } from "../Background";
 import { Camera } from "../Camera";

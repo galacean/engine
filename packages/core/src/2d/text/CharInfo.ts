@@ -1,4 +1,4 @@
-import { Vector2 } from "@oasis-engine/math";
+import { Vector2 } from "@galacean/engine-math";
 
 /**
  * @internal

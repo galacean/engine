@@ -10,7 +10,7 @@ import {
   Entity,
   MeshRenderer,
   SkinnedMeshRenderer
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../Schema";

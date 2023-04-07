@@ -1,4 +1,4 @@
-import { Engine, Entity } from "@oasis-engine/core";
+import { Engine, Entity } from "@galacean/engine-core";
 import type { IEntity, IPrefabFile } from "./PrefabDesign";
 import { ReflectionParser } from "./ReflectionParser";
 

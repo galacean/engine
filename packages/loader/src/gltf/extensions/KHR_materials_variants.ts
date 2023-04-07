@@ -1,4 +1,4 @@
-import { Renderer } from "@oasis-engine/core";
+import { Renderer } from "@galacean/engine-core";
 import { registerExtension } from "../parser/Parser";
 import { ParserContext } from "../parser/ParserContext";
 import { ExtensionParser } from "./ExtensionParser";

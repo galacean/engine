@@ -1,5 +1,5 @@
-import { PBRSpecularMaterial } from "@oasis-engine/core";
-import { Color } from "@oasis-engine/math";
+import { PBRSpecularMaterial } from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
 import { MaterialParser } from "../parser/MaterialParser";
 import { registerExtension } from "../parser/Parser";
 import { ParserContext } from "../parser/ParserContext";

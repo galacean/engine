@@ -1,5 +1,5 @@
-import { ICharacterController, ICollider, IPhysics, IPhysicsManager } from "@oasis-engine/design";
-import { Ray, Vector3 } from "@oasis-engine/math";
+import { ICharacterController, ICollider, IPhysics, IPhysicsManager } from "@galacean/engine-design";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";

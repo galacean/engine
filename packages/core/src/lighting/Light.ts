@@ -1,4 +1,4 @@
-import { Color, Matrix } from "@oasis-engine/math";
+import { Color, Matrix } from "@galacean/engine-math";
 import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
@@ -17,7 +17,6 @@ export abstract class Light extends Component {
   intensity: number = 1;
 
   /**
-   * @beta
    * Culling mask - which layers the light affect.
    * @remarks Support bit manipulation, corresponding to `Layer`.
    */

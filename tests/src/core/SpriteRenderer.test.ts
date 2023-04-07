@@ -1,6 +1,6 @@
-import { Color } from "@oasis-engine/math";
-import { Sprite, SpriteRenderer, Texture2D } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Color } from "@galacean/engine-math";
+import { Sprite, SpriteRenderer, Texture2D } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("SpriteRenderer", () => {

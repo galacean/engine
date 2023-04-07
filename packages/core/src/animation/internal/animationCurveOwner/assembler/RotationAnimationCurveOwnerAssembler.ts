@@ -1,4 +1,4 @@
-import { Quaternion } from "@oasis-engine/math";
+import { Quaternion } from "@galacean/engine-math";
 import { Transform } from "../../../../Transform";
 import { KeyframeValueType } from "../../../Keyframe";
 import { AnimationCurveOwner } from "../AnimationCurveOwner";

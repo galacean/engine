@@ -2,7 +2,7 @@
  * Module for glTF 2.0 Interface
  */
 
-import { MeshTopology } from "@oasis-engine/core";
+import { MeshTopology } from "@galacean/engine-core";
 
 /**
  * The datatype of the components in the attribute

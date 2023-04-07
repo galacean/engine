@@ -7,7 +7,7 @@ import {
   ResourceManager,
   Texture2D,
   TextureFormat
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {

@@ -1,6 +1,6 @@
-import { IColliderShape } from "@oasis-engine/design";
+import { IColliderShape } from "@galacean/engine-design";
 import { PhysicsMaterial } from "../PhysicsMaterial";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 import { Collider } from "../Collider";
 
 /**

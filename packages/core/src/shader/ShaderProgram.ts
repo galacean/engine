@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
@@ -447,6 +447,8 @@ export class ShaderProgram {
             gl.uniform1i(location, this._activeTextureUint++);
           }
           break;
+        default:
+          throw new Error("Unsupported uniform type");
       }
 
       const group = Shader._getShaderPropertyGroup(name);
