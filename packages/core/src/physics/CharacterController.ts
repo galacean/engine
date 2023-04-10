@@ -10,7 +10,6 @@ import { ColliderShape } from "./shape";
  * The character controllers.
  */
 export class CharacterController extends Collider {
-  private static _tempVec = new Vector3();
   /** @internal */
   _index: number = -1;
 
@@ -18,8 +17,6 @@ export class CharacterController extends Collider {
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);
   private _slopeLimit: number = 0.707;
-  private _center = new Vector3();
-  private _scaledCenter = new Vector3();
 
   /**
    * The step offset for the controller.
@@ -63,19 +60,6 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * The center of the character relative to the transform's position.
-   */
-  get center(): Vector3 {
-    return this._center;
-  }
-
-  set center(value: Vector3) {
-    if (this._center !== value) {
-      this._center.copyFrom(value);
-    }
-  }
-
-  /**
    * The slope limit for the controller.
    */
   get slopeLimit(): number {
@@ -97,12 +81,9 @@ export class CharacterController extends Collider {
     (<ICharacterController>this._nativeCollider) = PhysicsManager._nativePhysics.createCharacterController();
 
     this._setUpDirection = this._setUpDirection.bind(this);
-    this._setCenter = this._setCenter.bind(this);
 
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
-    //@ts-ignore
-    this._center._onValueChanged = this._setCenter;
   }
 
   /**
@@ -146,16 +127,13 @@ export class CharacterController extends Collider {
   _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
-      const { shapes, _center: center, _scaledCenter: scaledCenter } = this;
+      const shapes = this.shapes;
+      (<ICharacterController>this._nativeCollider).setWorldPosition(transform.worldPosition);
 
       const worldScale = transform.lossyWorldScale;
       for (let i = 0, n = shapes.length; i < n; i++) {
         shapes[i]._nativeShape.setWorldScale(worldScale);
       }
-
-      Vector3.multiply(center, worldScale, scaledCenter);
-      Vector3.add(transform.worldPosition, scaledCenter, CharacterController._tempVec);
-      (<ICharacterController>this._nativeCollider).setWorldPosition(CharacterController._tempVec);
 
       this._updateFlag.flag = false;
     }
@@ -166,8 +144,9 @@ export class CharacterController extends Collider {
    * @override
    */
   _onLateUpdate() {
-    (<ICharacterController>this._nativeCollider).getWorldPosition(CharacterController._tempVec);
-    Vector3.subtract(CharacterController._tempVec, this._scaledCenter, this.entity.transform.worldPosition);
+    const position = this.entity.transform.worldPosition;
+    (<ICharacterController>this._nativeCollider).getWorldPosition(position);
+    this.entity.transform.worldPosition = position;
     this._updateFlag.flag = false;
   }
 
@@ -189,9 +168,5 @@ export class CharacterController extends Collider {
 
   private _setUpDirection(): void {
     (<ICharacterController>this._nativeCollider).setUpDirection(this._upDirection);
-  }
-
-  private _setCenter(): void {
-    this._updateFlag.flag = true;
   }
 }
