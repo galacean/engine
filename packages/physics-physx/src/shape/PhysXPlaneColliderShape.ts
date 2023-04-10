@@ -17,12 +17,4 @@ export class PhysXPlaneColliderShape extends PhysXColliderShape implements IPlan
     this._initialize(material, uniqueID);
     this._setLocalPose();
   }
-
-  /**
-   * {@inheritDoc IColliderShape.setWorldScale }
-   */
-  setWorldScale(scale: Vector3): void {
-    this._scale.copyFrom(scale);
-    this._setLocalPose();
-  }
 }
