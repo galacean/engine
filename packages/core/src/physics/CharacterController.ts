@@ -81,7 +81,6 @@ export class CharacterController extends Collider {
     (<ICharacterController>this._nativeCollider) = PhysicsManager._nativePhysics.createCharacterController();
 
     this._setUpDirection = this._setUpDirection.bind(this);
-
     //@ts-ignore
     this._upDirection._onValueChanged = this._setUpDirection;
   }
@@ -134,7 +133,6 @@ export class CharacterController extends Collider {
       for (let i = 0, n = shapes.length; i < n; i++) {
         shapes[i]._nativeShape.setWorldScale(worldScale);
       }
-
       this._updateFlag.flag = false;
     }
   }
