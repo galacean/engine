@@ -7,39 +7,38 @@ import {
   Light,
   Material,
   ModelMesh,
-  Renderer,
   Skin,
   Texture2D
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 
 /**
- * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.
+ * Product after glTF parser, usually, `defaultSceneRoot` is only needed to use.
  */
 export class GLTFResource extends EngineObject {
-  /** GLTF file url. */
+  /** glTF file url. */
   url: string;
-  /** Oasis Texture2D after TextureParser. */
+  /** Texture2D after TextureParser. */
   textures?: Texture2D[];
-  /** Oasis Material after MaterialParser. */
+  /** Material after MaterialParser. */
   materials?: Material[];
-  /** Oasis ModelMesh after MeshParser. */
+  /** ModelMesh after MeshParser. */
   meshes?: ModelMesh[][];
-  /** Oasis Skin after SkinParser. */
+  /** Skin after SkinParser. */
   skins?: Skin[];
-  /** Oasis AnimationClip after AnimationParser. */
+  /** AnimationClip after AnimationParser. */
   animations?: AnimationClip[];
-  /** Oasis Entity after EntityParser. */
+  /** Entity after EntityParser. */
   entities: Entity[];
-  /** Oasis Camera after SceneParser. */
+  /** Camera after SceneParser. */
   cameras?: Camera[];
-  /** GLTF can export lights in extension KHR_lights_punctual */
+  /** Export lights in extension KHR_lights_punctual. */
   lights?: Light[];
-  /** Oasis RootEntities after SceneParser. */
+  /** RootEntities after SceneParser. */
   sceneRoots: Entity[];
-  /** Oasis RootEntity after SceneParser. */
+  /** RootEntity after SceneParser. */
   defaultSceneRoot: Entity;
-  /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
-  variants?: { renderer: Renderer; material: Material; variants: string[] }[];
+  /** Extensions data. */
+  extensionsData: Record<string, any>;
 
   constructor(engine: Engine, url: string) {
     super(engine);
@@ -49,12 +48,8 @@ export class GLTFResource extends EngineObject {
   /**
    * @override
    */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    super.destroy();
+  protected _onDestroy(): void {
+    super._onDestroy();
     this.defaultSceneRoot.destroy();
 
     this.textures = null;
@@ -66,6 +61,6 @@ export class GLTFResource extends EngineObject {
     this.cameras = null;
     this.lights = null;
     this.sceneRoots = null;
-    this.variants = null;
+    this.extensionsData = null;
   }
 }

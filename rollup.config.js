@@ -3,12 +3,11 @@ const path = require("path");
 
 import resolve from "@rollup/plugin-node-resolve";
 import commonjs from "@rollup/plugin-commonjs";
-import babel from "@rollup/plugin-babel";
 import glslify from "rollup-plugin-glslify";
-import { terser } from "rollup-plugin-terser";
 import serve from "rollup-plugin-serve";
 import miniProgramPlugin from "./rollup.miniprogram.plugin";
 import replace from "@rollup/plugin-replace";
+import { swc, defineRollupSwcOption, minify } from "rollup-plugin-swc3";
 
 const camelCase = require("camelcase");
 
@@ -27,7 +26,7 @@ const pkgs = fs
     };
   });
 
-// "oasisEngine" 、 "@oasisEngine/controls" ...
+// "@galacean/engine" 、 "@galacean/engine-math" ...
 function toGlobalName(pkgName) {
   return camelCase(pkgName);
 }
@@ -40,11 +39,18 @@ const commonPlugins = [
   glslify({
     include: [/\.glsl$/]
   }),
-  babel({
-    extensions,
-    babelHelpers: "bundled",
-    exclude: ["node_modules/**", "packages/**/node_modules/**"]
-  }),
+  swc(
+    defineRollupSwcOption({
+      include: /\.[mc]?[jt]sx?$/,
+      exclude: /node_modules/,
+      jsc: {
+        loose: true,
+        externalHelpers: true,
+        target: "es5"
+      },
+      sourceMaps: true
+    })
+  ),
   commonjs(),
   NODE_ENV === "development"
     ? serve({
@@ -71,7 +77,7 @@ function config({ location, pkgJson }) {
       let file = path.join(location, "dist", "browser.js");
       const plugins = [...commonPlugins];
       if (compress) {
-        plugins.push(terser());
+        plugins.push(minify());
         file = path.join(location, "dist", "browser.min.js");
       }
 
@@ -84,7 +90,7 @@ function config({ location, pkgJson }) {
 
       return {
         input,
-        external: name === "oasis-engine" ? {} : external,
+        external: name === "@galacean/engine" ? {} : external,
         output: [
           {
             file,
@@ -109,7 +115,7 @@ function config({ location, pkgJson }) {
           }
         ],
         external: Object.keys(pkgJson.dependencies || {})
-          .concat("@oasis-engine/miniprogram-adapter")
+          .concat("@galacean/engine-miniprogram-adapter")
           .map((name) => `${name}/dist/miniprogram`),
         plugins
       };

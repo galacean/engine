@@ -1,4 +1,4 @@
-import { Color, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
 import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
@@ -7,7 +7,7 @@ import { Entity } from "./Entity";
 import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
-import { Shader } from "./shader";
+import { ShaderProperty } from "./shader";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -19,8 +19,8 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _fogColorProperty = Shader.getPropertyByName("oasis_FogColor");
-  private static _fogParamsProperty = Shader.getPropertyByName("oasis_FogParams");
+  private static _fogColorProperty = ShaderProperty.getByName("galacean_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("galacean_FogParams");
 
   /** Scene name. */
   name: string;
@@ -110,7 +110,7 @@ export class Scene extends EngineObject {
 
   set fogMode(value: FogMode) {
     if (this._fogMode !== value) {
-      this.shaderData.enableMacro("OASIS_FOG_MODE", value.toString());
+      this.shaderData.enableMacro("GALACEAN_FOG_MODE", value.toString());
       this._fogMode = value;
     }
   }
@@ -194,11 +194,11 @@ export class Scene extends EngineObject {
     this.name = name || "";
 
     const shaderData = this.shaderData;
-    shaderData._addRefCount(1);
+    shaderData._addReferCount(1);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
 
-    shaderData.enableMacro("OASIS_FOG_MODE", this._fogMode.toString());
+    shaderData.enableMacro("GALACEAN_FOG_MODE", this._fogMode.toString());
     shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
@@ -379,9 +379,13 @@ export class Scene extends EngineObject {
    */
   _updateShaderData(): void {
     const shaderData = this.shaderData;
-    const lightManager = this._engine._lightManager;
+    const engine = this._engine;
+    const lightManager = engine._lightManager;
+
+    engine.time._updateSceneShaderData(shaderData);
 
     lightManager._updateShaderData(this.shaderData);
+
     const sunLightIndex = lightManager._getSunLightIndex();
     if (sunLightIndex !== -1) {
       this._sunLight = lightManager._directLights.get(sunLightIndex);
@@ -423,7 +427,7 @@ export class Scene extends EngineObject {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
-    this.shaderData._addRefCount(-1);
+    this.shaderData._addReferCount(-1);
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {

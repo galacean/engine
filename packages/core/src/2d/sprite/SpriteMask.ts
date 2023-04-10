@@ -1,14 +1,13 @@
-import { BoundingBox } from "@oasis-engine/math";
+import { BoundingBox } from "@galacean/engine-math";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
-import { Shader } from "../../shader/Shader";
+import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
-import { RenderData2D } from "../data/RenderData2D";
+import { VertexData2D } from "../data/VertexData2D";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 import { Sprite } from "./Sprite";
@@ -18,18 +17,18 @@ import { Sprite } from "./Sprite";
  */
 export class SpriteMask extends Renderer implements ICustomClone {
   /** @internal */
-  static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
+  static _textureProperty: ShaderProperty = ShaderProperty.getByName("u_maskTexture");
   /** @internal */
-  static _alphaCutoffProperty: ShaderProperty = Shader.getPropertyByName("u_maskAlphaCutoff");
+  static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("u_maskAlphaCutoff");
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
   influenceLayers: number = SpriteMaskLayer.Everything;
   /** @internal */
-  _maskElement: SpriteMaskElement;
+  _maskElement: RenderElement;
 
   /** @internal */
-  _renderData: RenderData2D;
+  _verticesData: VertexData2D;
 
   @ignoreClone
   private _sprite: Sprite = null;
@@ -149,22 +148,11 @@ export class SpriteMask extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
-    this._renderData = new RenderData2D(4, [], []);
+    this._verticesData = new VertexData2D(4, [], []);
     SimpleSpriteAssembler.resetData(this);
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._onSpriteChange = this._onSpriteChange.bind(this);
-  }
-
-  /**
-   * @override
-   * @inheritdoc
-   */
-  _onDestroy(): void {
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
-    this._sprite = null;
-    this._renderData = null;
-    super._onDestroy();
   }
 
   /**
@@ -207,11 +195,26 @@ export class SpriteMask extends Renderer implements ICustomClone {
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
     }
 
-    const spriteMaskElementPool = this._engine._spriteMaskElementPool;
-    const maskElement = spriteMaskElementPool.getFromPool();
-    maskElement.setValue(this, this._renderData, this.getMaterial());
     context.camera._renderPipeline._allSpriteMasks.add(this);
-    this._maskElement = maskElement;
+
+    const renderData = this._engine._spriteMaskRenderDataPool.getFromPool();
+    const material = this.getMaterial();
+    renderData.set(this, material, this._verticesData);
+
+    const renderElement = this._engine._renderElementPool.getFromPool();
+    renderElement.set(renderData, material.shader.subShaders[0].passes[0], material.renderStates[0]);
+    this._maskElement = renderElement;
+  }
+
+  /**
+   * @override
+   * @inheritdoc
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
+    this._sprite = null;
+    this._verticesData = null;
   }
 
   @ignoreClone

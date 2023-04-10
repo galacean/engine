@@ -1,5 +1,5 @@
-import { ICharacterController } from "@oasis-engine/design";
-import { Vector3 } from "oasis-engine";
+import { ICharacterController } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXPhysicsManager } from "./PhysXPhysicsManager";
 import { PhysXBoxColliderShape } from "./shape/PhysXBoxColliderShape";
@@ -22,6 +22,12 @@ export class PhysXCharacterController implements ICharacterController {
   _shape: PhysXColliderShape;
   private _scaledOffset = new Vector3();
   private _position: Vector3 = null;
+
+  private _physXPhysics: PhysXPhysics;
+
+  constructor(physXPhysics: PhysXPhysics) {
+    this._physXPhysics = physXPhysics;
+  }
 
   /**
    * {@inheritDoc ICharacterController.move }
@@ -108,12 +114,12 @@ export class PhysXCharacterController implements ICharacterController {
   _createPXController(pxManager: PhysXPhysicsManager, shape: PhysXColliderShape): void {
     let desc: any;
     if (shape instanceof PhysXBoxColliderShape) {
-      desc = new PhysXPhysics._physX.PxBoxControllerDesc();
+      desc = new this._physXPhysics._physX.PxBoxControllerDesc();
       desc.halfHeight = shape._halfSize.x;
       desc.halfSideExtent = shape._halfSize.y;
       desc.halfForwardExtent = shape._halfSize.z;
     } else if (shape instanceof PhysXCapsuleColliderShape) {
-      desc = new PhysXPhysics._physX.PxCapsuleControllerDesc();
+      desc = new this._physXPhysics._physX.PxCapsuleControllerDesc();
       desc.radius = shape._radius;
       desc.height = shape._halfHeight * 2;
       desc.climbingMode = 1; // constraint mode
@@ -124,7 +130,7 @@ export class PhysXCharacterController implements ICharacterController {
     desc.setMaterial(shape._pxMaterials[0]);
 
     this._pxController = pxManager._getControllerManager().createController(desc);
-    this._pxController.setQueryFilterData(new PhysXPhysics._physX.PxFilterData(shape._id, 0, 0, 0));
+    this._pxController.setUUID(shape._id);
   }
 
   /**

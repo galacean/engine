@@ -1,5 +1,5 @@
-import { registerExtension } from "../parser/Parser";
-import { ExtensionParser } from "./ExtensionParser";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 
-@registerExtension("KHR_mesh_quantization")
-class KHR_mesh_quantization extends ExtensionParser {}
+@registerGLTFExtension("KHR_mesh_quantization", GLTFExtensionMode.AdditiveParse)
+class KHR_mesh_quantization extends GLTFExtensionParser {}

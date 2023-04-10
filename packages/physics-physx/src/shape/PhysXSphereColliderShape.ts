@@ -1,8 +1,8 @@
+import { ISphereColliderShape } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine";
 import { PhysXPhysics } from "../PhysXPhysics";
-import { ISphereColliderShape } from "@oasis-engine/design";
-import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { Vector3 } from "oasis-engine";
+import { PhysXColliderShape } from "./PhysXColliderShape";
 
 /**
  * Sphere collider shape in PhysX.
@@ -11,18 +11,12 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   private _radius: number;
   private _maxScale: number = 1;
 
-  /**
-   * Init PhysXCollider and alloc PhysX objects.
-   * @param uniqueID - UniqueID mark collider
-   * @param radius - Size of SphereCollider
-   * @param material - Material of PhysXCollider
-   */
-  constructor(uniqueID: number, radius: number, material: PhysXPhysicsMaterial) {
-    super();
+  constructor(physXPhysics: PhysXPhysics, uniqueID: number, radius: number, material: PhysXPhysicsMaterial) {
+    super(physXPhysics);
 
     this._radius = radius;
 
-    this._pxGeometry = new PhysXPhysics._physX.PxSphereGeometry(this._radius * this._maxScale);
+    this._pxGeometry = new physXPhysics._physX.PxSphereGeometry(this._radius * this._maxScale);
     this._initialize(material, uniqueID);
     this._setLocalPose();
   }

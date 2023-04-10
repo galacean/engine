@@ -1,10 +1,10 @@
-import { BlendShape, ModelMesh, SkinnedMeshRenderer } from "@oasis-engine/core";
-import { Vector3 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { BlendShape, ModelMesh, SkinnedMeshRenderer } from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-describe("SkinnedMeshRenderer", () => {
-  const engine = new WebGLEngine(document.createElement("canvas"));
+describe("SkinnedMeshRenderer", async () => {
+  const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
   const scene = engine.sceneManager.activeScene;
   const rootEntity = scene.createRootEntity();
   engine.run();

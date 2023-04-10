@@ -1,4 +1,4 @@
-import { Vector4 } from "@oasis-engine/math";
+import { Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { CompareFunction } from "../shader/enums/CompareFunction";

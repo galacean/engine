@@ -1,7 +1,8 @@
-import { Color } from "@oasis-engine/math";
+import { Color } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
+import { ShaderProperty } from "../shader/ShaderProperty";
 import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
 
@@ -9,10 +10,10 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Specular-Glossiness Workflow) Material.
  */
 export class PBRSpecularMaterial extends PBRBaseMaterial {
-  private static _specularColorProp = Shader.getPropertyByName("u_PBRSpecularColor");
-  private static _glossinessProp = Shader.getPropertyByName("u_glossiness");
-  private static _specularGlossinessTextureProp = Shader.getPropertyByName("u_specularGlossinessTexture");
-  private static _specularGlossinessTextureMacro: ShaderMacro = Shader.getMacroByName("SPECULARGLOSSINESSTEXTURE");
+  private static _specularColorProp = ShaderProperty.getByName("u_PBRSpecularColor");
+  private static _glossinessProp = ShaderProperty.getByName("u_glossiness");
+  private static _specularGlossinessTextureProp = ShaderProperty.getByName("u_specularGlossinessTexture");
+  private static _specularGlossinessTextureMacro: ShaderMacro = ShaderMacro.getByName("SPECULARGLOSSINESSTEXTURE");
 
   /**
    * Specular color.

@@ -1,4 +1,4 @@
-import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 
 /**
  * Keyframe.

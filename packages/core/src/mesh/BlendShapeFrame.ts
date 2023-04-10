@@ -1,4 +1,5 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * BlendShapeFrame.
@@ -6,12 +7,56 @@ import { Vector3 } from "@oasis-engine/math";
 export class BlendShapeFrame {
   /** Weight of BlendShapeFrame. */
   readonly weight: number;
-  /** Delta positions for the frame being added. */
-  readonly deltaPositions: Readonly<Readonly<Vector3>[]>;
-  /** Delta normals for the frame being added. */
-  readonly deltaNormals: Readonly<Readonly<Vector3[]> | null>;
-  /** Delta tangents for the frame being added. */
-  readonly deltaTangents: Readonly<Readonly<Vector3[]> | null>;
+
+  /** @internal */
+  _dataChangeManager: UpdateFlagManager = new UpdateFlagManager();
+
+  private _dirty: BlendShapeFrameDirty = BlendShapeFrameDirty.All;
+  private _deltaPositions: Vector3[];
+  private _deltaNormals: Vector3[];
+  private _deltaTangents: Vector3[];
+
+  /**
+   * Delta positions for the frame being added.
+   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
+   */
+  get deltaPositions(): Vector3[] {
+    return this._deltaPositions;
+  }
+
+  set deltaPositions(value: Vector3[]) {
+    this._deltaPositions = value;
+    this._dirty |= BlendShapeFrameDirty.Position;
+    this._dataChangeManager.dispatch(this._dirty, this);
+  }
+
+  /**
+   * Delta normals for the frame being added.
+   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
+   */
+  get deltaNormals(): Vector3[] {
+    return this._deltaNormals;
+  }
+
+  set deltaNormals(value: Vector3[]) {
+    this._deltaNormals = value;
+    this._dirty |= BlendShapeFrameDirty.Normal;
+    this._dataChangeManager.dispatch(this._dirty, this);
+  }
+
+  /**
+   * Delta tangents for the frame being added.
+   * @remarks Need to re-assign after modification to ensure that the modification takes effect.
+   */
+  get deltaTangents(): Vector3[] {
+    return this._deltaTangents;
+  }
+
+  set deltaTangents(value: Vector3[]) {
+    this._deltaTangents = value;
+    this._dirty |= BlendShapeFrameDirty.Tangent;
+    this._dataChangeManager.dispatch(this._dirty, this);
+  }
 
   /**
    * Create a BlendShapeFrame.
@@ -35,8 +80,24 @@ export class BlendShapeFrame {
     }
 
     this.weight = weight;
-    this.deltaPositions = deltaPositions;
-    this.deltaNormals = deltaNormals;
-    this.deltaTangents = deltaTangents;
+    this._deltaPositions = deltaPositions;
+    this._deltaNormals = deltaNormals;
+    this._deltaTangents = deltaTangents;
   }
+
+  /**
+   * @internal
+   */
+  _releaseData(): void {
+    this._deltaPositions = null;
+    this._deltaNormals = null;
+    this._deltaTangents = null;
+  }
+}
+
+export enum BlendShapeFrameDirty {
+  Position = 0x1,
+  Normal = 0x2,
+  Tangent = 0x4,
+  All = 0x7
 }

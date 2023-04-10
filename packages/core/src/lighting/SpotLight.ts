@@ -1,4 +1,4 @@
-import { Matrix, Vector3 } from "@oasis-engine/math";
+import { Matrix, Vector3 } from "@galacean/engine-math";
 import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -7,17 +7,19 @@ import { Light } from "./Light";
  * Spot light.
  */
 export class SpotLight extends Light {
-  private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightColor");
-  private static _positionProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightPosition");
-  private static _directionProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightDirection");
-  private static _distanceProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightDistance");
-  private static _angleCosProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightAngleCos");
-  private static _penumbraCosProperty: ShaderProperty = Shader.getPropertyByName("u_spotLightPenumbraCos");
+  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightCullingMask");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightColor");
+  private static _positionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPosition");
+  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDirection");
+  private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDistance");
+  private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightAngleCos");
+  private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPenumbraCos");
 
   private static _combinedData = {
-    color: new Float32Array(3 * Light._maxLight),
-    position: new Float32Array(3 * Light._maxLight),
-    direction: new Float32Array(3 * Light._maxLight),
+    cullingMask: new Int32Array(Light._maxLight * 2),
+    color: new Float32Array(Light._maxLight * 3),
+    position: new Float32Array(Light._maxLight * 3),
+    direction: new Float32Array(Light._maxLight * 3),
     distance: new Float32Array(Light._maxLight),
     angleCos: new Float32Array(Light._maxLight),
     penumbraCos: new Float32Array(Light._maxLight)
@@ -29,6 +31,7 @@ export class SpotLight extends Light {
   static _updateShaderData(shaderData: ShaderData): void {
     const data = SpotLight._combinedData;
 
+    shaderData.setIntArray(SpotLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(SpotLight._colorProperty, data.color);
     shaderData.setFloatArray(SpotLight._positionProperty, data.position);
     shaderData.setFloatArray(SpotLight._directionProperty, data.direction);
@@ -44,7 +47,6 @@ export class SpotLight extends Light {
   /** Angle, in radians, from falloff begins to ends. */
   penumbra: number = Math.PI / 12;
 
-  private _forward: Vector3 = new Vector3();
   private _inverseDirection: Vector3 = new Vector3();
   private _projectMatrix: Matrix = new Matrix();
 
@@ -59,8 +61,7 @@ export class SpotLight extends Light {
    * Get light direction.
    */
   get direction(): Vector3 {
-    this.entity.transform.getWorldForward(this._forward);
-    return this._forward;
+    return this.entity.transform.worldForward;
   }
 
   /**
@@ -86,6 +87,7 @@ export class SpotLight extends Light {
    * @internal
    */
   _appendData(lightIndex: number): void {
+    const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const positionStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
@@ -98,6 +100,10 @@ export class SpotLight extends Light {
     const direction = this.direction;
 
     const data = SpotLight._combinedData;
+
+    const cullingMask = this.cullingMask;
+    data.cullingMask[cullingMaskStart] = cullingMask & 65535;
+    data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
     data.color[colorStart] = color.r;
     data.color[colorStart + 1] = color.g;
