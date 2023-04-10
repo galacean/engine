@@ -42,13 +42,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     this._pxGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
 
-    const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      const pxController = controllers.get(i)._pxController;
-      pxController.setHalfHeight(tempExtents.x);
-      pxController.setHalfSideExtent(tempExtents.y);
-      pxController.setHalfForwardExtent(tempExtents.z);
-    }
+    this._updateController(tempExtents);
   }
 
   /**
@@ -62,12 +56,16 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
     this._pxGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
 
+    this._updateController(tempExtents);
+  }
+
+  private _updateController(extents: Vector3) {
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
       const pxController = controllers.get(i)._pxController;
-      pxController.setHalfHeight(tempExtents.x);
-      pxController.setHalfSideExtent(tempExtents.y);
-      pxController.setHalfForwardExtent(tempExtents.z);
+      pxController.setHalfHeight(extents.x);
+      pxController.setHalfSideExtent(extents.y);
+      pxController.setHalfForwardExtent(extents.z);
     }
   }
 }
