@@ -31,7 +31,7 @@ export class AmbientLight {
   private _diffuseMode: DiffuseMode = DiffuseMode.SolidColor;
   private _shArray: Float32Array = new Float32Array(27);
   private _scenes: Scene[] = [];
-  private _specularTextureDecodeRGBM: boolean = true;
+  private _specularTextureDecodeRGBM: boolean = false;
 
   /**
    * Whether to decode from specularTexture with RGBM format.

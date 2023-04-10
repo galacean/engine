@@ -6,7 +6,8 @@ varying vec3 v_cubeUV;
 uniform float u_rotation;
 
 vec4 rotateY(vec4 v, float angle) {
-	float radian = angle * 3.1415926 / 180.0;
+	const float deg2rad = 3.1415926 / 180.0;
+	float radian = angle * deg2rad;
 	float sina = sin(radian);
 	float cosa = cos(radian);
 	mat2 m = mat2(cosa, -sina, sina, cosa);

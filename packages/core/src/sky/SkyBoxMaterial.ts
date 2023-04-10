@@ -1,11 +1,11 @@
 import { Color } from "@oasis-engine/math";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
-import { CompareFunction } from "../shader/enums/CompareFunction";
-import { CullMode } from "../shader/enums/CullMode";
 import { Shader } from "../shader/Shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
+import { CompareFunction } from "../shader/enums/CompareFunction";
+import { CullMode } from "../shader/enums/CullMode";
 import { TextureCube } from "../texture";
 
 /**
@@ -18,17 +18,18 @@ export class SkyBoxMaterial extends Material {
   private static _exposureProp = ShaderProperty.getByName("u_exposure");
   private static _decodeSkyRGBMMacro = ShaderMacro.getByName("DECODE_SKY_RGBM");
 
-  private _decodeRGBM: boolean = true;
+  private _textureDecodeRGBM: boolean = false;
+  private _tintColor: Color = new Color(1, 1, 1, 1);
 
   /**
-   * Whether to decode from texture with RGBM format.
+   * Whether to decode texture with RGBM format.
    */
   get textureDecodeRGBM(): boolean {
-    return this._decodeRGBM;
+    return this._textureDecodeRGBM;
   }
 
   set textureDecodeRGBM(value: boolean) {
-    this._decodeRGBM = value;
+    this._textureDecodeRGBM = value;
     if (value) {
       this.shaderData.enableMacro(SkyBoxMaterial._decodeSkyRGBMMacro);
     } else {
@@ -37,25 +38,25 @@ export class SkyBoxMaterial extends Material {
   }
 
   /**
-   * Cube texture of the sky box material, must be RGBM format.
+   * Texture of the sky box material.
    */
-  get textureCubeMap(): TextureCube {
+  get texture(): TextureCube {
     return this.shaderData.getTexture(SkyBoxMaterial._textureCubeProp) as TextureCube;
   }
 
-  set textureCubeMap(v: TextureCube) {
-    this.shaderData.setTexture(SkyBoxMaterial._textureCubeProp, v);
+  set texture(value: TextureCube) {
+    this.shaderData.setTexture(SkyBoxMaterial._textureCubeProp, value);
   }
 
   /**
-   * The euler angle to rotate around the y-axis.
+   * The angle to rotate around the y-axis, unit is degree.
    */
   get rotation(): number {
     return this.shaderData.getFloat(SkyBoxMaterial._rotationProp);
   }
 
-  set rotation(v: number) {
-    this.shaderData.setFloat(SkyBoxMaterial._rotationProp, v);
+  set rotation(value: number) {
+    this.shaderData.setFloat(SkyBoxMaterial._rotationProp, value);
   }
 
   /**
@@ -65,21 +66,20 @@ export class SkyBoxMaterial extends Material {
     return this.shaderData.getFloat(SkyBoxMaterial._exposureProp);
   }
 
-  set exposure(v: number) {
-    this.shaderData.setFloat(SkyBoxMaterial._exposureProp, v);
+  set exposure(value: number) {
+    this.shaderData.setFloat(SkyBoxMaterial._exposureProp, value);
   }
 
   /**
    * The Tint color of this material.
    */
   get tintColor(): Color {
-    return this.shaderData.getColor(SkyBoxMaterial._tintColorProp);
+    return this._tintColor;
   }
 
-  set tintColor(v: Color) {
-    const tintColor = this.shaderData.getColor(SkyBoxMaterial._tintColorProp);
-    if (v !== tintColor) {
-      tintColor.copyFrom(v);
+  set tintColor(value: Color) {
+    if (this._tintColor != value) {
+      this._tintColor.copyFrom(value);
     }
   }
 
@@ -92,7 +92,7 @@ export class SkyBoxMaterial extends Material {
     this.shaderData.enableMacro(SkyBoxMaterial._decodeSkyRGBMMacro);
     this.shaderData.setFloat(SkyBoxMaterial._rotationProp, 0);
     this.shaderData.setFloat(SkyBoxMaterial._exposureProp, 1);
-    this.shaderData.setColor(SkyBoxMaterial._tintColorProp, new Color(1, 1, 1, 1));
+    this.shaderData.setColor(SkyBoxMaterial._tintColorProp, this._tintColor);
   }
 
   /**
