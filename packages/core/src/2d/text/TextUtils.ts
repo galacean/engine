@@ -1,4 +1,4 @@
-import { Vector2 } from "@oasis-engine/math";
+import { Vector2 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { FontStyle } from "../enums/FontStyle";
 import { OverflowMode } from "../enums/TextOverflow";

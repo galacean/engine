@@ -11,7 +11,7 @@ import {
   ResourceManager,
   Scene,
   SkyBoxMaterial
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { IClassObject, ReflectionParser, SceneParser } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["prefab"], true)

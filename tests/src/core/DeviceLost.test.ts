@@ -1,6 +1,6 @@
-import { BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, PrimitiveMesh } from "@oasis-engine/core";
-import "@oasis-engine/loader";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { BlinnPhongMaterial, Camera, DirectLight, MeshRenderer, PrimitiveMesh } from "@galacean/engine-core";
+import "@galacean/engine-loader";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -8,7 +8,7 @@ canvasDOM.height = 1024;
 
 describe("Device lost test", function () {
   it("Force lost and restore test", async () => {
-    const engine = new WebGLEngine(canvasDOM);
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     engine.canvas.resizeByClientSize();
 
     // Get scene and create root entity.

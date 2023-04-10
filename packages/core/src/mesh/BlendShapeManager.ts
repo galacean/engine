@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector2, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
@@ -7,7 +7,6 @@ import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
-import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -111,7 +110,7 @@ export class BlendShapeManager {
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
         shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
         shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
-        shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
+        shaderData.enableMacro("GALACEAN_BLENDSHAPE_COUNT", blendShapeCount.toString());
         this._uniformOccupiesCount = blendShapeCount + 1;
       } else {
         const maxBlendCount = this._getVertexBufferModeSupportCount();
@@ -130,7 +129,7 @@ export class BlendShapeManager {
           this._modelMesh._enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
-        shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
+        shaderData.disableMacro("GALACEAN_BLENDSHAPE_COUNT");
         this._uniformOccupiesCount = blendShapeCount;
       }
 
@@ -146,7 +145,7 @@ export class BlendShapeManager {
       }
     } else {
       shaderData.disableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
+      shaderData.disableMacro("GALACEAN_BLENDSHAPE_COUNT");
     }
   }
 

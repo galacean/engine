@@ -1,5 +1,5 @@
-import { IJoint } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { IJoint } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { Component } from "../../Component";
 import { dependentComponents, DependentMode } from "../../ComponentsDependencies";
 import { Entity } from "../../Entity";
@@ -7,9 +7,9 @@ import { Collider } from "../Collider";
 
 /**
  * A base class providing common functionality for joints.
- * @decorator `@dependentComponents(DependentMode.CheckOnly,Collider)`
+ * @decorator `@dependentComponents(Collider, DependentMode.CheckOnly)`
  */
-@dependentComponents(DependentMode.CheckOnly, Collider)
+@dependentComponents(Collider, DependentMode.CheckOnly)
 export class Joint extends Component {
   protected _connectedCollider = new JointCollider();
   protected _collider = new JointCollider();

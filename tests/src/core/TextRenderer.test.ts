@@ -1,10 +1,10 @@
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { TextRenderer } from "@oasis-engine/core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { TextRenderer } from "@galacean/engine-core";
 import { expect } from "chai";
 
-describe("TextRenderer", () => {
+describe("TextRenderer", async () => {
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  const engine = await WebGLEngine.create({ canvas: canvas });
   const scene = engine.sceneManager.activeScene;
 
   engine.run();

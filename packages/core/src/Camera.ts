@@ -1,4 +1,4 @@
-import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
@@ -27,9 +27,9 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
- * @decorator `@dependentComponents(DependentMode.CheckOnly, Transform)`
+ * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
-@dependentComponents(DependentMode.CheckOnly, Transform)
+@dependentComponents(Transform, DependentMode.CheckOnly)
 export class Camera extends Component {
   /** @internal */
   private static _inverseViewMatrixProperty = ShaderProperty.getByName("u_viewInvMat");

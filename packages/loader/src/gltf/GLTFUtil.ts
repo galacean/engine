@@ -1,5 +1,5 @@
-import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { IndexFormat, TypedArray, VertexElementFormat } from "@galacean/engine-core";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
 import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
@@ -124,7 +124,7 @@ export class GLTFUtil {
       case AccessorComponentType.UNSIGNED_SHORT:
         return 1 / 65535;
       default:
-        throw new Error("Oasis.GLTFLoader: Unsupported normalized accessor component type.");
+        throw new Error("Galacean.GLTFLoader: Unsupported normalized accessor component type.");
     }
   }
 
@@ -401,12 +401,7 @@ export class GLTFUtil {
       return relativeUrl;
     }
 
-    const char0 = relativeUrl.charAt(0);
-    if (char0 === ".") {
-      return GLTFUtil._formatRelativePath(relativeUrl + relativeUrl);
-    }
-
-    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
+    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + GLTFUtil._formatRelativePath(relativeUrl);
   }
 
   /**
@@ -479,14 +474,16 @@ export class GLTFUtil {
     };
   }
 
-  private static _formatRelativePath(value: string): string {
-    const parts = value.split("/");
-    for (let i = 0, n = parts.length; i < n; i++) {
-      if (parts[i] == "..") {
-        parts.splice(i - 1, 2);
-        i -= 2;
-      }
-    }
-    return parts.join("/");
+  private static _formatRelativePath(path: string): string {
+    // For example input is "a/b", "/a/b", "./a/b", "./a/./b", "./a/../a/b", output is "a/b"
+    return path
+      .split("/")
+      .filter(Boolean)
+      .reduce((acc, cur) => {
+        if (cur === "..") acc.pop();
+        else if (cur !== ".") acc.push(cur);
+        return acc;
+      }, [])
+      .join("/");
   }
 }

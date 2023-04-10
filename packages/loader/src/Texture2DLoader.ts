@@ -7,8 +7,8 @@ import {
   ResourceManager,
   Texture2D,
   TextureFormat
-} from "@oasis-engine/core";
-import { RequestConfig } from "@oasis-engine/core/types/asset/request";
+} from "@galacean/engine-core";
+import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])

@@ -1,4 +1,4 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { IInput } from "../interface/IInput";
 

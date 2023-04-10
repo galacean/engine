@@ -1,5 +1,5 @@
-import { AssetPromise, ContentRestorer, request, Texture2D } from "@oasis-engine/core";
-import { RequestConfig } from "@oasis-engine/core/types/asset/request";
+import { AssetPromise, ContentRestorer, request, Texture2D } from "@galacean/engine-core";
+import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 
 /**
  * @internal

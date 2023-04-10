@@ -9,7 +9,7 @@ import {
   AnimatorControllerLayer,
   AnimatorStateMachine,
   AnimatorStateTransition
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.AnimatorController, ["json"], false)
 class AnimatorControllerLoader extends Loader<AnimatorController> {

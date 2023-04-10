@@ -11,8 +11,8 @@ import {
   SkinnedMeshRenderer,
   Transform,
   TypedArray
-} from "@oasis-engine/core";
-import { Quaternion, Vector3, Vector4 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
 import { GLTFUtil } from "../GLTFUtil";
 import {
   AccessorType,

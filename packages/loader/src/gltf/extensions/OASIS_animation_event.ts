@@ -1,4 +1,4 @@
-import { AnimationClip, AnimationEvent } from "@oasis-engine/core";
+import { AnimationClip, AnimationEvent } from "@galacean/engine-core";
 import { GLTFResource } from "../GLTFResource";
 import { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";

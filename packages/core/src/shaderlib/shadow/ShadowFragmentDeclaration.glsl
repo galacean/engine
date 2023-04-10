@@ -1,8 +1,8 @@
-#if defined(SHADOW_TYPE) && defined(OASIS_RECEIVE_SHADOWS)
-    #define OASIS_CALCULATE_SHADOWS
+#if defined(SHADOW_TYPE) && defined(GALACEAN_RECEIVE_SHADOWS)
+    #define GALACEAN_CALCULATE_SHADOWS
 #endif
 
-#ifdef OASIS_CALCULATE_SHADOWS
+#ifdef GALACEAN_CALCULATE_SHADOWS
     #if CASCADED_COUNT == 1
         varying vec3 v_shadowCoord;
     #else
@@ -19,7 +19,7 @@
         #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
     #else
         uniform sampler2D u_shadowMap;
-        #ifdef OASIS_NO_DEPTH_TEXTURE
+        #ifdef GALACEAN_NO_DEPTH_TEXTURE
             const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
             /**
             * Unpack depth value.

@@ -9,7 +9,7 @@ import {
   Entity,
   MeshRenderer,
   SkinnedMeshRenderer
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";

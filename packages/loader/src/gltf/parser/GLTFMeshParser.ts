@@ -7,8 +7,8 @@ import {
   ModelMesh,
   TypedArray,
   VertexElement
-} from "@oasis-engine/core";
-import { Vector3 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { Vector3 } from "@galacean/engine-math";
 import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFContentRestorer";
 import { IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtil } from "../GLTFUtil";

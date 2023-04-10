@@ -1,5 +1,6 @@
-import { ICollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { ICollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
+import { PhysXPhysics } from "./PhysXPhysics";
 import { PhysXColliderShape } from "./shape/PhysXColliderShape";
 
 /**
@@ -13,6 +14,12 @@ export abstract class PhysXCollider implements ICollider {
 
   /** @internal */
   _pxActor: any;
+
+  protected _physXPhysics: PhysXPhysics;
+
+  constructor(physXPhysics: PhysXPhysics) {
+    this._physXPhysics = physXPhysics;
+  }
 
   /**
    * {@inheritDoc ICollider.addShape }

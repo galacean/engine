@@ -7,8 +7,8 @@ import {
   ResourceManager,
   TextureCube,
   TextureCubeFace
-} from "@oasis-engine/core";
-import { Color, Vector3 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { Color, Vector3 } from "@galacean/engine-math";
 
 const PI = Math.PI;
 

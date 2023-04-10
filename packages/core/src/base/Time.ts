@@ -1,4 +1,4 @@
-import { Vector4 } from "@oasis-engine/math";
+import { Vector4 } from "@galacean/engine-math";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderProperty } from "../shader/ShaderProperty";
 
@@ -6,8 +6,8 @@ import { ShaderProperty } from "../shader/ShaderProperty";
  * Provide time related information.
  */
 export class Time {
-  private static _elapsedTimeProperty = ShaderProperty.getByName("oasis_ElapsedTime");
-  private static _deltaTimeProperty = ShaderProperty.getByName("oasis_DeltaTime");
+  private static _elapsedTimeProperty = ShaderProperty.getByName("galacean_ElapsedTime");
+  private static _deltaTimeProperty = ShaderProperty.getByName("galacean_DeltaTime");
 
   private _frameCount: number = 0;
   private _deltaTime: number = 0;

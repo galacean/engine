@@ -1,5 +1,5 @@
-import { PBRSpecularMaterial } from "@oasis-engine/core";
-import { Color } from "@oasis-engine/math";
+import { PBRSpecularMaterial } from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
 import { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { GLTFParser, registerGLTFExtension } from "../parser/GLTFParser";

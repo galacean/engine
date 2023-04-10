@@ -1,4 +1,4 @@
-import { Ray, Vector3 } from "@oasis-engine/math";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
 import { IColliderShape } from "./shape";
