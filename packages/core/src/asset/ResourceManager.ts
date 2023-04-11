@@ -86,15 +86,24 @@ export class ResourceManager {
     // multi items
     const promises = assetInfo.map((item) => this._loadSingleItem<T>(item));
     return AssetPromise.all(promises);
-}
+  }
 
   /**
-   * Get the asset from cache by url, if the asset is loaded return the asset, otherwise return null.
+   * Get the resource from cache by asset url, return the resource object if it loaded, otherwise return null.
    * @param url - Resource url
    * @returns Resource object
    */
   getFromCache<T>(url: string): T {
     return this._assetUrlPool[url] as T;
+  }
+
+  /**
+   * Get asset url from instanceId.
+   * @param instanceId - Engine instance id
+   * @returns Asset url
+   */
+  getAssetPath(instanceId: number): string {
+    return this._assetPool[instanceId];
   }
 
   /**
@@ -134,15 +143,6 @@ export class ResourceManager {
    */
   gc(): void {
     this._gc(false);
-  }
-
-  /**
-   * Get asset url from instanceId.
-   * @param instanceId - Engine instance id
-   * @returns Asset url
-   */
-  getAssetPath(instanceId: number): string {
-    return this._assetPool[instanceId];
   }
 
   /**
