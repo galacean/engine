@@ -14,6 +14,12 @@
   "scripts": {
     "b:types": "tsc"
   },
+  "umd": {
+    "name": "Galacean.PhysicsPhysX",
+    "globals": {
+      "@galacean/engine": "Galacean"
+    }
+  },
   "files": [
     "dist/**/*",
     "libs/**/*",
