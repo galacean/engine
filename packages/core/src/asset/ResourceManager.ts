@@ -103,7 +103,7 @@ export class ResourceManager {
    * @returns Asset url
    */
   getAssetPath(instanceId: number): string {
-    return this._assetPool[instanceId];
+    return this._assetPool[instanceId] ?? null;
   }
 
   /**
