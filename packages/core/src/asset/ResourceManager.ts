@@ -94,7 +94,7 @@ export class ResourceManager {
    * @returns Resource object
    */
   getFromCache<T>(url: string): T {
-    return this._assetUrlPool[url] as T;
+    return (this._assetUrlPool[url] as T) ?? null;
   }
 
   /**
@@ -103,7 +103,7 @@ export class ResourceManager {
    * @returns Asset url
    */
   getAssetPath(instanceId: number): string {
-    return this._assetPool[instanceId] ?? null;
+    return this._assetPool[instanceId];
   }
 
   /**
