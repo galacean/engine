@@ -86,6 +86,15 @@ export class ResourceManager {
     // multi items
     const promises = assetInfo.map((item) => this._loadSingleItem<T>(item));
     return AssetPromise.all(promises);
+}
+
+  /**
+   * Get the asset from cache by url, if the asset is loaded return the asset, otherwise return null.
+   * @param url - Resource url
+   * @returns Resource object
+   */
+  getFromCache<T>(url: string): T {
+    return this._assetUrlPool[url] as T;
   }
 
   /**
