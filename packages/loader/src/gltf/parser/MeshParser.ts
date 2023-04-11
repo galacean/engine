@@ -134,6 +134,9 @@ export class MeshParser extends Parser {
 
     let vertexCount: number;
     let bufferBindIndex = 0;
+    let positions: Vector3[];
+    keepMeshData && (positions = new Array<Vector3>(vertexCount));
+
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
       const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
@@ -177,10 +180,19 @@ export class MeshParser extends Parser {
 
       if (attribute === "POSITION") {
         vertexCount = attributeCount;
+
         const { min, max } = mesh.bounds;
         if (accessor.min && accessor.max) {
           min.copyFromArray(accessor.min);
           max.copyFromArray(accessor.max);
+
+          if (keepMeshData) {
+            const stride = vertices.length / attributeCount;
+            for (let j = 0; j < attributeCount; j++) {
+              const offset = j * stride;
+              positions[j] = new Vector3(vertices[offset], vertices[offset + 1], vertices[offset + 2]);
+            }
+          }
         } else {
           const position = MeshParser._tempVector3;
           min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
@@ -192,6 +204,8 @@ export class MeshParser extends Parser {
             position.copyFromArray(vertices, offset);
             Vector3.min(min, position, min);
             Vector3.max(max, position, max);
+
+            keepMeshData && (positions[j] = position.clone());
           }
         }
 
@@ -218,6 +232,10 @@ export class MeshParser extends Parser {
     targets && this._createBlendShape(mesh, gltfMesh, targets, getBlendShapeData);
 
     mesh.uploadData(!keepMeshData);
+
+    //@ts-ignore
+    mesh._positions = positions;
+
     return Promise.resolve(mesh);
   }
 
