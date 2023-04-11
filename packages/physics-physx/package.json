@@ -15,7 +15,7 @@
     "b:types": "tsc"
   },
   "umd": {
-    "name": "Galacean.PhysicsX",
+    "name": "Galacean.PhysicsPhysX",
     "globals": {
       "@galacean/engine": "Galacean"
     }
