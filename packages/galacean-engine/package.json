@@ -10,13 +10,16 @@
     "b:types": "tsc"
   },
   "types": "types/index.d.ts",
-  "main": "dist/browser.min.js",
+  "main": "dist/main.js",
   "module": "dist/module.js",
-  "browser": "dist/browser.min.js",
+  "browser": "dist/browser.js",
   "files": [
     "dist/**/*",
     "types/**/*"
   ],
+  "umd": {
+    "name": "Galacean"
+  },
   "homepage": "https://oasisengine.cn/",
   "repository": {
     "url": "https://github.com/galacean/engine"
