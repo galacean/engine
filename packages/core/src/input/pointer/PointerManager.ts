@@ -61,7 +61,10 @@ export class PointerManager implements IInput {
    * @internal
    */
   _update(frameCount: number): void {
-    const { _pointers: pointers, _nativeEvents: nativeEvents } = this;
+    const { _pointers: pointers, _nativeEvents: nativeEvents, _htmlCanvas: htmlCanvas } = this;
+    const { clientWidth, clientHeight } = htmlCanvas;
+    const { width, height } = this._canvas;
+    const rect = htmlCanvas.getBoundingClientRect();
     // Clean up the pointer released in the previous frame
     let lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
@@ -77,7 +80,31 @@ export class PointerManager implements IInput {
     if (lastIndex >= 0) {
       for (let i = 0; i <= lastIndex; i++) {
         const evt = nativeEvents[i];
-        this._getPointer(evt.pointerId)?._events.push(evt);
+        const { pointerId } = evt;
+        let pointer = this._getPointerByID(pointerId);
+        if (pointer) {
+          pointer._events.push(evt);
+        } else {
+          const lastCount = pointers.length;
+          if (lastCount === 0 || this._multiPointerEnabled) {
+            const { _pointerPool: pointerPool } = this;
+            // Get Pointer smallest index
+            let i = 0;
+            for (; i < lastCount; i++) {
+              if (pointers[i].id > i) {
+                break;
+              }
+            }
+            pointer = pointerPool[i] ||= new Pointer(i);
+            pointer._uniqueID = pointerId;
+            pointer._events.push(evt);
+            pointer.position.set(
+              ((evt.clientX - rect.left) / clientWidth) * width,
+              ((evt.clientY - rect.top) / clientHeight) * height
+            );
+            pointers.splice(i, 0, pointer);
+          }
+        }
       }
       nativeEvents.length = 0;
     }
@@ -90,13 +117,10 @@ export class PointerManager implements IInput {
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;
-      const clientRect = this._htmlCanvas.getBoundingClientRect();
-      const { clientWidth, clientHeight } = this._htmlCanvas;
-      const { width, height } = this._canvas;
       for (let i = lastIndex; i >= 0; i--) {
         const pointer = pointers[i];
         pointer._upList.length = pointer._downList.length = 0;
-        updatePointer(frameCount, pointer, clientRect, clientWidth, clientHeight, width, height);
+        updatePointer(frameCount, pointer, rect, clientWidth, clientHeight, width, height);
         this._buttons |= pointer.pressedButtons;
       }
     }
@@ -166,43 +190,14 @@ export class PointerManager implements IInput {
     this._nativeEvents.push(evt);
   }
 
-  private _getIndexByPointerID(pointerId: number): number {
+  private _getPointerByID(pointerId: number): Pointer {
     const { _pointers: pointers } = this;
     for (let i = pointers.length - 1; i >= 0; i--) {
       if (pointers[i]._uniqueID === pointerId) {
-        return i;
+        return pointers[i];
       }
     }
-    return -1;
-  }
-
-  private _getPointer(pointerId: number): Pointer {
-    const { _pointers: pointers } = this;
-    const index = this._getIndexByPointerID(pointerId);
-    if (index >= 0) {
-      return pointers[index];
-    } else {
-      const lastCount = pointers.length;
-      if (lastCount === 0 || this._multiPointerEnabled) {
-        const { _pointerPool: pointerPool } = this;
-        // Get Pointer smallest index
-        let i = 0;
-        for (; i < lastCount; i++) {
-          if (pointers[i].id > i) {
-            break;
-          }
-        }
-        let pointer = pointerPool[i];
-        if (!pointer) {
-          pointer = pointerPool[i] = new Pointer(i);
-        }
-        pointer._uniqueID = pointerId;
-        pointers.splice(i, 0, pointer);
-        return pointer;
-      } else {
-        return null;
-      }
-    }
+    return null;
   }
 
   private _pointerRayCast(normalizedX: number, normalizedY: number): Entity {
