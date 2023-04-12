@@ -31,7 +31,7 @@ const vec3 c_VariableRangeForScatteringWavelength = vec3(0.15, 0.15, 0.15);
 
 attribute vec4 POSITION;
 
-uniform mat4 u_VPMat;
+uniform mat4 galacean_VPMat;
 uniform vec3 u_SkyTint;
 uniform vec3 u_GroundTint;
 uniform float u_Exposure;
@@ -54,7 +54,7 @@ varying vec3 v_SkyColor;
 	varying vec3 v_SunColor;
 #endif
 
-#if defined(OASIS_COLORSPACE_GAMMA)
+#if defined(GALACEAN_COLORSPACE_GAMMA)
 	#define COLOR_2_GAMMA(color) color
 	#define COLOR_2_LINEAR(color) color*color
 #else
@@ -77,7 +77,7 @@ float scaleAngle(float inCos)
 }
 
 void main () {
-	gl_Position = u_VPMat*vec4(POSITION.xyz,1.0);
+	gl_Position = galacean_VPMat*vec4(POSITION.xyz,1.0);
 
  	vec3 skyTintInGammaSpace = COLOR_2_GAMMA(u_SkyTint);
 	vec3 scatteringWavelength = mix(c_DefaultScatteringWavelength-c_VariableRangeForScatteringWavelength,c_DefaultScatteringWavelength+c_VariableRangeForScatteringWavelength,vec3(1.0) - skyTintInGammaSpace); // using Tint in sRGB+ gamma allows for more visually linear interpolation and to keep (0.5) at (128, gray in sRGB) point

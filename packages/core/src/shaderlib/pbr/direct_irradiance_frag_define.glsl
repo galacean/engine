@@ -79,21 +79,21 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
         shadowAttenuation = 1.0;
     #ifdef GALACEAN_CALCULATE_SHADOWS
         shadowAttenuation *= sampleShadowMap();
-        int sunIndex = int(u_shadowInfo.z);
+        int sunIndex = int(galacean_ShadowInfo.z);
     #endif
 
         DirectLight directionalLight;
         for ( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(galacean_RendererLayer.xy, u_directLightCullingMask[i])) 
+            if(isRendererCulledByLight(galacean_RendererLayer.xy, galacean_DirectLightCullingMask[i])) 
                 continue;
 
-            directionalLight.color = u_directLightColor[i];
+            directionalLight.color = galacean_DirectLightColor[i];
             #ifdef GALACEAN_CALCULATE_SHADOWS
                 if (i == sunIndex) {
                     directionalLight.color *= shadowAttenuation;
                 }
             #endif
-            directionalLight.direction = u_directLightDirection[i];
+            directionalLight.direction = galacean_DirectLightDirection[i];
             addDirectionalDirectLightRadiance( directionalLight, geometry, material, reflectedLight );
         }
 
@@ -104,12 +104,12 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
         PointLight pointLight;
 
         for ( int i = 0; i < O3_POINT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(galacean_RendererLayer.xy, u_pointLightCullingMask[i])) 
+            if(isRendererCulledByLight(galacean_RendererLayer.xy, galacean_PointLightCullingMask[i])) 
                 continue;
 
-            pointLight.color = u_pointLightColor[i];
-            pointLight.position = u_pointLightPosition[i];
-            pointLight.distance = u_pointLightDistance[i];
+            pointLight.color = galacean_PointLightColor[i];
+            pointLight.position = galacean_PointLightPosition[i];
+            pointLight.distance = galacean_PointLightDistance[i];
 
             addPointDirectLightRadiance( pointLight, geometry, material, reflectedLight );
         }
@@ -121,15 +121,15 @@ void addTotalDirectRadiance(Geometry geometry, Material material, inout Reflecte
         SpotLight spotLight;
 
         for ( int i = 0; i < O3_SPOT_LIGHT_COUNT; i ++ ) {
-            if(isRendererCulledByLight(galacean_RendererLayer.xy, u_spotLightCullingMask[i])) 
+            if(isRendererCulledByLight(galacean_RendererLayer.xy, galacean_SpotLightCullingMask[i])) 
                 continue;
 
-            spotLight.color = u_spotLightColor[i];
-            spotLight.position = u_spotLightPosition[i];
-            spotLight.direction = u_spotLightDirection[i];
-            spotLight.distance = u_spotLightDistance[i];
-            spotLight.angleCos = u_spotLightAngleCos[i];
-            spotLight.penumbraCos = u_spotLightPenumbraCos[i];
+            spotLight.color = galacean_SpotLightColor[i];
+            spotLight.position = galacean_SpotLightPosition[i];
+            spotLight.direction = galacean_SpotLightDirection[i];
+            spotLight.distance = galacean_SpotLightDistance[i];
+            spotLight.angleCos = galacean_SpotLightAngleCos[i];
+            spotLight.penumbraCos = galacean_SpotLightPenumbraCos[i];
 
             addSpotDirectLightRadiance( spotLight, geometry, material, reflectedLight );
         }

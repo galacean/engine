@@ -1,7 +1,7 @@
 #ifdef USE_CUSTOM_TEXTURE
 uniform sampler2D u_cusTomTexture;
 #else
-uniform sampler2D u_spriteTexture;
+uniform sampler2D galacean_SpriteTexture;
 #endif
 
 varying vec2 v_uv;
@@ -13,7 +13,7 @@ void main()
   #ifdef USE_CUSTOM_TEXTURE
   vec4 baseColor = texture2D(u_cusTomTexture, v_uv);
   #else
-  vec4 baseColor = texture2D(u_spriteTexture, v_uv);
+  vec4 baseColor = texture2D(galacean_SpriteTexture, v_uv);
   #endif
   gl_FragColor = baseColor * v_color;
 }

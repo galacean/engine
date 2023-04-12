@@ -1,6 +1,6 @@
 #include <common_vert>
 
-uniform mat4 u_VPMat;
+uniform mat4 galacean_VPMat;
 
 varying vec3 v_cubeUV;
 uniform float u_rotation;
@@ -16,5 +16,5 @@ vec4 rotateY(vec4 v, float angle) {
 
 void main() {
     v_cubeUV = vec3( -POSITION.x, POSITION.yz ); // TextureCube is left-hand,so x need inverse
-    gl_Position = u_VPMat * rotateY(vec4(POSITION, 1.0), u_rotation);
+    gl_Position = galacean_VPMat * rotateY(vec4(POSITION, 1.0), u_rotation);
 }

@@ -20,13 +20,13 @@ import { Material } from "./material";
 export class Renderer extends Component {
   private static _tempVector0 = new Vector3();
 
-  private static _receiveShadowMacro = ShaderMacro.getByName("OASIS_RECEIVE_SHADOWS");
-  private static _localMatrixProperty = ShaderProperty.getByName("u_localMat");
-  private static _worldMatrixProperty = ShaderProperty.getByName("u_modelMat");
-  private static _mvMatrixProperty = ShaderProperty.getByName("u_MVMat");
-  private static _mvpMatrixProperty = ShaderProperty.getByName("u_MVPMat");
-  private static _mvInvMatrixProperty = ShaderProperty.getByName("u_MVInvMat");
-  private static _normalMatrixProperty = ShaderProperty.getByName("u_normalMat");
+  private static _receiveShadowMacro = ShaderMacro.getByName("GALACEAN_RECEIVE_SHADOWS");
+  private static _localMatrixProperty = ShaderProperty.getByName("galacean_LocalMat");
+  private static _worldMatrixProperty = ShaderProperty.getByName("galacean_ModelMat");
+  private static _mvMatrixProperty = ShaderProperty.getByName("galacean_MVMat");
+  private static _mvpMatrixProperty = ShaderProperty.getByName("galacean_MVPMat");
+  private static _mvInvMatrixProperty = ShaderProperty.getByName("galacean_MVInvMat");
+  private static _normalMatrixProperty = ShaderProperty.getByName("galacean_NormalMat");
   private static _rendererLayerProperty = ShaderProperty.getByName("galacean_RendererLayer");
 
   /** ShaderData related to renderer. */

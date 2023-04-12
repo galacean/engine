@@ -11,17 +11,17 @@ attribute vec2 a_normalizedUv;
 
 uniform float u_time;
 uniform bool u_once;
-uniform mat4 u_MVPMat;
+uniform mat4 galacean_MVPMat;
 
 varying vec4 v_color;
 varying float v_lifeLeft;
 varying vec2 v_uv;
 
 #ifdef is2d
-  uniform mat4 u_viewInvMat;
-  uniform mat4 u_projMat;
-  uniform mat4 u_viewMat;
-  uniform mat4 u_modelMat;
+  uniform mat4 galacean_ViewInvMat;
+  uniform mat4 galacean_ProjMat;
+  uniform mat4 galacean_ViewMat;
+  uniform mat4 galacean_ModelMat;
 #endif
 
 mat2 rotation2d(float angle) {
@@ -72,13 +72,13 @@ void main() {
 
     vec2 rotatedPoint = rotation2d(angle) * vec2(a_normalizedUv.x, a_normalizedUv.y * a_uv.z);
 
-    vec3 basisX = u_viewInvMat[0].xyz;
-    vec3 basisZ = u_viewInvMat[1].xyz;
+    vec3 basisX = galacean_ViewInvMat[0].xyz;
+    vec3 basisZ = galacean_ViewInvMat[1].xyz;
 
     vec3 localPosition = vec3(basisX * rotatedPoint.x + 
                 basisZ * rotatedPoint.y) * scale + position;
 
-    gl_Position = u_projMat * u_viewMat * vec4(localPosition + u_modelMat[3].xyz, 1.);
+    gl_Position = galacean_ProjMat * galacean_ViewMat * vec4(localPosition + galacean_ModelMat[3].xyz, 1.);
   #else
     #ifdef rotateToVelocity
       float s = sin(angle);
@@ -117,6 +117,6 @@ void main() {
 
     rotatedPoint = localMatrix * rotatedPoint;
 
-    gl_Position = u_MVPMat * rotatedPoint;
+    gl_Position = galacean_MVPMat * rotatedPoint;
   #endif
 }

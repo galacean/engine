@@ -9,25 +9,25 @@ initMaterial(material, geometry);
 addTotalDirectRadiance(geometry, material, reflectedLight);
 
 // IBL diffuse
-#ifdef O3_USE_SH
-    vec3 irradiance = getLightProbeIrradiance(u_env_sh, geometry.normal);
+#ifdef GALACEAN_USE_SH
+    vec3 irradiance = getLightProbeIrradiance(galacean_EnvSH, geometry.normal);
     #ifdef GALACEAN_COLORSPACE_GAMMA
         irradiance = linearToGamma(vec4(irradiance, 1.0)).rgb;
     #endif
-    irradiance *= u_envMapLight.diffuseIntensity;
+    irradiance *= galacean_EnvMapLight.diffuseIntensity;
 #else
-   vec3 irradiance = u_envMapLight.diffuse * u_envMapLight.diffuseIntensity;
+   vec3 irradiance = galacean_EnvMapLight.diffuse * galacean_EnvMapLight.diffuseIntensity;
    irradiance *= PI;
 #endif
 
 reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.diffuseColor );
 
 // IBL specular
-vec3 radiance = getLightProbeRadiance(geometry.viewDir, geometry.normal, material.roughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity);
+vec3 radiance = getLightProbeRadiance(geometry.viewDir, geometry.normal, material.roughness, int(galacean_EnvMapLight.mipMapLevel), galacean_EnvMapLight.specularIntensity);
 float radianceAttenuation = 1.0;
 
 #ifdef CLEARCOAT
-    vec3 clearCoatRadiance = getLightProbeRadiance( geometry.viewDir, geometry.clearCoatNormal, material.clearCoatRoughness, int(u_envMapLight.mipMapLevel), u_envMapLight.specularIntensity );
+    vec3 clearCoatRadiance = getLightProbeRadiance( geometry.viewDir, geometry.clearCoatNormal, material.clearCoatRoughness, int(galacean_EnvMapLight.mipMapLevel), galacean_EnvMapLight.specularIntensity );
 
     reflectedLight.indirectSpecular += clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), material.clearCoatRoughness, geometry.clearCoatDotNV);
     radianceAttenuation -= material.clearCoat * F_Schlick(geometry.clearCoatDotNV);
@@ -39,14 +39,14 @@ reflectedLight.indirectSpecular += radianceAttenuation * radiance * envBRDFAppro
 // Occlusion
 #ifdef OCCLUSIONTEXTURE
     vec2 aoUV = v_uv;
-    #ifdef O3_HAS_UV1
+    #ifdef GALACEAN_HAS_UV1
         if(u_occlusionTextureCoord == 1.0){
             aoUV = v_uv1;
         }
     #endif
     float ambientOcclusion = (texture2D(u_occlusionTexture, aoUV).r - 1.0) * u_occlusionIntensity + 1.0;
     reflectedLight.indirectDiffuse *= ambientOcclusion;
-    #ifdef O3_USE_SPECULAR_ENV
+    #ifdef GALACEAN_USE_SPECULAR_ENV
         reflectedLight.indirectSpecular *= computeSpecularOcclusion(ambientOcclusion, material.roughness, geometry.dotNV);
     #endif
 #endif

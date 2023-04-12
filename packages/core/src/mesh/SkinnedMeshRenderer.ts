@@ -17,9 +17,9 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _jointCountProperty = ShaderProperty.getByName("u_jointCount");
-  private static _jointSamplerProperty = ShaderProperty.getByName("u_jointSampler");
-  private static _jointMatrixProperty = ShaderProperty.getByName("u_jointMatrix");
+  private static _jointCountProperty = ShaderProperty.getByName("galacean_JointCount");
+  private static _jointSamplerProperty = ShaderProperty.getByName("galacean_JointSampler");
+  private static _jointMatrixProperty = ShaderProperty.getByName("galacean_JointMatrix");
 
   @ignoreClone
   private _hasInitSkin: boolean = false;

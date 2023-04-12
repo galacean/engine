@@ -1,10 +1,10 @@
 attribute vec3 POSITION;
 
-#ifdef O3_HAS_UV
+#ifdef GALACEAN_HAS_UV
     attribute vec2 TEXCOORD_0;
 #endif
 
-#ifdef O3_HAS_UV1
+#ifdef GALACEAN_HAS_UV1
     attribute vec2 TEXCOORD_1;
 #endif
 
@@ -13,13 +13,13 @@ attribute vec3 POSITION;
     attribute vec4 WEIGHTS_0;
 
     #ifdef O3_USE_JOINT_TEXTURE
-        uniform sampler2D u_jointSampler;
-        uniform float u_jointCount;
+        uniform sampler2D galacean_JointSampler;
+        uniform float galacean_JointCount;
 
         mat4 getJointMatrix(sampler2D smp, float index)
         {
-            float base = index / u_jointCount;
-            float hf = 0.5 / u_jointCount;
+            float base = index / galacean_JointCount;
+            float hf = 0.5 / galacean_JointCount;
             float v = base + hf;
 
             vec4 m0 = texture2D(smp, vec2(0.125, v ));
@@ -32,11 +32,11 @@ attribute vec3 POSITION;
         }
 
     #else
-        uniform mat4 u_jointMatrix[ O3_JOINTS_NUM ];
+        uniform mat4 galacean_JointMatrix[ O3_JOINTS_NUM ];
     #endif
 #endif
 
-#ifdef O3_HAS_VERTEXCOLOR
+#ifdef GALACEAN_HAS_VERTEXCOLOR
     attribute vec4 COLOR_0;
 #endif
 
@@ -48,11 +48,11 @@ uniform vec4 u_tilingOffset;
 
 
 #ifndef OMIT_NORMAL
-    #ifdef O3_HAS_NORMAL
+    #ifdef GALACEAN_HAS_NORMAL
         attribute vec3 NORMAL;
     #endif
 
-    #ifdef O3_HAS_TANGENT
+    #ifdef GALACEAN_HAS_TANGENT
         attribute vec4 TANGENT;
     #endif
 #endif

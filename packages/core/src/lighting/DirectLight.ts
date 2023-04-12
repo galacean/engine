@@ -7,9 +7,9 @@ import { Light } from "./Light";
  * Directional light.
  */
 export class DirectLight extends Light {
-  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("u_directLightCullingMask");
-  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_directLightColor");
-  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("u_directLightDirection");
+  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("galacean_DirectLightCullingMask");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("galacean_DirectLightColor");
+  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("galacean_DirectLightDirection");
 
   private static _combinedData = {
     cullingMask: new Int32Array(Light._maxLight * 2),

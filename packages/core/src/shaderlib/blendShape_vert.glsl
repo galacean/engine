@@ -1,65 +1,65 @@
 #ifdef GALACEAN_BLENDSHAPE
 	#ifdef GALACEAN_BLENDSHAPE_TEXTURE	
-		int vertexOffset = gl_VertexID * u_blendShapeTextureInfo.x;
+		int vertexOffset = gl_VertexID * galacean_BlendShapeTextureInfo.x;
 		for(int i = 0; i < GALACEAN_BLENDSHAPE_COUNT; i++){
 			int vertexElementOffset = vertexOffset;
-			float weight = u_blendShapeWeights[i];
+			float weight = galacean_BlendShapeWeights[i];
 			position.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 			
 			#ifndef OMIT_NORMAL
-				#if defined( O3_HAS_NORMAL ) && defined( GALACEAN_BLENDSHAPE_NORMAL )
+				#if defined( GALACEAN_HAS_NORMAL ) && defined( GALACEAN_BLENDSHAPE_NORMAL )
 					vertexElementOffset += 1;
 					normal += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 				#endif
 
-				#if defined( O3_HAS_TANGENT ) && defined(GALACEAN_BLENDSHAPE_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+				#if defined( GALACEAN_HAS_TANGENT ) && defined(GALACEAN_BLENDSHAPE_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
 					vertexElementOffset += 1;
 					tangent.xyz += getBlendShapeVertexElement(i, vertexElementOffset) * weight;
 				#endif
 			#endif
 		}
 	#else
-		position.xyz += POSITION_BS0 * u_blendShapeWeights[0];
-		position.xyz += POSITION_BS1 * u_blendShapeWeights[1];
+		position.xyz += POSITION_BS0 * galacean_BlendShapeWeights[0];
+		position.xyz += POSITION_BS1 * galacean_BlendShapeWeights[1];
 
 		#if defined( GALACEAN_BLENDSHAPE_NORMAL ) && defined( GALACEAN_BLENDSHAPE_TANGENT )
 			#ifndef OMIT_NORMAL
-				#ifdef O3_HAS_NORMAL
-					normal += NORMAL_BS0 * u_blendShapeWeights[0];
-					normal += NORMAL_BS1 * u_blendShapeWeights[1];
+				#ifdef GALACEAN_HAS_NORMAL
+					normal += NORMAL_BS0 * galacean_BlendShapeWeights[0];
+					normal += NORMAL_BS1 * galacean_BlendShapeWeights[1];
 				#endif
-				#if defined( O3_HAS_TANGENT ) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
-					tangent.xyz += TANGENT_BS0 * u_blendShapeWeights[0];
-					tangent.xyz += TANGENT_BS1 * u_blendShapeWeights[1];
+				#if defined( GALACEAN_HAS_TANGENT ) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+					tangent.xyz += TANGENT_BS0 * galacean_BlendShapeWeights[0];
+					tangent.xyz += TANGENT_BS1 * galacean_BlendShapeWeights[1];
 				#endif				
 			#endif
 		#else
 			#if defined( GALACEAN_BLENDSHAPE_NORMAL ) || defined( GALACEAN_BLENDSHAPE_TANGENT )
 				#ifndef OMIT_NORMAL
-					position.xyz += POSITION_BS2 * u_blendShapeWeights[2];
-					position.xyz += POSITION_BS3 * u_blendShapeWeights[3];
+					position.xyz += POSITION_BS2 * galacean_BlendShapeWeights[2];
+					position.xyz += POSITION_BS3 * galacean_BlendShapeWeights[3];
 
-					#if defined( GALACEAN_BLENDSHAPE_NORMAL ) && defined( O3_HAS_NORMAL )
-						normal += NORMAL_BS0 * u_blendShapeWeights[0];
-						normal += NORMAL_BS1 * u_blendShapeWeights[1];
-						normal += NORMAL_BS2 * u_blendShapeWeights[2];
-						normal += NORMAL_BS3 * u_blendShapeWeights[3];
+					#if defined( GALACEAN_BLENDSHAPE_NORMAL ) && defined( GALACEAN_HAS_NORMAL )
+						normal += NORMAL_BS0 * galacean_BlendShapeWeights[0];
+						normal += NORMAL_BS1 * galacean_BlendShapeWeights[1];
+						normal += NORMAL_BS2 * galacean_BlendShapeWeights[2];
+						normal += NORMAL_BS3 * galacean_BlendShapeWeights[3];
 					#endif
 
-					#if defined(GALACEAN_BLENDSHAPE_TANGENT) && defined( O3_HAS_TANGENT ) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
-						tangent.xyz += TANGENT_BS0 * u_blendShapeWeights[0];
-						tangent.xyz += TANGENT_BS1 * u_blendShapeWeights[1];
-						tangent.xyz += TANGENT_BS2 * u_blendShapeWeights[2];
-						tangent.xyz += TANGENT_BS3 * u_blendShapeWeights[3];
+					#if defined(GALACEAN_BLENDSHAPE_TANGENT) && defined( GALACEAN_HAS_TANGENT ) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+						tangent.xyz += TANGENT_BS0 * galacean_BlendShapeWeights[0];
+						tangent.xyz += TANGENT_BS1 * galacean_BlendShapeWeights[1];
+						tangent.xyz += TANGENT_BS2 * galacean_BlendShapeWeights[2];
+						tangent.xyz += TANGENT_BS3 * galacean_BlendShapeWeights[3];
 					#endif
 				#endif
 			#else
-				position.xyz += POSITION_BS2 * u_blendShapeWeights[2];
-				position.xyz += POSITION_BS3 * u_blendShapeWeights[3];
-				position.xyz += POSITION_BS4 * u_blendShapeWeights[4];
-				position.xyz += POSITION_BS5 * u_blendShapeWeights[5];
-				position.xyz += POSITION_BS6 * u_blendShapeWeights[6];
-				position.xyz += POSITION_BS7 * u_blendShapeWeights[7];
+				position.xyz += POSITION_BS2 * galacean_BlendShapeWeights[2];
+				position.xyz += POSITION_BS3 * galacean_BlendShapeWeights[3];
+				position.xyz += POSITION_BS4 * galacean_BlendShapeWeights[4];
+				position.xyz += POSITION_BS5 * galacean_BlendShapeWeights[5];
+				position.xyz += POSITION_BS6 * galacean_BlendShapeWeights[6];
+				position.xyz += POSITION_BS7 * galacean_BlendShapeWeights[7];
 			#endif
 		#endif
 	#endif

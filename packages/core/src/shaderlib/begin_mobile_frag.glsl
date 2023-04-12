@@ -23,7 +23,7 @@
 
     #endif
 
-     #ifdef O3_HAS_VERTEXCOLOR
+     #ifdef GALACEAN_HAS_VERTEXCOLOR
 
         diffuse *= v_color;
 
@@ -38,4 +38,4 @@
 
     #endif
 
-    ambient = vec4(u_envMapLight.diffuse * u_envMapLight.diffuseIntensity, 1.0) * diffuse;
+    ambient = vec4(galacean_EnvMapLight.diffuse * galacean_EnvMapLight.diffuseIntensity, 1.0) * diffuse;

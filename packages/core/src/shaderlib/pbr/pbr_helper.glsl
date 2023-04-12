@@ -19,7 +19,7 @@ float getAARoughnessFactor(vec3 normal) {
 
 void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
-    geometry.viewDir =  normalize(u_cameraPos - v_pos);
+    geometry.viewDir =  normalize(galacean_CameraPos - v_pos);
 
     #if defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE)
         mat3 tbn = getTBN();
@@ -61,7 +61,7 @@ void initMaterial(out Material material, const in Geometry geometry){
             baseColor *= baseTextureColor;
         #endif
 
-        #ifdef O3_HAS_VERTEXCOLOR
+        #ifdef GALACEAN_HAS_VERTEXCOLOR
             baseColor *= v_color;
         #endif
 

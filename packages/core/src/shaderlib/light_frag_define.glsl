@@ -6,9 +6,9 @@
         vec3 direction;
     };
 
-    uniform ivec2 u_directLightCullingMask[O3_DIRECT_LIGHT_COUNT];
-    uniform vec3 u_directLightColor[O3_DIRECT_LIGHT_COUNT];
-    uniform vec3 u_directLightDirection[O3_DIRECT_LIGHT_COUNT];
+    uniform ivec2 galacean_DirectLightCullingMask[O3_DIRECT_LIGHT_COUNT];
+    uniform vec3 galacean_DirectLightColor[O3_DIRECT_LIGHT_COUNT];
+    uniform vec3 galacean_DirectLightDirection[O3_DIRECT_LIGHT_COUNT];
 
 #endif
 
@@ -22,10 +22,10 @@
         float distance;
     };
 
-    uniform ivec2 u_pointLightCullingMask[ O3_POINT_LIGHT_COUNT ];
-    uniform vec3 u_pointLightColor[ O3_POINT_LIGHT_COUNT ];
-    uniform vec3 u_pointLightPosition[ O3_POINT_LIGHT_COUNT ];
-    uniform float u_pointLightDistance[ O3_POINT_LIGHT_COUNT ];
+    uniform ivec2 galacean_PointLightCullingMask[ O3_POINT_LIGHT_COUNT ];
+    uniform vec3 galacean_PointLightColor[ O3_POINT_LIGHT_COUNT ];
+    uniform vec3 galacean_PointLightPosition[ O3_POINT_LIGHT_COUNT ];
+    uniform float galacean_PointLightDistance[ O3_POINT_LIGHT_COUNT ];
 
 #endif
 
@@ -42,13 +42,13 @@
         float penumbraCos;
     };
 
-    uniform ivec2 u_spotLightCullingMask[ O3_SPOT_LIGHT_COUNT ];
-    uniform vec3 u_spotLightColor[ O3_SPOT_LIGHT_COUNT ];
-    uniform vec3 u_spotLightPosition[ O3_SPOT_LIGHT_COUNT ];
-    uniform vec3 u_spotLightDirection[ O3_SPOT_LIGHT_COUNT ];
-    uniform float u_spotLightDistance[ O3_SPOT_LIGHT_COUNT ];
-    uniform float u_spotLightAngleCos[ O3_SPOT_LIGHT_COUNT ];
-    uniform float u_spotLightPenumbraCos[ O3_SPOT_LIGHT_COUNT ];
+    uniform ivec2 galacean_SpotLightCullingMask[ O3_SPOT_LIGHT_COUNT ];
+    uniform vec3 galacean_SpotLightColor[ O3_SPOT_LIGHT_COUNT ];
+    uniform vec3 galacean_SpotLightPosition[ O3_SPOT_LIGHT_COUNT ];
+    uniform vec3 galacean_SpotLightDirection[ O3_SPOT_LIGHT_COUNT ];
+    uniform float galacean_SpotLightDistance[ O3_SPOT_LIGHT_COUNT ];
+    uniform float galacean_SpotLightAngleCos[ O3_SPOT_LIGHT_COUNT ];
+    uniform float galacean_SpotLightPenumbraCos[ O3_SPOT_LIGHT_COUNT ];
 
 #endif
 
@@ -64,12 +64,12 @@ struct EnvMapLight {
 uniform EnvMapLight u_envMapLight;
 uniform ivec4 galacean_RendererLayer;
 
-#ifdef O3_USE_SH
-    uniform vec3 u_env_sh[9];
+#ifdef GALACEAN_USE_SH
+    uniform vec3 galacean_EnvSH[9];
 #endif
 
-#ifdef O3_USE_SPECULAR_ENV
-    uniform samplerCube u_env_specularSampler;
+#ifdef GALACEAN_USE_SPECULAR_ENV
+    uniform samplerCube galacean_EnvSpecularSampler;
 #endif
 
 #ifndef GRAPHICS_API_WEBGL2

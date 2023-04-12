@@ -10,13 +10,13 @@ void main() {
 
     #ifdef DECODE_SKY_RGBM
         textureColor = RGBMToLinear(textureColor, 5.0);
-    #elif !defined(OASIS_COLORSPACE_GAMMA)
+    #elif !defined(GALACEAN_COLORSPACE_GAMMA)
         textureColor = gammaToLinear(textureColor);
     #endif
 
     textureColor.rgb *= u_exposure * u_tintColor.rgb;
 
-    #if defined(DECODE_SKY_RGBM) || !defined(OASIS_COLORSPACE_GAMMA)
+    #if defined(DECODE_SKY_RGBM) || !defined(GALACEAN_COLORSPACE_GAMMA)
         gl_FragColor = linearToGamma(gl_FragColor);
     #endif
 }

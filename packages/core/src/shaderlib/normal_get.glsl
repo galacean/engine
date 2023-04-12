@@ -1,5 +1,5 @@
 vec3 getNormal(){
-    #ifdef O3_HAS_NORMAL
+    #ifdef GALACEAN_HAS_NORMAL
         vec3 normal = normalize(v_normal);
     #elif defined(HAS_DERIVATIVES)
         vec3 pos_dx = dFdx(v_pos);
@@ -22,7 +22,7 @@ vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalInt
 }
 
 mat3 getTBN(){
-    #if defined(O3_HAS_NORMAL) && defined(O3_HAS_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+    #if defined(GALACEAN_HAS_NORMAL) && defined(GALACEAN_HAS_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
         mat3 tbn = v_TBN;
     #else
         vec3 normal = getNormal();

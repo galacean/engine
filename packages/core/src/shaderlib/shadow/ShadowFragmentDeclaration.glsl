@@ -10,15 +10,15 @@
     #endif
     
     // intensity, resolution, sunIndex
-    uniform vec3 u_shadowInfo;
-    uniform vec4 u_shadowMapSize;
+    uniform vec3 galacean_ShadowInfo;
+    uniform vec4 galacean_ShadowMapSize;
 
     #ifdef GRAPHICS_API_WEBGL2
-        uniform mediump sampler2DShadow u_shadowMap;
+        uniform mediump sampler2DShadow galacean_ShadowMap;
         #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureLod(textureName, coord3 , 0.0)
         #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
     #else
-        uniform sampler2D u_shadowMap;
+        uniform sampler2D galacean_ShadowMap;
         #ifdef GALACEAN_NO_DEPTH_TEXTURE
             const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
             /**
@@ -83,17 +83,17 @@
         float attenuation = 1.0;
         if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
         #if SHADOW_TYPE == 1
-            attenuation = SAMPLE_TEXTURE2D_SHADOW(u_shadowMap, shadowCoord);
+            attenuation = SAMPLE_TEXTURE2D_SHADOW(galacean_ShadowMap, shadowCoord);
         #endif
 
         #if SHADOW_TYPE == 2
-            attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_shadowMapSize);
+            attenuation = sampleShadowMapFiltered4(galacean_ShadowMap, shadowCoord, galacean_ShadowMapSize);
         #endif
 
         #if SHADOW_TYPE == 3
-            attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_shadowMapSize);
+            attenuation = sampleShadowMapFiltered9(galacean_ShadowMap, shadowCoord, galacean_ShadowMapSize);
         #endif
-            attenuation = mix(1.0, attenuation, u_shadowInfo.x);
+            attenuation = mix(1.0, attenuation, galacean_ShadowInfo.x);
         }
         return attenuation;
     }
