@@ -4,8 +4,8 @@ import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IGalaceanMaterialRemap } from "./GLTFExtensionSchema";
 
-@registerGLTFExtension("OASIS_materials_remap", GLTFExtensionMode.CreateAndParse)
-class GalaceanMaterialsRemap extends GLTFExtensionParser {
+@registerGLTFExtension("GALACEAN_materials_remap", GLTFExtensionMode.CreateAndParse)
+class GALACEAN_materials_remap extends GLTFExtensionParser {
   /**
    * @override
    */
