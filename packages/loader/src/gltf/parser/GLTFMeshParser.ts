@@ -11,7 +11,7 @@ import {
 import { Vector3 } from "@galacean/engine-math";
 import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFContentRestorer";
 import { IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
-import { GLTFUtil } from "../GLTFUtil";
+import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { BufferInfo, GLTFParserContext } from "./GLTFParserContext";
 
@@ -47,16 +47,16 @@ export class GLTFMeshParser extends GLTFParser {
 
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
-      const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf.bufferViews, accessor);
+      const accessorBuffer = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, accessor);
 
-      const dataElementSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+      const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
       const attributeCount = accessor.count;
       const vertices = accessorBuffer.data;
 
       let vertexElement: VertexElement;
       const meshId = mesh.instanceId;
       const vertexBindingInfos = accessorBuffer.vertexBindingInfos;
-      const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElementSize, accessor.normalized);
+      const elementFormat = GLTFUtils.getElementFormat(accessor.componentType, dataElementSize, accessor.normalized);
       if (accessorBuffer.interleaved) {
         const byteOffset = accessor.byteOffset || 0;
         const stride = accessorBuffer.stride;
@@ -120,7 +120,7 @@ export class GLTFMeshParser extends GLTFParser {
         }
 
         if (accessor.normalized) {
-          const scaleFactor = GLTFUtil.getNormalizedComponentScale(accessor.componentType);
+          const scaleFactor = GLTFUtils.getNormalizedComponentScale(accessor.componentType);
           min.scale(scaleFactor);
           max.scale(scaleFactor);
         }
@@ -131,7 +131,7 @@ export class GLTFMeshParser extends GLTFParser {
     // Indices
     if (indices !== undefined) {
       const indexAccessor = gltf.accessors[indices];
-      const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf.bufferViews, indexAccessor);
+      const accessorBuffer = GLTFUtils.getAccessorBuffer(context, gltf.bufferViews, indexAccessor);
       mesh.setIndices(<Uint8Array | Uint16Array | Uint32Array>accessorBuffer.data);
       mesh.addSubMesh(0, indexAccessor.count, mode);
       meshRestoreInfo.indexBuffer = accessorBuffer.restoreInfo;
@@ -172,13 +172,13 @@ export class GLTFMeshParser extends GLTFParser {
       const deltaTanBufferInfo = getBlendShapeData("TANGENT", i);
 
       const deltaPositions = deltaPosBufferInfo.data
-        ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaPosBufferInfo.data)
+        ? GLTFUtils.floatBufferToVector3Array(<Float32Array>deltaPosBufferInfo.data)
         : null;
       const deltaNormals = deltaNorBufferInfo?.data
-        ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaNorBufferInfo?.data)
+        ? GLTFUtils.floatBufferToVector3Array(<Float32Array>deltaNorBufferInfo?.data)
         : null;
       const deltaTangents = deltaTanBufferInfo?.data
-        ? GLTFUtil.floatBufferToVector3Array(<Float32Array>deltaTanBufferInfo?.data)
+        ? GLTFUtils.floatBufferToVector3Array(<Float32Array>deltaTanBufferInfo?.data)
         : null;
 
       const blendShape = new BlendShape(name);
@@ -243,14 +243,14 @@ export class GLTFMeshParser extends GLTFParser {
                 const attributeAccessorIdx = shapeAccessorIdx[attributeName];
                 if (attributeAccessorIdx) {
                   const accessor = glTF.accessors[attributeAccessorIdx];
-                  return GLTFUtil.getAccessorBuffer(context, context.glTF.bufferViews, accessor);
+                  return GLTFUtils.getAccessorBuffer(context, context.glTF.bufferViews, accessor);
                 } else {
                   return null;
                 }
               },
               () => {
                 const indexAccessor = glTF.accessors[gltfPrimitive.indices];
-                return GLTFUtil.getAccessorData(glTF, indexAccessor, buffers);
+                return GLTFUtils.getAccessorData(glTF, indexAccessor, buffers);
               },
               context.keepMeshData
             ).then(resolve);

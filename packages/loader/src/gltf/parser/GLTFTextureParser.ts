@@ -1,6 +1,6 @@
-import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@galacean/engine-core";
+import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode, Utils } from "@galacean/engine-core";
 import { BufferTextureRestoreInfo } from "../../GLTFContentRestorer";
-import { GLTFUtil } from "../GLTFUtil";
+import { GLTFUtils } from "../GLTFUtils";
 import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from ".";
@@ -28,7 +28,7 @@ export class GLTFTextureParser extends GLTFParser {
             const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
             return engine.resourceManager
               .load<Texture2D>({
-                url: GLTFUtil.parseRelativeUrl(url, uri),
+                url: Utils.parseRelativeUrl(url, uri),
                 type: type
               })
               .then((texture) => {
@@ -45,7 +45,7 @@ export class GLTFTextureParser extends GLTFParser {
             const buffer = buffers[bufferView.buffer];
             const imageBuffer = new Uint8Array(buffer, bufferView.byteOffset, bufferView.byteLength);
 
-            return GLTFUtil.loadImageBuffer(imageBuffer, mimeType).then((image) => {
+            return GLTFUtils.loadImageBuffer(imageBuffer, mimeType).then((image) => {
               const texture = new Texture2D(engine, image.width, image.height);
               texture.setImageSource(image);
               texture.generateMipmaps();

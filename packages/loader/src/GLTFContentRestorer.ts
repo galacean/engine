@@ -3,7 +3,7 @@ import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { IBufferView } from "./gltf/GLTFSchema";
-import { GLTFUtil } from "./gltf/GLTFUtil";
+import { GLTFUtils } from "./gltf/GLTFUtils";
 
 /**
  * @internal
@@ -45,7 +45,7 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
               const buffer = buffers[bufferView.buffer];
               const bufferData = new Uint8Array(buffer, bufferView.byteOffset ?? 0, bufferView.byteLength);
 
-              return GLTFUtil.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
+              return GLTFUtils.loadImageBuffer(bufferData, textureRestoreInfo.mimeType).then((image) => {
                 textureRestoreInfo.texture.setImageSource(image);
                 textureRestoreInfo.texture.generateMipmaps();
               });
@@ -68,16 +68,16 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
                 for (const restoreInfo of meshInfo.blendShapes) {
                   const frame = restoreInfo.blendShape.frames[0];
                   const positionData = this._getBufferData(buffers, restoreInfo.position);
-                  frame.deltaPositions = GLTFUtil.floatBufferToVector3Array(<Float32Array>positionData);
+                  frame.deltaPositions = GLTFUtils.floatBufferToVector3Array(<Float32Array>positionData);
 
                   if (restoreInfo.normal) {
                     const normalData = this._getBufferData(buffers, restoreInfo.normal);
-                    frame.deltaNormals = GLTFUtil.floatBufferToVector3Array(<Float32Array>normalData);
+                    frame.deltaNormals = GLTFUtils.floatBufferToVector3Array(<Float32Array>normalData);
                   }
 
                   if (restoreInfo.tangent) {
                     const tangentData = this._getBufferData(buffers, restoreInfo.tangent);
-                    frame.deltaTangents = GLTFUtil.floatBufferToVector3Array(<Float32Array>tangentData);
+                    frame.deltaTangents = GLTFUtils.floatBufferToVector3Array(<Float32Array>tangentData);
                   }
                 }
                 mesh.uploadData(true);
