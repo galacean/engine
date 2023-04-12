@@ -1,4 +1,4 @@
-import { Engine } from "@oasis-engine/core";
+import { Engine } from "@galacean/engine-core";
 import { BufferReader } from "./utils/BufferReader";
 import { decoderMap, decoder } from "./utils/Decorator";
 import { FileHeader } from "./utils/FileHeader";

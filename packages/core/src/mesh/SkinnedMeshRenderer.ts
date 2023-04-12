@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector2 } from "@oasis-engine/math";
+import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { Entity } from "../Entity";

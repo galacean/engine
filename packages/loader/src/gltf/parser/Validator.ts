@@ -1,4 +1,4 @@
-import { Logger } from "@oasis-engine/core";
+import { Logger } from "@galacean/engine-core";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 

@@ -3,8 +3,8 @@
  * ported from https://github.com/BabylonJS/Babylon.js/blob/master/src/Tools/babylon.khronosTextureContainer.ts
  */
 
-import { TextureFormat } from "@oasis-engine/core";
-import { GLCompressedTextureInternalFormat } from "@oasis-engine/rhi-webgl";
+import { TextureFormat } from "@galacean/engine-core";
+import { GLCompressedTextureInternalFormat } from "@galacean/engine-rhi-webgl";
 import { KTXContainer, Mipmap } from "./type";
 
 const HEADER_LEN = 12 + 13 * 4; // identifier + header elements (not including key value meta-data pairs)
@@ -112,7 +112,7 @@ function getEngineFormat(internalFormat: GLint): TextureFormat {
       return TextureFormat.ASTC_12x12;
     default:
       const formatName: any = GLCompressedTextureInternalFormat[internalFormat];
-      throw new Error(`this format is not supported in Oasis Engine: ${formatName}`);
+      throw new Error(`this format is not supported in Galacean Engine: ${formatName}`);
   }
 }
 /**
@@ -126,7 +126,7 @@ export const khronosTextureContainerParser = {
    * @param facesExpected should be either 1 or 6, based whether a cube texture or or
    * @param threeDExpected provision for indicating that data should be a 3D texture, not implemented
    * @param textureArrayExpected provision for indicating that data should be a texture array, not implemented
-   * @param mapEngineFormat get Oasis Engine native TextureFormat?
+   * @param mapEngineFormat get Galacean Engine native TextureFormat?
    */
   parse(
     buffer: ArrayBuffer,

@@ -1,4 +1,4 @@
-import { Matrix } from "@oasis-engine/math";
+import { Matrix } from "@galacean/engine-math";
 
 export class Utils {
   /**

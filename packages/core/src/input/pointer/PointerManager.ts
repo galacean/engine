@@ -1,4 +1,4 @@
-import { Ray, Vector2 } from "@oasis-engine/math";
+import { Ray, Vector2 } from "@galacean/engine-math";
 import { Canvas } from "../../Canvas";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";

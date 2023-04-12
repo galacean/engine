@@ -1,9 +1,14 @@
-import { TextureFormat } from "../../texture";
+import { TextureFilterMode, TextureFormat, TextureWrapMode } from "../../texture";
 
 /**
  * The original data type of the atlas.
  */
 export interface AtlasConfig {
+  mipmap?: boolean;
+  wrapModeV?: TextureWrapMode;
+  wrapModeU?: TextureWrapMode;
+  filterMode?: TextureFilterMode;
+  anisoLevel?: number;
   /** Version of Atlas. */
   version: number;
   /** Texture format. */
@@ -33,5 +38,6 @@ export interface AtlasSprite {
   atlasRegionOffset: { x: number; y: number; z: number; w: number };
   region: { x: number; y: number; w: number; h: number };
   pivot: { x: number; y: number };
+  border: { x: number; y: number; z: number; w: number };
   pixelsPerUnit: number;
 }

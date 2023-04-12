@@ -1,4 +1,4 @@
-import { Engine, Entity, Loader, Scene } from "@oasis-engine/core";
+import { Engine, Entity, Loader, Scene } from "@galacean/engine-core";
 import { IEntity, IScene } from "../prefab/PrefabDesign";
 import { PrefabParser } from "../prefab/PrefabParser";
 import { ReflectionParser } from "../prefab/ReflectionParser";

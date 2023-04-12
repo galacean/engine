@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math/src/Color";
+import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { ResourceManager } from "./asset/ResourceManager";
 import { Event, EventDispatcher, Logger, Time } from "./base";

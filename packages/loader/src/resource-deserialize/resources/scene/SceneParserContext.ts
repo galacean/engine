@@ -1,4 +1,4 @@
-import { Component, Entity, Scene } from "@oasis-engine/core";
+import { Component, Entity, Scene } from "@galacean/engine-core";
 import { IEntity, IScene } from "../prefab/PrefabDesign";
 
 export class SceneParserContext {

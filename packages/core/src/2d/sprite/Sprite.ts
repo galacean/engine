@@ -1,4 +1,4 @@
-import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
+import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-math";
 import { RefObject } from "../../asset/RefObject";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
@@ -11,9 +11,6 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 export class Sprite extends RefObject {
   /** The name of sprite. */
   name: string;
-
-  /** @internal temp solution. */
-  _assetID: number;
 
   private _width: number = undefined;
   private _height: number = undefined;
@@ -211,7 +208,6 @@ export class Sprite extends RefObject {
    */
   clone(): Sprite {
     const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._pivot, this._border, this.name);
-    cloneSprite._assetID = this._assetID;
     cloneSprite._atlasRotated = this._atlasRotated;
     cloneSprite._atlasRegion.copyFrom(this._atlasRegion);
     cloneSprite._atlasRegionOffset.copyFrom(this._atlasRegionOffset);

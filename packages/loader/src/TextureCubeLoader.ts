@@ -7,7 +7,7 @@ import {
   ResourceManager,
   TextureCubeFace,
   TextureCube
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.TextureCube, [""])
 class TextureCubeLoader extends Loader<TextureCube> {

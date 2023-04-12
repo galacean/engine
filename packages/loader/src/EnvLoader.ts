@@ -10,8 +10,8 @@ import {
   TextureCube,
   TextureCubeFace,
   TextureFilterMode
-} from "@oasis-engine/core";
-import { SphericalHarmonics3 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { SphericalHarmonics3 } from "@galacean/engine-math";
 
 @resourceLoader(AssetType.Env, ["env"])
 class EnvLoader extends Loader<AmbientLight> {

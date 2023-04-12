@@ -1,4 +1,4 @@
-import { EventDispatcher } from "@oasis-engine/core";
+import { EventDispatcher } from "@galacean/engine-core";
 import chai, { expect } from "chai";
 
 describe("EventDispatcher test", function () {

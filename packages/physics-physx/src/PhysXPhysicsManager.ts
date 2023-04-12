@@ -1,5 +1,5 @@
-import { IPhysicsManager } from "@oasis-engine/design";
-import { Ray, Vector3 } from "oasis-engine";
+import { IPhysicsManager } from "@galacean/engine-design";
+import { Ray, Vector3 } from "@galacean/engine";
 import { DisorderedArray } from "./DisorderedArray";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";

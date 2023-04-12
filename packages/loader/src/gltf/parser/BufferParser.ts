@@ -1,4 +1,4 @@
-import { AssetPromise, request } from "@oasis-engine/core";
+import { AssetPromise, request } from "@galacean/engine-core";
 import { GLTFUtil } from "../GLTFUtil";
 import { IBuffer, IGLTF } from "../Schema";
 import { Parser } from "./Parser";

@@ -89,6 +89,24 @@ export class ResourceManager {
   }
 
   /**
+   * Get the resource from cache by asset url, return the resource object if it loaded, otherwise return null.
+   * @param url - Resource url
+   * @returns Resource object
+   */
+  getFromCache<T>(url: string): T {
+    return (this._assetUrlPool[url] as T) ?? null;
+  }
+
+  /**
+   * Get asset url from instanceId.
+   * @param instanceId - Engine instance id
+   * @returns Asset url
+   */
+  getAssetPath(instanceId: number): string {
+    return this._assetPool[instanceId];
+  }
+
+  /**
    * Cancel all assets that have not finished loading.
    */
   cancelNotLoaded(): void;
@@ -125,15 +143,6 @@ export class ResourceManager {
    */
   gc(): void {
     this._gc(false);
-  }
-
-  /**
-   * Get asset url from instanceId.
-   * @param instanceId - Engine instance id
-   * @returns Asset url
-   */
-  getAssetPath(instanceId: number): string {
-    return this._assetPool[instanceId];
   }
 
   /**

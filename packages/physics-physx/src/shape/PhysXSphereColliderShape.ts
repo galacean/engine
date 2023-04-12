@@ -1,8 +1,8 @@
 import { PhysXPhysics } from "../PhysXPhysics";
-import { ISphereColliderShape } from "@oasis-engine/design";
+import { ISphereColliderShape } from "@galacean/engine-design";
 import { PhysXColliderShape } from "./PhysXColliderShape";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
-import { Vector3 } from "oasis-engine";
+import { Vector3 } from "@galacean/engine";
 
 /**
  * Sphere collider shape in PhysX.

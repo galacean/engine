@@ -1,4 +1,4 @@
-import { BoundingBox, Matrix, Vector3, Vector4 } from "@oasis-engine/math";
+import { BoundingBox, Matrix, Vector3, Vector4 } from "@galacean/engine-math";
 import { Component } from "./Component";
 import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";

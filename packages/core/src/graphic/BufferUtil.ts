@@ -1,7 +1,7 @@
-import { BufferUsage } from "./enums/BufferUsage";
-import { VertexElementFormat } from "./enums/VertexElementFormat";
 import { DataType } from "../base/Constant";
+import { BufferUsage } from "./enums/BufferUsage";
 import { IndexFormat } from "./enums/IndexFormat";
+import { VertexElementFormat } from "./enums/VertexElementFormat";
 
 export interface ElementInfo {
   size: number;
@@ -35,7 +35,7 @@ export class BufferUtil {
     }
   }
 
-  static _getGLIndexByteCount(indexFormat: IndexFormat): DataType {
+  static _getGLIndexByteCount(indexFormat: IndexFormat): number {
     switch (indexFormat) {
       case IndexFormat.UInt8:
         return 1;

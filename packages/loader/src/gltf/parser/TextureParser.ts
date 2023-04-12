@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@oasis-engine/core";
+import { AssetPromise, AssetType, Texture2D, TextureFilterMode, TextureWrapMode } from "@galacean/engine-core";
 import { GLTFUtil } from "../GLTFUtil";
 import { ISampler, TextureMagFilter, TextureMinFilter, TextureWrapMode as GLTFTextureWrapMode } from "../Schema";
 import { Parser } from "./Parser";

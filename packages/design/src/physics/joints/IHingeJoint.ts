@@ -1,5 +1,5 @@
 import { IJoint } from "./IJoint";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.

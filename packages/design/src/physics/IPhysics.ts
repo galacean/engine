@@ -3,7 +3,7 @@ import { IPhysicsManager } from "./IPhysicsManager";
 import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape, IPlaneColliderShape } from "./shape";
 import { IDynamicCollider } from "./IDynamicCollider";
 import { IStaticCollider } from "./IStaticCollider";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { ICollider } from "./ICollider";
 import { ICharacterController } from "./ICharacterController";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";

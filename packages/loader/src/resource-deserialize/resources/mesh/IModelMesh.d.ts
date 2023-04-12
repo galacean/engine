@@ -1,4 +1,4 @@
-import { MeshTopology } from "@oasis-engine/core";
+import { MeshTopology } from "@galacean/engine-core";
 
 export interface IVector3 {
   x: number;

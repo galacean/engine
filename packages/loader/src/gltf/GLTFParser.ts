@@ -1,4 +1,4 @@
-import { AssetPromise } from "@oasis-engine/core";
+import { AssetPromise } from "@galacean/engine-core";
 import { GLTFResource } from "./GLTFResource";
 import { AnimationParser } from "./parser/AnimationParser";
 import { BufferParser } from "./parser/BufferParser";
