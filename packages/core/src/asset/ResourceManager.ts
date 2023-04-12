@@ -1,5 +1,4 @@
-import { ContentRestorer, Engine, EngineObject, Logger } from "..";
-import { ObjectValues } from "../base/Util";
+import { ContentRestorer, Engine, EngineObject, Logger, Utils } from "..";
 import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
@@ -131,7 +130,7 @@ export class ResourceManager {
 
   cancelNotLoaded(url?: string | string[]): void {
     if (!url) {
-      ObjectValues(this._loadingPromises).forEach((promise) => {
+      Utils.objectValues(this._loadingPromises).forEach((promise) => {
         promise.cancel();
       });
     } else if (typeof url === "string") {
@@ -351,7 +350,7 @@ export class ResourceManager {
   }
 
   private _gc(forceDestroy: boolean): void {
-    const objects = ObjectValues(this._referResourcePool);
+    const objects = Utils.objectValues(this._referResourcePool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored || forceDestroy) {
         objects[i].destroy();

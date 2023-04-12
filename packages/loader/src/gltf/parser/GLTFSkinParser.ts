@@ -1,7 +1,7 @@
 import { Entity, Skin } from "@galacean/engine-core";
 import { Matrix } from "@galacean/engine-math";
 import { GLTFParserContext } from ".";
-import { GLTFUtil } from "../GLTFUtil";
+import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 
 export class GLTFSkinParser extends GLTFParser {
@@ -24,7 +24,7 @@ export class GLTFSkinParser extends GLTFParser {
 
       // parse IBM
       const accessor = glTF.accessors[inverseBindMatrices];
-      const buffer = GLTFUtil.getAccessorBuffer(context, glTF.bufferViews, accessor).data;
+      const buffer = GLTFUtils.getAccessorBuffer(context, glTF.bufferViews, accessor).data;
       for (let i = 0; i < jointCount; i++) {
         const inverseBindMatrix = new Matrix();
         inverseBindMatrix.copyFromArray(buffer, i * 16);

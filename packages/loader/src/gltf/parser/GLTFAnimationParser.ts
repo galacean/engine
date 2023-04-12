@@ -13,7 +13,7 @@ import {
   TypedArray
 } from "@galacean/engine-core";
 import { Quaternion, Vector3, Vector4 } from "@galacean/engine-math";
-import { GLTFUtil } from "../GLTFUtil";
+import { GLTFUtils } from "../GLTFUtils";
 import {
   AccessorType,
   AnimationChannelTargetPath,
@@ -44,11 +44,11 @@ export class GLTFAnimationParser extends GLTFParser {
       const inputAccessor = accessors[gltfSampler.input];
       const outputAccessor = accessors[gltfSampler.output];
 
-      const input = GLTFUtil.getAccessorBuffer(context, bufferViews, inputAccessor).data;
-      let output = GLTFUtil.getAccessorBuffer(context, bufferViews, outputAccessor).data;
+      const input = GLTFUtils.getAccessorBuffer(context, bufferViews, inputAccessor).data;
+      let output = GLTFUtils.getAccessorBuffer(context, bufferViews, outputAccessor).data;
 
       if (outputAccessor.normalized) {
-        const scale = GLTFUtil.getNormalizedComponentScale(outputAccessor.componentType);
+        const scale = GLTFUtils.getNormalizedComponentScale(outputAccessor.componentType);
         const scaled = new Float32Array(output.length);
         for (let k = 0, v = output.length; k < v; k++) {
           scaled[k] = output[k] * scale;
