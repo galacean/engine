@@ -10,7 +10,6 @@
 #include <ShadowFragmentDeclaration>
 #include <mobile_material_frag>
 
-#include <RendererFragmentDeclaration>
 #include <FogFragmentDeclaration>
 #include <normal_get>
 

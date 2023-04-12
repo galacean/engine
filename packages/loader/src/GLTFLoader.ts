@@ -47,7 +47,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
  * GlTF loader params.
  */
 export interface GLTFParams {
-  /** Keep raw mesh data for glTF parser, default is false. */
+  /**
+   * @beta Now only contains vertex information, need to improve.
+   * Keep raw mesh data for glTF parser, default is false.
+   */
   keepMeshData: boolean;
   /** Custom glTF pipeline. */
   pipeline: GLTFPipeline;

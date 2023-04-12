@@ -2,7 +2,6 @@
 #include <common>
 #include <camera_declare>
 
-#include <RendererFragmentDeclaration>
 #include <FogFragmentDeclaration>
 
 #include <uv_share>
