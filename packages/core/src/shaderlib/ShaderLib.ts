@@ -4,7 +4,6 @@ import common_vert from "./common_vert.glsl";
 import transform_declare from "./transform_declare.glsl";
 
 import color_share from "./color_share.glsl";
-import RendererFragmentDeclaration from "./RendererFragmentDeclaration.glsl";
 import FogFragmentDeclaration from "./FogFragmentDeclaration.glsl";
 import FogVertexDeclaration from "./FogVertexDeclaration.glsl";
 import normal_share from "./normal_share.glsl";
@@ -65,7 +64,6 @@ export const ShaderLib = {
   normal_share,
   uv_share,
   worldpos_share,
-  RendererFragmentDeclaration,
   FogVertexDeclaration,
   FogFragmentDeclaration,
 
