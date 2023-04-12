@@ -28,7 +28,7 @@ export class GLTFTextureParser extends GLTFParser {
             const type = ext.startsWith("ktx") ? AssetType.KTX : AssetType.Texture2D;
             return engine.resourceManager
               .load<Texture2D>({
-                url: Utils.parseRelativeUrl(url, uri),
+                url: Utils.resolveAbsoluteUrl(url, uri),
                 type: type
               })
               .then((texture) => {

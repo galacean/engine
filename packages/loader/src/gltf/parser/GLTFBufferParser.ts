@@ -33,7 +33,7 @@ export class GLTFBufferParser extends GLTFParser {
 
         return Promise.all(
           glTF.buffers.map((buffer: IBuffer) => {
-            const absoluteUrl = Utils.parseRelativeUrl(url, buffer.uri);
+            const absoluteUrl = Utils.resolveAbsoluteUrl(url, buffer.uri);
             restoreBufferRequests.push(new BufferRequestInfo(absoluteUrl, requestConfig));
             return request<ArrayBuffer>(absoluteUrl, requestConfig);
           })
