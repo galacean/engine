@@ -10,6 +10,8 @@ import { PhysXColliderShape } from "./shape/PhysXColliderShape";
  * Base class for character controllers.
  */
 export class PhysXCharacterController implements ICharacterController {
+  private static _tempVec = new Vector3();
+
   /** @internal */
   _id: number;
   /** @internal */
@@ -18,6 +20,8 @@ export class PhysXCharacterController implements ICharacterController {
   _pxManager: PhysXPhysicsManager;
   /** @internal */
   _shape: PhysXColliderShape;
+  private _scaledOffset = new Vector3();
+  private _position: Vector3 = null;
 
   private _physXPhysics: PhysXPhysics;
 
@@ -36,7 +40,11 @@ export class PhysXCharacterController implements ICharacterController {
    * {@inheritDoc ICharacterController.setWorldPosition }
    */
   setWorldPosition(position: Vector3): void {
-    this._pxController && this._pxController.setPosition(position);
+    this._position = position;
+    if (this._pxController) {
+      Vector3.add(position, this._scaledOffset, PhysXCharacterController._tempVec);
+      this._pxController.setPosition(PhysXCharacterController._tempVec);
+    }
   }
 
   /**
@@ -44,6 +52,7 @@ export class PhysXCharacterController implements ICharacterController {
    */
   getWorldPosition(position: Vector3): void {
     position.copyFrom(this._pxController.getPosition());
+    position.subtract(this._scaledOffset);
   }
 
   /**
@@ -132,5 +141,13 @@ export class PhysXCharacterController implements ICharacterController {
       this._pxController.release();
       this._pxController = null;
     }
+  }
+
+  /**
+   * @internal
+   */
+  _setLocalPosition(position: Vector3, scale: Vector3): void {
+    Vector3.multiply(position, scale, this._scaledOffset);
+    this.setWorldPosition(this._position);
   }
 }

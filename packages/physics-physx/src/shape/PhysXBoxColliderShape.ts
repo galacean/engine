@@ -30,29 +30,36 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
    * {@inheritDoc IBoxColliderShape.setSize }
    */
   setSize(value: Vector3): void {
+    const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
     this._halfSize.set(value.x * 0.5, value.y * 0.5, value.z * 0.5);
-    Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
-    this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
+    Vector3.multiply(this._halfSize, this._scale, tempExtents);
+    this._pxGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
 
-    const controllers = this._controllers;
-    for (let i = 0, n = controllers.length; i < n; i++) {
-      const pxController = controllers.get(i)._pxController;
-      pxController.setHalfHeight(this._halfSize.x);
-      pxController.setHalfSideExtent(this._halfSize.y);
-      pxController.setHalfForwardExtent(this._halfSize.z);
-    }
+    this._updateController(tempExtents);
   }
 
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    this._scale.copyFrom(scale);
-    this._setLocalPose();
+    super.setWorldScale(scale);
 
-    Vector3.multiply(this._halfSize, this._scale, PhysXBoxColliderShape._tempHalfExtents);
-    this._pxGeometry.halfExtents = PhysXBoxColliderShape._tempHalfExtents;
+    const tempExtents = PhysXBoxColliderShape._tempHalfExtents;
+    Vector3.multiply(this._halfSize, this._scale, tempExtents);
+    this._pxGeometry.halfExtents = tempExtents;
     this._pxShape.setGeometry(this._pxGeometry);
+
+    this._updateController(tempExtents);
+  }
+
+  private _updateController(extents: Vector3) {
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      const pxController = controllers.get(i)._pxController;
+      pxController.setHalfHeight(extents.x);
+      pxController.setHalfSideExtent(extents.y);
+      pxController.setHalfForwardExtent(extents.z);
+    }
   }
 }
