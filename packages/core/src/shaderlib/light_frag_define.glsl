@@ -62,7 +62,7 @@ struct EnvMapLight {
 
 
 uniform EnvMapLight u_envMapLight;
-uniform highp ivec4 oasis_RendererLayer;
+uniform ivec4 oasis_RendererLayer;
 
 #ifdef O3_USE_SH
     uniform vec3 u_env_sh[9];
