@@ -1,6 +1,6 @@
 import { Color, SphericalHarmonics3 } from "@galacean/engine-math";
 import { Scene } from "../Scene";
-import { Shader, ShaderData } from "../shader";
+import { ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCube } from "../texture";

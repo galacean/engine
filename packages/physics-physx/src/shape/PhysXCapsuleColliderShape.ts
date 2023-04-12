@@ -46,9 +46,10 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     }
     this._pxShape.setGeometry(this._pxGeometry);
 
+    const radius = this._pxGeometry.radius;
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setRadius(value);
+      controllers.get(i)._pxController.setRadius(radius);
     }
   }
 
@@ -70,9 +71,10 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
     }
     this._pxShape.setGeometry(this._pxGeometry);
 
+    const height = this._pxGeometry.halfHeight * 2;
     const controllers = this._controllers;
     for (let i = 0, n = controllers.length; i < n; i++) {
-      controllers.get(i)._pxController.setHeight(value);
+      controllers.get(i)._pxController.setHeight(height);
     }
   }
 
@@ -107,24 +109,33 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
    * {@inheritDoc IColliderShape.setWorldScale }
    */
   setWorldScale(scale: Vector3): void {
-    this._scale.copyFrom(scale);
-    this._setLocalPose();
+    super.setWorldScale(scale);
 
+    const geometry = this._pxGeometry;
     switch (this._upAxis) {
       case ColliderShapeUpAxis.X:
-        this._pxGeometry.radius = this._radius * Math.max(scale.y, scale.z);
-        this._pxGeometry.halfHeight = this._halfHeight * scale.x;
+        geometry.radius = this._radius * Math.max(scale.y, scale.z);
+        geometry.halfHeight = this._halfHeight * scale.x;
         break;
       case ColliderShapeUpAxis.Y:
-        this._pxGeometry.radius = this._radius * Math.max(scale.x, scale.z);
-        this._pxGeometry.halfHeight = this._halfHeight * scale.y;
+        geometry.radius = this._radius * Math.max(scale.x, scale.z);
+        geometry.halfHeight = this._halfHeight * scale.y;
         break;
       case ColliderShapeUpAxis.Z:
-        this._pxGeometry.radius = this._radius * Math.max(scale.x, scale.y);
-        this._pxGeometry.halfHeight = this._halfHeight * scale.z;
+        geometry.radius = this._radius * Math.max(scale.x, scale.y);
+        geometry.halfHeight = this._halfHeight * scale.z;
         break;
     }
-    this._pxShape.setGeometry(this._pxGeometry);
+    this._pxShape.setGeometry(geometry);
+
+    const radius = geometry.radius;
+    const height = geometry.halfHeight * 2;
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      const pxController = controllers.get(i)._pxController;
+      pxController.setRadius(radius);
+      pxController.setHeight(height);
+    }
   }
 }
 

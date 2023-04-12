@@ -70,13 +70,26 @@ export abstract class PhysXColliderShape implements IColliderShape {
     if (value !== this._position) {
       this._position.copyFrom(value);
     }
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._pxController.setLocalPosition(this._position, this._scale);
+    }
+
     this._setLocalPose();
   }
 
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  abstract setWorldScale(scale: Vector3): void;
+  setWorldScale(scale: Vector3): void {
+    this._scale.copyFrom(scale);
+    this._setLocalPose();
+
+    const controllers = this._controllers;
+    for (let i = 0, n = controllers.length; i < n; i++) {
+      controllers.get(i)._setLocalPosition(this._position, this._scale);
+    }
+  }
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
