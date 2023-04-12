@@ -3,11 +3,14 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("ResourceManager", () => {
-  const engine = new WebGLEngine(document.createElement("canvas"));
-  const scene = engine.sceneManager.activeScene;
-  engine.run();
+  let engine: WebGLEngine;
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    engine.run();
+  });
+  
   beforeEach(() => {
-    scene.createRootEntity("root");
+    engine.sceneManager.activeScene.createRootEntity("root");
   });
   describe("getFromCache test", () => {
     it("findEntityByName", () => {
