@@ -34,6 +34,7 @@ export class Sky {
     }
 
     const { engine, aspectRatio, fieldOfView, viewMatrix, shaderData: cameraShaderData } = context.camera;
+    const sceneData = context.camera.scene.shaderData;
     const { _viewProjMatrix: viewProjMatrix, _projectionMatrix: projectionMatrix } = Sky;
     const rhi = engine._hardwareRenderer;
     const { shaderData: materialShaderData, shader, renderState } = material;
@@ -62,6 +63,7 @@ export class Sky {
     const program = shader.subShaders[0].passes[0]._getShaderProgram(engine, compileMacros);
     program.bind();
     program.groupingOtherUniformBlock();
+    program.uploadAll(program.sceneUniformBlock, sceneData);
     program.uploadAll(program.cameraUniformBlock, cameraShaderData);
     program.uploadAll(program.materialUniformBlock, materialShaderData);
     program.uploadUnGroupTextures();
