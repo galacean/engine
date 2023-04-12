@@ -77,7 +77,7 @@ Make sure to read the [Contributing Guide](.github/HOW_TO_CONTRIBUTE.md) / [è´¡ç
 
 ## Build
 
-Prerequisites: 
+Prerequisites:
 
 - [Node.js v15.0.0+](https://nodejs.org/en/) and NPM (Install by official website)
 - [PNPM](https://pnpm.io/) (Install globally by `npm install -g pnpm`)
@@ -101,7 +101,6 @@ npm run b:all
 - [Documentation](https://oasisengine.cn/#/docs/latest/cn/install)
 - [API References](https://oasisengine.cn/#/api/latest/core)
 
-
-## License 
+## License
 
 The engine is released under the [MIT](https://opensource.org/licenses/MIT) license. See LICENSE file.
