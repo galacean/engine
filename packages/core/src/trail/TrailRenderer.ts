@@ -41,6 +41,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   private _headVertexArray: Array<Vector3>;
   private _tempHeadVertexArray: Array<Vector3>;
+  private _tempEntityMatrix: Matrix;
 
   private _headColor: Color = new Color();
   private _trailColor: Color = new Color();
@@ -114,54 +115,32 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     this.material.shaderData.setFloat("u_trailLifeTime", value);
   }
 
-  /**
-   * Positions vertex of trail.
-   */
-  get positions(): Float32Array {
-    return this._positions;
-  }
-
-  set positions(value: Float32Array) {
-    this._positions = value;
-  }
-
-  /**
-   * NodeIDs vertex of trail.
-   */
-  get nodeIDs(): Float32Array {
-    return this._nodeIDs;
-  }
-
-  set nodeIDs(value: Float32Array) {
-    this._nodeIDs = value;
-  }
-
   /** 
-   * Head color for trail
+   * Head color for trail.
    */
   get headColor(): Color {
     return this._headColor;
   }
 
-  set headColor(value: any) {
+  set headColor(value: Color) {
     this._headColor.copyFrom(value);
     this.material.shaderData.setVector4("u_headColor", value);
   }
 
   /**
-   * Trail color for trail
+   * Trail color for trail.
    */
   get trailColor(): Color {
     return this._trailColor;
   }
 
-  set trailColor(value: any) {
+  set trailColor(value: Color) {
     this._trailColor.copyFrom(value);
     this.material.shaderData.setVector4("u_tailColor", value);
   }
 
   /**
-   * Texture tile S for trail
+   * Texture tile S for trail.
    */
   get textureTileS(): number {
     return this._textureTileS;
@@ -173,7 +152,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * Texture tile T for trail
+   * Texture tile T for trail.
    */
   get textureTileT(): number {
     return this._textureTileT;
@@ -207,6 +186,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     this._createHeadVertexList();
     this._createTempHeadVertexList();
 
+    this._tempEntityMatrix = new Matrix();
     this._vertexCount = this._maxLength * this._verticesPerNode;
     this._positions = new Float32Array((this._vertexCount + this._verticesPerNode) * 3);
     this._nodeIDs = new Float32Array(this._vertexCount + 2);
@@ -231,7 +211,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     const vertexNodeIDsBuffer = new Buffer(this.engine, BufferBindFlag.VertexBuffer, this._vertexNodeIDs, BufferUsage.Dynamic);
     mesh.setVertexBufferBinding(vertexNodeIDsBuffer, 4, 1);
 
-    const positionBuffer = new Buffer(this.engine, BufferBindFlag.VertexBuffer, this.positions, BufferUsage.Dynamic);
+    const positionBuffer = new Buffer(this.engine, BufferBindFlag.VertexBuffer, this._positions, BufferUsage.Dynamic);
     mesh.setVertexBufferBinding(positionBuffer, 12, 2);
 
     const trailBirthTimesBuffer = new Buffer(this.engine, BufferBindFlag.VertexBuffer, this._trailBirthTimes, BufferUsage.Dynamic);
@@ -270,7 +250,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   private _createTempHeadVertexList(): void {
     this._tempHeadVertexArray = [];
-    for (let i = 0; i < 128; i++) {
+    for (let i = 0; i < this._verticesPerNode; i++) {
       this._tempHeadVertexArray.push(new Vector3(0, 0, 0));
     }
   }
@@ -315,10 +295,8 @@ export class TrailRenderer extends Renderer implements ICustomClone {
       this._currentEnd = 0;
     }
 
-    const currentEntityMatrix = new Matrix();
-    currentEntityMatrix.copyFrom(this.entity.transform.worldMatrix);
-
-    this._updateSingleBuffer(nextIndex, currentEntityMatrix);
+    this._tempEntityMatrix.copyFrom(this.entity.transform.worldMatrix);
+    this._updateSingleBuffer(nextIndex, this._tempEntityMatrix);
     this._updateNodeIndex(this._currentEnd, this._currentNodeIndex);
     this._currentNodeIndex++;
 
@@ -326,7 +304,6 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   }
 
   private _updateSingleBuffer(nodeIndex: number, transformMatrix: Matrix) {
-    const { positions } = this;
 
     for (let i = 0; i < this._headVertexArray.length; i++) {
       let vertex = this._tempHeadVertexArray[i];
@@ -340,13 +317,13 @@ export class TrailRenderer extends Renderer implements ICustomClone {
       let positionIndex = ((this._verticesPerNode * nodeIndex) + i) * 3;
       let transformedHeadVertex = this._tempHeadVertexArray[i];
 
-      positions[positionIndex] = transformedHeadVertex.x;
-      positions[positionIndex + 1] = transformedHeadVertex.y;
-      positions[positionIndex + 2] = transformedHeadVertex.z;
+      this._positions[positionIndex] = transformedHeadVertex.x;
+      this._positions[positionIndex + 1] = transformedHeadVertex.y;
+      this._positions[positionIndex + 2] = transformedHeadVertex.z;
     }
     const finalVertexCount = this._currentLength * this._verticesPerNode * 3;
     let finalMeshStart = -1;
-    if (finalVertexCount == positions.length - this._verticesPerNode * 3) {
+    if (finalVertexCount == this._positions.length - this._verticesPerNode * 3) {
       this._appendLastNodeForSubmesh();
 
       finalMeshStart = (this._verticesPerNode * (nodeIndex + 1));
@@ -360,7 +337,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
         this.mesh.subMesh.count = this._currentLength * 2;
       }
     }
-    this._vertexBuffer.setData(positions);
+    this._vertexBuffer.setData(this._positions);
   }
 
   private _updateNodeIndex(nodeIndex: number, id: number) {
@@ -391,9 +368,9 @@ export class TrailRenderer extends Renderer implements ICustomClone {
       this.mesh.addSubMesh(0, 0, MeshTopology.TriangleStrip);
       this.mesh.addSubMesh(0, 0, MeshTopology.TriangleStrip);
     }
-    // 将 TriangleStrip 分成两个 subMesh，
-    // 要在第一段末尾多绘制第二段的首节点，
-    // 不然会出现断层；
+    // Split TriangleStrip into two subMeshes;
+    // Copy the head node of the second submesh to the end of the first submesh;
+    // Avoid gap in the trail.
     let lastIndex = this._currentLength * this._verticesPerNode * 3;
     for (let i = 0; i < 2 * this._verticesPerNode * 3; i++) {
       this._positions[lastIndex + i] = this._positions[i];
