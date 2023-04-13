@@ -15,6 +15,7 @@ export { Camera } from "./Camera";
 export { Transform } from "./Transform";
 export { BoolUpdateFlag } from "./BoolUpdateFlag";
 export type { EngineSettings } from "./EngineSettings";
+export type { EngineConfiguration } from "./Engine";
 
 export { request } from "./asset/request";
 export { Loader } from "./asset/Loader";
@@ -53,6 +54,7 @@ export * from "./Layer";
 export * from "./clone/CloneManager";
 export * from "./renderingHardwareInterface/index";
 export * from "./physics/index";
+export * from "./Utils";
 
 // Export for CanvasRenderer plugin.
 export { Basic2DBatcher } from "./RenderPipeline/Basic2DBatcher";

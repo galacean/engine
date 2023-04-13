@@ -1,4 +1,4 @@
-import { Vector2 } from "@oasis-engine/math";
+import { Vector2 } from "@galacean/engine-math";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Entity } from "../../Entity";
 import { PointerButton } from "../enums/PointerButton";

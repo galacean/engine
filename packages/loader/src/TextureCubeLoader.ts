@@ -7,8 +7,8 @@ import {
   ResourceManager,
   TextureCube,
   TextureCubeFace
-} from "@oasis-engine/core";
-import { RequestConfig } from "@oasis-engine/core/types/asset/request";
+} from "@galacean/engine-core";
+import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { TextureCubeContentRestorer } from "./TextureCubeContentRestorer";
 
 @resourceLoader(AssetType.TextureCube, [""])

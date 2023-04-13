@@ -1,6 +1,6 @@
-import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { Camera, Entity } from "@oasis-engine/core";
+import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
+import { Camera, Entity } from "@galacean/engine-core";
 import { expect } from "chai";
 
 const canvasDOM = document.createElement("canvas");
@@ -9,8 +9,8 @@ canvasDOM.height = 1024;
 
 describe("Transform test", function () {
   let entity: Entity;
-  before(() => {
-    const engine = new WebGLEngine(canvasDOM);
+  before(async () => {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     entity = engine.sceneManager.activeScene.createRootEntity();
   });
 

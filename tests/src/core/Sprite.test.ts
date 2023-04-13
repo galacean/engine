@@ -1,11 +1,11 @@
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
-import { Sprite, Texture2D } from "@oasis-engine/core";
-import { Rect, Vector2, Vector4 } from "@oasis-engine/math";
+import { Sprite, Texture2D } from "@galacean/engine-core";
+import { Rect, Vector2, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-describe("TextRenderer", () => {
+describe("TextRenderer", async () => {
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
+  const engine = await WebGLEngine.create({ canvas: canvas });
   const scene = engine.sceneManager.activeScene;
 
   engine.run();
@@ -33,7 +33,7 @@ describe("TextRenderer", () => {
 
   it("get set region", () => {
     const sprite = new Sprite(engine);
-    const rect = new Rect(0.1, 0.1, 0.7, 1.0); 
+    const rect = new Rect(0.1, 0.1, 0.7, 1.0);
     sprite.region = rect;
 
     expect(sprite.region).to.deep.eq(new Rect(0.1, 0.1, 0.7, 0.9));
@@ -41,7 +41,7 @@ describe("TextRenderer", () => {
 
   it("get set pivot", () => {
     const sprite = new Sprite(engine);
-    const pivot = new Vector2(0.1, 0.1); 
+    const pivot = new Vector2(0.1, 0.1);
     sprite.pivot = pivot;
 
     expect(sprite.pivot).to.deep.eq(pivot);
@@ -49,11 +49,9 @@ describe("TextRenderer", () => {
 
   it("get set border", () => {
     const sprite = new Sprite(engine);
-    const border = new Vector4(0.1, 0.1, 0.8, 0.8); 
+    const border = new Vector4(0.1, 0.1, 0.8, 0.8);
     sprite.border = border;
 
     expect(sprite.border).to.deep.eq(border);
   });
-  
 });
-

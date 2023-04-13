@@ -1,11 +1,11 @@
-# Oasis Engine
+# Galacean Engine
 
-<a href="https://www.npmjs.com/package/oasis-engine"><img src="https://img.shields.io/npm/v/oasis-engine"/></a>
-![npm-size](https://img.shields.io/bundlephobia/minzip/oasis-engine)
-![npm-download](https://img.shields.io/npm/dm/oasis-engine)
-[![codecov](https://codecov.io/gh/oasis-engine/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/oasis-engine/engine)
+<a href="https://www.npmjs.com/package/@galacean/engine"><img src="https://img.shields.io/npm/v/@galacean/engine"/></a>
+![npm-size](https://img.shields.io/bundlephobia/minzip/@galacean/engine)
+![npm-download](https://img.shields.io/npm/dm/@galacean/engine)
+[![codecov](https://codecov.io/gh/galacean/engine/branch/main/graph/badge.svg?token=KR2UBKE3OX)](https://codecov.io/gh/galacean/engine)
 
-Oasis is a **web-first** and **mobile-first** high-performance real-time interactive engine. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
+Galacean is a **web-first** and **mobile-first** high-performance real-time interactive engine. Use **component system design** and pursue ease of use and light weight. Developers can independently use and write Typescript scripts to develop projects using pure code.
 
 ## Features
 
@@ -21,51 +21,51 @@ Oasis is a **web-first** and **mobile-first** high-performance real-time interac
 To install, use:
 
 ```sh
-npm install oasis-engine
+npm install @galacean/engine
 ```
 
 This will allow you to import engine entirely using:
 
 ```javascript
-import * as OASIS from "oasis-engine";
+import * as GALACEAN from "@galacean/engine";
 ```
 
 or individual classes using:
 
 ```javascript
-import { Engine, Scene, Entity } from "oasis-engine";
+import { Engine, Scene, Entity } from "@galacean/engine";
 ```
 
 ## Usage
 
 ```typescript
-// Create engine by passing in the HTMLCanvasElement id and adjust canvas size.
-const engine = new WebGLEngine("canvas-id");
+// Create engine by passing in the HTMLCanvasElement id and adjust canvas size
+const engine = await WebGLEngine.create({ canvas: "canvas-id" });
 engine.canvas.resizeByClientSize();
 
-// Get scene and create root entity.
+// Get scene and create root entity
 const scene = engine.sceneManager.activeScene;
 const rootEntity = scene.createRootEntity("Root");
 
-// Create light.
+// Create light
 const lightEntity = rootEntity.createChild("Light");
 const directLight = lightEntity.addComponent(DirectLight);
 lightEntity.transform.setRotation(-45, -45, 0);
 directLight.intensity = 0.4;
 
-// Create camera.
+// Create camera
 const cameraEntity = rootEntity.createChild("Camera");
 cameraEntity.addComponent(Camera);
 cameraEntity.transform.setPosition(0, 0, 12);
 
-// Create sphere.
+// Create sphere
 const meshEntity = rootEntity.createChild("Sphere");
 const meshRenderer = meshEntity.addComponent(MeshRenderer);
 const material = new BlinnPhongMaterial(engine);
 meshRenderer.setMaterial(material);
 meshRenderer.mesh = PrimitiveMesh.createSphere(engine, 1);
 
-// Run engine.
+// Run engine
 engine.run();
 ```
 

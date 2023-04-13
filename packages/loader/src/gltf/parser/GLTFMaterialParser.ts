@@ -7,8 +7,8 @@ import {
   RenderFace,
   TextureCoordinate,
   UnlitMaterial
-} from "@oasis-engine/core";
-import { Color } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
 import { IMaterial, ITextureInfo, MaterialAlphaMode } from "../GLTFSchema";
 import { GLTFParser } from "./GLTFParser";
 import { GLTFParserContext } from "./GLTFParserContext";

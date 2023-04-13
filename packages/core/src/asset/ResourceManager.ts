@@ -1,5 +1,4 @@
-import { ContentRestorer, Engine, EngineObject, Logger } from "..";
-import { ObjectValues } from "../base/Util";
+import { ContentRestorer, Engine, EngineObject, Logger, Utils } from "..";
 import { AssetPromise } from "./AssetPromise";
 import { GraphicsResource } from "./GraphicsResource";
 import { Loader } from "./Loader";
@@ -95,6 +94,24 @@ export class ResourceManager {
   }
 
   /**
+   * Get the resource from cache by asset url, return the resource object if it loaded, otherwise return null.
+   * @param url - Resource url
+   * @returns Resource object
+   */
+  getFromCache<T>(url: string): T {
+    return (this._assetUrlPool[url] as T) ?? null;
+  }
+
+  /**
+   * Get asset url from instanceId.
+   * @param instanceId - Engine instance id
+   * @returns Asset url
+   */
+  getAssetPath(instanceId: number): string {
+    return this._assetPool[instanceId];
+  }
+
+  /**
    * Cancel all assets that have not finished loading.
    */
   cancelNotLoaded(): void;
@@ -113,7 +130,7 @@ export class ResourceManager {
 
   cancelNotLoaded(url?: string | string[]): void {
     if (!url) {
-      ObjectValues(this._loadingPromises).forEach((promise) => {
+      Utils.objectValues(this._loadingPromises).forEach((promise) => {
         promise.cancel();
       });
     } else if (typeof url === "string") {
@@ -131,15 +148,6 @@ export class ResourceManager {
    */
   gc(): void {
     this._gc(false);
-  }
-
-  /**
-   * Get asset url from instanceId.
-   * @param instanceId - Engine instance id
-   * @returns Asset url
-   */
-  getAssetPath(instanceId: number): string {
-    return this._assetPool[instanceId];
   }
 
   /**
@@ -306,17 +314,15 @@ export class ResourceManager {
     const promise = loader.load(item, this);
     if (promise instanceof AssetPromise) {
       loadingPromises[assetBaseURL] = promise;
-      promise
-        .then((resource: EngineObject) => {
+      promise.then(
+        (resource: EngineObject) => {
           if (loader.useCache) {
             this._addAsset(assetBaseURL, resource);
           }
           delete loadingPromises[assetBaseURL];
-        })
-        .catch((error: Error) => {
-          delete loadingPromises[assetBaseURL];
-          return Promise.reject(error);
-        });
+        },
+        () => delete loadingPromises[assetBaseURL]
+      );
       return promise;
     } else {
       for (let subURL in promise) {
@@ -324,35 +330,27 @@ export class ResourceManager {
         const isMaster = assetBaseURL === subURL;
         loadingPromises[subURL] = subPromise;
 
-        subPromise
-          .then((resource: EngineObject) => {
+        subPromise.then(
+          (resource: EngineObject) => {
             if (isMaster) {
               if (loader.useCache) {
                 this._addAsset(subURL, resource);
                 for (let k in promise) delete loadingPromises[k];
               }
             }
-          })
-          .catch((err: Error) => {
+          },
+          () => {
             for (let k in promise) delete loadingPromises[k];
-            return Promise.reject(err);
-          });
+          }
+        );
       }
 
-      const subAssetPromise = promise[assetURL];
-      return new AssetPromise((resolve, reject) => {
-        subAssetPromise.then((resource: EngineObject) => {
-          resolve(this._getResolveResource(resource, paths) as T);
-        });
-        subAssetPromise.catch((error: Error) => {
-          reject(error);
-        });
-      });
+      return promise[assetURL].then((resource: EngineObject) => this._getResolveResource(resource, paths) as T);
     }
   }
 
   private _gc(forceDestroy: boolean): void {
-    const objects = ObjectValues(this._referResourcePool);
+    const objects = Utils.objectValues(this._referResourcePool);
     for (let i = 0, len = objects.length; i < len; i++) {
       if (!objects[i].isGCIgnored || forceDestroy) {
         objects[i].destroy();

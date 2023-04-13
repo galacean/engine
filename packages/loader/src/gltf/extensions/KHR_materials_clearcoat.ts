@@ -1,4 +1,4 @@
-import { PBRMaterial } from "@oasis-engine/core";
+import { PBRMaterial } from "@galacean/engine-core";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";

@@ -1,4 +1,4 @@
-import { AssetPromise } from "@oasis-engine/core";
+import { AssetPromise } from "@galacean/engine-core";
 import { expect } from "chai";
 
 describe("Asset Promise test", function () {

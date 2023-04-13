@@ -1,6 +1,6 @@
-import { Color, SphericalHarmonics3 } from "@oasis-engine/math";
+import { Color, SphericalHarmonics3 } from "@galacean/engine-math";
 import { Scene } from "../Scene";
-import { Shader, ShaderData } from "../shader";
+import { ShaderData } from "../shader";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { TextureCube } from "../texture";
@@ -116,7 +116,6 @@ export class AmbientLight {
 
   /**
    * Specular reflection texture.
-   * @remarks This texture must be baked from @oasis-engine/baker
    */
   get specularTexture(): TextureCube {
     return this._specularTexture;

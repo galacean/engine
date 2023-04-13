@@ -10,8 +10,8 @@ import {
   ShaderProperty,
   ShaderTagKey,
   SubShader
-} from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+} from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import chai, { expect } from "chai";
 import spies from "chai-spies";
 
@@ -98,8 +98,8 @@ describe("Shader", () => {
       expect(getTag).to.undefined;
     });
 
-    it("Render and compile", () => {
-      const engine = new WebGLEngine(document.createElement("canvas"));
+    it("Render and compile", async () => {
+      const engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
       // Get scene and create root entity
       const scene = engine.sceneManager.activeScene;
       const rootEntity = scene.createRootEntity("Root");

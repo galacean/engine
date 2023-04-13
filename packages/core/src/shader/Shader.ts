@@ -63,7 +63,7 @@ export class Shader {
         if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
           shader = new Shader(name, [new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)]);
         } else {
-          shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders);
+          shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
         }
       } else {
         throw "SubShader or ShaderPass count must large than 0.";
@@ -92,12 +92,7 @@ export class Shader {
 
   private constructor(public readonly name: string, subShaders: SubShader[]) {
     this.name = name;
-
-    const passCount = subShaders.length;
-    if (passCount < 1) {
-      throw "SubShader count must large than 0.";
-    }
-    this._subShaders = subShaders.slice();
+    this._subShaders = subShaders;
   }
 
   /**

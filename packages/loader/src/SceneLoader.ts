@@ -11,7 +11,7 @@ import {
   ResourceManager,
   Scene,
   SkyBoxMaterial
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { IClassObject, ReflectionParser, SceneParser } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["prefab"], true)
@@ -57,7 +57,7 @@ class SceneLoader extends Loader<Scene> {
                   backgroundPromise = resourceManager.getResourceByRef<any>(background.sky).then((light) => {
                     const sky = scene.background.sky;
                     const skyMaterial = new SkyBoxMaterial(engine);
-                    skyMaterial.textureCubeMap = light.specularTexture;
+                    skyMaterial.texture = light.specularTexture;
                     skyMaterial.textureDecodeRGBM = true;
                     sky.material = skyMaterial;
                     sky.mesh = PrimitiveMesh.createCuboid(engine, 1, 1, 1);

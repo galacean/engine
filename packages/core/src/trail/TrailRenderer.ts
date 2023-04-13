@@ -1,4 +1,4 @@
-
+import { Vector3, Matrix, Color } from "@galacean/math";
 import { Renderer } from "../Renderer";
 import { BufferMesh } from "../mesh/BufferMesh";
 import { BaseMaterial } from "../material";

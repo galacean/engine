@@ -1,8 +1,8 @@
 import { Joint } from "./Joint";
-import { ISpringJoint } from "@oasis-engine/design";
+import { ISpringJoint } from "@galacean/engine-design";
 import { PhysicsManager } from "../PhysicsManager";
 import { Collider } from "../Collider";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 
 /**
  * A joint that maintains an upper or lower bound (or both) on the distance between two points on different objects.

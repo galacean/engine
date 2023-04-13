@@ -12,8 +12,8 @@ import {
   Shader,
   Texture2D,
   UnlitMaterial
-} from "@oasis-engine/core";
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 
 @resourceLoader(AssetType.Material, ["json"])
 class MaterialLoader extends Loader<string> {

@@ -1,4 +1,4 @@
-import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
@@ -8,7 +8,6 @@ import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRender
 import { Scene } from "../Scene";
 import { Texture } from "../texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
-import { Shader } from "./Shader";
 import { ShaderData } from "./ShaderData";
 import { ShaderProperty } from "./ShaderProperty";
 import { ShaderUniform } from "./ShaderUniform";
@@ -444,6 +443,8 @@ export class ShaderProgram {
             gl.uniform1i(location, this._activeTextureUint++);
           }
           break;
+        default:
+          throw new Error("Unsupported uniform type");
       }
 
       const group = ShaderProperty._getShaderPropertyGroup(name);

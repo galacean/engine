@@ -62,11 +62,9 @@ export class ComponentsDependencies {
   ): void {
     let components = map.get(targetInfo);
     if (!components) {
-      components = [];
-      map.set(targetInfo, components);
-    }
-    if (components.indexOf(dependentComponent) === -1) {
-      components.push(dependentComponent);
+      map.set(targetInfo, [dependentComponent]);
+    } else {
+      components.includes(dependentComponent) || components.push(dependentComponent);
     }
   }
 
@@ -77,11 +75,9 @@ export class ComponentsDependencies {
     const map = this._invDependenciesMap;
     let components = map.get(currentComponent);
     if (!components) {
-      components = [];
-      map.set(currentComponent, components);
-    }
-    if (components.indexOf(dependentComponent) === -1) {
-      components.push(dependentComponent);
+      map.set(currentComponent, [dependentComponent]);
+    } else {
+      components.includes(dependentComponent) || components.push(dependentComponent);
     }
   }
 
@@ -89,14 +85,27 @@ export class ComponentsDependencies {
 }
 
 /**
- * Declare dependent components.
+ * Declare dependent component.
+ * @param component - Dependent component
  * @param dependentMode - Dependent mode
- * @param components - Dependent components
  */
-export function dependentComponents(dependentMode: DependentMode, ...components: ComponentConstructor[]) {
+export function dependentComponents(component: ComponentConstructor, dependentMode?: DependentMode);
+
+/**
+ * Declare dependent components.
+ * @param components - Dependent components
+ * @param dependentMode - Dependent mode
+ */
+export function dependentComponents(components: ComponentConstructor[], dependentMode?: DependentMode);
+
+export function dependentComponents(
+  componentOrComponents: ComponentConstructor | ComponentConstructor[],
+  dependentMode: DependentMode = DependentMode.CheckOnly
+) {
+  const components = Array.isArray(componentOrComponents) ? componentOrComponents : [componentOrComponents];
+
   return function <T extends ComponentConstructor>(target: T): void {
-    const dependentInfo = { mode: dependentMode, components };
-    ComponentsDependencies._dependenciesMap.set(target, dependentInfo);
+    ComponentsDependencies._dependenciesMap.set(target, { mode: dependentMode, components });
     components.forEach((component) => ComponentsDependencies._addInvDependency(component, target));
   };
 }

@@ -8,7 +8,7 @@ import {
   Plane,
   Vector2,
   Vector3
-} from "@oasis-engine/math";
+} from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { DirectLight, Light } from "../lighting";
 import { Renderer } from "../Renderer";

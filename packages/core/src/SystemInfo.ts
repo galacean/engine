@@ -19,7 +19,7 @@ export class SystemInfo {
   /**
    * @internal
    */
-  static _initialization(): void {
+  static _initialize(): void {
     {
       if (typeof navigator == "undefined") {
         return;
@@ -33,6 +33,8 @@ export class SystemInfo {
         SystemInfo.platform = Platform.IPad;
       } else if (/Android/i.test(userAgent)) {
         SystemInfo.platform = Platform.Android;
+      } else if (/Macintosh/i.test(userAgent)) {
+        SystemInfo.platform = Platform.Mac;
       }
 
       let v: RegExpMatchArray;
@@ -49,9 +51,13 @@ export class SystemInfo {
           v = userAgent.match(/Android (\d+).?(\d+)?.?(\d+)?/);
           this.operatingSystem = v ? `Android ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "Android";
           break;
+        case Platform.Mac:
+          v = userAgent.match(/Mac OS X (\d+)_?(\d+)?_?(\d+)?/);
+          this.operatingSystem = v ? `Mac OS X ${v[1]}.${v[2] || 0}.${v[3] || 0}` : "Mac OS X";
+          break;
       }
     }
   }
 }
 
-SystemInfo._initialization();
+SystemInfo._initialize();

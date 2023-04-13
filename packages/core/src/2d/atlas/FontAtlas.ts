@@ -1,4 +1,4 @@
-import { Vector2 } from "@oasis-engine/math";
+import { Vector2 } from "@galacean/engine-math";
 import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
