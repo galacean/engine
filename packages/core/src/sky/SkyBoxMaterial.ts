@@ -89,7 +89,6 @@ export class SkyBoxMaterial extends Material {
     this.renderState.rasterState.cullMode = CullMode.Off;
     this.renderState.depthState.compareFunction = CompareFunction.LessEqual;
 
-    this.shaderData.enableMacro(SkyBoxMaterial._decodeSkyRGBMMacro);
     this.shaderData.setFloat(SkyBoxMaterial._rotationProp, 0);
     this.shaderData.setFloat(SkyBoxMaterial._exposureProp, 1);
     this.shaderData.setColor(SkyBoxMaterial._tintColorProp, this._tintColor);
