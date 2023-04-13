@@ -1,10 +1,11 @@
-import { Vector3, Matrix, Color } from "@galacean/math";
+import { Vector3, Matrix, Color } from "@galacean/engine-math";
 import { Renderer } from "../Renderer";
 import { BufferMesh } from "../mesh/BufferMesh";
 import { BaseMaterial } from "../material";
 import { CullMode, Shader } from "../shader";
 import { Buffer, BufferBindFlag, BufferUsage, Mesh, MeshTopology, VertexElement, VertexElementFormat } from "../graphic";
 import { ICustomClone } from "../clone/ComponentCloner";
+
 import { Texture } from "../texture";
 
 /**
