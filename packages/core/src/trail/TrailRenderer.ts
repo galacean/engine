@@ -5,7 +5,6 @@ import { BaseMaterial } from "../material";
 import { CullMode, Shader } from "../shader";
 import { Buffer, BufferBindFlag, BufferUsage, Mesh, MeshTopology, VertexElement, VertexElementFormat } from "../graphic";
 import { ICustomClone } from "../clone/ComponentCloner";
-import { Vector3, Matrix, Color } from "@oasis-engine/math";
 import { Texture } from "../texture";
 
 /**
