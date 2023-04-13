@@ -12,11 +12,11 @@ import { TextureCube } from "../texture";
  * SkyBoxMaterial.
  */
 export class SkyBoxMaterial extends Material {
-  private static _tintColorProp = ShaderProperty.getByName("u_tintColor");
-  private static _textureCubeProp = ShaderProperty.getByName("u_cubeTexture");
-  private static _rotationProp = ShaderProperty.getByName("u_rotation");
-  private static _exposureProp = ShaderProperty.getByName("u_exposure");
-  private static _decodeSkyRGBMMacro = ShaderMacro.getByName("DECODE_SKY_RGBM");
+  private static _tintColorProp = ShaderProperty.getByName("material_TintColor");
+  private static _textureCubeProp = ShaderProperty.getByName("material_CubeTexture");
+  private static _rotationProp = ShaderProperty.getByName("material_Rotation");
+  private static _exposureProp = ShaderProperty.getByName("material_Exposure");
+  private static _decodeSkyRGBMMacro = ShaderMacro.getByName("MATERIAL_IS_DECODE_SKY_RGBM");
 
   private _textureDecodeRGBM: boolean = false;
   private _tintColor: Color = new Color(1, 1, 1, 1);

@@ -8,9 +8,9 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Metallic-Roughness Workflow) Material.
  */
 export class PBRMaterial extends PBRBaseMaterial {
-  private static _metallicProp = ShaderProperty.getByName("u_metal");
-  private static _roughnessProp = ShaderProperty.getByName("u_roughness");
-  private static _roughnessMetallicTextureProp = ShaderProperty.getByName("u_roughnessMetallicTexture");
+  private static _metallicProp = ShaderProperty.getByName("material_Metal");
+  private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
+  private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
 
   /**
    * Metallic, default 1.0.

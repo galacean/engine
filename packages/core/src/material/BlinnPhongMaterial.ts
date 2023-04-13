@@ -9,9 +9,9 @@ import { BaseMaterial } from "./BaseMaterial";
  * Blinn-phong Material.
  */
 export class BlinnPhongMaterial extends BaseMaterial {
-  private static _specularColorProp = ShaderProperty.getByName("u_specularColor");
-  private static _shininessProp = ShaderProperty.getByName("u_shininess");
-  private static _specularTextureProp = ShaderProperty.getByName("u_specularTexture");
+  private static _specularColorProp = ShaderProperty.getByName("material_SpecularColor");
+  private static _shininessProp = ShaderProperty.getByName("material_Shininess");
+  private static _specularTextureProp = ShaderProperty.getByName("material_SpecularTexture");
 
   /**
    * Base color.
@@ -164,8 +164,8 @@ export class BlinnPhongMaterial extends BaseMaterial {
 
     const shaderData = this.shaderData;
 
-    shaderData.enableMacro("O3_NEED_WORLDPOS");
-    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+    shaderData.enableMacro("MATERIAL_NEED_WORLDPOS");
+    shaderData.enableMacro("MATERIAL_NEED_TILINGOFFSET");
 
     shaderData.setColor(BlinnPhongMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(BlinnPhongMaterial._specularColorProp, new Color(1, 1, 1, 1));

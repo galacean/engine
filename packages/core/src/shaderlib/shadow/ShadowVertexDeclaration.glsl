@@ -1,4 +1,4 @@
-#if defined(SHADOW_TYPE) && defined(GALACEAN_RECEIVE_SHADOWS)
+#if defined(SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)
     #define GALACEAN_CALCULATE_SHADOWS
 #endif
 

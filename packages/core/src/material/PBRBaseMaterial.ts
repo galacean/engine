@@ -10,15 +10,15 @@ import { TextureCoordinate } from "./enums/TextureCoordinate";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
-  private static _occlusionTextureIntensityProp = ShaderProperty.getByName("u_occlusionIntensity");
-  private static _occlusionTextureCoordProp = ShaderProperty.getByName("u_occlusionTextureCoord");
-  private static _occlusionTextureProp = ShaderProperty.getByName("u_occlusionTexture");
+  private static _occlusionTextureIntensityProp = ShaderProperty.getByName("material_OcclusionIntensity");
+  private static _occlusionTextureCoordProp = ShaderProperty.getByName("material_OcclusionTextureCoord");
+  private static _occlusionTextureProp = ShaderProperty.getByName("material_OcclusionTexture");
 
-  private static _clearCoatProp = ShaderProperty.getByName("u_clearCoat");
-  private static _clearCoatTextureProp = ShaderProperty.getByName("u_clearCoatTexture");
-  private static _clearCoatRoughnessProp = ShaderProperty.getByName("u_clearCoatRoughness");
-  private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("u_clearCoatRoughnessTexture");
-  private static _clearCoatNormalTextureProp = ShaderProperty.getByName("u_clearCoatNormalTexture");
+  private static _clearCoatProp = ShaderProperty.getByName("material_ClearCoat");
+  private static _clearCoatTextureProp = ShaderProperty.getByName("material_ClearCoatTexture");
+  private static _clearCoatRoughnessProp = ShaderProperty.getByName("material_ClearCoatRoughness");
+  private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("material_ClearCoatRoughnessTexture");
+  private static _clearCoatNormalTextureProp = ShaderProperty.getByName("material_ClearCoatNormalTexture");
 
   /**
    * Base color.
@@ -253,8 +253,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     const shaderData = this.shaderData;
 
-    shaderData.enableMacro("O3_NEED_WORLDPOS");
-    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+    shaderData.enableMacro("MATERIAL_NEED_WORLDPOS");
+    shaderData.enableMacro("MATERIAL_NEED_TILINGOFFSET");
 
     shaderData.setColor(PBRBaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(PBRBaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));

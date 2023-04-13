@@ -1,20 +1,20 @@
 // Directional light
-#ifdef O3_DIRECT_LIGHT_COUNT
+#ifdef SCENE_DIRECT_LIGHT_COUNT
 
     struct DirectLight {
         vec3 color;
         vec3 direction;
     };
 
-    uniform ivec2 galacean_DirectLightCullingMask[O3_DIRECT_LIGHT_COUNT];
-    uniform vec3 galacean_DirectLightColor[O3_DIRECT_LIGHT_COUNT];
-    uniform vec3 galacean_DirectLightDirection[O3_DIRECT_LIGHT_COUNT];
+    uniform ivec2 scene_DirectLightCullingMask[SCENE_DIRECT_LIGHT_COUNT];
+    uniform vec3 scene_DirectLightColor[SCENE_DIRECT_LIGHT_COUNT];
+    uniform vec3 scene_DirectLightDirection[SCENE_DIRECT_LIGHT_COUNT];
 
 #endif
 
 
 // Point light
-#ifdef O3_POINT_LIGHT_COUNT
+#ifdef SCENE_POINT_LIGHT_COUNT
 
     struct PointLight {
         vec3 color;
@@ -22,16 +22,16 @@
         float distance;
     };
 
-    uniform ivec2 galacean_PointLightCullingMask[ O3_POINT_LIGHT_COUNT ];
-    uniform vec3 galacean_PointLightColor[ O3_POINT_LIGHT_COUNT ];
-    uniform vec3 galacean_PointLightPosition[ O3_POINT_LIGHT_COUNT ];
-    uniform float galacean_PointLightDistance[ O3_POINT_LIGHT_COUNT ];
+    uniform ivec2 scene_PointLightCullingMask[ SCENE_POINT_LIGHT_COUNT ];
+    uniform vec3 scene_PointLightColor[ SCENE_POINT_LIGHT_COUNT ];
+    uniform vec3 scene_PointLightPosition[ SCENE_POINT_LIGHT_COUNT ];
+    uniform float scene_PointLightDistance[ SCENE_POINT_LIGHT_COUNT ];
 
 #endif
 
 
 // Spot light
-#ifdef O3_SPOT_LIGHT_COUNT
+#ifdef SCENE_SPOT_LIGHT_COUNT
 
     struct SpotLight {
         vec3 color;
@@ -42,13 +42,13 @@
         float penumbraCos;
     };
 
-    uniform ivec2 galacean_SpotLightCullingMask[ O3_SPOT_LIGHT_COUNT ];
-    uniform vec3 galacean_SpotLightColor[ O3_SPOT_LIGHT_COUNT ];
-    uniform vec3 galacean_SpotLightPosition[ O3_SPOT_LIGHT_COUNT ];
-    uniform vec3 galacean_SpotLightDirection[ O3_SPOT_LIGHT_COUNT ];
-    uniform float galacean_SpotLightDistance[ O3_SPOT_LIGHT_COUNT ];
-    uniform float galacean_SpotLightAngleCos[ O3_SPOT_LIGHT_COUNT ];
-    uniform float galacean_SpotLightPenumbraCos[ O3_SPOT_LIGHT_COUNT ];
+    uniform ivec2 scene_SpotLightCullingMask[ SCENE_SPOT_LIGHT_COUNT ];
+    uniform vec3 scene_SpotLightColor[ SCENE_SPOT_LIGHT_COUNT ];
+    uniform vec3 scene_SpotLightPosition[ SCENE_SPOT_LIGHT_COUNT ];
+    uniform vec3 scene_SpotLightDirection[ SCENE_SPOT_LIGHT_COUNT ];
+    uniform float scene_SpotLightDistance[ SCENE_SPOT_LIGHT_COUNT ];
+    uniform float scene_SpotLightAngleCos[ SCENE_SPOT_LIGHT_COUNT ];
+    uniform float scene_SpotLightPenumbraCos[ SCENE_SPOT_LIGHT_COUNT ];
 
 #endif
 
@@ -61,15 +61,15 @@ struct EnvMapLight {
 };
 
 
-uniform EnvMapLight u_envMapLight;
-uniform ivec4 galacean_RendererLayer;
+uniform EnvMapLight scene_EnvMapLight;
+uniform ivec4 renderer_Layer;
 
-#ifdef GALACEAN_USE_SH
-    uniform vec3 galacean_EnvSH[9];
+#ifdef SCENE_USE_SH
+    uniform vec3 scene_EnvSH[9];
 #endif
 
-#ifdef GALACEAN_USE_SPECULAR_ENV
-    uniform samplerCube galacean_EnvSpecularSampler;
+#ifdef SCENE_USE_SPECULAR_ENV
+    uniform samplerCube scene_EnvSpecularSampler;
 #endif
 
 #ifndef GRAPHICS_API_WEBGL2

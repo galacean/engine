@@ -1,1 +1,1 @@
-    gl_Position = galacean_MVPMat * position;
+    gl_Position = renderer_MVPMat * position;

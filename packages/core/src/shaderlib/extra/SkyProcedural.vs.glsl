@@ -2,7 +2,7 @@
 // The original implementation can be found at unity build-in shader(DefaultResourcesExtra/Skybox-Procedural.shader)
 
 #define OUTER_RADIUS 1.025
-#define RAYLEIGH (mix(0.0, 0.0025, pow(u_AtmosphereThickness,2.5)))	// Rayleigh constant
+#define RAYLEIGH (mix(0.0, 0.0025, pow(material_AtmosphereThickness,2.5)))	// Rayleigh constant
 #define MIE 0.0010	// Mie constant
 #define SUN_BRIGHTNESS 20.0	// Sun brightness
 #define MAX_SCATTER 50.0 // Maximum scattering value, to prevent math overflows on Adrenos
@@ -31,30 +31,30 @@ const vec3 c_VariableRangeForScatteringWavelength = vec3(0.15, 0.15, 0.15);
 
 attribute vec4 POSITION;
 
-uniform mat4 galacean_VPMat;
-uniform vec3 u_SkyTint;
-uniform vec3 u_GroundTint;
-uniform float u_Exposure;
-uniform float u_AtmosphereThickness;
+uniform mat4 camera_VPMat;
+uniform vec3 material_SkyTint;
+uniform vec3 material_GroundTint;
+uniform float material_Exposure;
+uniform float material_AtmosphereThickness;
 uniform vec4 oasis_SunlightColor;
 uniform vec3 oasis_SunlightDirection;
 
 varying vec3 v_GroundColor;
 varying vec3 v_SkyColor;
 
-#ifdef SUN_HIGH_QUALITY
+#ifdef MATERIAL_SUN_HIGH_QUALITY
 	varying vec3 v_Vertex;
-#elif defined(SUN_SIMPLE)
+#elif defined(MATERIAL_SUN_SIMPLE)
 	varying vec3 v_RayDir;
 #else
 	varying float v_SkyGroundFactor;
 #endif
 
-#if defined(SUN_HIGH_QUALITY)||defined(SUN_SIMPLE)
+#if defined(MATERIAL_SUN_HIGH_QUALITY)||defined(MATERIAL_SUN_SIMPLE)
 	varying vec3 v_SunColor;
 #endif
 
-#if defined(GALACEAN_COLORSPACE_GAMMA)
+#if defined(ENGINE_IS_COLORSPACE_GAMMA)
 	#define COLOR_2_GAMMA(color) color
 	#define COLOR_2_LINEAR(color) color*color
 #else
@@ -77,9 +77,9 @@ float scaleAngle(float inCos)
 }
 
 void main () {
-	gl_Position = galacean_VPMat*vec4(POSITION.xyz,1.0);
+	gl_Position = camera_VPMat*vec4(POSITION.xyz,1.0);
 
- 	vec3 skyTintInGammaSpace = COLOR_2_GAMMA(u_SkyTint);
+ 	vec3 skyTintInGammaSpace = COLOR_2_GAMMA(material_SkyTint);
 	vec3 scatteringWavelength = mix(c_DefaultScatteringWavelength-c_VariableRangeForScatteringWavelength,c_DefaultScatteringWavelength+c_VariableRangeForScatteringWavelength,vec3(1.0) - skyTintInGammaSpace); // using Tint in sRGB+ gamma allows for more visually linear interpolation and to keep (0.5) at (128, gray in sRGB) point
 	vec3 invWavelength = 1.0 / pow(scatteringWavelength, vec3(4.0));
 
@@ -176,9 +176,9 @@ void main () {
 		cOut = clamp(attenuate, 0.0, 1.0);
 	}
 
-	#ifdef SUN_HIGH_QUALITY
+	#ifdef MATERIAL_SUN_HIGH_QUALITY
 		v_Vertex = -POSITION.xyz;
-	#elif defined(SUN_SIMPLE) 
+	#elif defined(MATERIAL_SUN_SIMPLE) 
 		v_RayDir = -eyeRay;
 	#else
 		v_SkyGroundFactor = -eyeRay.y / SKY_GROUND_THRESHOLD;
@@ -188,8 +188,8 @@ void main () {
 	// 1. in case of linear: multiply by _Exposure in here (even in case of lerp it will be common multiplier, so we can skip mul in fshader)
 	// 2. in case of gamma: do sqrt right away instead of doing that in fshader
 	
-	v_GroundColor = u_Exposure * (cIn + COLOR_2_LINEAR(u_GroundTint) * cOut);
-	v_SkyColor    = u_Exposure * (cIn * getRayleighPhase(-oasis_SunlightDirection, -eyeRay));
+	v_GroundColor = material_Exposure * (cIn + COLOR_2_LINEAR(material_GroundTint) * cOut);
+	v_SkyColor    = material_Exposure * (cIn * getRayleighPhase(-oasis_SunlightDirection, -eyeRay));
 
 	
 	// The sun should have a stable intensity in its course in the sky. Moreover it should match the highlight of a purely specular material.
@@ -197,9 +197,9 @@ void main () {
 	// Finally we want the sun to be always bright even in LDR thus the normalization of the lightColor for low intensity.
 	float lightColorIntensity = clamp(length(oasis_SunlightColor.xyz), 0.25, 1.0);
 
-	#ifdef SUN_HIGH_QUALITY 
+	#ifdef MATERIAL_SUN_HIGH_QUALITY 
 		v_SunColor = HDSundiskIntensityFactor * clamp(cOut,0.0,1.0) * oasis_SunlightColor.xyz / lightColorIntensity;
-	#elif defined(SUN_SIMPLE) 
+	#elif defined(MATERIAL_SUN_SIMPLE) 
 		v_SunColor = simpleSundiskIntensityFactor * clamp(cOut * sunScale,0.0,1.0) * oasis_SunlightColor.xyz / lightColorIntensity;
 	#endif
 }

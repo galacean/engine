@@ -1,1 +1,1 @@
-uniform vec3 galacean_CameraPos;
+uniform vec3 camera_Position;

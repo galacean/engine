@@ -21,14 +21,14 @@ import { ShadowUtils } from "./ShadowUtils";
  * Cascade shadow caster.
  */
 export class CascadedShadowCasterPass {
-  private static _lightShadowBiasProperty = ShaderProperty.getByName("galacean_ShadowBias");
-  private static _lightDirectionProperty = ShaderProperty.getByName("galacean_LightDirection");
+  private static _lightShadowBiasProperty = ShaderProperty.getByName("scene_ShadowBias");
+  private static _lightDirectionProperty = ShaderProperty.getByName("scene_LightDirection");
 
-  private static _shadowMatricesProperty = ShaderProperty.getByName("galacean_ShadowMatrices");
-  private static _shadowMapSize = ShaderProperty.getByName("galacean_ShadowMapSize");
-  private static _shadowInfosProperty = ShaderProperty.getByName("galacean_ShadowInfo");
-  private static _shadowMapsProperty = ShaderProperty.getByName("galacean_ShadowMap");
-  private static _shadowSplitSpheresProperty = ShaderProperty.getByName("galacean_ShadowSplitSpheres");
+  private static _shadowMatricesProperty = ShaderProperty.getByName("scene_ShadowMatrices");
+  private static _shadowMapSize = ShaderProperty.getByName("scene_ShadowMapSize");
+  private static _shadowInfosProperty = ShaderProperty.getByName("scene_ShadowInfo");
+  private static _shadowMapsProperty = ShaderProperty.getByName("scene_ShadowMap");
+  private static _shadowSplitSpheresProperty = ShaderProperty.getByName("scene_ShadowSplitSpheres");
 
   private static _maxCascades: number = 4;
   private static _cascadesSplitDistance: number[] = new Array(CascadedShadowCasterPass._maxCascades + 1);

@@ -10,18 +10,18 @@ import { DiffuseMode } from "./enums/DiffuseMode";
  * Ambient light.
  */
 export class AmbientLight {
-  private static _shMacro: ShaderMacro = ShaderMacro.getByName("GALACEAN_USE_SH");
-  private static _specularMacro: ShaderMacro = ShaderMacro.getByName("GALACEAN_USE_SPECULAR_ENV");
-  private static _decodeRGBMMacro: ShaderMacro = ShaderMacro.getByName("GALACEAN_DECODE_ENV_RGBM");
+  private static _shMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SH");
+  private static _specularMacro: ShaderMacro = ShaderMacro.getByName("SCENE_USE_SPECULAR_ENV");
+  private static _decodeRGBMMacro: ShaderMacro = ShaderMacro.getByName("SCENE_IS_DECODE_ENV_RGBM");
 
-  private static _diffuseColorProperty: ShaderProperty = ShaderProperty.getByName("galacean_EnvMapLight.diffuse");
-  private static _diffuseSHProperty: ShaderProperty = ShaderProperty.getByName("galacean_EnvSH");
-  private static _diffuseIntensityProperty: ShaderProperty = ShaderProperty.getByName("galacean_EnvMapLight.diffuseIntensity");
-  private static _specularTextureProperty: ShaderProperty = ShaderProperty.getByName("galacean_EnvSpecularSampler");
+  private static _diffuseColorProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuse");
+  private static _diffuseSHProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSH");
+  private static _diffuseIntensityProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuseIntensity");
+  private static _specularTextureProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSpecularSampler");
   private static _specularIntensityProperty: ShaderProperty = ShaderProperty.getByName(
-    "galacean_EnvMapLight.specularIntensity"
+    "scene_EnvMapLight.specularIntensity"
   );
-  private static _mipLevelProperty: ShaderProperty = ShaderProperty.getByName("galacean_EnvMapLight.mipMapLevel");
+  private static _mipLevelProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.mipMapLevel");
 
   private _diffuseSphericalHarmonics: SphericalHarmonics3;
   private _diffuseSolidColor: Color = new Color(0.212, 0.227, 0.259);

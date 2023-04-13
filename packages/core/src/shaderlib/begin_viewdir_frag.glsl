@@ -1,3 +1,3 @@
-#ifdef O3_NEED_WORLDPOS
-    vec3 V =  normalize( galacean_CameraPos - v_pos );
+#ifdef MATERIAL_NEED_WORLDPOS
+    vec3 V =  normalize( camera_Position - v_pos );
 #endif

@@ -17,9 +17,9 @@ import { Sprite } from "./Sprite";
  */
 export class SpriteMask extends Renderer implements ICustomClone {
   /** @internal */
-  static _textureProperty: ShaderProperty = ShaderProperty.getByName("galacean_MaskTexture");
+  static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
-  static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("galacean_MaskAlphaCutoff");
+  static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone

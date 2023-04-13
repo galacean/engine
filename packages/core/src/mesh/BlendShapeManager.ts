@@ -19,14 +19,14 @@ import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
  * @internal
  */
 export class BlendShapeManager {
-  private static _blendShapeMacro = ShaderMacro.getByName("GALACEAN_BLENDSHAPE");
-  private static _blendShapeTextureMacro = ShaderMacro.getByName("GALACEAN_BLENDSHAPE_TEXTURE");
-  private static _blendShapeNormalMacro = ShaderMacro.getByName("GALACEAN_BLENDSHAPE_NORMAL");
-  private static _blendShapeTangentMacro = ShaderMacro.getByName("GALACEAN_BLENDSHAPE_TANGENT");
+  private static _blendShapeMacro = ShaderMacro.getByName("RENDERER_HAS_BLENDSHAPE");
+  private static _blendShapeTextureMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_USE_TEXTURE");
+  private static _blendShapeNormalMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_HAS_NORMAL");
+  private static _blendShapeTangentMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_HAS_TANGENT");
 
-  private static _blendShapeWeightsProperty = ShaderProperty.getByName("galacean_BlendShapeWeights");
-  private static _blendShapeTextureProperty = ShaderProperty.getByName("galacean_BlendShapeTexture");
-  private static _blendShapeTextureInfoProperty = ShaderProperty.getByName("galacean_BlendShapeTextureInfo");
+  private static _blendShapeWeightsProperty = ShaderProperty.getByName("renderer_BlendShapeWeights");
+  private static _blendShapeTextureProperty = ShaderProperty.getByName("renderer_BlendShapeTexture");
+  private static _blendShapeTextureInfoProperty = ShaderProperty.getByName("renderer_BlendShapeTextureInfo");
 
   /** @internal */
   _blendShapeCount: number = 0;
