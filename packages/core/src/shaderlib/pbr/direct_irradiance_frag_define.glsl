@@ -3,7 +3,7 @@
 void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
     float attenuation = 1.0;
 
-    #ifdef CLEARCOAT
+    #ifdef MATERIAL_CLEARCOAT
         float clearCoatDotNL = saturate( dot( geometry.clearCoatNormal, incidentDirection ) );
         vec3 clearCoatIrradiance = clearCoatDotNL * color;
         

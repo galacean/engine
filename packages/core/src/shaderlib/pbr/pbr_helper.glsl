@@ -21,7 +21,7 @@ void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(camera_Position - v_pos);
 
-    #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE)
+    #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEARCOATNORMALTEXTURE)
         mat3 tbn = getTBN();
     #endif
 
@@ -34,8 +34,8 @@ void initGeometry(out Geometry geometry){
     geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
 
 
-    #ifdef CLEARCOAT
-        #ifdef HAS_CLEARCOATNORMALTEXTURE
+    #ifdef MATERIAL_CLEARCOAT
+        #ifdef MATERIAL_HAS_CLEARCOATNORMALTEXTURE
             geometry.clearCoatNormal = getNormalByNormalTexture(tbn, material_ClearCoatNormalTexture, material_NormalIntensity, v_uv);
         #else
             geometry.clearCoatNormal = getNormal();
@@ -72,7 +72,7 @@ void initMaterial(out Material material, const in Geometry geometry){
             }
         #endif
 
-        #ifdef ROUGHNESSMETALLICTEXTURE
+        #ifdef MATERIAL_ROUGHNESSMETALLICTEXTURE
             vec4 metalRoughMapColor = texture2D( material_RoughnessMetallicTexture, v_uv );
             roughness *= metalRoughMapColor.g;
             metal *= metalRoughMapColor.b;
@@ -101,13 +101,13 @@ void initMaterial(out Material material, const in Geometry geometry){
 
         material.roughness = max(material.roughness, getAARoughnessFactor(geometry.normal));
 
-        #ifdef CLEARCOAT
+        #ifdef MATERIAL_CLEARCOAT
             material.clearCoat = material_ClearCoat;
             material.clearCoatRoughness = material_ClearCoatRoughness;
-            #ifdef HAS_CLEARCOATTEXTURE
+            #ifdef MATERIAL_HAS_CLEARCOATTEXTURE
                 material.clearCoat *= texture2D( material_ClearCoatTexture, v_uv ).r;
             #endif
-            #ifdef HAS_CLEARCOATROUGHNESSTEXTURE
+            #ifdef MATERIAL_HAS_CLEARCOATROUGHNESSTEXTURE
                 material.clearCoatRoughness *= texture2D( material_ClearCoatRoughnessTexture, v_uv ).g;
             #endif
             material.clearCoat = saturate( material.clearCoat );

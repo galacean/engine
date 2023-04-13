@@ -22,7 +22,7 @@ vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalInt
 }
 
 mat3 getTBN(){
-    #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+    #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEARCOATNORMALTEXTURE) )
         mat3 tbn = v_TBN;
     #else
         vec3 normal = getNormal();

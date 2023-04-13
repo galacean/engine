@@ -1,9 +1,9 @@
-#if defined(SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)
+#if defined(SCENE_SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)
     #define GALACEAN_CALCULATE_SHADOWS
 #endif
 
 #ifdef GALACEAN_CALCULATE_SHADOWS
-    #if CASCADED_COUNT == 1
+    #if SCENE_SHADOW_CASCADED_COUNT == 1
         varying vec3 v_shadowCoord;
     #else
         #include <ShadowCoord>
@@ -34,7 +34,7 @@
         #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap
     #endif
 
-    #if SHADOW_TYPE == 2
+    #if SCENE_SHADOW_TYPE == 2
         float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowMapSize) {
             float attenuation;
             vec4 attenuation4;
@@ -52,7 +52,7 @@
         }
     #endif
 
-    #if SHADOW_TYPE == 3
+    #if SCENE_SHADOW_TYPE == 3
         #include <shadow_sample_tent>
 
         float sampleShadowMapFiltered9(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowmapSize) {
@@ -74,7 +74,7 @@
     #endif
 
     float sampleShadowMap() {
-        #if CASCADED_COUNT == 1
+        #if SCENE_SHADOW_CASCADED_COUNT == 1
             vec3 shadowCoord = v_shadowCoord;
         #else
             vec3 shadowCoord = getShadowCoord();
@@ -82,15 +82,15 @@
         
         float attenuation = 1.0;
         if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
-        #if SHADOW_TYPE == 1
+        #if SCENE_SHADOW_TYPE == 1
             attenuation = SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, shadowCoord);
         #endif
 
-        #if SHADOW_TYPE == 2
+        #if SCENE_SHADOW_TYPE == 2
             attenuation = sampleShadowMapFiltered4(scene_ShadowMap, shadowCoord, scene_ShadowMapSize);
         #endif
 
-        #if SHADOW_TYPE == 3
+        #if SCENE_SHADOW_TYPE == 3
             attenuation = sampleShadowMapFiltered9(scene_ShadowMap, shadowCoord, scene_ShadowMapSize);
         #endif
             attenuation = mix(1.0, attenuation, scene_ShadowInfo.x);

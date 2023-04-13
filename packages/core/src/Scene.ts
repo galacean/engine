@@ -72,7 +72,7 @@ export class Scene extends EngineObject {
 
   set shadowCascades(value: ShadowCascadesMode) {
     if (this._shadowCascades !== value) {
-      this.shaderData.enableMacro("CASCADED_COUNT", value.toString());
+      this.shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", value.toString());
       this._shadowCascades = value;
     }
   }
@@ -112,7 +112,7 @@ export class Scene extends EngineObject {
 
   set fogMode(value: FogMode) {
     if (this._fogMode !== value) {
-      this.shaderData.enableMacro("GALACEAN_FOG_MODE", value.toString());
+      this.shaderData.enableMacro("SCENE_FOG_MODE", value.toString());
       this._fogMode = value;
     }
   }
@@ -200,8 +200,8 @@ export class Scene extends EngineObject {
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
 
-    shaderData.enableMacro("GALACEAN_FOG_MODE", this._fogMode.toString());
-    shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
+    shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
+    shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
     shaderData.setColor(Scene._fogColorProperty, this._fogColor);
     shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
 
@@ -397,9 +397,9 @@ export class Scene extends EngineObject {
     }
 
     if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
-      shaderData.enableMacro("SHADOW_TYPE", this._sunLight.shadowType.toString());
+      shaderData.enableMacro("SCENE_SHADOW_TYPE", this._sunLight.shadowType.toString());
     } else {
-      shaderData.disableMacro("SHADOW_TYPE");
+      shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
 
     // union scene and camera macro.

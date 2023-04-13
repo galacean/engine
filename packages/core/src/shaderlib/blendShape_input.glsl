@@ -2,7 +2,7 @@
 	#ifdef RENDERER_BLENDSHAPE_USE_TEXTURE
 		uniform mediump sampler2DArray renderer_BlendShapeTexture;
 		uniform ivec3 renderer_BlendShapeTextureInfo;
-		uniform float renderer_BlendShapeWeights[GALACEAN_BLENDSHAPE_COUNT];
+		uniform float renderer_BlendShapeWeights[RENDERER_BLENDSHAPE_COUNT];
 	#else
 		attribute vec3 POSITION_BS0;
 		attribute vec3 POSITION_BS1;

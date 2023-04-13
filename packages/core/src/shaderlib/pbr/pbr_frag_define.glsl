@@ -6,7 +6,7 @@ uniform vec3 material_PBRSpecularColor;
 uniform float material_Glossiness;
 uniform vec3 material_EmissiveColor;
 
-#ifdef CLEARCOAT
+#ifdef MATERIAL_CLEARCOAT
     uniform float material_ClearCoat;
     uniform float material_ClearCoatRoughness;
 #endif
@@ -28,7 +28,7 @@ uniform float material_OcclusionTextureCoord;
     uniform sampler2D MATERIAL_HAS_EMISSIVETEXTURE;
 #endif
 
-#ifdef ROUGHNESSMETALLICTEXTURE
+#ifdef MATERIAL_ROUGHNESSMETALLICTEXTURE
     uniform sampler2D material_RoughnessMetallicTexture;
 #endif
 
@@ -37,19 +37,19 @@ uniform float material_OcclusionTextureCoord;
     uniform sampler2D material_SpecularGlossinessTexture;
 #endif
 
-#ifdef OCCLUSIONTEXTURE
+#ifdef MATERIAL_OCCLUSIONTEXTURE
     uniform sampler2D material_OcclusionTexture;
 #endif
 
-#ifdef HAS_CLEARCOATTEXTURE
+#ifdef MATERIAL_HAS_CLEARCOATTEXTURE
     uniform sampler2D material_ClearCoatTexture;
 #endif
 
-#ifdef HAS_CLEARCOATROUGHNESSTEXTURE
+#ifdef MATERIAL_HAS_CLEARCOATROUGHNESSTEXTURE
     uniform sampler2D material_ClearCoatRoughnessTexture;
 #endif
 
-#ifdef HAS_CLEARCOATNORMALTEXTURE
+#ifdef MATERIAL_HAS_CLEARCOATNORMALTEXTURE
     uniform sampler2D material_ClearCoatNormalTexture;
 #endif
 
@@ -69,7 +69,7 @@ struct Geometry {
     vec3  viewDir;
     float dotNV;
     
-    #ifdef CLEARCOAT
+    #ifdef MATERIAL_CLEARCOAT
         vec3 clearCoatNormal;
         float clearCoatDotNV;
     #endif
@@ -81,7 +81,7 @@ struct Material {
     float roughness;
     vec3  specularColor;
     float opacity;
-    #ifdef CLEARCOAT
+    #ifdef MATERIAL_CLEARCOAT
         float clearCoat;
         float clearCoatRoughness;
     #endif

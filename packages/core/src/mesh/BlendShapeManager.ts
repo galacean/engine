@@ -110,7 +110,7 @@ export class BlendShapeManager {
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
         shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
         shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
-        shaderData.enableMacro("GALACEAN_BLENDSHAPE_COUNT", blendShapeCount.toString());
+        shaderData.enableMacro("RENDERER_BLENDSHAPE_COUNT", blendShapeCount.toString());
         this._uniformOccupiesCount = blendShapeCount + 1;
       } else {
         const maxBlendCount = this._getVertexBufferModeSupportCount();
@@ -129,7 +129,7 @@ export class BlendShapeManager {
           this._modelMesh._enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
-        shaderData.disableMacro("GALACEAN_BLENDSHAPE_COUNT");
+        shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
         this._uniformOccupiesCount = blendShapeCount;
       }
 
@@ -145,7 +145,7 @@ export class BlendShapeManager {
       }
     } else {
       shaderData.disableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.disableMacro("GALACEAN_BLENDSHAPE_COUNT");
+      shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
     }
   }
 

@@ -20,7 +20,7 @@
         #if defined(RENDERER_HAS_NORMAL) && !defined(MATERIAL_OMIT_NORMAL)
             mat3 skinNormalMatrix = INVERSE_MAT(mat3(skinMatrix));
             normal = normal * skinNormalMatrix;
-            #if defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+            #if defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEARCOATNORMALTEXTURE) )
                 tangent.xyz = tangent.xyz * skinNormalMatrix;
             #endif
 

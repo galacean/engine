@@ -1,5 +1,5 @@
 
-uniform mat4 scene_ShadowMatrices[CASCADED_COUNT + 1];
+uniform mat4 scene_ShadowMatrices[SCENE_SHADOW_CASCADED_COUNT + 1];
 uniform vec4 scene_ShadowSplitSpheres[4];
 
 mediump int computeCascadeIndex(vec3 positionWS) {
@@ -20,7 +20,7 @@ mediump int computeCascadeIndex(vec3 positionWS) {
 }
 
 vec3 getShadowCoord() {
-    #if CASCADED_COUNT == 1
+    #if SCENE_SHADOW_CASCADED_COUNT == 1
         mediump int cascadeIndex = 0;
     #else
         mediump int cascadeIndex = computeCascadeIndex(v_pos);
@@ -30,7 +30,7 @@ vec3 getShadowCoord() {
         mat4 shadowMatrix = scene_ShadowMatrices[cascadeIndex];
     #else
         mat4 shadowMatrix;
-        #if CASCADED_COUNT == 4
+        #if SCENE_SHADOW_CASCADED_COUNT == 4
             if (cascadeIndex == 0) {
                 shadowMatrix = scene_ShadowMatrices[0];
             } else if (cascadeIndex == 1) {
@@ -43,7 +43,7 @@ vec3 getShadowCoord() {
                 shadowMatrix = scene_ShadowMatrices[4];
             }
         #endif
-        #if CASCADED_COUNT == 2
+        #if SCENE_SHADOW_CASCADED_COUNT == 2
             if (cascadeIndex == 0) {
                 shadowMatrix = scene_ShadowMatrices[0];
             } else if (cascadeIndex == 1) {
@@ -52,7 +52,7 @@ vec3 getShadowCoord() {
                 shadowMatrix = scene_ShadowMatrices[2];
             } 
         #endif
-        #if CASCADED_COUNT == 1
+        #if SCENE_SHADOW_CASCADED_COUNT == 1
             if (cascadeIndex == 0) {
                 shadowMatrix = scene_ShadowMatrices[0];
             } else  {
