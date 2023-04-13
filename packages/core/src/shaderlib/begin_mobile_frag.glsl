@@ -29,7 +29,7 @@
 
     #endif
 
-    #ifdef O3_SPECULAR_TEXTURE
+    #ifdef MATERIAL_SPECULAR_TEXTURE
         vec4 specularTextureColor = texture2D(material_SpecularTexture, v_uv);
         #ifndef ENGINE_IS_COLORSPACE_GAMMA
             specularTextureColor = gammaToLinear(specularTextureColor);
