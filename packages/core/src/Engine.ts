@@ -47,9 +47,9 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("OASIS_COLORSPACE_GAMMA");
+  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_IS_COLORSPACE_GAMMA");
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("OASIS_NO_DEPTH_TEXTURE");
+  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
 
@@ -250,7 +250,7 @@ export class Engine extends EventDispatcher {
     }
 
     const magentaMaterial = new Material(this, Shader.find("unlit"));
-    magentaMaterial.shaderData.setColor("u_baseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._magentaMaterial = magentaMaterial;
 
     const backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));

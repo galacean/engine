@@ -20,15 +20,15 @@ export enum SunMode {
  * Sky procedural material.
  */
 export class SkyProceduralMaterial extends Material {
-  private static _sunSizeProp: ShaderProperty = ShaderProperty.getByName("u_SunSize");
-  private static _sunSizeConvergenceProp: ShaderProperty = ShaderProperty.getByName("u_SunSizeConvergence");
-  private static _atmosphereThicknessProp: ShaderProperty = ShaderProperty.getByName("u_AtmosphereThickness");
-  private static _skyTintProp: ShaderProperty = ShaderProperty.getByName("u_SkyTint");
-  private static _groundTintProp: ShaderProperty = ShaderProperty.getByName("u_GroundTint");
-  private static _exposureProp: ShaderProperty = ShaderProperty.getByName("u_Exposure");
+  private static _sunSizeProp: ShaderProperty = ShaderProperty.getByName("material_SunSize");
+  private static _sunSizeConvergenceProp: ShaderProperty = ShaderProperty.getByName("material_SunSizeConvergence");
+  private static _atmosphereThicknessProp: ShaderProperty = ShaderProperty.getByName("material_AtmosphereThickness");
+  private static _skyTintProp: ShaderProperty = ShaderProperty.getByName("material_SkyTint");
+  private static _groundTintProp: ShaderProperty = ShaderProperty.getByName("material_GroundTint");
+  private static _exposureProp: ShaderProperty = ShaderProperty.getByName("material_Exposure");
 
-  private static _sunHighQualityMacro: ShaderMacro = ShaderMacro.getByName("SUN_HIGH_QUALITY");
-  private static _sunSimpleMacro: ShaderMacro = ShaderMacro.getByName("SUN_SIMPLE");
+  private static _sunHighQualityMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_SUN_HIGH_QUALITY");
+  private static _sunSimpleMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_SUN_SIMPLE");
 
   private _sunDisk: SunMode;
 

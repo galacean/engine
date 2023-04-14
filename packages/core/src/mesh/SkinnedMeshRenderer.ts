@@ -17,9 +17,9 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _jointCountProperty = ShaderProperty.getByName("u_jointCount");
-  private static _jointSamplerProperty = ShaderProperty.getByName("u_jointSampler");
-  private static _jointMatrixProperty = ShaderProperty.getByName("u_jointMatrix");
+  private static _jointCountProperty = ShaderProperty.getByName("renderer_JointCount");
+  private static _jointSamplerProperty = ShaderProperty.getByName("renderer_JointSampler");
+  private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
 
   @ignoreClone
   private _hasInitSkin: boolean = false;
@@ -193,8 +193,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
               this._jointTexture = new Texture2D(engine, 4, jointCount, TextureFormat.R32G32B32A32, false);
               this._jointTexture.filterMode = TextureFilterMode.Point;
             }
-            shaderData.disableMacro("O3_JOINTS_NUM");
-            shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
+            shaderData.disableMacro("RENDERER_JOINTS_NUM");
+            shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
             shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
           } else {
             Logger.error(
@@ -204,8 +204,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           }
         } else {
           this._jointTexture?.destroy();
-          shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
-          shaderData.enableMacro("O3_JOINTS_NUM", remainUniformJointCount.toString());
+          shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");
+          shaderData.enableMacro("RENDERER_JOINTS_NUM", remainUniformJointCount.toString());
           shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._jointMatrices);
         }
         jointDataCreateCache.set(jointCount, bsUniformOccupiesCount);
@@ -254,7 +254,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const { _skin: skin, shaderData } = this;
     if (!skin) {
-      shaderData.disableMacro("O3_HAS_SKIN");
+      shaderData.disableMacro("RENDERER_HAS_SKIN");
       return;
     }
 
@@ -297,10 +297,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     this._rootBone = rootBone;
     if (jointCount) {
-      shaderData.enableMacro("O3_HAS_SKIN");
+      shaderData.enableMacro("RENDERER_HAS_SKIN");
       shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
     } else {
-      shaderData.disableMacro("O3_HAS_SKIN");
+      shaderData.disableMacro("RENDERER_HAS_SKIN");
     }
   }
 

@@ -61,8 +61,8 @@ export class UnlitMaterial extends BaseMaterial {
 
     const shaderData = this.shaderData;
 
-    shaderData.enableMacro("OMIT_NORMAL");
-    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+    shaderData.enableMacro("MATERIAL_OMIT_NORMAL");
+    shaderData.enableMacro("MATERIAL_NEED_TILINGOFFSET");
 
     shaderData.setColor(UnlitMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setVector4(UnlitMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));

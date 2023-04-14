@@ -49,7 +49,7 @@ export class Background {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._engine._backgroundTextureMaterial.shaderData.setTexture("u_baseTexture", value);
+      this._engine._backgroundTextureMaterial.shaderData.setTexture("material_BaseTexture", value);
     }
   }
 

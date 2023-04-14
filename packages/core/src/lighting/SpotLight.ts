@@ -7,13 +7,13 @@ import { Light } from "./Light";
  * Spot light.
  */
 export class SpotLight extends Light {
-  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightCullingMask");
-  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightColor");
-  private static _positionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPosition");
-  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDirection");
-  private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDistance");
-  private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightAngleCos");
-  private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPenumbraCos");
+  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightCullingMask");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightColor");
+  private static _positionProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightPosition");
+  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightDirection");
+  private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightDistance");
+  private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightAngleCos");
+  private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightPenumbraCos");
 
   private static _combinedData = {
     cullingMask: new Int32Array(Light._maxLight * 2),

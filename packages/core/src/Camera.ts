@@ -32,9 +32,9 @@ class MathTemp {
 @dependentComponents(Transform, DependentMode.CheckOnly)
 export class Camera extends Component {
   /** @internal */
-  private static _inverseViewMatrixProperty = ShaderProperty.getByName("u_viewInvMat");
+  private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   /** @internal */
-  private static _cameraPositionProperty = ShaderProperty.getByName("u_cameraPos");
+  private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
 
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
