@@ -1,11 +1,10 @@
-import { Vector3, Matrix, Color } from "@galacean/engine-math";
 import { Renderer } from "../Renderer";
 import { BufferMesh } from "../mesh/BufferMesh";
-import { BaseMaterial } from "../material";
 import { Buffer, BufferBindFlag, BufferUsage, Mesh, MeshTopology, VertexElement, VertexElementFormat } from "../graphic";
 import { Texture } from "../texture";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { TrailMaterial } from "./TrailMaterial";
+import { Vector3, Matrix, Color } from "@galacean/engine-math";
 
 /**
  * Trail Renderer Component.
