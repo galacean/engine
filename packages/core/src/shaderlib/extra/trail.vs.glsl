@@ -1,6 +1,5 @@
-uniform mat4 u_projMat;
-uniform mat4 u_viewMat;
-uniform mat4 u_modelMat;
+uniform mat4 camera_ProjMat;
+uniform mat4 camera_ViewMat;
 
 uniform float u_textureTileS;
 uniform float u_textureTileT;
@@ -28,7 +27,7 @@ void main(){
 
   float normalizeTime = (u_currentTime - a_trailBirthTime) / u_trailLifeTime;
   vec4 realPosition = vec4( ( 1.0 - normalizeTime ) * a_position.xyz + normalizeTime * a_nodeCenter.xyz, 1.0 ); 
-  gl_Position = u_projMat * u_viewMat * realPosition;
+  gl_Position = camera_ProjMat * camera_ViewMat * realPosition;
 
   if (normalizeTime < 1.0){
     vColor = ( 1.0 - normalizeTime ) * u_headColor + normalizeTime * u_tailColor;

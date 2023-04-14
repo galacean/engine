@@ -12,11 +12,11 @@ import { ShaderMacro } from "../shader/ShaderMacro";
  * MeshRenderer Component.
  */
 export class MeshRenderer extends Renderer implements ICustomClone {
-  private static _uvMacro = ShaderMacro.getByName("O3_HAS_UV");
-  private static _uv1Macro = ShaderMacro.getByName("O3_HAS_UV1");
-  private static _normalMacro = ShaderMacro.getByName("O3_HAS_NORMAL");
-  private static _tangentMacro = ShaderMacro.getByName("O3_HAS_TANGENT");
-  private static _vertexColorMacro = ShaderMacro.getByName("O3_HAS_VERTEXCOLOR");
+  private static _uvMacro = ShaderMacro.getByName("RENDERER_HAS_UV");
+  private static _uv1Macro = ShaderMacro.getByName("RENDERER_HAS_UV1");
+  private static _normalMacro = ShaderMacro.getByName("RENDERER_HAS_NORMAL");
+  private static _tangentMacro = ShaderMacro.getByName("RENDERER_HAS_TANGENT");
+  private static _vertexColorMacro = ShaderMacro.getByName("RENDERER_HAS_VERTEXCOLOR");
 
   /** @internal */
   @ignoreClone

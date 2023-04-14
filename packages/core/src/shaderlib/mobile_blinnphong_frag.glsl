@@ -1,6 +1,6 @@
-    #ifdef NORMALTEXTURE
+    #ifdef MATERIAL_HAS_NORMALTEXTURE
         mat3 tbn = getTBN();
-        vec3 N = getNormalByNormalTexture(tbn, u_normalTexture, u_normalIntensity, v_uv);
+        vec3 N = getNormalByNormalTexture(tbn, material_NormalTexture, material_NormalIntensity, v_uv);
     #else
         vec3 N = getNormal();
     #endif
@@ -9,47 +9,47 @@
     vec3 lightSpecular = vec3( 0.0, 0.0, 0.0 );
     float shadowAttenuation = 1.0;
 
-    #ifdef O3_DIRECT_LIGHT_COUNT
+    #ifdef SCENE_DIRECT_LIGHT_COUNT
     shadowAttenuation = 1.0;
-    #ifdef GALACEAN_CALCULATE_SHADOWS
+    #ifdef SCENE_IS_CALCULATE_SHADOWS
         shadowAttenuation *= sampleShadowMap();
-        int sunIndex = int(u_shadowInfo.z);
+        int sunIndex = int(scene_ShadowInfo.z);
     #endif
 
     DirectLight directionalLight;
-    for( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i++ ) {
-        if(isRendererCulledByLight(galacean_RendererLayer.xy, u_directLightCullingMask[i])) 
+    for( int i = 0; i < SCENE_DIRECT_LIGHT_COUNT; i++ ) {
+        if(isRendererCulledByLight(renderer_Layer.xy, scene_DirectLightCullingMask[i])) 
             continue;
 
-        directionalLight.color = u_directLightColor[i];
-        #ifdef GALACEAN_CALCULATE_SHADOWS
+        directionalLight.color = scene_DirectLightColor[i];
+        #ifdef SCENE_IS_CALCULATE_SHADOWS
             if (i == sunIndex) {
                 directionalLight.color *= shadowAttenuation;
             }
         #endif
-        directionalLight.direction = u_directLightDirection[i];
+        directionalLight.direction = scene_DirectLightDirection[i];
 
         float d = max(dot(N, -directionalLight.direction), 0.0);
         lightDiffuse += directionalLight.color * d;
 
         vec3 halfDir = normalize( V - directionalLight.direction );
-        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess );
+        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), material_Shininess );
         lightSpecular += directionalLight.color * s;
     }
 
     #endif
 
-    #ifdef O3_POINT_LIGHT_COUNT
+    #ifdef SCENE_POINT_LIGHT_COUNT
     
     PointLight pointLight;
 
-    for( int i = 0; i < O3_POINT_LIGHT_COUNT; i++ ) {
-        if(isRendererCulledByLight(galacean_RendererLayer.xy, u_pointLightCullingMask[i])) 
+    for( int i = 0; i < SCENE_POINT_LIGHT_COUNT; i++ ) {
+        if(isRendererCulledByLight(renderer_Layer.xy, scene_PointLightCullingMask[i])) 
             continue;
 
-        pointLight.color = u_pointLightColor[i];
-        pointLight.position = u_pointLightPosition[i];
-        pointLight.distance = u_pointLightDistance[i];
+        pointLight.color = scene_PointLightColor[i];
+        pointLight.position = scene_PointLightPosition[i];
+        pointLight.distance = scene_PointLightDistance[i];
 
         vec3 direction = v_pos - pointLight.position;
         float dist = length( direction );
@@ -60,27 +60,27 @@
         lightDiffuse += pointLight.color * d;
 
         vec3 halfDir = normalize( V - direction );
-        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess )  * decay;
+        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), material_Shininess )  * decay;
         lightSpecular += pointLight.color * s;
 
     }
 
     #endif
 
-    #ifdef O3_SPOT_LIGHT_COUNT
+    #ifdef SCENE_SPOT_LIGHT_COUNT
    
     SpotLight spotLight;
 
-    for( int i = 0; i < O3_SPOT_LIGHT_COUNT; i++) {
-        if(isRendererCulledByLight(galacean_RendererLayer.xy, u_spotLightCullingMask[i])) 
+    for( int i = 0; i < SCENE_SPOT_LIGHT_COUNT; i++) {
+        if(isRendererCulledByLight(renderer_Layer.xy, scene_SpotLightCullingMask[i])) 
             continue;
         
-        spotLight.color = u_spotLightColor[i];
-        spotLight.position = u_spotLightPosition[i];
-        spotLight.direction = u_spotLightDirection[i];
-        spotLight.distance = u_spotLightDistance[i];
-        spotLight.angleCos = u_spotLightAngleCos[i];
-        spotLight.penumbraCos = u_spotLightPenumbraCos[i];
+        spotLight.color = scene_SpotLightColor[i];
+        spotLight.position = scene_SpotLightPosition[i];
+        spotLight.direction = scene_SpotLightDirection[i];
+        spotLight.distance = scene_SpotLightDistance[i];
+        spotLight.angleCos = scene_SpotLightAngleCos[i];
+        spotLight.penumbraCos = scene_SpotLightPenumbraCos[i];
 
         vec3 direction = spotLight.position - v_pos;
         float lightDistance = length( direction );
@@ -93,7 +93,7 @@
         lightDiffuse += spotLight.color * d;
 
         vec3 halfDir = normalize( V + direction );
-        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), u_shininess ) * decayTotal;
+        float s = pow( clamp( dot( N, halfDir ), 0.0, 1.0 ), material_Shininess ) * decayTotal;
         lightSpecular += spotLight.color * s;
 
     }
@@ -103,8 +103,8 @@
     diffuse *= vec4( lightDiffuse, 1.0 );
     specular *= vec4( lightSpecular, 1.0 );
 
-    #ifdef ALPHA_CUTOFF
-        if( diffuse.a < u_alphaCutoff ) {
+    #ifdef MATERIAL_IS_ALPHA_CUTOFF
+        if( diffuse.a < material_AlphaCutoff ) {
             discard;
         }
     #endif

@@ -115,7 +115,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   set headColor(value: Color) {
     this._headColor.copyFrom(value);
-    this.getMaterial().shaderData.setVector4("u_headColor", value);
+    this.getMaterial().shaderData.setColor("u_headColor", value);
   }
 
   /**
@@ -127,7 +127,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   set trailColor(value: Color) {
     this._trailColor.copyFrom(value);
-    this.getMaterial().shaderData.setVector4("u_tailColor", value);
+    this.getMaterial().shaderData.setColor("u_tailColor", value);
   }
 
   /**

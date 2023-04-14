@@ -6,8 +6,8 @@ import { ShaderProperty } from "../shader/ShaderProperty";
  * Provide time related information.
  */
 export class Time {
-  private static _elapsedTimeProperty = ShaderProperty.getByName("galacean_ElapsedTime");
-  private static _deltaTimeProperty = ShaderProperty.getByName("galacean_DeltaTime");
+  private static _elapsedTimeProperty = ShaderProperty.getByName("scene_ElapsedTime");
+  private static _deltaTimeProperty = ShaderProperty.getByName("scene_DeltaTime");
 
   private _frameCount: number = 0;
   private _deltaTime: number = 0;
