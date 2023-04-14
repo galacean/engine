@@ -9,7 +9,7 @@ class GALACEAN_animation_event extends GLTFExtensionParser {
   /**
    * @override
    */
-  additiveParse(context: GLTFParserContext, animationClip: AnimationClip, schema: IOasisAnimation): void {
+  additiveParse(context: GLTFParserContext, animationClip: AnimationClip, schema: IGalaceanAnimation): void {
     const { engine } = context.glTFResource;
     const { events } = schema;
     events.map((eventData) => {

@@ -159,7 +159,7 @@ export interface IGalaceanMaterialRemap {
   isClone?: boolean;
 }
 
-export interface IOasisAnimation {
+export interface IGalaceanAnimation {
   events: {
     time: number;
     functionName: string;
@@ -184,5 +184,5 @@ export type GLTFExtensionSchema =
   | IKHRTextureTransform
   | IKHRXmp
   | IKHRXmp_Node
-  | IOasisAnimation
+  | IGalaceanAnimation
   | Object;
