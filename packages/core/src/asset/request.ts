@@ -21,6 +21,9 @@ export type RequestConfig = {
   retryCount?: number;
   retryInterval?: number;
   timeout?: number;
+  params?: {
+    requester?: <T>(url: string, config: RequestConfig) => AssetPromise<T>;
+  };
 } & RequestInit;
 
 /**
@@ -34,7 +37,12 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
     const retryInterval = config.retryInterval ?? defaultInterval;
     config.timeout = config.timeout ?? defaultTimeout;
     config.type = config.type ?? getMimeTypeFromUrl(url);
-    const realRequest = config.type === "image" ? requestImage : requestRes;
+    let realRequest: typeof requestRes;
+    if (config.params?.requester) {
+      realRequest = config.params.requester;
+    } else {
+      realRequest = config.type === "image" ? requestImage : requestRes;
+    }
     let lastError: Error;
     const executor = new MultiExecutor(
       () => {
