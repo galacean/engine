@@ -13,7 +13,7 @@ uniform float material_AlphaCutoff;
     uniform sampler2D material_BaseTexture;
 #endif
 
-#ifdef MATERIAL_SPECULAR_TEXTURE
+#ifdef MATERIAL_HAS_SPECULAR_TEXTURE
     uniform sampler2D material_SpecularTexture;
 #endif
 

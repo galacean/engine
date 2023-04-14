@@ -67,9 +67,9 @@ export class BlinnPhongMaterial extends BaseMaterial {
   set specularTexture(value: Texture2D) {
     this.shaderData.setTexture(BlinnPhongMaterial._specularTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("MATERIAL_SPECULAR_TEXTURE");
+      this.shaderData.enableMacro("MATERIAL_HAS_SPECULAR_TEXTURE");
     } else {
-      this.shaderData.disableMacro("MATERIAL_SPECULAR_TEXTURE");
+      this.shaderData.disableMacro("MATERIAL_HAS_SPECULAR_TEXTURE");
     }
   }
 
