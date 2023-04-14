@@ -2,7 +2,7 @@ import { AnimationClip, AnimationEvent } from "@galacean/engine-core";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
-import { IOasisAnimation } from "./GLTFExtensionSchema";
+import { IGalaceanAnimation } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("GALACEAN_animation_event", GLTFExtensionMode.AdditiveParse)
 class GALACEAN_animation_event extends GLTFExtensionParser {
