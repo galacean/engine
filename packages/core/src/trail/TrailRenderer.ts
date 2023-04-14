@@ -131,7 +131,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * Texture tile S for trail.
+   * Tile Texture WrapMode S-axis for trail.
    */
   get textureTileS(): number {
     return this._textureTileS;
@@ -143,7 +143,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * Texture tile T for trail.
+   * Tile Texture WrapMode T-axis for trail.
    */
   get textureTileT(): number {
     return this._textureTileT;
