@@ -11,7 +11,7 @@
 
     #ifdef SCENE_DIRECT_LIGHT_COUNT
     shadowAttenuation = 1.0;
-    #ifdef GALACEAN_CALCULATE_SHADOWS
+    #ifdef SCENE_IS_CALCULATE_SHADOWS
         shadowAttenuation *= sampleShadowMap();
         int sunIndex = int(scene_ShadowInfo.z);
     #endif
@@ -22,7 +22,7 @@
             continue;
 
         directionalLight.color = scene_DirectLightColor[i];
-        #ifdef GALACEAN_CALCULATE_SHADOWS
+        #ifdef SCENE_IS_CALCULATE_SHADOWS
             if (i == sunIndex) {
                 directionalLight.color *= shadowAttenuation;
             }
