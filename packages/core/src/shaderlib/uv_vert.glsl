@@ -9,6 +9,6 @@
     v_uv1 = TEXCOORD_1;
 #endif
 
-#ifdef MATERIAL_NEED_TILINGOFFSET
+#ifdef MATERIAL_NEED_TILING_OFFSET
     v_uv = v_uv * material_TilingOffset.xy + material_TilingOffset.zw;
 #endif

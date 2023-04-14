@@ -253,8 +253,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     const shaderData = this.shaderData;
 
-    shaderData.enableMacro("MATERIAL_NEED_WORLDPOS");
-    shaderData.enableMacro("MATERIAL_NEED_TILINGOFFSET");
+    shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
+    shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
 
     shaderData.setColor(PBRBaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(PBRBaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));

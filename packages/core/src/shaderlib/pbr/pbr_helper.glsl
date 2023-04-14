@@ -78,7 +78,7 @@ void initMaterial(out Material material, const in Geometry geometry){
             metal *= metalRoughMapColor.b;
         #endif
 
-        #ifdef MATERIAL_HAS_SPECULARGLOSSINESSTEXTURE
+        #ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
             vec4 specularGlossinessColor = texture2D(material_SpecularGlossinessTexture, v_uv );
             #ifndef ENGINE_IS_COLORSPACE_GAMMA
                 specularGlossinessColor = gammaToLinear(specularGlossinessColor);

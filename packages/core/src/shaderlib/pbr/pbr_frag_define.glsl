@@ -33,7 +33,7 @@ uniform float material_OcclusionTextureCoord;
 #endif
 
 
-#ifdef MATERIAL_HAS_SPECULARGLOSSINESSTEXTURE
+#ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
     uniform sampler2D material_SpecularGlossinessTexture;
 #endif
 
