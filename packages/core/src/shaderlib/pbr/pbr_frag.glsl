@@ -26,7 +26,7 @@ reflectedLight.indirectDiffuse += irradiance * BRDF_Diffuse_Lambert( material.di
 vec3 radiance = getLightProbeRadiance(geometry.viewDir, geometry.normal, material.roughness, int(scene_EnvMapLight.mipMapLevel), scene_EnvMapLight.specularIntensity);
 float radianceAttenuation = 1.0;
 
-#ifdef MATERIAL_CLEARCOAT
+#ifdef MATERIAL_ENABLE_CLEAR_COAT
     vec3 clearCoatRadiance = getLightProbeRadiance( geometry.viewDir, geometry.clearCoatNormal, material.clearCoatRoughness, int(scene_EnvMapLight.mipMapLevel), scene_EnvMapLight.specularIntensity );
 
     reflectedLight.indirectSpecular += clearCoatRadiance * material.clearCoat * envBRDFApprox(vec3( 0.04 ), material.clearCoatRoughness, geometry.clearCoatDotNV);
@@ -37,7 +37,7 @@ reflectedLight.indirectSpecular += radianceAttenuation * radiance * envBRDFAppro
 
 
 // Occlusion
-#ifdef MATERIAL_OCCLUSIONTEXTURE
+#ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
     vec2 aoUV = v_uv;
     #ifdef RENDERER_HAS_UV1
         if(material_OcclusionTextureCoord == 1.0){
