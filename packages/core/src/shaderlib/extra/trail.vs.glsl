@@ -27,7 +27,7 @@ void main(){
   v_uv = vec2( s, t );
 
   float normalizeTime = (u_currentTime - a_trailBirthTime) / u_trailLifeTime;
-  vec4 realPosition = vec4( ( 1.0 - normalizeTime ) * a_position.xyz + normalizeTime * a_position.xyz, 1.0 ); 
+  vec4 realPosition = vec4( ( 1.0 - normalizeTime ) * a_position.xyz + normalizeTime * a_nodeCenter.xyz, 1.0 ); 
   gl_Position = u_projMat * u_viewMat * realPosition;
 
   if (normalizeTime < 1.0){

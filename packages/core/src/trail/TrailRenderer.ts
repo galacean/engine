@@ -29,6 +29,9 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   private _nodeIDsBuffer: Buffer;
   private _nodeIDs: Float32Array;
+  
+  private _nodeCentersBuffer: Buffer;
+  private _nodeCenters: Float32Array;
 
   private _vertexNodeIDsBuffer: Buffer;
   private _vertexNodeIDs: Float32Array;
@@ -39,6 +42,8 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   private _headVertexArray: Array<Vector3>;
   private _tempHeadVertexArray: Array<Vector3>;
   private _tempEntityMatrix: Matrix;
+  private _tempCenterVertex: Vector3;
+
 
   private _headColor: Color = new Color();
   private _trailColor: Color = new Color();
@@ -175,9 +180,11 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     this._createTempHeadVertexList();
 
     this._tempEntityMatrix = new Matrix();
+    this._tempCenterVertex = new Vector3();
     this._vertexCount = this._maxLength * this._verticesPerNode;
     this._positions = new Float32Array((this._vertexCount + this._verticesPerNode) * 3);
     this._nodeIDs = new Float32Array(this._vertexCount + 2);
+    this._nodeCenters = new Float32Array((this._vertexCount + this._verticesPerNode) * 3);
     this._vertexNodeIDs = new Float32Array(this._vertexCount + 2);
     this._trailBirthTimes = new Float32Array(this._vertexCount + 2);
 
@@ -199,16 +206,21 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     const trailBirthTimesBuffer = new Buffer(this.engine, BufferBindFlag.VertexBuffer, this._trailBirthTimes, BufferUsage.Dynamic);
     mesh.setVertexBufferBinding(trailBirthTimesBuffer, 4, 3);
 
+    const nodeCentersBuffer = new Buffer(this.engine, BufferBindFlag.VertexBuffer, this._nodeCenters, BufferUsage.Dynamic);
+    mesh.setVertexBufferBinding(nodeCentersBuffer, 12, 4);
+
     mesh.setVertexElements(
       [
         new VertexElement("a_nodeIndex", 0, VertexElementFormat.Float, 0),
         new VertexElement("a_vertexNodeIndex", 0, VertexElementFormat.Float, 1),
         new VertexElement("a_position", 0, VertexElementFormat.Vector3, 2),
         new VertexElement("a_trailBirthTime", 0, VertexElementFormat.Float, 3),
+        new VertexElement("a_nodeCenter", 0, VertexElementFormat.Vector3, 4),
       ])
     mesh.addSubMesh(0, 0, MeshTopology.TriangleStrip);
 
     this._nodeIDsBuffer = nodeIDsButter;
+    this._nodeCentersBuffer = nodeCentersBuffer;
     this._vertexNodeIDsBuffer = vertexNodeIDsBuffer;
     this._vertexBuffer = positionBuffer;
     this._trailBirthTimesBuffer = trailBirthTimesBuffer;
@@ -285,6 +297,10 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   private _updateSingleBuffer(nodeIndex: number, transformMatrix: Matrix) {
 
+    this._tempCenterVertex.set(0, 0, 0);
+    this._tempCenterVertex.transformToVec3(transformMatrix);
+    this._updateNodeCenter(nodeIndex, this._tempCenterVertex);
+
     for (let i = 0; i < this._headVertexArray.length; i++) {
       let vertex = this._tempHeadVertexArray[i];
       vertex.copyFrom(this._headVertexArray[i]);
@@ -336,6 +352,20 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     this._nodeIDsBuffer.setData(this._nodeIDs);
     this._vertexNodeIDsBuffer.setData(this._vertexNodeIDs);
     this._trailBirthTimesBuffer.setData(this._trailBirthTimes);
+  }
+
+  private _updateNodeCenter(nodeIndex: number, nodeCenter: Vector3) {
+    for ( var i = 0; i < this._verticesPerNode; i ++ ) {
+      let baseIndex = ((this._verticesPerNode * nodeIndex) + i) * 3;
+      this._nodeCenters[baseIndex] = nodeCenter.x;
+      this._nodeCenters[baseIndex + 1] = nodeCenter.y;
+      this._nodeCenters[baseIndex + 2] = nodeCenter.z;
+    }
+    let lastIndex = this._currentLength * this._verticesPerNode * 3;
+    for (let i = 0; i < 2 * this._verticesPerNode * 3; i++) {
+      this._nodeCenters[lastIndex + i] = this._nodeCenters[i];
+    }
+    this._nodeCentersBuffer.setData(this._nodeCenters);
   }
 
   private _updateTrailUniform() {
