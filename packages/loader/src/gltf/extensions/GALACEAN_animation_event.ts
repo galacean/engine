@@ -1,13 +1,11 @@
 import { AnimationClip, AnimationEvent } from "@galacean/engine-core";
-import { GLTFResource } from "../GLTFResource";
-import { GLTFExtensionOwnerSchema } from "../GLTFSchema";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
 import { IOasisAnimation } from "./GLTFExtensionSchema";
 
-@registerGLTFExtension("OASIS_animation_event", GLTFExtensionMode.AdditiveParse)
-class OASIS_animation_event extends GLTFExtensionParser {
+@registerGLTFExtension("GALACEAN_animation_event", GLTFExtensionMode.AdditiveParse)
+class GALACEAN_animation_event extends GLTFExtensionParser {
   /**
    * @override
    */
