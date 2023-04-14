@@ -19,10 +19,10 @@ import { ShadowType } from "./shadow/enum/ShadowType";
  * Scene.
  */
 export class Scene extends EngineObject {
-  private static _fogColorProperty = ShaderProperty.getByName("galacean_FogColor");
-  private static _fogParamsProperty = ShaderProperty.getByName("galacean_FogParams");
-  private static _sunlightColorProperty = ShaderProperty.getByName("galacean_SunlightColor");
-  private static _sunlightDirectionProperty = ShaderProperty.getByName("galacean_SunlightDirection");
+  private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
+  private static _sunlightColorProperty = ShaderProperty.getByName("scene_SunlightColor");
+  private static _sunlightDirectionProperty = ShaderProperty.getByName("scene_SunlightDirection");
 
   /** Scene name. */
   name: string;

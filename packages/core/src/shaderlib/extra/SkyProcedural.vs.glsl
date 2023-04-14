@@ -36,8 +36,8 @@ uniform vec3 material_SkyTint;
 uniform vec3 material_GroundTint;
 uniform float material_Exposure;
 uniform float material_AtmosphereThickness;
-uniform vec4 oasis_SunlightColor;
-uniform vec3 oasis_SunlightDirection;
+uniform vec4 scene_SunlightColor;
+uniform vec3 scene_SunlightDirection;
 
 varying vec3 v_GroundColor;
 varying vec3 v_SkyColor;
@@ -115,7 +115,7 @@ void main () {
 		{
 			float height = length(samplePoint);
 			float depth = exp(scaleOverScaleDepth * (innerRadius - height));
-			float lightAngle = dot(-oasis_SunlightDirection, samplePoint) / height;
+			float lightAngle = dot(-scene_SunlightDirection, samplePoint) / height;
 			float cameraAngle = dot(eyeRay, samplePoint) / height;
 			float scatter = (startOffset + depth*(scaleAngle(lightAngle) - scaleAngle(cameraAngle)));
 			vec3 attenuate = exp(-clamp(scatter, 0.0, MAX_SCATTER) * (invWavelength * kr4PI + km4PI));
@@ -126,7 +126,7 @@ void main () {
 		{
 			float height = length(samplePoint);
 			float depth = exp(scaleOverScaleDepth * (innerRadius - height));
-			float lightAngle = dot(-oasis_SunlightDirection, samplePoint) / height;
+			float lightAngle = dot(-scene_SunlightDirection, samplePoint) / height;
 			float cameraAngle = dot(eyeRay, samplePoint) / height;
 			float scatter = (startOffset + depth*(scaleAngle(lightAngle) - scaleAngle(cameraAngle)));
 			vec3 attenuate = exp(-clamp(scatter, 0.0, MAX_SCATTER) * (invWavelength * kr4PI + km4PI));
@@ -146,7 +146,7 @@ void main () {
 		// Calculate the ray's starting position, then calculate its scattering offset
 		float depth = exp((-cameraHeight) * (1.0/scaleDepth));
 		float cameraAngle = dot(-eyeRay, pos);
-		float lightAngle = dot(-oasis_SunlightDirection, pos);
+		float lightAngle = dot(-scene_SunlightDirection, pos);
 		float cameraScale = scaleAngle(cameraAngle);
 		float lightScale = scaleAngle(lightAngle);
 		float cameraOffset = depth*cameraScale;
@@ -189,17 +189,17 @@ void main () {
 	// 2. in case of gamma: do sqrt right away instead of doing that in fshader
 	
 	v_GroundColor = material_Exposure * (cIn + COLOR_2_LINEAR(material_GroundTint) * cOut);
-	v_SkyColor    = material_Exposure * (cIn * getRayleighPhase(-oasis_SunlightDirection, -eyeRay));
+	v_SkyColor    = material_Exposure * (cIn * getRayleighPhase(-scene_SunlightDirection, -eyeRay));
 
 	
 	// The sun should have a stable intensity in its course in the sky. Moreover it should match the highlight of a purely specular material.
 	// This matching was done using the standard shader BRDF1 on the 5/31/2017
 	// Finally we want the sun to be always bright even in LDR thus the normalization of the lightColor for low intensity.
-	float lightColorIntensity = clamp(length(oasis_SunlightColor.xyz), 0.25, 1.0);
+	float lightColorIntensity = clamp(length(scene_SunlightColor.xyz), 0.25, 1.0);
 
 	#ifdef MATERIAL_SUN_HIGH_QUALITY 
-		v_SunColor = HDSundiskIntensityFactor * clamp(cOut,0.0,1.0) * oasis_SunlightColor.xyz / lightColorIntensity;
+		v_SunColor = HDSundiskIntensityFactor * clamp(cOut,0.0,1.0) * scene_SunlightColor.xyz / lightColorIntensity;
 	#elif defined(MATERIAL_SUN_SIMPLE) 
-		v_SunColor = simpleSundiskIntensityFactor * clamp(cOut * sunScale,0.0,1.0) * oasis_SunlightColor.xyz / lightColorIntensity;
+		v_SunColor = simpleSundiskIntensityFactor * clamp(cOut * sunScale,0.0,1.0) * scene_SunlightColor.xyz / lightColorIntensity;
 	#endif
 }

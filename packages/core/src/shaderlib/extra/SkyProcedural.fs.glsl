@@ -9,8 +9,8 @@ const float SKY_GROUND_THRESHOLD = 0.02;
 
 uniform float material_SunSize;
 uniform float material_SunSizeConvergence;
-uniform vec4 oasis_SunlightColor;
-uniform vec3 oasis_SunlightDirection;
+uniform vec4 scene_SunlightColor;
+uniform vec3 scene_SunlightDirection;
 
 varying vec3 v_GroundColor;
 varying vec3 v_SkyColor;
@@ -74,7 +74,7 @@ void main() {
 
 	#if defined(MATERIAL_SUN_HIGH_QUALITY)||defined(MATERIAL_SUN_SIMPLE)
 		if (y < 0.0)
-			col += v_SunColor * calcSunAttenuation(-oasis_SunlightDirection, -ray);
+			col += v_SunColor * calcSunAttenuation(-scene_SunlightDirection, -ray);
 	#endif
 
     #ifdef ENGINE_IS_COLORSPACE_GAMMA
