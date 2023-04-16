@@ -1,6 +1,6 @@
 {
   "name": "oasis-engine",
-  "version": "0.0.0-experimental-material-deleteBackNormal.0",
+  "version": "0.0.0-experimental-material-deleteBackNormal.1",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
