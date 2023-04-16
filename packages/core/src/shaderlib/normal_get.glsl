@@ -25,6 +25,7 @@ mat3 getTBN(){
     #else
         vec3 normal = getNormal();
         vec3 position = v_pos;
+        vec2 uv = v_uv;
 
         #ifdef HAS_DERIVATIVES
             // ref: http://www.thetenthplanet.de/archives/1180
