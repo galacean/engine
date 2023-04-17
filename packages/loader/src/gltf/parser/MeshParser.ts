@@ -160,10 +160,11 @@ export class MeshParser extends Parser {
       let scaleFactor: number;
       elementNormalized && (scaleFactor = GLTFUtil.getNormalizedComponentScale(accessor.componentType));
 
-      const byteOffset = accessor.byteOffset || 0;
-      const stride = accessorBuffer.stride;
-      const elementOffset = byteOffset % stride;
+      let elementOffset: number;
       if (accessorBuffer.interleaved) {
+        const byteOffset = accessor.byteOffset || 0;
+        const stride = accessorBuffer.stride;
+        elementOffset = byteOffset % stride;
         if (vertexBindingInfos[meshId] === undefined) {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
@@ -179,7 +180,8 @@ export class MeshParser extends Parser {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, vertexBindingInfos[meshId]);
         }
       } else {
-        vertexElement = new VertexElement(attribute, 0, elementFormat, bufferBindIndex);
+        elementOffset = 0;
+        vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
@@ -211,9 +213,10 @@ export class MeshParser extends Parser {
           min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
           max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
+          const baseOffset = elementOffset / vertices.BYTES_PER_ELEMENT;
           const stride = vertices.length / accessorCount;
           for (let j = 0; j < accessorCount; j++) {
-            const offset = j * stride;
+            const offset = baseOffset + j * stride;
             position.copyFromArray(vertices, offset);
             Vector3.min(min, position, min);
             Vector3.max(max, position, max);
