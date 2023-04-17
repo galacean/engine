@@ -44,9 +44,15 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   private _sprite: Sprite = null;
 
   @ignoreClone
-  private _width: number = undefined;
+  private _customWidth: number = undefined;
   @ignoreClone
-  private _height: number = undefined;
+  private _customHeight: number = undefined;
+  @ignoreClone
+  private _defaultWidth: number = 0;
+  @ignoreClone
+  private _defaultHeight: number = 0;
+  @ignoreClone
+  private _defaultSizeDirty: boolean = true;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
@@ -158,15 +164,17 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render width.
    */
   get width(): number {
-    this._width === undefined && this._sprite && (this.width = this._sprite.width);
-    return this._width;
+    if (this._customWidth === undefined) {
+      this._calDefaultSize();
+      return this._defaultWidth;
+    } else {
+      return this._customWidth;
+    }
   }
 
   set width(value: number) {
-    // Update width if undefined
-    this._width === undefined && this._sprite && (this._width = this._sprite.width);
-    if (this._width !== value) {
-      this._width = value;
+    if (this._customWidth !== value) {
+      this._customWidth = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
@@ -175,15 +183,17 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render height.
    */
   get height(): number {
-    this._height === undefined && this._sprite && (this.height = this._sprite.height);
-    return this._height;
+    if (this._customHeight === undefined) {
+      this._calDefaultSize();
+      return this._defaultHeight;
+    } else {
+      return this._customHeight;
+    }
   }
 
   set height(value: number) {
-    // Update height if undefined
-    this._height === undefined && this._sprite && (this._height = this._sprite.height);
-    if (this._height !== value) {
-      this._height = value;
+    if (this._customHeight !== value) {
+      this._customHeight = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
@@ -266,12 +276,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
-      worldBounds.min.set(0, 0, 0);
-      worldBounds.max.set(0, 0, 0);
-    } else {
-      this._assembler.updatePositions(this);
-    }
+    this._assembler.updatePositions(this);
   }
 
   protected override _render(context: RenderContext): void {
@@ -279,13 +284,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       return;
     }
 
-    // Update position.
+    // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       this._assembler.updatePositions(this);
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
-    // Update uv.
+    // Update uv
     if (this._dirtyUpdateFlag & SpriteRendererUpdateFlags.UV) {
       this._assembler.updateUVs(this);
       this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.UV;
@@ -309,6 +314,18 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     this._sprite = null;
     this._assembler = null;
     this._verticesData = null;
+  }
+
+  private _calDefaultSize() {
+    if (!this._defaultSizeDirty) {
+      return;
+    }
+    if (this._sprite) {
+      this._defaultWidth = this._sprite.width;
+      this._defaultHeight = this._sprite.height;
+    } else {
+      this._defaultWidth = this._defaultHeight = 0;
+    }
   }
 
   private _updateStencilState(): void {
@@ -341,6 +358,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
+        this._defaultSizeDirty = true;
         const { _drawMode: drawMode } = this;
         if (drawMode === SpriteDrawMode.Sliced) {
           this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -349,7 +367,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         } else {
           // When the width and height of `SpriteRenderer` are `undefined`,
           // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
-          if (this._width === undefined || this._height === undefined) {
+          if (this._customWidth === undefined || this._customHeight === undefined) {
             this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
           }
         }
