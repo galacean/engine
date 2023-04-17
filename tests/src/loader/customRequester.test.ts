@@ -11,10 +11,10 @@ before(async () => {
 });
 
 describe("custom requester", function () {
-  it("invoke", async () => {
+  it("invoke json loader", async () => {
     const mockReturn = { result: "123" };
     const ret: any = await engine.resourceManager.load({
-      type: AssetType.GLTF,
+      type: AssetType.JSON,
       url: "/not/relevant",
       params: {
         requester: (url) => {
