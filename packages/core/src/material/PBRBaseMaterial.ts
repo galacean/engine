@@ -117,9 +117,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set occlusionTexture(value: Texture2D) {
     this.shaderData.setTexture(PBRBaseMaterial._occlusionTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("OCCLUSIONTEXTURE");
+      this.shaderData.enableMacro("MATERIAL_HAS_OCCLUSION_TEXTURE");
     } else {
-      this.shaderData.disableMacro("OCCLUSIONTEXTURE");
+      this.shaderData.disableMacro("MATERIAL_HAS_OCCLUSION_TEXTURE");
     }
   }
 
@@ -173,9 +173,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   set clearCoat(value: number) {
     if (!!this.shaderData.getFloat(PBRBaseMaterial._clearCoatProp) !== !!value) {
       if (value === 0) {
-        this.shaderData.disableMacro("CLEARCOAT");
+        this.shaderData.disableMacro("MATERIAL_ENABLE_CLEAR_COAT");
       } else {
-        this.shaderData.enableMacro("CLEARCOAT");
+        this.shaderData.enableMacro("MATERIAL_ENABLE_CLEAR_COAT");
       }
     }
     this.shaderData.setFloat(PBRBaseMaterial._clearCoatProp, value);
@@ -192,9 +192,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     this.shaderData.setTexture(PBRBaseMaterial._clearCoatTextureProp, value);
 
     if (value) {
-      this.shaderData.enableMacro("HAS_CLEARCOATTEXTURE");
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_TEXTURE");
     } else {
-      this.shaderData.disableMacro("HAS_CLEARCOATTEXTURE");
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_TEXTURE");
     }
   }
 
@@ -220,9 +220,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     this.shaderData.setTexture(PBRBaseMaterial._clearCoatRoughnessTextureProp, value);
 
     if (value) {
-      this.shaderData.enableMacro("HAS_CLEARCOATROUGHNESSTEXTURE");
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE");
     } else {
-      this.shaderData.disableMacro("HAS_CLEARCOATROUGHNESSTEXTURE");
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE");
     }
   }
 
@@ -237,9 +237,9 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
     this.shaderData.setTexture(PBRBaseMaterial._clearCoatNormalTextureProp, value);
 
     if (value) {
-      this.shaderData.enableMacro("HAS_CLEARCOATNORMALTEXTURE");
+      this.shaderData.enableMacro("MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE");
     } else {
-      this.shaderData.disableMacro("HAS_CLEARCOATNORMALTEXTURE");
+      this.shaderData.disableMacro("MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE");
     }
   }
 
@@ -253,8 +253,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     const shaderData = this.shaderData;
 
-    shaderData.enableMacro("MATERIAL_NEED_WORLDPOS");
-    shaderData.enableMacro("MATERIAL_NEED_TILINGOFFSET");
+    shaderData.enableMacro("MATERIAL_NEED_WORLD_POS");
+    shaderData.enableMacro("MATERIAL_NEED_TILING_OFFSET");
 
     shaderData.setColor(PBRBaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(PBRBaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));

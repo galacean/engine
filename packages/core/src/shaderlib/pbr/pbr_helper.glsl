@@ -21,7 +21,7 @@ void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(camera_Position - v_pos);
 
-    #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEARCOATNORMALTEXTURE)
+    #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE)
         mat3 tbn = getTBN();
     #endif
 
@@ -34,8 +34,8 @@ void initGeometry(out Geometry geometry){
     geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
 
 
-    #ifdef MATERIAL_CLEARCOAT
-        #ifdef MATERIAL_HAS_CLEARCOATNORMALTEXTURE
+    #ifdef MATERIAL_ENABLE_CLEAR_COAT
+        #ifdef MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE
             geometry.clearCoatNormal = getNormalByNormalTexture(tbn, material_ClearCoatNormalTexture, material_NormalIntensity, v_uv);
         #else
             geometry.clearCoatNormal = getNormal();
@@ -72,13 +72,13 @@ void initMaterial(out Material material, const in Geometry geometry){
             }
         #endif
 
-        #ifdef MATERIAL_ROUGHNESSMETALLICTEXTURE
+        #ifdef MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE
             vec4 metalRoughMapColor = texture2D( material_RoughnessMetallicTexture, v_uv );
             roughness *= metalRoughMapColor.g;
             metal *= metalRoughMapColor.b;
         #endif
 
-        #ifdef MATERIAL_HAS_SPECULARGLOSSINESSTEXTURE
+        #ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
             vec4 specularGlossinessColor = texture2D(material_SpecularGlossinessTexture, v_uv );
             #ifndef ENGINE_IS_COLORSPACE_GAMMA
                 specularGlossinessColor = gammaToLinear(specularGlossinessColor);
@@ -101,13 +101,13 @@ void initMaterial(out Material material, const in Geometry geometry){
 
         material.roughness = max(material.roughness, getAARoughnessFactor(geometry.normal));
 
-        #ifdef MATERIAL_CLEARCOAT
+        #ifdef MATERIAL_ENABLE_CLEAR_COAT
             material.clearCoat = material_ClearCoat;
             material.clearCoatRoughness = material_ClearCoatRoughness;
-            #ifdef MATERIAL_HAS_CLEARCOATTEXTURE
+            #ifdef MATERIAL_HAS_CLEAR_COAT_TEXTURE
                 material.clearCoat *= texture2D( material_ClearCoatTexture, v_uv ).r;
             #endif
-            #ifdef MATERIAL_HAS_CLEARCOATROUGHNESSTEXTURE
+            #ifdef MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE
                 material.clearCoatRoughness *= texture2D( material_ClearCoatRoughnessTexture, v_uv ).g;
             #endif
             material.clearCoat = saturate( material.clearCoat );
