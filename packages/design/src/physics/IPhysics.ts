@@ -1,17 +1,23 @@
-import { IPhysicsMaterial } from "./IPhysicsMaterial";
-import { IPhysicsManager } from "./IPhysicsManager";
-import { IBoxColliderShape, ISphereColliderShape, ICapsuleColliderShape, IPlaneColliderShape } from "./shape";
-import { IDynamicCollider } from "./IDynamicCollider";
-import { IStaticCollider } from "./IStaticCollider";
 import { Quaternion, Vector3 } from "@galacean/engine-math";
-import { ICollider } from "./ICollider";
 import { ICharacterController } from "./ICharacterController";
+import { ICollider } from "./ICollider";
+import { IDynamicCollider } from "./IDynamicCollider";
+import { IPhysicsManager } from "./IPhysicsManager";
+import { IPhysicsMaterial } from "./IPhysicsMaterial";
+import { IStaticCollider } from "./IStaticCollider";
 import { IFixedJoint, IHingeJoint, ISpringJoint } from "./joints";
+import { IBoxColliderShape, ICapsuleColliderShape, IPlaneColliderShape, ISphereColliderShape } from "./shape";
 
 /**
  * The interface of physics creation.
  */
 export interface IPhysics {
+  /**
+   * Initialize physics.
+   * @returns A promise that will resolve when the physics is initialized
+   */
+  initialize(): Promise<void>;
+
   /**
    * Create physics manager.
    * @param onContactEnter - Function called when contact begin

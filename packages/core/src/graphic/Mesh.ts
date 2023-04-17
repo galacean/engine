@@ -1,6 +1,6 @@
 import { IPlatformPrimitive } from "@galacean/engine-design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@galacean/engine-math";
-import { RefObject } from "../asset/RefObject";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
 import { BufferUtil } from "../graphic/BufferUtil";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
@@ -14,7 +14,7 @@ import { UpdateFlagManager } from "../UpdateFlagManager";
 /**
  * Mesh.
  */
-export abstract class Mesh extends RefObject {
+export abstract class Mesh extends GraphicsResource {
   /** Name. */
   name: string;
 
@@ -174,10 +174,10 @@ export abstract class Mesh extends RefObject {
    * @internal
    */
   _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    if (this._getRefCount() > 0) {
+    if (this._getReferCount() > 0) {
       const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addRefCount(-1);
-      binding._buffer._addRefCount(1);
+      lastBinding && lastBinding._buffer._addReferCount(-1);
+      binding._buffer._addReferCount(1);
     }
     this._vertexBufferBindings[index] = binding;
     this._bufferStructChanged = true;
@@ -194,19 +194,27 @@ export abstract class Mesh extends RefObject {
   /**
    * @override
    */
-  _addRefCount(value: number): void {
-    super._addRefCount(value);
+  _addReferCount(value: number): void {
+    super._addReferCount(value);
     const vertexBufferBindings = this._vertexBufferBindings;
     for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
-      vertexBufferBindings[i]._buffer._addRefCount(value);
+      vertexBufferBindings[i]._buffer._addReferCount(value);
     }
   }
 
   /**
    * @override
-   * Destroy.
    */
-  _onDestroy(): void {
+  _rebuild(): void {
+    this._engine._hardwareRenderer.createPlatformPrimitive(this);
+  }
+
+  /**
+   * @override
+   * @internal
+   */
+  protected _onDestroy(): void {
+    super._onDestroy();
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;
     this._vertexElements = null;

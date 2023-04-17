@@ -1,5 +1,3 @@
-import { Event } from "./Event";
-
 /**
  * EventDispatcher, which can be inherited as a base class.
  */
@@ -86,7 +84,7 @@ export class EventDispatcher {
    * @returns This
    */
   on(event: string, fn: Function): EventDispatcher {
-    return this.addEventListener(event, fn);
+    return this._addEventListener(event, fn);
   }
 
   /**
@@ -96,31 +94,7 @@ export class EventDispatcher {
    * @returns This
    */
   once(event: string, fn: Function): EventDispatcher {
-    return this.addEventListener(event, fn, true);
-  }
-
-  /**
-   * @deprecated Use `on/once` instead.
-   * Add a listener function with the specified event name.
-   * @param event - Event name
-   * @param fn - Function
-   * @param once - Is it a one-time listener
-   * @returns this
-   */
-  addEventListener(event: string, fn: Function, once?: boolean): EventDispatcher {
-    const listener = { fn, once };
-    const events = this._events;
-    const element = events[event];
-
-    if (!element) {
-      events[event] = listener;
-      this._eventCount++;
-    } else if (Array.isArray(element)) {
-      element.push(listener);
-    } else {
-      events[event] = [element, listener];
-    }
-    return this;
+    return this._addEventListener(event, fn, true);
   }
 
   /**
@@ -179,11 +153,20 @@ export class EventDispatcher {
     }
   }
 
-  /**
-   * @deprecated Use `dispatch` instead.
-   */
-  trigger(e: Event) {
-    this.dispatch(e.type as string, e.data);
+  private _addEventListener(event: string, fn: Function, once?: boolean): EventDispatcher {
+    const listener = { fn, once };
+    const events = this._events;
+    const element = events[event];
+
+    if (!element) {
+      events[event] = listener;
+      this._eventCount++;
+    } else if (Array.isArray(element)) {
+      element.push(listener);
+    } else {
+      events[event] = [element, listener];
+    }
+    return this;
   }
 
   private _clearEvent(event: string) {

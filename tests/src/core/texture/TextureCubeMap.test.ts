@@ -1,4 +1,4 @@
-import { TextureCubeFace, TextureCube, TextureFormat } from "@galacean/engine-core";
+import { Engine, TextureCube, TextureCubeFace, TextureFormat } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
@@ -8,9 +8,16 @@ describe("TextureCube", () => {
   const size = 1024;
 
   const canvas = document.createElement("canvas");
-  const engine = new WebGLEngine(canvas);
-  const rhi = engine._hardwareRenderer;
-  const isWebGL2 = rhi.isWebGL2;
+
+  let engine: Engine;
+  let rhi: any;
+  let isWebGL2: boolean;
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: canvas });
+    // @ts-ignore
+    rhi = engine._hardwareRenderer;
+    isWebGL2 = rhi.isWebGL2;
+  });
 
   beforeEach(() => {
     rhi._isWebGL2 = isWebGL2;
@@ -59,25 +66,21 @@ describe("TextureCube", () => {
   // todo: dom test
 
   describe("设置颜色缓冲", () => {
-    const texture = new TextureCube(engine, size);
-    const buffer = new Uint8Array(width * height * 4);
-
-    it("默认匹配大小", () => {
+    it("设置数据", () => {
+      const texture = new TextureCube(engine, size);
+      const buffer = new Uint8Array(width * height * 4);
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer);
       }).not.to.throw;
-    });
-    it("设置 mip 数据", () => {
+
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0);
       }).not.to.throw;
-    });
-    it("手动设置偏移和宽高", () => {
+
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, width, height);
       }).not.to.throw;
-    });
-    it("设置cube的不同面", () => {
+
       expect(() => {
         texture.setPixelBuffer(TextureCubeFace.PositiveX, buffer, 0, 0, 0, width, height);
         texture.setPixelBuffer(TextureCubeFace.NegativeX, buffer, 0, 0, 0, width, height);

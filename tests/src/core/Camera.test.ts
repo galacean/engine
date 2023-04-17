@@ -1,6 +1,6 @@
-import { MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Camera, Entity } from "@galacean/engine-core";
+import { Matrix, Vector4 } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 const canvasDOM = document.createElement("canvas");
@@ -11,8 +11,8 @@ describe("camera test", function () {
   let node: Entity;
   let camera: Camera;
   let identityMatrix: Matrix;
-  before(() => {
-    const engine = new WebGLEngine(canvasDOM);
+  before(async () => {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     node = engine.sceneManager.activeScene.createRootEntity();
     camera = node.addComponent(Camera);
     // camera._onAwake();

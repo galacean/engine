@@ -4,6 +4,7 @@ import { Vector2 } from "@galacean/engine-math";
  * @internal
  */
 export interface CharInfo {
+  char: string;
   x: number;
   y: number;
   w: number;
@@ -16,4 +17,5 @@ export interface CharInfo {
   index: number;
   data?: Uint8Array;
   uvs: Vector2[];
+  bufferOffset?: Vector2;
 }

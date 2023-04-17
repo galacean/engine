@@ -1,4 +1,4 @@
-import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
+import { BoundingBox, Color, Vector3, Matrix } from "@galacean/engine-math";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
@@ -132,8 +132,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set font(value: Font) {
     const lastFont = this._font;
     if (lastFont !== value) {
-      lastFont && lastFont._addRefCount(-1);
-      value && value._addRefCount(1);
+      lastFont && lastFont._addReferCount(-1);
+      value && value._addReferCount(1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -277,16 +277,25 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   constructor(entity: Entity) {
     super(entity);
+    this._init();
+  }
+
+  /**
+   * @internal
+   * Standalone for CanvasRenderer plugin.
+   */
+  _init(): void {
     const { engine } = this;
     this._font = engine._textDefaultFont;
-    this._font._addRefCount(1);
+    this._font._addReferCount(1);
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
   /**
    * @internal
    */
-  _onDestroy(): void {
+  protected _onDestroy(): void {
+    super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
@@ -295,12 +304,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
     charRenderDatas.length = 0;
 
     if (this._font) {
-      this._font._addRefCount(-1);
+      this._font._addReferCount(-1);
       this._font = null;
     }
     this._subFont && (this._subFont = null);
-
-    super._onDestroy();
   }
 
   /**
@@ -330,6 +337,14 @@ export class TextRenderer extends Renderer implements ICustomClone {
    */
   _setDirtyFlagFalse(type: number): void {
     this._dirtyFlag &= ~type;
+  }
+
+  /**
+   * @override
+   */
+  protected _updateShaderData(context: RenderContext): void {
+    // @ts-ignore
+    this._updateTransformShaderData(context, Matrix._identity);
   }
 
   /**
@@ -371,34 +386,24 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
-    const spriteElementPool = this._engine._spriteElementPool;
-    const textElement = this._engine._textElementPool.getFromPool();
-    const charElements = textElement.charElements;
+    const spriteRenderDataPool = this._engine._spriteRenderDataPool;
+    const textData = this._engine._textRenderDataPool.getFromPool();
+    const charsData = textData.charsData;
     const material = this.getMaterial();
     const charRenderDatas = this._charRenderDatas;
     const charCount = charRenderDatas.length;
-    const passes = material.shader.passes;
-    const renderStates = material.renderStates;
 
-    textElement.component = this;
-    textElement.material = material;
-    charElements.length = charCount;
-    textElement.renderState = renderStates[0];
+    textData.component = this;
+    textData.material = material;
+    charsData.length = charCount;
 
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
-      const spriteElement = spriteElementPool.getFromPool();
-      spriteElement.setValue(
-        this,
-        charRenderData.renderData,
-        material,
-        charRenderData.texture,
-        renderStates[0],
-        passes[0]
-      );
-      charElements[i] = spriteElement;
+      const spriteRenderData = spriteRenderDataPool.getFromPool();
+      spriteRenderData.set(this, material, charRenderData.renderData, charRenderData.texture, i);
+      charsData[i] = spriteRenderData;
     }
-    context.camera._renderPipeline.pushPrimitive(textElement);
+    context.camera._renderPipeline.pushRenderData(context, textData);
   }
 
   private _updateStencilState(): void {
@@ -425,7 +430,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _resetSubFont(): void {
-    this._subFont = this._font._getSubFont(this.fontSize, this.fontStyle);
+    const font = this._font;
+    this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
+    this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {

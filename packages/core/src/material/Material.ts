@@ -1,9 +1,7 @@
 import { IClone } from "@galacean/engine-design";
-import { RefObject } from "../asset/RefObject";
+import { ReferResource } from "../asset/ReferResource";
 import { CloneManager } from "../clone/CloneManager";
 import { Engine } from "../Engine";
-import { MeshRenderElement } from "../RenderPipeline/MeshRenderElement";
-import { SpriteElement } from "../RenderPipeline/SpriteElement";
 import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
@@ -12,7 +10,7 @@ import { RenderState } from "../shader/state/RenderState";
 /**
  * Material.
  */
-export class Material extends RefObject implements IClone {
+export class Material extends ReferResource implements IClone {
   /** Name. */
   name: string;
   /** Shader data. */
@@ -35,14 +33,19 @@ export class Material extends RefObject implements IClone {
 
     const renderStates = this._renderStates;
     const lastStatesCount = renderStates.length;
-    const passCount = value.passes.length;
 
-    if (lastStatesCount < passCount) {
-      for (let i = lastStatesCount; i < passCount; i++) {
+    let maxPassCount = 0;
+    const subShaders = value.subShaders;
+    for (let i = 0; i < subShaders.length; i++) {
+      maxPassCount = Math.max(subShaders[i].passes.length, maxPassCount);
+    }
+
+    if (lastStatesCount < maxPassCount) {
+      for (let i = lastStatesCount; i < maxPassCount; i++) {
         renderStates.push(new RenderState());
       }
     } else {
-      renderStates.length = passCount;
+      renderStates.length = maxPassCount;
     }
   }
 
@@ -92,19 +95,8 @@ export class Material extends RefObject implements IClone {
   /**
    * @override
    */
-  _addRefCount(value: number): void {
-    super._addRefCount(value);
-    this.shaderData._addRefCount(value);
+  _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this.shaderData._addReferCount(value);
   }
-
-  /**
-   * @internal
-   * @todo:temporary solution
-   */
-  _preRender(renderElement: MeshRenderElement | SpriteElement) {}
-
-  /**
-   * @override
-   */
-  protected _onDestroy(): void {}
 }

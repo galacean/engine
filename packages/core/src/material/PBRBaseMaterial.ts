@@ -1,5 +1,5 @@
 import { Color, Vector4 } from "@galacean/engine-math";
-import { Logger } from "..";
+import { Logger, ShaderProperty } from "..";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
@@ -10,15 +10,15 @@ import { TextureCoordinate } from "./enums/TextureCoordinate";
  * PBR (Physically-Based Rendering) Material.
  */
 export abstract class PBRBaseMaterial extends BaseMaterial {
-  private static _occlusionTextureIntensityProp = Shader.getPropertyByName("u_occlusionIntensity");
-  private static _occlusionTextureCoordProp = Shader.getPropertyByName("u_occlusionTextureCoord");
-  private static _occlusionTextureProp = Shader.getPropertyByName("u_occlusionTexture");
+  private static _occlusionTextureIntensityProp = ShaderProperty.getByName("material_OcclusionIntensity");
+  private static _occlusionTextureCoordProp = ShaderProperty.getByName("material_OcclusionTextureCoord");
+  private static _occlusionTextureProp = ShaderProperty.getByName("material_OcclusionTexture");
 
-  private static _clearCoatProp = Shader.getPropertyByName("u_clearCoat");
-  private static _clearCoatTextureProp = Shader.getPropertyByName("u_clearCoatTexture");
-  private static _clearCoatRoughnessProp = Shader.getPropertyByName("u_clearCoatRoughness");
-  private static _clearCoatRoughnessTextureProp = Shader.getPropertyByName("u_clearCoatRoughnessTexture");
-  private static _clearCoatNormalTextureProp = Shader.getPropertyByName("u_clearCoatNormalTexture");
+  private static _clearCoatProp = ShaderProperty.getByName("material_ClearCoat");
+  private static _clearCoatTextureProp = ShaderProperty.getByName("material_ClearCoatTexture");
+  private static _clearCoatRoughnessProp = ShaderProperty.getByName("material_ClearCoatRoughness");
+  private static _clearCoatRoughnessTextureProp = ShaderProperty.getByName("material_ClearCoatRoughnessTexture");
+  private static _clearCoatNormalTextureProp = ShaderProperty.getByName("material_ClearCoatNormalTexture");
 
   /**
    * Base color.
@@ -253,8 +253,8 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     const shaderData = this.shaderData;
 
-    shaderData.enableMacro("O3_NEED_WORLDPOS");
-    shaderData.enableMacro("O3_NEED_TILINGOFFSET");
+    shaderData.enableMacro("MATERIAL_NEED_WORLDPOS");
+    shaderData.enableMacro("MATERIAL_NEED_TILINGOFFSET");
 
     shaderData.setColor(PBRBaseMaterial._baseColorProp, new Color(1, 1, 1, 1));
     shaderData.setColor(PBRBaseMaterial._emissiveColorProp, new Color(0, 0, 0, 1));

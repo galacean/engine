@@ -1,4 +1,5 @@
 import { Engine } from "../Engine";
+import { ShaderProperty } from "../shader";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
 import { PBRBaseMaterial } from "./PBRBaseMaterial";
@@ -7,9 +8,9 @@ import { PBRBaseMaterial } from "./PBRBaseMaterial";
  * PBR (Metallic-Roughness Workflow) Material.
  */
 export class PBRMaterial extends PBRBaseMaterial {
-  private static _metallicProp = Shader.getPropertyByName("u_metal");
-  private static _roughnessProp = Shader.getPropertyByName("u_roughness");
-  private static _roughnessMetallicTextureProp = Shader.getPropertyByName("u_roughnessMetallicTexture");
+  private static _metallicProp = ShaderProperty.getByName("material_Metal");
+  private static _roughnessProp = ShaderProperty.getByName("material_Roughness");
+  private static _roughnessMetallicTextureProp = ShaderProperty.getByName("material_RoughnessMetallicTexture");
 
   /**
    * Metallic, default 1.0.
@@ -44,9 +45,9 @@ export class PBRMaterial extends PBRBaseMaterial {
   set roughnessMetallicTexture(value: Texture2D) {
     this.shaderData.setTexture(PBRMaterial._roughnessMetallicTextureProp, value);
     if (value) {
-      this.shaderData.enableMacro("ROUGHNESSMETALLICTEXTURE");
+      this.shaderData.enableMacro("MATERIAL_ROUGHNESSMETALLICTEXTURE");
     } else {
-      this.shaderData.disableMacro("ROUGHNESSMETALLICTEXTURE");
+      this.shaderData.disableMacro("MATERIAL_ROUGHNESSMETALLICTEXTURE");
     }
   }
 

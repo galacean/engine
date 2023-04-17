@@ -1,6 +1,6 @@
 import { Vector3, Vector4 } from "@galacean/engine-math";
 import { Texture2D } from "../../texture";
-import { RenderData2D } from "../data/RenderData2D";
+import { VertexData2D } from "../data/VertexData2D";
 
 /**
  * @internal
@@ -11,10 +11,10 @@ export class CharRenderData {
   texture: Texture2D;
   /** x:Top y:Left z:Bottom w:Right */
   localPositions: Vector4 = new Vector4();
-  renderData: RenderData2D;
+  renderData: VertexData2D;
 
   constructor() {
     const positions = [new Vector3(), new Vector3(), new Vector3(), new Vector3()];
-    this.renderData = new RenderData2D(4, positions, null, CharRenderData.triangles, null);
+    this.renderData = new VertexData2D(4, positions, null, CharRenderData.triangles, null);
   }
 }

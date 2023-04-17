@@ -1,22 +1,22 @@
-uniform vec4 u_emissiveColor;
-uniform vec4 u_baseColor;
-uniform vec4 u_specularColor;
-uniform float u_shininess;
-uniform float u_normalIntensity;
-uniform float u_alphaCutoff;
+uniform vec4 material_EmissiveColor;
+uniform vec4 material_BaseColor;
+uniform vec4 material_SpecularColor;
+uniform float material_Shininess;
+uniform float material_NormalIntensity;
+uniform float material_AlphaCutoff;
 
-#ifdef EMISSIVETEXTURE
-    uniform sampler2D u_emissiveTexture;
+#ifdef MATERIAL_HAS_EMISSIVETEXTURE
+    uniform sampler2D material_EmissiveTexture;
 #endif
 
-#ifdef BASETEXTURE
-    uniform sampler2D u_baseTexture;
+#ifdef MATERIAL_HAS_BASETEXTURE
+    uniform sampler2D material_BaseTexture;
 #endif
 
-#ifdef O3_SPECULAR_TEXTURE
-    uniform sampler2D u_specularTexture;
+#ifdef MATERIAL_HAS_SPECULAR_TEXTURE
+    uniform sampler2D material_SpecularTexture;
 #endif
 
-#ifdef NORMALTEXTURE
-    uniform sampler2D u_normalTexture;
+#ifdef MATERIAL_HAS_NORMALTEXTURE
+    uniform sampler2D material_NormalTexture;
 #endif

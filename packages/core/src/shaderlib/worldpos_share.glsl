@@ -1,3 +1,3 @@
-#ifdef O3_NEED_WORLDPOS
+#ifdef MATERIAL_NEED_WORLDPOS
     varying vec3 v_pos;
 #endif

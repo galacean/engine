@@ -131,6 +131,19 @@ describe("CollisionUtil", () => {
     expect(flag2).to.eq(false);
   });
 
+  it("frustumContainsPoint", () => {
+    const point1 = new Vector3(0, 0, -15);
+    const point2 = new Vector3(0, 20, -15);
+    const point3 = new Vector3(0, 0, -80.00000199);
+
+    const expected1 = CollisionUtil.frustumContainsPoint(frustum, point1);
+    const expected2 = CollisionUtil.frustumContainsPoint(frustum, point2);
+    const expected3 = CollisionUtil.frustumContainsPoint(frustum, point3);
+    expect(expected1).to.eq(ContainmentType.Contains);
+    expect(expected2).to.eq(ContainmentType.Disjoint);
+    expect(expected3).to.eq(ContainmentType.Intersects);
+  });
+
   it("frustumContainsBox", () => {
     const box1 = new BoundingBox(new Vector3(-2, -2, -2), new Vector3(2, 2, 2));
     const box2 = new BoundingBox(new Vector3(-32, -2, -2), new Vector3(-28, 2, 2));

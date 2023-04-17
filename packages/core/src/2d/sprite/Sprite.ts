@@ -1,5 +1,5 @@
 import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-math";
-import { RefObject } from "../../asset/RefObject";
+import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
@@ -8,7 +8,7 @@ import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 /**
  * 2D sprite.
  */
-export class Sprite extends RefObject {
+export class Sprite extends ReferResource {
   /** The name of sprite. */
   name: string;
 
@@ -240,11 +240,11 @@ export class Sprite extends RefObject {
 
   /**
    * @override
+   * @internal
    */
-  _onDestroy(): void {
-    if (this._texture) {
-      this._texture = null;
-    }
+  protected _onDestroy(): void {
+    super._onDestroy();
+    this._texture = null;
   }
 
   private _calDefaultSize(): void {

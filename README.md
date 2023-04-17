@@ -9,12 +9,12 @@ Galacean is a **web-first** and **mobile-first** high-performance real-time inte
 
 ## Features
 
-- 🖥  &nbsp;**Platform** - Suppport HTML5 and Alipay miniprogram
-- 🔮  &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
-- 🏃  &nbsp;**Animation** - Powerful animation system
-- 🧱  &nbsp;**Physics** - Powerful and easy-to-use physical features
-- 👆  &nbsp;**Input** - Easy-to-use interactive capabilities
-- 📑  &nbsp;**Scripts** - Use TypeScript to write logic efficiently
+- 🖥 &nbsp;**Platform** - Support HTML5 and Alipay miniprogram
+- 🔮 &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
+- 🏃 &nbsp;**Animation** - Powerful animation system
+- 🧱 &nbsp;**Physics** - Powerful and easy-to-use physical features
+- 👆 &nbsp;**Input** - Easy-to-use interactive capabilities
+- 📑 &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
 ## npm
 
