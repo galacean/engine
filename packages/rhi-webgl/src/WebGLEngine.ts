@@ -14,8 +14,8 @@ export class WebGLEngine extends Engine {
   static create(configuration: WebGLEngineConfiguration): Promise<WebGLEngine> {
     const canvas = configuration.canvas;
     const webCanvas = new WebCanvas(typeof canvas === "string" ? document.getElementById(canvas) : canvas);
-    const webGLRenderer = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
-    const engine = new WebGLEngine(webCanvas, webGLRenderer, configuration);
+    const webGLGraphicDevice = new WebGLGraphicDevice(configuration.graphicDeviceOptions);
+    const engine = new WebGLEngine(webCanvas, webGLGraphicDevice, configuration);
     return engine._initialize(configuration) as Promise<WebGLEngine>;
   }
 
@@ -32,7 +32,7 @@ export class WebGLEngine extends Engine {
  */
 export interface WebGLEngineConfiguration extends EngineConfiguration {
   /** Canvas element or canvas id. */
-  canvas: HTMLCanvasElement | string;
+  canvas: HTMLCanvasElement | OffscreenCanvas | string;
   /** Graphic device options. */
   graphicDeviceOptions?: WebGLGraphicDeviceOptions;
 }
