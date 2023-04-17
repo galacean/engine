@@ -1,5 +1,7 @@
 import { AnimatorStateTransition } from "../AnimatorTransition";
 import { LayerState } from "../enums/LayerState";
+import { KeyframeValueType } from "../Keyframe";
+import { AnimationCurveOwner } from "./AnimationCurveOwner/AnimationCurveOwner";
 import { AnimatorStateData } from "./AnimatorStateData";
 import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 
@@ -14,6 +16,12 @@ export class AnimatorLayerData {
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
   crossFadeTransition: AnimatorStateTransition;
+  layerIndex: number;
+  crossOwnerCollection: AnimationCurveOwner<KeyframeValueType>[] = [];
+
+  constructor(layerIndex: number) {
+    this.layerIndex = layerIndex;
+  }
 
   switchPlayData(): void {
     const srcPlayData = this.destPlayData;
