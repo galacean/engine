@@ -61,10 +61,11 @@ export class PBRMaterial extends PBRBaseMaterial {
     this.shaderData.setFloat(PBRMaterial._roughnessProp, 1);
   }
 
+
   /**
-   * @override
+   * @inheritdoc
    */
-  clone(): PBRMaterial {
+  override clone(): PBRMaterial {
     const dest = new PBRMaterial(this._engine);
     this.cloneTo(dest);
     return dest;

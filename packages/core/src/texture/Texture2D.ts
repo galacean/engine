@@ -172,7 +172,7 @@ export class Texture2D extends Texture {
   /**
    * @internal
    */
-  _rebuild(): void {
+  override _rebuild(): void {
     this._platformTexture = this._engine._hardwareRenderer.createPlatformTexture2D(this);
     super._rebuild();
   }

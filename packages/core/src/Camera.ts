@@ -513,26 +513,23 @@ export class Camera extends Component {
   }
 
   /**
-   * @override
    * @inheritdoc
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.entity.scene._attachRenderCamera(this);
   }
 
   /**
-   * @override
    * @inheritdoc
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.entity.scene._detachRenderCamera(this);
   }
 
   /**
-   * @override
    * @inheritdoc
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();

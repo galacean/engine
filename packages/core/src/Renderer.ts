@@ -6,11 +6,11 @@ import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Transform, TransformModifyFlags } from "./Transform";
 import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
-import { Material } from "./material";
 
 /**
  * Basis for all renderers.
@@ -281,10 +281,9 @@ export class Renderer extends Component {
   update(deltaTime: number): void {}
 
   /**
-   * @override
    * @internal
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
@@ -293,10 +292,9 @@ export class Renderer extends Component {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     const componentsManager = this.engine._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);
@@ -331,10 +329,9 @@ export class Renderer extends Component {
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 

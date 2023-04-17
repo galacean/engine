@@ -9,10 +9,7 @@ export class TextureCubeContentRestorer extends ContentRestorer<TextureCube> {
     super(resource);
   }
 
-  /**
-   * @override
-   */
-  restoreContent(): AssetPromise<TextureCube> {
+  override restoreContent(): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(this.urls.map((url) => request<HTMLImageElement>(url, this.requestConfig)))
         .then((images) => {

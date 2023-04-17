@@ -175,10 +175,7 @@ export class BlinnPhongMaterial extends BaseMaterial {
     shaderData.setFloat(BlinnPhongMaterial._normalIntensityProp, 1);
   }
 
-  /**
-   * @override
-   */
-  clone(): BlinnPhongMaterial {
+  override clone(): BlinnPhongMaterial {
     var dest: BlinnPhongMaterial = new BlinnPhongMaterial(this._engine);
     this.cloneTo(dest);
     return dest;

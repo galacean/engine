@@ -1,14 +1,14 @@
 import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { RendererUpdateFlags } from "../Renderer";
+import { Utils } from "../Utils";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
-import { Entity } from "../Entity";
-import { RendererUpdateFlags } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { ShaderProperty } from "../shader";
+import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
-import { Texture2D } from "../texture/Texture2D";
-import { Utils } from "../Utils";
 import { MeshRenderer } from "./MeshRenderer";
 import { ModelMesh } from "./ModelMesh";
 import { Skin } from "./Skin";
@@ -135,7 +135,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  update(): void {
+  override update(): void {
     if (!this._hasInitSkin) {
       this._initSkin();
       this._hasInitSkin = true;
@@ -159,10 +159,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
-  /**
-   * @override
-   */
-  protected _updateShaderData(context: RenderContext): void {
+  protected override _updateShaderData(context: RenderContext): void {
     const entity = this.entity;
     const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
@@ -223,22 +220,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  _cloneTo(target: SkinnedMeshRenderer): void {
+  override _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
-  /**
-   * @override
-   */
-  protected _registerEntityTransformListener(): void {
+  protected override _registerEntityTransformListener(): void {
     // Cancel register listener to entity transform.
   }
 
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this._rootBone) {
       const localBounds = this._localBounds;
       const worldMatrix = this._rootBone.transform.worldMatrix;

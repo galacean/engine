@@ -6,10 +6,7 @@ import { IGalaceanMaterialRemap } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("GALACEAN_materials_remap", GLTFExtensionMode.CreateAndParse)
 class GALACEAN_materials_remap extends GLTFExtensionParser {
-  /**
-   * @override
-   */
-  createAndParse(context: GLTFParserContext, schema: IGalaceanMaterialRemap): Promise<Material> {
+  override createAndParse(context: GLTFParserContext, schema: IGalaceanMaterialRemap): Promise<Material> {
     const { engine } = context.glTFResource;
     // @ts-ignore
     return engine.resourceManager.getResourceByRef<Material>(schema);

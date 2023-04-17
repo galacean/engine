@@ -1,8 +1,8 @@
 import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-math";
-import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
-import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
+import { ReferResource } from "../../asset/ReferResource";
+import { Texture2D } from "../../texture/Texture2D";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 
 /**
@@ -238,11 +238,7 @@ export class Sprite extends ReferResource {
     return this._bounds;
   }
 
-  /**
-   * @override
-   * @internal
-   */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._texture = null;
   }

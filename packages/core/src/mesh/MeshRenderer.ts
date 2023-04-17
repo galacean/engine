@@ -1,11 +1,11 @@
 import { BoundingBox } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
-import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
-import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { ShaderMacro } from "../shader/ShaderMacro";
 
 /**
@@ -43,11 +43,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     this._onMeshChanged = this._onMeshChanged.bind(this);
   }
 
-  /**
-   * @internal
-   * @override
-   */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
     if (mesh && !mesh.destroyed) {
@@ -63,10 +59,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     target.mesh = this._mesh;
   }
 
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     const mesh = this._mesh;
     if (mesh) {
       const localBounds = mesh.bounds;
@@ -78,10 +71,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  /**
-   * @override
-   */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     const mesh = this._mesh;
     if (mesh) {
       if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {

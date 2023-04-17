@@ -94,10 +94,7 @@ export class SkyBoxMaterial extends Material {
     this.shaderData.setColor(SkyBoxMaterial._tintColorProp, this._tintColor);
   }
 
-  /**
-   * @override
-   */
-  clone(): SkyBoxMaterial {
+  override clone(): SkyBoxMaterial {
     const dest = new SkyBoxMaterial(this._engine);
     this.cloneTo(dest);
     return dest;

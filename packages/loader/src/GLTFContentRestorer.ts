@@ -15,10 +15,7 @@ export class GLTFContentRestorer extends ContentRestorer<GLTFResource> {
   bufferTextures: BufferTextureRestoreInfo[] = [];
   meshes: ModelMeshRestoreInfo[] = [];
 
-  /**
-   * @override
-   */
-  restoreContent(): AssetPromise<GLTFResource> {
+  override restoreContent(): AssetPromise<GLTFResource> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(
         this.bufferRequests.map((bufferRequestInfo) => {

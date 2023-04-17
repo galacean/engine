@@ -13,10 +13,7 @@ import { TextureCubeContentRestorer } from "./TextureCubeContentRestorer";
 
 @resourceLoader(AssetType.TextureCube, [""])
 class TextureCubeLoader extends Loader<TextureCube> {
-  /**
-   * @override
-   */
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
+  override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const urls = item.urls;
       const requestConfig = <RequestConfig>{

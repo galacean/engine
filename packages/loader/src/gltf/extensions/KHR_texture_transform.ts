@@ -6,11 +6,7 @@ import { IKHRTextureTransform } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_texture_transform", GLTFExtensionMode.AdditiveParse)
 class KHR_texture_transform extends GLTFExtensionParser {
-  
-  /**
-   * @override
-   */
-  additiveParse(
+  override additiveParse(
     context: GLTFParserContext,
     material: PBRBaseMaterial | UnlitMaterial,
     schema: IKHRTextureTransform

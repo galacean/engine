@@ -24,10 +24,7 @@ export class SpriteBatcher extends Basic2DBatcher {
   }
 
   canBatch(preElement: RenderElement, curElement: RenderElement): boolean {
-    if (
-      !this._engine._canSpriteBatch ||
-      curElement.shaderPass.getTagValue(Basic2DBatcher._disableBatchTag) === true
-    ) {
+    if (!this._engine._canSpriteBatch || curElement.shaderPass.getTagValue(Basic2DBatcher._disableBatchTag) === true) {
       return false;
     }
 
@@ -131,7 +128,7 @@ export class SpriteBatcher extends Basic2DBatcher {
     }
   }
 
-  destroy(): void {
+  override destroy(): void {
     this._batchedQueue = null;
 
     const { _meshes: meshes, _vertexBuffers: vertexBuffers, _indiceBuffers: indiceBuffers } = this;

@@ -9,10 +9,7 @@ import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_pbrSpecularGlossiness", GLTFExtensionMode.CreateAndParse)
 class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
-  /**
-   * @override
-   */
-  createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: IKHRMaterialsPbrSpecularGlossiness,
     ownerSchema: IMaterial

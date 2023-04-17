@@ -1,10 +1,10 @@
 import { BoundingBox } from "@galacean/engine-math";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { VertexData2D } from "../data/VertexData2D";
@@ -162,10 +162,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
     target.sprite = this._sprite;
   }
 
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
@@ -175,10 +172,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
    * @inheritdoc
    */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
@@ -207,10 +203,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
    * @inheritdoc
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._sprite = null;

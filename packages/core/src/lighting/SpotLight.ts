@@ -1,5 +1,5 @@
 import { Matrix, Vector3 } from "@galacean/engine-math";
-import { Shader, ShaderData } from "../shader";
+import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -74,9 +74,8 @@ export class SpotLight extends Light {
 
   /**
    * @internal
-   * @override
    */
-  get _shadowProjectionMatrix(): Matrix {
+  override get _shadowProjectionMatrix(): Matrix {
     const matrix = this._projectMatrix;
     const fov = Math.min(Math.PI / 2, this.angle * 2 * Math.sqrt(2));
     Matrix.perspective(fov, 1, this.shadowNearPlane, this.distance + this.shadowNearPlane, matrix);
@@ -122,18 +121,16 @@ export class SpotLight extends Light {
   /**
    * Mount to the current Scene.
    * @internal
-   * @override
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.engine._lightManager._attachSpotLight(this);
   }
 
   /**
    * Unmount from the current Scene.
    * @internal
-   * @override
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.engine._lightManager._detachSpotLight(this);
   }
 }

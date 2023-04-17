@@ -13,7 +13,9 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   private static _specularColorProp = ShaderProperty.getByName("material_PBRSpecularColor");
   private static _glossinessProp = ShaderProperty.getByName("material_Glossiness");
   private static _specularGlossinessTextureProp = ShaderProperty.getByName("material_SpecularGlossinessTexture");
-  private static _specularGlossinessTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE");
+  private static _specularGlossinessTextureMacro: ShaderMacro = ShaderMacro.getByName(
+    "MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE"
+  );
 
   /**
    * Specular color.
@@ -69,9 +71,9 @@ export class PBRSpecularMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * @override
+   * @inheritdoc
    */
-  clone(): PBRSpecularMaterial {
+  override clone(): PBRSpecularMaterial {
     const dest = new PBRSpecularMaterial(this._engine);
     this.cloneTo(dest);
     return dest;

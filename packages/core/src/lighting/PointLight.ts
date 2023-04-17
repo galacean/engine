@@ -1,5 +1,5 @@
 import { Matrix, Vector3 } from "@galacean/engine-math";
-import { Shader, ShaderData } from "../shader";
+import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -43,9 +43,8 @@ export class PointLight extends Light {
 
   /**
    * @internal
-   * @override
    */
-  get _shadowProjectionMatrix(): Matrix {
+  override get _shadowProjectionMatrix(): Matrix {
     throw "Unknown!";
   }
 
@@ -79,18 +78,16 @@ export class PointLight extends Light {
   /**
    * Mount to the current Scene.
    * @internal
-   * @override
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.engine._lightManager._attachPointLight(this);
   }
 
   /**
    * Unmount from the current Scene.
    * @internal
-   * @override
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.engine._lightManager._detachPointLight(this);
   }
 }
