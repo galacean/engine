@@ -25,7 +25,7 @@ uniform float material_OcclusionTextureCoord;
 #endif
 
 #ifdef MATERIAL_HAS_EMISSIVETEXTURE
-    uniform sampler2D MATERIAL_HAS_EMISSIVETEXTURE;
+    uniform sampler2D material_EmissiveTexture;
 #endif
 
 #ifdef MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE
