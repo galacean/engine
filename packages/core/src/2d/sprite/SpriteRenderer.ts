@@ -1,11 +1,11 @@
 import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
+import { Entity } from "../../Entity";
+import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
-import { Entity } from "../../Entity";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { IAssembler } from "../assembler/IAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
@@ -260,18 +260,12 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     target.sprite = this._sprite;
   }
 
-  /**
-   * @override
-   */
-  protected _updateShaderData(context: RenderContext): void {
+  protected override _updateShaderData(context: RenderContext): void {
     // @ts-ignore
     this._updateTransformShaderData(context, Matrix._identity);
   }
 
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
@@ -280,10 +274,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  /**
-   * @override
-   */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
@@ -309,10 +300,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._color = null;

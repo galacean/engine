@@ -1,10 +1,10 @@
 import { ICollider, IStaticCollider } from "@galacean/engine-design";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
-import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
-import { dependentComponents, DependentMode } from "../ComponentsDependencies";
+import { DependentMode, dependentComponents } from "../ComponentsDependencies";
 import { Entity } from "../Entity";
 import { Transform } from "../Transform";
+import { ignoreClone } from "../clone/CloneManager";
 import { ColliderShape } from "./shape/ColliderShape";
 
 /**
@@ -108,26 +108,20 @@ export class Collider extends Component {
   _onLateUpdate(): void {}
 
   /**
-   * @override
    * @internal
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.engine.physicsManager._addCollider(this);
   }
 
   /**
-   * @override
    * @internal
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.engine.physicsManager._removeCollider(this);
   }
 
-  /**
-   * @override
-   * @internal
-   */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this.clearShapes();
     this._nativeCollider.destroy();

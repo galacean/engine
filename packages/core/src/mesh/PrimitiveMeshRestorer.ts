@@ -10,10 +10,7 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
     super(resource);
   }
 
-  /**
-   * @override
-   */
-  restoreContent(): void {
+  override restoreContent(): void {
     const primitiveInfo = this.primitiveInfo;
     switch (primitiveInfo.type) {
       case PrimitiveType.Sphere:

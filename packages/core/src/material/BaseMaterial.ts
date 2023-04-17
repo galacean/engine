@@ -21,8 +21,7 @@ export class BaseMaterial extends Material {
   protected static _emissiveColorProp: ShaderProperty = ShaderProperty.getByName("material_EmissiveColor");
   protected static _emissiveTextureProp: ShaderProperty = ShaderProperty.getByName("material_EmissiveTexture");
 
-
-  private static _alphaCutoffProp:ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
+  private static _alphaCutoffProp: ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_IS_ALPHA_CUTOFF");
 
   private _renderFace: RenderFace = RenderFace.Front;
@@ -230,21 +229,19 @@ export class BaseMaterial extends Material {
   }
 
   /**
-   * @override
    * Clone and return the instance.
    */
-  clone(): BaseMaterial {
+  override clone(): BaseMaterial {
     const dest = new BaseMaterial(this._engine, this.shader);
     this.cloneTo(dest);
     return dest;
   }
 
   /**
-   * @override
    * Clone to the target material.
    * @param target - target material
    */
-  cloneTo(target: BaseMaterial): void {
+  override cloneTo(target: BaseMaterial): void {
     super.cloneTo(target);
     target._renderFace = this._renderFace;
     target._isTransparent = this._isTransparent;

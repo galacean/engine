@@ -2,8 +2,8 @@ import { ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { PhysicsManager } from "./PhysicsManager";
+import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
 
 /**
@@ -99,9 +99,8 @@ export class CharacterController extends Collider {
   /**
    * Add collider shape on this controller.
    * @param shape - Collider shape
-   * @override
    */
-  addShape(shape: ColliderShape): void {
+  override addShape(shape: ColliderShape): void {
     if (this._shapes.length > 0) {
       throw "only allow single shape on controller!";
     }
@@ -111,9 +110,8 @@ export class CharacterController extends Collider {
 
   /**
    * Remove all shape attached.
-   * @override
    */
-  clearShapes(): void {
+  override clearShapes(): void {
     if (this._shapes.length > 0) {
       super.removeShape(this._shapes[0]);
     }
@@ -121,9 +119,8 @@ export class CharacterController extends Collider {
 
   /**
    * @internal
-   * @override
    */
-  _onUpdate() {
+  override _onUpdate() {
     if (this._updateFlag.flag) {
       const { transform } = this.entity;
       const shapes = this.shapes;
@@ -139,9 +136,8 @@ export class CharacterController extends Collider {
 
   /**
    * @internal
-   * @override
    */
-  _onLateUpdate() {
+  override _onLateUpdate() {
     const position = this.entity.transform.worldPosition;
     (<ICharacterController>this._nativeCollider).getWorldPosition(position);
     this.entity.transform.worldPosition = position;
@@ -149,18 +145,16 @@ export class CharacterController extends Collider {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onEnable() {
+  override _onEnable() {
     this.engine.physicsManager._addCharacterController(this);
   }
 
   /**
-   * @override
    * @internal
    */
-  _onDisable() {
+  override _onDisable() {
     this.engine.physicsManager._removeCharacterController(this);
   }
 

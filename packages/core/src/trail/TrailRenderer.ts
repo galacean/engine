@@ -1,13 +1,13 @@
 import { Matrix, Quaternion, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Buffer } from "../graphic/Buffer";
+import { VertexElement } from "../graphic/VertexElement";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexElement } from "../graphic/VertexElement";
 import { BufferMesh } from "../mesh/BufferMesh";
 import { MeshRenderer } from "../mesh/MeshRenderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Texture2D } from "../texture";
 import { TrailMaterial } from "./TrailMaterial";
 
@@ -112,10 +112,7 @@ export class TrailRenderer extends MeshRenderer {
     }
   }
 
-  /**
-   * @override
-   */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     this._updateStrapVertices(context.camera, this._points);
     this._updateStrapCoords();
     this._vertexBuffer.setData(this._vertices);

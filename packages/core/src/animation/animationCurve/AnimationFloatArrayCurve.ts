@@ -110,9 +110,8 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
 
   /**
    * @inheritdoc
-   * @override
    */
-  addKey(key: Keyframe<Float32Array>): void {
+  override addKey(key: Keyframe<Float32Array>): void {
     super.addKey(key);
 
     const evaluateData = this._evaluateData;

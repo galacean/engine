@@ -1,6 +1,6 @@
 import { Vector2 } from "@galacean/engine-math";
-import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
+import { ReferResource } from "../../asset/ReferResource";
 import { Texture2D } from "../../texture/Texture2D";
 import { CharInfo } from "../text/CharInfo";
 
@@ -79,11 +79,7 @@ export class FontAtlas extends ReferResource {
     return this._charInfoMap[char.charCodeAt(0)];
   }
 
-  /**
-   * @override
-   * @internal
-   */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this.texture.destroy();
     this.texture = null;

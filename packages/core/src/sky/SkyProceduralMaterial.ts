@@ -145,9 +145,9 @@ export class SkyProceduralMaterial extends Material {
   }
 
   /**
-   * @override
+   * @inheritDoc
    */
-  clone(): SkyProceduralMaterial {
+  override clone(): SkyProceduralMaterial {
     const dest = new SkyProceduralMaterial(this._engine);
     this.cloneTo(dest);
     return dest;

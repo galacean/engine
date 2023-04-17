@@ -13,10 +13,7 @@ import { Texture2DContentRestorer } from "./Texture2DContentRestorer";
 
 @resourceLoader(AssetType.Texture2D, ["png", "jpg", "webp", "jpeg"])
 class Texture2DLoader extends Loader<Texture2D> {
-  /**
-   * @override
-   */
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
+  override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Texture2D> {
     return new AssetPromise((resolve, reject) => {
       const url = item.url;
       const requestConfig = <RequestConfig>{

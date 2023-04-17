@@ -191,10 +191,7 @@ export abstract class Mesh extends GraphicsResource {
     this._bufferStructChanged = false;
   }
 
-  /**
-   * @override
-   */
-  _addReferCount(value: number): void {
+  override _addReferCount(value: number): void {
     super._addReferCount(value);
     const vertexBufferBindings = this._vertexBufferBindings;
     for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
@@ -202,18 +199,14 @@ export abstract class Mesh extends GraphicsResource {
     }
   }
 
-  /**
-   * @override
-   */
-  _rebuild(): void {
+  override _rebuild(): void {
     this._engine._hardwareRenderer.createPlatformPrimitive(this);
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;

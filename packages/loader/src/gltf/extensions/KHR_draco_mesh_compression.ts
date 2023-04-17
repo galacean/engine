@@ -14,19 +14,13 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
   private static _decoder: DRACODecoder;
   private static _tempVector3 = new Vector3();
 
-  /**
-   * @override
-   */
-  initialize(): void {
+  override initialize(): void {
     if (!KHR_draco_mesh_compression._decoder) {
       KHR_draco_mesh_compression._decoder = new DRACODecoder();
     }
   }
 
-  /**
-   * @override
-   */
-  createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: IKHRDracoMeshCompression,
     glTFPrimitive: IMeshPrimitive,
