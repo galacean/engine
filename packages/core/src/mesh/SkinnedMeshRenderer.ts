@@ -135,7 +135,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  update(): void {
+  override update(): void {
     if (!this._hasInitSkin) {
       this._initSkin();
       this._hasInitSkin = true;
@@ -220,7 +220,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  _cloneTo(target: SkinnedMeshRenderer): void {
+  override _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }

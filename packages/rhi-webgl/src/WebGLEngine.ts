@@ -1,6 +1,6 @@
 import { Engine, EngineConfiguration } from "@galacean/engine-core";
+import { WebGLGraphicDevice, WebGLGraphicDeviceOptions } from "./";
 import { WebCanvas } from "./WebCanvas";
-import { WebGLGraphicDeviceOptions, WebGLGraphicDevice } from "./";
 
 /**
  * WebGL platform engine,support includes WebGL1.0 and WebGL2.0.
@@ -22,7 +22,7 @@ export class WebGLEngine extends Engine {
   /**
    * Web canvas.
    */
-  get canvas(): WebCanvas {
+  override get canvas(): WebCanvas {
     return this._canvas as WebCanvas;
   }
 }

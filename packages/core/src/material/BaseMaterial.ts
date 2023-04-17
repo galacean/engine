@@ -31,11 +31,11 @@ export class BaseMaterial extends Material {
   /**
    * Shader used by the material.
    */
-  get shader(): Shader {
+  override get shader(): Shader {
     return this._shader;
   }
 
-  set shader(value: Shader) {
+  override set shader(value: Shader) {
     this._shader = value;
 
     const renderStates = this._renderStates;

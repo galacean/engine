@@ -14,8 +14,13 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   _halfHeight: number;
   private _upAxis: ColliderShapeUpAxis = ColliderShapeUpAxis.Y;
 
-
-  constructor(physXPhysics: PhysXPhysics,uniqueID: number, radius: number, height: number, material: PhysXPhysicsMaterial) {
+  constructor(
+    physXPhysics: PhysXPhysics,
+    uniqueID: number,
+    radius: number,
+    height: number,
+    material: PhysXPhysicsMaterial
+  ) {
     super(physXPhysics);
 
     this._radius = radius;
@@ -108,7 +113,7 @@ export class PhysXCapsuleColliderShape extends PhysXColliderShape implements ICa
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {
+  override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
 
     const geometry = this._pxGeometry;

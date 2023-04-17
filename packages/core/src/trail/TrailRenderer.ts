@@ -62,7 +62,7 @@ export class TrailRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  update(deltaTime: number) {
+  override update(deltaTime: number) {
     let mov = 0,
       newIdx = 0;
     for (let i = 0; i < this._curPointNum; i++) {

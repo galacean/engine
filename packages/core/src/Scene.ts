@@ -1,16 +1,16 @@
 import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
-import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { EngineObject, Logger } from "./base";
 import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { ShaderProperty } from "./shader";
-import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
@@ -329,7 +329,7 @@ export class Scene extends EngineObject {
   /**
    * Destroy this scene.
    */
-  destroy(): void {
+  override destroy(): void {
     if (this._destroyed) {
       return;
     }

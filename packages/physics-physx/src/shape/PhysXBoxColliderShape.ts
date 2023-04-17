@@ -1,5 +1,5 @@
-import { IBoxColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine";
+import { IBoxColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape } from "./PhysXColliderShape";
@@ -42,7 +42,7 @@ export class PhysXBoxColliderShape extends PhysXColliderShape implements IBoxCol
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {
+  override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
 
     const tempExtents = PhysXBoxColliderShape._tempHalfExtents;

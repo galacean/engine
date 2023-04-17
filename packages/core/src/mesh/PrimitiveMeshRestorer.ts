@@ -121,7 +121,7 @@ export class PrimitiveRestoreInfo {
  * @internal
  */
 export class SphereRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public radius: number, public segments: number, public noLongerAccessible: boolean) {
+  constructor(public radius: number, public segments: number, noLongerAccessible: boolean) {
     super(PrimitiveType.Sphere, noLongerAccessible);
   }
 }
@@ -130,7 +130,7 @@ export class SphereRestoreInfo extends PrimitiveRestoreInfo {
  * @internal
  */
 export class CuboidRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public width: number, public height: number, public depth: number, public noLongerAccessible: boolean) {
+  constructor(public width: number, public height: number, public depth: number, noLongerAccessible: boolean) {
     super(PrimitiveType.Cuboid, noLongerAccessible);
   }
 }
@@ -144,7 +144,7 @@ export class PlaneRestoreInfo extends PrimitiveRestoreInfo {
     public height: number,
     public horizontalSegments: number,
     public verticalSegments: number,
-    public noLongerAccessible: boolean
+    noLongerAccessible: boolean
   ) {
     super(PrimitiveType.Plane, noLongerAccessible);
   }
@@ -160,7 +160,7 @@ export class CylinderRestoreInfo extends PrimitiveRestoreInfo {
     public height: number,
     public radialSegments: number,
     public heightSegments: number,
-    public noLongerAccessible: boolean
+    noLongerAccessible: boolean
   ) {
     super(PrimitiveType.Cylinder, noLongerAccessible);
   }
@@ -176,7 +176,7 @@ export class TorusRestoreInfo extends PrimitiveRestoreInfo {
     public radialSegments: number,
     public tubularSegments: number,
     public arc: number,
-    public noLongerAccessible: boolean
+    noLongerAccessible: boolean
   ) {
     super(PrimitiveType.Torus, noLongerAccessible);
   }
@@ -191,7 +191,7 @@ export class ConeRestoreInfo extends PrimitiveRestoreInfo {
     public height: number,
     public radialSegments: number,
     public heightSegments: number,
-    public noLongerAccessible: boolean
+    noLongerAccessible: boolean
   ) {
     super(PrimitiveType.Cone, noLongerAccessible);
   }
@@ -206,7 +206,7 @@ export class CapsuleRestoreInfo extends PrimitiveRestoreInfo {
     public height: number,
     public radialSegments: number,
     public heightSegments: number,
-    public noLongerAccessible: boolean
+    noLongerAccessible: boolean
   ) {
     super(PrimitiveType.Capsule, noLongerAccessible);
   }

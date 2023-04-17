@@ -1,5 +1,5 @@
-import { ISphereColliderShape } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine";
+import { ISphereColliderShape } from "@galacean/engine-design";
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXPhysicsMaterial } from "../PhysXPhysicsMaterial";
 import { PhysXColliderShape } from "./PhysXColliderShape";
@@ -33,7 +33,7 @@ export class PhysXSphereColliderShape extends PhysXColliderShape implements ISph
   /**
    * {@inheritDoc IColliderShape.setWorldScale }
    */
-  setWorldScale(scale: Vector3): void {
+  override setWorldScale(scale: Vector3): void {
     super.setWorldScale(scale);
 
     this._maxScale = Math.max(scale.x, Math.max(scale.x, scale.y));

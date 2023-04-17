@@ -265,7 +265,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * The bounding volume of the TextRenderer.
    */
-  get bounds(): BoundingBox {
+  override get bounds(): BoundingBox {
     this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
@@ -291,10 +291,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
-  /**
-   * @internal
-   */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;
@@ -579,7 +576,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       });
   }
 
-  protected _onTransformChanged(bit: TransformModifyFlags): void {
+  protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
   }

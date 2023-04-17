@@ -10,9 +10,6 @@ import { ColliderShape } from "./shape";
  * The character controllers.
  */
 export class CharacterController extends Collider {
-  /** @internal */
-  _index: number = -1;
-
   private _stepOffset: number = 0.5;
   private _nonWalkableMode: ControllerNonWalkableMode = ControllerNonWalkableMode.PreventClimbing;
   private _upDirection = new Vector3(0, 1, 0);

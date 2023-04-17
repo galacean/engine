@@ -45,10 +45,7 @@ export class GLTFResource extends EngineObject {
     this.url = url;
   }
 
-  /**
-   * @override
-   */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this.defaultSceneRoot.destroy();
 
