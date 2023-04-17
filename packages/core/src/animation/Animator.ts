@@ -153,6 +153,15 @@ export class Animator extends Component {
       return;
     }
 
+    const { _animationCurveOwners: animationCurveOwners } = this;
+    for (let instanceId in animationCurveOwners) {
+      const propertyOwners = animationCurveOwners[instanceId];
+      for (let property in propertyOwners) {
+        const owner = propertyOwners[property];
+        owner?.hasSavedDefaultValue && owner.revertDefaultValue();
+      }
+    }
+
     deltaTime *= this.speed;
     for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const animatorLayerData = this._getAnimatorLayerData(i);
@@ -208,7 +217,7 @@ export class Animator extends Component {
       const propertyOwners = animationCurveOwners[instanceId];
       for (let property in propertyOwners) {
         const owner = propertyOwners[property];
-        owner.hasSavedDefaultValue && owner.revertDefaultValue();
+        owner?.hasSavedDefaultValue && owner.revertDefaultValue();
       }
     }
 
@@ -246,7 +255,7 @@ export class Animator extends Component {
   private _saveDefaultValues(stateData: AnimatorStateData): void {
     const { curveOwners } = stateData;
     for (let i = curveOwners.length - 1; i >= 0; i--) {
-      curveOwners[i]?.saveDefaultValue();
+      !curveOwners[i]?.hasSavedDefaultValue && curveOwners[i]?.saveDefaultValue();
     }
   }
 
