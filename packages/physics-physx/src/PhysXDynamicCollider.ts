@@ -1,5 +1,5 @@
-import { IDynamicCollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { IDynamicCollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 
@@ -24,10 +24,10 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   private static _tempTranslation = new Vector3();
   private static _tempRotation = new Quaternion();
 
-  constructor(position: Vector3, rotation: Quaternion) {
-    super();
+  constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
+    super(physXPhysics);
     const transform = this._transform(position, rotation);
-    this._pxActor = PhysXPhysics._pxPhysics.createRigidDynamic(transform);
+    this._pxActor = physXPhysics._pxPhysics.createRigidDynamic(transform);
   }
 
   /**
@@ -114,18 +114,19 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
   setCollisionDetectionMode(value: number): void {
     switch (value) {
       case CollisionDetectionMode.Continuous:
-        this._pxActor.setRigidBodyFlag(PhysXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD, true);
+        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD, true);
         break;
       case CollisionDetectionMode.ContinuousDynamic:
-        this._pxActor.setRigidBodyFlag(PhysXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
+        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, true);
         break;
       case CollisionDetectionMode.ContinuousSpeculative:
-        this._pxActor.setRigidBodyFlag(PhysXPhysics._physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
+        this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, true);
         break;
       case CollisionDetectionMode.Discrete:
-        this._pxActor.setRigidBodyFlag(PhysXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD, false);
-        this._pxActor.setRigidBodyFlag(PhysXPhysics._physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
-        this._pxActor.setRigidBodyFlag(PhysXPhysics._physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
+        const physX = this._physXPhysics._physX;
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD, false);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_CCD_FRICTION, false);
+        this._pxActor.setRigidBodyFlag(physX.PxRigidBodyFlag.eENABLE_SPECULATIVE_CCD, false);
         break;
     }
   }
@@ -135,9 +136,9 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
    */
   setIsKinematic(value: boolean): void {
     if (value) {
-      this._pxActor.setRigidBodyFlag(PhysXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, true);
+      this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, true);
     } else {
-      this._pxActor.setRigidBodyFlag(PhysXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, false);
+      this._pxActor.setRigidBodyFlag(this._physXPhysics._physX.PxRigidBodyFlag.eKINEMATIC, false);
     }
   }
 

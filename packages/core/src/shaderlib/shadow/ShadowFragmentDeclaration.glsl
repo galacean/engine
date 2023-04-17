@@ -1,25 +1,25 @@
-#if defined(SHADOW_TYPE) && defined(OASIS_RECEIVE_SHADOWS)
-    #define OASIS_CALCULATE_SHADOWS
+#if defined(SCENE_SHADOW_TYPE) && defined(RENDERER_IS_RECEIVE_SHADOWS)
+    #define SCENE_IS_CALCULATE_SHADOWS
 #endif
 
-#ifdef OASIS_CALCULATE_SHADOWS
-    #if CASCADED_COUNT == 1
+#ifdef SCENE_IS_CALCULATE_SHADOWS
+    #if SCENE_SHADOW_CASCADED_COUNT == 1
         varying vec3 v_shadowCoord;
     #else
         #include <ShadowCoord>
     #endif
     
     // intensity, resolution, sunIndex
-    uniform vec3 u_shadowInfo;
-    uniform vec4 u_shadowMapSize;
+    uniform vec3 scene_ShadowInfo;
+    uniform vec4 scene_ShadowMapSize;
 
     #ifdef GRAPHICS_API_WEBGL2
-        uniform mediump sampler2DShadow u_shadowMap;
+        uniform mediump sampler2DShadow scene_ShadowMap;
         #define SAMPLE_TEXTURE2D_SHADOW(textureName, coord3) textureLod(textureName, coord3 , 0.0)
         #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2DShadow shadowMap
     #else
-        uniform sampler2D u_shadowMap;
-        #ifdef OASIS_NO_DEPTH_TEXTURE
+        uniform sampler2D scene_ShadowMap;
+        #ifdef ENGINE_NO_DEPTH_TEXTURE
             const vec4 bitShift = vec4(1.0, 1.0/256.0, 1.0/(256.0*256.0), 1.0/(256.0*256.0*256.0));
             /**
             * Unpack depth value.
@@ -34,7 +34,7 @@
         #define TEXTURE2D_SHADOW_PARAM(shadowMap) mediump sampler2D shadowMap
     #endif
 
-    #if SHADOW_TYPE == 2
+    #if SCENE_SHADOW_TYPE == 2
         float sampleShadowMapFiltered4(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowMapSize) {
             float attenuation;
             vec4 attenuation4;
@@ -52,7 +52,7 @@
         }
     #endif
 
-    #if SHADOW_TYPE == 3
+    #if SCENE_SHADOW_TYPE == 3
         #include <shadow_sample_tent>
 
         float sampleShadowMapFiltered9(TEXTURE2D_SHADOW_PARAM(shadowMap), vec3 shadowCoord, vec4 shadowmapSize) {
@@ -74,7 +74,7 @@
     #endif
 
     float sampleShadowMap() {
-        #if CASCADED_COUNT == 1
+        #if SCENE_SHADOW_CASCADED_COUNT == 1
             vec3 shadowCoord = v_shadowCoord;
         #else
             vec3 shadowCoord = getShadowCoord();
@@ -82,18 +82,18 @@
         
         float attenuation = 1.0;
         if(shadowCoord.z > 0.0 && shadowCoord.z < 1.0) {
-        #if SHADOW_TYPE == 1
-            attenuation = SAMPLE_TEXTURE2D_SHADOW(u_shadowMap, shadowCoord);
+        #if SCENE_SHADOW_TYPE == 1
+            attenuation = SAMPLE_TEXTURE2D_SHADOW(scene_ShadowMap, shadowCoord);
         #endif
 
-        #if SHADOW_TYPE == 2
-            attenuation = sampleShadowMapFiltered4(u_shadowMap, shadowCoord, u_shadowMapSize);
+        #if SCENE_SHADOW_TYPE == 2
+            attenuation = sampleShadowMapFiltered4(scene_ShadowMap, shadowCoord, scene_ShadowMapSize);
         #endif
 
-        #if SHADOW_TYPE == 3
-            attenuation = sampleShadowMapFiltered9(u_shadowMap, shadowCoord, u_shadowMapSize);
+        #if SCENE_SHADOW_TYPE == 3
+            attenuation = sampleShadowMapFiltered9(scene_ShadowMap, shadowCoord, scene_ShadowMapSize);
         #endif
-            attenuation = mix(1.0, attenuation, u_shadowInfo.x);
+            attenuation = mix(1.0, attenuation, scene_ShadowInfo.x);
         }
         return attenuation;
     }

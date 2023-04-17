@@ -169,7 +169,7 @@ export class Animator extends Component {
         continue;
       }
 
-      this._updateLayer(i, i === 0, deltaTime / 1000, animationUpdate);
+      this._updateLayer(i, i === 0, deltaTime, animationUpdate);
     }
   }
 
@@ -191,20 +191,18 @@ export class Animator extends Component {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.engine._componentsManager.addOnUpdateAnimations(this);
     this.animatorController && this._checkAutoPlay();
     this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
   }
 
   /**
-   * @override
    * @internal
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.engine._componentsManager.removeOnUpdateAnimations(this);
   }
 

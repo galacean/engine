@@ -8,7 +8,7 @@ import {
   Plane,
   Vector2,
   Vector3
-} from "@oasis-engine/math";
+} from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { DirectLight, Light } from "../lighting";
 import { Renderer } from "../Renderer";
@@ -186,7 +186,7 @@ export class ShadowUtils {
         renderer.castShadows &&
         ShadowUtils.cullingRenderBounds(renderer.bounds, shadowSliceData.cullPlaneCount, shadowSliceData.cullPlanes)
       ) {
-        renderer._renderFrameCount = renderer.engine.time._frameCount;
+        renderer._renderFrameCount = renderer.engine.time.frameCount;
         renderer._prepareRender(context);
       }
     }

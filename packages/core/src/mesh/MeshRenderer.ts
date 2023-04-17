@@ -1,22 +1,22 @@
-import { BoundingBox } from "@oasis-engine/math";
+import { BoundingBox } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
-import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
-import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { Shader } from "../shader/Shader";
+import { ShaderMacro } from "../shader/ShaderMacro";
 
 /**
  * MeshRenderer Component.
  */
 export class MeshRenderer extends Renderer implements ICustomClone {
-  private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
-  private static _uv1Macro = Shader.getMacroByName("O3_HAS_UV1");
-  private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
-  private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
-  private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+  private static _uvMacro = ShaderMacro.getByName("RENDERER_HAS_UV");
+  private static _uv1Macro = ShaderMacro.getByName("RENDERER_HAS_UV1");
+  private static _normalMacro = ShaderMacro.getByName("RENDERER_HAS_NORMAL");
+  private static _tangentMacro = ShaderMacro.getByName("RENDERER_HAS_TANGENT");
+  private static _vertexColorMacro = ShaderMacro.getByName("RENDERER_HAS_VERTEXCOLOR");
 
   /** @internal */
   @ignoreClone
@@ -43,15 +43,11 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     this._onMeshChanged = this._onMeshChanged.bind(this);
   }
 
-  /**
-   * @internal
-   * @override
-   */
-  _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
     if (mesh && !mesh.destroyed) {
-      mesh._addRefCount(-1);
+      mesh._addReferCount(-1);
       this._mesh = null;
     }
   }
@@ -63,10 +59,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     target.mesh = this._mesh;
   }
 
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     const mesh = this._mesh;
     if (mesh) {
       const localBounds = mesh.bounds;
@@ -78,10 +71,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  /**
-   * @override
-   */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     const mesh = this._mesh;
     if (mesh) {
       if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {
@@ -116,20 +106,16 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         this._dirtyUpdateFlag &= ~MeshRendererUpdateFlags.VertexElementMacro;
       }
 
+      const materials = this._materials;
       const subMeshes = mesh.subMeshes;
       const renderPipeline = context.camera._renderPipeline;
-      const renderElementPool = this._engine._renderElementPool;
+      const meshRenderDataPool = this._engine._meshRenderDataPool;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
-        const material = this._materials[i];
-        if (material) {
-          const renderStates = material.renderStates;
-          const shaderPasses = material.shader.passes;
-          for (let j = 0, m = shaderPasses.length; j < m; j++) {
-            const element = renderElementPool.getFromPool();
-            element.setValue(this, mesh, subMeshes[i], material, renderStates[j], shaderPasses[j]);
-            renderPipeline.pushPrimitive(element);
-          }
-        }
+        const material = materials[i];
+        if (!material) continue;
+        const renderData = meshRenderDataPool.getFromPool();
+        renderData.set(this, material, mesh, subMeshes[i]);
+        renderPipeline.pushRenderData(context, renderData);
       }
     } else {
       Logger.error("mesh is null.");
@@ -139,11 +125,11 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private _setMesh(mesh: Mesh): void {
     const lastMesh = this._mesh;
     if (lastMesh) {
-      lastMesh._addRefCount(-1);
+      lastMesh._addReferCount(-1);
       lastMesh._updateFlagManager.removeListener(this._onMeshChanged);
     }
     if (mesh) {
-      mesh._addRefCount(1);
+      mesh._addReferCount(1);
       mesh._updateFlagManager.addListener(this._onMeshChanged);
       this._dirtyUpdateFlag |= MeshRendererUpdateFlags.All;
     }

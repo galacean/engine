@@ -1,5 +1,5 @@
 {
-  "name": "oasis-engine-root",
+  "name": "@galacean/engine-root",
   "version": "1.0.0",
   "private": true,
   "scripts": {

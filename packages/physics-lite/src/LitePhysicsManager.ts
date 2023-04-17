@@ -1,5 +1,5 @@
-import { ICharacterController, IPhysicsManager } from "@oasis-engine/design";
-import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "oasis-engine";
+import { ICharacterController, IPhysicsManager } from "@galacean/engine-design";
+import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "@galacean/engine";
 import { DisorderedArray } from "./DisorderedArray";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";

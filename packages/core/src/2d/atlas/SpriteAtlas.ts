@@ -1,11 +1,11 @@
-import { RefObject } from "../../asset/RefObject";
+import { ReferResource } from "../../asset/ReferResource";
 import { Engine } from "../../Engine";
 import { Sprite } from "../sprite/Sprite";
 
 /**
  * Sprite Atlas.
  */
-export class SpriteAtlas extends RefObject {
+export class SpriteAtlas extends ReferResource {
   private _sprites: Sprite[] = new Array<Sprite>();
   private _spriteNamesToIndex: Record<string, number> = {};
 
@@ -65,10 +65,8 @@ export class SpriteAtlas extends RefObject {
     this._spriteNamesToIndex[sprite.name] = this._sprites.push(sprite) - 1;
   }
 
-  /**
-   * @override
-   */
-  _onDestroy(): void {
+  protected override _onDestroy(): void {
+    super._onDestroy();
     this._sprites = null;
     this._spriteNamesToIndex = null;
   }

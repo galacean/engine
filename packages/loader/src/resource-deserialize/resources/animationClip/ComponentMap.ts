@@ -13,7 +13,7 @@ import {
   SpriteMask,
   SpriteRenderer,
   TextRenderer
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 
 export const ComponentMap: Record<string, new (entity: Entity) => Component> = {
   Transform,

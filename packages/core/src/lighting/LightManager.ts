@@ -126,23 +126,23 @@ export class LightManager {
 
     if (directLightCount) {
       DirectLight._updateShaderData(shaderData);
-      shaderData.enableMacro("O3_DIRECT_LIGHT_COUNT", directLightCount.toString());
+      shaderData.enableMacro("SCENE_DIRECT_LIGHT_COUNT", directLightCount.toString());
     } else {
-      shaderData.disableMacro("O3_DIRECT_LIGHT_COUNT");
+      shaderData.disableMacro("SCENE_DIRECT_LIGHT_COUNT");
     }
 
     if (pointLightCount) {
       PointLight._updateShaderData(shaderData);
-      shaderData.enableMacro("O3_POINT_LIGHT_COUNT", pointLightCount.toString());
+      shaderData.enableMacro("SCENE_POINT_LIGHT_COUNT", pointLightCount.toString());
     } else {
-      shaderData.disableMacro("O3_POINT_LIGHT_COUNT");
+      shaderData.disableMacro("SCENE_POINT_LIGHT_COUNT");
     }
 
     if (spotLightCount) {
       SpotLight._updateShaderData(shaderData);
-      shaderData.enableMacro("O3_SPOT_LIGHT_COUNT", spotLightCount.toString());
+      shaderData.enableMacro("SCENE_SPOT_LIGHT_COUNT", spotLightCount.toString());
     } else {
-      shaderData.disableMacro("O3_SPOT_LIGHT_COUNT");
+      shaderData.disableMacro("SCENE_SPOT_LIGHT_COUNT");
     }
   }
 }

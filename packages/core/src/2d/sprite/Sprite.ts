@@ -1,19 +1,16 @@
-import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@oasis-engine/math";
-import { RefObject } from "../../asset/RefObject";
+import { BoundingBox, MathUtil, Rect, Vector2, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
-import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
+import { ReferResource } from "../../asset/ReferResource";
+import { Texture2D } from "../../texture/Texture2D";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
 
 /**
  * 2D sprite.
  */
-export class Sprite extends RefObject {
+export class Sprite extends ReferResource {
   /** The name of sprite. */
   name: string;
-
-  /** @internal temp solution. */
-  _assetID: number;
 
   private _width: number = undefined;
   private _height: number = undefined;
@@ -211,7 +208,6 @@ export class Sprite extends RefObject {
    */
   clone(): Sprite {
     const cloneSprite = new Sprite(this._engine, this._texture, this._region, this._pivot, this._border, this.name);
-    cloneSprite._assetID = this._assetID;
     cloneSprite._atlasRotated = this._atlasRotated;
     cloneSprite._atlasRegion.copyFrom(this._atlasRegion);
     cloneSprite._atlasRegionOffset.copyFrom(this._atlasRegionOffset);
@@ -242,13 +238,9 @@ export class Sprite extends RefObject {
     return this._bounds;
   }
 
-  /**
-   * @override
-   */
-  _onDestroy(): void {
-    if (this._texture) {
-      this._texture = null;
-    }
+  protected override _onDestroy(): void {
+    super._onDestroy();
+    this._texture = null;
   }
 
   private _calDefaultSize(): void {

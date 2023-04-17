@@ -1,12 +1,12 @@
-import { BoundingBox, Color, Vector3 } from "@oasis-engine/math";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
+import { BoundingBox, Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { Renderer } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
+import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -132,8 +132,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
   set font(value: Font) {
     const lastFont = this._font;
     if (lastFont !== value) {
-      lastFont && lastFont._addRefCount(-1);
-      value && value._addRefCount(1);
+      lastFont && lastFont._addReferCount(-1);
+      value && value._addReferCount(1);
       this._font = value;
       this._setDirtyFlagTrue(DirtyFlag.Font);
     }
@@ -265,7 +265,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * The bounding volume of the TextRenderer.
    */
-  get bounds(): BoundingBox {
+  override get bounds(): BoundingBox {
     this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
@@ -277,16 +277,22 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
   constructor(entity: Entity) {
     super(entity);
-    const { engine } = this;
-    this._font = engine._textDefaultFont;
-    this._font._addRefCount(1);
-    this.setMaterial(engine._spriteDefaultMaterial);
+    this._init();
   }
 
   /**
    * @internal
+   * Standalone for CanvasRenderer plugin.
    */
-  _onDestroy(): void {
+  _init(): void {
+    const { engine } = this;
+    this._font = engine._textDefaultFont;
+    this._font._addReferCount(1);
+    this.setMaterial(engine._spriteDefaultMaterial);
+  }
+
+  protected override _onDestroy(): void {
+    super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;
     for (let i = 0, n = charRenderDatas.length; i < n; ++i) {
@@ -295,12 +301,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
     charRenderDatas.length = 0;
 
     if (this._font) {
-      this._font._addRefCount(-1);
+      this._font._addReferCount(-1);
       this._font = null;
     }
     this._subFont && (this._subFont = null);
-
-    super._onDestroy();
   }
 
   /**
@@ -332,17 +336,16 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._dirtyFlag &= ~type;
   }
 
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateShaderData(context: RenderContext): void {
+    // @ts-ignore
+    this._updateTransformShaderData(context, Matrix._identity);
+  }
+
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
 
-  /**
-   * @override
-   */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     if (
       this._text === "" ||
       (this.enableWrapping && this.width <= 0) ||
@@ -371,34 +374,24 @@ export class TextRenderer extends Renderer implements ICustomClone {
       this._setDirtyFlagFalse(DirtyFlag.WorldPosition);
     }
 
-    const spriteElementPool = this._engine._spriteElementPool;
-    const textElement = this._engine._textElementPool.getFromPool();
-    const charElements = textElement.charElements;
+    const spriteRenderDataPool = this._engine._spriteRenderDataPool;
+    const textData = this._engine._textRenderDataPool.getFromPool();
+    const charsData = textData.charsData;
     const material = this.getMaterial();
     const charRenderDatas = this._charRenderDatas;
     const charCount = charRenderDatas.length;
-    const passes = material.shader.passes;
-    const renderStates = material.renderStates;
 
-    textElement.component = this;
-    textElement.material = material;
-    charElements.length = charCount;
-    textElement.renderState = renderStates[0];
+    textData.component = this;
+    textData.material = material;
+    charsData.length = charCount;
 
     for (let i = 0; i < charCount; ++i) {
       const charRenderData = charRenderDatas[i];
-      const spriteElement = spriteElementPool.getFromPool();
-      spriteElement.setValue(
-        this,
-        charRenderData.renderData,
-        material,
-        charRenderData.texture,
-        renderStates[0],
-        passes[0]
-      );
-      charElements[i] = spriteElement;
+      const spriteRenderData = spriteRenderDataPool.getFromPool();
+      spriteRenderData.set(this, material, charRenderData.renderData, charRenderData.texture, i);
+      charsData[i] = spriteRenderData;
     }
-    context.camera._renderPipeline.pushPrimitive(textElement);
+    context.camera._renderPipeline.pushRenderData(context, textData);
   }
 
   private _updateStencilState(): void {
@@ -425,7 +418,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   private _resetSubFont(): void {
-    this._subFont = this._font._getSubFont(this.fontSize, this.fontStyle);
+    const font = this._font;
+    this._subFont = font._getSubFont(this.fontSize, this.fontStyle);
+    this._subFont.nativeFontString = TextUtils.getNativeFontString(font.name, this.fontSize, this.fontStyle);
   }
 
   private _updatePosition(): void {
@@ -581,7 +576,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       });
   }
 
-  protected _onTransformChanged(bit: TransformModifyFlags): void {
+  protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
   }
