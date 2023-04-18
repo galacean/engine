@@ -9,7 +9,7 @@ import {
   TypedArray,
   VertexElement
 } from "@galacean/engine-core";
-import { Vector3 } from "@galacean/engine-math";
+import { Vector3, Vector4 } from "@galacean/engine-math";
 import { GLTFUtil } from "../GLTFUtil";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../Schema";
 import { Parser } from "./Parser";
@@ -135,25 +135,36 @@ export class MeshParser extends Parser {
     let vertexCount: number;
     let bufferBindIndex = 0;
     let positions: Vector3[];
-    keepMeshData && (positions = new Array<Vector3>(vertexCount));
+    let boneIndices: Vector4[];
+    let boneWeights: Vector4[];
+    if (keepMeshData) {
+      positions = new Array<Vector3>(vertexCount);
+      boneIndices = new Array<Vector4>(vertexCount);
+      boneWeights = new Array<Vector4>(vertexCount);
+    }
 
     for (const attribute in attributes) {
       const accessor = accessors[attributes[attribute]];
       const accessorBuffer = GLTFUtil.getAccessorBuffer(context, gltf, accessor);
 
-      const dataElmentSize = GLTFUtil.getAccessorTypeSize(accessor.type);
-      const attributeCount = accessor.count;
+      const dataElementSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+      const accessorCount = accessor.count;
       const vertices = accessorBuffer.data;
 
       let vertexElement: VertexElement;
       const meshId = mesh.instanceId;
       const vertexBindingInfos = accessorBuffer.vertexBindingInfos;
-      const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElmentSize, accessor.normalized);
+      const elementNormalized = accessor.normalized;
+      const elementFormat = GLTFUtil.getElementFormat(accessor.componentType, dataElementSize, elementNormalized);
+
+      let scaleFactor: number;
+      elementNormalized && (scaleFactor = GLTFUtil.getNormalizedComponentScale(accessor.componentType));
+
+      let elementOffset: number;
       if (accessorBuffer.interleaved) {
         const byteOffset = accessor.byteOffset || 0;
         const stride = accessorBuffer.stride;
-        const elementOffset = byteOffset % stride;
-
+        elementOffset = byteOffset % stride;
         if (vertexBindingInfos[meshId] === undefined) {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
@@ -169,7 +180,8 @@ export class MeshParser extends Parser {
           vertexElement = new VertexElement(attribute, elementOffset, elementFormat, vertexBindingInfos[meshId]);
         }
       } else {
-        vertexElement = new VertexElement(attribute, 0, elementFormat, bufferBindIndex);
+        elementOffset = 0;
+        vertexElement = new VertexElement(attribute, elementOffset, elementFormat, bufferBindIndex);
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
@@ -179,7 +191,7 @@ export class MeshParser extends Parser {
       vertexElements.push(vertexElement);
 
       if (attribute === "POSITION") {
-        vertexCount = attributeCount;
+        vertexCount = accessorCount;
 
         const { min, max } = mesh.bounds;
         if (accessor.min && accessor.max) {
@@ -187,10 +199,13 @@ export class MeshParser extends Parser {
           max.copyFromArray(accessor.max);
 
           if (keepMeshData) {
-            const stride = vertices.length / attributeCount;
-            for (let j = 0; j < attributeCount; j++) {
-              const offset = j * stride;
-              positions[j] = new Vector3(vertices[offset], vertices[offset + 1], vertices[offset + 2]);
+            const baseOffset = elementOffset / vertices.BYTES_PER_ELEMENT;
+            const stride = vertices.length / accessorCount;
+            for (let j = 0; j < accessorCount; j++) {
+              const offset = baseOffset + j * stride;
+              const position = new Vector3(vertices[offset], vertices[offset + 1], vertices[offset + 2]);
+              elementNormalized && position.scale(scaleFactor);
+              positions[j] = position;
             }
           }
         } else {
@@ -198,21 +213,52 @@ export class MeshParser extends Parser {
           min.set(Number.MAX_VALUE, Number.MAX_VALUE, Number.MAX_VALUE);
           max.set(-Number.MAX_VALUE, -Number.MAX_VALUE, -Number.MAX_VALUE);
 
-          const stride = vertices.length / attributeCount;
-          for (let j = 0; j < attributeCount; j++) {
-            const offset = j * stride;
+          const baseOffset = elementOffset / vertices.BYTES_PER_ELEMENT;
+          const stride = vertices.length / accessorCount;
+          for (let j = 0; j < accessorCount; j++) {
+            const offset = baseOffset + j * stride;
             position.copyFromArray(vertices, offset);
             Vector3.min(min, position, min);
             Vector3.max(max, position, max);
 
-            keepMeshData && (positions[j] = position.clone());
+            if (keepMeshData) {
+              const clonePosition = position.clone();
+              elementNormalized && clonePosition.scale(scaleFactor);
+              positions[j] = clonePosition;
+            }
           }
         }
-
-        if (accessor.normalized) {
-          const sacleFactor = GLTFUtil.getNormalizedComponentScale(accessor.componentType);
-          min.scale(sacleFactor);
-          max.scale(sacleFactor);
+        if (elementNormalized) {
+          min.scale(scaleFactor);
+          max.scale(scaleFactor);
+        }
+      } else if (attribute === "JOINTS_0" && keepMeshData) {
+        const baseOffset = elementOffset / vertices.BYTES_PER_ELEMENT;
+        const stride = vertices.length / accessorCount;
+        for (let j = 0; j < accessorCount; j++) {
+          const offset = baseOffset + j * stride;
+          const boneIndex = new Vector4(
+            vertices[offset],
+            vertices[offset + 1],
+            vertices[offset + 2],
+            vertices[offset + 3]
+          );
+          elementNormalized && boneIndex.scale(scaleFactor);
+          boneIndices[j] = boneIndex;
+        }
+      } else if (attribute === "WEIGHTS_0" && keepMeshData) {
+        const baseOffset = elementOffset / vertices.BYTES_PER_ELEMENT;
+        const stride = vertices.length / accessorCount;
+        for (let j = 0; j < accessorCount; j++) {
+          const offset = baseOffset + j * stride;
+          const boneWeight = new Vector4(
+            vertices[offset],
+            vertices[offset + 1],
+            vertices[offset + 2],
+            vertices[offset + 3]
+          );
+          elementNormalized && boneWeight.scale(scaleFactor);
+          boneWeights[j] = boneWeight;
         }
       }
     }
@@ -235,6 +281,10 @@ export class MeshParser extends Parser {
 
     //@ts-ignore
     mesh._positions = positions;
+    //@ts-ignore
+    mesh._boneIndices = boneIndices;
+    //@ts-ignore
+    mesh._boneWeights = boneWeights;
 
     return Promise.resolve(mesh);
   }
