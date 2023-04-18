@@ -3,6 +3,7 @@ uniform mat4 camera_ViewMat;
 
 uniform float u_textureTileS;
 uniform float u_textureTileT;
+uniform float u_textureDragging;
 
 uniform vec4 u_headColor;
 uniform vec4 u_tailColor;
@@ -21,12 +22,18 @@ varying vec2 v_uv;
 varying vec4 vColor;
 
 void main(){
-  float s = a_nodeIndex / 80.0 * u_textureTileS;
-  float t = a_vertexNodeIndex * u_textureTileT;
-  v_uv = vec2( s, t );
-
   float normalizeTime = (u_currentTime - a_trailBirthTime) / u_trailLifeTime;
-  vec4 realPosition = vec4( ( 1.0 - normalizeTime ) * a_position.xyz + normalizeTime * a_nodeCenter.xyz, 1.0 ); 
+  float s = 0.0;
+  float t = 0.0;
+  if (u_textureDragging == 1.0) { 
+    s = normalizeTime * u_textureTileS; 
+    t = a_vertexNodeIndex * u_textureTileT;
+  } else { 
+    s = a_nodeIndex / 200.0 * u_textureTileS;
+    t = a_vertexNodeIndex * u_textureTileT;
+  }
+  v_uv = vec2( s, t );
+  vec4 realPosition = vec4( ( 1.0 - normalizeTime ) * a_position.xyz + normalizeTime * a_position.xyz, 1.0 ); 
   gl_Position = camera_ProjMat * camera_ViewMat * realPosition;
 
   if (normalizeTime < 1.0){

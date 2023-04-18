@@ -29,7 +29,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   private _nodeIDsBuffer: Buffer;
   private _nodeIDs: Float32Array;
-  
+
   private _nodeCentersBuffer: Buffer;
   private _nodeCenters: Float32Array;
 
@@ -48,8 +48,10 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   private _headColor: Color = new Color();
   private _trailColor: Color = new Color();
 
-  private _textureTileS: number = 8.0;
+  private _textureTileS: number = 1.0;
   private _textureTileT: number = 1.0;
+
+  private _textureDragging: boolean = false;
 
   /**
    * Mesh of trail.
@@ -152,6 +154,18 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   set textureTileT(value: number) {
     this._textureTileT = value;
     this.getMaterial().shaderData.setFloat("u_textureTileT", value);
+  }
+
+  /**
+   * Texture Dragging mode for trail.
+   */
+  get textureDragging(): boolean {
+    return this._textureDragging;
+  }
+
+  set textureDragging(value: boolean) {
+    this._textureDragging = value;
+    this.getMaterial().shaderData.setFloat("u_textureDragging", value ? 1.0 : 0.0);
   }
 
   constructor(props) {
@@ -263,8 +277,8 @@ export class TrailRenderer extends Renderer implements ICustomClone {
       const material = this.getMaterial();
       if (!material) continue;
       const renderData = meshRenderDataPool.getFromPool();
-        renderData.set(this, material, mesh, subMeshes[i]);
-        renderPipeline.pushRenderData(context, renderData);
+      renderData.set(this, material, mesh, subMeshes[i]);
+      renderPipeline.pushRenderData(context, renderData);
     }
   }
 
@@ -355,7 +369,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   }
 
   private _updateNodeCenter(nodeIndex: number, nodeCenter: Vector3) {
-    for ( var i = 0; i < this._verticesPerNode; i ++ ) {
+    for (var i = 0; i < this._verticesPerNode; i++) {
       let baseIndex = ((this._verticesPerNode * nodeIndex) + i) * 3;
       this._nodeCenters[baseIndex] = nodeCenter.x;
       this._nodeCenters[baseIndex + 1] = nodeCenter.y;
