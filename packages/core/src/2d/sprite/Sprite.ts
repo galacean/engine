@@ -12,10 +12,10 @@ export class Sprite extends ReferResource {
   /** The name of sprite. */
   name: string;
 
+  private _width: number = 0;
+  private _height: number = 0;
   private _customWidth: number = undefined;
   private _customHeight: number = undefined;
-  private _defaultWidth: number = 0;
-  private _defaultHeight: number = 0;
 
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
@@ -56,11 +56,11 @@ export class Sprite extends ReferResource {
    * The width of the sprite (in world coordinates).
    */
   get width(): number {
-    if (this._customWidth === undefined) {
-      this._calDefaultSize();
-      return this._defaultWidth;
-    } else {
+    if (this._customWidth !== undefined) {
       return this._customWidth;
+    } else {
+      this._dirtyUpdateFlag & SpriteUpdateFlags.defaultSize && this._calDefaultSize();
+      return this._width;
     }
   }
 
@@ -75,11 +75,11 @@ export class Sprite extends ReferResource {
    * The height of the sprite (in world coordinates).
    */
   get height(): number {
-    if (this._customHeight === undefined) {
-      this._calDefaultSize();
-      return this._defaultHeight;
-    } else {
+    if (this._customHeight !== undefined) {
       return this._customHeight;
+    } else {
+      this._dirtyUpdateFlag & SpriteUpdateFlags.defaultSize && this._calDefaultSize();
+      return this._height;
     }
   }
 
@@ -262,22 +262,19 @@ export class Sprite extends ReferResource {
   }
 
   private _calDefaultSize(): void {
-    if (!(this._dirtyUpdateFlag & SpriteUpdateFlags.defaultSize)) {
-      return;
-    }
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
       const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
-      this._defaultWidth =
+      this._width =
         ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
         _region.width *
         pixelsPerUnitReciprocal;
-      this._defaultHeight =
+      this._height =
         ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
         _region.height *
         pixelsPerUnitReciprocal;
     } else {
-      this._defaultWidth = this._defaultHeight = 0;
+      this._width = this._height = 0;
     }
     this._dirtyUpdateFlag &= ~SpriteUpdateFlags.defaultSize;
   }

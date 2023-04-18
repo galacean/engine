@@ -43,14 +43,14 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
 
-  @ignoreClone
+  @assignmentClone
   private _customWidth: number = undefined;
-  @ignoreClone
+  @assignmentClone
   private _customHeight: number = undefined;
   @ignoreClone
-  private _defaultWidth: number = 0;
+  private _width: number = 0;
   @ignoreClone
-  private _defaultHeight: number = 0;
+  private _height: number = 0;
   @ignoreClone
   private _defaultSizeDirty: boolean = true;
   @assignmentClone
@@ -164,11 +164,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render width.
    */
   get width(): number {
-    if (this._customWidth === undefined) {
-      this._calDefaultSize();
-      return this._defaultWidth;
-    } else {
+    if (this._customWidth !== undefined) {
       return this._customWidth;
+    } else {
+      this._defaultSizeDirty && this._calDefaultSize();
+      return this._width;
     }
   }
 
@@ -183,11 +183,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render height.
    */
   get height(): number {
-    if (this._customHeight === undefined) {
-      this._calDefaultSize();
-      return this._defaultHeight;
-    } else {
+    if (this._customHeight !== undefined) {
       return this._customHeight;
+    } else {
+      this._defaultSizeDirty && this._calDefaultSize();
+      return this._height;
     }
   }
 
@@ -317,15 +317,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   private _calDefaultSize() {
-    if (!this._defaultSizeDirty) {
-      return;
-    }
     if (this._sprite) {
-      this._defaultWidth = this._sprite.width;
-      this._defaultHeight = this._sprite.height;
+      this._width = this._sprite.width;
+      this._height = this._sprite.height;
     } else {
-      this._defaultWidth = this._defaultHeight = 0;
+      this._width = this._height = 0;
     }
+    this._defaultSizeDirty = false;
   }
 
   private _updateStencilState(): void {
