@@ -4,7 +4,6 @@ import {
   AnimatorControllerLayer,
   AnimatorStateMachine,
   AssetPromise,
-  BaseMaterial,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -12,9 +11,9 @@ import {
   MeshRenderer,
   SkinnedMeshRenderer
 } from "@galacean/engine-core";
-import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
 import { GLTFResource } from "../GLTFResource";
 import { CameraType, ICamera, INode } from "../Schema";
+import { IKHRLightsPunctual, IKHRLightsPunctual_LightNode } from "../extensions/Schema";
 import { Parser } from "./Parser";
 import { ParserContext } from "./ParserContext";
 
@@ -159,8 +158,8 @@ export class SceneParser extends Parser {
 
         // Enable vertex color if mesh has COLOR_0 vertex element
         mesh.vertexElements.forEach((element) => {
-          if (element.semantic === "COLOR_0" && material instanceof BaseMaterial) {
-            material.enableVertexColor = true;
+          if (element.semantic === "COLOR_0") {
+            renderer.enableVertexColor = true;
           }
         });
       }

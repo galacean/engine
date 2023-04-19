@@ -1,4 +1,4 @@
-#ifdef MATERIAL_ENABLE_VERTEX_COLOR
+#ifdef O3_HAS_VERTEXCOLOR
 
 varying vec4 v_color;
 

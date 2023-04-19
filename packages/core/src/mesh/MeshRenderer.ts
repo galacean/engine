@@ -22,6 +22,8 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _mesh: Mesh;
 
+  private _enableVertexColor: boolean = false;
+
   /**
    * Mesh assigned to the renderer.
    */
@@ -32,6 +34,24 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   set mesh(value: Mesh) {
     if (this._mesh !== value) {
       this._setMesh(value);
+    }
+  }
+
+  /**
+   * Wether enable vertex color.
+   */
+  get enableVertexColor(): boolean {
+    return this._enableVertexColor;
+  }
+
+  set enableVertexColor(value: boolean) {
+    if (value !== this._enableVertexColor) {
+      if (value) {
+        this.shaderData.enableMacro(MeshRenderer._vertexColorMacro);
+      } else {
+        this.shaderData.disableMacro(MeshRenderer._vertexColorMacro);
+      }
+      this._enableVertexColor = value;
     }
   }
 

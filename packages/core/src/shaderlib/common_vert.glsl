@@ -36,7 +36,7 @@ attribute vec3 POSITION;
     #endif
 #endif
 
-#ifdef MATERIAL_ENABLE_VERTEX_COLOR
+#ifdef O3_HAS_VERTEXCOLOR
     attribute vec4 COLOR_0;
 #endif
 

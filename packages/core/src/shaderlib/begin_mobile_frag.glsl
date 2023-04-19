@@ -23,7 +23,7 @@
 
     #endif
 
-     #ifdef MATERIAL_ENABLE_VERTEX_COLOR
+     #ifdef O3_HAS_VERTEXCOLOR
 
         diffuse *= v_color;
 
