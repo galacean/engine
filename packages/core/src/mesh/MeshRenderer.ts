@@ -1,11 +1,11 @@
 import { BoundingBox } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
-import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
-import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader/Shader";
 
 /**
@@ -18,11 +18,12 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
   private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
 
+  /** Whether enable vertex color. */
+  enableVertexColor: boolean = false;
+
   /** @internal */
   @ignoreClone
   _mesh: Mesh;
-
-  private _enableVertexColor: boolean = false;
 
   /**
    * Mesh assigned to the renderer.
@@ -34,24 +35,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   set mesh(value: Mesh) {
     if (this._mesh !== value) {
       this._setMesh(value);
-    }
-  }
-
-  /**
-   * Whether enable vertex color.
-   */
-  get enableVertexColor(): boolean {
-    return this._enableVertexColor;
-  }
-
-  set enableVertexColor(value: boolean) {
-    if (value !== this._enableVertexColor) {
-      if (value) {
-        this.shaderData.enableMacro(MeshRenderer._vertexColorMacro);
-      } else {
-        this.shaderData.disableMacro(MeshRenderer._vertexColorMacro);
-      }
-      this._enableVertexColor = value;
     }
   }
 
@@ -112,6 +95,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         shaderData.disableMacro(MeshRenderer._uv1Macro);
         shaderData.disableMacro(MeshRenderer._normalMacro);
         shaderData.disableMacro(MeshRenderer._tangentMacro);
+        shaderData.disableMacro(MeshRenderer._vertexColorMacro);
 
         for (let i = 0, n = vertexElements.length; i < n; i++) {
           switch (vertexElements[i].semantic) {
@@ -126,6 +110,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
             case "TANGENT":
               shaderData.enableMacro(MeshRenderer._tangentMacro);
+              break;
+            case "COLOR_0":
+              this.enableVertexColor && shaderData.enableMacro(MeshRenderer._vertexColorMacro);
               break;
           }
         }
