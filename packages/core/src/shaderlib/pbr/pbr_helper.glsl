@@ -61,7 +61,7 @@ void initMaterial(out Material material, const in Geometry geometry){
             baseColor *= baseTextureColor;
         #endif
 
-        #ifdef O3_HAS_VERTEXCOLOR
+        #ifdef MATERIAL_ENABLE_VERTEX_COLOR
             baseColor *= v_color;
         #endif
 

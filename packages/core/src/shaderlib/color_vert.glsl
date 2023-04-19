@@ -1,4 +1,4 @@
-    #ifdef O3_HAS_VERTEXCOLOR
+    #ifdef MATERIAL_ENABLE_VERTEX_COLOR
 
     v_color = COLOR_0;
 

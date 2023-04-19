@@ -22,10 +22,12 @@ export class BaseMaterial extends Material {
 
   private static _alphaCutoffProp = Shader.getPropertyByName("u_alphaCutoff");
   private static _alphaCutoffMacro: ShaderMacro = Shader.getMacroByName("ALPHA_CUTOFF");
+  private static _enableVertexColorMacro: ShaderMacro = Shader.getMacroByName("MATERIAL_ENABLE_VERTEX_COLOR");
 
   private _renderFace: RenderFace = RenderFace.Front;
   private _isTransparent: boolean = false;
   private _blendMode: BlendMode = BlendMode.Normal;
+  private _enableVertexColor: boolean = false;
 
   /**
    * Shader used by the material.
@@ -128,6 +130,24 @@ export class BaseMaterial extends Material {
     if (value !== this._renderFace) {
       this.setRenderFace(0, value);
       this._renderFace = value;
+    }
+  }
+
+  /**
+   * Wether enable vertex color.
+   */
+  get enableVertexColor(): boolean {
+    return this._enableVertexColor;
+  }
+
+  set enableVertexColor(value: boolean) {
+    if (value !== this._enableVertexColor) {
+      if (value) {
+        this.shaderData.enableMacro(BaseMaterial._enableVertexColorMacro);
+      } else {
+        this.shaderData.disableMacro(BaseMaterial._enableVertexColorMacro);
+      }
+      this._enableVertexColor = value;
     }
   }
 

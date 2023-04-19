@@ -4,6 +4,7 @@ import {
   AnimatorControllerLayer,
   AnimatorStateMachine,
   AssetPromise,
+  BaseMaterial,
   BlinnPhongMaterial,
   Camera,
   Engine,
@@ -155,6 +156,13 @@ export class SceneParser extends Parser {
       } else {
         const material = materials?.[materialIndex] || SceneParser._getDefaultMaterial(engine);
         renderer.setMaterial(material);
+
+        // Enable vertex color if mesh has COLOR_0 vertex element
+        mesh.vertexElements.forEach((element) => {
+          if (element.semantic === "COLOR_0" && material instanceof BaseMaterial) {
+            material.enableVertexColor = true;
+          }
+        });
       }
 
       const { extensions = {} } = gltfMeshPrimitives[i];
