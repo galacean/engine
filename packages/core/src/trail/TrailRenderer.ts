@@ -45,8 +45,8 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   private _headColor: Color = new Color();
   private _trailColor: Color = new Color();
 
-  private _textureTileS: number = 1.0;
-  private _textureTileT: number = 1.0;
+  private _textureScaleY: number = 1.0;
+  private _textureScaleX: number = 1.0;
 
   private _textureDragging: boolean = false;
 
@@ -73,8 +73,8 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     if (value) {
       this.shaderData.enableMacro("trailTexture");
       this.shaderData.setTexture("u_texture", value);
-      this.shaderData.setFloat("u_textureTileS", this._textureTileS);
-      this.shaderData.setFloat("u_textureTileT", this._textureTileT);
+      this.shaderData.setFloat("u_textureScaleY", this._textureScaleY);
+      this.shaderData.setFloat("u_textureScaleX", this._textureScaleX);
     } else {
       this.shaderData.disableMacro("trailTexture");
     }
@@ -133,32 +133,32 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   /**
    * Texture UV S-axis for trail.
-   * textureTileS == 1 => Texture AspectFill;
-   * textureTileS >  1 => Texture Tile;
-   * textureTileS <  1 => Texture Strech;
+   * textureScaleY == 1 => Texture AspectFill;
+   * textureScaleY >  1 => Texture Tile;
+   * textureScaleY <  1 => Texture Strech;
    */
-  get textureTileS(): number {
-    return this._textureTileS;
+  get textureScaleY(): number {
+    return this._textureScaleY;
   }
 
-  set textureTileS(value: number) {
-    this._textureTileS = value;
-    this.shaderData.setFloat("u_textureTileS", value);
+  set textureScaleY(value: number) {
+    this._textureScaleY = value;
+    this.shaderData.setFloat("u_textureScaleY", value);
   }
 
   /**
    * Texture UV T-axis for trail.
-   * textureTileT == 1 => Texture AspectFill;
-   * textureTileT >  1 => Texture Tile;
-   * textureTileT <  1 => Texture Strech;
+   * textureScaleX == 1 => Texture AspectFill;
+   * textureScaleX >  1 => Texture Tile;
+   * textureScaleX <  1 => Texture Strech;
    */
-  get textureTileT(): number {
-    return this._textureTileT;
+  get textureScaleX(): number {
+    return this._textureScaleX;
   }
 
-  set textureTileT(value: number) {
-    this._textureTileT = value;
-    this.shaderData.setFloat("u_textureTileT", value);
+  set textureScaleX(value: number) {
+    this._textureScaleX = value;
+    this.shaderData.setFloat("u_textureScaleX", value);
   }
 
   /**

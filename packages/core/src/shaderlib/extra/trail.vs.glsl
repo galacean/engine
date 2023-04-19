@@ -2,8 +2,8 @@ uniform mat4 camera_ProjMat;
 uniform mat4 camera_ViewMat;
 
 uniform float u_maxLength;
-uniform float u_textureTileS;
-uniform float u_textureTileT;
+uniform float u_textureScaleY;
+uniform float u_textureScaleX;
 uniform float u_textureDragging;
 
 uniform vec4 u_headColor;
@@ -29,11 +29,11 @@ void main(){
   float s = 0.0;
   float t = 0.0;
   if (u_textureDragging == 1.0) { 
-    s = normalizeTime * u_textureTileS; 
-    t = vertexNodeIndex * u_textureTileT;
+    s = normalizeTime * u_textureScaleY; 
+    t = vertexNodeIndex * u_textureScaleX;
   } else { 
-    s = (nodeIndex / u_maxLength) * u_textureTileS;
-    t = vertexNodeIndex * u_textureTileT;
+    s = (nodeIndex / u_maxLength) * u_textureScaleY;
+    t = vertexNodeIndex * u_textureScaleX;
   }
   v_uv = vec2( s, t );
   vec4 realPosition = vec4( ( 1.0 - normalizeTime ) * a_position.xyz + normalizeTime * a_position.xyz, 1.0 ); 
