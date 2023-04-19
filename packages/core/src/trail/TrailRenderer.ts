@@ -4,6 +4,7 @@ import { Buffer, BufferBindFlag, BufferUsage, Mesh, MeshTopology, VertexElement,
 import { Texture } from "../texture";
 import { ICustomClone } from "../clone/ComponentCloner";
 import { TrailMaterial } from "./TrailMaterial";
+import { Entity } from "../Entity";
 import { Vector3, Matrix, Color } from "@galacean/engine-math";
 
 /**
@@ -74,12 +75,12 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   set texture(value: Texture) {
     this._texture = value;
     if (value) {
-      this.getMaterial().shaderData.enableMacro("trailTexture");
-      this.getMaterial().shaderData.setTexture("u_texture", value);
-      this.getMaterial().shaderData.setFloat("u_textureTileS", this._textureTileS);
-      this.getMaterial().shaderData.setFloat("u_textureTileT", this._textureTileT);
+      this.shaderData.enableMacro("trailTexture");
+      this.shaderData.setTexture("u_texture", value);
+      this.shaderData.setFloat("u_textureTileS", this._textureTileS);
+      this.shaderData.setFloat("u_textureTileT", this._textureTileT);
     } else {
-      this.getMaterial().shaderData.disableMacro("trailTexture");
+      this.shaderData.disableMacro("trailTexture");
     }
   }
 
@@ -105,7 +106,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   set time(value: number) {
     this._time = value;
     this._init();
-    this.getMaterial().shaderData.setFloat("u_trailLifeTime", value);
+    this.shaderData.setFloat("u_trailLifeTime", value);
   }
 
   /** 
@@ -117,7 +118,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   set headColor(value: Color) {
     this._headColor.copyFrom(value);
-    this.getMaterial().shaderData.setColor("u_headColor", value);
+    this.shaderData.setColor("u_headColor", value);
   }
 
   /**
@@ -129,7 +130,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   set trailColor(value: Color) {
     this._trailColor.copyFrom(value);
-    this.getMaterial().shaderData.setColor("u_tailColor", value);
+    this.shaderData.setColor("u_tailColor", value);
   }
 
   /**
@@ -141,7 +142,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   set textureTileS(value: number) {
     this._textureTileS = value;
-    this.getMaterial().shaderData.setFloat("u_textureTileS", value);
+    this.shaderData.setFloat("u_textureTileS", value);
   }
 
   /**
@@ -153,7 +154,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   set textureTileT(value: number) {
     this._textureTileT = value;
-    this.getMaterial().shaderData.setFloat("u_textureTileT", value);
+    this.shaderData.setFloat("u_textureTileT", value);
   }
 
   /**
@@ -165,12 +166,14 @@ export class TrailRenderer extends Renderer implements ICustomClone {
 
   set textureDragging(value: boolean) {
     this._textureDragging = value;
-    this.getMaterial().shaderData.setFloat("u_textureDragging", value ? 1.0 : 0.0);
+    this.shaderData.setFloat("u_textureDragging", value ? 1.0 : 0.0);
   }
 
-  constructor(props) {
-    super(props);
-
+  /* @internal
+   */
+  constructor(entity: Entity) {
+    super(entity);
+    
     const mtl = this.getMaterial() || new TrailMaterial(this.engine);
     this.setMaterial(mtl);
   }
@@ -383,7 +386,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   }
 
   private _updateTrailUniform() {
-    this.getMaterial().shaderData.setFloat("u_currentTime", performance.now() / 1000);
+    this.shaderData.setFloat("u_currentTime", performance.now() / 1000);
   }
 
   private _appendLastNodeForSubmesh() {
