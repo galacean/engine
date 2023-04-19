@@ -22,7 +22,7 @@ export type RequestConfig = {
   retryInterval?: number;
   timeout?: number;
   params?: {
-    requester?: <T>(url: string, config: RequestConfig) => AssetPromise<T>;
+    _requester?: <T>(url: string, config: RequestConfig) => AssetPromise<T>;
   };
 } & RequestInit;
 
@@ -38,8 +38,8 @@ export function request<T>(url: string, config: RequestConfig = {}): AssetPromis
     config.timeout = config.timeout ?? defaultTimeout;
     config.type = config.type ?? getMimeTypeFromUrl(url);
     let realRequest: typeof requestRes;
-    if (config.params?.requester) {
-      realRequest = config.params.requester;
+    if (config.params?._requester) {
+      realRequest = config.params._requester;
     } else {
       realRequest = config.type === "image" ? requestImage : requestRes;
     }

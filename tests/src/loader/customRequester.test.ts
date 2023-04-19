@@ -17,7 +17,7 @@ describe("custom requester", function () {
       type: AssetType.JSON,
       url: "/not/relevant",
       params: {
-        requester: (url) => {
+        _requester: (url) => {
           return new AssetPromise((resolve, reject, setProgress) => {
             setTimeout(() => {
               resolve(mockReturn);
