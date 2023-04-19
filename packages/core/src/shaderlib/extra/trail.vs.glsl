@@ -1,6 +1,7 @@
 uniform mat4 camera_ProjMat;
 uniform mat4 camera_ViewMat;
 
+uniform float u_maxLength;
 uniform float u_textureTileS;
 uniform float u_textureTileT;
 uniform float u_textureDragging;
@@ -31,7 +32,7 @@ void main(){
     s = normalizeTime * u_textureTileS; 
     t = vertexNodeIndex * u_textureTileT;
   } else { 
-    s = nodeIndex / 60.0 * u_textureTileS;
+    s = (nodeIndex / u_maxLength) * u_textureTileS;
     t = vertexNodeIndex * u_textureTileT;
   }
   v_uv = vec2( s, t );
