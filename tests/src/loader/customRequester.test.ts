@@ -7,7 +7,7 @@ before(async () => {
   const canvasDOM = document.createElement("canvas");
   canvasDOM.width = 1024;
   canvasDOM.height = 1024;
-  engine = await WebGLEngine.create({ canvas: canvasDOM });
+  engine = new WebGLEngine(canvasDOM);
 });
 
 describe("custom requester", function () {
