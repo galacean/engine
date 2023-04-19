@@ -98,8 +98,8 @@ npm run b:all
 
 - [Official Site](https://galacean.antgroup.com/)
 - [Examples](https://galacean.antgroup.com/#/examples/latest)
-- [Documentation](https://galacean.antgroup.com/#/docs/latest/cn/install)
-- [API References](https://galacean.antgroup.com/#/api/latest/core)
+- [Documentation](https://galacean.antgroup.com/#/docs/latest/en/install)
+- [API References](https://galacean.antgroup.com/#/api/latest)
 
 ## License
 
