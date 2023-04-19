@@ -99,9 +99,10 @@ export class TrailRenderer extends Renderer implements ICustomClone {
   }
 
   set time(value: number) {
-    this._time = value;
+    // 
+    this._time = Number(value.toFixed(1));
     this._init();
-    this.shaderData.setFloat("u_trailLifeTime", value);
+    this.shaderData.setFloat("u_trailLifeTime", this._time);
   }
 
   /** 
@@ -191,7 +192,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     this._currentLength = 0;
     this._currentEnd = -1;
     this._currentNodeIndex = 0;
-    this._maxLength = this._time * 120;
+    this._maxLength = this._time * 60;
 
 
     this._createHeadVertexList();
