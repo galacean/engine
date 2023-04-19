@@ -96,10 +96,10 @@ npm run b:all
 
 ## Links
 
-- [Official Site](https://oasisengine.cn)
-- [Examples](https://oasisengine.cn/#/examples/latest)
-- [Documentation](https://oasisengine.cn/#/docs/latest/cn/install)
-- [API References](https://oasisengine.cn/#/api/latest/core)
+- [Official Site](https://galacean.antgroup.com/)
+- [Examples](https://galacean.antgroup.com/#/examples/latest)
+- [Documentation](https://galacean.antgroup.com/#/docs/latest/cn/install)
+- [API References](https://galacean.antgroup.com/#/api/latest/core)
 
 ## License
 
