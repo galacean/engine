@@ -38,7 +38,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * Wether enable vertex color.
+   * Whether enable vertex color.
    */
   get enableVertexColor(): boolean {
     return this._enableVertexColor;
