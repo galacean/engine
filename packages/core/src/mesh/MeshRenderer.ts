@@ -112,7 +112,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         shaderData.disableMacro(MeshRenderer._uv1Macro);
         shaderData.disableMacro(MeshRenderer._normalMacro);
         shaderData.disableMacro(MeshRenderer._tangentMacro);
-        shaderData.disableMacro(MeshRenderer._vertexColorMacro);
 
         for (let i = 0, n = vertexElements.length; i < n; i++) {
           switch (vertexElements[i].semantic) {
@@ -127,9 +126,6 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               break;
             case "TANGENT":
               shaderData.enableMacro(MeshRenderer._tangentMacro);
-              break;
-            case "COLOR_0":
-              shaderData.enableMacro(MeshRenderer._vertexColorMacro);
               break;
           }
         }
