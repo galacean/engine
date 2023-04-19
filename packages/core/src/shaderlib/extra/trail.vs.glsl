@@ -23,7 +23,7 @@ void main(){
   float nodeIndex = a_nodeIndexData.x;
   float vertexNodeIndex = a_nodeIndexData.y;
   float trailBirthTime =  a_nodeIndexData.z;
-  
+
   float normalizeTime = (u_currentTime - trailBirthTime) / u_trailLifeTime;
   float s = 0.0;
   float t = 0.0;
@@ -31,7 +31,7 @@ void main(){
     s = normalizeTime * u_textureTileS; 
     t = vertexNodeIndex * u_textureTileT;
   } else { 
-    s = nodeIndex / 200.0 * u_textureTileS;
+    s = nodeIndex / 60.0 * u_textureTileS;
     t = vertexNodeIndex * u_textureTileT;
   }
   v_uv = vec2( s, t );
