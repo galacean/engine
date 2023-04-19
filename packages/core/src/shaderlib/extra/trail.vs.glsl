@@ -23,6 +23,7 @@ void main(){
   float nodeIndex = a_nodeIndexData.x;
   float vertexNodeIndex = a_nodeIndexData.y;
   float trailBirthTime =  a_nodeIndexData.z;
+  
   float normalizeTime = (u_currentTime - trailBirthTime) / u_trailLifeTime;
   float s = 0.0;
   float t = 0.0;
