@@ -132,7 +132,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
    * Texture UV S-axis for trail.
    * textureTileS == 1 => Texture AspectFill;
    * textureTileS >  1 => Texture Tile;
-   * textureTileS <  1 => Texture strech
+   * textureTileS <  1 => Texture Strech;
    */
   get textureTileS(): number {
     return this._textureTileS;
@@ -147,7 +147,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
    * Texture UV T-axis for trail.
    * textureTileT == 1 => Texture AspectFill;
    * textureTileT >  1 => Texture Tile;
-   * textureTileT <  1 => Texture strech;
+   * textureTileT <  1 => Texture Strech;
    */
   get textureTileT(): number {
     return this._textureTileT;
@@ -230,6 +230,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     this._vertexBuffer = positionBuffer;
     this._nodeCentersBuffer = nodeCentersBuffer;
     this._nodeIndexBuffer = nodeIndexBuffer;
+
     this._mesh = mesh;
 
     return mesh;
