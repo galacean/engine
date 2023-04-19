@@ -175,7 +175,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
    */
   constructor(entity: Entity) {
     super(entity);
-    
+
     const mtl = this.getMaterial() || new TrailMaterial(this.engine);
     this.setMaterial(mtl);
   }
@@ -192,7 +192,7 @@ export class TrailRenderer extends Renderer implements ICustomClone {
     this._currentLength = 0;
     this._currentEnd = -1;
     this._currentNodeIndex = 0;
-    this._maxLength = this._time * 60;
+    this._maxLength = this._time * 120;
 
 
     this._createHeadVertexList();
