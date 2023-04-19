@@ -18,8 +18,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
   private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
 
-  /** Whether enable vertex color. */
-  enableVertexColor: boolean = false;
+  private _enableVertexColor: boolean = false;
 
   /** @internal */
   @ignoreClone
@@ -35,6 +34,20 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   set mesh(value: Mesh) {
     if (this._mesh !== value) {
       this._setMesh(value);
+    }
+  }
+
+  /**
+   * Whether enable vertex color.
+   */
+  get enableVertexColor(): boolean {
+    return this._enableVertexColor;
+  }
+
+  set enableVertexColor(value: boolean) {
+    if (value !== this._enableVertexColor) {
+      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro;
+      this._enableVertexColor = value;
     }
   }
 
