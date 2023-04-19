@@ -13,24 +13,25 @@ uniform float u_trailLifeTime;
 
 attribute vec3 a_position;
 attribute vec3 a_nodeCenter;
-
-attribute float a_nodeIndex;
-attribute float a_vertexNodeIndex;
-attribute float a_trailBirthTime;
+attribute vec3 a_nodeIndexData;
 
 varying vec2 v_uv;
 varying vec4 vColor;
 
 void main(){
-  float normalizeTime = (u_currentTime - a_trailBirthTime) / u_trailLifeTime;
+
+  float nodeIndex = a_nodeIndexData.x;
+  float vertexNodeIndex = a_nodeIndexData.y;
+  float trailBirthTime =  a_nodeIndexData.z;
+  float normalizeTime = (u_currentTime - trailBirthTime) / u_trailLifeTime;
   float s = 0.0;
   float t = 0.0;
   if (u_textureDragging == 1.0) { 
     s = normalizeTime * u_textureTileS; 
-    t = a_vertexNodeIndex * u_textureTileT;
+    t = vertexNodeIndex * u_textureTileT;
   } else { 
-    s = a_nodeIndex / 200.0 * u_textureTileS;
-    t = a_vertexNodeIndex * u_textureTileT;
+    s = nodeIndex / 200.0 * u_textureTileS;
+    t = vertexNodeIndex * u_textureTileT;
   }
   v_uv = vec2( s, t );
   vec4 realPosition = vec4( ( 1.0 - normalizeTime ) * a_position.xyz + normalizeTime * a_position.xyz, 1.0 ); 
