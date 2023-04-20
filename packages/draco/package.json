@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/draco",
-  "version": "0.0.0-experimental-material-deleteBackNormal.2",
+  "version": "0.0.0-experimental-material-deleteBackNormal.3",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
