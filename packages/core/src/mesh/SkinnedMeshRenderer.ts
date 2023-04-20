@@ -1,14 +1,14 @@
 import { BoundingBox, Matrix, Vector2 } from "@oasis-engine/math";
-import { Entity } from "../Entity";
-import { RenderContext } from "../RenderPipeline/RenderContext";
-import { RendererUpdateFlags } from "../Renderer";
-import { Utils } from "../Utils";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
+import { Entity } from "../Entity";
+import { RendererUpdateFlags } from "../Renderer";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader";
-import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
+import { Texture2D } from "../texture/Texture2D";
+import { Utils } from "../Utils";
 import { MeshRenderer } from "./MeshRenderer";
 import { ModelMesh } from "./ModelMesh";
 import { Skin } from "./Skin";
@@ -22,8 +22,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointSamplerProperty = Shader.getPropertyByName("u_jointSampler");
   private static _jointMatrixProperty = Shader.getPropertyByName("u_jointMatrix");
 
-  @ignoreClone
-  private _supportSkinning: boolean = false;
   @ignoreClone
   private _hasInitSkin: boolean = false;
   @ignoreClone
@@ -122,7 +120,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     // Limit size to 256 to avoid some problem:
     // For renderer is "Apple GPU", when uniform is large than 256 the skeleton matrix array access in shader very slow in Safari or WKWebview. This may be a apple bug, Chrome and Firefox is OK!
     // For renderer is "ANGLE (AMD, AMD Radeon(TM) Graphics Direct3011 vs_5_0 ps_5_0, D3011)", compile shader si very slow because of max uniform is 4096.
-    maxVertexUniformVectors = Math.min(maxVertexUniformVectors, rhi._options._maxAllowSkinUniformVectorCount);
+    maxVertexUniformVectors = Math.min(maxVertexUniformVectors, 256);
 
     this._maxVertexUniformVectors = maxVertexUniformVectors;
 
@@ -143,9 +141,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this._initSkin();
       this._hasInitSkin = true;
     }
-
-    if (this._supportSkinning) {
-      const ibms = this._skin.inverseBindMatrices;
+    const skin = this._skin;
+    if (skin) {
+      const ibms = skin.inverseBindMatrices;
       const worldToLocal = this._rootBone.getInvModelMatrix();
       const { _jointEntities: joints, _jointMatrices: jointMatrices } = this;
 
@@ -167,6 +165,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   protected _updateShaderData(context: RenderContext): void {
     const entity = this.entity;
+    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
+    this._updateTransformShaderData(context, worldMatrix);
 
     const shaderData = this.shaderData;
 
@@ -197,18 +197,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
             shaderData.disableMacro("O3_JOINTS_NUM");
             shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
             shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
-            this._supportSkinning = true;
           } else {
-            this._supportSkinning = false;
-            this._jointTexture?.destroy();
-            shaderData.disableMacro("O3_HAS_SKIN");
-            Logger.warn(
+            Logger.error(
               `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${remainUniformJointCount}.`,
               this
             );
           }
         } else {
-          this._supportSkinning = true;
           this._jointTexture?.destroy();
           shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
           shaderData.enableMacro("O3_JOINTS_NUM", remainUniformJointCount.toString());
@@ -221,10 +216,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         this._jointTexture.setPixelBuffer(this._jointMatrices);
       }
     }
-
-    const worldMatrix =
-      this._supportSkinning && this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
-    this._updateTransformShaderData(context, worldMatrix);
 
     const layer = entity.layer;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
