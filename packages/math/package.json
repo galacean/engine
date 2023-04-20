@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/math",
-  "version": "0.0.0-experimental-material-deleteBackNormal.3",
+  "version": "0.0.0-experimental-material-deleteBackNormal.4",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
