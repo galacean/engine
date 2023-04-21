@@ -20,6 +20,19 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
   private static _clearCoatRoughnessTextureProp = Shader.getPropertyByName("u_clearCoatRoughnessTexture");
   private static _clearCoatNormalTextureProp = Shader.getPropertyByName("u_clearCoatNormalTexture");
 
+  private static _iorProp = Shader.getPropertyByName("material_IOR");
+
+  /**
+   * Index Of Refraction, default is 1.5.
+   */
+  get ior(): number {
+    return this.shaderData.getFloat(PBRBaseMaterial._iorProp);
+  }
+
+  set ior(v: number) {
+    this.shaderData.setFloat(PBRBaseMaterial._iorProp, v);
+  }
+
   /**
    * Base color.
    */
@@ -266,5 +279,7 @@ export abstract class PBRBaseMaterial extends BaseMaterial {
 
     shaderData.setFloat(PBRBaseMaterial._clearCoatProp, 0);
     shaderData.setFloat(PBRBaseMaterial._clearCoatRoughnessProp, 0);
+
+    shaderData.setFloat(PBRBaseMaterial._iorProp, 1.5);
   }
 }
