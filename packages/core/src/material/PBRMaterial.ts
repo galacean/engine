@@ -11,6 +11,19 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _roughnessProp = Shader.getPropertyByName("u_roughness");
   private static _roughnessMetallicTextureProp = Shader.getPropertyByName("u_roughnessMetallicTexture");
 
+  private static _iorProp = Shader.getPropertyByName("material_IOR");
+
+  /**
+   * Index Of Refraction, default is 1.5.
+   */
+  get ior(): number {
+    return this.shaderData.getFloat(PBRMaterial._iorProp);
+  }
+
+  set ior(v: number) {
+    this.shaderData.setFloat(PBRMaterial._iorProp, v);
+  }
+
   /**
    * Metallic, default 1.0.
    */
@@ -58,6 +71,7 @@ export class PBRMaterial extends PBRBaseMaterial {
     super(engine, Shader.find("pbr"));
     this.shaderData.setFloat(PBRMaterial._metallicProp, 1);
     this.shaderData.setFloat(PBRMaterial._roughnessProp, 1);
+    this.shaderData.setFloat(PBRMaterial._iorProp, 1.5);
   }
 
   /**
