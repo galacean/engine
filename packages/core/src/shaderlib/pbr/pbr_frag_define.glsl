@@ -2,6 +2,7 @@ uniform float material_AlphaCutoff;
 uniform vec4 material_BaseColor;
 uniform float material_Metal;
 uniform float material_Roughness;
+uniform float material_IOR;
 uniform vec3 material_PBRSpecularColor;
 uniform float material_Glossiness;
 uniform vec3 material_EmissiveColor;
