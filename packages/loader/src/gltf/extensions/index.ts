@@ -12,3 +12,4 @@ import "./KHR_mesh_quantization";
 import "./KHR_texture_basisu";
 import "./KHR_texture_transform";
 import "./GALACEAN_materials_remap";
+import "./KHR_materials_ior";
