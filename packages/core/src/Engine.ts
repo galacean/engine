@@ -113,6 +113,7 @@ export class Engine extends EventDispatcher {
   /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
+  /** @internal */
   protected _canvas: Canvas;
 
   private _settings: EngineSettings = {};
@@ -513,6 +514,9 @@ export class Engine extends EventDispatcher {
     }
   }
 
+  /**
+   * @internal
+   */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
     const physics = configuration.physics;
     if (physics) {
