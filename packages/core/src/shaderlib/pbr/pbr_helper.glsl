@@ -17,10 +17,6 @@ float getAARoughnessFactor(vec3 normal) {
     #endif
 }
 
-float getF0(float ior, float outsideIor){
- return pow2( (ior - outsideIor) / (ior + outsideIor) );
-}
-
 void initGeometry(out Geometry geometry){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(u_cameraPos - v_pos);
@@ -56,7 +52,7 @@ void initMaterial(out Material material, const in Geometry geometry){
         vec3 specularColor = u_PBRSpecularColor;
         float glossiness = u_glossiness;
         float alphaCutoff = u_alphaCutoff;
-        float F0 = getF0(material_IOR, 1.0);
+        float F0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) )
 
 
         #ifdef BASETEXTURE

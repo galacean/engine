@@ -14,18 +14,20 @@ export class PBRMaterial extends PBRBaseMaterial {
   private static _iorProp = Shader.getPropertyByName("material_IOR");
 
   /**
-   * Index Of Refraction, default is 1.5.
+   * Index Of Refraction.
+   * @defaultValue `1.5`
    */
   get ior(): number {
     return this.shaderData.getFloat(PBRMaterial._iorProp);
   }
 
   set ior(v: number) {
-    this.shaderData.setFloat(PBRMaterial._iorProp, v);
+    this.shaderData.setFloat(PBRMaterial._iorProp, Math.min(v, 0));
   }
 
   /**
-   * Metallic, default 1.0.
+   * Metallic.
+   * @defaultValue `1.0`
    */
   get metallic(): number {
     return this.shaderData.getFloat(PBRMaterial._metallicProp);
@@ -36,7 +38,8 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   /**
-   * Roughness, default 1.0.
+   * Roughness. default 1.0.
+   * @defaultValue `1.0`
    */
   get roughness(): number {
     return this.shaderData.getFloat(PBRMaterial._roughnessProp);
