@@ -28,7 +28,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _renderData: RenderData2D;
 
-  @assignmentClone
+  @ignoreClone
   private _drawMode: SpriteDrawMode;
   @ignoreClone
   private _assembler: IAssembler;
@@ -227,6 +227,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    */
   _cloneTo(target: SpriteRenderer): void {
     target.sprite = this._sprite;
+    target.drawMode = this._drawMode;
   }
 
   /**
