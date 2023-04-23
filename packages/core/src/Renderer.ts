@@ -343,6 +343,9 @@ export class Renderer extends Component {
     }
   }
 
+  /**
+   * @internal
+   */
   protected _updateShaderData(context: RenderContext): void {
     const entity = this.entity;
     const worldMatrix = entity.transform.worldMatrix;
@@ -352,6 +355,9 @@ export class Renderer extends Component {
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
+  /**
+   * @internal
+   */
   protected _updateTransformShaderData(context: RenderContext, worldMatrix: Matrix): void {
     const shaderData = this.shaderData;
     const virtualCamera = context.virtualCamera;
@@ -375,16 +381,28 @@ export class Renderer extends Component {
     shaderData.setMatrix(Renderer._normalMatrixProperty, normalMatrix);
   }
 
+  /**
+   * @internal
+   */
   protected _registerEntityTransformListener(): void {
     this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
   }
 
+  /**
+   * @internal
+   */
   protected _updateBounds(worldBounds: BoundingBox): void {}
 
+  /**
+   * @internal
+   */
   protected _render(context: RenderContext): void {
     throw "not implement";
   }
 
+  /**
+   * @internal
+   */
   private _createInstanceMaterial(material: Material, index: number): Material {
     const insMaterial: Material = material.clone();
     insMaterial.name = insMaterial.name + "(Instance)";
@@ -412,6 +430,9 @@ export class Renderer extends Component {
     }
   }
 
+  /**
+   * @internal
+   */
   @ignoreClone
   protected _onTransformChanged(type: TransformModifyFlags): void {
     this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;

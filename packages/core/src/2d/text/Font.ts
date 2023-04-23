@@ -58,6 +58,9 @@ export class Font extends ReferResource {
   }
 
  
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     const subFontMap = this._subFontMap;

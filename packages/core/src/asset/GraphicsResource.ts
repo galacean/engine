@@ -12,6 +12,9 @@ export abstract class GraphicsResource extends ReferResource {
    */
   abstract _rebuild(): void;
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this.engine.resourceManager._deleteGraphicResource(this);

@@ -112,6 +112,9 @@ export class TrailRenderer extends MeshRenderer {
     }
   }
 
+  /**
+   * @internal
+   */
   protected override _render(context: RenderContext): void {
     this._updateStrapVertices(context.camera, this._points);
     this._updateStrapCoords();

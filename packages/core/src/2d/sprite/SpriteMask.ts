@@ -162,6 +162,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
     target.sprite = this._sprite;
   }
 
+  /**
+   * @internal
+   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       worldBounds.min.set(0, 0, 0);
@@ -172,6 +175,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   protected override _render(context: RenderContext): void {
@@ -203,6 +207,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {

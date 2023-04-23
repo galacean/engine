@@ -159,6 +159,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     }
   }
 
+  /**
+   * @internal
+   */
   protected override _updateShaderData(context: RenderContext): void {
     const entity = this.entity;
     const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
@@ -225,10 +228,16 @@ export class SkinnedMeshRenderer extends MeshRenderer {
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
+  /**
+   * @internal
+   */
   protected override _registerEntityTransformListener(): void {
     // Cancel register listener to entity transform.
   }
 
+  /**
+   * @internal
+   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this._rootBone) {
       const localBounds = this._localBounds;

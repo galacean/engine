@@ -238,6 +238,9 @@ export class Sprite extends ReferResource {
     return this._bounds;
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._texture = null;

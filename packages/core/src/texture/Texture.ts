@@ -180,6 +180,9 @@ export abstract class Texture extends GraphicsResource {
     platformTexture.setUseDepthCompareMode(this._useDepthCompareMode);
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy() {
     super._onDestroy();
     this._platformTexture.destroy();

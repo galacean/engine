@@ -206,6 +206,9 @@ export class RenderTarget extends GraphicsResource {
     }
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._platformRenderTarget.destroy();

@@ -65,6 +65,9 @@ export class SpriteAtlas extends ReferResource {
     this._spriteNamesToIndex[sprite.name] = this._sprites.push(sprite) - 1;
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._sprites = null;

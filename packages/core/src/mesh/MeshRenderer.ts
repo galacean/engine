@@ -43,6 +43,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     this._onMeshChanged = this._onMeshChanged.bind(this);
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
@@ -59,6 +62,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     target.mesh = this._mesh;
   }
 
+  /**
+   * @internal
+   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     const mesh = this._mesh;
     if (mesh) {
@@ -71,6 +77,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     }
   }
 
+  /**
+   * @internal
+   */
   protected override _render(context: RenderContext): void {
     const mesh = this._mesh;
     if (mesh) {
