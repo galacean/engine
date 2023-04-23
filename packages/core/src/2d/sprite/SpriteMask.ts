@@ -33,10 +33,16 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
 
+  @assignmentClone
+  private _customWidth: number = undefined;
+  @assignmentClone
+  private _customHeight: number = undefined;
   @ignoreClone
   private _width: number = undefined;
   @ignoreClone
   private _height: number = undefined;
+  @ignoreClone
+  private _defaultSizeDirty: boolean = true;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
@@ -49,15 +55,17 @@ export class SpriteMask extends Renderer implements ICustomClone {
    * Render width.
    */
   get width(): number {
-    if (this._width === undefined && this._sprite) {
-      this.width = this._sprite.width;
+    if (this._customWidth !== undefined) {
+      return this._customWidth;
+    } else {
+      this._defaultSizeDirty && this._calDefaultSize();
+      return this._width;
     }
-    return this._width;
   }
 
   set width(value: number) {
-    if (this._width !== value) {
-      this._width = value;
+    if (this._customWidth !== value) {
+      this._customWidth = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
@@ -66,15 +74,17 @@ export class SpriteMask extends Renderer implements ICustomClone {
    * Render height.
    */
   get height(): number {
-    if (this._height === undefined && this._sprite) {
-      this.height = this._sprite.height;
+    if (this._customHeight !== undefined) {
+      return this._customHeight;
+    } else {
+      this._defaultSizeDirty && this._calDefaultSize();
+      return this._height;
     }
-    return this._height;
   }
 
   set height(value: number) {
-    if (this._height !== value) {
-      this._height = value;
+    if (this._customHeight !== value) {
+      this._customHeight = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
     }
   }
@@ -121,6 +131,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
       if (value) {
         value._updateFlagManager.addListener(this._onSpriteChange);
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
+        this._defaultSizeDirty = true;
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
@@ -165,12 +176,12 @@ export class SpriteMask extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  protected override _updateBounds(worldBounds: BoundingBox): void {
-    if (!this.sprite?.texture || !this.width || !this.height) {
+  protected _updateBounds(worldBounds: BoundingBox): void {
+    if (this.sprite) {
+      SimpleSpriteAssembler.updatePositions(this);
+    } else {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
-    } else {
-      SimpleSpriteAssembler.updatePositions(this);
     }
   }
 
@@ -183,13 +194,13 @@ export class SpriteMask extends Renderer implements ICustomClone {
       return;
     }
 
-    // Update position.
+    // Update position
     if (this._dirtyUpdateFlag & RendererUpdateFlags.WorldVolume) {
       SimpleSpriteAssembler.updatePositions(this);
       this._dirtyUpdateFlag &= ~RendererUpdateFlags.WorldVolume;
     }
 
-    // Update uv.
+    // Update uv
     if (this._dirtyUpdateFlag & SpriteMaskUpdateFlags.UV) {
       SimpleSpriteAssembler.updateUVs(this);
       this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.UV;
@@ -217,11 +228,27 @@ export class SpriteMask extends Renderer implements ICustomClone {
     this._verticesData = null;
   }
 
+  private _calDefaultSize() {
+    if (this._sprite) {
+      this._width = this._sprite.width;
+      this._height = this._sprite.height;
+    } else {
+      this._width = this._height = 0;
+    }
+    this._defaultSizeDirty = false;
+  }
+
   @ignoreClone
   private _onSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
         this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
+        break;
+      case SpriteModifyFlags.size:
+        this._defaultSizeDirty = true;
+        if (this._customWidth === undefined || this._customHeight === undefined) {
+          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:

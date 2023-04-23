@@ -29,7 +29,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _verticesData: VertexData2D;
 
-  @ignoreClone
+  @assignmentClone
   private _drawMode: SpriteDrawMode;
   @assignmentClone
   private _assembler: IAssembler;
