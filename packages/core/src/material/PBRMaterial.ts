@@ -22,7 +22,7 @@ export class PBRMaterial extends PBRBaseMaterial {
   }
 
   set ior(v: number) {
-    this.shaderData.setFloat(PBRMaterial._iorProp, Math.min(v, 0));
+    this.shaderData.setFloat(PBRMaterial._iorProp, Math.max(v, 0));
   }
 
   /**
