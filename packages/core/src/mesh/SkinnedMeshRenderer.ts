@@ -1,14 +1,14 @@
-import { BoundingBox, Matrix, Vector2 } from "@oasis-engine/math";
+import { BoundingBox, Matrix, Vector2 } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { RendererUpdateFlags } from "../Renderer";
+import { Utils } from "../Utils";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
-import { Entity } from "../Entity";
-import { RendererUpdateFlags } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { ShaderProperty } from "../shader";
+import { Texture2D } from "../texture/Texture2D";
 import { TextureFilterMode } from "../texture/enums/TextureFilterMode";
 import { TextureFormat } from "../texture/enums/TextureFormat";
-import { Texture2D } from "../texture/Texture2D";
-import { Utils } from "../Utils";
 import { MeshRenderer } from "./MeshRenderer";
 import { ModelMesh } from "./ModelMesh";
 import { Skin } from "./Skin";
@@ -17,9 +17,9 @@ import { Skin } from "./Skin";
  * SkinnedMeshRenderer.
  */
 export class SkinnedMeshRenderer extends MeshRenderer {
-  private static _jointCountProperty = ShaderProperty.getByName("u_jointCount");
-  private static _jointSamplerProperty = ShaderProperty.getByName("u_jointSampler");
-  private static _jointMatrixProperty = ShaderProperty.getByName("u_jointMatrix");
+  private static _jointCountProperty = ShaderProperty.getByName("renderer_JointCount");
+  private static _jointSamplerProperty = ShaderProperty.getByName("renderer_JointSampler");
+  private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
 
   @ignoreClone
   private _hasInitSkin: boolean = false;
@@ -135,7 +135,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  update(): void {
+  override update(): void {
     if (!this._hasInitSkin) {
       this._initSkin();
       this._hasInitSkin = true;
@@ -160,10 +160,11 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateShaderData(context: RenderContext): void {
-    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : this.entity.transform.worldMatrix;
+  protected override _updateShaderData(context: RenderContext): void {
+    const entity = this.entity;
+    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
     this._updateTransformShaderData(context, worldMatrix);
 
     const shaderData = this.shaderData;
@@ -192,8 +193,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
               this._jointTexture = new Texture2D(engine, 4, jointCount, TextureFormat.R32G32B32A32, false);
               this._jointTexture.filterMode = TextureFilterMode.Point;
             }
-            shaderData.disableMacro("O3_JOINTS_NUM");
-            shaderData.enableMacro("O3_USE_JOINT_TEXTURE");
+            shaderData.disableMacro("RENDERER_JOINTS_NUM");
+            shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
             shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
           } else {
             Logger.error(
@@ -203,8 +204,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
           }
         } else {
           this._jointTexture?.destroy();
-          shaderData.disableMacro("O3_USE_JOINT_TEXTURE");
-          shaderData.enableMacro("O3_JOINTS_NUM", remainUniformJointCount.toString());
+          shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");
+          shaderData.enableMacro("RENDERER_JOINTS_NUM", remainUniformJointCount.toString());
           shaderData.setFloatArray(SkinnedMeshRenderer._jointMatrixProperty, this._jointMatrices);
         }
         jointDataCreateCache.set(jointCount, bsUniformOccupiesCount);
@@ -214,27 +215,30 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         this._jointTexture.setPixelBuffer(this._jointMatrices);
       }
     }
+
+    const layer = entity.layer;
+    this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }
 
   /**
    * @internal
    */
-  _cloneTo(target: SkinnedMeshRenderer): void {
+  override _cloneTo(target: SkinnedMeshRenderer): void {
     super._cloneTo(target);
     this._blendShapeWeights && (target._blendShapeWeights = this._blendShapeWeights.slice());
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _registerEntityTransformListener(): void {
+  protected override _registerEntityTransformListener(): void {
     // Cancel register listener to entity transform.
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this._rootBone) {
       const localBounds = this._localBounds;
       const worldMatrix = this._rootBone.transform.worldMatrix;
@@ -250,7 +254,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const { _skin: skin, shaderData } = this;
     if (!skin) {
-      shaderData.disableMacro("O3_HAS_SKIN");
+      shaderData.disableMacro("RENDERER_HAS_SKIN");
       return;
     }
 
@@ -293,10 +297,10 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     this._rootBone = rootBone;
     if (jointCount) {
-      shaderData.enableMacro("O3_HAS_SKIN");
+      shaderData.enableMacro("RENDERER_HAS_SKIN");
       shaderData.setInt(SkinnedMeshRenderer._jointCountProperty, jointCount);
     } else {
-      shaderData.disableMacro("O3_HAS_SKIN");
+      shaderData.disableMacro("RENDERER_HAS_SKIN");
     }
   }
 

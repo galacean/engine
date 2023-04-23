@@ -1,5 +1,5 @@
 {
-  "name": "oasis-engine-root",
+  "name": "@galacean/engine-root",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -26,7 +26,7 @@
     "@rollup/plugin-node-resolve": "^11.0.1",
     "@rollup/plugin-replace": "^2.3.4",
     "@swc/core": "^1.3.32",
-    "@swc/helpers": "^0.4.14",
+    "@swc/helpers": "^0.5",
     "@types/chai": "^4.3.1",
     "@types/chai-spies": "^1.0.3",
     "@types/mocha": "^8.0.0",
@@ -52,7 +52,7 @@
     "rollup-plugin-serve": "^1.1.0",
     "rollup-plugin-swc3": "^0.8.0",
     "ts-node": "^10",
-    "typescript": "^4.4.3",
+    "typescript": "^4.8.4",
     "@types/webxr": "latest"
   },
   "husky": {

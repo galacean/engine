@@ -1,4 +1,5 @@
-import { Color } from "@oasis-engine/math/src/Color";
+import { IPhysics } from "@galacean/engine-design";
+import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { ContentRestorer } from "./asset/ContentRestorer";
 import { ResourceManager } from "./asset/ResourceManager";
@@ -47,9 +48,9 @@ ShaderPool.init();
  */
 export class Engine extends EventDispatcher {
   /** @internal */
-  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("OASIS_COLORSPACE_GAMMA");
+  static _gammaMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_IS_COLORSPACE_GAMMA");
   /** @internal */
-  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("OASIS_NO_DEPTH_TEXTURE");
+  static _noDepthTextureMacro: ShaderMacro = ShaderMacro.getByName("ENGINE_NO_DEPTH_TEXTURE");
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
 
@@ -115,6 +116,7 @@ export class Engine extends EventDispatcher {
   /** @internal @todo: temporary solution */
   _macroCollection: ShaderMacroCollection = new ShaderMacroCollection();
 
+  /** @internal */
   protected _canvas: Canvas;
 
   private _settings: EngineSettings = {};
@@ -223,13 +225,7 @@ export class Engine extends EventDispatcher {
     return this._destroyed;
   }
 
-  /**
-   * Create engine.
-   * @param canvas - The canvas to use for rendering
-   * @param hardwareRenderer - Graphics API renderer
-   * @param settings - Engine Settings
-   */
-  constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, settings?: EngineSettings) {
+  protected constructor(canvas: Canvas, hardwareRenderer: IHardwareRenderer, configuration: EngineConfiguration) {
     super();
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
@@ -259,7 +255,7 @@ export class Engine extends EventDispatcher {
     }
 
     const magentaMaterial = new Material(this, Shader.find("unlit"));
-    magentaMaterial.shaderData.setColor("u_baseColor", new Color(1.0, 0.0, 1.01, 1.0));
+    magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._magentaMaterial = magentaMaterial;
 
     const backgroundTextureMaterial = new Material(this, Shader.find("background-texture"));
@@ -268,7 +264,7 @@ export class Engine extends EventDispatcher {
     this._backgroundTextureMaterial = backgroundTextureMaterial;
 
     const innerSettings = this._settings;
-    const colorSpace = settings?.colorSpace || ColorSpace.Linear;
+    const colorSpace = configuration.colorSpace || ColorSpace.Linear;
     colorSpace === ColorSpace.Gamma && this._macroCollection.enable(Engine._gammaMacro);
     innerSettings.colorSpace = colorSpace;
   }
@@ -353,7 +349,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Force lose device.
+   * Force lose graphic device.
    * @remarks Used to simulate the phenomenon after the real loss of device.
    */
   forceLoseDevice(): void {
@@ -361,7 +357,7 @@ export class Engine extends EventDispatcher {
   }
 
   /**
-   * Force restore device.
+   * Force restore graphic device.
    * @remarks Used to simulate the phenomenon after the real restore of device.
    */
   forceRestoreDevice(): void {
@@ -523,6 +519,21 @@ export class Engine extends EventDispatcher {
     }
   }
 
+  /**
+   * @internal
+   */
+  protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
+    const physics = configuration.physics;
+    if (physics) {
+      return physics.initialize().then(() => {
+        this.physicsManager._initialize(physics);
+        return this;
+      });
+    } else {
+      return Promise.resolve(this);
+    }
+  }
+
   private _createSpriteMaterial(): Material {
     const material = new Material(this, Shader.find("Sprite"));
     const renderState = material.renderState;
@@ -580,4 +591,14 @@ export class Engine extends EventDispatcher {
         console.error(error);
       });
   }
+}
+
+/**
+ * Engine configuration.
+ */
+export interface EngineConfiguration {
+  /** Physics. */
+  physics?: IPhysics;
+  /** Color space. */
+  colorSpace?: ColorSpace;
 }

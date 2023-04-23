@@ -1,12 +1,12 @@
-import { BoundingBox, Color, Vector3, Matrix } from "@oasis-engine/math";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
+import { BoundingBox, Color, Matrix, Vector3 } from "@galacean/engine-math";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { Renderer } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
+import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -265,7 +265,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * The bounding volume of the TextRenderer.
    */
-  get bounds(): BoundingBox {
+  override get bounds(): BoundingBox {
     this._isContainDirtyFlag(DirtyFlag.SubFont) && this._resetSubFont();
     this._isContainDirtyFlag(DirtyFlag.LocalPositionBounds) && this._updateLocalData();
     this._isContainDirtyFlag(DirtyFlag.WorldPosition) && this._updatePosition();
@@ -294,7 +294,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     // Clear render data.
     const charRenderDatas = this._charRenderDatas;
@@ -340,24 +340,24 @@ export class TextRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateShaderData(context: RenderContext): void {
+  protected override _updateShaderData(context: RenderContext): void {
     // @ts-ignore
     this._updateTransformShaderData(context, Matrix._identity);
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     if (
       this._text === "" ||
       (this.enableWrapping && this.width <= 0) ||
@@ -588,7 +588,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
       });
   }
 
-  protected _onTransformChanged(bit: TransformModifyFlags): void {
+  /**
+   * @internal
+   */
+  protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);
   }

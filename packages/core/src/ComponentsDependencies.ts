@@ -85,11 +85,25 @@ export class ComponentsDependencies {
 }
 
 /**
- * Declare dependent components.
+ * Declare dependent component.
+ * @param component - Dependent component
  * @param dependentMode - Dependent mode
- * @param components - Dependent components
  */
-export function dependentComponents(dependentMode: DependentMode, ...components: ComponentConstructor[]) {
+export function dependentComponents(component: ComponentConstructor, dependentMode?: DependentMode);
+
+/**
+ * Declare dependent components.
+ * @param components - Dependent components
+ * @param dependentMode - Dependent mode
+ */
+export function dependentComponents(components: ComponentConstructor[], dependentMode?: DependentMode);
+
+export function dependentComponents(
+  componentOrComponents: ComponentConstructor | ComponentConstructor[],
+  dependentMode: DependentMode = DependentMode.CheckOnly
+) {
+  const components = Array.isArray(componentOrComponents) ? componentOrComponents : [componentOrComponents];
+
   return function <T extends ComponentConstructor>(target: T): void {
     ComponentsDependencies._dependenciesMap.set(target, { mode: dependentMode, components });
     components.forEach((component) => ComponentsDependencies._addInvDependency(component, target));

@@ -1,4 +1,4 @@
-import { Matrix } from "@oasis-engine/math";
+import { Matrix } from "@galacean/engine-math";
 import { EngineObject } from "../base/EngineObject";
 import { Entity } from "../Entity";
 

@@ -1,12 +1,12 @@
-import { Color, MathUtil, Vector3 } from "@oasis-engine/math";
+import { Color, MathUtil, Vector3 } from "@galacean/engine-math";
 import { GLCapabilityType } from "../base/Constant";
 import { ignoreClone } from "../clone/CloneManager";
 import { Buffer } from "../graphic/Buffer";
+import { VertexElement } from "../graphic/VertexElement";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { IndexFormat } from "../graphic/enums/IndexFormat";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexElement } from "../graphic/VertexElement";
 import { Material } from "../material/Material";
 import { BufferMesh } from "../mesh/BufferMesh";
 import { MeshRenderer } from "../mesh/MeshRenderer";
@@ -542,10 +542,9 @@ export class ParticleRenderer extends MeshRenderer {
   }
 
   /**
-   * @override
    * @internal
    */
-  update(deltaTime: number): void {
+  override update(deltaTime: number): void {
     if (!this._isInit || !this._isStart) {
       return;
     }
@@ -565,10 +564,9 @@ export class ParticleRenderer extends MeshRenderer {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     super._onEnable();
 
     if (this._playOnEnable) {

@@ -1,56 +1,57 @@
-uniform float u_alphaCutoff;
-uniform vec4 u_baseColor;
-uniform float u_metal;
-uniform float u_roughness;
-uniform vec3 u_PBRSpecularColor;
-uniform float u_glossiness;
-uniform vec3 u_emissiveColor;
+uniform float material_AlphaCutoff;
+uniform vec4 material_BaseColor;
+uniform float material_Metal;
+uniform float material_Roughness;
+uniform float material_IOR;
+uniform vec3 material_PBRSpecularColor;
+uniform float material_Glossiness;
+uniform vec3 material_EmissiveColor;
 
-#ifdef CLEARCOAT
-    uniform float u_clearCoat;
-    uniform float u_clearCoatRoughness;
+#ifdef MATERIAL_ENABLE_CLEAR_COAT
+    uniform float material_ClearCoat;
+    uniform float material_ClearCoatRoughness;
 #endif
 
-uniform float u_normalIntensity;
-uniform float u_occlusionIntensity;
-uniform float u_occlusionTextureCoord;
+uniform float material_NormalIntensity;
+uniform float material_OcclusionIntensity;
+uniform float material_OcclusionTextureCoord;
 
 // Texture
-#ifdef BASETEXTURE
-    uniform sampler2D u_baseTexture;
+#ifdef MATERIAL_HAS_BASETEXTURE
+    uniform sampler2D material_BaseTexture;
 #endif
 
-#ifdef NORMALTEXTURE
-    uniform sampler2D u_normalTexture;
+#ifdef MATERIAL_HAS_NORMALTEXTURE
+    uniform sampler2D material_NormalTexture;
 #endif
 
-#ifdef EMISSIVETEXTURE
-    uniform sampler2D u_emissiveTexture;
+#ifdef MATERIAL_HAS_EMISSIVETEXTURE
+    uniform sampler2D material_EmissiveTexture;
 #endif
 
-#ifdef ROUGHNESSMETALLICTEXTURE
-    uniform sampler2D u_roughnessMetallicTexture;
+#ifdef MATERIAL_HAS_ROUGHNESS_METALLIC_TEXTURE
+    uniform sampler2D material_RoughnessMetallicTexture;
 #endif
 
 
-#ifdef SPECULARGLOSSINESSTEXTURE
-    uniform sampler2D u_specularGlossinessTexture;
+#ifdef MATERIAL_HAS_SPECULAR_GLOSSINESS_TEXTURE
+    uniform sampler2D material_SpecularGlossinessTexture;
 #endif
 
-#ifdef OCCLUSIONTEXTURE
-    uniform sampler2D u_occlusionTexture;
+#ifdef MATERIAL_HAS_OCCLUSION_TEXTURE
+    uniform sampler2D material_OcclusionTexture;
 #endif
 
-#ifdef HAS_CLEARCOATTEXTURE
-    uniform sampler2D u_clearCoatTexture;
+#ifdef MATERIAL_HAS_CLEAR_COAT_TEXTURE
+    uniform sampler2D material_ClearCoatTexture;
 #endif
 
-#ifdef HAS_CLEARCOATROUGHNESSTEXTURE
-    uniform sampler2D u_clearCoatRoughnessTexture;
+#ifdef MATERIAL_HAS_CLEAR_COAT_ROUGHNESS_TEXTURE
+    uniform sampler2D material_ClearCoatRoughnessTexture;
 #endif
 
-#ifdef HAS_CLEARCOATNORMALTEXTURE
-    uniform sampler2D u_clearCoatNormalTexture;
+#ifdef MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE
+    uniform sampler2D material_ClearCoatNormalTexture;
 #endif
 
 
@@ -69,7 +70,7 @@ struct Geometry {
     vec3  viewDir;
     float dotNV;
     
-    #ifdef CLEARCOAT
+    #ifdef MATERIAL_ENABLE_CLEAR_COAT
         vec3 clearCoatNormal;
         float clearCoatDotNV;
     #endif
@@ -81,7 +82,7 @@ struct Material {
     float roughness;
     vec3  specularColor;
     float opacity;
-    #ifdef CLEARCOAT
+    #ifdef MATERIAL_ENABLE_CLEAR_COAT
         float clearCoat;
         float clearCoatRoughness;
     #endif

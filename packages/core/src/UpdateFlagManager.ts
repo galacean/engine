@@ -1,5 +1,5 @@
-import { removeFromArray } from "./base/Util";
 import { UpdateFlag } from "./UpdateFlag";
+import { Utils } from "./Utils";
 
 /**
  * @internal
@@ -34,9 +34,9 @@ export class UpdateFlagManager {
    * @param flag - The UpdateFlag.
    */
   removeFlag(flag: UpdateFlag): void {
-    const success = removeFromArray(this._updateFlags, flag);
+    const success = Utils.removeFromArray(this._updateFlags, flag);
     if (success) {
-      removeFromArray(flag._flagManagers, this);
+      Utils.removeFromArray(flag._flagManagers, this);
     }
   }
 
@@ -53,7 +53,7 @@ export class UpdateFlagManager {
    * @param listener - The listener
    */
   removeListener(listener: (type?: number, param?: Object) => void): void {
-    removeFromArray(this._listeners, listener);
+    Utils.removeFromArray(this._listeners, listener);
   }
 
   /**

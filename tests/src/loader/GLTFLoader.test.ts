@@ -13,7 +13,7 @@ import {
   TextureFilterMode,
   TextureWrapMode,
   UnlitMaterial
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import {
   GLTFAnimationParser,
   GLTFEntityParser,
@@ -30,16 +30,18 @@ import {
   GLTFTextureParser,
   GLTFValidator,
   registerGLTFExtension
-} from "@oasis-engine/loader";
-import { Color } from "@oasis-engine/math";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+} from "@galacean/engine-loader";
+import { Color } from "@galacean/engine-math";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-const canvasDOM = document.createElement("canvas");
-canvasDOM.width = 1024;
-canvasDOM.height = 1024;
-
-const engine = new WebGLEngine(canvasDOM);
+let engine: WebGLEngine;
+before(async () => {
+  const canvasDOM = document.createElement("canvas");
+  canvasDOM.width = 1024;
+  canvasDOM.height = 1024;
+  engine = await WebGLEngine.create({ canvas: canvasDOM });
+});
 
 class GLTFCustomBufferParser extends GLTFParser {
   parse(context: GLTFParserContext) {

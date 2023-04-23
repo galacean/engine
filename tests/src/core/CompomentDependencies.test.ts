@@ -1,5 +1,5 @@
-import { Camera, dependentComponents, DependentMode, Entity, MeshRenderer, Script } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Camera, dependentComponents, DependentMode, Entity, MeshRenderer, Script } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 const canvasDOM = document.createElement("canvas");
@@ -9,8 +9,8 @@ canvasDOM.height = 1024;
 describe("Component dependencies test", function () {
   let entity: Entity;
   let camera: Camera;
-  before(() => {
-    const engine = new WebGLEngine(canvasDOM);
+  before(async () => {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     entity = engine.sceneManager.activeScene.createRootEntity();
     camera = entity.addComponent(Camera);
   });
@@ -30,7 +30,7 @@ describe("Component dependencies test", function () {
   });
 });
 
-@dependentComponents(DependentMode.CheckOnly, MeshRenderer)
+@dependentComponents(MeshRenderer, DependentMode.CheckOnly)
 export class CustomScriptA extends Script {}
 
 export class CustomScriptB extends CustomScriptA {}

@@ -168,10 +168,9 @@ export abstract class Texture extends GraphicsResource {
   }
 
   /**
-   * @override
    * @internal
    */
-  _rebuild(): void {
+  override _rebuild(): void {
     const platformTexture = this._platformTexture;
     platformTexture.wrapModeU = this._wrapModeU;
     platformTexture.wrapModeV = this._wrapModeV;
@@ -182,10 +181,9 @@ export abstract class Texture extends GraphicsResource {
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy() {
+  protected override _onDestroy() {
     super._onDestroy();
     this._platformTexture.destroy();
     this._platformTexture = null;

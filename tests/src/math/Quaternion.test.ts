@@ -1,4 +1,4 @@
-import { MathUtil, Quaternion, Vector3, Matrix3x3 } from "@oasis-engine/math";
+import { MathUtil, Quaternion, Vector3, Matrix3x3 } from "@galacean/engine-math";
 import { expect } from "chai";
 
 function toString(q: Quaternion): string {

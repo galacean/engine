@@ -1,5 +1,5 @@
-import { Matrix, Vector3 } from "@oasis-engine/math";
-import { Shader, ShaderData } from "../shader";
+import { Matrix, Vector3 } from "@galacean/engine-math";
+import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -7,17 +7,19 @@ import { Light } from "./Light";
  * Spot light.
  */
 export class SpotLight extends Light {
-  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightColor");
-  private static _positionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPosition");
-  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDirection");
-  private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightDistance");
-  private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightAngleCos");
-  private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("u_spotLightPenumbraCos");
+  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightCullingMask");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightColor");
+  private static _positionProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightPosition");
+  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightDirection");
+  private static _distanceProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightDistance");
+  private static _angleCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightAngleCos");
+  private static _penumbraCosProperty: ShaderProperty = ShaderProperty.getByName("scene_SpotLightPenumbraCos");
 
   private static _combinedData = {
-    color: new Float32Array(3 * Light._maxLight),
-    position: new Float32Array(3 * Light._maxLight),
-    direction: new Float32Array(3 * Light._maxLight),
+    cullingMask: new Int32Array(Light._maxLight * 2),
+    color: new Float32Array(Light._maxLight * 3),
+    position: new Float32Array(Light._maxLight * 3),
+    direction: new Float32Array(Light._maxLight * 3),
     distance: new Float32Array(Light._maxLight),
     angleCos: new Float32Array(Light._maxLight),
     penumbraCos: new Float32Array(Light._maxLight)
@@ -29,6 +31,7 @@ export class SpotLight extends Light {
   static _updateShaderData(shaderData: ShaderData): void {
     const data = SpotLight._combinedData;
 
+    shaderData.setIntArray(SpotLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(SpotLight._colorProperty, data.color);
     shaderData.setFloatArray(SpotLight._positionProperty, data.position);
     shaderData.setFloatArray(SpotLight._directionProperty, data.direction);
@@ -71,9 +74,8 @@ export class SpotLight extends Light {
 
   /**
    * @internal
-   * @override
    */
-  get _shadowProjectionMatrix(): Matrix {
+  override get _shadowProjectionMatrix(): Matrix {
     const matrix = this._projectMatrix;
     const fov = Math.min(Math.PI / 2, this.angle * 2 * Math.sqrt(2));
     Matrix.perspective(fov, 1, this.shadowNearPlane, this.distance + this.shadowNearPlane, matrix);
@@ -84,6 +86,7 @@ export class SpotLight extends Light {
    * @internal
    */
   _appendData(lightIndex: number): void {
+    const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const positionStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
@@ -96,6 +99,10 @@ export class SpotLight extends Light {
     const direction = this.direction;
 
     const data = SpotLight._combinedData;
+
+    const cullingMask = this.cullingMask;
+    data.cullingMask[cullingMaskStart] = cullingMask & 65535;
+    data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
     data.color[colorStart] = color.r;
     data.color[colorStart + 1] = color.g;
@@ -114,18 +121,16 @@ export class SpotLight extends Light {
   /**
    * Mount to the current Scene.
    * @internal
-   * @override
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.engine._lightManager._attachSpotLight(this);
   }
 
   /**
    * Unmount from the current Scene.
    * @internal
-   * @override
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.engine._lightManager._detachSpotLight(this);
   }
 }

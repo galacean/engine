@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector2, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
@@ -19,14 +19,14 @@ import { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
  * @internal
  */
 export class BlendShapeManager {
-  private static _blendShapeMacro = ShaderMacro.getByName("OASIS_BLENDSHAPE");
-  private static _blendShapeTextureMacro = ShaderMacro.getByName("OASIS_BLENDSHAPE_TEXTURE");
-  private static _blendShapeNormalMacro = ShaderMacro.getByName("OASIS_BLENDSHAPE_NORMAL");
-  private static _blendShapeTangentMacro = ShaderMacro.getByName("OASIS_BLENDSHAPE_TANGENT");
+  private static _blendShapeMacro = ShaderMacro.getByName("RENDERER_HAS_BLENDSHAPE");
+  private static _blendShapeTextureMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_USE_TEXTURE");
+  private static _blendShapeNormalMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_HAS_NORMAL");
+  private static _blendShapeTangentMacro = ShaderMacro.getByName("RENDERER_BLENDSHAPE_HAS_TANGENT");
 
-  private static _blendShapeWeightsProperty = ShaderProperty.getByName("u_blendShapeWeights");
-  private static _blendShapeTextureProperty = ShaderProperty.getByName("u_blendShapeTexture");
-  private static _blendShapeTextureInfoProperty = ShaderProperty.getByName("u_blendShapeTextureInfo");
+  private static _blendShapeWeightsProperty = ShaderProperty.getByName("renderer_BlendShapeWeights");
+  private static _blendShapeTextureProperty = ShaderProperty.getByName("renderer_BlendShapeTexture");
+  private static _blendShapeTextureInfoProperty = ShaderProperty.getByName("renderer_BlendShapeTextureInfo");
 
   /** @internal */
   _blendShapeCount: number = 0;
@@ -110,7 +110,7 @@ export class BlendShapeManager {
         shaderData.setTexture(BlendShapeManager._blendShapeTextureProperty, this._vertexTexture);
         shaderData.setVector3(BlendShapeManager._blendShapeTextureInfoProperty, this._dataTextureInfo);
         shaderData.setFloatArray(BlendShapeManager._blendShapeWeightsProperty, skinnedMeshRenderer.blendShapeWeights);
-        shaderData.enableMacro("OASIS_BLENDSHAPE_COUNT", blendShapeCount.toString());
+        shaderData.enableMacro("RENDERER_BLENDSHAPE_COUNT", blendShapeCount.toString());
         this._uniformOccupiesCount = blendShapeCount + 1;
       } else {
         const maxBlendCount = this._getVertexBufferModeSupportCount();
@@ -129,7 +129,7 @@ export class BlendShapeManager {
           this._modelMesh._enableVAO = true;
         }
         shaderData.disableMacro(BlendShapeManager._blendShapeTextureMacro);
-        shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
+        shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
         this._uniformOccupiesCount = blendShapeCount;
       }
 
@@ -145,7 +145,7 @@ export class BlendShapeManager {
       }
     } else {
       shaderData.disableMacro(BlendShapeManager._blendShapeMacro);
-      shaderData.disableMacro("OASIS_BLENDSHAPE_COUNT");
+      shaderData.disableMacro("RENDERER_BLENDSHAPE_COUNT");
     }
   }
 

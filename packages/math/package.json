@@ -1,6 +1,6 @@
 {
-  "name": "@oasis-engine/math",
-  "version": "1.0.0-alpha.1",
+  "name": "@galacean/engine-math",
+  "version": "1.0.0-beta.4",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"

@@ -1,4 +1,4 @@
-import { MathUtil } from "@oasis-engine/math";
+import { MathUtil } from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("MathUtil test", () => {

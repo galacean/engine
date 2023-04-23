@@ -7,16 +7,13 @@ import {
   ResourceManager,
   TextureCube,
   TextureCubeFace
-} from "@oasis-engine/core";
-import { RequestConfig } from "@oasis-engine/core/types/asset/request";
+} from "@galacean/engine-core";
+import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { TextureCubeContentRestorer } from "./TextureCubeContentRestorer";
 
 @resourceLoader(AssetType.TextureCube, [""])
 class TextureCubeLoader extends Loader<TextureCube> {
-  /**
-   * @override
-   */
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
+  override load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       const urls = item.urls;
       const requestConfig = <RequestConfig>{

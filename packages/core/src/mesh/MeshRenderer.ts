@@ -1,22 +1,22 @@
-import { BoundingBox } from "@oasis-engine/math";
+import { BoundingBox } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
-import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
-import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { ShaderMacro } from "../shader/ShaderMacro";
 
 /**
  * MeshRenderer Component.
  */
 export class MeshRenderer extends Renderer implements ICustomClone {
-  private static _uvMacro = ShaderMacro.getByName("O3_HAS_UV");
-  private static _uv1Macro = ShaderMacro.getByName("O3_HAS_UV1");
-  private static _normalMacro = ShaderMacro.getByName("O3_HAS_NORMAL");
-  private static _tangentMacro = ShaderMacro.getByName("O3_HAS_TANGENT");
-  private static _vertexColorMacro = ShaderMacro.getByName("O3_HAS_VERTEXCOLOR");
+  private static _uvMacro = ShaderMacro.getByName("RENDERER_HAS_UV");
+  private static _uv1Macro = ShaderMacro.getByName("RENDERER_HAS_UV1");
+  private static _normalMacro = ShaderMacro.getByName("RENDERER_HAS_NORMAL");
+  private static _tangentMacro = ShaderMacro.getByName("RENDERER_HAS_TANGENT");
+  private static _vertexColorMacro = ShaderMacro.getByName("RENDERER_HAS_VERTEXCOLOR");
 
   /** @internal */
   @ignoreClone
@@ -45,9 +45,8 @@ export class MeshRenderer extends Renderer implements ICustomClone {
 
   /**
    * @internal
-   * @override
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
     if (mesh && !mesh.destroyed) {
@@ -64,9 +63,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     const mesh = this._mesh;
     if (mesh) {
       const localBounds = mesh.bounds;
@@ -79,9 +78,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     const mesh = this._mesh;
     if (mesh) {
       if (this._dirtyUpdateFlag & MeshRendererUpdateFlags.VertexElementMacro) {

@@ -1,4 +1,4 @@
-import { Engine, Texture2D } from "@oasis-engine/core";
+import { Engine, Texture2D } from "@galacean/engine-core";
 import { BufferReader } from "../../utils/BufferReader";
 import { decoder } from "../../utils/Decorator";
 

@@ -1,5 +1,5 @@
-import { IDynamicCollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "@oasis-engine/math";
+import { IDynamicCollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
 import { PhysicsManager } from "./PhysicsManager";
@@ -295,10 +295,9 @@ export class DynamicCollider extends Collider {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onLateUpdate(): void {
+  override _onLateUpdate(): void {
     const { transform } = this.entity;
     const { worldPosition, worldRotationQuaternion } = transform;
     (<IDynamicCollider>this._nativeCollider).getWorldTransform(worldPosition, worldRotationQuaternion);

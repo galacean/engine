@@ -102,10 +102,9 @@ export class Component extends EngineObject {
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._entity._removeComponent(this);
     if (this._entity.isActiveInHierarchy) {

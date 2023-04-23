@@ -169,18 +169,16 @@ export class Script extends Component {
   /**
    * @internal
    * @inheritDoc
-   * @override
    */
-  _onAwake(): void {
+  override _onAwake(): void {
     this.onAwake();
   }
 
   /**
    * @internal
    * @inheritDoc
-   * @override
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     if (this._waitHandlingInValid) {
       this._waitHandlingInValid = false;
     } else {
@@ -207,9 +205,8 @@ export class Script extends Component {
   /**
    * @internal
    * @inheritDoc
-   * @override
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this._waitHandlingInValid = true;
     this._engine._componentsManager.addDisableScript(this);
     this.onDisable();
@@ -236,10 +233,9 @@ export class Script extends Component {
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._engine._componentsManager.addPendingDestroyScript(this);
   }

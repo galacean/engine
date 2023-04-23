@@ -1,7 +1,7 @@
 import { Camera } from "../Camera";
 import { Layer } from "../Layer";
 import { Script } from "../Script";
-import { RenderBufferDepthFormat, Texture, Texture2D, TextureCube, TextureFormat } from "../texture";
+import { RenderBufferDepthFormat, Texture, Texture2D, TextureCube } from "../texture";
 import { RenderTarget } from "../texture/RenderTarget";
 
 /**
@@ -58,10 +58,7 @@ export abstract class Probe extends Script {
    */
   onTextureChange(renderColorTexture: Texture) {}
 
-  /**
-   * @override
-   */
-  onBeginRender(camera: Camera): void {
+  override onBeginRender(camera: Camera): void {
     if (!this.enabled) return;
     this._camera = camera;
     this._oriCameraCullingMask = camera.cullingMask;
@@ -97,10 +94,7 @@ export abstract class Probe extends Script {
     camera.renderTarget = this._activeRenderTarget;
   }
 
-  /**
-   * @override
-   */
-  onEndRender(camera: Camera): void {
+  override onEndRender(camera: Camera): void {
     if (!this.enabled) return;
 
     this.onTextureChange && this.onTextureChange(this._texture);

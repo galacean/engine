@@ -7,7 +7,7 @@ import {
   resourceLoader,
   ResourceManager,
   UnlitMaterial
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { decode } from "../..";
 
 @resourceLoader("Mesh", ["prefab"], true)

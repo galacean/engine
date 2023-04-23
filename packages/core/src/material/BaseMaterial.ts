@@ -8,20 +8,21 @@ import { RenderFace } from "./enums/RenderFace";
 import { Material } from "./Material";
 
 export class BaseMaterial extends Material {
-  protected static _baseColorProp: ShaderProperty = ShaderProperty.getByName("u_baseColor");
-  protected static _baseTextureProp: ShaderProperty = ShaderProperty.getByName("u_baseTexture");
-  protected static _baseTextureMacro: ShaderMacro = ShaderMacro.getByName("BASETEXTURE");
-  protected static _tilingOffsetProp: ShaderProperty = ShaderProperty.getByName("u_tilingOffset");
-  protected static _normalTextureProp: ShaderProperty = ShaderProperty.getByName("u_normalTexture");
-  protected static _normalIntensityProp: ShaderProperty = ShaderProperty.getByName("u_normalIntensity");
-  protected static _normalTextureMacro: ShaderMacro = ShaderMacro.getByName("NORMALTEXTURE");
-  protected static _emissiveColorProp: ShaderProperty = ShaderProperty.getByName("u_emissiveColor");
-  protected static _emissiveTextureProp: ShaderProperty = ShaderProperty.getByName("u_emissiveTexture");
-  protected static _emissiveTextureMacro: ShaderMacro = ShaderMacro.getByName("EMISSIVETEXTURE");
-  protected static _transparentMacro: ShaderMacro = ShaderMacro.getByName("OASIS_TRANSPARENT");
+  protected static _baseTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_BASETEXTURE");
+  protected static _normalTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_NORMALTEXTURE");
+  protected static _emissiveTextureMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_HAS_EMISSIVETEXTURE");
+  protected static _transparentMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_IS_TRANSPARENT");
 
-  private static _alphaCutoffProp = ShaderProperty.getByName("u_alphaCutoff");
-  private static _alphaCutoffMacro: ShaderMacro = ShaderMacro.getByName("ALPHA_CUTOFF");
+  protected static _baseColorProp: ShaderProperty = ShaderProperty.getByName("material_BaseColor");
+  protected static _baseTextureProp: ShaderProperty = ShaderProperty.getByName("material_BaseTexture");
+  protected static _tilingOffsetProp: ShaderProperty = ShaderProperty.getByName("material_TilingOffset");
+  protected static _normalTextureProp: ShaderProperty = ShaderProperty.getByName("material_NormalTexture");
+  protected static _normalIntensityProp: ShaderProperty = ShaderProperty.getByName("material_NormalIntensity");
+  protected static _emissiveColorProp: ShaderProperty = ShaderProperty.getByName("material_EmissiveColor");
+  protected static _emissiveTextureProp: ShaderProperty = ShaderProperty.getByName("material_EmissiveTexture");
+
+  private static _alphaCutoffProp: ShaderProperty = ShaderProperty.getByName("material_AlphaCutoff");
+  private static _alphaCutoffMacro: ShaderMacro = ShaderMacro.getByName("MATERIAL_IS_ALPHA_CUTOFF");
 
   private _renderFace: RenderFace = RenderFace.Front;
   private _isTransparent: boolean = false;
@@ -30,11 +31,11 @@ export class BaseMaterial extends Material {
   /**
    * Shader used by the material.
    */
-  get shader(): Shader {
+  override get shader(): Shader {
     return this._shader;
   }
 
-  set shader(value: Shader) {
+  override set shader(value: Shader) {
     this._shader = value;
 
     const renderStates = this._renderStates;
@@ -228,21 +229,19 @@ export class BaseMaterial extends Material {
   }
 
   /**
-   * @override
    * Clone and return the instance.
    */
-  clone(): BaseMaterial {
+  override clone(): BaseMaterial {
     const dest = new BaseMaterial(this._engine, this.shader);
     this.cloneTo(dest);
     return dest;
   }
 
   /**
-   * @override
    * Clone to the target material.
    * @param target - target material
    */
-  cloneTo(target: BaseMaterial): void {
+  override cloneTo(target: BaseMaterial): void {
     super.cloneTo(target);
     target._renderFace = this._renderFace;
     target._isTransparent = this._isTransparent;

@@ -1,19 +1,21 @@
-import { BoundingBox, Color, Matrix } from "@oasis-engine/math";
+import { BoundingBox, Color, MathUtil, Matrix } from "@galacean/engine-math";
+import { Entity } from "../../Entity";
+import { RenderContext } from "../../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { ICustomClone } from "../../clone/ComponentCloner";
-import { Entity } from "../../Entity";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
-import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { IAssembler } from "../assembler/IAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
+import { TiledSpriteAssembler } from "../assembler/TiledSpriteAssembler";
 import { VertexData2D } from "../data/VertexData2D";
 import { SpriteDrawMode } from "../enums/SpriteDrawMode";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
+import { SpriteTileMode } from "../enums/SpriteTileMode";
 import { Sprite } from "./Sprite";
 
 /**
@@ -21,7 +23,7 @@ import { Sprite } from "./Sprite";
  */
 export class SpriteRenderer extends Renderer implements ICustomClone {
   /** @internal */
-  static _textureProperty: ShaderProperty = ShaderProperty.getByName("u_spriteTexture");
+  static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
   /** @internal */
   @ignoreClone
@@ -29,8 +31,12 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   @ignoreClone
   private _drawMode: SpriteDrawMode;
-  @ignoreClone
+  @assignmentClone
   private _assembler: IAssembler;
+  @assignmentClone
+  private _tileMode: SpriteTileMode = SpriteTileMode.Continuous;
+  @assignmentClone
+  private _tiledAdaptiveThreshold: number = 0.5;
 
   @deepClone
   private _color: Color = new Color(1, 1, 1, 1);
@@ -58,21 +64,57 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     return this._drawMode;
   }
 
-  set drawMode(drawMode: SpriteDrawMode) {
-    if (this._drawMode !== drawMode) {
-      this._drawMode = drawMode;
-      switch (drawMode) {
+  set drawMode(value: SpriteDrawMode) {
+    if (this._drawMode !== value) {
+      this._drawMode = value;
+      switch (value) {
         case SpriteDrawMode.Simple:
           this._assembler = SimpleSpriteAssembler;
           break;
         case SpriteDrawMode.Sliced:
           this._assembler = SlicedSpriteAssembler;
           break;
+        case SpriteDrawMode.Tiled:
+          this._assembler = TiledSpriteAssembler;
+          break;
         default:
           break;
       }
       this._assembler.resetData(this);
       this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+    }
+  }
+
+  /**
+   * The tiling mode of the sprite renderer. (Only works in tiled mode.)
+   */
+  get tileMode(): SpriteTileMode {
+    return this._tileMode;
+  }
+
+  set tileMode(value: SpriteTileMode) {
+    if (this._tileMode !== value) {
+      this._tileMode = value;
+      if (this.drawMode === SpriteDrawMode.Tiled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+      }
+    }
+  }
+
+  /**
+   * Stretch Threshold in Tile Adaptive Mode, specified in normalized. (Only works in tiled adaptive mode.)
+   */
+  get tiledAdaptiveThreshold(): number {
+    return this._tiledAdaptiveThreshold;
+  }
+
+  set tiledAdaptiveThreshold(value: number) {
+    if (value !== this._tiledAdaptiveThreshold) {
+      value = MathUtil.clamp(value, 0, 1);
+      this._tiledAdaptiveThreshold = value;
+      if (this.drawMode === SpriteDrawMode.Tiled) {
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+      }
     }
   }
 
@@ -116,13 +158,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render width.
    */
   get width(): number {
-    if (this._width === undefined && this._sprite) {
-      this.width = this._sprite.width;
-    }
+    this._width === undefined && this._sprite && (this.width = this._sprite.width);
     return this._width;
   }
 
   set width(value: number) {
+    // Update width if undefined
+    this._width === undefined && this._sprite && (this._width = this._sprite.width);
     if (this._width !== value) {
       this._width = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -133,13 +175,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * Render height.
    */
   get height(): number {
-    if (this._height === undefined && this._sprite) {
-      this.height = this._sprite.height;
-    }
+    this._height === undefined && this._sprite && (this.height = this._sprite.height);
     return this._height;
   }
 
   set height(value: number) {
+    // Update height if undefined
+    this._height === undefined && this._sprite && (this._height = this._sprite.height);
     if (this._height !== value) {
       this._height = value;
       this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
@@ -214,21 +256,22 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _cloneTo(target: SpriteRenderer): void {
+    target._assembler.resetData(target);
     target.sprite = this._sprite;
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateShaderData(context: RenderContext): void {
+  protected override _updateShaderData(context: RenderContext): void {
     // @ts-ignore
     this._updateTransformShaderData(context, Matrix._identity);
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
@@ -238,9 +281,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
@@ -266,10 +309,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._color = null;
@@ -308,10 +350,23 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume);
+        const { _drawMode: drawMode } = this;
+        if (drawMode === SpriteDrawMode.Sliced) {
+          this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        } else if (drawMode === SpriteDrawMode.Tiled) {
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        } else {
+          // When the width and height of `SpriteRenderer` are `undefined`,
+          // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
+          if (this._width === undefined || this._height === undefined) {
+            this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+          }
+        }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All);
+        if (this._drawMode === SpriteDrawMode.Sliced || this._drawMode === SpriteDrawMode.Tiled) {
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:

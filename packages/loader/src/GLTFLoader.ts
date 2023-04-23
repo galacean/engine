@@ -1,4 +1,4 @@
-import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@oasis-engine/core";
+import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
 import { GLTFPipeline } from "./gltf/GLTFPipeline";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser";
@@ -6,10 +6,9 @@ import { GLTFContentRestorer } from "./GLTFContentRestorer";
 
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
-  /**
-   * @override
-   */
-  load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
+
+  
+  override load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
     const { url } = item;
     const params = <GLTFParams>item.params;
     const context = new GLTFParserContext(url);
@@ -47,7 +46,10 @@ export class GLTFLoader extends Loader<GLTFResource> {
  * GlTF loader params.
  */
 export interface GLTFParams {
-  /** Keep raw mesh data for glTF parser, default is false. */
+  /**
+   * @beta Now only contains vertex information, need to improve.
+   * Keep raw mesh data for glTF parser, default is false.
+   */
   keepMeshData: boolean;
   /** Custom glTF pipeline. */
   pipeline: GLTFPipeline;

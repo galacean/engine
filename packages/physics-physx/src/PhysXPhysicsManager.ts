@@ -1,5 +1,5 @@
-import { IPhysicsManager } from "@oasis-engine/design";
-import { Ray, Vector3 } from "oasis-engine";
+import { IPhysicsManager } from "@galacean/engine-design";
+import { Ray, Vector3 } from "@galacean/engine";
 import { DisorderedArray } from "./DisorderedArray";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
@@ -15,16 +15,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
-  private static _pxRaycastHit: any;
-  private static _pxFilterData: any;
 
-  static _init() {
-    PhysXPhysicsManager._pxRaycastHit = new PhysXPhysics._physX.PxRaycastHit();
-    PhysXPhysicsManager._pxFilterData = new PhysXPhysics._physX.PxQueryFilterData();
-    PhysXPhysicsManager._pxFilterData.flags = new PhysXPhysics._physX.PxQueryFlags(
-      QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER
-    );
-  }
+  private _physXPhysics: PhysXPhysics;
+  private _pxRaycastHit: any;
+  private _pxFilterData: any;
 
   private _pxScene: any;
 
@@ -40,6 +34,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private _eventPool: TriggerEvent[] = [];
 
   constructor(
+    physXPhysics: PhysXPhysics,
     onContactEnter?: (obj1: number, obj2: number) => void,
     onContactExit?: (obj1: number, obj2: number) => void,
     onContactStay?: (obj1: number, obj2: number) => void,
@@ -47,6 +42,14 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onTriggerExit?: (obj1: number, obj2: number) => void,
     onTriggerStay?: (obj1: number, obj2: number) => void
   ) {
+    this._physXPhysics = physXPhysics;
+
+    const physX = physXPhysics._physX;
+
+    this._pxRaycastHit = new physX.PxRaycastHit();
+    this._pxFilterData = new physX.PxQueryFilterData();
+    this._pxFilterData.flags = new physX.PxQueryFlags(QueryFlag.STATIC | QueryFlag.DYNAMIC | QueryFlag.PRE_FILTER);
+
     this._onContactEnter = onContactEnter;
     this._onContactExit = onContactExit;
     this._onContactStay = onContactStay;
@@ -84,13 +87,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       }
     };
 
-    const PHYSXSimulationCallbackInstance = PhysXPhysics._physX.PxSimulationEventCallback.implement(triggerCallback);
-    const sceneDesc = PhysXPhysics._physX.getDefaultSceneDesc(
-      PhysXPhysics._pxPhysics.getTolerancesScale(),
-      0,
-      PHYSXSimulationCallbackInstance
-    );
-    this._pxScene = PhysXPhysics._pxPhysics.createScene(sceneDesc);
+    const pxPhysics = physXPhysics._pxPhysics;
+    const physXSimulationCallbackInstance = physX.PxSimulationEventCallback.implement(triggerCallback);
+    const sceneDesc = physX.getDefaultSceneDesc(pxPhysics.getTolerancesScale(), 0, physXSimulationCallbackInstance);
+    this._pxScene = pxPhysics.createScene(sceneDesc);
   }
 
   /**
@@ -178,7 +178,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
-    const { _pxRaycastHit: pxHitResult } = PhysXPhysicsManager;
+    const { _pxRaycastHit: pxHitResult } = this;
     distance = Math.min(distance, 3.4e38); // float32 max value limit in physx raycast.
 
     const raycastCallback = {
@@ -197,8 +197,8 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       ray.direction,
       distance,
       pxHitResult,
-      PhysXPhysicsManager._pxFilterData,
-      PhysXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
+      this._pxFilterData,
+      this._physXPhysics._physX.PxQueryFilterCallback.implement(raycastCallback)
     );
 
     if (result && hit != undefined) {

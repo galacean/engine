@@ -1,15 +1,15 @@
-import { IPlatformPrimitive } from "@oasis-engine/design/types/renderingHardwareInterface/IPlatformPrimitive";
-import { BoundingBox } from "@oasis-engine/math";
-import { GraphicsResource } from "../asset/GraphicsResource";
+import { IPlatformPrimitive } from "@galacean/engine-design/types/renderingHardwareInterface/IPlatformPrimitive";
+import { BoundingBox } from "@galacean/engine-math";
 import { Engine } from "../Engine";
+import { UpdateFlagManager } from "../UpdateFlagManager";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { BufferUtil } from "../graphic/BufferUtil";
-import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { ShaderProgram } from "../shader/ShaderProgram";
-import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * Mesh.
@@ -24,6 +24,8 @@ export abstract class Mesh extends GraphicsResource {
   _glIndexType: number;
   /** @internal */
   _glIndexByteCount: number;
+  /** @internal */
+  _bufferStructChanged: boolean;
   /** @internal */
   _platformPrimitive: IPlatformPrimitive;
 
@@ -154,6 +156,7 @@ export abstract class Mesh extends GraphicsResource {
     this._vertexElementMap[semantic] = element;
     this._vertexElements.push(element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -164,6 +167,7 @@ export abstract class Mesh extends GraphicsResource {
     this._vertexElementMap[semantic] = element;
     this._vertexElements.splice(i, 0, element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -176,6 +180,7 @@ export abstract class Mesh extends GraphicsResource {
       binding._buffer._addReferCount(1);
     }
     this._vertexBufferBindings[index] = binding;
+    this._bufferStructChanged = true;
   }
 
   /**
@@ -183,12 +188,10 @@ export abstract class Mesh extends GraphicsResource {
    */
   _draw(shaderProgram: ShaderProgram, subMesh: SubMesh): void {
     this._platformPrimitive.draw(shaderProgram, subMesh);
+    this._bufferStructChanged = false;
   }
 
-  /**
-   * @override
-   */
-  _addReferCount(value: number): void {
+  override _addReferCount(value: number): void {
     super._addReferCount(value);
     const vertexBufferBindings = this._vertexBufferBindings;
     for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
@@ -196,18 +199,14 @@ export abstract class Mesh extends GraphicsResource {
     }
   }
 
-  /**
-   * @override
-   */
-  _rebuild(): void {
+  override _rebuild(): void {
     this._engine._hardwareRenderer.createPlatformPrimitive(this);
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._vertexBufferBindings = null;
     this._indexBufferBinding = null;
@@ -216,6 +215,9 @@ export abstract class Mesh extends GraphicsResource {
     this._platformPrimitive.destroy();
   }
 
+  /**
+   * @internal
+   */
   protected _setVertexElements(elements: VertexElement[]): void {
     this._clearVertexElements();
     for (let i = 0, n = elements.length; i < n; i++) {
@@ -223,14 +225,20 @@ export abstract class Mesh extends GraphicsResource {
     }
   }
 
+  /**
+   * @internal
+   */
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
+    const lastBinding = this._indexBufferBinding;
     if (binding) {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);
       this._glIndexByteCount = BufferUtil._getGLIndexByteCount(binding.format);
+      (!lastBinding || lastBinding._buffer !== binding._buffer) && (this._bufferStructChanged = true);
     } else {
       this._indexBufferBinding = null;
       this._glIndexType = undefined;
+      lastBinding && (this._bufferStructChanged = true);
     }
   }
 

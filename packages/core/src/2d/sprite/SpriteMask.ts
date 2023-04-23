@@ -1,10 +1,10 @@
-import { BoundingBox } from "@oasis-engine/math";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
+import { BoundingBox } from "@galacean/engine-math";
 import { Entity } from "../../Entity";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
+import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { VertexData2D } from "../data/VertexData2D";
@@ -17,9 +17,9 @@ import { Sprite } from "./Sprite";
  */
 export class SpriteMask extends Renderer implements ICustomClone {
   /** @internal */
-  static _textureProperty: ShaderProperty = ShaderProperty.getByName("u_maskTexture");
+  static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
-  static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("u_maskAlphaCutoff");
+  static _alphaCutoffProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskAlphaCutoff");
 
   /** The mask layers the sprite mask influence to. */
   @assignmentClone
@@ -163,9 +163,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       worldBounds.min.set(0, 0, 0);
       worldBounds.max.set(0, 0, 0);
@@ -175,10 +175,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    * @inheritdoc
    */
-  protected _render(context: RenderContext): void {
+  protected override _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;
     }
@@ -207,10 +207,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * @override
+   * @internal
    * @inheritdoc
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
     this._sprite = null;

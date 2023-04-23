@@ -1,5 +1,5 @@
-import { AssetPromise, ContentRestorer, request, TextureCube, TextureCubeFace } from "@oasis-engine/core";
-import { RequestConfig } from "@oasis-engine/core/types/asset/request";
+import { AssetPromise, ContentRestorer, request, TextureCube, TextureCubeFace } from "@galacean/engine-core";
+import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 
 /**
  * @internal
@@ -9,10 +9,7 @@ export class TextureCubeContentRestorer extends ContentRestorer<TextureCube> {
     super(resource);
   }
 
-  /**
-   * @override
-   */
-  restoreContent(): AssetPromise<TextureCube> {
+  override restoreContent(): AssetPromise<TextureCube> {
     return new AssetPromise((resolve, reject) => {
       Promise.all(this.urls.map((url) => request<HTMLImageElement>(url, this.requestConfig)))
         .then((images) => {

@@ -153,13 +153,13 @@ export interface IKHRXmp_Node {
   packet: number;
 }
 
-export interface IOasisMaterialRemap {
+export interface IGalaceanMaterialRemap {
   refId: string;
   key?: string;
   isClone?: boolean;
 }
 
-export interface IOasisAnimation {
+export interface IGalaceanAnimation {
   events: {
     time: number;
     functionName: string;
@@ -184,5 +184,5 @@ export type GLTFExtensionSchema =
   | IKHRTextureTransform
   | IKHRXmp
   | IKHRXmp_Node
-  | IOasisAnimation
+  | IGalaceanAnimation
   | Object;

@@ -8,6 +8,6 @@ export class XRCamera extends Camera {
   }
 
   setSession(session: XRSession): void {
-    this.renderTarget = new RenderTarget(this.engine);
+    // this.renderTarget = new RenderTarget(this.engine, 1024, 1024, );
   }
 }

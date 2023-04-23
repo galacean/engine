@@ -1,10 +1,10 @@
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
+import { Engine } from "../Engine";
 import { ReferResource } from "../asset/ReferResource";
 import { CloneManager } from "../clone/CloneManager";
-import { Engine } from "../Engine";
-import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { Shader } from "../shader/Shader";
 import { ShaderData } from "../shader/ShaderData";
+import { ShaderDataGroup } from "../shader/enums/ShaderDataGroup";
 import { RenderState } from "../shader/state/RenderState";
 
 /**
@@ -92,10 +92,7 @@ export class Material extends ReferResource implements IClone {
     CloneManager.deepCloneObject(this.renderStates, target.renderStates);
   }
 
-  /**
-   * @override
-   */
-  _addReferCount(value: number): void {
+  override _addReferCount(value: number): void {
     super._addReferCount(value);
     this.shaderData._addReferCount(value);
   }

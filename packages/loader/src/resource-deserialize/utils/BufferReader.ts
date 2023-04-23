@@ -1,4 +1,5 @@
-import { GLTFUtil } from "../../gltf/GLTFUtil";
+import { Utils } from "@galacean/engine-core";
+import { GLTFUtils } from "../../gltf/GLTFUtils";
 import { ab2str } from "./Utils";
 
 class ImageData {
@@ -95,7 +96,7 @@ export class BufferReader {
     const strByteLength = this.nextUint16();
     const uint8Array = new Uint8Array(this.buffer, this._offset, strByteLength);
     this._offset += strByteLength;
-    return GLTFUtil.decodeText(uint8Array);
+    return Utils.decodeText(uint8Array);
   }
 
   /**

@@ -207,9 +207,9 @@ export class RenderTarget extends GraphicsResource {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._platformRenderTarget.destroy();
     this._colorTextures.length = 0;
@@ -232,10 +232,9 @@ export class RenderTarget extends GraphicsResource {
   }
 
   /**
-   * @override
    * @internal
    */
-  _rebuild(): void {
+  override _rebuild(): void {
     this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
   }
 }

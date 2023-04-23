@@ -1,13 +1,13 @@
-import { ICharacterController, ICollider, IPhysics, IPhysicsManager } from "@oasis-engine/design";
-import { Ray, Vector3 } from "@oasis-engine/math";
+import { ICharacterController, ICollider, IPhysics, IPhysicsManager } from "@galacean/engine-design";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
 import { Layer } from "../Layer";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
+import { Collision } from "./Collision";
 import { HitResult } from "./HitResult";
 import { ColliderShape } from "./shape";
-import { Collision } from "./Collision";
 
 /**
  * A physics manager is a collection of colliders and constraints which can interact.
@@ -17,6 +17,7 @@ export class PhysicsManager {
 
   /** @internal */
   static _nativePhysics: IPhysics;
+
   /** @internal */
   _initialized: boolean = false;
 
@@ -177,26 +178,6 @@ export class PhysicsManager {
   }
 
   /**
-   * initialize PhysicsManager.
-   * @param physics - Physics Engine
-   */
-  initialize(physics: IPhysics): void {
-    if (this._initialized) {
-      return;
-    }
-    PhysicsManager._nativePhysics = physics;
-    this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
-      this._onContactEnter,
-      this._onContactExit,
-      this._onContactStay,
-      this._onTriggerEnter,
-      this._onTriggerExit,
-      this._onTriggerStay
-    );
-    this._initialized = true;
-  }
-
-  /**
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @returns Returns True if the ray intersects with a collider, otherwise false
@@ -298,6 +279,22 @@ export class PhysicsManager {
     } else {
       return this._nativePhysicsManager.raycast(ray, distance, onRaycast);
     }
+  }
+
+  /**
+   * @internal
+   */
+  _initialize(physics: IPhysics): void {
+    PhysicsManager._nativePhysics = physics;
+    this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
+      this._onContactEnter,
+      this._onContactExit,
+      this._onContactStay,
+      this._onTriggerEnter,
+      this._onTriggerExit,
+      this._onTriggerStay
+    );
+    this._initialized = true;
   }
 
   /**

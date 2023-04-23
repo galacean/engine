@@ -1,5 +1,5 @@
-import { PBRSpecularMaterial } from "@oasis-engine/core";
-import { Color } from "@oasis-engine/math";
+import { PBRSpecularMaterial } from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
 import { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { GLTFParser, registerGLTFExtension } from "../parser/GLTFParser";
@@ -9,10 +9,7 @@ import { IKHRMaterialsPbrSpecularGlossiness } from "./GLTFExtensionSchema";
 
 @registerGLTFExtension("KHR_materials_pbrSpecularGlossiness", GLTFExtensionMode.CreateAndParse)
 class KHR_materials_pbrSpecularGlossiness extends GLTFExtensionParser {
-  /**
-   * @override
-   */
-  createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: IKHRMaterialsPbrSpecularGlossiness,
     ownerSchema: IMaterial

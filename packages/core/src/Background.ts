@@ -1,4 +1,4 @@
-import { Color, Vector2, Vector3 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3 } from "@galacean/engine-math";
 import { ModelMesh } from ".";
 import { Engine } from "./Engine";
 import { BackgroundMode } from "./enums/BackgroundMode";
@@ -49,7 +49,7 @@ export class Background {
   set texture(value: Texture2D) {
     if (this._texture !== value) {
       this._texture = value;
-      this._engine._backgroundTextureMaterial.shaderData.setTexture("u_baseTexture", value);
+      this._engine._backgroundTextureMaterial.shaderData.setTexture("material_BaseTexture", value);
     }
   }
 

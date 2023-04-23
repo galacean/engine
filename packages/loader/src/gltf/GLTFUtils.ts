@@ -1,5 +1,5 @@
-import { IndexFormat, TypedArray, VertexElementFormat } from "@oasis-engine/core";
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { IndexFormat, TypedArray, Utils, VertexElementFormat } from "@galacean/engine-core";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BufferDataRestoreInfo, RestoreDataAccessor } from "../GLTFContentRestorer";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
 import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
@@ -7,7 +7,7 @@ import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
 /**
  * @internal
  */
-export class GLTFUtil {
+export class GLTFUtils {
   public static floatBufferToVector2Array(buffer: Float32Array): Vector2[] {
     const bufferLen = buffer.length;
     const array = new Array<Vector2>(bufferLen / 2);
@@ -50,24 +50,6 @@ export class GLTFUtil {
     }
 
     return colors;
-  }
-
-  /**
-   * Parse binary text for glb loader.
-   */
-  static decodeText(array: Uint8Array): string {
-    if (typeof TextDecoder !== "undefined") {
-      return new TextDecoder().decode(array);
-    }
-
-    // TextDecoder polyfill
-    let s = "";
-
-    for (let i = 0, il = array.length; i < il; i++) {
-      s += String.fromCharCode(array[i]);
-    }
-
-    return decodeURIComponent(encodeURIComponent(s));
   }
 
   /**
@@ -124,7 +106,7 @@ export class GLTFUtil {
       case AccessorComponentType.UNSIGNED_SHORT:
         return 1 / 65535;
       default:
-        throw new Error("Oasis.GLTFLoader: Unsupported normalized accessor component type.");
+        throw new Error("Galacean.GLTFLoader: Unsupported normalized accessor component type.");
     }
   }
 
@@ -139,8 +121,8 @@ export class GLTFUtil {
     const bufferByteOffset = bufferView.byteOffset || 0;
     const byteOffset = accessor.byteOffset || 0;
 
-    const TypedArray = GLTFUtil.getComponentType(componentType);
-    const dataElementSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+    const TypedArray = GLTFUtils.getComponentType(componentType);
+    const dataElementSize = GLTFUtils.getAccessorTypeSize(accessor.type);
     const dataElementBytes = TypedArray.BYTES_PER_ELEMENT;
     const elementStride = dataElementSize * dataElementBytes;
     const accessorCount = accessor.count;
@@ -173,7 +155,7 @@ export class GLTFUtil {
     }
 
     if (accessor.sparse) {
-      GLTFUtil.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
+      GLTFUtils.processingSparseData(bufferViews, accessor, buffers, bufferInfo);
     }
     return bufferInfo;
   }
@@ -189,10 +171,10 @@ export class GLTFUtil {
     const accessorByteOffset = accessor.hasOwnProperty("byteOffset") ? accessor.byteOffset : 0;
     const bufferViewByteOffset = bufferView.hasOwnProperty("byteOffset") ? bufferView.byteOffset : 0;
     const byteOffset = accessorByteOffset + bufferViewByteOffset;
-    const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
+    const accessorTypeSize = GLTFUtils.getAccessorTypeSize(accessor.type);
     const length = accessorTypeSize * accessor.count;
     const byteStride = bufferView.byteStride ?? 0;
-    const arrayType = GLTFUtil.getComponentType(accessor.componentType);
+    const arrayType = GLTFUtils.getComponentType(accessor.componentType);
     let uint8Array;
     if (byteStride) {
       const accessorByteSize = accessorTypeSize * arrayType.BYTES_PER_ELEMENT;
@@ -220,7 +202,7 @@ export class GLTFUtil {
       const valuesByteOffset = (values.byteOffset ?? 0) + (valuesBufferView.byteOffset ?? 0);
       const valuesByteLength = valuesBufferView.byteLength;
 
-      const indicesType = GLTFUtil.getComponentType(indices.componentType);
+      const indicesType = GLTFUtils.getComponentType(indices.componentType);
       const indicesArray = new indicesType(
         indicesArrayBuffer,
         indicesByteOffset,
@@ -260,8 +242,8 @@ export class GLTFUtil {
     bufferInfo: BufferInfo
   ): void {
     const { restoreInfo } = bufferInfo;
-    const accessorTypeSize = GLTFUtil.getAccessorTypeSize(accessor.type);
-    const TypedArray = GLTFUtil.getComponentType(accessor.componentType);
+    const accessorTypeSize = GLTFUtils.getAccessorTypeSize(accessor.type);
+    const TypedArray = GLTFUtils.getComponentType(accessor.componentType);
     const data = bufferInfo.data.slice();
 
     const { count, indices, values } = accessor.sparse;
@@ -279,7 +261,7 @@ export class GLTFUtil {
     restoreInfo.typeSize = accessorTypeSize;
     restoreInfo.sparseCount = count;
 
-    const IndexTypeArray = GLTFUtil.getComponentType(indices.componentType);
+    const IndexTypeArray = GLTFUtils.getComponentType(indices.componentType);
 
     const indexLength = indicesByteLength / IndexTypeArray.BYTES_PER_ELEMENT;
     const indicesArray = new IndexTypeArray(indicesArrayBuffer, indicesByteOffset, indexLength);
@@ -392,23 +374,6 @@ export class GLTFUtil {
     });
   }
 
-  static isAbsoluteUrl(url: string): boolean {
-    return /^(?:http|blob|data:|\/)/.test(url);
-  }
-
-  static parseRelativeUrl(baseUrl: string, relativeUrl: string): string {
-    if (GLTFUtil.isAbsoluteUrl(relativeUrl)) {
-      return relativeUrl;
-    }
-
-    const char0 = relativeUrl.charAt(0);
-    if (char0 === ".") {
-      return GLTFUtil._formatRelativePath(relativeUrl + relativeUrl);
-    }
-
-    return baseUrl.substring(0, baseUrl.lastIndexOf("/") + 1) + relativeUrl;
-  }
-
   /**
    * Parse the glb format.
    */
@@ -449,7 +414,7 @@ export class GLTFUtil {
     }
 
     const glTFData = new Uint8Array(glb, GLB_HEADER_LENGTH + 2 * UINT32_LENGTH, chunkLength);
-    const glTF: IGLTF = JSON.parse(GLTFUtil.decodeText(glTFData));
+    const glTF: IGLTF = JSON.parse(Utils.decodeText(glTFData));
 
     // read all buffers
     const buffers: ArrayBuffer[] = [];
@@ -479,14 +444,16 @@ export class GLTFUtil {
     };
   }
 
-  private static _formatRelativePath(value: string): string {
-    const parts = value.split("/");
-    for (let i = 0, n = parts.length; i < n; i++) {
-      if (parts[i] == "..") {
-        parts.splice(i - 1, 2);
-        i -= 2;
-      }
-    }
-    return parts.join("/");
+  private static _formatRelativePath(path: string): string {
+    // For example input is "a/b", "/a/b", "./a/b", "./a/./b", "./a/../a/b", output is "a/b"
+    return path
+      .split("/")
+      .filter(Boolean)
+      .reduce((acc, cur) => {
+        if (cur === "..") acc.pop();
+        else if (cur !== ".") acc.push(cur);
+        return acc;
+      }, [])
+      .join("/");
   }
 }

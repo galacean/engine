@@ -1,14 +1,14 @@
-import { Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
-import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
-import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { Mesh } from "../graphic/Mesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { BlendShape } from "./BlendShape";
 import { BlendShapeManager } from "./BlendShapeManager";
 import { VertexAttribute } from "./enums/VertexAttribute";
@@ -823,10 +823,9 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._readable && this._releaseCache();
   }

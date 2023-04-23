@@ -1,4 +1,4 @@
-import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { deepClone, ignoreClone } from "./clone/CloneManager";
@@ -27,14 +27,14 @@ class MathTemp {
 
 /**
  * Camera component, as the entrance to the three-dimensional world.
- * @decorator `@dependentComponents(DependentMode.CheckOnly, Transform)`
+ * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
-@dependentComponents(DependentMode.CheckOnly, Transform)
+@dependentComponents(Transform, DependentMode.CheckOnly)
 export class Camera extends Component {
   /** @internal */
-  private static _inverseViewMatrixProperty = ShaderProperty.getByName("u_viewInvMat");
+  private static _inverseViewMatrixProperty = ShaderProperty.getByName("camera_ViewInvMat");
   /** @internal */
-  private static _cameraPositionProperty = ShaderProperty.getByName("u_cameraPos");
+  private static _cameraPositionProperty = ShaderProperty.getByName("camera_Position");
 
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
@@ -513,26 +513,24 @@ export class Camera extends Component {
   }
 
   /**
-   * @override
    * @inheritdoc
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.entity.scene._attachRenderCamera(this);
   }
 
   /**
-   * @override
    * @inheritdoc
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.entity.scene._detachRenderCamera(this);
   }
 
   /**
-   * @override
+   * @internal
    * @inheritdoc
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._renderPipeline?.destroy();
     this._isInvViewProjDirty.destroy();

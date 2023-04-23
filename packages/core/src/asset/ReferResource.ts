@@ -24,12 +24,11 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   }
 
   /**
-   * @override
    * Destroy self.
    * @param force - Whether to force the destruction, if it is false, refCount = 0 can be released successfully.
    * @returns Whether the release was successful.
    */
-  destroy(force: boolean = false): boolean {
+  override destroy(force: boolean = false): boolean {
     if (!force && this._refCount !== 0) {
       return false;
     }
@@ -59,9 +58,9 @@ export abstract class ReferResource extends EngineObject implements IReferable {
   }
 
   /**
-   * @override
+   * @internal
    */
-  protected _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
     this._engine.resourceManager._deleteReferResource(this);
     const refCount = this._getReferCount();

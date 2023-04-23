@@ -160,10 +160,7 @@ export class Buffer extends GraphicsResource {
     this._platformBuffer.getData(data, bufferByteOffset, dataOffset, dataLength);
   }
 
-  /**
-   * @override
-   */
-  _rebuild(): void {
+  override _rebuild(): void {
     const platformBuffer = this._engine._hardwareRenderer.createPlatformBuffer(
       this._type,
       this._byteLength,
@@ -173,10 +170,9 @@ export class Buffer extends GraphicsResource {
   }
 
   /**
-   * @override
    * @internal
    */
-  protected _onDestroy() {
+  protected override _onDestroy() {
     super._onDestroy();
     this._platformBuffer.destroy();
   }

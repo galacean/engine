@@ -1,8 +1,8 @@
-import { ModelMesh, TypedArray } from "@oasis-engine/core";
-import { DRACODecoder } from "@oasis-engine/draco";
-import { Vector3 } from "@oasis-engine/math";
+import { ModelMesh, TypedArray } from "@galacean/engine-core";
+import { DRACODecoder } from "@galacean/engine-draco";
+import { Vector3 } from "@galacean/engine-math";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
-import { GLTFUtil } from "../GLTFUtil";
+import { GLTFUtils } from "../GLTFUtils";
 import { GLTFMeshParser } from "../parser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { BufferInfo, GLTFParserContext } from "../parser/GLTFParserContext";
@@ -14,19 +14,13 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
   private static _decoder: DRACODecoder;
   private static _tempVector3 = new Vector3();
 
-  /**
-   * @override
-   */
-  initialize(): void {
+  override initialize(): void {
     if (!KHR_draco_mesh_compression._decoder) {
       KHR_draco_mesh_compression._decoder = new DRACODecoder();
     }
   }
 
-  /**
-   * @override
-   */
-  createAndParse(
+  override createAndParse(
     context: GLTFParserContext,
     schema: IKHRDracoMeshCompression,
     glTFPrimitive: IMeshPrimitive,
@@ -48,18 +42,18 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     for (let attributeName in glTFPrimitive.attributes) {
       if (gltfAttributeMap[attributeName] !== undefined) {
         const accessorDef = accessors[glTFPrimitive.attributes[attributeName]];
-        attributeTypeMap[attributeName] = GLTFUtil.getComponentType(accessorDef.componentType).name;
+        attributeTypeMap[attributeName] = GLTFUtils.getComponentType(accessorDef.componentType).name;
       }
     }
     const indexAccessor = accessors[glTFPrimitive.indices];
-    const indexType = GLTFUtil.getComponentType(indexAccessor.componentType).name;
+    const indexType = GLTFUtils.getComponentType(indexAccessor.componentType).name;
     const taskConfig = {
       attributeIDs: attributeMap,
       attributeTypes: attributeTypeMap,
       useUniqueIDs: true,
       indexType
     };
-    const buffer = GLTFUtil.getBufferViewData(bufferViews[bufferViewIndex], buffers);
+    const buffer = GLTFUtils.getBufferViewData(bufferViews[bufferViewIndex], buffers);
     return KHR_draco_mesh_compression._decoder.decode(buffer, taskConfig).then((decodedGeometry) => {
       const mesh = new ModelMesh(engine, glTFMesh.name);
       return this._parseMeshFromGLTFPrimitiveDraco(
@@ -102,7 +96,7 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
     const { accessors } = gltf;
     const accessor = accessors[attributes["POSITION"]];
     const positionBuffer = <Float32Array>getVertexBufferData("POSITION");
-    const positions = GLTFUtil.floatBufferToVector3Array(positionBuffer);
+    const positions = GLTFUtils.floatBufferToVector3Array(positionBuffer);
     mesh.setPositions(positions);
 
     const { bounds } = mesh;
@@ -133,59 +127,59 @@ class KHR_draco_mesh_compression extends GLTFExtensionParser {
       const bufferData = getVertexBufferData(attributeSemantic);
       switch (attributeSemantic) {
         case "NORMAL":
-          const normals = GLTFUtil.floatBufferToVector3Array(<Float32Array>bufferData);
+          const normals = GLTFUtils.floatBufferToVector3Array(<Float32Array>bufferData);
           mesh.setNormals(normals);
           break;
         case "TEXCOORD_0":
-          const texturecoords = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          const texturecoords = GLTFUtils.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords, 0);
           break;
         case "TEXCOORD_1":
-          const texturecoords1 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          const texturecoords1 = GLTFUtils.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords1, 1);
           break;
         case "TEXCOORD_2":
-          const texturecoords2 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          const texturecoords2 = GLTFUtils.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords2, 2);
           break;
         case "TEXCOORD_3":
-          const texturecoords3 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          const texturecoords3 = GLTFUtils.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords3, 3);
           break;
         case "TEXCOORD_4":
-          const texturecoords4 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          const texturecoords4 = GLTFUtils.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords4, 4);
           break;
         case "TEXCOORD_5":
-          const texturecoords5 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          const texturecoords5 = GLTFUtils.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords5, 5);
           break;
         case "TEXCOORD_6":
-          const texturecoords6 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          const texturecoords6 = GLTFUtils.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords6, 6);
           break;
         case "TEXCOORD_7":
-          const texturecoords7 = GLTFUtil.floatBufferToVector2Array(<Float32Array>bufferData);
+          const texturecoords7 = GLTFUtils.floatBufferToVector2Array(<Float32Array>bufferData);
           mesh.setUVs(texturecoords7, 7);
           break;
         case "COLOR_0":
-          const colors = GLTFUtil.floatBufferToColorArray(
+          const colors = GLTFUtils.floatBufferToColorArray(
             <Float32Array>bufferData,
             accessors[attributes["COLOR_0"]].type === AccessorType.VEC3
           );
           mesh.setColors(colors);
           break;
         case "TANGENT":
-          const tangents = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
+          const tangents = GLTFUtils.floatBufferToVector4Array(<Float32Array>bufferData);
           mesh.setTangents(tangents);
           break;
 
         case "JOINTS_0":
-          const joints = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
+          const joints = GLTFUtils.floatBufferToVector4Array(<Float32Array>bufferData);
           mesh.setBoneIndices(joints);
           break;
         case "WEIGHTS_0":
-          const weights = GLTFUtil.floatBufferToVector4Array(<Float32Array>bufferData);
+          const weights = GLTFUtils.floatBufferToVector4Array(<Float32Array>bufferData);
           mesh.setBoneWeights(weights);
           break;
         default:
