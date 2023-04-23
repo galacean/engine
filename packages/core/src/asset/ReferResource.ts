@@ -57,6 +57,9 @@ export abstract class ReferResource extends EngineObject implements IReferable {
     this._engine.resourceManager._addAsset(path, this);
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._engine.resourceManager._deleteReferResource(this);

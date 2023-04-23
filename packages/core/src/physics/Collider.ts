@@ -121,6 +121,9 @@ export class Collider extends Component {
     this.engine.physicsManager._removeCollider(this);
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this.clearShapes();

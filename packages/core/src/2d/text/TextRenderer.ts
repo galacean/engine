@@ -291,6 +291,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this.setMaterial(engine._spriteDefaultMaterial);
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     // Clear render data.
@@ -336,15 +339,24 @@ export class TextRenderer extends Renderer implements ICustomClone {
     this._dirtyFlag &= ~type;
   }
 
+  /**
+   * @internal
+   */
   protected override _updateShaderData(context: RenderContext): void {
     // @ts-ignore
     this._updateTransformShaderData(context, Matrix._identity);
   }
 
+  /**
+   * @internal
+   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     BoundingBox.transform(this._localBounds, this._entity.transform.worldMatrix, worldBounds);
   }
 
+  /**
+   * @internal
+   */
   protected override _render(context: RenderContext): void {
     if (
       this._text === "" ||
@@ -576,6 +588,9 @@ export class TextRenderer extends Renderer implements ICustomClone {
       });
   }
 
+  /**
+   * @internal
+   */
   protected override _onTransformChanged(bit: TransformModifyFlags): void {
     super._onTransformChanged(bit);
     this._setDirtyFlagTrue(DirtyFlag.WorldPosition | DirtyFlag.WorldBounds);

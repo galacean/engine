@@ -527,6 +527,7 @@ export class Camera extends Component {
   }
 
   /**
+   * @internal
    * @inheritdoc
    */
   protected override _onDestroy(): void {

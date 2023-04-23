@@ -101,6 +101,9 @@ export class Component extends EngineObject {
     }
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._entity._removeComponent(this);

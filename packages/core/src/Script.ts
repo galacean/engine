@@ -232,6 +232,9 @@ export class Script extends Component {
     this._waitHandlingInValid = false;
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._engine._componentsManager.addPendingDestroyScript(this);

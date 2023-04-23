@@ -260,11 +260,17 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     target.sprite = this._sprite;
   }
 
+  /**
+   * @internal
+   */
   protected override _updateShaderData(context: RenderContext): void {
     // @ts-ignore
     this._updateTransformShaderData(context, Matrix._identity);
   }
 
+  /**
+   * @internal
+   */
   protected override _updateBounds(worldBounds: BoundingBox): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       worldBounds.min.set(0, 0, 0);
@@ -274,6 +280,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
+  /**
+   * @internal
+   */
   protected override _render(context: RenderContext): void {
     if (!this.sprite?.texture || !this.width || !this.height) {
       return;

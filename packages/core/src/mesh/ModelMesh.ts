@@ -822,6 +822,9 @@ export class ModelMesh extends Mesh {
     this.setTangents(tangents);
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this._readable && this._releaseCache();

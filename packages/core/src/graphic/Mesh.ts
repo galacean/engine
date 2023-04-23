@@ -1,15 +1,15 @@
 import { IPlatformPrimitive } from "@galacean/engine-design/types/renderingHardwareInterface/IPlatformPrimitive";
 import { BoundingBox } from "@galacean/engine-math";
-import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
+import { UpdateFlagManager } from "../UpdateFlagManager";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { BufferUtil } from "../graphic/BufferUtil";
-import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { SubMesh } from "../graphic/SubMesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { MeshTopology } from "../graphic/enums/MeshTopology";
 import { ShaderProgram } from "../shader/ShaderProgram";
-import { UpdateFlagManager } from "../UpdateFlagManager";
 
 /**
  * Mesh.
@@ -215,6 +215,9 @@ export abstract class Mesh extends GraphicsResource {
     this._platformPrimitive.destroy();
   }
 
+  /**
+   * @internal
+   */
   protected _setVertexElements(elements: VertexElement[]): void {
     this._clearVertexElements();
     for (let i = 0, n = elements.length; i < n; i++) {
@@ -222,6 +225,9 @@ export abstract class Mesh extends GraphicsResource {
     }
   }
 
+  /**
+   * @internal
+   */
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
     const lastBinding = this._indexBufferBinding;
     if (binding) {

@@ -79,6 +79,9 @@ export class FontAtlas extends ReferResource {
     return this._charInfoMap[char.charCodeAt(0)];
   }
 
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
     this.texture.destroy();
