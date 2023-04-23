@@ -29,7 +29,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   _verticesData: VertexData2D;
 
-  @assignmentClone
+  @ignoreClone
   private _drawMode: SpriteDrawMode;
   @assignmentClone
   private _assembler: IAssembler;
@@ -269,6 +269,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   _cloneTo(target: SpriteRenderer): void {
     target._assembler.resetData(target);
     target.sprite = this._sprite;
+    target.drawMode = this._drawMode;
   }
 
   /**
