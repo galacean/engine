@@ -52,7 +52,7 @@ void initMaterial(out Material material, const in Geometry geometry){
         vec3 specularColor = u_PBRSpecularColor;
         float glossiness = u_glossiness;
         float alphaCutoff = u_alphaCutoff;
-        float F0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) )
+        float F0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
 
 
         #ifdef BASETEXTURE
