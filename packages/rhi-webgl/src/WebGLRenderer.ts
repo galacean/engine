@@ -308,23 +308,23 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number) {
     const gl = this._gl;
+    let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       /** @ts-ignore */
       (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
-      const width = renderTarget.width >> mipLevel;
-      const height = renderTarget.height >> mipLevel;
-      this.viewport(0, 0, width, height);
-      this.scissor(0, 0, width, height);
+      bufferWidth = renderTarget.width >> mipLevel;
+      bufferHeight = renderTarget.height >> mipLevel;
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      const { drawingBufferWidth, drawingBufferHeight } = gl;
-      const width = drawingBufferWidth * viewport.z;
-      const height = drawingBufferHeight * viewport.w;
-      const x = viewport.x * drawingBufferWidth;
-      const y = drawingBufferHeight - viewport.y * drawingBufferHeight - height;
-      this.viewport(x, y, width, height);
-      this.scissor(x, y, width, height);
+      bufferWidth = gl.drawingBufferWidth;
+      bufferHeight = gl.drawingBufferHeight;
     }
+    const width = bufferWidth * viewport.z;
+    const height = bufferHeight * viewport.w;
+    const x = viewport.x * bufferWidth;
+    const y = bufferHeight - viewport.y * bufferHeight - height;
+    this.viewport(x, y, width, height);
+    this.scissor(x, y, width, height);
   }
 
   activeTexture(textureID: number): void {
