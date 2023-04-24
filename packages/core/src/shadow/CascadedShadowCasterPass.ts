@@ -1,21 +1,21 @@
 import { Color, MathUtil, Matrix, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { GLCapabilityType } from "../base/Constant";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
-import { CameraClearFlags } from "../enums/CameraClearFlags";
 import { Layer } from "../Layer";
-import { DirectLight } from "../lighting";
 import { RenderContext } from "../RenderPipeline/RenderContext";
 import { RenderQueue } from "../RenderPipeline/RenderQueue";
+import { GLCapabilityType } from "../base/Constant";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
+import { DirectLight } from "../lighting";
 import { Shader } from "../shader";
+import { RenderTarget } from "../texture/RenderTarget";
+import { Texture2D } from "../texture/Texture2D";
 import { TextureDepthCompareFunction } from "../texture/enums/TextureDepthCompareFunction";
 import { TextureFormat } from "../texture/enums/TextureFormat";
 import { TextureWrapMode } from "../texture/enums/TextureWrapMode";
-import { RenderTarget } from "../texture/RenderTarget";
-import { Texture2D } from "../texture/Texture2D";
-import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
 import { ShadowSliceData } from "./ShadowSliceData";
 import { ShadowUtils } from "./ShadowUtils";
+import { ShadowCascadesMode } from "./enum/ShadowCascadesMode";
 
 /**
  * Cascade shadow caster.
@@ -33,6 +33,7 @@ export class CascadedShadowCasterPass {
   private static _maxCascades: number = 4;
   private static _cascadesSplitDistance: number[] = new Array(CascadedShadowCasterPass._maxCascades + 1);
 
+  private static _viewport = new Vector4(0, 0, 1, 1);
   private static _clearColor = new Color(1, 1, 1, 1);
   private static _tempVector = new Vector3();
   private static _tempMatrix0 = new Matrix();
@@ -121,7 +122,7 @@ export class CascadedShadowCasterPass {
       // prepare render target
       const renderTarget = this._getAvailableRenderTarget();
       // @todo: shouldn't set viewport and scissor in activeRenderTarget
-      rhi.activeRenderTarget(renderTarget, null, 0);
+      rhi.activeRenderTarget(renderTarget, CascadedShadowCasterPass._viewport, 0);
       if (this._supportDepthTexture) {
         rhi.clearRenderTarget(engine, CameraClearFlags.Depth, null);
       } else {
@@ -202,7 +203,7 @@ export class CascadedShadowCasterPass {
           const { x, y } = viewports[j];
 
           rhi.setGlobalDepthBias(1.0, 1.0);
-      
+
           rhi.viewport(x, y, shadowTileResolution, shadowTileResolution);
           // for no cascade is for the edge,for cascade is for the beyond maxCascade pixel can use (0,0,0) trick sample the shadowMap
           rhi.scissor(x + 1, y + 1, shadowTileResolution - 2, shadowTileResolution - 2);
