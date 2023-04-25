@@ -1,5 +1,5 @@
-import { IColliderShape } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { IColliderShape } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { DisorderedArray } from "../DisorderedArray";
 import { PhysXCharacterController } from "../PhysXCharacterController";
 import { PhysXPhysics } from "../PhysXPhysics";
@@ -30,9 +30,11 @@ export abstract class PhysXColliderShape implements IColliderShape {
   /** @internal */
   _controllers: DisorderedArray<PhysXCharacterController> = new DisorderedArray<PhysXCharacterController>();
 
-  protected _position: Vector3 = new Vector3();
-  protected _rotation: Quaternion = new Quaternion();
   protected _scale: Vector3 = new Vector3(1, 1, 1);
+  protected _position: Vector3 = new Vector3();
+  protected _rotation: Vector3 = null;
+  protected _axis: Quaternion = null;
+  protected _physxRotation: Quaternion = new Quaternion();
 
   private _shapeFlags: ShapeFlag = ShapeFlag.SCENE_QUERY_SHAPE | ShapeFlag.SIMULATION_SHAPE;
 
@@ -44,8 +46,17 @@ export abstract class PhysXColliderShape implements IColliderShape {
   _pxGeometry: any;
   /** @internal */
   _id: number;
-  /** @internal */
-  _contactOffset: number = 0;
+
+  /**
+   * {@inheritDoc IColliderShape.setRotation }
+   */
+  setRotation(value: Vector3): void {
+    this._rotation = value;
+    Quaternion.rotationYawPitchRoll(value.x, value.y, value.z, this._physxRotation);
+    this._axis && Quaternion.multiply(this._physxRotation, this._axis, this._physxRotation);
+    this._physxRotation.normalize();
+    this._setLocalPose();
+  }
 
   /**
    * {@inheritDoc IColliderShape.setPosition }
@@ -64,9 +75,9 @@ export abstract class PhysXColliderShape implements IColliderShape {
 
   /**
    * {@inheritDoc IColliderShape.setContactOffset }
+   * @default 0.02f * PxTolerancesScale::length
    */
   setContactOffset(offset: number): void {
-    this._contactOffset = offset;
     this._pxShape.setContactOffset(offset);
 
     const controllers = this._controllers;
@@ -93,14 +104,6 @@ export abstract class PhysXColliderShape implements IColliderShape {
   }
 
   /**
-   * {@inheritDoc IColliderShape.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    this._modifyFlag(ShapeFlag.SCENE_QUERY_SHAPE, value);
-    this._setShapeFlags(this._shapeFlags);
-  }
-
-  /**
    * {@inheritDoc IColliderShape.destroy }
    */
   destroy(): void {
@@ -118,7 +121,7 @@ export abstract class PhysXColliderShape implements IColliderShape {
   protected _setLocalPose(): void {
     const transform = PhysXColliderShape.transform;
     Vector3.multiply(this._position, this._scale, transform.translation);
-    transform.rotation = this._rotation;
+    transform.rotation = this._physxRotation;
     this._pxShape.setLocalPose(transform);
   }
 

@@ -1,3 +1,5 @@
+#include <ShadowFragmentDeclaration>
+
 void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Material material, inout ReflectedLight reflectedLight) {
     float attenuation = 1.0;
 
@@ -71,51 +73,66 @@ void addDirectRadiance(vec3 incidentDirection, vec3 color, Geometry geometry, Ma
 #endif
 
 void addTotalDirectRadiance(Geometry geometry, Material material, inout ReflectedLight reflectedLight){
-	    #ifdef O3_DIRECT_LIGHT_COUNT
+    float shadowAttenuation = 1.0;
 
-            DirectLight directionalLight;
+    #ifdef O3_DIRECT_LIGHT_COUNT
+        shadowAttenuation = 1.0;
+    #ifdef OASIS_CALCULATE_SHADOWS
+        shadowAttenuation *= sampleShadowMap();
+        int sunIndex = int(u_shadowInfo.z);
+    #endif
 
-            for ( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i ++ ) {
+        DirectLight directionalLight;
+        for ( int i = 0; i < O3_DIRECT_LIGHT_COUNT; i ++ ) {
+            if(isRendererCulledByLight(oasis_RendererLayer.xy, u_directLightCullingMask[i])) 
+                continue;
 
-                directionalLight.color = u_directLightColor[i];
-                directionalLight.direction = u_directLightDirection[i];
+            directionalLight.color = u_directLightColor[i];
+            #ifdef OASIS_CALCULATE_SHADOWS
+                if (i == sunIndex) {
+                    directionalLight.color *= shadowAttenuation;
+                }
+            #endif
+            directionalLight.direction = u_directLightDirection[i];
+            addDirectionalDirectLightRadiance( directionalLight, geometry, material, reflectedLight );
+        }
 
-                addDirectionalDirectLightRadiance( directionalLight, geometry, material, reflectedLight );
-            }
+    #endif
 
-        #endif
+    #ifdef O3_POINT_LIGHT_COUNT
 
-        #ifdef O3_POINT_LIGHT_COUNT
+        PointLight pointLight;
 
-            PointLight pointLight;
+        for ( int i = 0; i < O3_POINT_LIGHT_COUNT; i ++ ) {
+            if(isRendererCulledByLight(oasis_RendererLayer.xy, u_pointLightCullingMask[i])) 
+                continue;
 
-            for ( int i = 0; i < O3_POINT_LIGHT_COUNT; i ++ ) {
+            pointLight.color = u_pointLightColor[i];
+            pointLight.position = u_pointLightPosition[i];
+            pointLight.distance = u_pointLightDistance[i];
 
-                pointLight.color = u_pointLightColor[i];
-                pointLight.position = u_pointLightPosition[i];
-                pointLight.distance = u_pointLightDistance[i];
+            addPointDirectLightRadiance( pointLight, geometry, material, reflectedLight );
+        }
 
-                addPointDirectLightRadiance( pointLight, geometry, material, reflectedLight );
-            }
+    #endif
 
-        #endif
+    #ifdef O3_SPOT_LIGHT_COUNT
 
-        #ifdef O3_SPOT_LIGHT_COUNT
+        SpotLight spotLight;
 
-            SpotLight spotLight;
+        for ( int i = 0; i < O3_SPOT_LIGHT_COUNT; i ++ ) {
+            if(isRendererCulledByLight(oasis_RendererLayer.xy, u_spotLightCullingMask[i])) 
+                continue;
 
-            for ( int i = 0; i < O3_SPOT_LIGHT_COUNT; i ++ ) {
+            spotLight.color = u_spotLightColor[i];
+            spotLight.position = u_spotLightPosition[i];
+            spotLight.direction = u_spotLightDirection[i];
+            spotLight.distance = u_spotLightDistance[i];
+            spotLight.angleCos = u_spotLightAngleCos[i];
+            spotLight.penumbraCos = u_spotLightPenumbraCos[i];
 
-                spotLight.color = u_spotLightColor[i];
-                spotLight.position = u_spotLightPosition[i];
-                spotLight.direction = u_spotLightDirection[i];
-                spotLight.distance = u_spotLightDistance[i];
-                spotLight.angleCos = u_spotLightAngleCos[i];
-                spotLight.penumbraCos = u_spotLightPenumbraCos[i];
+            addSpotDirectLightRadiance( spotLight, geometry, material, reflectedLight );
+        }
 
-                addSpotDirectLightRadiance( spotLight, geometry, material, reflectedLight );
-            }
-
-        #endif
-
+    #endif
 }

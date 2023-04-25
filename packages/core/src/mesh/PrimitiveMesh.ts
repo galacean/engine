@@ -1,4 +1,4 @@
-import { Vector2, Vector3 } from "@oasis-engine/math";
+import { Vector2, Vector3 } from "@galacean/engine-math";
 import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { ModelMesh } from "./ModelMesh";
@@ -805,6 +805,7 @@ export class PrimitiveMesh {
     mesh.setNormals(normals);
     mesh.setUVs(uvs);
     mesh.setIndices(indices);
+    mesh.calculateTangents();
 
     mesh.uploadData(noLongerAccessible);
     mesh.addSubMesh(0, indices.length);

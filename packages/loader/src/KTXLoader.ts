@@ -6,7 +6,7 @@ import {
   resourceLoader,
   ResourceManager,
   Texture2D
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { parseSingleKTX } from "./compressed-texture";
 
 @resourceLoader(AssetType.KTX, ["ktx"])

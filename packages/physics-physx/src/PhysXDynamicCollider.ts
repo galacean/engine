@@ -1,5 +1,5 @@
-import { IDynamicCollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { IDynamicCollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 import { PhysXCollider } from "./PhysXCollider";
 import { PhysXPhysics } from "./PhysXPhysics";
 
@@ -95,6 +95,7 @@ export class PhysXDynamicCollider extends PhysXCollider implements IDynamicColli
 
   /**
    * {@inheritDoc IDynamicCollider.setSleepThreshold }
+   * @default 1e-5f * PxTolerancesScale::speed * PxTolerancesScale::speed
    */
   setSleepThreshold(value: number): void {
     this._pxActor.setSleepThreshold(value);

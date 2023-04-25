@@ -1,4 +1,4 @@
-import { Engine } from "@oasis-engine/core";
+import { Engine } from "@galacean/engine-core";
 import { BufferReader } from "./utils/BufferReader";
 import { decoderMap, decoder } from "./utils/Decorator";
 import { FileHeader } from "./utils/FileHeader";
@@ -7,8 +7,8 @@ export { MeshDecoder } from "./resources/mesh/MeshDecoder";
 export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
 export { ReflectionParser } from "./resources/prefab/ReflectionParser";
 export { PrefabParser } from "./resources/prefab/PrefabParser";
+export * from "./resources/animationClip/AnimationClipDecoder";
 export type { IModelMesh } from "./resources/mesh/IModelMesh";
-export type { IAnimationClipAsset } from "./resources/animationClip/type";
 
 /**
  * Decode engine binary resource.

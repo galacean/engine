@@ -1,6 +1,6 @@
 import { LiteCollider } from "./LiteCollider";
-import { IDynamicCollider } from "@oasis-engine/design";
-import { Quaternion, Vector3 } from "oasis-engine";
+import { IDynamicCollider } from "@galacean/engine-design";
+import { Quaternion, Vector3 } from "@galacean/engine";
 
 /**
  * A dynamic collider can act with self-defined movement or physical force

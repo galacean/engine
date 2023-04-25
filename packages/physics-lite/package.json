@@ -1,6 +1,6 @@
 {
-  "name": "@oasis-engine/physics-lite",
-  "version": "0.8.3",
+  "name": "@galacean/engine-physics-lite",
+  "version": "0.9.6",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -14,14 +14,21 @@
   "scripts": {
     "b:types": "tsc"
   },
+  "umd": {
+    "name": "Galacean.PhysicsLite",
+    "globals": {
+      "@galacean/engine": "Galacean"
+    }
+  },
   "files": [
     "dist/**/*",
     "types/**/*"
   ],
   "devDependencies": {
-    "@oasis-engine/design": "0.8.3"
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine": "workspace:*"
   },
   "peerDependencies": {
-    "oasis-engine": "0.8.3"
+    "@galacean/engine": "workspace:*"
   }
 }

@@ -1,5 +1,5 @@
-import { ICollider } from "@oasis-engine/design";
-import { Quaternion, Ray, Vector3 } from "oasis-engine";
+import { ICollider } from "@galacean/engine-design";
+import { Quaternion, Ray, Vector3 } from "@galacean/engine";
 import { LiteHitResult } from "./LiteHitResult";
 import { LiteColliderShape } from "./shape/LiteColliderShape";
 import { LiteTransform } from "./LiteTransform";
@@ -67,11 +67,12 @@ export abstract class LiteCollider implements ICollider {
   /**
    * @internal
    */
-  _raycast(ray: Ray, hit: LiteHitResult): boolean {
+  _raycast(ray: Ray, onRaycast: (obj: number) => boolean, hit: LiteHitResult): boolean {
     hit.distance = Number.MAX_VALUE;
     const shapes = this._shapes;
     for (let i = 0, n = shapes.length; i < n; i++) {
-      shapes[i]._raycast(ray, hit);
+      const shape = shapes[i];
+      onRaycast(shape._id) && shape._raycast(ray, hit);
     }
 
     return hit.distance != Number.MAX_VALUE;

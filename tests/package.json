@@ -1,7 +1,7 @@
 {
-  "name": "@oasis-engine/tests",
+  "name": "@galacean/engine-tests",
   "private": true,
-  "version": "0.8.3",
+  "version": "0.9.0-alpha.4",
   "license": "MIT",
   "main": "dist/main.js",
   "module": "dist/module.js",
@@ -15,9 +15,10 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.8.3",
-    "@oasis-engine/design": "0.8.3",
-    "@oasis-engine/math": "0.8.3",
-    "@oasis-engine/rhi-webgl": "0.8.3"
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-rhi-webgl": "workspace:*",
+    "@galacean/engine-physics-lite": "workspace:*"
   }
 }

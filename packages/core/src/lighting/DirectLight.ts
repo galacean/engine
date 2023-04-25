@@ -1,6 +1,5 @@
-import { Color, Vector3 } from "@oasis-engine/math";
-import { Shader } from "../shader";
-import { ShaderData } from "../shader/ShaderData";
+import { Matrix, Vector3 } from "@galacean/engine-math";
+import { Shader, ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -8,12 +7,14 @@ import { Light } from "./Light";
  * Directional light.
  */
 export class DirectLight extends Light {
+  private static _cullingMaskProperty: ShaderProperty = Shader.getPropertyByName("u_directLightCullingMask");
   private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_directLightColor");
   private static _directionProperty: ShaderProperty = Shader.getPropertyByName("u_directLightDirection");
 
   private static _combinedData = {
-    color: new Float32Array(3 * Light._maxLight),
-    direction: new Float32Array(3 * Light._maxLight)
+    cullingMask: new Int32Array(Light._maxLight * 2),
+    color: new Float32Array(Light._maxLight * 3),
+    direction: new Float32Array(Light._maxLight * 3)
   };
 
   /**
@@ -22,15 +23,13 @@ export class DirectLight extends Light {
   static _updateShaderData(shaderData: ShaderData): void {
     const data = DirectLight._combinedData;
 
+    shaderData.setIntArray(DirectLight._cullingMaskProperty, data.cullingMask);
     shaderData.setFloatArray(DirectLight._colorProperty, data.color);
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
 
-  color: Color = new Color(1, 1, 1, 1);
-  intensity: number = 1;
-
   private _forward: Vector3 = new Vector3();
-  private _lightColor: Color = new Color(1, 1, 1, 1);
+
   private _reverseDirection: Vector3 = new Vector3();
 
   /**
@@ -39,17 +38,6 @@ export class DirectLight extends Light {
   get direction(): Vector3 {
     this.entity.transform.getWorldForward(this._forward);
     return this._forward;
-  }
-
-  /**
-   * Get the final light color.
-   */
-  get lightColor(): Color {
-    this._lightColor.r = this.color.r * this.intensity;
-    this._lightColor.g = this.color.g * this.intensity;
-    this._lightColor.b = this.color.b * this.intensity;
-    this._lightColor.a = this.color.a * this.intensity;
-    return this._lightColor;
   }
 
   /**
@@ -62,14 +50,27 @@ export class DirectLight extends Light {
 
   /**
    * @internal
+   * @override
+   */
+  get _shadowProjectionMatrix(): Matrix {
+    throw "Unknown!";
+  }
+
+  /**
+   * @internal
    */
   _appendData(lightIndex: number): void {
+    const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
-    const lightColor = this.lightColor;
+    const lightColor = this._getLightColor();
     const direction = this.direction;
 
     const data = DirectLight._combinedData;
+
+    const cullingMask = this.cullingMask;
+    data.cullingMask[cullingMaskStart] = cullingMask & 65535;
+    data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
     data.color[colorStart] = lightColor.r;
     data.color[colorStart + 1] = lightColor.g;
@@ -77,5 +78,23 @@ export class DirectLight extends Light {
     data.direction[directionStart] = direction.x;
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
+  }
+
+  /**
+   * Mount to the current Scene.
+   * @internal
+   * @override
+   */
+  _onEnable(): void {
+    this.engine._lightManager._attachDirectLight(this);
+  }
+
+  /**
+   * Unmount from the current Scene.
+   * @internal
+   * @override
+   */
+  _onDisable(): void {
+    this.engine._lightManager._detachDirectLight(this);
   }
 }

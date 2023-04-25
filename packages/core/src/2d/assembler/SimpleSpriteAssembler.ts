@@ -1,8 +1,8 @@
-import { BoundingBox, Matrix, Vector2, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteMask } from "../sprite";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
-import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 /**
  * @internal

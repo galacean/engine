@@ -6,13 +6,13 @@ import {
   LoadItem,
   ResourceManager,
   ModelMesh
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { decode } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Mesh, ["mesh"])
 class MeshLoader extends Loader<ModelMesh> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<ModelMesh> {
-    return new AssetPromise((resolve) => {
+    return new AssetPromise((resolve, reject) => {
       this.request<any>(item.url, {
         ...item,
         type: "arraybuffer"
@@ -22,7 +22,8 @@ class MeshLoader extends Loader<ModelMesh> {
         })
         .then((mesh) => {
           resolve(mesh);
-        });
+        })
+        .catch(reject);
     });
   }
 }

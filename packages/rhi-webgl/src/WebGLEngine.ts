@@ -1,4 +1,4 @@
-import { Engine } from "@oasis-engine/core";
+import { Engine } from "@galacean/engine-core";
 import { WebCanvas } from "./WebCanvas";
 import { WebGLRenderer, WebGLRendererOptions } from "./WebGLRenderer";
 

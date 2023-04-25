@@ -1,10 +1,11 @@
-import { Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Logger } from "../base/Logger";
 import { Camera } from "../Camera";
 import { Engine } from "../Engine";
 import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { IHardwareRenderer } from "../renderingHardwareInterface/IHardwareRenderer";
+import { Scene } from "../Scene";
 import { Texture } from "../texture";
 import { ShaderDataGroup } from "./enums/ShaderDataGroup";
 import { Shader } from "./Shader";
@@ -45,6 +46,8 @@ export class ShaderProgram {
 
   /** @internal */
   _uploadRenderCount: number = -1;
+  /** @internal */
+  _uploadScene: Scene;
   /** @internal */
   _uploadCamera: Camera;
   /** @internal */
@@ -278,7 +281,7 @@ export class ShaderProgram {
     const shader = gl.createShader(shaderType);
 
     if (!shader) {
-      Logger.error("Context lost while create shader.");
+      console.warn("Context lost while create shader.");
       return null;
     }
 
@@ -286,13 +289,13 @@ export class ShaderProgram {
     gl.compileShader(shader);
 
     if (gl.isContextLost()) {
-      Logger.error("Context lost while compiling shader.");
+      console.warn("Context lost while compiling shader.");
       gl.deleteShader(shader);
       return null;
     }
 
     if (Logger.isEnabled && !gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
-      Logger.error(
+      console.warn(
         `Could not compile WebGL shader.\n${gl.getShaderInfoLog(shader)}`,
         ShaderProgram._addLineNum(shaderSource)
       );
@@ -401,6 +404,7 @@ export class ShaderProgram {
         case gl.SAMPLER_2D:
         case gl.SAMPLER_CUBE:
         case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
+        case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
           let defaultTexture: Texture;
           switch (type) {
             case gl.SAMPLER_2D:
@@ -412,8 +416,10 @@ export class ShaderProgram {
             case (<WebGL2RenderingContext>gl).SAMPLER_2D_ARRAY:
               defaultTexture = this._engine._magentaTexture2DArray;
               break;
-            default:
-              throw new Error("Unsupported texture type.");
+            case (<WebGL2RenderingContext>gl).SAMPLER_2D_SHADOW:
+              defaultTexture = this._engine._depthTexture2D;
+              shaderUniform.textureUseComporeMode = true;
+              break;
           }
 
           isTexture = true;
@@ -432,18 +438,17 @@ export class ShaderProgram {
             shaderUniform.applyFunc = shaderUniform.uploadTextureArray;
             this.bind();
             gl.uniform1iv(location, textureIndices);
-            shaderUniform.uploadTextureArray(shaderUniform, defaultTextures);
           } else {
-            const textureIndex = gl.TEXTURE0 + this._activeTextureUint;
-
+            const glTextureIndex = gl.TEXTURE0 + this._activeTextureUint;
             shaderUniform.textureDefault = defaultTexture;
-            shaderUniform.textureIndex = textureIndex;
+            shaderUniform.textureIndex = glTextureIndex;
             shaderUniform.applyFunc = shaderUniform.uploadTexture;
             this.bind();
             gl.uniform1i(location, this._activeTextureUint++);
-            shaderUniform.uploadTexture(shaderUniform, defaultTexture);
           }
           break;
+        default:
+          throw new Error("Unsupported uniform type");
       }
 
       const group = Shader._getShaderPropertyGroup(name);
@@ -458,9 +463,9 @@ export class ShaderProgram {
   private _getUniformInfos(): WebGLActiveInfo[] {
     const gl = this._gl;
     const program = this._glProgram;
-    const uniformInfos = new Array<WebGLActiveInfo>();
-
     const uniformCount = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+
+    const uniformInfos = new Array<WebGLActiveInfo>(uniformCount);
     for (let i = 0; i < uniformCount; ++i) {
       const info = gl.getActiveUniform(program, i);
       uniformInfos[i] = info;

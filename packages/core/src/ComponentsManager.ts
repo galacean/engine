@@ -1,18 +1,15 @@
-import { Vector3 } from "@oasis-engine/math";
 import { Camera } from "./Camera";
 import { Component } from "./Component";
 import { DisorderedArray } from "./DisorderedArray";
 import { Renderer } from "./Renderer";
-import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Script } from "./Script";
-import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 
 /**
  * The manager of the components.
  */
 export class ComponentsManager {
-  private static _tempVector0 = new Vector3();
-  private static _tempVector1 = new Vector3();
+  /** @internal */
+  _renderers: DisorderedArray<Renderer> = new DisorderedArray();
 
   // Script
   private _onStartScripts: DisorderedArray<Script> = new DisorderedArray();
@@ -20,13 +17,14 @@ export class ComponentsManager {
   private _onLateUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _onPhysicsUpdateScripts: DisorderedArray<Script> = new DisorderedArray();
   private _disableScripts: Script[] = [];
-  private _destroyScripts: Script[] = [];
+
+  private _pendingDestroyScripts: Script[] = [];
+  private _disposeDestroyScripts: Script[] = [];
 
   // Animation
   private _onUpdateAnimations: DisorderedArray<Component> = new DisorderedArray();
 
   // Render
-  private _renderers: DisorderedArray<Renderer> = new DisorderedArray();
   private _onUpdateRenderers: DisorderedArray<Renderer> = new DisorderedArray();
 
   // Delay dispose active/inActive Pool
@@ -117,8 +115,8 @@ export class ComponentsManager {
     this._disableScripts.push(component);
   }
 
-  addDestroyScript(component: Script): void {
-    this._destroyScripts.push(component);
+  addPendingDestroyScript(component: Script): void {
+    this._pendingDestroyScripts.push(component);
   }
 
   callScriptOnStart(): void {
@@ -183,52 +181,8 @@ export class ComponentsManager {
     }
   }
 
-  callRender(context: RenderContext): void {
-    const camera = context._camera;
-    const elements = this._renderers._elements;
-    for (let i = this._renderers.length - 1; i >= 0; --i) {
-      const element = elements[i];
-
-      // filter by camera culling mask.
-      if (!(camera.cullingMask & element._entity.layer)) {
-        continue;
-      }
-
-      // filter by camera frustum.
-      if (camera.enableFrustumCulling) {
-        element.isCulled = !camera._frustum.intersectsBox(element.bounds);
-        if (element.isCulled) {
-          continue;
-        }
-      }
-
-      const transform = camera.entity.transform;
-      const position = transform.worldPosition;
-      const center = element.bounds.getCenter(ComponentsManager._tempVector0);
-      if (camera.isOrthographic) {
-        const forward = transform.getWorldForward(ComponentsManager._tempVector1);
-        Vector3.subtract(center, position, center);
-        element._distanceForSort = Vector3.dot(center, forward);
-      } else {
-        element._distanceForSort = Vector3.distanceSquared(center, position);
-      }
-
-      element._updateShaderData(context);
-
-      element._render(camera);
-
-      // union camera global macro and renderer macro.
-      ShaderMacroCollection.unionCollection(
-        camera._globalShaderMacro,
-        element.shaderData._macroCollection,
-        element._globalShaderMacro
-      );
-    }
-  }
-
   handlingInvalidScripts(): void {
-    const { _disableScripts: disableScripts, _destroyScripts: destroyScripts } = this;
-
+    const { _disableScripts: disableScripts } = this;
     let length = disableScripts.length;
     if (length > 0) {
       for (let i = length - 1; i >= 0; i--) {
@@ -238,12 +192,15 @@ export class ComponentsManager {
       disableScripts.length = 0;
     }
 
-    length = destroyScripts.length;
+    const { _disposeDestroyScripts: pendingDestroyScripts, _pendingDestroyScripts: disposeDestroyScripts } = this;
+    this._disposeDestroyScripts = disposeDestroyScripts;
+    this._pendingDestroyScripts = pendingDestroyScripts;
+    length = disposeDestroyScripts.length;
     if (length > 0) {
       for (let i = length - 1; i >= 0; i--) {
-        destroyScripts[i].onDestroy();
+        disposeDestroyScripts[i].onDestroy();
       }
-      destroyScripts.length = 0;
+      disposeDestroyScripts.length = 0;
     }
   }
 

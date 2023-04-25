@@ -1,5 +1,5 @@
-import { Canvas } from "@oasis-engine/core";
-import { Vector2 } from "@oasis-engine/math";
+import { Canvas } from "@galacean/engine-core";
+import { Vector2 } from "@galacean/engine-math";
 
 type OffscreenCanvas = any;
 

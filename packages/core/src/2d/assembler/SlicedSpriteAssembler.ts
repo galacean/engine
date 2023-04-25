@@ -1,8 +1,7 @@
-import { Matrix, Vector2, Vector3 } from "@oasis-engine/math";
-import { SpriteMask } from "../sprite";
+import { Matrix, Vector2, Vector3 } from "@galacean/engine-math";
+import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
 import { SpriteRenderer } from "../sprite/SpriteRenderer";
 import { IAssembler } from "./IAssembler";
-import { StaticInterfaceImplement } from "./StaticInterfaceImplement";
 
 /**
  * @internal
@@ -34,8 +33,8 @@ export class SlicedSpriteAssembler {
     const { width: expectWidth, height: expectHeight } = sprite;
     const fixedLeft = expectWidth * border.x;
     const fixedBottom = expectHeight * border.y;
-    const fixedRight = expectHeight * border.z;
-    const fixedTop = expectWidth * border.w;
+    const fixedRight = expectWidth * border.z;
+    const fixedTop = expectHeight * border.w;
 
     // ------------------------
     //     [3]

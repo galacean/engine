@@ -1,4 +1,4 @@
-import { Ray, Vector3 } from "@oasis-engine/math";
+import { Ray, Vector3 } from "@galacean/engine-math";
 import { ICharacterController } from "./ICharacterController";
 import { ICollider } from "./ICollider";
 import { IColliderShape } from "./shape";
@@ -59,12 +59,14 @@ export interface IPhysicsManager {
    * Casts a ray through the Scene and returns the first hit.
    * @param ray - The ray
    * @param distance - The max distance the ray should check
+   * @param onRaycast - The raycast result callback which prefilter result
    * @param outHitResult - If true is returned, outHitResult will contain more detailed collision information
    * @returns Returns True if the ray intersects with a collider, otherwise false
    */
   raycast(
     ray: Ray,
     distance: number,
+    onRaycast: (obj: number) => boolean,
     outHitResult?: (shapeUniqueID: number, distance: number, point: Vector3, normal: Vector3) => void
   ): boolean;
 }

@@ -1,5 +1,4 @@
 import {
-  Camera,
   CameraClearFlags,
   Canvas,
   ColorWriteMask,
@@ -11,14 +10,16 @@ import {
   IPlatformTextureCube,
   Logger,
   Mesh,
+  Platform,
   RenderTarget,
   SubMesh,
+  SystemInfo,
   Texture2D,
   Texture2DArray,
   TextureCube
-} from "@oasis-engine/core";
-import { IPlatformPrimitive } from "@oasis-engine/design";
-import { Color, Vector4 } from "@oasis-engine/math";
+} from "@galacean/engine-core";
+import { IPlatformPrimitive } from "@galacean/engine-design";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { GLCapability } from "./GLCapability";
 import { GLExtensions } from "./GLExtensions";
 import { GLPrimitive } from "./GLPrimitive";
@@ -28,8 +29,8 @@ import { GLTexture } from "./GLTexture";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTexture2DArray } from "./GLTexture2DArray";
 import { GLTextureCube } from "./GLTextureCube";
-import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
+import { WebGLExtension } from "./type";
 
 /**
  * WebGL mode.
@@ -49,6 +50,20 @@ export enum WebGLMode {
 export interface WebGLRendererOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
+
+  /**
+   * @internal
+   * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for example iPhone13(iOS 15.4.1).
+   */
+  _forceFlush?: boolean;
+
+  /**
+   * @internal
+   * Max allow skin uniform vectors count, default is 256
+   * 
+   * @remarks large count maybe cause performance issue.
+   */
+  _maxAllowSkinUniformVectorsCount?: number;
 }
 
 /**
@@ -57,6 +72,8 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
 export class WebGLRenderer implements IHardwareRenderer {
   /** @internal */
   _readFrameBuffer: WebGLFramebuffer;
+  /** @internal */
+  _enableGlobalDepthBias: boolean = false;
 
   _currentBind: any;
 
@@ -66,6 +83,7 @@ export class WebGLRenderer implements IHardwareRenderer {
   private _extensions;
   private _capability: GLCapability;
   private _isWebGL2: boolean;
+  private _renderer: string;
   private _webCanvas: WebCanvas;
 
   private _activeTextureID: number;
@@ -73,11 +91,16 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   // cache value
   private _lastViewport: Vector4 = new Vector4(null, null, null, null);
+  private _lastScissor: Vector4 = new Vector4(null, null, null, null);
   private _lastClearColor: Color = new Color(null, null, null, null);
   private _scissorEnable: boolean = false;
 
-  get isWebGL2() {
+  get isWebGL2(): boolean {
     return this._isWebGL2;
+  }
+
+  get renderer(): string {
+    return this._renderer;
   }
 
   /**
@@ -100,22 +123,38 @@ export class WebGLRenderer implements IHardwareRenderer {
     return this.capability.canIUseMoreJoints;
   }
 
-  constructor(options: WebGLRendererOptions = {}) {
+  constructor(initializeOptions: WebGLRendererOptions = {}) {
+    const options = {
+      webGLMode: WebGLMode.Auto,
+      alpha: false,
+      stencil: true,
+      _forceFlush: false,
+      _maxAllowSkinUniformVectorCount: 256,
+      ...initializeOptions
+    };
+    if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
+      const version = SystemInfo.operatingSystem.match(/(\d+).?(\d+)?.?(\d+)?/);
+      if (version) {
+        const majorVersion = parseInt(version[1]);
+        const minorVersion = parseInt(version[2]);
+        if (majorVersion === 15 && minorVersion >= 0 && minorVersion <= 4) {
+          options._forceFlush = true;
+        }
+      }
+    }
     this._options = options;
   }
 
-  init(canvas: Canvas) {
-    const option = this._options;
-    option.alpha === undefined && (option.alpha = false);
-    option.stencil === undefined && (option.stencil = true);
+  init(canvas: Canvas): void {
+    const options = this._options;
     const webCanvas = (this._webCanvas = (canvas as WebCanvas)._webCanvas);
-    const webGLMode = option.webGLMode || WebGLMode.Auto;
+    const webGLMode = options.webGLMode;
     let gl: (WebGLRenderingContext & WebGLExtension) | WebGL2RenderingContext;
 
     if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL2) {
-      gl = webCanvas.getContext("webgl2", option);
+      gl = webCanvas.getContext("webgl2", options);
       if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", option);
+        gl = <WebGL2RenderingContext>webCanvas.getContext("experimental-webgl2", options);
       }
       this._isWebGL2 = true;
 
@@ -127,9 +166,9 @@ export class WebGLRenderer implements IHardwareRenderer {
 
     if (!gl) {
       if (webGLMode == WebGLMode.Auto || webGLMode == WebGLMode.WebGL1) {
-        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", option);
+        gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("webgl", options);
         if (!gl && (typeof OffscreenCanvas === "undefined" || !(webCanvas instanceof OffscreenCanvas))) {
-          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", option);
+          gl = <WebGLRenderingContext & WebGLExtension>webCanvas.getContext("experimental-webgl", options);
         }
         this._isWebGL2 = false;
       }
@@ -147,7 +186,10 @@ export class WebGLRenderer implements IHardwareRenderer {
     // Make sure the active texture in gl context is on default, because gl context may be used in other webgl renderer.
     gl.activeTexture(gl.TEXTURE0);
 
-    this._options = null;
+    const debugRenderInfo = gl.getExtension("WEBGL_debug_renderer_info");
+    if (debugRenderInfo != null) {
+      this._renderer = gl.getParameter(debugRenderInfo.UNMASKED_RENDERER_WEBGL);
+    }
   }
 
   createPlatformPrimitive(primitive: Mesh): IPlatformPrimitive {
@@ -183,8 +225,16 @@ export class WebGLRenderer implements IHardwareRenderer {
   }
 
   viewport(x: number, y: number, width: number, height: number): void {
-    const { _gl: gl, _lastViewport: lv } = this;
-    if (x !== lv.x || y !== lv.y || width !== lv.z || height !== lv.w) {
+    const { _gl: gl, _lastViewport: lastViewport } = this;
+    if (x !== lastViewport.x || y !== lastViewport.y || width !== lastViewport.z || height !== lastViewport.w) {
+      gl.viewport(x, y, width, height);
+      lastViewport.set(x, y, width, height);
+    }
+  }
+
+  scissor(x: number, y: number, width: number, height: number): void {
+    const { _gl: gl, _lastScissor: lastScissor } = this;
+    if (x !== lastScissor.x || y !== lastScissor.y || width !== lastScissor.z || height !== lastScissor.w) {
       const { _webCanvas: webCanvas } = this;
       if (x === 0 && y === 0 && width === webCanvas.width && height === webCanvas.height) {
         if (this._scissorEnable) {
@@ -198,8 +248,7 @@ export class WebGLRenderer implements IHardwareRenderer {
         }
         gl.scissor(x, y, width, height);
       }
-      gl.viewport(x, y, width, height);
-      lv.set(x, y, width, height);
+      lastScissor.set(x, y, width, height);
     }
   }
 
@@ -257,26 +306,26 @@ export class WebGLRenderer implements IHardwareRenderer {
     }
   }
 
-  activeRenderTarget(renderTarget: RenderTarget, camera: Camera, mipLevel: number) {
+  activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number) {
     const gl = this._gl;
+    let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       /** @ts-ignore */
       (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
-      const { width, height } = renderTarget;
-      this.viewport(0, 0, width >> mipLevel, height >> mipLevel);
+      bufferWidth = renderTarget.width >> mipLevel;
+      bufferHeight = renderTarget.height >> mipLevel;
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      const viewport = camera.viewport;
-      const { drawingBufferWidth, drawingBufferHeight } = gl;
-      const width = drawingBufferWidth * viewport.z;
-      const height = drawingBufferHeight * viewport.w;
-      const x = viewport.x * drawingBufferWidth;
-      const y = drawingBufferHeight - viewport.y * drawingBufferHeight - height;
-      this.viewport(x, y, width, height);
+      bufferWidth = gl.drawingBufferWidth;
+      bufferHeight = gl.drawingBufferHeight;
     }
+    const width = bufferWidth * viewport.z;
+    const height = bufferHeight * viewport.w;
+    const x = viewport.x * bufferWidth;
+    const y = bufferHeight - viewport.y * bufferHeight - height;
+    this.viewport(x, y, width, height);
+    this.scissor(x, y, width, height);
   }
-
-  destroy() {}
 
   activeTexture(textureID: number): void {
     if (this._activeTextureID !== textureID) {
@@ -292,4 +341,22 @@ export class WebGLRenderer implements IHardwareRenderer {
       this._activeTextures[index] = texture;
     }
   }
+
+  setGlobalDepthBias(bias: number, slopeBias: number): void {
+    const gl = this._gl;
+    const enable = bias !== 0 || slopeBias !== 0;
+    if (enable) {
+      gl.enable(gl.POLYGON_OFFSET_FILL);
+      gl.polygonOffset(slopeBias, bias);
+    } else {
+      gl.disable(gl.POLYGON_OFFSET_FILL);
+    }
+    this._enableGlobalDepthBias = enable;
+  }
+
+  flush(): void {
+    this._gl.flush();
+  }
+
+  destroy() {}
 }

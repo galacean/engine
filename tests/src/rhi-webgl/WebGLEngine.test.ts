@@ -1,7 +1,7 @@
-import { Camera, Entity, Script } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Camera, Entity, Script } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 
 
 describe("webgl engine test", () => {

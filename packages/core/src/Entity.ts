@@ -1,4 +1,4 @@
-import { Matrix } from "@oasis-engine/math";
+import { Matrix } from "@galacean/engine-math";
 import { EngineObject } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
 import { ComponentCloner } from "./clone/ComponentCloner";
@@ -175,8 +175,10 @@ export class Entity extends EngineObject {
    * @returns	The first component which match type
    */
   getComponent<T extends Component>(type: new (entity: Entity) => T): T {
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
+    const components = this._components;
+    // @todo: should inverse traversal
+    for (let i = components.length - 1; i >= 0; i--) {
+      const component = components[i];
       if (component instanceof type) {
         return component;
       }
@@ -191,8 +193,9 @@ export class Entity extends EngineObject {
    */
   getComponents<T extends Component>(type: new (entity: Entity) => T, results: T[]): T[] {
     results.length = 0;
-    for (let i = this._components.length - 1; i >= 0; i--) {
-      const component = this._components[i];
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      const component = components[i];
       if (component instanceof type) {
         results.push(component);
       }
@@ -277,19 +280,19 @@ export class Entity extends EngineObject {
   }
 
   /**
-   * Find child entity by name.
+   * Find entity by name.
    * @param name - The name of the entity which want to be found
    * @returns The component which be found
    */
   findByName(name: string): Entity {
+    if (name === this.name) {
+      return this;
+    }
     const children = this._children;
-    const child = Entity._findChildByName(this, name);
-    if (child) return child;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      const grandson = child.findByName(name);
-      if (grandson) {
-        return grandson;
+    for (let i = 0, n = children.length; i < n; i++) {
+      const target = children[i].findByName(name);
+      if (target) {
+        return target;
       }
     }
     return null;
@@ -385,10 +388,9 @@ export class Entity extends EngineObject {
     this._components.length = 0;
 
     const children = this._children;
-    for (let i = children.length - 1; i >= 0; i--) {
-      children[i].destroy();
+    while (children.length > 0) {
+      children[0].destroy();
     }
-    this._children.length = 0;
 
     if (this._isRoot) {
       this._scene._removeFromEntityList(this);

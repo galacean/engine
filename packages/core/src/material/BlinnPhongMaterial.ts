@@ -1,4 +1,4 @@
-import { Color, Vector4 } from "@oasis-engine/math";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Shader } from "../shader/Shader";
 import { Texture2D } from "../texture/Texture2D";
@@ -154,6 +154,10 @@ export class BlinnPhongMaterial extends BaseMaterial {
     }
   }
 
+  /**
+   * Create a BlinnPhong material instance.
+   * @param engine - Engine to which the material belongs
+   */
   constructor(engine: Engine) {
     super(engine, Shader.find("blinn-phong"));
 

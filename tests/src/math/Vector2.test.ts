@@ -1,4 +1,4 @@
-import { MathUtil, Vector2 } from "@oasis-engine/math";
+import { MathUtil, Vector2 } from "@galacean/engine-math";
 import { expect } from "chai";
 
 function toString(v: Vector2): string {
@@ -202,5 +202,10 @@ describe("Vector2 test", () => {
     const a = new Vector2(3, 4);
     expect(toString(a.scale(2))).to.eq(toString(a));
     expect(toString(a)).to.eq("vec2(6, 8)");
+  });
+
+  it("toJSON", () => {
+    const a = new Vector2(3, 4);
+    expect(a.toJSON()).to.deep.eq({ x: 3, y: 4 });
   });
 });

@@ -1,8 +1,8 @@
 import { PhysXPhysics } from "../PhysXPhysics";
 import { PhysXJoint } from "./PhysXJoint";
-import { ISpringJoint } from "@oasis-engine/design";
+import { ISpringJoint } from "@galacean/engine-design";
 import { PhysXCollider } from "../PhysXCollider";
-import { Vector3 } from "oasis-engine";
+import { Vector3 } from "@galacean/engine";
 
 /**
  * a joint that maintains an upper or lower bound (or both) on the distance between two points on different objects
@@ -21,9 +21,9 @@ export class PhysXSpringJoint extends PhysXJoint implements ISpringJoint {
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat
     );
-    this._pxJoint.setDistanceJointFlag(1, true); // enable max distance;
-    this._pxJoint.setDistanceJointFlag(2, true); // enable min distance;
-    this._pxJoint.setDistanceJointFlag(4, true); // enable spring;
+    this._pxJoint.setDistanceJointFlag(2, true); // enable max distance;
+    this._pxJoint.setDistanceJointFlag(4, true); // enable min distance;
+    this._pxJoint.setDistanceJointFlag(8, true); // enable spring;
   }
 
   /**

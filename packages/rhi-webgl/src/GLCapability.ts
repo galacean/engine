@@ -1,4 +1,4 @@
-import { GLCapabilityType } from "@oasis-engine/core";
+import { GLCapabilityType } from "@galacean/engine-core";
 import { GLCompressedTextureInternalFormat } from "./type";
 import { WebGLRenderer } from "./WebGLRenderer";
 
@@ -271,7 +271,7 @@ export class GLCapability {
         });
       }
       this._compatibleInterface(textureHalfFloat, {
-        HAFL_FLOAT: "HALF_FLOAT_OES"
+        HALF_FLOAT: "HALF_FLOAT_OES"
       });
       this._compatibleInterface(colorBufferHalfFloat, {
         RGBA16F: "RBGA16F_EXT"

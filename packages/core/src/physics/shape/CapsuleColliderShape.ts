@@ -1,5 +1,5 @@
 import { ColliderShape } from "./ColliderShape";
-import { ICapsuleColliderShape } from "@oasis-engine/design";
+import { ICapsuleColliderShape } from "@galacean/engine-design";
 import { PhysicsManager } from "../PhysicsManager";
 import { ColliderShapeUpAxis } from "../enums/ColliderShapeUpAxis";
 
@@ -19,8 +19,10 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   set radius(value: number) {
-    this._radius = value;
-    (<ICapsuleColliderShape>this._nativeShape).setRadius(value);
+    if (this._radius !== value) {
+      this._radius = value;
+      (<ICapsuleColliderShape>this._nativeShape).setRadius(value);
+    }
   }
 
   /**
@@ -31,8 +33,10 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   set height(value: number) {
-    this._height = value;
-    (<ICapsuleColliderShape>this._nativeShape).setHeight(value);
+    if (this._height !== value) {
+      this._height = value;
+      (<ICapsuleColliderShape>this._nativeShape).setHeight(value);
+    }
   }
 
   /**
@@ -43,8 +47,10 @@ export class CapsuleColliderShape extends ColliderShape {
   }
 
   set upAxis(value: ColliderShapeUpAxis) {
-    this._upAxis = value;
-    (<ICapsuleColliderShape>this._nativeShape).setUpAxis(value);
+    if (this._upAxis !== value) {
+      this._upAxis = value;
+      (<ICapsuleColliderShape>this._nativeShape).setUpAxis(value);
+    }
   }
 
   constructor() {
@@ -55,6 +61,5 @@ export class CapsuleColliderShape extends ColliderShape {
       this._height,
       this._material._nativeMaterial
     );
-    (<ICapsuleColliderShape>this._nativeShape).setUpAxis(ColliderShapeUpAxis.Y);
   }
 }

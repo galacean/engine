@@ -1,5 +1,5 @@
-import { Entity, Script } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Entity, Script } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 class TestComponent extends Script {}
@@ -271,6 +271,7 @@ describe("Entity", () => {
       child.parent = parent;
       const child2 = new Entity(engine, "child2");
       child2.parent = parent;
+      expect(parent.findByName("parent")).eq(parent);
       expect(parent.findByName("child")).eq(child);
       expect(parent.findByName("child2")).eq(child2);
     });
@@ -393,6 +394,17 @@ describe("Entity", () => {
       child.parent = parent;
       child.destroy();
       expect(parent.children.length).eq(0);
+    });
+
+    it("children", () => {
+      const entity = new Entity(engine, "entity");
+      entity.createChild("child0");
+      entity.createChild("child1");
+      entity.createChild("child2");
+      entity.createChild("child3");
+      entity.createChild("child4");
+      entity.destroy();
+      expect(entity.children.length).eq(0);
     });
   });
 });

@@ -153,7 +153,7 @@ export interface IKHRXmp_Node {
   packet: number;
 }
 
-export interface IOasisMaterialRemap {
+export interface IGalaceanMaterialRemap {
   refId: string;
   key?: string;
   isClone?: boolean;

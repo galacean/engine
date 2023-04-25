@@ -1,6 +1,6 @@
 {
-  "name": "@oasis-engine/loader",
-  "version": "0.8.3",
+  "name": "@galacean/engine-loader",
+  "version": "0.9.6",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -18,9 +18,9 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@oasis-engine/core": "0.8.3",
-    "@oasis-engine/draco": "0.8.3",
-    "@oasis-engine/math": "0.8.3",
-    "@oasis-engine/rhi-webgl": "0.8.3"
+    "@galacean/engine-core": "workspace:*",
+    "@galacean/engine-draco": "workspace:*",
+    "@galacean/engine-math": "workspace:*",
+    "@galacean/engine-rhi-webgl": "workspace:*"
   }
 }

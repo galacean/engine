@@ -1,5 +1,5 @@
-import { Entity } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Entity } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("Scene", () => {
@@ -8,6 +8,21 @@ describe("Scene", () => {
   engine.run();
   beforeEach(() => {
     scene.createRootEntity("root");
+  });
+  describe("Find entity", () => {
+    it("findEntityByName", () => {
+      const parent = new Entity(engine, "parent");
+      scene.addRootEntity(parent);
+      const child = new Entity(engine, "child");
+      child.parent = parent;
+      const child2 = new Entity(engine, "child2");
+      child2.parent = parent;
+      expect(scene.findEntityByName("parent")).eq(parent);
+      expect(scene.findEntityByName("child")).eq(child);
+      expect(scene.findEntityByName("child2")).eq(child2);
+      scene.removeRootEntity(scene.rootEntities[0]);
+      scene.removeRootEntity(scene.rootEntities[0]);
+    });
   });
 
   describe("rootEntities", () => {
@@ -69,6 +84,18 @@ describe("Scene", () => {
       expect(scene.rootEntities.length).eq(4);
       scene.rootEntities[0].destroy();
       expect(scene.rootEntities.length).eq(3);
+    });
+  });
+
+  describe("destroy", () => {
+    it("all destroy", () => {
+      scene.createRootEntity("root1");
+      scene.createRootEntity("root2");
+      scene.createRootEntity("root3");
+      scene.createRootEntity("root4");
+      scene.createRootEntity("root5");
+      scene.destroy();
+      expect(scene.rootEntitiesCount).eq(0);
     });
   });
 });

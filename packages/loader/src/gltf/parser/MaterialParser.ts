@@ -1,4 +1,5 @@
 import {
+  AssetPromise,
   Logger,
   Material,
   PBRMaterial,
@@ -6,25 +7,28 @@ import {
   RenderFace,
   TextureCoordinate,
   UnlitMaterial
-} from "@oasis-engine/core";
-import { Color } from "@oasis-engine/math";
-import { GLTFResource } from "../GLTFResource";
+} from "@galacean/engine-core";
+import { Color } from "@galacean/engine-math";
 import { MaterialAlphaMode } from "../Schema";
 import { Parser } from "./Parser";
+import { ParserContext } from "./ParserContext";
 
 export class MaterialParser extends Parser {
   /** @internal */
-  static _parseTextureTransform(material: Material, extensions: any = {}, context: GLTFResource): void {
+  static _parseTextureTransform(material: Material, extensions: any = {}, context: ParserContext): void {
     const schema = extensions.KHR_texture_transform;
     if (schema) {
       Parser.parseEngineResource("KHR_texture_transform", schema, material, context);
     }
   }
 
-  parse(context: GLTFResource): void {
-    const { gltf, engine, textures } = context;
+  parse(context: ParserContext): AssetPromise<Material[]> {
+    const { gltf, glTFResource } = context;
+
+    const { engine, textures } = glTFResource;
     if (!gltf.materials) return;
 
+    const materialsPromiseInfo = context.materialsPromiseInfo;
     const materials: Material[] = [];
 
     for (let i = 0; i < gltf.materials.length; i++) {
@@ -45,6 +49,7 @@ export class MaterialParser extends Parser {
         KHR_materials_unlit,
         KHR_materials_pbrSpecularGlossiness,
         KHR_materials_clearcoat,
+        KHR_materials_ior,
         OASIS_materials_remap
       } = extensions;
 
@@ -68,6 +73,10 @@ export class MaterialParser extends Parser {
 
       if (KHR_materials_clearcoat) {
         Parser.parseEngineResource("KHR_materials_clearcoat", KHR_materials_clearcoat, material, context);
+      }
+
+      if (KHR_materials_ior) {
+        Parser.parseEngineResource("KHR_materials_ior", KHR_materials_ior, material, context);
       }
 
       if (pbrMetallicRoughness) {
@@ -139,9 +148,9 @@ export class MaterialParser extends Parser {
       }
 
       if (OASIS_materials_remap) {
-        context.gltf.extensions = context.gltf.extensions ?? {};
-        context.gltf.extensions["OASIS_materials_remap"] = context.gltf.extensions["OASIS_materials_remap"] ?? {};
-        context.gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
+        gltf.extensions = gltf.extensions ?? {};
+        gltf.extensions["OASIS_materials_remap"] = gltf.extensions["OASIS_materials_remap"] ?? {};
+        gltf.extensions["OASIS_materials_remap"][i] = Parser.createEngineResource(
           "OASIS_materials_remap",
           OASIS_materials_remap,
           context
@@ -169,6 +178,8 @@ export class MaterialParser extends Parser {
       materials[i] = material;
     }
 
-    context.materials = materials;
+    glTFResource.materials = materials;
+    materialsPromiseInfo.resolve(materials);
+    return materialsPromiseInfo.promise;
   }
 }

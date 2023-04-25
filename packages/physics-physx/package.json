@@ -1,6 +1,6 @@
 {
-  "name": "@oasis-engine/physics-physx",
-  "version": "0.8.3",
+  "name": "@galacean/engine-physics-physx",
+  "version": "0.9.6",
   "publishConfig": {
     "access": "public",
     "registry": "https://registry.npmjs.org"
@@ -14,15 +14,22 @@
   "scripts": {
     "b:types": "tsc"
   },
+  "umd": {
+    "name": "Galacean.PhysicsPhysX",
+    "globals": {
+      "@galacean/engine": "Galacean"
+    }
+  },
   "files": [
     "dist/**/*",
     "libs/**/*",
     "types/**/*"
   ],
   "devDependencies": {
-    "@oasis-engine/design": "0.8.3"
+    "@galacean/engine-design": "workspace:*",
+    "@galacean/engine": "workspace:*"
   },
   "peerDependencies": {
-    "oasis-engine": "0.8.3"
+    "@galacean/engine": "workspace:*"
   }
 }
