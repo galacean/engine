@@ -143,7 +143,7 @@ export abstract class Basic2DBatcher {
     this._indiceBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 3,
+      MAX_VERTEX_COUNT * 2 * 3,
       BufferUsage.Dynamic
     );
     mesh.setVertexBufferBinding(this._vertexBuffers[index], vertexStride);
