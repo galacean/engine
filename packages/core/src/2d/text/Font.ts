@@ -57,7 +57,6 @@ export class Font extends ReferResource {
     return subFont;
   }
 
- 
   /**
    * @internal
    */
