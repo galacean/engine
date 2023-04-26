@@ -12,8 +12,8 @@ describe("camera test", function () {
   let camera: Camera;
   let identityMatrix: Matrix;
 
-  before(() => {
-    const engine = new WebGLEngine(canvasDOM);
+  before(async () => {
+    const engine = await WebGLEngine.create({ canvas: canvasDOM });
     node = engine.sceneManager.activeScene.createRootEntity();
     camera = node.addComponent(Camera);
     identityMatrix = new Matrix();
