@@ -1,5 +1,5 @@
 import { Matrix, Vector3 } from "@galacean/engine-math";
-import { Shader, ShaderData } from "../shader";
+import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
 
@@ -7,9 +7,9 @@ import { Light } from "./Light";
  * Directional light.
  */
 export class DirectLight extends Light {
-  private static _cullingMaskProperty: ShaderProperty = Shader.getPropertyByName("u_directLightCullingMask");
-  private static _colorProperty: ShaderProperty = Shader.getPropertyByName("u_directLightColor");
-  private static _directionProperty: ShaderProperty = Shader.getPropertyByName("u_directLightDirection");
+  private static _cullingMaskProperty: ShaderProperty = ShaderProperty.getByName("scene_DirectLightCullingMask");
+  private static _colorProperty: ShaderProperty = ShaderProperty.getByName("scene_DirectLightColor");
+  private static _directionProperty: ShaderProperty = ShaderProperty.getByName("scene_DirectLightDirection");
 
   private static _combinedData = {
     cullingMask: new Int32Array(Light._maxLight * 2),
@@ -28,16 +28,13 @@ export class DirectLight extends Light {
     shaderData.setFloatArray(DirectLight._directionProperty, data.direction);
   }
 
-  private _forward: Vector3 = new Vector3();
-
   private _reverseDirection: Vector3 = new Vector3();
 
   /**
    * Get direction.
    */
   get direction(): Vector3 {
-    this.entity.transform.getWorldForward(this._forward);
-    return this._forward;
+    return this.entity.transform.worldForward;
   }
 
   /**
@@ -50,9 +47,8 @@ export class DirectLight extends Light {
 
   /**
    * @internal
-   * @override
    */
-  get _shadowProjectionMatrix(): Matrix {
+  override get _shadowProjectionMatrix(): Matrix {
     throw "Unknown!";
   }
 
@@ -83,18 +79,16 @@ export class DirectLight extends Light {
   /**
    * Mount to the current Scene.
    * @internal
-   * @override
    */
-  _onEnable(): void {
+  override _onEnable(): void {
     this.engine._lightManager._attachDirectLight(this);
   }
 
   /**
    * Unmount from the current Scene.
    * @internal
-   * @override
    */
-  _onDisable(): void {
+  override _onDisable(): void {
     this.engine._lightManager._detachDirectLight(this);
   }
 }

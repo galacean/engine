@@ -1,7 +1,7 @@
 import { Color, Matrix } from "@galacean/engine-math";
-import { ignoreClone } from "../clone/CloneManager";
 import { Component } from "../Component";
 import { Layer } from "../Layer";
+import { ignoreClone } from "../clone/CloneManager";
 import { ShadowType } from "../shadow";
 
 /**
@@ -78,6 +78,9 @@ export abstract class Light extends Component {
    */
   abstract get _shadowProjectionMatrix(): Matrix;
 
+  /**
+   * @internal
+   */
   protected _getLightColor(): Color {
     this._lightColor.r = this.color.r * this.intensity;
     this._lightColor.g = this.color.g * this.intensity;

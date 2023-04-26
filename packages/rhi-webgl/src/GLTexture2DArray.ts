@@ -1,12 +1,12 @@
 import { IPlatformTexture2DArray, Texture2DArray, TextureFormat } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * Texture 2D array in WebGL platform.
  */
 export class GLTexture2DArray extends GLTexture implements IPlatformTexture2DArray {
-  constructor(rhi: WebGLRenderer, texture2DArray: Texture2DArray) {
+  constructor(rhi: WebGLGraphicDevice, texture2DArray: Texture2DArray) {
     super(rhi, texture2DArray, (<WebGL2RenderingContext>rhi.gl).TEXTURE_2D_ARRAY);
 
     const { format, width, height, length, mipmapCount } = texture2DArray;

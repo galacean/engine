@@ -1,12 +1,12 @@
 import { Material } from "@galacean/engine-core";
-import { registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
-import { ExtensionParser } from "./ExtensionParser";
-import { IGalaceanMaterialRemap } from "./Schema";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
+import { IGalaceanMaterialRemap } from "./GLTFExtensionSchema";
 
-@registerExtension("OASIS_materials_remap")
-class GalaceanMaterialsRemap extends ExtensionParser {
-  createEngineResource(schema: IGalaceanMaterialRemap, context: ParserContext): Promise<Material> {
+@registerGLTFExtension("GALACEAN_materials_remap", GLTFExtensionMode.CreateAndParse)
+class GALACEAN_materials_remap extends GLTFExtensionParser {
+  override createAndParse(context: GLTFParserContext, schema: IGalaceanMaterialRemap): Promise<Material> {
     const { engine } = context.glTFResource;
     // @ts-ignore
     return engine.resourceManager.getResourceByRef<Material>(schema);

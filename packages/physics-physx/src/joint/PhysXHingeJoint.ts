@@ -1,8 +1,8 @@
-import { PhysXCollider } from "../PhysXCollider";
-import { PhysXJoint } from "./PhysXJoint";
 import { IHingeJoint } from "@galacean/engine-design";
-import { PhysXPhysics } from "../PhysXPhysics";
 import { Quaternion, Vector3 } from "@galacean/engine";
+import { PhysXCollider } from "../PhysXCollider";
+import { PhysXPhysics } from "../PhysXPhysics";
+import { PhysXJoint } from "./PhysXJoint";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
@@ -12,10 +12,10 @@ export class PhysXHingeJoint extends PhysXJoint implements IHingeJoint {
   private _swingOffset = new Vector3();
   private _velocity = new Vector3();
 
-  constructor(collider: PhysXCollider) {
-    super();
+  constructor(physXPhysics: PhysXPhysics, collider: PhysXCollider) {
+    super(physXPhysics);
     this._collider = collider;
-    this._pxJoint = PhysXPhysics._pxPhysics.createRevoluteJoint(
+    this._pxJoint = physXPhysics._pxPhysics.createRevoluteJoint(
       null,
       PhysXJoint._defaultVec,
       PhysXJoint._defaultQuat,

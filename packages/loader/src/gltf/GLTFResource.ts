@@ -7,16 +7,15 @@ import {
   Light,
   Material,
   ModelMesh,
-  Renderer,
   Skin,
   Texture2D
 } from "@galacean/engine-core";
 
 /**
- * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.
+ * Product after glTF parser, usually, `defaultSceneRoot` is only needed to use.
  */
 export class GLTFResource extends EngineObject {
-  /** GLTF file url. */
+  /** glTF file url. */
   url: string;
   /** Texture2D after TextureParser. */
   textures?: Texture2D[];
@@ -32,14 +31,14 @@ export class GLTFResource extends EngineObject {
   entities: Entity[];
   /** Camera after SceneParser. */
   cameras?: Camera[];
-  /** Export lights in extension KHR_lights_punctual */
+  /** Export lights in extension KHR_lights_punctual. */
   lights?: Light[];
   /** RootEntities after SceneParser. */
   sceneRoots: Entity[];
   /** RootEntity after SceneParser. */
   defaultSceneRoot: Entity;
-  /** Renderer can replace material by `renderer.setMaterial` if gltf use plugin-in KHR_materials_variants. */
-  variants?: { renderer: Renderer; material: Material; variants: string[] }[];
+  /** Extensions data. */
+  extensionsData: Record<string, any>;
 
   constructor(engine: Engine, url: string) {
     super(engine);
@@ -47,14 +46,10 @@ export class GLTFResource extends EngineObject {
   }
 
   /**
-   * @override
+   * @internal
    */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    super.destroy();
+  protected override _onDestroy(): void {
+    super._onDestroy();
     this.defaultSceneRoot.destroy();
 
     this.textures = null;
@@ -66,6 +61,6 @@ export class GLTFResource extends EngineObject {
     this.cameras = null;
     this.lights = null;
     this.sceneRoots = null;
-    this.variants = null;
+    this.extensionsData = null;
   }
 }

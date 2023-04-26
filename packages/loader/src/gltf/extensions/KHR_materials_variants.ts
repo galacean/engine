@@ -1,14 +1,20 @@
-import { Renderer } from "@galacean/engine-core";
-import { registerExtension } from "../parser/Parser";
-import { ParserContext } from "../parser/ParserContext";
-import { ExtensionParser } from "./ExtensionParser";
-import { IKHRMaterialVariants_Mapping } from "./Schema";
+import { Material, Renderer } from "@galacean/engine-core";
+import { registerGLTFExtension } from "../parser/GLTFParser";
+import { GLTFParserContext } from "../parser/GLTFParserContext";
+import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";
+import { IKHRMaterialVariants_Mapping } from "./GLTFExtensionSchema";
 
-@registerExtension("KHR_materials_variants")
-class KHR_materials_variants extends ExtensionParser {
-  parseEngineResource(schema: IKHRMaterialVariants_Mapping, renderer: Renderer, context: ParserContext): void {
+export type IGLTFExtensionVariants = Array<{
+  renderer: Renderer;
+  material: Material;
+  variants: string[];
+}>;
+
+@registerGLTFExtension("KHR_materials_variants", GLTFExtensionMode.AdditiveParse)
+class KHR_materials_variants extends GLTFExtensionParser {
+  override additiveParse(context: GLTFParserContext, renderer: Renderer, schema: IKHRMaterialVariants_Mapping): void {
     const {
-      gltf: {
+      glTF: {
         extensions: {
           KHR_materials_variants: { variants: variantNames }
         }
@@ -17,10 +23,13 @@ class KHR_materials_variants extends ExtensionParser {
     } = context;
     const { mappings } = schema;
 
+    if (!glTFResource.extensionsData) glTFResource.extensionsData = {};
+    const extensionData: IGLTFExtensionVariants = [];
+    glTFResource.extensionsData.variants = extensionData;
+
     for (let i = 0; i < mappings.length; i++) {
       const { material, variants } = mappings[i];
-      if (!glTFResource.variants) glTFResource.variants = [];
-      glTFResource.variants.push({
+      extensionData.push({
         renderer,
         material: glTFResource.materials[material],
         variants: variants.map((index) => variantNames[index].name)

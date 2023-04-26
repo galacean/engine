@@ -9,12 +9,12 @@ Galacean is a **web-first** and **mobile-first** high-performance real-time inte
 
 ## Features
 
-- 🖥  &nbsp;**Platform** - Suppport HTML5 and Alipay miniprogram
-- 🔮  &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
-- 🏃  &nbsp;**Animation** - Powerful animation system
-- 🧱  &nbsp;**Physics** - Powerful and easy-to-use physical features
-- 👆  &nbsp;**Input** - Easy-to-use interactive capabilities
-- 📑  &nbsp;**Scripts** - Use TypeScript to write logic efficiently
+- 🖥 &nbsp;**Platform** - Support HTML5 and Alipay miniprogram
+- 🔮 &nbsp;**Graphics** - Advanced 2D + 3D graphics engine
+- 🏃 &nbsp;**Animation** - Powerful animation system
+- 🧱 &nbsp;**Physics** - Powerful and easy-to-use physical features
+- 👆 &nbsp;**Input** - Easy-to-use interactive capabilities
+- 📑 &nbsp;**Scripts** - Use TypeScript to write logic efficiently
 
 ## npm
 
@@ -40,7 +40,7 @@ import { Engine, Scene, Entity } from "@galacean/engine";
 
 ```typescript
 // Create engine by passing in the HTMLCanvasElement id and adjust canvas size
-const engine = new WebGLEngine("canvas-id");
+const engine = await WebGLEngine.create({ canvas: "canvas-id" });
 engine.canvas.resizeByClientSize();
 
 // Get scene and create root entity
@@ -96,10 +96,10 @@ npm run b:all
 
 ## Links
 
-- [Official Site](https://oasisengine.cn)
-- [Examples](https://oasisengine.cn/#/examples/latest)
-- [Documentation](https://oasisengine.cn/#/docs/latest/cn/install)
-- [API References](https://oasisengine.cn/#/api/latest/core)
+- [Official Site](https://galacean.antgroup.com/)
+- [Examples](https://galacean.antgroup.com/#/examples/latest)
+- [Documentation](https://galacean.antgroup.com/#/docs/latest/en/install)
+- [API References](https://galacean.antgroup.com/#/api/latest)
 
 ## License
 

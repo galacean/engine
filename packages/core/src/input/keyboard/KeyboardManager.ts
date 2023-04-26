@@ -1,3 +1,4 @@
+import { Engine } from "../../Engine";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Platform } from "../../Platform";
 import { SystemInfo } from "../../SystemInfo";
@@ -23,6 +24,7 @@ export class KeyboardManager implements IInput {
   /** @internal */
   _curFrameUpList: DisorderedArray<Keys> = new DisorderedArray();
 
+  private _engine: Engine;
   private _htmlCanvas: HTMLCanvasElement;
   private _nativeEvents: KeyboardEvent[] = [];
   private _hadListener: boolean = false;
@@ -30,7 +32,10 @@ export class KeyboardManager implements IInput {
   /**
    * Create a KeyboardManager.
    */
-  constructor(htmlCanvas: HTMLCanvasElement) {
+  constructor(engine: Engine) {
+    // @ts-ignore
+    const htmlCanvas = engine._canvas._webCanvas;
+    this._engine = engine;
     this._htmlCanvas = htmlCanvas;
     // Need to set tabIndex to make the canvas focus.
     htmlCanvas.tabIndex = htmlCanvas.tabIndex;
@@ -43,11 +48,12 @@ export class KeyboardManager implements IInput {
   /**
    * @internal
    */
-  _update(frameCount: number): void {
+  _update(): void {
     const { _nativeEvents: nativeEvents, _curFrameDownList: curFrameDownList, _curFrameUpList: curFrameUpList } = this;
     curFrameDownList.length = 0;
     curFrameUpList.length = 0;
     if (nativeEvents.length > 0) {
+      const frameCount = this._engine.time.frameCount;
       const {
         _curHeldDownKeyToIndexMap: curHeldDownKeyToIndexMap,
         _curFrameHeldDownList: curFrameHeldDownList,
@@ -81,7 +87,7 @@ export class KeyboardManager implements IInput {
             // when the meta key is lifted.
             // link: https://stackoverflow.com/questions/11818637/why-does-javascript-drop-keyup-events-when-the-metakey-is-pressed-on-mac-browser
             if (SystemInfo.platform === Platform.Mac && (codeKey === Keys.MetaLeft || codeKey === Keys.MetaRight)) {
-              for (let i = 0, len = curFrameHeldDownList.length; i < len; i++) {
+              for (let i = 0, n = curFrameHeldDownList.length; i < n; i++) {
                 curHeldDownKeyToIndexMap[curFrameHeldDownList.get(i)] = null;
               }
               curFrameHeldDownList.length = 0;

@@ -1,4 +1,5 @@
 import { Vector3 } from "@galacean/engine-math";
+import { Engine } from "../../Engine";
 import { IInput } from "../interface/IInput";
 
 /**
@@ -16,7 +17,9 @@ export class WheelManager implements IInput {
   /**
    * Create a KeyboardManager.
    */
-  constructor(htmlCanvas: HTMLCanvasElement) {
+  constructor(engine: Engine) {
+    // @ts-ignore
+    const htmlCanvas = engine._canvas._webCanvas;
     this._onWheelEvent = this._onWheelEvent.bind(this);
     htmlCanvas.addEventListener("wheel", this._onWheelEvent);
     this._canvas = htmlCanvas;

@@ -1,11 +1,11 @@
-import { Joint } from "./Joint";
 import { IHingeJoint } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine-math";
+import { Collider } from "../Collider";
 import { PhysicsManager } from "../PhysicsManager";
 import { HingeJointFlag } from "../enums/HingeJointFlag";
-import { Collider } from "../Collider";
-import { Vector3 } from "@galacean/engine-math";
-import { JointMotor } from "./JointMotor";
+import { Joint } from "./Joint";
 import { JointLimits } from "./JointLimits";
+import { JointMotor } from "./JointMotor";
 
 /**
  * A joint which behaves in a similar way to a hinge or axle.
@@ -139,10 +139,9 @@ export class HingeJoint extends Joint {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onAwake() {
+  override _onAwake() {
     const collider = this._collider;
     collider.localPosition = new Vector3();
     collider.collider = this.entity.getComponent(Collider);

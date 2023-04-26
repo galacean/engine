@@ -1,14 +1,14 @@
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
-import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
-import { BufferUsage } from "../graphic/enums/BufferUsage";
-import { IndexFormat } from "../graphic/enums/IndexFormat";
-import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { IndexBufferBinding } from "../graphic/IndexBufferBinding";
 import { Mesh } from "../graphic/Mesh";
 import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
 import { VertexElement } from "../graphic/VertexElement";
+import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
+import { BufferUsage } from "../graphic/enums/BufferUsage";
+import { IndexFormat } from "../graphic/enums/IndexFormat";
+import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
 import { BlendShape } from "./BlendShape";
 import { BlendShapeManager } from "./BlendShapeManager";
 import { VertexAttribute } from "./enums/VertexAttribute";
@@ -27,7 +27,7 @@ export class ModelMesh extends Mesh {
   _blendShapeManager: BlendShapeManager;
 
   private _vertexCount: number = 0;
-  private _accessible: boolean = true;
+  private _readable: boolean = true;
   private _verticesFloat32: Float32Array | null = null;
   private _verticesUint8: Uint8Array | null = null;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
@@ -57,10 +57,10 @@ export class ModelMesh extends Mesh {
   private _vertexCountChanged: boolean = false;
 
   /**
-   * Whether to access data of the mesh.
+   * Whether to read data of the mesh.
    */
-  get accessible(): boolean {
-    return this._accessible;
+  get readable(): boolean {
+    return this._readable;
   }
 
   /**
@@ -102,9 +102,6 @@ export class ModelMesh extends Mesh {
    * BlendShapes of this ModelMesh.
    */
   get blendShapes(): Readonly<BlendShape[]> {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
     return this._blendShapeManager._blendShapes;
   }
 
@@ -131,9 +128,6 @@ export class ModelMesh extends Mesh {
    * @param positions - The positions for the mesh.
    */
   setPositions(positions: Vector3[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
     if (!this._positions && !positions) {
       return;
     }
@@ -153,7 +147,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
   getPositions(): Vector3[] | null {
-    if (!this._accessible) {
+    if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
 
@@ -165,9 +159,6 @@ export class ModelMesh extends Mesh {
    * @param normals - The normals for the mesh.
    */
   setNormals(normals: Vector3[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
     if (normals) {
       if (normals.length !== this._vertexCount) {
         throw "The array provided needs to be the same size as vertex count.";
@@ -187,7 +178,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setNormals() method after modification to ensure that the modification takes effect.
    */
   getNormals(): Vector3[] | null {
-    if (!this._accessible) {
+    if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._normals;
@@ -198,9 +189,6 @@ export class ModelMesh extends Mesh {
    * @param colors - The colors for the mesh.
    */
   setColors(colors: Color[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
     if (colors) {
       if (colors.length !== this._vertexCount) {
         throw "The array provided needs to be the same size as vertex count.";
@@ -220,7 +208,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setColors() method after modification to ensure that the modification takes effect.
    */
   getColors(): Color[] | null {
-    if (!this._accessible) {
+    if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._colors;
@@ -231,10 +219,6 @@ export class ModelMesh extends Mesh {
    * @param boneWeights - The bone weights for the mesh.
    */
   setBoneWeights(boneWeights: Vector4[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     if (boneWeights) {
       if (boneWeights.length !== this._vertexCount) {
         throw "The array provided needs to be the same size as vertex count.";
@@ -254,7 +238,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setWeights() method after modification to ensure that the modification takes effect.
    */
   getBoneWeights(): Vector4[] | null {
-    if (!this._accessible) {
+    if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._boneWeights;
@@ -265,10 +249,6 @@ export class ModelMesh extends Mesh {
    * @param boneIndices - The bone indices for the mesh.
    */
   setBoneIndices(boneIndices: Vector4[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     if (boneIndices) {
       if (boneIndices?.length !== this._vertexCount) {
         throw "The array provided needs to be the same size as vertex count.";
@@ -288,7 +268,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setBoneIndices() method after modification to ensure that the modification takes effect.
    */
   getBoneIndices(): Vector4[] | null {
-    if (!this._accessible) {
+    if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._boneIndices;
@@ -299,10 +279,6 @@ export class ModelMesh extends Mesh {
    * @param tangents - The tangents for the mesh.
    */
   setTangents(tangents: Vector4[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     if (tangents) {
       if (tangents.length !== this._vertexCount) {
         throw "The array provided needs to be the same size as vertex count.";
@@ -322,7 +298,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setTangents() method after modification to ensure that the modification takes effect.
    */
   getTangents(): Vector4[] | null {
-    if (!this._accessible) {
+    if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._tangents;
@@ -340,10 +316,6 @@ export class ModelMesh extends Mesh {
    */
   setUVs(uv: Vector2[] | null, channelIndex: number): void;
   setUVs(uv: Vector2[] | null, channelIndex?: number): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     if (uv && uv.length !== this._vertexCount) {
       throw "The array provided needs to be the same size as vertex count.";
     }
@@ -447,7 +419,7 @@ export class ModelMesh extends Mesh {
    */
   getUVs(channelIndex: number): Vector2[] | null;
   getUVs(channelIndex?: number): Vector2[] | null {
-    if (!this._accessible) {
+    if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
     channelIndex = channelIndex ?? 0;
@@ -477,10 +449,6 @@ export class ModelMesh extends Mesh {
    * @param indices - The indices for the mesh.
    */
   setIndices(indices: Uint8Array | Uint16Array | Uint32Array): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     if (this._indices !== indices) {
       this._indices = indices;
       if (indices instanceof Uint8Array) {
@@ -499,7 +467,7 @@ export class ModelMesh extends Mesh {
    * Get indices for the mesh.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array {
-    if (!this._accessible) {
+    if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._indices;
@@ -512,10 +480,6 @@ export class ModelMesh extends Mesh {
    * @param elements - Vertex element collection
    */
   setVertexElements(elements: VertexElement[]): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     const customVertexElements = this._customVertexElements;
     customVertexElements.length = 0;
 
@@ -684,10 +648,6 @@ export class ModelMesh extends Mesh {
    * @param blendShape - The BlendShape
    */
   addBlendShape(blendShape: BlendShape): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     this._blendShapeManager._addBlendShape(blendShape);
   }
 
@@ -695,9 +655,6 @@ export class ModelMesh extends Mesh {
    * Clear all BlendShapes.
    */
   clearBlendShapes(): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
     this._blendShapeManager._clearBlendShapes();
   }
 
@@ -707,23 +664,15 @@ export class ModelMesh extends Mesh {
    * @returns The name of BlendShape
    */
   getBlendShapeName(index: number): string {
-    if (this._accessible) {
-      const blendShapes = this._blendShapeManager._blendShapes;
-      return blendShapes[index].name;
-    } else {
-      return this._blendShapeManager._blendShapeNames[index];
-    }
+    const blendShapes = this._blendShapeManager._blendShapes;
+    return blendShapes[index].name;
   }
 
   /**
    * Upload Mesh Data to GPU.
-   * @param noLongerAccessible - Whether to access data later. If true, you'll never access data anymore (free memory cache)
+   * @param noLongerReadable - Whether to read data later. If true, you'll never read data anymore (free memory cache)
    */
-  uploadData(noLongerAccessible: boolean): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
+  uploadData(noLongerReadable: boolean): void {
     // Update vertex elements
     this._updateVertexElements();
 
@@ -734,51 +683,58 @@ export class ModelMesh extends Mesh {
       vertexBuffer?.destroy();
 
       const elementCount = this._bufferStrides[0] / 4;
-
       const vertexFloatCount = elementCount * this.vertexCount;
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
       this._updateVertices(vertices);
 
-      const bufferUsage = noLongerAccessible ? BufferUsage.Static : BufferUsage.Dynamic;
+      const bufferUsage = noLongerReadable ? BufferUsage.Static : BufferUsage.Dynamic;
       const newVertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, vertices, bufferUsage);
 
       this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
       this._vertexCountChanged = false;
     } else {
       if (this._vertexBufferUpdateFlag & VertexChangedFlags.All) {
-        const vertices = this._verticesFloat32;
+        let vertices = this._verticesFloat32;
+        if (!vertices) {
+          const elementCount = this._bufferStrides[0] / 4;
+          const vertexFloatCount = elementCount * this.vertexCount;
+          this._verticesFloat32 = vertices = new Float32Array(vertexFloatCount);
+        }
+
         this._updateVertices(vertices);
         vertexBuffer.setData(vertices);
       }
     }
 
-    const { _indices: indices } = this;
-    const indexBuffer = this._indexBufferBinding?._buffer;
-    if (indices) {
-      if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
-        indexBuffer?.destroy();
-        const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
-        this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
-        this._indicesChangeFlag = false;
-      } else if (this._indicesChangeFlag) {
-        indexBuffer.setData(indices);
-        if (this._indexBufferBinding._format !== this._indicesFormat) {
-          this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
+    if (this._indicesChangeFlag) {
+      const { _indices: indices } = this;
+      const indexBuffer = this._indexBufferBinding?._buffer;
+      if (indices) {
+        if (!indexBuffer || indices.byteLength != indexBuffer.byteLength) {
+          indexBuffer?.destroy();
+          const newIndexBuffer = new Buffer(this._engine, BufferBindFlag.IndexBuffer, indices);
+          this._setIndexBufferBinding(new IndexBufferBinding(newIndexBuffer, this._indicesFormat));
+        } else {
+          indexBuffer.setData(indices);
+          if (this._indexBufferBinding._format !== this._indicesFormat) {
+            this._setIndexBufferBinding(new IndexBufferBinding(indexBuffer, this._indicesFormat));
+          }
         }
-        this._indicesChangeFlag = false;
+      } else if (indexBuffer) {
+        indexBuffer.destroy();
+        this._setIndexBufferBinding(null);
       }
-    } else if (indexBuffer) {
-      indexBuffer.destroy();
-      this._setIndexBufferBinding(null);
+
+      this._indicesChangeFlag = false;
     }
 
     const { _blendShapeManager: blendShapeManager } = this;
-    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(this._vertexCountChanged, noLongerAccessible);
+    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(this._vertexCountChanged, noLongerReadable);
 
-    if (noLongerAccessible) {
-      this._accessible = false;
+    if (noLongerReadable) {
+      this._readable = false;
       this._releaseCache();
     }
   }
@@ -867,12 +823,11 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * @override
    * @internal
    */
-  _onDestroy(): void {
+  protected override _onDestroy(): void {
     super._onDestroy();
-    this._accessible && this._releaseCache();
+    this._readable && this._releaseCache();
   }
 
   private _supplementaryVertexElements(): void {

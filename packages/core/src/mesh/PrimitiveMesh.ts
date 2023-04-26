@@ -2,6 +2,16 @@ import { Vector2, Vector3 } from "@galacean/engine-math";
 import { GLCapabilityType } from "../base/Constant";
 import { Engine } from "../Engine";
 import { ModelMesh } from "./ModelMesh";
+import {
+  CapsuleRestoreInfo,
+  ConeRestoreInfo,
+  CuboidRestoreInfo,
+  CylinderRestoreInfo,
+  PlaneRestoreInfo,
+  PrimitiveMeshRestorer,
+  SphereRestoreInfo,
+  TorusRestoreInfo
+} from "./PrimitiveMeshRestorer";
 
 /**
  * Used to generate common primitive meshes.
@@ -21,21 +31,229 @@ export class PrimitiveMesh {
     segments: number = 18,
     noLongerAccessible: boolean = true
   ): ModelMesh {
+    const sphereMesh = new ModelMesh(engine);
+    PrimitiveMesh._setSphereData(sphereMesh, radius, segments, noLongerAccessible, false);
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, segments, noLongerAccessible))
+    );
+    return sphereMesh;
+  }
+
+  /**
+   * Create a cuboid mesh.
+   * @param engine - Engine
+   * @param width - Cuboid width
+   * @param height - Cuboid height
+   * @param depth - Cuboid depth
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Cuboid model mesh
+   */
+  static createCuboid(
+    engine: Engine,
+    width: number = 1,
+    height: number = 1,
+    depth: number = 1,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
     const mesh = new ModelMesh(engine);
+    PrimitiveMesh._setCuboidData(mesh, width, height, depth, noLongerAccessible, false);
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(mesh, new CuboidRestoreInfo(width, height, depth, noLongerAccessible))
+    );
+    return mesh;
+  }
+
+  /**
+   * Create a plane mesh.
+   * @param engine - Engine
+   * @param width - Plane width
+   * @param height - Plane height
+   * @param horizontalSegments - Plane horizontal segments
+   * @param verticalSegments - Plane vertical segments
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Plane model mesh
+   */
+  static createPlane(
+    engine: Engine,
+    width: number = 1,
+    height: number = 1,
+    horizontalSegments: number = 1,
+    verticalSegments: number = 1,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    PrimitiveMesh._setPlaneData(mesh, width, height, horizontalSegments, verticalSegments, noLongerAccessible, false);
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(
+        mesh,
+        new PlaneRestoreInfo(width, height, horizontalSegments, verticalSegments, noLongerAccessible)
+      )
+    );
+    return mesh;
+  }
+
+  /**
+   * Create a cylinder mesh.
+   * @param engine - Engine
+   * @param radiusTop - The radius of top cap
+   * @param radiusBottom - The radius of bottom cap
+   * @param height - The height of torso
+   * @param radialSegments - Cylinder radial segments
+   * @param heightSegments - Cylinder height segments
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Cylinder model mesh
+   */
+  static createCylinder(
+    engine: Engine,
+    radiusTop: number = 0.5,
+    radiusBottom: number = 0.5,
+    height: number = 2,
+    radialSegments: number = 20,
+    heightSegments: number = 1,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    PrimitiveMesh._setCylinderData(
+      mesh,
+      radiusTop,
+      radiusBottom,
+      height,
+      radialSegments,
+      heightSegments,
+      noLongerAccessible,
+      false
+    );
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(
+        mesh,
+        new CylinderRestoreInfo(radiusTop, radiusBottom, height, radialSegments, heightSegments, noLongerAccessible)
+      )
+    );
+    return mesh;
+  }
+
+  /**
+   * Create a torus mesh.
+   * @param engine - Engine
+   * @param radius - Torus radius
+   * @param tubeRadius - Torus tube
+   * @param radialSegments - Torus radial segments
+   * @param tubularSegments - Torus tubular segments
+   * @param arc - Central angle
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Torus model mesh
+   */
+  static createTorus(
+    engine: Engine,
+    radius: number = 0.5,
+    tubeRadius: number = 0.1,
+    radialSegments: number = 30,
+    tubularSegments: number = 30,
+    arc: number = 360,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    PrimitiveMesh._setTorusData(
+      mesh,
+      radius,
+      tubeRadius,
+      radialSegments,
+      tubularSegments,
+      arc,
+      noLongerAccessible,
+      false
+    );
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(
+        mesh,
+        new TorusRestoreInfo(radius, tubeRadius, radialSegments, tubularSegments, arc, noLongerAccessible)
+      )
+    );
+    return mesh;
+  }
+
+  /**
+   * Create a cone mesh.
+   * @param engine - Engine
+   * @param radius - The radius of cap
+   * @param height - The height of torso
+   * @param radialSegments - Cone radial segments
+   * @param heightSegments - Cone height segments
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Cone model mesh
+   */
+  static createCone(
+    engine: Engine,
+    radius: number = 0.5,
+    height: number = 2,
+    radialSegments: number = 20,
+    heightSegments: number = 1,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    PrimitiveMesh._setConeData(mesh, radius, height, radialSegments, heightSegments, noLongerAccessible, false);
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(
+        mesh,
+        new ConeRestoreInfo(radius, height, radialSegments, heightSegments, noLongerAccessible)
+      )
+    );
+    return mesh;
+  }
+
+  /**
+   * Create a capsule mesh.
+   * @param engine - Engine
+   * @param radius - The radius of the two hemispherical ends
+   * @param height - The height of the cylindrical part, measured between the centers of the hemispherical ends
+   * @param radialSegments - Hemispherical end radial segments
+   * @param heightSegments - Cylindrical part height segments
+   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
+   * @returns Capsule model mesh
+   */
+  static createCapsule(
+    engine: Engine,
+    radius: number = 0.5,
+    height: number = 2,
+    radialSegments: number = 6,
+    heightSegments: number = 1,
+    noLongerAccessible: boolean = true
+  ): ModelMesh {
+    const mesh = new ModelMesh(engine);
+    PrimitiveMesh._setCapsuleData(mesh, radius, height, radialSegments, heightSegments, noLongerAccessible, false);
+    engine.resourceManager.addContentRestorer(
+      new PrimitiveMeshRestorer(
+        mesh,
+        new CapsuleRestoreInfo(radius, height, radialSegments, heightSegments, noLongerAccessible)
+      )
+    );
+    return mesh;
+  }
+
+  /**
+   * @internal
+   */
+  static _setSphereData(
+    sphereMesh: ModelMesh,
+    radius: number,
+    segments: number,
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean
+  ): void {
     segments = Math.max(2, Math.floor(segments));
 
     const count = segments + 1;
     const vertexCount = count * count;
     const rectangleCount = segments * segments;
-    const indices = PrimitiveMesh._generateIndices(engine, vertexCount, rectangleCount * 6);
+    const indices = PrimitiveMesh._generateIndices(sphereMesh.engine, vertexCount, rectangleCount * 6);
     const thetaRange = Math.PI;
     const alphaRange = thetaRange * 2;
     const countReciprocal = 1.0 / count;
     const segmentsReciprocal = 1.0 / segments;
 
-    const positions: Vector3[] = new Array(vertexCount);
-    const normals: Vector3[] = new Array(vertexCount);
-    const uvs: Vector2[] = new Array(vertexCount);
+    const positions = new Array<Vector3>(vertexCount);
+    const normals = new Array<Vector3>(vertexCount);
+    const uvs = new Array<Vector2>(vertexCount);
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % count;
@@ -54,7 +272,7 @@ export class PrimitiveMesh {
       positions[i] = new Vector3(posX, posY, posZ);
       // Normal
       normals[i] = new Vector3(posX, posY, posZ);
-      // Texcoord
+      // TexCoord
       uvs[i] = new Vector2(u, v);
     }
 
@@ -76,39 +294,33 @@ export class PrimitiveMesh {
       indices[offset++] = d;
     }
 
-    const { bounds } = mesh;
-    bounds.min.set(-radius, -radius, -radius);
-    bounds.max.set(radius, radius, radius);
+    if (!isRestoreMode) {
+      const { bounds } = sphereMesh;
+      bounds.min.set(-radius, -radius, -radius);
+      bounds.max.set(radius, radius, radius);
+    }
 
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
-    return mesh;
+    PrimitiveMesh._initialize(sphereMesh, positions, normals, uvs, indices, noLongerAccessible, isRestoreMode);
   }
 
   /**
-   * Create a cuboid mesh.
-   * @param engine - Engine
-   * @param width - Cuboid width
-   * @param height - Cuboid height
-   * @param depth - Cuboid depth
-   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Cuboid model mesh
+   * @internal
    */
-  static createCuboid(
-    engine: Engine,
-    width: number = 1,
-    height: number = 1,
-    depth: number = 1,
-    noLongerAccessible: boolean = true
-  ): ModelMesh {
-    const mesh = new ModelMesh(engine);
+  static _setCuboidData(
+    cuboidMesh: ModelMesh,
+    width: number,
+    height: number,
+    depth: number,
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean
+  ): void {
+    const halfWidth = width / 2;
+    const halfHeight = height / 2;
+    const halfDepth = depth / 2;
 
-    const halfWidth: number = width / 2;
-    const halfHeight: number = height / 2;
-    const halfDepth: number = depth / 2;
-
-    const positions: Vector3[] = new Array(24);
-    const normals: Vector3[] = new Array(24);
-    const uvs: Vector2[] = new Array(24);
+    const positions = new Array<Vector3>(24);
+    const normals = new Array<Vector3>(24);
+    const uvs = new Array<Vector2>(24);
 
     // Up
     positions[0] = new Vector3(-halfWidth, halfHeight, -halfDepth);
@@ -205,33 +417,26 @@ export class PrimitiveMesh {
     // Back
     indices[30] = 20, indices[31] = 22, indices[32] = 23, indices[33] = 22, indices[34] = 20, indices[35] = 21;
 
-    const { bounds } = mesh;
-    bounds.min.set(-halfWidth, -halfHeight, -halfDepth);
-    bounds.max.set(halfWidth, halfHeight, halfDepth);
-
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
-    return mesh;
+    if (!isRestoreMode) {
+      const { bounds } = cuboidMesh;
+      bounds.min.set(-halfWidth, -halfHeight, -halfDepth);
+      bounds.max.set(halfWidth, halfHeight, halfDepth);
+    }
+    PrimitiveMesh._initialize(cuboidMesh, positions, normals, uvs, indices, noLongerAccessible, isRestoreMode);
   }
 
   /**
-   * Create a plane mesh.
-   * @param engine - Engine
-   * @param width - Plane width
-   * @param height - Plane height
-   * @param horizontalSegments - Plane horizontal segments
-   * @param verticalSegments - Plane vertical segments
-   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Plane model mesh
+   * @internal
    */
-  static createPlane(
-    engine: Engine,
-    width: number = 1,
-    height: number = 1,
-    horizontalSegments: number = 1,
-    verticalSegments: number = 1,
-    noLongerAccessible: boolean = true
-  ): ModelMesh {
-    const mesh = new ModelMesh(engine);
+  static _setPlaneData(
+    planeMesh: ModelMesh,
+    width: number,
+    height: number,
+    horizontalSegments: number,
+    verticalSegments: number,
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean
+  ): void {
     horizontalSegments = Math.max(1, Math.floor(horizontalSegments));
     verticalSegments = Math.max(1, Math.floor(verticalSegments));
 
@@ -243,14 +448,14 @@ export class PrimitiveMesh {
     const gridHeight = height / verticalSegments;
     const vertexCount = horizontalCount * verticalCount;
     const rectangleCount = verticalSegments * horizontalSegments;
-    const indices = PrimitiveMesh._generateIndices(engine, vertexCount, rectangleCount * 6);
+    const indices = PrimitiveMesh._generateIndices(planeMesh.engine, vertexCount, rectangleCount * 6);
     const horizontalCountReciprocal = 1.0 / horizontalCount;
     const horizontalSegmentsReciprocal = 1.0 / horizontalSegments;
     const verticalSegmentsReciprocal = 1.0 / verticalSegments;
 
-    const positions: Vector3[] = new Array(vertexCount);
-    const normals: Vector3[] = new Array(vertexCount);
-    const uvs: Vector2[] = new Array(vertexCount);
+    const positions = new Array<Vector3>(vertexCount);
+    const normals = new Array<Vector3>(vertexCount);
+    const uvs = new Array<Vector2>(vertexCount);
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;
@@ -260,7 +465,7 @@ export class PrimitiveMesh {
       positions[i] = new Vector3(x * gridWidth - halfWidth, 0, z * gridHeight - halfHeight);
       // Normal
       normals[i] = new Vector3(0, 1, 0);
-      // Texcoord
+      // TexCoord
       uvs[i] = new Vector2(x * horizontalSegmentsReciprocal, z * verticalSegmentsReciprocal);
     }
 
@@ -282,35 +487,25 @@ export class PrimitiveMesh {
       indices[offset++] = b;
     }
 
-    const { bounds } = mesh;
-    bounds.min.set(-halfWidth, 0, -halfHeight);
-    bounds.max.set(halfWidth, 0, halfHeight);
+    if (!isRestoreMode) {
+      const { bounds } = planeMesh;
+      bounds.min.set(-halfWidth, 0, -halfHeight);
+      bounds.max.set(halfWidth, 0, halfHeight);
+    }
 
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
-    return mesh;
+    PrimitiveMesh._initialize(planeMesh, positions, normals, uvs, indices, noLongerAccessible, isRestoreMode);
   }
 
-  /**
-   * Create a cylinder mesh.
-   * @param engine - Engine
-   * @param radiusTop - The radius of top cap
-   * @param radiusBottom - The radius of bottom cap
-   * @param height - The height of torso
-   * @param radialSegments - Cylinder radial segments
-   * @param heightSegments - Cylinder height segments
-   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Cylinder model mesh
-   */
-  static createCylinder(
-    engine: Engine,
+  static _setCylinderData(
+    cylinderMesh: ModelMesh,
     radiusTop: number = 0.5,
     radiusBottom: number = 0.5,
     height: number = 2,
     radialSegments: number = 20,
     heightSegments: number = 1,
-    noLongerAccessible: boolean = true
-  ): ModelMesh {
-    const mesh = new ModelMesh(engine);
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean
+  ): void {
     radialSegments = Math.floor(radialSegments);
     heightSegments = Math.floor(heightSegments);
 
@@ -323,7 +518,7 @@ export class PrimitiveMesh {
     const capTriangleCount = radialSegments * 2;
     const totalVertexCount = torsoVertexCount + 2 + capTriangleCount;
     const indices = PrimitiveMesh._generateIndices(
-      engine,
+      cylinderMesh.engine,
       totalVertexCount,
       torsoRectangleCount * 6 + capTriangleCount * 3
     );
@@ -331,9 +526,9 @@ export class PrimitiveMesh {
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
 
-    const positions: Vector3[] = new Array(totalVertexCount);
-    const normals: Vector3[] = new Array(totalVertexCount);
-    const uvs: Vector2[] = new Array(totalVertexCount);
+    const positions = new Array<Vector3>(totalVertexCount);
+    const normals = new Array<Vector3>(totalVertexCount);
+    const uvs = new Array<Vector2>(totalVertexCount);
 
     let indicesOffset = 0;
 
@@ -362,7 +557,7 @@ export class PrimitiveMesh {
       positions[i] = new Vector3(posX, posY, posZ);
       // Normal
       normals[i] = new Vector3(sinTheta, slope, cosTheta);
-      // Texcoord
+      // TexCoord
       uvs[i] = new Vector2(u, 1 - v);
     }
 
@@ -387,14 +582,14 @@ export class PrimitiveMesh {
     positions[torsoVertexCount] = new Vector3(0, -halfHeight, 0);
     // Bottom normal
     normals[torsoVertexCount] = new Vector3(0, -1, 0);
-    // Bottom texcoord
+    // Bottom texCoord
     uvs[torsoVertexCount] = new Vector2(0.5, 0.5);
 
     // Top position
     positions[torsoVertexCount + 1] = new Vector3(0, halfHeight, 0);
     // Top normal
     normals[torsoVertexCount + 1] = new Vector3(0, 1, 0);
-    // Top texcoord
+    // Top texCoord
     uvs[torsoVertexCount + 1] = new Vector2(0.5, 0.5);
 
     // Add cap vertices
@@ -446,46 +641,38 @@ export class PrimitiveMesh {
       indices[indicesOffset++] = topIndiceIndex + secondStride;
     }
 
-    const { bounds } = mesh;
-    const radiusMax = Math.max(radiusTop, radiusBottom);
-    bounds.min.set(-radiusMax, -halfHeight, -radiusMax);
-    bounds.max.set(radiusMax, halfHeight, radiusMax);
-
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
-    return mesh;
+    if (!isRestoreMode) {
+      const { bounds } = cylinderMesh;
+      const radiusMax = Math.max(radiusTop, radiusBottom);
+      bounds.min.set(-radiusMax, -halfHeight, -radiusMax);
+      bounds.max.set(radiusMax, halfHeight, radiusMax);
+    }
+    PrimitiveMesh._initialize(cylinderMesh, positions, normals, uvs, indices, noLongerAccessible, isRestoreMode);
   }
 
   /**
-   * Create a torus mesh.
-   * @param engine - Engine
-   * @param radius - Torus radius
-   * @param tubeRadius - Torus tube
-   * @param radialSegments - Torus radial segments
-   * @param tubularSegments - Torus tubular segments
-   * @param arc - Central angle
-   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Torus model mesh
+   * @internal
    */
-  static createTorus(
-    engine: Engine,
-    radius: number = 0.5,
-    tubeRadius: number = 0.1,
-    radialSegments: number = 30,
-    tubularSegments: number = 30,
-    arc: number = 360,
-    noLongerAccessible: boolean = true
-  ): ModelMesh {
-    const mesh = new ModelMesh(engine);
+  static _setTorusData(
+    torusMesh: ModelMesh,
+    radius: number,
+    tubeRadius: number,
+    radialSegments: number,
+    tubularSegments: number,
+    arc: number,
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean
+  ): void {
     radialSegments = Math.floor(radialSegments);
     tubularSegments = Math.floor(tubularSegments);
 
     const vertexCount = (radialSegments + 1) * (tubularSegments + 1);
     const rectangleCount = radialSegments * tubularSegments;
-    const indices = PrimitiveMesh._generateIndices(engine, vertexCount, rectangleCount * 6);
+    const indices = PrimitiveMesh._generateIndices(torusMesh.engine, vertexCount, rectangleCount * 6);
 
-    const positions: Vector3[] = new Array(vertexCount);
-    const normals: Vector3[] = new Array(vertexCount);
-    const uvs: Vector2[] = new Array(vertexCount);
+    const positions = new Array<Vector3>(vertexCount);
+    const normals = new Array<Vector3>(vertexCount);
+    const uvs = new Array<Vector2>(vertexCount);
 
     arc = (arc / 180) * Math.PI;
 
@@ -533,34 +720,28 @@ export class PrimitiveMesh {
       }
     }
 
-    const { bounds } = mesh;
-    const outerRadius = radius + tubeRadius;
-    bounds.min.set(-outerRadius, -outerRadius, -tubeRadius);
-    bounds.max.set(outerRadius, outerRadius, tubeRadius);
+    if (!isRestoreMode) {
+      const { bounds } = torusMesh;
+      const outerRadius = radius + tubeRadius;
+      bounds.min.set(-outerRadius, -outerRadius, -tubeRadius);
+      bounds.max.set(outerRadius, outerRadius, tubeRadius);
+    }
 
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
-    return mesh;
+    PrimitiveMesh._initialize(torusMesh, positions, normals, uvs, indices, noLongerAccessible, isRestoreMode);
   }
 
   /**
-   * Create a cone mesh.
-   * @param engine - Engine
-   * @param radius - The radius of cap
-   * @param height - The height of torso
-   * @param radialSegments - Cylinder radial segments
-   * @param heightSegments - Cylinder height segments
-   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Cone model mesh
+   * @internal
    */
-  static createCone(
-    engine: Engine,
-    radius: number = 0.5,
-    height: number = 2,
-    radialSegments: number = 20,
-    heightSegments: number = 1,
-    noLongerAccessible: boolean = true
-  ): ModelMesh {
-    const mesh = new ModelMesh(engine);
+  static _setConeData(
+    coneMesh: ModelMesh,
+    radius: number,
+    height: number,
+    radialSegments: number,
+    heightSegments: number,
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean
+  ): void {
     radialSegments = Math.floor(radialSegments);
     heightSegments = Math.floor(heightSegments);
 
@@ -572,7 +753,7 @@ export class PrimitiveMesh {
     const torsoRectangleCount = radialSegments * heightSegments;
     const totalVertexCount = torsoVertexCount + 1 + radialSegments;
     const indices = PrimitiveMesh._generateIndices(
-      engine,
+      coneMesh.engine,
       totalVertexCount,
       torsoRectangleCount * 6 + radialSegments * 3
     );
@@ -580,9 +761,9 @@ export class PrimitiveMesh {
     const radialSegmentsReciprocal = 1.0 / radialSegments;
     const heightSegmentsReciprocal = 1.0 / heightSegments;
 
-    const positions: Vector3[] = new Array(totalVertexCount);
-    const normals: Vector3[] = new Array(totalVertexCount);
-    const uvs: Vector2[] = new Array(totalVertexCount);
+    const positions = new Array<Vector3>(totalVertexCount);
+    const normals = new Array<Vector3>(totalVertexCount);
+    const uvs = new Array<Vector2>(totalVertexCount);
 
     let indicesOffset = 0;
 
@@ -664,34 +845,24 @@ export class PrimitiveMesh {
       indices[indicesOffset++] = bottomIndiceIndex + firstStride;
     }
 
-    const { bounds } = mesh;
-    bounds.min.set(-radius, -halfHeight, -radius);
-    bounds.max.set(radius, halfHeight, radius);
+    if (!isRestoreMode) {
+      const { bounds } = coneMesh;
+      bounds.min.set(-radius, -halfHeight, -radius);
+      bounds.max.set(radius, halfHeight, radius);
+    }
 
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
-    return mesh;
+    PrimitiveMesh._initialize(coneMesh, positions, normals, uvs, indices, noLongerAccessible, isRestoreMode);
   }
 
-  /**
-   * Create a capsule mesh.
-   * @param engine - Engine
-   * @param radius - The radius of the two hemispherical ends
-   * @param height - The height of the cylindrical part, measured between the centers of the hemispherical ends
-   * @param radialSegments - Hemispherical end radial segments
-   * @param heightSegments - Cylindrical part height segments
-   * @param noLongerAccessible - No longer access the vertices of the mesh after creation
-   * @returns Capsule model mesh
-   */
-  static createCapsule(
-    engine: Engine,
-    radius: number = 0.5,
-    height: number = 2,
-    radialSegments: number = 6,
-    heightSegments: number = 1,
-    noLongerAccessible: boolean = true
-  ): ModelMesh {
-    const mesh = new ModelMesh(engine);
-
+  static _setCapsuleData(
+    capsuleMesh: ModelMesh,
+    radius: number,
+    height: number,
+    radialSegments: number,
+    heightSegments: number,
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean
+  ): void {
     radialSegments = Math.max(2, Math.floor(radialSegments));
     heightSegments = Math.floor(heightSegments);
 
@@ -707,7 +878,7 @@ export class PrimitiveMesh {
 
     const totalVertexCount = torsoVertexCount + 2 * capVertexCount;
     const indices = PrimitiveMesh._generateIndices(
-      engine,
+      capsuleMesh.engine,
       totalVertexCount,
       (torsoRectangleCount + 2 * capRectangleCount) * 6
     );
@@ -785,12 +956,13 @@ export class PrimitiveMesh {
       indicesOffset + 6 * capRectangleCount
     );
 
-    const { bounds } = mesh;
-    bounds.min.set(-radius, -radius - halfHeight, -radius);
-    bounds.max.set(radius, radius + halfHeight, radius);
+    if (!isRestoreMode) {
+      const { bounds } = capsuleMesh;
+      bounds.min.set(-radius, -radius - halfHeight, -radius);
+      bounds.max.set(radius, radius + halfHeight, radius);
+    }
 
-    PrimitiveMesh._initialize(mesh, positions, normals, uvs, indices, noLongerAccessible);
-    return mesh;
+    PrimitiveMesh._initialize(capsuleMesh, positions, normals, uvs, indices, noLongerAccessible, isRestoreMode);
   }
 
   private static _initialize(
@@ -799,7 +971,8 @@ export class PrimitiveMesh {
     normals: Vector3[],
     uvs: Vector2[],
     indices: Uint16Array | Uint32Array,
-    noLongerAccessible: boolean
+    noLongerAccessible: boolean,
+    isRestoreMode: boolean
   ) {
     mesh.setPositions(positions);
     mesh.setNormals(normals);
@@ -808,7 +981,10 @@ export class PrimitiveMesh {
     mesh.calculateTangents();
 
     mesh.uploadData(noLongerAccessible);
-    mesh.addSubMesh(0, indices.length);
+
+    if (!isRestoreMode) {
+      mesh.addSubMesh(0, indices.length);
+    }
   }
 
   private static _generateIndices(engine: Engine, vertexCount: number, indexCount: number): Uint16Array | Uint32Array {

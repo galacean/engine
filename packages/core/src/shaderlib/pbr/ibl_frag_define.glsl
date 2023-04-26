@@ -45,7 +45,7 @@ float getSpecularMIPLevel(float roughness, int maxMIPLevel ) {
 
 vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMIPLevel, float specularIntensity) {
 
-    #ifndef O3_USE_SPECULAR_ENV
+    #ifndef SCENE_USE_SPECULAR_ENV
 
         return vec3(0);
 
@@ -57,18 +57,18 @@ vec3 getLightProbeRadiance(vec3 viewDir, vec3 normal, float roughness, int maxMI
         float specularMIPLevel = getSpecularMIPLevel(roughness, maxMIPLevel );
 
         #ifdef HAS_TEX_LOD
-            vec4 envMapColor = textureCubeLodEXT( u_env_specularSampler, reflectVec, specularMIPLevel );
+            vec4 envMapColor = textureCubeLodEXT( scene_EnvSpecularSampler, reflectVec, specularMIPLevel );
         #else
-            vec4 envMapColor = textureCube( u_env_specularSampler, reflectVec, specularMIPLevel );
+            vec4 envMapColor = textureCube( scene_EnvSpecularSampler, reflectVec, specularMIPLevel );
         #endif
 
-        #ifdef O3_DECODE_ENV_RGBM
+        #ifdef SCENE_IS_DECODE_ENV_RGBM
             envMapColor.rgb = RGBMToLinear(envMapColor, 5.0).rgb;
-            #ifdef OASIS_COLORSPACE_GAMMA
+            #ifdef ENGINE_IS_COLORSPACE_GAMMA
                 envMapColor = linearToGamma(envMapColor);
             #endif
         #else
-             #ifndef OASIS_COLORSPACE_GAMMA
+             #ifndef ENGINE_IS_COLORSPACE_GAMMA
                 envMapColor = gammaToLinear(envMapColor);
             #endif
         #endif

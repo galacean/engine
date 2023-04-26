@@ -1,35 +1,60 @@
-import { BlendShape, IndexFormat, ModelMesh } from "@galacean/engine-core";
+import { BlendShape, Engine, IndexFormat, ModelMesh } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
-describe("ModelMesh Test", function () {
-  const engine = new WebGLEngine(document.createElement("canvas"));
-  // @ts-ignore
-  const modelMesh = new ModelMesh(engine);
-  const positions = [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)];
-  const positionsX = [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0), new Vector3()];
-  const colors = [new Color(), new Color(), new Color()];
-  const normals = [new Vector3(), new Vector3(), new Vector3()];
-  const uvs = [new Vector2(), new Vector2(), new Vector2()];
-  const tangents = [new Vector4(), new Vector4(), new Vector4()];
-  const weights = [new Vector4(), new Vector4(), new Vector4()];
-  const joints = [new Vector4(), new Vector4(), new Vector4()];
-  const indices = new Uint8Array([0, 1, 2]);
-  const indices16 = new Uint16Array([0, 1, 2]);
-  const indices32 = new Uint32Array([0, 1, 2]);
-  const deltaPositions = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
-  const deltaNormals = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
-  const deltaTangents = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
+describe("ModelMesh Test", async function () {
+  let engine: Engine;
+  let modelMesh: ModelMesh;
+  let positions: Vector3[];
+  let positionsX: Vector3[];
+  let colors: Color[];
+  let normals: Vector3[];
+  let uvs: Vector2[];
+  let tangents: Vector4[];
+  let weights: Vector4[];
+  let joints: Vector4[];
+  let indices: Uint8Array;
+  let indices16: Uint16Array;
+  let indices32: Uint32Array;
+  let deltaPositions: Vector3[];
+  let deltaNormals: Vector3[];
+  let deltaTangents: Vector3[];
 
-  const falsyColors = [new Color()];
-  const falsyNormals = [new Vector3()];
-  const falsyUV = [new Vector2()];
-  const falsyTangents = [new Vector4()];
-  const falsyWeights = [new Vector4()];
-  const falsyJoints = [new Vector4()];
+  let falsyColors: Color[];
+  let falsyNormals: Vector3[];
+  let falsyUV: Vector2[];
+  let falsyTangents: Vector4[];
+  let falsyWeights: Vector4[];
+  let falsyJoints: Vector4[];
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+    modelMesh = new ModelMesh(engine);
+    positions = [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0)];
+    positionsX = [new Vector3(0, 0, 0), new Vector3(0, 1, 0), new Vector3(1, 1, 0), new Vector3()];
+    colors = [new Color(), new Color(), new Color()];
+    normals = [new Vector3(), new Vector3(), new Vector3()];
+    uvs = [new Vector2(), new Vector2(), new Vector2()];
+    tangents = [new Vector4(), new Vector4(), new Vector4()];
+    weights = [new Vector4(), new Vector4(), new Vector4()];
+    joints = [new Vector4(), new Vector4(), new Vector4()];
+    indices = new Uint8Array([0, 1, 2]);
+    indices16 = new Uint16Array([0, 1, 2]);
+    indices32 = new Uint32Array([0, 1, 2]);
+    deltaPositions = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
+    deltaNormals = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
+    deltaTangents = [new Vector3(1, 1, 1), new Vector3(2, 2, 2), new Vector3(3, 3, 3)];
+
+    falsyColors = [new Color()];
+    falsyNormals = [new Vector3()];
+    falsyUV = [new Vector2()];
+    falsyTangents = [new Vector4()];
+    falsyWeights = [new Vector4()];
+    falsyJoints = [new Vector4()];
+  });
+
   it("init", () => {
-    expect(modelMesh.accessible).true;
+    expect(modelMesh.readable).true;
   });
 
   it("set position data", () => {
@@ -189,33 +214,6 @@ describe("ModelMesh Test", function () {
   it("upload data with no longer used", () => {
     modelMesh.uploadData(true);
     expect(() => {
-      modelMesh.setIndices(indices);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setPositions(positions);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setColors(colors);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setNormals(normals);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setTangents(tangents);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setBoneWeights(weights);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setBoneIndices(joints);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUVs(uvs);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.setUVs(uvs);
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
       modelMesh.getPositions();
     }).throw("Not allowed to access data while accessible is false.");
     expect(() => {
@@ -235,9 +233,6 @@ describe("ModelMesh Test", function () {
     }).throw("Not allowed to access data while accessible is false.");
     expect(() => {
       modelMesh.getUVs();
-    }).throw("Not allowed to access data while accessible is false.");
-    expect(() => {
-      modelMesh.blendShapes;
     }).throw("Not allowed to access data while accessible is false.");
   });
 });
