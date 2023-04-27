@@ -33,7 +33,7 @@ export class CascadedShadowCasterPass {
   private static _maxCascades: number = 4;
   private static _cascadesSplitDistance: number[] = new Array(CascadedShadowCasterPass._maxCascades + 1);
 
-  private static _viewport = new Color(0, 0, 1, 1);
+  private static _viewport = new Vector4(0, 0, 1, 1);
   private static _clearColor = new Color(1, 1, 1, 1);
   private static _tempVector = new Vector3();
   private static _tempMatrix0 = new Matrix();
