@@ -68,6 +68,8 @@ export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
 export class WebGLGraphicDevice implements IHardwareRenderer {
   /** @internal */
   _readFrameBuffer: WebGLFramebuffer = null;
+  /** @interface */
+  _mainFrameBuffer: WebGLFramebuffer = null;
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
@@ -323,7 +325,7 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       bufferWidth = renderTarget.width >> mipLevel;
       bufferHeight = renderTarget.height >> mipLevel;
     } else {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
       bufferWidth = gl.drawingBufferWidth;
       bufferHeight = gl.drawingBufferHeight;
     }

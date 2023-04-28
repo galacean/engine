@@ -242,7 +242,7 @@ export class Engine extends EventDispatcher {
     this._textDefaultFont.isGCIgnored = false;
 
     this.inputManager = new InputManager(this);
-    this.xrManager = new XRManager();
+    this.xrManager = new XRManager(this);
 
     this._initMagentaTextures(hardwareRenderer);
 
