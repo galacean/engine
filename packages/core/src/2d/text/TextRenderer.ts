@@ -482,8 +482,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   private _updateLocalData(): void {
     const { color, horizontalAlignment, verticalAlignment, _charRenderDatas: charRenderDatas } = this;
     const { min, max } = this._localBounds;
-    min.set(0, 0, 0);
-    max.set(0, 0, 0);
     const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
     const charFont = this._subFont;
@@ -536,35 +534,46 @@ export class TextRenderer extends Renderer implements ICustomClone {
           startX = halfRendererWidth - lineWidth;
           break;
       }
+      const m = line.length - 1;
+      if (m > 0) {
+        for (let j = 0; j <= m; ++j) {
+          const char = line[j];
+          const charInfo = charFont._getCharInfo(char);
+          if (charInfo.h > 0) {
+            const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.get());
+            const { renderData, localPositions } = charRenderData;
+            charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
+            renderData.color = color;
+            renderData.uvs = charInfo.uvs;
 
-      for (let j = 0, m = line.length - 1; j <= m; ++j) {
-        const char = line[j];
-        const charInfo = charFont._getCharInfo(char);
+            const { w, ascent, descent } = charInfo;
+            const left = startX * pixelsPerUnitReciprocal;
+            const right = (startX + w) * pixelsPerUnitReciprocal;
+            const top = (startY + ascent) * pixelsPerUnitReciprocal;
+            const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
+            localPositions.set(left, top, right, bottom);
 
-        if (charInfo.h > 0) {
-          const charRenderData = charRenderDatas[renderDataCount] || charRenderDataPool.get();
-          const { renderData, localPositions } = charRenderData;
-          charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
-          renderData.color = color;
-
-          renderData.uvs = charInfo.uvs;
-          const { w, ascent, descent } = charInfo;
-
-          const left = startX * pixelsPerUnitReciprocal;
-          const right = (startX + w) * pixelsPerUnitReciprocal;
-          const top = (startY + ascent) * pixelsPerUnitReciprocal;
-          const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
-
-          localPositions.set(left, top, right, bottom);
-          charRenderDatas[renderDataCount] = charRenderData;
-          renderDataCount++;
-
-          i === 0 && (maxY = Math.max(maxY, top));
-          i === lastLineIndex && (minY = Math.min(minY, bottom));
-          j === 0 && (minX = Math.min(minX, left));
-          j === m && (maxX = Math.max(maxX, right));
+            i === 0 && (maxY = Math.max(maxY, top));
+            i === lastLineIndex && (minY = Math.min(minY, bottom));
+            j === 0 && (minX = Math.min(minX, left));
+            j === m && (maxX = Math.max(maxX, right));
+          } else {
+            const posX = startX * pixelsPerUnitReciprocal;
+            const posY = startY * pixelsPerUnitReciprocal;
+            i === 0 && (maxY = Math.max(maxY, posY));
+            i === lastLineIndex && (minY = Math.min(minY, posY));
+            j === 0 && (minX = Math.min(minX, posX));
+            j === m && (maxX = Math.max(maxX, posX));
+          }
+          startX += charInfo.xAdvance;
         }
-        startX += charInfo.xAdvance;
+      } else {
+        const posX = startX * pixelsPerUnitReciprocal;
+        const posY = startY * pixelsPerUnitReciprocal;
+        i === 0 && (maxY = Math.max(maxY, posY));
+        i === lastLineIndex && (minY = Math.min(minY, posY));
+        minX = Math.min(minX, posX);
+        maxX = Math.max(maxX, posX);
       }
 
       startY -= lineHeight;
