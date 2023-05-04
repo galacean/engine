@@ -78,7 +78,10 @@ describe("TextRenderer", async () => {
   it("get set size", () => {
     const texture1 = new Texture2D(engine, 2000, 1000);
     const texture2 = new Texture2D(engine, 1000, 2000);
-    const sprite = new Sprite(engine, texture1);
+    const sprite = new Sprite(engine);
+    expect(sprite.width).to.eq(0);
+    expect(sprite.height).to.eq(0);
+    sprite.texture = texture1;
     // automatic
     expect(sprite.width).to.eq(20);
     expect(sprite.height).to.eq(10);
