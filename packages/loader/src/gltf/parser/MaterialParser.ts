@@ -49,6 +49,7 @@ export class MaterialParser extends Parser {
         KHR_materials_unlit,
         KHR_materials_pbrSpecularGlossiness,
         KHR_materials_clearcoat,
+        KHR_materials_ior,
         OASIS_materials_remap
       } = extensions;
 
@@ -72,6 +73,10 @@ export class MaterialParser extends Parser {
 
       if (KHR_materials_clearcoat) {
         Parser.parseEngineResource("KHR_materials_clearcoat", KHR_materials_clearcoat, material, context);
+      }
+
+      if (KHR_materials_ior) {
+        Parser.parseEngineResource("KHR_materials_ior", KHR_materials_ior, material, context);
       }
 
       if (pbrMetallicRoughness) {

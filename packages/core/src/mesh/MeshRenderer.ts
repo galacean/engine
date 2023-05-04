@@ -1,11 +1,11 @@
 import { BoundingBox } from "@galacean/engine-math";
+import { Entity } from "../Entity";
+import { RenderContext } from "../RenderPipeline/RenderContext";
+import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
 import { ICustomClone } from "../clone/ComponentCloner";
-import { Entity } from "../Entity";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
-import { Renderer, RendererUpdateFlags } from "../Renderer";
-import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Shader } from "../shader/Shader";
 
 /**
@@ -17,6 +17,8 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
   private static _tangentMacro = Shader.getMacroByName("O3_HAS_TANGENT");
   private static _vertexColorMacro = Shader.getMacroByName("O3_HAS_VERTEXCOLOR");
+
+  private _enableVertexColor: boolean = false;
 
   /** @internal */
   @ignoreClone
@@ -32,6 +34,20 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   set mesh(value: Mesh) {
     if (this._mesh !== value) {
       this._setMesh(value);
+    }
+  }
+
+  /**
+   * Whether enable vertex color.
+   */
+  get enableVertexColor(): boolean {
+    return this._enableVertexColor;
+  }
+
+  set enableVertexColor(value: boolean) {
+    if (value !== this._enableVertexColor) {
+      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro;
+      this._enableVertexColor = value;
     }
   }
 
@@ -109,7 +125,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               shaderData.enableMacro(MeshRenderer._tangentMacro);
               break;
             case "COLOR_0":
-              shaderData.enableMacro(MeshRenderer._vertexColorMacro);
+              this.enableVertexColor && shaderData.enableMacro(MeshRenderer._vertexColorMacro);
               break;
           }
         }

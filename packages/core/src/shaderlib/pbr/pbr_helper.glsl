@@ -52,6 +52,8 @@ void initMaterial(out Material material, const in Geometry geometry){
         vec3 specularColor = u_PBRSpecularColor;
         float glossiness = u_glossiness;
         float alphaCutoff = u_alphaCutoff;
+        float F0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
+
 
         #ifdef BASETEXTURE
             vec4 baseTextureColor = texture2D(u_baseTexture, v_uv);
@@ -90,7 +92,7 @@ void initMaterial(out Material material, const in Geometry geometry){
 
         #ifdef IS_METALLIC_WORKFLOW
             material.diffuseColor = baseColor.rgb * ( 1.0 - metal );
-            material.specularColor = mix( vec3( 0.04), baseColor.rgb, metal );
+            material.specularColor = mix( vec3(F0), baseColor.rgb, metal );
             material.roughness = roughness;
         #else
             float specularStrength = max( max( specularColor.r, specularColor.g ), specularColor.b );

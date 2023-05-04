@@ -29,8 +29,8 @@ import { GLTexture } from "./GLTexture";
 import { GLTexture2D } from "./GLTexture2D";
 import { GLTexture2DArray } from "./GLTexture2DArray";
 import { GLTextureCube } from "./GLTextureCube";
-import { WebGLExtension } from "./type";
 import { WebCanvas } from "./WebCanvas";
+import { WebGLExtension } from "./type";
 
 /**
  * WebGL mode.
@@ -50,11 +50,20 @@ export enum WebGLMode {
 export interface WebGLRendererOptions extends WebGLContextAttributes {
   /** WebGL mode.*/
   webGLMode?: WebGLMode;
+
   /**
    * @internal
-   * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for exmaple iPhone13(iOS 15.4.1).
+   * iOS 15 webgl implement has bug, maybe should force call flush command buffer, for example iPhone13(iOS 15.4.1).
    */
   _forceFlush?: boolean;
+
+  /**
+   * @internal
+   * Max allow skin uniform vectors count, default is 256
+   * 
+   * @remarks large count maybe cause performance issue.
+   */
+  _maxAllowSkinUniformVectorsCount?: number;
 }
 
 /**
@@ -120,6 +129,7 @@ export class WebGLRenderer implements IHardwareRenderer {
       alpha: false,
       stencil: true,
       _forceFlush: false,
+      _maxAllowSkinUniformVectorCount: 256,
       ...initializeOptions
     };
     if (SystemInfo.platform === Platform.IPhone || SystemInfo.platform === Platform.IPad) {
@@ -298,23 +308,23 @@ export class WebGLRenderer implements IHardwareRenderer {
 
   activeRenderTarget(renderTarget: RenderTarget, viewport: Vector4, mipLevel: number) {
     const gl = this._gl;
+    let bufferWidth: number, bufferHeight: number;
     if (renderTarget) {
       /** @ts-ignore */
       (renderTarget._platformRenderTarget as GLRenderTarget)?._activeRenderTarget();
-      const width = renderTarget.width >> mipLevel;
-      const height = renderTarget.height >> mipLevel;
-      this.viewport(0, 0, width, height);
-      this.scissor(0, 0, width, height);
+      bufferWidth = renderTarget.width >> mipLevel;
+      bufferHeight = renderTarget.height >> mipLevel;
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-      const { drawingBufferWidth, drawingBufferHeight } = gl;
-      const width = drawingBufferWidth * viewport.z;
-      const height = drawingBufferHeight * viewport.w;
-      const x = viewport.x * drawingBufferWidth;
-      const y = drawingBufferHeight - viewport.y * drawingBufferHeight - height;
-      this.viewport(x, y, width, height);
-      this.scissor(x, y, width, height);
+      bufferWidth = gl.drawingBufferWidth;
+      bufferHeight = gl.drawingBufferHeight;
     }
+    const width = bufferWidth * viewport.z;
+    const height = bufferHeight * viewport.w;
+    const x = viewport.x * bufferWidth;
+    const y = bufferHeight - viewport.y * bufferHeight - height;
+    this.viewport(x, y, width, height);
+    this.scissor(x, y, width, height);
   }
 
   activeTexture(textureID: number): void {
