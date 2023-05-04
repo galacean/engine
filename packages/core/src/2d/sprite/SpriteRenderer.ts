@@ -43,11 +43,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @assignmentClone
   private _customHeight: number = undefined;
   @ignoreClone
-  private _width: number = 0;
+  private _automaticWidth: number = 0;
   @ignoreClone
-  private _height: number = 0;
-  @ignoreClone
-  private _defaultSizeDirty: boolean = true;
+  private _automaticHeight: number = 0;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
@@ -79,7 +77,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
           break;
       }
       this._assembler.resetData(this);
-      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
     }
   }
 
@@ -98,7 +96,6 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       if (value) {
         value._updateFlagManager.addListener(this._onSpriteChange);
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
-        this._defaultSizeDirty = true;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
@@ -122,13 +119,14 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   /**
    * Render width.
+   * @remarks When the developer sets `SpriteRenderer.width`, return the value set by the developer; Otherwise, return `SpriteRenderer.sprite.width`.
    */
   get width(): number {
     if (this._customWidth !== undefined) {
       return this._customWidth;
     } else {
-      this._defaultSizeDirty && this._calDefaultSize();
-      return this._width;
+      this._dirtyUpdateFlag & SpriteRendererUpdateFlags.AutomaticSize && this._calDefaultSize();
+      return this._automaticWidth;
     }
   }
 
@@ -141,13 +139,14 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   /**
    * Render height.
+   * @remarks When the developer sets `SpriteRenderer.height`, return the value set by the developer; Otherwise, return `SpriteRenderer.sprite.height`.
    */
   get height(): number {
     if (this._customHeight !== undefined) {
       return this._customHeight;
     } else {
-      this._defaultSizeDirty && this._calDefaultSize();
-      return this._height;
+      this._dirtyUpdateFlag & SpriteRendererUpdateFlags.AutomaticSize && this._calDefaultSize();
+      return this._automaticHeight;
     }
   }
 
@@ -288,12 +287,12 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 
   private _calDefaultSize() {
     if (this._sprite) {
-      this._width = this._sprite.width;
-      this._height = this._sprite.height;
+      this._automaticWidth = this._sprite.width;
+      this._automaticHeight = this._sprite.height;
     } else {
-      this._width = this._height = 0;
+      this._automaticWidth = this._automaticHeight = 0;
     }
-    this._defaultSizeDirty = false;
+    this._dirtyUpdateFlag &= ~SpriteRendererUpdateFlags.AutomaticSize;
   }
 
   private _updateStencilState(): void {
@@ -326,7 +325,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        this._defaultSizeDirty = true;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AutomaticSize;
         // When the width and height of `SpriteRenderer` are `undefined`,
         // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
         if (
@@ -338,11 +337,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         }
         break;
       case SpriteModifyFlags.border:
-        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All);
+        this._drawMode === SpriteDrawMode.Sliced && (this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData);
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.UV;
@@ -360,6 +359,10 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
 enum SpriteRendererUpdateFlags {
   /** UV. */
   UV = 0x2,
+  /** WorldVolume and UV . */
+  RenderData = 0x3,
+  /** Automatic Size. */
+  AutomaticSize = 0x4,
   /** All. */
-  All = 0x3
+  All = 0x7
 }

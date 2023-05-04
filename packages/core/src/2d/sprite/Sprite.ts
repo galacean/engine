@@ -12,8 +12,8 @@ export class Sprite extends RefObject {
   /** The name of sprite. */
   name: string;
 
-  private _width: number = 0;
-  private _height: number = 0;
+  private _automaticWidth: number = 0;
+  private _automaticHeight: number = 0;
   private _customWidth: number = undefined;
   private _customHeight: number = undefined;
 
@@ -54,13 +54,14 @@ export class Sprite extends RefObject {
 
   /**
    * The width of the sprite (in world coordinates).
+   * @remarks When the developer sets `Sprite.width`, return the value set by the developer; Otherwise, return the expected width calculated according to `Texture.width`, `Sprite.region` and other attributes.
    */
   get width(): number {
     if (this._customWidth !== undefined) {
       return this._customWidth;
     } else {
-      this._dirtyUpdateFlag & SpriteUpdateFlags.defaultSize && this._calDefaultSize();
-      return this._width;
+      this._dirtyUpdateFlag & SpriteUpdateFlags.automaticSize && this._calDefaultSize();
+      return this._automaticWidth;
     }
   }
 
@@ -73,13 +74,14 @@ export class Sprite extends RefObject {
 
   /**
    * The height of the sprite (in world coordinates).
+   * @remarks When the developer sets `Sprite.height`, return the value set by the developer; Otherwise, return the expected height calculated according to `Texture.height`, `Sprite.region` and other attributes.
    */
   get height(): number {
     if (this._customHeight !== undefined) {
       return this._customHeight;
     } else {
-      this._dirtyUpdateFlag & SpriteUpdateFlags.defaultSize && this._calDefaultSize();
-      return this._height;
+      this._dirtyUpdateFlag & SpriteUpdateFlags.automaticSize && this._calDefaultSize();
+      return this._automaticHeight;
     }
   }
 
@@ -269,18 +271,18 @@ export class Sprite extends RefObject {
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
       const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
-      this._width =
+      this._automaticWidth =
         ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
         _region.width *
         pixelsPerUnitReciprocal;
-      this._height =
+      this._automaticHeight =
         ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
         _region.height *
         pixelsPerUnitReciprocal;
     } else {
-      this._width = this._height = 0;
+      this._automaticWidth = this._automaticHeight = 0;
     }
-    this._dirtyUpdateFlag &= ~SpriteUpdateFlags.defaultSize;
+    this._dirtyUpdateFlag &= ~SpriteUpdateFlags.automaticSize;
   }
 
   private _updatePositions(): void {
@@ -346,14 +348,14 @@ export class Sprite extends RefObject {
   private _dispatchSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
       case SpriteModifyFlags.texture:
-        this._dirtyUpdateFlag |= SpriteUpdateFlags.defaultSize;
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.automaticSize;
         break;
       case SpriteModifyFlags.atlasRegionOffset:
       case SpriteModifyFlags.region:
         this._dirtyUpdateFlag |= SpriteUpdateFlags.all;
         break;
       case SpriteModifyFlags.atlasRegion:
-        this._dirtyUpdateFlag |= SpriteUpdateFlags.defaultSize | SpriteUpdateFlags.uvs;
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.automaticSize | SpriteUpdateFlags.uvs;
         break;
       case SpriteModifyFlags.border:
         this._dirtyUpdateFlag |= SpriteUpdateFlags.uvs;
@@ -366,6 +368,6 @@ export class Sprite extends RefObject {
 enum SpriteUpdateFlags {
   positions = 0x1,
   uvs = 0x2,
-  defaultSize = 0x4,
+  automaticSize = 0x4,
   all = 0x7
 }
