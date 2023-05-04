@@ -38,11 +38,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @assignmentClone
   private _customHeight: number = undefined;
   @ignoreClone
-  private _width: number = undefined;
+  private _automaticWidth: number = undefined;
   @ignoreClone
-  private _height: number = undefined;
-  @ignoreClone
-  private _defaultSizeDirty: boolean = true;
+  private _automaticHeight: number = undefined;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
@@ -58,8 +56,8 @@ export class SpriteMask extends Renderer implements ICustomClone {
     if (this._customWidth !== undefined) {
       return this._customWidth;
     } else {
-      this._defaultSizeDirty && this._calDefaultSize();
-      return this._width;
+      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
+      return this._automaticWidth;
     }
   }
 
@@ -77,8 +75,8 @@ export class SpriteMask extends Renderer implements ICustomClone {
     if (this._customHeight !== undefined) {
       return this._customHeight;
     } else {
-      this._defaultSizeDirty && this._calDefaultSize();
-      return this._height;
+      this._dirtyUpdateFlag & SpriteMaskUpdateFlags.AutomaticSize && this._calDefaultSize();
+      return this._automaticHeight;
     }
   }
 
@@ -131,7 +129,6 @@ export class SpriteMask extends Renderer implements ICustomClone {
       if (value) {
         value._updateFlagManager.addListener(this._onSpriteChange);
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
-        this._defaultSizeDirty = true;
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
@@ -230,12 +227,12 @@ export class SpriteMask extends Renderer implements ICustomClone {
 
   private _calDefaultSize() {
     if (this._sprite) {
-      this._width = this._sprite.width;
-      this._height = this._sprite.height;
+      this._automaticWidth = this._sprite.width;
+      this._automaticHeight = this._sprite.height;
     } else {
-      this._width = this._height = 0;
+      this._automaticWidth = this._automaticHeight = 0;
     }
-    this._defaultSizeDirty = false;
+    this._dirtyUpdateFlag &= ~SpriteMaskUpdateFlags.AutomaticSize;
   }
 
   @ignoreClone
@@ -245,14 +242,14 @@ export class SpriteMask extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteMask._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
-        this._defaultSizeDirty = true;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.AutomaticSize;
         if (this._customWidth === undefined || this._customHeight === undefined) {
           this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         }
         break;
       case SpriteModifyFlags.region:
       case SpriteModifyFlags.atlasRegionOffset:
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
+        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.RenderData;
         break;
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
@@ -269,6 +266,10 @@ export class SpriteMask extends Renderer implements ICustomClone {
 enum SpriteMaskUpdateFlags {
   /** UV. */
   UV = 0x2,
+  /** WorldVolume and UV . */
+  RenderData = 0x3,
+  /** Automatic Size. */
+  AutomaticSize = 0x4,
   /** All. */
   All = 0x3
 }
