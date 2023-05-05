@@ -38,14 +38,14 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
 
-  @assignmentClone
-  private _customWidth: number = undefined;
-  @assignmentClone
-  private _customHeight: number = undefined;
   @ignoreClone
   private _automaticWidth: number = 0;
   @ignoreClone
   private _automaticHeight: number = 0;
+  @assignmentClone
+  private _customWidth: number = undefined;
+  @assignmentClone
+  private _customHeight: number = undefined;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
@@ -92,10 +92,9 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
       lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
-
+      this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
       if (value) {
         value._updateFlagManager.addListener(this._onSpriteChange);
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, null);
