@@ -33,14 +33,14 @@ export class SpriteMask extends Renderer implements ICustomClone {
   @ignoreClone
   private _sprite: Sprite = null;
 
+  @ignoreClone
+  private _automaticWidth: number = 0;
+  @ignoreClone
+  private _automaticHeight: number = 0;
   @assignmentClone
   private _customWidth: number = undefined;
   @assignmentClone
   private _customHeight: number = undefined;
-  @ignoreClone
-  private _automaticWidth: number = undefined;
-  @ignoreClone
-  private _automaticHeight: number = undefined;
   @assignmentClone
   private _flipX: boolean = false;
   @assignmentClone
@@ -128,9 +128,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
       lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
       if (value) {
         value._updateFlagManager.addListener(this._onSpriteChange);
-        this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
         this.shaderData.setTexture(SpriteMask._textureProperty, null);
@@ -257,6 +257,9 @@ export class SpriteMask extends Renderer implements ICustomClone {
       case SpriteModifyFlags.atlasRegion:
         this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.UV;
         break;
+      case SpriteModifyFlags.pivot:
+        this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
+        break;
       default:
         break;
     }
@@ -274,5 +277,5 @@ enum SpriteMaskUpdateFlags {
   /** Automatic Size. */
   AutomaticSize = 0x4,
   /** All. */
-  All = 0x3
+  All = 0x7
 }
