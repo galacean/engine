@@ -141,10 +141,10 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.addCharacterController }
    */
   addCharacterController(characterController: PhysXCharacterController): void {
-    const lastPXManager = characterController._pxManager;
     if (!characterController._pxController) {
       const shape = characterController._shape;
       if (shape) {
+        const lastPXManager = characterController._pxManager;
         if (lastPXManager !== this) {
           lastPXManager && characterController._destroyPXController();
           characterController._createPXController(this, shape);
