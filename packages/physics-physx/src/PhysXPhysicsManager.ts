@@ -142,11 +142,13 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    */
   addCharacterController(characterController: PhysXCharacterController): void {
     const lastPXManager = characterController._pxManager;
-    const shape = characterController._shape;
-    if (shape) {
-      if (lastPXManager !== this) {
-        lastPXManager && characterController._destroyPXController();
-        characterController._createPXController(this, shape);
+    if (!characterController._pxController) {
+      const shape = characterController._shape;
+      if (shape) {
+        if (lastPXManager !== this) {
+          lastPXManager && characterController._destroyPXController();
+          characterController._createPXController(this, shape);
+        }
       }
     }
     characterController._pxManager = this;
@@ -156,7 +158,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
-    characterController._pxController = null;
     characterController._pxManager = null;
   }
 
