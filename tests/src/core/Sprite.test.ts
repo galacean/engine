@@ -1,6 +1,6 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Sprite, Texture2D } from "@galacean/engine-core";
-import { Rect, Vector2, Vector4 } from "@galacean/engine-math";
+import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("TextRenderer", () => {
@@ -120,6 +120,63 @@ describe("TextRenderer", () => {
     sprite.atlasRegionOffset = new Vector4(0, 0, 0, 0);
     expect(sprite.width).to.eq(100);
     expect(sprite.height).to.eq(200);
+  });
+
+  it("_getPositions", () => {
+    const sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
+    // @ts-ignore
+    let positions = sprite._getPositions();
+    expect(positions[0]).to.deep.eq(new Vector2(0, 0));
+    expect(positions[1]).to.deep.eq(new Vector2(1, 0));
+    expect(positions[2]).to.deep.eq(new Vector2(0, 1));
+    expect(positions[3]).to.deep.eq(new Vector2(1, 1));
+
+    sprite.region = new Rect(0, 0, 0.5, 0.5);
+    // @ts-ignore
+    positions = sprite._getPositions();
+    expect(positions[0]).to.deep.eq(new Vector2(0, 0));
+    expect(positions[1]).to.deep.eq(new Vector2(1, 0));
+    expect(positions[2]).to.deep.eq(new Vector2(0, 1));
+    expect(positions[3]).to.deep.eq(new Vector2(1, 1));
+  });
+
+  it("_getUVs", () => {
+    const sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
+    // @ts-ignore
+    let uvs = sprite._getUVs();
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[1]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[2]).to.deep.eq(new Vector2(1, 0));
+    expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
+
+    sprite.region = new Rect(0, 0, 0.5, 0.5);
+    // @ts-ignore
+    uvs = sprite._getUVs();
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[1]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[2]).to.deep.eq(new Vector2(0.5, 0.5));
+    expect(uvs[3]).to.deep.eq(new Vector2(0.5, 0.5));
+
+    sprite.atlasRegion = new Rect(0, 0, 0.5, 0.5);
+    // @ts-ignore
+    uvs = sprite._getUVs();
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 0.5));
+    expect(uvs[1]).to.deep.eq(new Vector2(0, 0.5));
+    expect(uvs[2]).to.deep.eq(new Vector2(0.25, 0.25));
+    expect(uvs[3]).to.deep.eq(new Vector2(0.25, 0.25));
+  });
+
+  it("_getBounds", () => {
+    const sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
+    // @ts-ignore
+    let bounds = sprite._getBounds();
+    expect(bounds.min).to.deep.eq(new Vector3(0, 0, 0));
+    expect(bounds.max).to.deep.eq(new Vector3(1, 1, 0));
+    sprite.region = new Rect(0, 0, 0.5, 0.5);
+    // @ts-ignore
+    bounds = sprite._getBounds();
+    expect(bounds.min).to.deep.eq(new Vector3(0, 0, 0));
+    expect(bounds.max).to.deep.eq(new Vector3(1, 1, 0));
   });
 
   it("destroy", () => {
