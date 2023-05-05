@@ -51,6 +51,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
 
   /**
    * Render width.
+   * @remarks When the developer sets `SpriteMask.width`, return the value set by the developer; Otherwise, return `SpriteMask.sprite.width`.
    */
   get width(): number {
     if (this._customWidth !== undefined) {
@@ -70,6 +71,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
 
   /**
    * Render height.
+   * @remarks When the developer sets `SpriteMask.height`, return the value set by the developer; Otherwise, return `SpriteMask.sprite.height`.
    */
   get height(): number {
     if (this._customHeight !== undefined) {
@@ -225,10 +227,11 @@ export class SpriteMask extends Renderer implements ICustomClone {
     this._verticesData = null;
   }
 
-  private _calDefaultSize() {
-    if (this._sprite) {
-      this._automaticWidth = this._sprite.width;
-      this._automaticHeight = this._sprite.height;
+  private _calDefaultSize(): void {
+    const sprite = this._sprite;
+    if (sprite) {
+      this._automaticWidth = sprite.width;
+      this._automaticHeight = sprite.height;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }
