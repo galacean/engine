@@ -285,10 +285,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  private _calDefaultSize() {
-    if (this._sprite) {
-      this._automaticWidth = this._sprite.width;
-      this._automaticHeight = this._sprite.height;
+  private _calDefaultSize(): void {
+    const sprite = this._sprite;
+    if (sprite) {
+      this._automaticWidth = sprite.width;
+      this._automaticHeight = sprite.height;
     } else {
       this._automaticWidth = this._automaticHeight = 0;
     }

@@ -44,7 +44,7 @@ describe("TextRenderer", () => {
     const pivot = new Vector2(0.1, 0.1);
     sprite.pivot = pivot;
     expect(sprite.pivot).to.deep.eq(pivot);
-    sprite.pivot = pivot;
+    sprite.pivot = sprite.pivot;
     expect(sprite.pivot).to.deep.eq(pivot);
   });
 
