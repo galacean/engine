@@ -117,8 +117,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * Render width.
-   * @remarks When the developer sets `SpriteRenderer.width`, return the value set by the developer; Otherwise, return `SpriteRenderer.sprite.width`.
+   * Render width (in world coordinates).
+   *
+   * @remarks
+   * If width is set, return the set value,
+   * otherwise return `SpriteRenderer.sprite.width`.
    */
   get width(): number {
     if (this._customWidth !== undefined) {
@@ -137,8 +140,11 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   }
 
   /**
-   * Render height.
-   * @remarks When the developer sets `SpriteRenderer.height`, return the value set by the developer; Otherwise, return `SpriteRenderer.sprite.height`.
+   * Render height (in world coordinates).
+   *
+   * @remarks
+   * If height is set, return the set value,
+   * otherwise return `SpriteRenderer.sprite.height`.
    */
   get height(): number {
     if (this._customHeight !== undefined) {

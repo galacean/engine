@@ -54,7 +54,10 @@ export class Sprite extends RefObject {
 
   /**
    * The width of the sprite (in world coordinates).
-   * @remarks When the developer sets `Sprite.width`, return the value set by the developer; Otherwise, return the expected width calculated according to `Texture.width`, `Sprite.region` and other attributes.
+   * 
+   * @remarks
+   * If width is set, return the set value,
+   * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
    */
   get width(): number {
     if (this._customWidth !== undefined) {
@@ -74,7 +77,10 @@ export class Sprite extends RefObject {
 
   /**
    * The height of the sprite (in world coordinates).
-   * @remarks When the developer sets `Sprite.height`, return the value set by the developer; Otherwise, return the expected height calculated according to `Texture.height`, `Sprite.region` and other attributes.
+   * 
+   * @remarks
+   * If height is set, return the set value,
+   * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
    */
   get height(): number {
     if (this._customHeight !== undefined) {
