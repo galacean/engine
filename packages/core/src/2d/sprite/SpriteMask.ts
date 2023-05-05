@@ -50,8 +50,11 @@ export class SpriteMask extends Renderer implements ICustomClone {
   private _alphaCutoff: number = 0.5;
 
   /**
-   * Render width.
-   * @remarks When the developer sets `SpriteMask.width`, return the value set by the developer; Otherwise, return `SpriteMask.sprite.width`.
+   * Render width (in world coordinates).
+   *
+   * @remarks
+   * If width is set, return the set value,
+   * otherwise return `SpriteMask.sprite.width`.
    */
   get width(): number {
     if (this._customWidth !== undefined) {
@@ -70,8 +73,11 @@ export class SpriteMask extends Renderer implements ICustomClone {
   }
 
   /**
-   * Render height.
-   * @remarks When the developer sets `SpriteMask.height`, return the value set by the developer; Otherwise, return `SpriteMask.sprite.height`.
+   * Render height (in world coordinates).
+   *
+   * @remarks
+   * If height is set, return the set value,
+   * otherwise return `SpriteMask.sprite.height`.
    */
   get height(): number {
     if (this._customHeight !== undefined) {
