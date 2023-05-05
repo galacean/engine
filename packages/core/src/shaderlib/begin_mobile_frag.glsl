@@ -23,7 +23,7 @@
 
     #endif
 
-     #ifdef RENDERER_HAS_VERTEXCOLOR
+     #ifdef RENDERER_ENABLE_VERTEXCOLOR
 
         diffuse *= v_color;
 

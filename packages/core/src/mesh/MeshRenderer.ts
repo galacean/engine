@@ -16,7 +16,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   private static _uv1Macro = ShaderMacro.getByName("RENDERER_HAS_UV1");
   private static _normalMacro = ShaderMacro.getByName("RENDERER_HAS_NORMAL");
   private static _tangentMacro = ShaderMacro.getByName("RENDERER_HAS_TANGENT");
-  private static _vertexColorMacro = ShaderMacro.getByName("RENDERER_HAS_VERTEXCOLOR");
+  private static _enableVertexColorMacro = ShaderMacro.getByName("RENDERER_ENABLE_VERTEXCOLOR");
+
+  private _enableVertexColor: boolean = false;
 
   /** @internal */
   @ignoreClone
@@ -32,6 +34,20 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   set mesh(value: Mesh) {
     if (this._mesh !== value) {
       this._setMesh(value);
+    }
+  }
+
+  /**
+   * Whether enable vertex color.
+   */
+  get enableVertexColor(): boolean {
+    return this._enableVertexColor;
+  }
+
+  set enableVertexColor(value: boolean) {
+    if (value !== this._enableVertexColor) {
+      this._dirtyUpdateFlag |= MeshRendererUpdateFlags.VertexElementMacro;
+      this._enableVertexColor = value;
     }
   }
 
@@ -91,7 +107,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
         shaderData.disableMacro(MeshRenderer._uv1Macro);
         shaderData.disableMacro(MeshRenderer._normalMacro);
         shaderData.disableMacro(MeshRenderer._tangentMacro);
-        shaderData.disableMacro(MeshRenderer._vertexColorMacro);
+        shaderData.disableMacro(MeshRenderer._enableVertexColorMacro);
 
         for (let i = 0, n = vertexElements.length; i < n; i++) {
           switch (vertexElements[i].semantic) {
@@ -108,7 +124,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
               shaderData.enableMacro(MeshRenderer._tangentMacro);
               break;
             case "COLOR_0":
-              shaderData.enableMacro(MeshRenderer._vertexColorMacro);
+              this._enableVertexColor && shaderData.enableMacro(MeshRenderer._enableVertexColorMacro);
               break;
           }
         }

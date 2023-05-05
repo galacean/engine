@@ -62,7 +62,7 @@ void initMaterial(out Material material, const in Geometry geometry){
             baseColor *= baseTextureColor;
         #endif
 
-        #ifdef RENDERER_HAS_VERTEXCOLOR
+        #ifdef RENDERER_ENABLE_VERTEXCOLOR
             baseColor *= v_color;
         #endif
 
