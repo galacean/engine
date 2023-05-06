@@ -100,7 +100,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
     if (this._tileMode !== value) {
       this._tileMode = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
       }
     }
   }
@@ -117,7 +117,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
       value = MathUtil.clamp(value, 0, 1);
       this._tiledAdaptiveThreshold = value;
       if (this.drawMode === SpriteDrawMode.Tiled) {
-        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+        this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
       }
     }
   }

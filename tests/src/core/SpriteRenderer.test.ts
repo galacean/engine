@@ -103,6 +103,7 @@ describe("SpriteRenderer", async () => {
   it("get set tileMode", () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     spriteRenderer.tileMode = SpriteTileMode.Adaptive;
     expect(spriteRenderer.tileMode).to.eq(SpriteTileMode.Adaptive);
     spriteRenderer.tileMode = SpriteTileMode.Continuous;
@@ -112,6 +113,7 @@ describe("SpriteRenderer", async () => {
   it("get set tiledAdaptiveThreshold", () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     spriteRenderer.tiledAdaptiveThreshold = 0.3;
     expect(spriteRenderer.tiledAdaptiveThreshold).to.eq(0.3);
     spriteRenderer.tiledAdaptiveThreshold = 0.0;
@@ -129,6 +131,8 @@ describe("SpriteRenderer", async () => {
     const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
     const sprite = new Sprite(engine, texture2D);
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    expect(Vector3.equals(spriteRenderer.bounds.min, new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(spriteRenderer.bounds.max, new Vector3(0, 0, 0))).to.eq(true);
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Simple;
     spriteRenderer.width = 4;
