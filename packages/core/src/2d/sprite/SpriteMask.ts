@@ -181,7 +181,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this.sprite) {
       SimpleSpriteAssembler.updatePositions(this);
     } else {

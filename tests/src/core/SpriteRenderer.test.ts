@@ -5,6 +5,7 @@ import {
   SpriteMaskInteraction,
   SpriteMaskLayer,
   SpriteRenderer,
+  SpriteTileMode,
   Texture2D,
   TextureFormat
 } from "@galacean/engine-core";
@@ -1381,6 +1382,6 @@ describe("SpriteRenderer", async () => {
     // @ts-ignore
     expect(spriteRenderer._assembler).to.eq(null);
     // @ts-ignore
-    expect(spriteRenderer._renderData).to.eq(null);
+    expect(spriteRenderer._verticesData).to.eq(null);
   });
 });

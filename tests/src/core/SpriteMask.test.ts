@@ -146,6 +146,6 @@ describe("SpriteMask", async () => {
     spriteMask.destroy();
     expect(spriteMask.sprite).to.eq(null);
     // @ts-ignore
-    expect(spriteMask._renderData).to.eq(null);
+    expect(spriteMask._verticesData).to.eq(null);
   });
 });

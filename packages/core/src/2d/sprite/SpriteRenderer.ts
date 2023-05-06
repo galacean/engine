@@ -287,7 +287,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     if (this.sprite) {
       this._assembler.updatePositions(this);
     } else {
@@ -377,21 +377,16 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
         this.shaderData.setTexture(SpriteRenderer._textureProperty, this.sprite.texture);
         break;
       case SpriteModifyFlags.size:
+        const { _drawMode: drawMode } = this;
         this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.AutomaticSize;
-        // When the width and height of `SpriteRenderer` are `undefined`,
-        // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
-        if (
-          this._drawMode === SpriteDrawMode.Sliced ||
-          this._customWidth === undefined ||
-          this._customHeight === undefined
-        ) {
+        if (this._drawMode === SpriteDrawMode.Sliced) {
           this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
         } else if (drawMode === SpriteDrawMode.Tiled) {
-          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
+          this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.RenderData;
         } else {
           // When the width and height of `SpriteRenderer` are `undefined`,
           // the `size` of `Sprite` will affect the position of `SpriteRenderer`.
-          if (this._width === undefined || this._height === undefined) {
+          if (this._customWidth === undefined || this._customHeight === undefined) {
             this._dirtyUpdateFlag |= RendererUpdateFlags.WorldVolume;
           }
         }
