@@ -52,7 +52,7 @@ void initMaterial(out Material material, const in Geometry geometry){
         vec3 specularColor = material_PBRSpecularColor;
         float glossiness = material_Glossiness;
         float alphaCutoff = material_AlphaCutoff;
-        float F0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) )
+        float F0 = pow2( (material_IOR - 1.0) / (material_IOR + 1.0) );
 
         #ifdef MATERIAL_HAS_BASETEXTURE
             vec4 baseTextureColor = texture2D(material_BaseTexture, v_uv);
@@ -62,7 +62,7 @@ void initMaterial(out Material material, const in Geometry geometry){
             baseColor *= baseTextureColor;
         #endif
 
-        #ifdef RENDERER_HAS_VERTEXCOLOR
+        #ifdef RENDERER_ENABLE_VERTEXCOLOR
             baseColor *= v_color;
         #endif
 

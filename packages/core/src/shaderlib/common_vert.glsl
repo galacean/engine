@@ -36,7 +36,7 @@ attribute vec3 POSITION;
     #endif
 #endif
 
-#ifdef RENDERER_HAS_VERTEXCOLOR
+#ifdef RENDERER_ENABLE_VERTEXCOLOR
     attribute vec4 COLOR_0;
 #endif
 
