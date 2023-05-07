@@ -27,8 +27,84 @@ describe("camera test", function () {
     expect(camera.fieldOfView).to.eq(45);
     expect(camera.isOrthographic).to.eq(false);
 
+    // Test set renderTarget values
+    camera.renderTarget = null;
+    expect(camera.renderTarget).to.eq(null);
+    
     // Test that _renderPipeline is not undefined
     expect(camera["_renderPipeline"]).not.to.be.undefined;
+  });
+
+  it("private property value", () => {
+    // Test nearClipPlane
+    const nearClipPlane = 0.1;
+    const expectedNearClipPlane = nearClipPlane * 100;
+    expect(camera.nearClipPlane).to.eq(nearClipPlane);
+    camera.nearClipPlane = expectedNearClipPlane;
+    expect(camera.nearClipPlane).to.eq(expectedNearClipPlane);
+    camera.nearClipPlane = nearClipPlane;
+
+    // Test farClipPlane
+    const farClipPlane = 100;
+    const expectedFarClipPlane = farClipPlane * 0.1;
+    expect(camera.farClipPlane).to.eq(farClipPlane);
+    camera.farClipPlane = expectedFarClipPlane;
+    expect(camera.farClipPlane).to.eq(expectedFarClipPlane);
+    camera.farClipPlane = farClipPlane;
+
+    // Test fieldOfView
+    const fieldOfView = 45;
+    const expectedFieldOfView = fieldOfView + 15;
+    expect(camera.fieldOfView).to.eq(fieldOfView);
+    camera.fieldOfView = expectedFieldOfView;
+    expect(camera.fieldOfView).to.eq(expectedFieldOfView);
+
+    // Test aspectRatio
+    const expectedAspectRatio = parseFloat((16 / 9).toFixed(2));
+    expect(camera.aspectRatio).not.to.be.undefined;
+    camera.aspectRatio = expectedAspectRatio;
+    expect(camera.aspectRatio).to.eq(expectedAspectRatio);
+
+    // Test viewport
+    const originViewPort = new Vector4(0, 0, 1, 1);
+    const expectedViewPort =  new Vector4(0, 1, 0, 1);
+    expect(camera.viewport).to.deep.eq(originViewPort);
+    camera.viewport = expectedViewPort;
+    expect(camera.viewport).to.deep.eq(expectedViewPort);
+    camera.viewport = originViewPort;
+
+    // Test orthographicSize
+    const orthographicSize = 10;
+    const expectedOrthographicSize = orthographicSize * 0.5;
+    expect(camera.orthographicSize).to.eq(orthographicSize);
+    camera.orthographicSize = expectedOrthographicSize;
+    expect(camera.orthographicSize).to.eq(expectedOrthographicSize);
+    camera.orthographicSize = orthographicSize;
+
+    // Test ReplacementShader
+    camera.resetReplacementShader();
+    expect(camera["_replacementShader"]).to.eq(null);
+    expect(camera["_replacementSubShaderTag"]).to.eq(null);
+  });
+
+  it("static void function", () => {
+    // Test that restore the automatic calculation of projection matrix.
+    camera.resetProjectionMatrix();
+    expect(camera["_isProjMatSetting"]).to.eq(false);
+
+    // Test that restore the automatic calculation of the aspect ratio.
+    camera.resetAspectRatio();
+    expect(camera["_customAspectRatio"]).to.be.undefined;
+  });
+
+  it("enable HDR", () => {
+    // origin method has not been implemented
+
+    // get enableHDR
+    expect(camera.enableHDR).to.eq(false);
+    // set enableHDR
+    camera.enableHDR = true;
+    expect(camera.enableHDR).to.eq(false);
   });
 
   it("view matrix", () => {
@@ -68,13 +144,22 @@ describe("camera test", function () {
     expect(worldPoint.y).to.be.closeTo(expectedworldPoint.y, 0.1, "Result y should match expected value");
   });
 
-  it("viewport to world point", () => {
-    // Test that viewport point to world point works correctly
-    const viewportPoint = new Vector3(0, 0, -30);
+  it("viewport to world point, while isOrthographic = false", () => {
+    // Test that viewport point to world point works correctly, while camera.isOrthographic = false
+    const viewportPoint = new Vector3(0, 0, 30);
     const worldPoint = camera.viewportToWorldPoint(viewportPoint, new Vector3());
     const expectedviewportPoint = camera.worldToViewportPoint(worldPoint, new Vector3());
     expect(viewportPoint.z).to.be.closeTo(expectedviewportPoint.z, 0.1, "Result z should match expected value");
+  });
 
+  it("viewport to world point, while isOrthographic = true", () => {
+    // Test that viewport point to world point works correctly, while camera.isOrthographic = true
+    camera.isOrthographic = true;
+    const viewportPoint = new Vector3(0, 0, -512);
+    const worldPoint = camera.viewportToWorldPoint(viewportPoint, new Vector3());
+    const expectedviewportPoint = camera.worldToViewportPoint(worldPoint, new Vector3());
+    expect(viewportPoint.z).to.be.closeTo(expectedviewportPoint.z, 0.0001, "Result z should match expected value");
+    camera.isOrthographic = false;
   });
 
   it("viewport point to ray", () => {
@@ -144,7 +229,8 @@ describe("camera test", function () {
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
 
     // Test orthographic projection matrix
-    camera.isOrthographic = true;
+    //camera.isOrthographic = true;
+    camera.orthographicSize = 5;
     Matrix.ortho(
       -camera.orthographicSize,
       camera.orthographicSize,
@@ -155,5 +241,9 @@ describe("camera test", function () {
       camera.viewMatrix
     );
     expect(camera.projectionMatrix).not.to.eq(camera.viewMatrix);
+
+    // Test reset projection matrix
+    camera.projectionMatrix = camera.viewMatrix;
+    expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
   });
 });
