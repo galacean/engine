@@ -542,7 +542,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
           startX = halfRendererWidth - lineWidth;
           break;
       }
-      for (let j = 0, m = line.length - 1; j <= m; ++j) {
+      for (let j = 0, n = line.length; j < n; ++j) {
         const char = line[j];
         const charInfo = charFont._getCharInfo(char);
         if (charInfo.h > 0) {
