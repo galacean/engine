@@ -1,7 +1,13 @@
+import { Vector4 } from "@galacean/engine-math";
+import { Shader } from "../shader/Shader";
+import { ShaderData } from "../shader/ShaderData";
+
 /**
  * Tools for calculating the time per frame.
  */
 export class Time {
+  private static _elapsedTimeProperty = Shader.getPropertyByName("scene_ElapsedTime");
+
   /** @internal */
   _frameCount: number = 0;
 
@@ -10,6 +16,8 @@ export class Time {
   private _deltaTime: number;
   private _startTime: number;
   private _lastTickTime: number;
+
+  private _elapsedTimeValue: Vector4 = new Vector4();
 
   /*
    * The total number of frames since the start of the engine.
@@ -82,5 +90,16 @@ export class Time {
     this._deltaTime = (now - this._lastTickTime) * this._timeScale;
     this._lastTickTime = now;
     this._frameCount++;
+  }
+
+  /**
+   * @internal
+   */
+  _updateSceneShaderData(shaderData: ShaderData): void {
+    const { _elapsedTimeValue: elapsedTimeValue } = this;
+
+    const time = this._lastTickTime / 1000;
+    elapsedTimeValue.set(time, Math.sin(time), Math.cos(time), 0);
+    shaderData.setVector4(Time._elapsedTimeProperty, elapsedTimeValue);
   }
 }
