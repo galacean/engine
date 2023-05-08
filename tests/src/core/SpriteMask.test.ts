@@ -1,7 +1,7 @@
 import { Sprite, SpriteMask, Texture2D, SpriteMaskLayer } from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
-import { Vector2, Vector4, Rect } from "@galacean/engine-math";
+import { Vector2, Vector4, Rect, Vector3 } from "@galacean/engine-math";
 
 describe("SpriteMask", async () => {
   const canvas = document.createElement("canvas");
@@ -84,6 +84,27 @@ describe("SpriteMask", async () => {
     expect(spriteMask.influenceLayers).to.eq(SpriteMaskLayer.Layer10);
   });
 
+  it("get spriteMask bounds", () => {
+    const rootEntity = scene.getRootEntity();
+    const texture2D = new Texture2D(engine, 200, 300);
+    const sprite = new Sprite(engine, texture2D);
+    const spriteMask = rootEntity.addComponent(SpriteMask);
+    expect(Vector3.equals(spriteMask.bounds.min, new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(spriteMask.bounds.max, new Vector3(0, 0, 0))).to.eq(true);
+    spriteMask.sprite = sprite;
+    spriteMask.width = 4;
+    spriteMask.height = 5;
+    sprite.pivot = new Vector2(0.5, 0.5);
+    expect(Vector3.equals(spriteMask.bounds.min, new Vector3(-2, -2.5, 0))).to.eq(true);
+    expect(Vector3.equals(spriteMask.bounds.max, new Vector3(2, 2.5, 0))).to.eq(true);
+    sprite.pivot = new Vector2(0, 0);
+    expect(Vector3.equals(spriteMask.bounds.min, new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(spriteMask.bounds.max, new Vector3(4, 5, 0))).to.eq(true);
+    sprite.pivot = new Vector2(1, 1);
+    expect(Vector3.equals(spriteMask.bounds.min, new Vector3(-4, -5, 0))).to.eq(true);
+    expect(Vector3.equals(spriteMask.bounds.max, new Vector3(0, 0, 0))).to.eq(true);
+  });
+
   it("DirtyFlag", () => {
     const rootEntity = scene.getRootEntity();
     const spriteMask = rootEntity.addComponent(SpriteMask);
@@ -147,5 +168,46 @@ describe("SpriteMask", async () => {
     expect(spriteMask.sprite).to.eq(null);
     // @ts-ignore
     expect(spriteMask._verticesData).to.eq(null);
+  });
+
+  it("_render", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteMask = rootEntity.addComponent(SpriteMask);
+    const texture2d = new Texture2D(engine, 100, 200);
+    const context = { camera: { _renderPipeline: { _allSpriteMasks: { add: () => {} } } } };
+    // @ts-ignore
+    spriteMask._render(context);
+    // @ts-ignore
+    let { positions, uvs } = spriteMask._verticesData;
+    expect(positions[0]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[1]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[2]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[3]).to.deep.eq(new Vector3(0, 0, 0));
+
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[1]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[3]).to.deep.eq(new Vector2(0, 0));
+    // @ts-ignore
+    const { min, max } = spriteMask._bounds;
+    expect(min).to.deep.eq(new Vector3(0, 0, 0));
+    expect(max).to.deep.eq(new Vector3(0, 0, 0));
+
+    const sprite = new Sprite(engine, texture2d);
+    spriteMask.sprite = sprite;
+    // @ts-ignore
+    spriteMask._render(context);
+    // @ts-ignore
+    expect(positions[0]).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(positions[1]).to.deep.eq(new Vector3(0.5, -1, 0));
+    expect(positions[2]).to.deep.eq(new Vector3(-0.5, 1, 0));
+    expect(positions[3]).to.deep.eq(new Vector3(0.5, 1, 0));
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[1]).to.deep.eq(new Vector2(1, 1));
+    expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
+    // @ts-ignore
+    expect(min).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });

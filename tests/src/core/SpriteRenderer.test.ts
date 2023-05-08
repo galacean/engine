@@ -1330,7 +1330,20 @@ describe("SpriteRenderer", async () => {
     // @ts-ignore
     expect(!!(spriteRenderer._dirtyUpdateFlag & 0x5)).to.eq(true);
 
+    spriteRenderer.drawMode = SpriteDrawMode.Tiled;
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x7;
+    sprite.width = 11;
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x7)).to.eq(true);
+
     spriteRenderer.drawMode = SpriteDrawMode.Sliced;
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x5;
+    sprite.width = 12;
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x5)).to.eq(true);
+
     // @ts-ignore
     spriteRenderer._dirtyUpdateFlag &= ~0x3;
     sprite.border = new Vector4();
@@ -1387,5 +1400,46 @@ describe("SpriteRenderer", async () => {
     expect(spriteRenderer._assembler).to.eq(null);
     // @ts-ignore
     expect(spriteRenderer._verticesData).to.eq(null);
+  });
+
+  it("_render", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    const texture2d = new Texture2D(engine, 100, 200);
+    const context = { camera: { _renderPipeline: { pushRenderData: () => {} } } };
+    // @ts-ignore
+    spriteRenderer._render(context);
+    // @ts-ignore
+    let { positions, uvs } = spriteRenderer._verticesData;
+    expect(positions[0]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[1]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[2]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[3]).to.deep.eq(new Vector3(0, 0, 0));
+
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[1]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[3]).to.deep.eq(new Vector2(0, 0));
+    // @ts-ignore
+    const { min, max } = spriteRenderer._bounds;
+    expect(min).to.deep.eq(new Vector3(0, 0, 0));
+    expect(max).to.deep.eq(new Vector3(0, 0, 0));
+
+    const sprite = new Sprite(engine, texture2d);
+    spriteRenderer.sprite = sprite;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    // @ts-ignore
+    expect(positions[0]).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(positions[1]).to.deep.eq(new Vector3(0.5, -1, 0));
+    expect(positions[2]).to.deep.eq(new Vector3(-0.5, 1, 0));
+    expect(positions[3]).to.deep.eq(new Vector3(0.5, 1, 0));
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[1]).to.deep.eq(new Vector2(1, 1));
+    expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
+    // @ts-ignore
+    expect(min).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });
