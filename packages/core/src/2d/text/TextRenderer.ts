@@ -497,7 +497,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
     const halfLineHeight = lineHeight * 0.5;
     const linesLen = lines.length;
 
-    let startX = 0;
     let startY = 0;
     const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
     const bottomDiff = lineHeight * 0.5 - lineMaxSizes[linesLen - 1].descent - 1;
@@ -523,6 +522,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
       const lineWidth = lineWidths[i];
       if (lineWidth > 0) {
         const line = lines[i];
+        let startX = 0;
         let firstRow = -1;
         if (firstLine < 0) {
           firstLine = i;
