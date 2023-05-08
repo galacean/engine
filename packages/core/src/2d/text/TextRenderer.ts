@@ -522,49 +522,47 @@ export class TextRenderer extends Renderer implements ICustomClone {
     let maxY = Number.MIN_SAFE_INTEGER;
     for (let i = 0; i < linesLen; ++i) {
       const lineWidth = lineWidths[i];
-      if (lineWidth === 0) {
-        startY -= lineHeight;
-        continue;
-      }
-      const line = lines[i];
-      if (firstLine < 0) {
-        firstLine = i;
-      }
-      firstRow = -1;
-      switch (horizontalAlignment) {
-        case TextHorizontalAlignment.Left:
-          startX = -halfRendererWidth;
-          break;
-        case TextHorizontalAlignment.Center:
-          startX = -lineWidth * 0.5;
-          break;
-        case TextHorizontalAlignment.Right:
-          startX = halfRendererWidth - lineWidth;
-          break;
-      }
-      for (let j = 0, n = line.length; j < n; ++j) {
-        const char = line[j];
-        const charInfo = charFont._getCharInfo(char);
-        if (charInfo.h > 0) {
-          firstRow < 0 && (firstRow = j);
-          const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.get());
-          const { renderData, localPositions } = charRenderData;
-          charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
-          renderData.color = color;
-          renderData.uvs = charInfo.uvs;
-
-          const { w, ascent, descent } = charInfo;
-          const left = startX * pixelsPerUnitReciprocal;
-          const right = (startX + w) * pixelsPerUnitReciprocal;
-          const top = (startY + ascent) * pixelsPerUnitReciprocal;
-          const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
-          localPositions.set(left, top, right, bottom);
-          i === firstLine && (maxY = Math.max(maxY, top));
-          minY = Math.min(minY, bottom);
-          j === firstRow && (minX = Math.min(minX, left));
-          maxX = Math.max(maxX, right);
+      if (lineWidth > 0) {
+        const line = lines[i];
+        if (firstLine < 0) {
+          firstLine = i;
         }
-        startX += charInfo.xAdvance;
+        firstRow = -1;
+        switch (horizontalAlignment) {
+          case TextHorizontalAlignment.Left:
+            startX = -halfRendererWidth;
+            break;
+          case TextHorizontalAlignment.Center:
+            startX = -lineWidth * 0.5;
+            break;
+          case TextHorizontalAlignment.Right:
+            startX = halfRendererWidth - lineWidth;
+            break;
+        }
+        for (let j = 0, n = line.length; j < n; ++j) {
+          const char = line[j];
+          const charInfo = charFont._getCharInfo(char);
+          if (charInfo.h > 0) {
+            firstRow < 0 && (firstRow = j);
+            const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.get());
+            const { renderData, localPositions } = charRenderData;
+            charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
+            renderData.color = color;
+            renderData.uvs = charInfo.uvs;
+
+            const { w, ascent, descent } = charInfo;
+            const left = startX * pixelsPerUnitReciprocal;
+            const right = (startX + w) * pixelsPerUnitReciprocal;
+            const top = (startY + ascent) * pixelsPerUnitReciprocal;
+            const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
+            localPositions.set(left, top, right, bottom);
+            i === firstLine && (maxY = Math.max(maxY, top));
+            minY = Math.min(minY, bottom);
+            j === firstRow && (minX = Math.min(minX, left));
+            maxX = Math.max(maxX, right);
+          }
+          startX += charInfo.xAdvance;
+        }
       }
       startY -= lineHeight;
     }
