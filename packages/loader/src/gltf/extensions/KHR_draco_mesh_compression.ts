@@ -1,9 +1,9 @@
+import { ModelMesh, TypedArray } from "@galacean/engine-core";
 import { DRACODecoder } from "@galacean/engine-draco";
-import { ModelMesh, TypedArray } from "@galacean/engine";
 import { Vector3 } from "@galacean/engine-math";
 import { AccessorType, IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtil } from "../GLTFUtil";
-import { GLTFMeshParser } from "../parser";
+import { GLTFMeshParser } from "../parser/GLTFMeshParser";
 import { registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
 import { GLTFExtensionMode, GLTFExtensionParser } from "./GLTFExtensionParser";

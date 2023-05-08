@@ -1,4 +1,4 @@
-import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@oasis-engine/core";
+import { AnimationClip, AssetPromise, EngineObject, Material, Mesh } from "@galacean/engine-core";
 import { GLTFExtensionMode, GLTFExtensionParser } from "../extensions/GLTFExtensionParser";
 import { GLTFExtensionSchema } from "../extensions/GLTFExtensionSchema";
 import { GLTFExtensionOwnerSchema } from "../GLTFSchema";

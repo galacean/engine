@@ -1,7 +1,7 @@
 import { IndexFormat, TypedArray, VertexElementFormat } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { BufferInfo, GLTFParserContext } from "./parser/ParserContext";
 import { AccessorComponentType, AccessorType, IAccessor, IBufferView, IGLTF } from "./GLTFSchema";
+import { BufferInfo, GLTFParserContext } from "./parser/GLTFParserContext";
 
 const charCodeOfDot = ".".charCodeAt(0);
 const reEscapeChar = /\\(\\)?/g;
