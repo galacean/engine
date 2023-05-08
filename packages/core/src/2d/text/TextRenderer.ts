@@ -515,7 +515,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
     let renderDataCount = 0;
     let firstLine = -1;
-    let firstRow = -1;
     let minX = Number.MAX_SAFE_INTEGER;
     let minY = Number.MAX_SAFE_INTEGER;
     let maxX = Number.MIN_SAFE_INTEGER;
@@ -524,10 +523,10 @@ export class TextRenderer extends Renderer implements ICustomClone {
       const lineWidth = lineWidths[i];
       if (lineWidth > 0) {
         const line = lines[i];
+        let firstRow = -1;
         if (firstLine < 0) {
           firstLine = i;
         }
-        firstRow = -1;
         switch (horizontalAlignment) {
           case TextHorizontalAlignment.Left:
             startX = -halfRendererWidth;
