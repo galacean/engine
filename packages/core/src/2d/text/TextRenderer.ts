@@ -521,48 +521,50 @@ export class TextRenderer extends Renderer implements ICustomClone {
     let maxX = Number.MIN_SAFE_INTEGER;
     let maxY = Number.MIN_SAFE_INTEGER;
     for (let i = 0; i < linesLen; ++i) {
-      const line = lines[i];
       const lineWidth = lineWidths[i];
-      if (lineWidth !== 0) {
-        switch (horizontalAlignment) {
-          case TextHorizontalAlignment.Left:
-            startX = -halfRendererWidth;
-            break;
-          case TextHorizontalAlignment.Center:
-            startX = -lineWidth * 0.5;
-            break;
-          case TextHorizontalAlignment.Right:
-            startX = halfRendererWidth - lineWidth;
-            break;
-        }
-        if (firstLine < 0) {
-          firstLine = i;
-        }
-        firstRow = -1;
-        for (let j = 0, m = line.length - 1; j <= m; ++j) {
-          const char = line[j];
-          const charInfo = charFont._getCharInfo(char);
-          if (charInfo.h > 0) {
-            firstRow < 0 && (firstRow = j);
-            const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.get());
-            const { renderData, localPositions } = charRenderData;
-            charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
-            renderData.color = color;
-            renderData.uvs = charInfo.uvs;
+      if (lineWidth === 0) {
+        startY -= lineHeight;
+        continue;
+      }
+      const line = lines[i];
+      if (firstLine < 0) {
+        firstLine = i;
+      }
+      firstRow = -1;
+      switch (horizontalAlignment) {
+        case TextHorizontalAlignment.Left:
+          startX = -halfRendererWidth;
+          break;
+        case TextHorizontalAlignment.Center:
+          startX = -lineWidth * 0.5;
+          break;
+        case TextHorizontalAlignment.Right:
+          startX = halfRendererWidth - lineWidth;
+          break;
+      }
+      for (let j = 0, m = line.length - 1; j <= m; ++j) {
+        const char = line[j];
+        const charInfo = charFont._getCharInfo(char);
+        if (charInfo.h > 0) {
+          firstRow < 0 && (firstRow = j);
+          const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.get());
+          const { renderData, localPositions } = charRenderData;
+          charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
+          renderData.color = color;
+          renderData.uvs = charInfo.uvs;
 
-            const { w, ascent, descent } = charInfo;
-            const left = startX * pixelsPerUnitReciprocal;
-            const right = (startX + w) * pixelsPerUnitReciprocal;
-            const top = (startY + ascent) * pixelsPerUnitReciprocal;
-            const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
-            localPositions.set(left, top, right, bottom);
-            i === firstLine && (maxY = Math.max(maxY, top));
-            minY = Math.min(minY, bottom);
-            j === firstRow && (minX = Math.min(minX, left));
-            maxX = Math.max(maxX, right);
-          }
-          startX += charInfo.xAdvance;
+          const { w, ascent, descent } = charInfo;
+          const left = startX * pixelsPerUnitReciprocal;
+          const right = (startX + w) * pixelsPerUnitReciprocal;
+          const top = (startY + ascent) * pixelsPerUnitReciprocal;
+          const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
+          localPositions.set(left, top, right, bottom);
+          i === firstLine && (maxY = Math.max(maxY, top));
+          minY = Math.min(minY, bottom);
+          j === firstRow && (minX = Math.min(minX, left));
+          maxX = Math.max(maxX, right);
         }
+        startX += charInfo.xAdvance;
       }
       startY -= lineHeight;
     }
