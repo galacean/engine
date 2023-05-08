@@ -479,124 +479,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
   }
 
-  // private _updateLocalData(): void {
-  //   const { color, horizontalAlignment, verticalAlignment, _charRenderDatas: charRenderDatas } = this;
-  //   const { min, max } = this._localBounds;
-  //   const { _pixelsPerUnit } = Engine;
-  //   const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
-  //   const charFont = this._subFont;
-  //   const rendererWidth = this.width * _pixelsPerUnit;
-  //   const halfRendererWidth = rendererWidth * 0.5;
-  //   const rendererHeight = this.height * _pixelsPerUnit;
-
-  //   const textMetrics = this.enableWrapping
-  //     ? TextUtils.measureTextWithWrap(this)
-  //     : TextUtils.measureTextWithoutWrap(this);
-  //   const { height, lines, lineWidths, lineHeight, lineMaxSizes } = textMetrics;
-  //   const charRenderDataPool = TextRenderer._charRenderDataPool;
-  //   const halfLineHeight = lineHeight * 0.5;
-  //   const linesLen = lines.length;
-
-  //   let startY = 0;
-  //   const topDiff = lineHeight * 0.5 - lineMaxSizes[0].ascent;
-  //   const bottomDiff = lineHeight * 0.5 - lineMaxSizes[linesLen - 1].descent - 1;
-  //   switch (verticalAlignment) {
-  //     case TextVerticalAlignment.Top:
-  //       startY = rendererHeight * 0.5 - halfLineHeight + topDiff;
-  //       break;
-  //     case TextVerticalAlignment.Center:
-  //       startY = height * 0.5 - halfLineHeight - (bottomDiff - topDiff) * 0.5;
-  //       break;
-  //     case TextVerticalAlignment.Bottom:
-  //       startY = height - rendererHeight * 0.5 - halfLineHeight - bottomDiff;
-  //       break;
-  //   }
-
-  //   let renderDataCount = 0;
-  //   let minX = Number.MAX_SAFE_INTEGER;
-  //   let minY = Number.MAX_SAFE_INTEGER;
-  //   let maxX = Number.MIN_SAFE_INTEGER;
-  //   let maxY = Number.MIN_SAFE_INTEGER;
-  //   let lastLineIndex = linesLen - 1;
-  //   for (let i = 0; i < linesLen; ++i) {
-  //     const line = lines[i];
-  //     const lineWidth = lineWidths[i];
-
-  //     let startX = 0;
-  //     switch (horizontalAlignment) {
-  //       case TextHorizontalAlignment.Left:
-  //         startX = -halfRendererWidth;
-  //         break;
-  //       case TextHorizontalAlignment.Center:
-  //         startX = -lineWidth * 0.5;
-  //         break;
-  //       case TextHorizontalAlignment.Right:
-  //         startX = halfRendererWidth - lineWidth;
-  //         break;
-  //     }
-  //     const m = line.length - 1;
-  //     if (m > 0) {
-  //       for (let j = 0; j <= m; ++j) {
-  //         const char = line[j];
-  //         const charInfo = charFont._getCharInfo(char);
-  //         if (charInfo.h > 0) {
-  //           const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.get());
-  //           const { renderData, localPositions } = charRenderData;
-  //           charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
-  //           renderData.color = color;
-  //           renderData.uvs = charInfo.uvs;
-
-  //           const { w, ascent, descent } = charInfo;
-  //           const left = startX * pixelsPerUnitReciprocal;
-  //           const right = (startX + w) * pixelsPerUnitReciprocal;
-  //           const top = (startY + ascent) * pixelsPerUnitReciprocal;
-  //           const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
-  //           localPositions.set(left, top, right, bottom);
-
-  //           i === 0 && (maxY = Math.max(maxY, top));
-  //           i === lastLineIndex && (minY = Math.min(minY, bottom));
-  //           j === 0 && (minX = Math.min(minX, left));
-  //           j === m && (maxX = Math.max(maxX, right));
-  //         } else {
-  //           const posX = startX * pixelsPerUnitReciprocal;
-  //           const posY = startY * pixelsPerUnitReciprocal;
-  //           i === 0 && (maxY = Math.max(maxY, posY));
-  //           i === lastLineIndex && (minY = Math.min(minY, posY));
-  //           j === 0 && (minX = Math.min(minX, posX));
-  //           j === m && (maxX = Math.max(maxX, posX));
-  //         }
-  //         startX += charInfo.xAdvance;
-  //       }
-  //     } else {
-  //       const posX = startX * pixelsPerUnitReciprocal;
-  //       const posY = startY * pixelsPerUnitReciprocal;
-  //       i === 0 && (maxY = Math.max(maxY, posY));
-  //       i === lastLineIndex && (minY = Math.min(minY, posY));
-  //       minX = Math.min(minX, posX);
-  //       maxX = Math.max(maxX, posX);
-  //     }
-
-  //     startY -= lineHeight;
-  //   }
-
-  //   min.set(minX, minY, 0);
-  //   max.set(maxX, maxY, 0);
-
-  //   // Revert excess render data to pool.
-  //   const lastRenderDataCount = charRenderDatas.length;
-  //   if (lastRenderDataCount > renderDataCount) {
-  //     for (let i = renderDataCount; i < lastRenderDataCount; ++i) {
-  //       charRenderDataPool.put(charRenderDatas[i]);
-  //     }
-  //     charRenderDatas.length = renderDataCount;
-  //   }
-
-  //   charFont._getLastIndex() > 0 &&
-  //     charRenderDatas.sort((a, b) => {
-  //       return a.texture.instanceId - b.texture.instanceId;
-  //     });
-  // }
-
   private _updateLocalData(): void {
     const { color, horizontalAlignment, verticalAlignment, _charRenderDatas: charRenderDatas } = this;
     const { min, max } = this._localBounds;
@@ -633,6 +515,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
 
     let renderDataCount = 0;
     let firstLine = -1;
+    let firstRow = -1;
     let minX = Number.MAX_SAFE_INTEGER;
     let minY = Number.MAX_SAFE_INTEGER;
     let maxX = Number.MIN_SAFE_INTEGER;
@@ -655,7 +538,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
         if (firstLine < 0) {
           firstLine = i;
         }
-        let firstRow = -1;
+        firstRow = -1;
         for (let j = 0, m = line.length - 1; j <= m; ++j) {
           const char = line[j];
           const charInfo = charFont._getCharInfo(char);
