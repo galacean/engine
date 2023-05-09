@@ -248,7 +248,7 @@ export class BlendShapeManager {
       if (useTexture) {
         this._updateTextureArray(vertexCount, createHost);
       } else {
-        this._updateVertexBuffers(vertexCount, this._modelMesh.vertexBufferBindings.length - 1, createHost); // The last buffer is blend shape buffer
+        this._updateVertexBuffers(vertexCount, createHost);
       }
     }
   }
@@ -331,13 +331,14 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _updateVertexBuffers(vertexCount: number, bufferOffset: number, force: boolean): void {
+  _updateVertexBuffers(vertexCount: number, force: boolean): void {
     const { _blendShapes: blendShapes, _maxCountSingleVertexBuffer: maxCountSingleBuffer } = this;
     const { _vertices: vertices, _vertexBuffers: vertexBuffers, _storeInVertexBufferInfo: storeInfos } = this;
 
     const subDataDirtyFlags = this._subDataDirtyFlags;
     const blendShapeFloatStride = this._vertexElementCount * 3;
     const blendShapeByteStride = blendShapeFloatStride * 4;
+    const bufferOffset = this._bufferBindingOffset;
 
     // @todo: should fix bug when dataChangedFlag is true
     for (let i = 0, n = blendShapes.length; i < n; i++) {
