@@ -2,11 +2,11 @@ import { Vector2, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { VertexElement } from "../graphic/VertexElement";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -248,7 +248,7 @@ export class BlendShapeManager {
       if (useTexture) {
         this._updateTextureArray(vertexCount, createHost);
       } else {
-        this._updateVertexBuffers(vertexCount, createHost);
+        this._updateVertexBuffers(vertexCount, this._modelMesh.vertexBufferBindings.length - 1, createHost); // The last buffer is blend shape buffer
       }
     }
   }
@@ -331,7 +331,7 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _updateVertexBuffers(vertexCount: number, force: boolean): void {
+  _updateVertexBuffers(vertexCount: number, bufferOffset: number, force: boolean): void {
     const { _blendShapes: blendShapes, _maxCountSingleVertexBuffer: maxCountSingleBuffer } = this;
     const { _vertices: vertices, _vertexBuffers: vertexBuffers, _storeInVertexBufferInfo: storeInfos } = this;
 
@@ -359,7 +359,7 @@ export class BlendShapeManager {
 
         let storeInfo = storeInfos[i];
         storeInfo || (storeInfos[i] = storeInfo = new Vector2());
-        storeInfo.set(bufferIndex + 1, indexInBuffer * blendShapeByteStride); // BlendShape buffer is start from 1
+        storeInfo.set(bufferOffset + bufferIndex, indexInBuffer * blendShapeByteStride); // BufferOffset is mesh vertexBuffer offset
 
         const { deltaPositions } = endFrame;
         for (let j = 0; j < vertexCount; j++) {
