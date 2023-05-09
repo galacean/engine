@@ -229,7 +229,6 @@ describe("camera test", function () {
     expect(camera.projectionMatrix).to.deep.eq(camera.viewMatrix);
 
     // Test orthographic projection matrix
-    //camera.isOrthographic = true;
     camera.orthographicSize = 5;
     Matrix.ortho(
       -camera.orthographicSize,
@@ -240,7 +239,24 @@ describe("camera test", function () {
       camera.farClipPlane,
       camera.viewMatrix
     );
-    expect(camera.projectionMatrix).not.to.eq(camera.viewMatrix);
+    const projectionMatrix = camera.projectionMatrix.elements;
+    const viewMatrix = camera.viewMatrix.elements;
+    //No matter the value of orthographicSize changes, the following equation is always true.
+    expect(projectionMatrix[1] + viewMatrix[1]).to.eq(0);
+    expect(projectionMatrix[2] + viewMatrix[2]).to.eq(0);
+    expect(projectionMatrix[3] + viewMatrix[3]).to.eq(0);
+    expect(projectionMatrix[4] + viewMatrix[4]).to.eq(0);
+    expect(projectionMatrix[5]).to.be.closeTo(projectionMatrix[0] * 2, 0.1, "Result should match expected value");
+    expect(projectionMatrix[6] + viewMatrix[6]).to.eq(0);
+    expect(projectionMatrix[7] + viewMatrix[7]).to.eq(0);
+    expect(projectionMatrix[8] + viewMatrix[8]).to.eq(0);
+    expect(projectionMatrix[9] + viewMatrix[9]).to.eq(0);
+    expect(projectionMatrix[10]).to.eq(viewMatrix[14]);
+    expect(projectionMatrix[11]).to.eq(-viewMatrix[15]);
+    expect(projectionMatrix[12]).to.eq(-viewMatrix[12]);
+    expect(projectionMatrix[13]).to.eq(-viewMatrix[13]);
+    expect(projectionMatrix[14] - projectionMatrix[0]).to.be.closeTo(viewMatrix[14], 0.1, "Result should match expected value");
+    expect(projectionMatrix[15]).to.eq(viewMatrix[11]);
 
     // Test reset projection matrix
     camera.projectionMatrix = camera.viewMatrix;
