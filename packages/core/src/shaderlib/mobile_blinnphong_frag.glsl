@@ -1,8 +1,8 @@
     #ifdef MATERIAL_HAS_NORMALTEXTURE
-        mat3 tbn = getTBN();
-        vec3 N = getNormalByNormalTexture(tbn, material_NormalTexture, material_NormalIntensity, v_uv);
+        mat3 tbn = getTBN(gl_FrontFacing);
+        vec3 N = getNormalByNormalTexture(tbn, material_NormalTexture, material_NormalIntensity, v_uv, gl_FrontFacing);
     #else
-        vec3 N = getNormal();
+        vec3 N = getNormal(gl_FrontFacing);
     #endif
 
     vec3 lightDiffuse = vec3( 0.0, 0.0, 0.0 );

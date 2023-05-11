@@ -2,7 +2,10 @@ Geometry geometry;
 Material material;
 ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );
 
-initGeometry(geometry);
+// gl_FrontFacing has random value on Adreno GPUs
+// the Adreno bug is only when gl_FrontFacing is inside a function
+// https://bugs.chromium.org/p/chromium/issues/detail?id=1154842
+initGeometry(geometry, gl_FrontFacing);
 initMaterial(material, geometry);
 
 // Direct Light
