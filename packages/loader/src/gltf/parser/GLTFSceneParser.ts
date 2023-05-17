@@ -135,6 +135,13 @@ export class GLTFSceneParser extends GLTFParser {
       const material = materials?.[materialIndex] || GLTFSceneParser._getDefaultMaterial(engine);
       renderer.setMaterial(material);
 
+      // Enable vertex color if mesh has COLOR_0 vertex element
+      mesh.vertexElements.forEach((element) => {
+        if (element.semantic === "COLOR_0") {
+          renderer.enableVertexColor = true;
+        }
+      });
+
       GLTFParser.executeExtensionsAdditiveAndParse(gltfPrimitive.extensions, context, renderer, gltfPrimitive);
     }
   }

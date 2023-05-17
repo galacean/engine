@@ -1,5 +1,14 @@
-import { BoundingBox, Color, Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { Sprite, SpriteDrawMode, SpriteRenderer, SpriteTileMode, Texture2D, TextureFormat } from "@galacean/engine-core";
+import { Color, Vector2, Vector4, Rect, Vector3 } from "@galacean/engine-math";
+import {
+  Sprite,
+  SpriteDrawMode,
+  SpriteMaskInteraction,
+  SpriteMaskLayer,
+  SpriteRenderer,
+  SpriteTileMode,
+  Texture2D,
+  TextureFormat
+} from "@galacean/engine-core";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
@@ -32,16 +41,42 @@ describe("SpriteRenderer", async () => {
     const texture = new Texture2D(engine, 100, 100);
     const sprite = new Sprite(engine, texture);
     spriteRenderer.sprite = sprite;
-
     expect(spriteRenderer.sprite).to.eq(sprite);
+    spriteRenderer.sprite = sprite;
+    expect(spriteRenderer.sprite).to.eq(sprite);
+    spriteRenderer.sprite = null;
+    expect(spriteRenderer.sprite).to.eq(null);
+  });
+
+  it("get set size", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    expect(spriteRenderer.width).to.eq(0);
+    expect(spriteRenderer.height).to.eq(0);
+
+    const texture2d = new Texture2D(engine, 100, 200);
+    const sprite = new Sprite(engine, texture2d);
+    spriteRenderer.sprite = sprite;
+    expect(spriteRenderer.width).to.eq(1);
+    expect(spriteRenderer.height).to.eq(2);
+
+    spriteRenderer.sprite = null;
+    expect(spriteRenderer.width).to.eq(0);
+    expect(spriteRenderer.height).to.eq(0);
+
+    spriteRenderer.width = 10;
+    spriteRenderer.height = 20;
+    expect(spriteRenderer.width).to.eq(10);
+    expect(spriteRenderer.height).to.eq(20);
   });
 
   it("get set color", () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
     spriteRenderer.color.set(1, 0, 0, 1);
-
     expect(Color.equals(spriteRenderer.color, new Color(1, 0, 0, 1))).to.eq(true);
+    spriteRenderer.color = new Color(0, 1, 0, 1);
+    expect(spriteRenderer.color).to.deep.eq(new Color(0, 1, 0, 1));
   });
 
   it("get set flip", () => {
@@ -68,6 +103,7 @@ describe("SpriteRenderer", async () => {
   it("get set tileMode", () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     spriteRenderer.tileMode = SpriteTileMode.Adaptive;
     expect(spriteRenderer.tileMode).to.eq(SpriteTileMode.Adaptive);
     spriteRenderer.tileMode = SpriteTileMode.Continuous;
@@ -77,6 +113,7 @@ describe("SpriteRenderer", async () => {
   it("get set tiledAdaptiveThreshold", () => {
     const rootEntity = scene.getRootEntity();
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.drawMode = SpriteDrawMode.Tiled;
     spriteRenderer.tiledAdaptiveThreshold = 0.3;
     expect(spriteRenderer.tiledAdaptiveThreshold).to.eq(0.3);
     spriteRenderer.tiledAdaptiveThreshold = 0.0;
@@ -94,6 +131,8 @@ describe("SpriteRenderer", async () => {
     const texture2D = new Texture2D(engine, 200, 300, TextureFormat.R8G8B8A8, false);
     const sprite = new Sprite(engine, texture2D);
     const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    expect(Vector3.equals(spriteRenderer.bounds.min, new Vector3(0, 0, 0))).to.eq(true);
+    expect(Vector3.equals(spriteRenderer.bounds.max, new Vector3(0, 0, 0))).to.eq(true);
     spriteRenderer.sprite = sprite;
     spriteRenderer.drawMode = SpriteDrawMode.Simple;
     spriteRenderer.width = 4;
@@ -1253,5 +1292,154 @@ describe("SpriteRenderer", async () => {
     expect(Vector2.equals(renderData.uvs[77], new Vector2(1, 0.3))).to.eq(true);
     expect(Vector2.equals(renderData.uvs[78], new Vector2(0.7, 0))).to.eq(true);
     expect(Vector2.equals(renderData.uvs[79], new Vector2(1, 0))).to.eq(true);
+  });
+
+  it("get set maskLayer", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.maskLayer = SpriteMaskLayer.Layer10;
+    expect(spriteRenderer.maskLayer).to.eq(SpriteMaskLayer.Layer10);
+  });
+
+  it("get set maskInteraction", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleInsideMask;
+    expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.VisibleInsideMask);
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.VisibleOutsideMask;
+    expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.VisibleOutsideMask);
+    spriteRenderer.maskInteraction = SpriteMaskInteraction.None;
+    expect(spriteRenderer.maskInteraction).to.eq(SpriteMaskInteraction.None);
+  });
+
+  it("DirtyFlag", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    const texture2d = new Texture2D(engine, 100, 200);
+    const sprite = new Sprite(engine);
+    spriteRenderer.sprite = sprite;
+    // @ts-ignore
+    const property = SpriteRenderer._textureProperty;
+    expect(spriteRenderer.shaderData.getTexture(property)).to.eq(null);
+    sprite.texture = texture2d;
+    expect(spriteRenderer.shaderData.getTexture(property)).to.eq(texture2d);
+
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x5;
+    sprite.width = 10;
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x5)).to.eq(true);
+
+    spriteRenderer.drawMode = SpriteDrawMode.Tiled;
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x7;
+    sprite.width = 11;
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x7)).to.eq(true);
+
+    spriteRenderer.drawMode = SpriteDrawMode.Sliced;
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x5;
+    sprite.width = 12;
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x5)).to.eq(true);
+
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x3;
+    sprite.border = new Vector4();
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x3)).to.eq(true);
+
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x3;
+    sprite.region = new Rect();
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x3)).to.eq(true);
+
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x3;
+    sprite.atlasRegionOffset = new Vector4();
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x3)).to.eq(true);
+
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x2;
+    sprite.atlasRegion = new Rect();
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x2)).to.eq(true);
+
+    // @ts-ignore
+    spriteRenderer._dirtyUpdateFlag &= ~0x1;
+    sprite.pivot = new Vector2(0.3, 0.2);
+    // @ts-ignore
+    expect(!!(spriteRenderer._dirtyUpdateFlag & 0x1)).to.eq(true);
+  });
+
+  it("clone", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    const texture2d = new Texture2D(engine, 100, 200);
+    const sprite = new Sprite(engine, texture2d);
+    spriteRenderer.sprite = sprite;
+    spriteRenderer.drawMode = SpriteDrawMode.Sliced;
+
+    const rootEntityClone = rootEntity.clone();
+    const spriteRendererClone = rootEntityClone.getComponent(SpriteRenderer);
+    expect(spriteRendererClone.sprite).to.deep.eq(spriteRenderer.sprite);
+    expect(spriteRendererClone.drawMode).to.eq(SpriteDrawMode.Sliced);
+  });
+
+  it("destroy", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    spriteRenderer.sprite = new Sprite(engine, new Texture2D(engine, 100, 200));
+    spriteRenderer.destroy();
+    expect(spriteRenderer.sprite).to.eq(null);
+    expect(spriteRenderer.color).to.eq(null);
+    // @ts-ignore
+    expect(spriteRenderer._assembler).to.eq(null);
+    // @ts-ignore
+    expect(spriteRenderer._verticesData).to.eq(null);
+  });
+
+  it("_render", () => {
+    const rootEntity = scene.getRootEntity();
+    const spriteRenderer = rootEntity.addComponent(SpriteRenderer);
+    const texture2d = new Texture2D(engine, 100, 200);
+    const context = { camera: { _renderPipeline: { pushRenderData: () => {} } } };
+    // @ts-ignore
+    spriteRenderer._render(context);
+    // @ts-ignore
+    let { positions, uvs } = spriteRenderer._verticesData;
+    expect(positions[0]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[1]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[2]).to.deep.eq(new Vector3(0, 0, 0));
+    expect(positions[3]).to.deep.eq(new Vector3(0, 0, 0));
+
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[1]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[3]).to.deep.eq(new Vector2(0, 0));
+    // @ts-ignore
+    const { min, max } = spriteRenderer._bounds;
+    expect(min).to.deep.eq(new Vector3(0, 0, 0));
+    expect(max).to.deep.eq(new Vector3(0, 0, 0));
+
+    const sprite = new Sprite(engine, texture2d);
+    spriteRenderer.sprite = sprite;
+    // @ts-ignore
+    spriteRenderer._render(context);
+    // @ts-ignore
+    expect(positions[0]).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(positions[1]).to.deep.eq(new Vector3(0.5, -1, 0));
+    expect(positions[2]).to.deep.eq(new Vector3(-0.5, 1, 0));
+    expect(positions[3]).to.deep.eq(new Vector3(0.5, 1, 0));
+    expect(uvs[0]).to.deep.eq(new Vector2(0, 1));
+    expect(uvs[1]).to.deep.eq(new Vector2(1, 1));
+    expect(uvs[2]).to.deep.eq(new Vector2(0, 0));
+    expect(uvs[3]).to.deep.eq(new Vector2(1, 0));
+    // @ts-ignore
+    expect(min).to.deep.eq(new Vector3(-0.5, -1, 0));
+    expect(max).to.deep.eq(new Vector3(0.5, 1, 0));
   });
 });
