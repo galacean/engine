@@ -62,6 +62,7 @@ export class Scene extends EngineObject {
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
+  private _sunlightVector3: Vector3 = new Vector3();
 
   /**
    *  Number of cascades to use for directional light shadows.
@@ -390,7 +391,14 @@ export class Scene extends EngineObject {
     const sunLightIndex = lightManager._getSunLightIndex();
     if (sunLightIndex !== -1) {
       const sunlight = lightManager._directLights.get(sunLightIndex);
-      shaderData.setColor(Scene._sunlightColorProperty, sunlight.color);
+      const sunlightColor = sunlight.color;
+      const sunlightIntensity = sunlight.intensity;
+      this._sunlightVector3.set(
+        sunlightColor.r * sunlightIntensity,
+        sunlightColor.g * sunlightIntensity,
+        sunlightColor.b * sunlightIntensity
+      );
+      shaderData.setVector3(Scene._sunlightColorProperty, this._sunlightVector3);
       shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
       this._sunLight = sunlight;
     }
