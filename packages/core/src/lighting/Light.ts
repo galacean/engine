@@ -79,9 +79,10 @@ export abstract class Light extends Component {
   abstract get _shadowProjectionMatrix(): Matrix;
 
   /**
+   * Light Color, include intensity.
    * @internal
    */
-  protected _getLightColor(): Color {
+  _getLightIntensityColor(): Color {
     this._lightColor.r = this.color.r * this.intensity;
     this._lightColor.g = this.color.g * this.intensity;
     this._lightColor.b = this.color.b * this.intensity;
