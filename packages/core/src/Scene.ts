@@ -21,6 +21,8 @@ import { ShadowType } from "./shadow/enum/ShadowType";
 export class Scene extends EngineObject {
   private static _fogColorProperty = Shader.getPropertyByName("oasis_FogColor");
   private static _fogParamsProperty = Shader.getPropertyByName("oasis_FogParams");
+  private static _sunlightColorProperty = Shader.getPropertyByName("galacean_SunlightColor");
+  private static _sunlightDirectionProperty = Shader.getPropertyByName("galacean_SunlightDirection");
 
   /** Scene name. */
   name: string;
@@ -387,7 +389,10 @@ export class Scene extends EngineObject {
     lightManager._updateShaderData(this.shaderData);
     const sunLightIndex = lightManager._getSunLightIndex();
     if (sunLightIndex !== -1) {
-      this._sunLight = lightManager._directLights.get(sunLightIndex);
+      const sunlight = lightManager._directLights.get(sunLightIndex);
+      shaderData.setColor(Scene._sunlightColorProperty, sunlight.color);
+      shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
+      this._sunLight = sunlight;
     }
 
     if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
