@@ -161,7 +161,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
           characterController._createPXController(this, shape);
         }
       }
-      this._pxScene.addController(characterController._pxController);
     }
     characterController._pxManager = this;
   }
