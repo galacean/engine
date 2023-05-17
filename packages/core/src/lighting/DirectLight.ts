@@ -59,7 +59,7 @@ export class DirectLight extends Light {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
-    const lightColor = this.lightColor;
+    const lightColor = this._getLightIntensityColor();
     const direction = this.direction;
 
     const data = DirectLight._combinedData;

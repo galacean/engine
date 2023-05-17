@@ -94,7 +94,7 @@ export class SpotLight extends Light {
     const penumbraCosStart = lightIndex;
     const angleCosStart = lightIndex;
 
-    const lightColor = this.lightColor;
+    const lightColor = this._getLightIntensityColor();
     const position = this.position;
     const direction = this.direction;
 

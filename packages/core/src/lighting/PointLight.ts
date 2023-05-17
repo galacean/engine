@@ -57,7 +57,7 @@ export class PointLight extends Light {
     const positionStart = lightIndex * 3;
     const distanceStart = lightIndex;
 
-    const lightColor = this.lightColor;
+    const lightColor = this._getLightIntensityColor();
     const lightPosition = this.position;
 
     const data = PointLight._combinedData;
