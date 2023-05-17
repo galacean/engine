@@ -1,4 +1,5 @@
 import { Color, Matrix, Vector3 } from "@galacean/engine-math";
+import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -52,6 +53,7 @@ export class PointLight extends Light {
    * @internal
    */
   _appendData(lightIndex: number): void {
+    const isLinearColorSpace = this.engine.settings.colorSpace === ColorSpace.Linear;
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const positionStart = lightIndex * 3;
@@ -66,9 +68,9 @@ export class PointLight extends Light {
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
-    data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
-    data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
+    data.color[colorStart] = isLinearColorSpace ? Color.gammaToLinearSpace(lightColor.r) : lightColor.r;
+    data.color[colorStart + 1] = isLinearColorSpace ? Color.gammaToLinearSpace(lightColor.g) : lightColor.g;
+    data.color[colorStart + 2] = isLinearColorSpace ? Color.gammaToLinearSpace(lightColor.b) : lightColor.b;
     data.position[positionStart] = lightPosition.x;
     data.position[positionStart + 1] = lightPosition.y;
     data.position[positionStart + 2] = lightPosition.z;
