@@ -43,7 +43,7 @@ export abstract class Light extends Component {
   private _lightColor: Color = new Color();
 
   /**
-   * Light Color.
+   * Light Color, exclude intensity.
    */
   get color(): Color {
     return this._color;
@@ -53,6 +53,17 @@ export abstract class Light extends Component {
     if (this._color !== value) {
       this._color.copyFrom(value);
     }
+  }
+
+  /**
+   * Light Color, include intensity.
+   */
+  get lightColor(): Color {
+    this._lightColor.r = this.color.r * this.intensity;
+    this._lightColor.g = this.color.g * this.intensity;
+    this._lightColor.b = this.color.b * this.intensity;
+    this._lightColor.a = this.color.a * this.intensity;
+    return this._lightColor;
   }
 
   /**
@@ -77,15 +88,4 @@ export abstract class Light extends Component {
    * @internal
    */
   abstract get _shadowProjectionMatrix(): Matrix;
-
-  /**
-   * @internal
-   */
-  protected _getLightColor(): Color {
-    this._lightColor.r = this.color.r * this.intensity;
-    this._lightColor.g = this.color.g * this.intensity;
-    this._lightColor.b = this.color.b * this.intensity;
-    this._lightColor.a = this.color.a * this.intensity;
-    return this._lightColor;
-  }
 }
