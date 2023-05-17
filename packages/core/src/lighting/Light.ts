@@ -56,17 +56,6 @@ export abstract class Light extends Component {
   }
 
   /**
-   * Light Color, include intensity.
-   */
-  get lightColor(): Color {
-    this._lightColor.r = this.color.r * this.intensity;
-    this._lightColor.g = this.color.g * this.intensity;
-    this._lightColor.b = this.color.b * this.intensity;
-    this._lightColor.a = this.color.a * this.intensity;
-    return this._lightColor;
-  }
-
-  /**
    * View matrix.
    */
   get viewMatrix(): Matrix {
@@ -82,6 +71,18 @@ export abstract class Light extends Component {
     if (!this._inverseViewMat) this._inverseViewMat = new Matrix();
     Matrix.invert(this.viewMatrix, this._inverseViewMat);
     return this._inverseViewMat;
+  }
+
+  /**
+   * Light Color, include intensity.
+   * @internal
+   */
+  get lightColor(): Color {
+    this._lightColor.r = this.color.r * this.intensity;
+    this._lightColor.g = this.color.g * this.intensity;
+    this._lightColor.b = this.color.b * this.intensity;
+    this._lightColor.a = this.color.a * this.intensity;
+    return this._lightColor;
   }
 
   /**
