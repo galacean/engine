@@ -57,7 +57,6 @@ export class DirectLight extends Light {
    * @internal
    */
   _appendData(lightIndex: number): void {
-    const isLinearColorSpace = this.engine.settings.colorSpace === ColorSpace.Linear;
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
@@ -70,9 +69,15 @@ export class DirectLight extends Light {
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    data.color[colorStart] = isLinearColorSpace ? Color.gammaToLinearSpace(lightColor.r) : lightColor.r;
-    data.color[colorStart + 1] = isLinearColorSpace ? Color.gammaToLinearSpace(lightColor.g) : lightColor.g;
-    data.color[colorStart + 2] = isLinearColorSpace ? Color.gammaToLinearSpace(lightColor.b) : lightColor.b;
+    if (this.engine.settings.colorSpace === ColorSpace.Linear) {
+      data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
+      data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
+      data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
+    } else {
+      data.color[colorStart] = lightColor.r;
+      data.color[colorStart + 1] = lightColor.g;
+      data.color[colorStart + 2] = lightColor.b;
+    }
     data.direction[directionStart] = direction.x;
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;
