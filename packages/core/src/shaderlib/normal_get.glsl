@@ -1,3 +1,6 @@
+// gl_FrontFacing has random value on Adreno GPUs
+// the Adreno bug is only when gl_FrontFacing is inside a function
+// https://bugs.chromium.org/p/chromium/issues/detail?id=1154842
 vec3 getNormal(bool isFrontFacing){
     #ifdef RENDERER_HAS_NORMAL
         vec3 normal = normalize(v_normal);
