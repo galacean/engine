@@ -1,23 +1,33 @@
 import {
   AssetPromise,
   AssetType,
-  BlinnPhongMaterial,
   Loader,
   LoadItem,
-  PBRBaseMaterial,
-  PBRMaterial,
-  PBRSpecularMaterial,
+  Material,
   resourceLoader,
   ResourceManager,
   Shader,
-  Texture2D,
-  UnlitMaterial
+  Texture2D
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 
+function set(obj: Object, path: string, value: any) {
+  const paths = path.split(".");
+  const length = paths.length;
+  let current = obj;
+  for (let i = 0; i < length - 1; i++) {
+    const key = paths[i];
+    if (!current[key]) {
+      current[key] = {};
+    }
+    current = current[key];
+  }
+  current[paths[length - 1]] = value;
+}
+
 @resourceLoader(AssetType.Material, ["json"])
-class MaterialLoader extends Loader<string> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<string> {
+class MaterialLoader extends Loader<Material> {
+  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Material> {
     return new AssetPromise((resolve, reject) => {
       this.request(item.url, {
         ...item,
@@ -26,27 +36,7 @@ class MaterialLoader extends Loader<string> {
         .then((json: { [key: string]: any }) => {
           const engine = resourceManager.engine;
           const { name, shader, shaderData, macros, renderState } = json;
-
-          let material;
-          switch (shader) {
-            case "pbr":
-              material = new PBRMaterial(engine);
-              break;
-            case "pbr-specular":
-              material = new PBRSpecularMaterial(engine);
-              break;
-            case "unlit":
-              material = new UnlitMaterial(engine);
-              break;
-            case "blinn-phong":
-              material = new BlinnPhongMaterial(engine);
-              break;
-            case "bake-pbr":
-              // @todo refactor custom shader later
-              // @ts-ignore
-              material = new PBRBaseMaterial(engine, Shader.find("bake-pbr"));
-              break;
-          }
+          const material = new Material(engine, Shader.find(shader));
           material.name = name;
 
           const texturePromises = new Array<Promise<Texture2D | void>>();
@@ -91,7 +81,7 @@ class MaterialLoader extends Loader<string> {
           }
 
           for (let key in renderState) {
-            material[key] = renderState[key];
+            set(material.renderState, key, renderState[key]);
           }
 
           return Promise.all(texturePromises).then(() => {
