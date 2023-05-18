@@ -1,9 +1,14 @@
-import type { BackgroundMode } from "@galacean/engine-core";
+import type { BackgroundMode, DiffuseMode, ShadowCascadesMode, ShadowResolution } from "@galacean/engine-core";
 import { IReferable } from "@galacean/engine-core/types/asset/IReferable";
 import { IColor } from "../mesh/IModelMesh";
 
 export interface IPrefabFile {
   entities: Array<IEntity>;
+}
+
+export enum SpecularMode {
+  Sky = "Sky",
+  Custom = "Custom"
 }
 
 export interface IScene extends IPrefabFile {
@@ -12,13 +17,25 @@ export interface IScene extends IPrefabFile {
       mode: BackgroundMode;
       color: IColor;
       texture?: IReferable;
-      sky?: IReferable;
+      skyMesh?: IReferable;
+      skyMaterial?: IReferable;
     };
     ambient: {
+      diffuseMode: DiffuseMode;
       ambientLight: IReferable;
+      customAmbientLight: IReferable;
+      customSpecularTexture: IReferable;
       diffuseSolidColor: IColor;
       diffuseIntensity: number;
       specularIntensity: number;
+      specularMode: SpecularMode;
+      bakerResolution: number;
+    };
+    shadow?: {
+      castShadows: boolean;
+      shadowResolution: ShadowResolution;
+      shadowDistance: number;
+      shadowCascades: ShadowCascadesMode;
     };
   };
   files: Array<{ id: string; type: string; virtualPath: string; path: string }>;
@@ -63,3 +80,18 @@ export type IClassObject = {
 export type IBasicType = string | number | boolean | null | undefined | IAssetRef | IClassObject | IMethodParams;
 
 export type IAssetRef = { key?: string; refId: string };
+
+export interface IPrefabMaterial {
+  name: string;
+  shader: string;
+  shaderData: {
+    [key: string]: {
+      type: "Vector2" | "Vector3" | "Vector4" | "Color" | "Float" | "Texture";
+      value: any;
+    };
+  };
+  macros: Array<{ name: string; value?: string }>;
+  renderState: {
+    [key: string]: any;
+  };
+}

@@ -12,14 +12,14 @@ import {
   ResourceManager,
   Scene
 } from "@galacean/engine-core";
-import { IClassObject, ReflectionParser, SceneParser } from "./resource-deserialize";
+import { IClassObject, IScene, ReflectionParser, SceneParser } from "./resource-deserialize";
 
 @resourceLoader(AssetType.Scene, ["prefab"], true)
 class SceneLoader extends Loader<Scene> {
   load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<Scene> {
     const { engine } = resourceManager;
     return new AssetPromise((resolve, reject) => {
-      this.request<any>(item.url, { type: "json" })
+      this.request<IScene>(item.url, { type: "json" })
         .then((data) => {
           // @ts-ignore
           engine.resourceManager.initVirtualResources(data.files);

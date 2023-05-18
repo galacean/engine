@@ -10,6 +10,7 @@ import {
   Texture2D
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { IPrefabMaterial } from "./resource-deserialize/resources/prefab/PrefabDesign";
 
 function set(obj: Object, path: string, value: any) {
   const paths = path.split(".");
@@ -33,7 +34,7 @@ class MaterialLoader extends Loader<Material> {
         ...item,
         type: "json"
       })
-        .then((json: { [key: string]: any }) => {
+        .then((json: IPrefabMaterial) => {
           const engine = resourceManager.engine;
           const { name, shader, shaderData, macros, renderState } = json;
           const material = new Material(engine, Shader.find(shader));
