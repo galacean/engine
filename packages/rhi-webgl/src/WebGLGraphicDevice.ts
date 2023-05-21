@@ -70,6 +70,10 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
   _readFrameBuffer: WebGLFramebuffer = null;
   /** @interface */
   _mainFrameBuffer: WebGLFramebuffer = null;
+  /** @interface */
+  _mainFrameWidth: number = 0;
+  /** @interface */
+  _mainFrameHeight: number = 0;
   /** @internal */
   _enableGlobalDepthBias: boolean = false;
   /** @internal */
@@ -326,8 +330,8 @@ export class WebGLGraphicDevice implements IHardwareRenderer {
       bufferHeight = renderTarget.height >> mipLevel;
     } else {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this._mainFrameBuffer);
-      bufferWidth = gl.drawingBufferWidth;
-      bufferHeight = gl.drawingBufferHeight;
+      bufferWidth = this._mainFrameWidth || gl.drawingBufferWidth;
+      bufferHeight = this._mainFrameHeight || gl.drawingBufferHeight;
     }
     const width = bufferWidth * viewport.z;
     const height = bufferHeight * viewport.w;

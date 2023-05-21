@@ -5,11 +5,12 @@ import { EnumXRMode } from "./enum/EnumXRMode";
 import { XRCamera } from "./XRCamera";
 import { EnumXREye } from "./enum/EnumXREye";
 import { EnumXRSpaceType } from "./enum/EnumXRSpaceType";
+import { Entity } from "../Entity";
 
 export class XRManager {
-  private _engine: Engine;
   private _mode: EnumXRMode;
-  private _spaceType: EnumXRSpaceType;
+  private _engine: Engine;
+  private _spaceType: EnumXRSpaceType = EnumXRSpaceType.Local;
   private _session: XRSession;
   private _requestId: number;
   private _isPaused: boolean = true;
@@ -46,13 +47,18 @@ export class XRManager {
         reject(new Error("WebXR isn't available"));
         return;
       }
-      navigator.xr.isSessionSupported(mode).then((isSupported: boolean) => {
-        if (isSupported) {
-          resolve();
-        } else {
-          reject(new Error("The current context doesn't support WebXR"));
+      navigator.xr.isSessionSupported(mode).then(
+        (isSupported: boolean) => {
+          if (isSupported) {
+            resolve();
+          } else {
+            reject(new Error("The current context doesn't support WebXR"));
+          }
+        },
+        (reason) => {
+          reject(reason);
         }
-      });
+      );
     });
   }
 
@@ -62,60 +68,78 @@ export class XRManager {
     requiredFeatures?: string[],
     optionalFeatures?: string[]
   ): Promise<void> {
-    if (this._session) {
-      return;
-    }
-    if (requiredFeatures) {
-      requiredFeatures.push(spaceType);
-    } else {
-      requiredFeatures = [spaceType];
-    }
-    const session = (this._session = await navigator.xr.requestSession(mode, { requiredFeatures, optionalFeatures }));
-    this._mode = mode;
-    this._spaceType = spaceType;
-    this._addXRListener();
-    const gl = <WebGLRenderingContext>this._engine._hardwareRenderer.gl;
-    const attributes = this._engine._hardwareRenderer.gl.getContextAttributes();
-    if (!attributes) {
-      throw Error("GetContextAttributes Error!");
-    }
-    if (!!!attributes.xrCompatible) {
-      // 将 webgl
-      await gl.makeXRCompatible();
-    } else {
-      throw Error("MakeXRCompatible Error!");
-    }
-    const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
-    if (session.renderState.layers === undefined) {
-      const layerInit = {
-        antialias: attributes.antialias,
-        alpha: attributes.alpha,
-        depth: attributes.depth,
-        stencil: attributes.stencil,
-        framebufferScaleFactor: scaleFactor
-      };
-      this._xrBaseLayer = new XRWebGLLayer(session, gl, layerInit);
-      session.updateRenderState(<XRRenderStateInit>{
-        baseLayer: this._xrBaseLayer
-      });
-    } else if (gl instanceof WebGLRenderingContext) {
-      const layerInit = {
-        antialias: true,
-        alpha: attributes.alpha,
-        depth: attributes.depth,
-        stencil: attributes.stencil,
-        framebufferScaleFactor: scaleFactor
-      };
-      this._xrBaseLayer = new XRWebGLLayer(session, gl, layerInit);
-      session.updateRenderState(<XRRenderStateInit>{
-        layers: [this._xrBaseLayer]
-      });
-    }
-    this._xrSpace = await session.requestReferenceSpace(this._spaceType);
+    return new Promise((resolve, reject) => {
+      if (this._session) {
+        resolve();
+      }
+      if (spaceType) {
+        this._spaceType = spaceType;
+        if (requiredFeatures) {
+          requiredFeatures.push(spaceType);
+        } else {
+          requiredFeatures = [spaceType];
+        }
+      }
+      optionalFeatures ||= [];
+      navigator.xr.requestSession(mode, { requiredFeatures, optionalFeatures }).then((session) => {
+        this._session = session;
+        this._mode = mode;
+        this._addXRListener();
+        const gl = <WebGLRenderingContext>this._engine._hardwareRenderer.gl;
+        const attributes = gl.getContextAttributes();
+        if (!attributes) {
+          reject(Error("GetContextAttributes Error!"));
+        }
+        if (!!!attributes.xrCompatible) {
+          gl.makeXRCompatible().then(() => {
+            console.log("makeXRCompatible success");
+            const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
+            if (session.renderState.layers === undefined || !!!this._engine._hardwareRenderer.isWebGL2) {
+              const layerInit = {
+                antialias: session.renderState.layers === undefined ? attributes.antialias : true,
+                alpha: true,
+                depth: attributes.depth,
+                stencil: attributes.stencil,
+                framebufferScaleFactor: scaleFactor
+              };
+              this._xrBaseLayer = new XRWebGLLayer(session, gl, layerInit);
+              session.updateRenderState({
+                baseLayer: this._xrBaseLayer
+              });
+            } else {
+              // console.log("makeXRCompatible WebGLRenderingContext");
+              // const layerInit = {
+              //   antialias: true,
+              //   alpha: attributes.alpha,
+              //   depth: attributes.depth,
+              //   stencil: attributes.stencil,
+              //   framebufferScaleFactor: scaleFactor
+              // };
+              this._xrBaseLayer = new XRWebGLLayer(session, gl);
+              session.updateRenderState(<XRRenderStateInit>{
+                layers: [this._xrBaseLayer]
+              });
+            }
+            session.requestReferenceSpace(this._spaceType).then((value: XRReferenceSpace | XRBoundedReferenceSpace) => {
+              this._xrSpace = value;
+              resolve();
+            }, reject);
+          }, reject);
+        } else {
+          reject(Error("MakeXRCompatible Error!"));
+        }
+      }, reject);
+    });
   }
 
   attachCamera(eye: EnumXREye, camera: XRCamera): void {
     this._xrCameras[eye] = camera;
+  }
+
+  createCamera(eye: EnumXREye, entity: Entity): XRCamera {
+    const camera = entity.addComponent(XRCamera);
+    this._xrCameras[eye] = camera;
+    return camera;
   }
 
   run(): void {
@@ -155,7 +179,10 @@ export class XRManager {
         }
       }
     } else {
-      engine._hardwareRenderer._mainFrameBuffer;
+      const rhi = engine._hardwareRenderer;
+      rhi._mainFrameBuffer = null;
+      rhi._mainFrameWidth = 0;
+      rhi._mainFrameHeight = 0;
     }
     this._requestId = this._session.requestAnimationFrame(this._update);
     engine.update();

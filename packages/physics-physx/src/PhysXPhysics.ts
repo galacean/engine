@@ -90,8 +90,7 @@ export class PhysXPhysics implements IPhysics {
         script.src =
           "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/1.0.0-alpha.4/libs/physx.release.js.js";
       } else if (runtimeMode == PhysXRuntimeMode.WebAssembly) {
-        script.src =
-          "https://gw.alipayobjects.com/os/lib/oasis-engine/physics-physx/1.0.0-alpha.4/libs/physx.release.js";
+        script.src = "/src/runtime/extJS/physx.js"
       }
     });
 

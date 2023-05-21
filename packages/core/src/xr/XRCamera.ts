@@ -2,6 +2,7 @@ import { Matrix, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { Entity } from "../Entity";
 import { EnumXREye } from "./enum/EnumXREye";
+import { CameraClearFlags } from "../enums/CameraClearFlags";
 
 export class XRCamera extends Camera {
   private static _tempMatrix: Matrix = new Matrix();
@@ -32,8 +33,10 @@ export class XRCamera extends Camera {
     const { transform } = this.entity;
     transform.worldMatrix = tempMatrix;
     if (!layer) return;
-    const xrViewport = layer.getViewport(view);
     const { framebufferWidth, framebufferHeight } = layer;
+    this.engine._hardwareRenderer._mainFrameWidth = framebufferWidth;
+    this.engine._hardwareRenderer._mainFrameHeight = framebufferHeight;
+    const xrViewport = layer.getViewport(view);
     const width = xrViewport.width / framebufferWidth;
     const height = xrViewport.height / framebufferHeight;
     const x = xrViewport.x / framebufferWidth;
