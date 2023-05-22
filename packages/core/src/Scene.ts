@@ -198,7 +198,7 @@ export class Scene extends EngineObject {
     const shaderData = this.shaderData;
     shaderData._addReferCount(1);
     this.ambientLight = new AmbientLight();
-    engine.sceneManager._allScenes.push(this);
+    engine.sceneManager._allCreatedScenes.push(this);
 
     shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
     shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
@@ -336,8 +336,8 @@ export class Scene extends EngineObject {
 
     this._destroy();
 
-    const allScenes = this.engine.sceneManager._allScenes;
-    allScenes.splice(allScenes.indexOf(this), 1);
+    const allCreatedScenes = this.engine.sceneManager._allCreatedScenes;
+    allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
   }
 
   /**

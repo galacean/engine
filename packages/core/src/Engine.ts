@@ -301,6 +301,8 @@ export class Engine extends EventDispatcher {
       return;
     }
 
+ 
+
     const time = this._time;
     time._update();
 
@@ -313,11 +315,13 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
-    const scene = this._sceneManager._activeScene;
+    const scenes = this._sceneManager._scenes;
     const componentsManager = this._componentsManager;
-    if (scene) {
-      scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
+    for (let i = 0, n = scenes.length; i < n; i++) {
+      const scene = scenes[i];
+      // tod: 做保护防止数组被破坏，已经进入循环，可以下一帧生效
 
+      scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
       componentsManager.callScriptOnStart();
       this.physicsManager._initialized && this.physicsManager._update(deltaTime);
       this.inputManager._update();
