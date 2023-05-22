@@ -1,4 +1,5 @@
-import { Matrix, Vector3 } from "@galacean/engine-math";
+import { Color, Matrix, Vector3 } from "@galacean/engine-math";
+import { ColorSpace } from "../enums/ColorSpace";
 import { ShaderData } from "../shader";
 import { ShaderProperty } from "../shader/ShaderProperty";
 import { Light } from "./Light";
@@ -59,7 +60,7 @@ export class DirectLight extends Light {
     const cullingMaskStart = lightIndex * 2;
     const colorStart = lightIndex * 3;
     const directionStart = lightIndex * 3;
-    const lightColor = this._getLightColor();
+    const lightColor = this._getLightIntensityColor();
     const direction = this.direction;
 
     const data = DirectLight._combinedData;
@@ -68,9 +69,15 @@ export class DirectLight extends Light {
     data.cullingMask[cullingMaskStart] = cullingMask & 65535;
     data.cullingMask[cullingMaskStart + 1] = (cullingMask >>> 16) & 65535;
 
-    data.color[colorStart] = lightColor.r;
-    data.color[colorStart + 1] = lightColor.g;
-    data.color[colorStart + 2] = lightColor.b;
+    if (this.engine.settings.colorSpace === ColorSpace.Linear) {
+      data.color[colorStart] = Color.gammaToLinearSpace(lightColor.r);
+      data.color[colorStart + 1] = Color.gammaToLinearSpace(lightColor.g);
+      data.color[colorStart + 2] = Color.gammaToLinearSpace(lightColor.b);
+    } else {
+      data.color[colorStart] = lightColor.r;
+      data.color[colorStart + 1] = lightColor.g;
+      data.color[colorStart + 2] = lightColor.b;
+    }
     data.direction[directionStart] = direction.x;
     data.direction[directionStart + 1] = direction.y;
     data.direction[directionStart + 2] = direction.z;

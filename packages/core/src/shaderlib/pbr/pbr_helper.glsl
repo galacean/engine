@@ -17,18 +17,18 @@ float getAARoughnessFactor(vec3 normal) {
     #endif
 }
 
-void initGeometry(out Geometry geometry){
+void initGeometry(out Geometry geometry, bool isFrontFacing){
     geometry.position = v_pos;
     geometry.viewDir =  normalize(camera_Position - v_pos);
 
     #if defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE)
-        mat3 tbn = getTBN();
+        mat3 tbn = getTBN(isFrontFacing);
     #endif
 
     #ifdef MATERIAL_HAS_NORMALTEXTURE
-        geometry.normal = getNormalByNormalTexture(tbn, material_NormalTexture, material_NormalIntensity, v_uv);
+        geometry.normal = getNormalByNormalTexture(tbn, material_NormalTexture, material_NormalIntensity, v_uv, isFrontFacing);
     #else
-        geometry.normal = getNormal();
+        geometry.normal = getNormal(isFrontFacing);
     #endif
 
     geometry.dotNV = saturate( dot(geometry.normal, geometry.viewDir) );
@@ -36,9 +36,9 @@ void initGeometry(out Geometry geometry){
 
     #ifdef MATERIAL_ENABLE_CLEAR_COAT
         #ifdef MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE
-            geometry.clearCoatNormal = getNormalByNormalTexture(tbn, material_ClearCoatNormalTexture, material_NormalIntensity, v_uv);
+            geometry.clearCoatNormal = getNormalByNormalTexture(tbn, material_ClearCoatNormalTexture, material_NormalIntensity, v_uv, isFrontFacing);
         #else
-            geometry.clearCoatNormal = getNormal();
+            geometry.clearCoatNormal = getNormal(isFrontFacing);
         #endif
         geometry.clearCoatDotNV = saturate( dot(geometry.clearCoatNormal, geometry.viewDir) );
     #endif
