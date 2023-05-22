@@ -6,8 +6,11 @@ import { XRCamera } from "./XRCamera";
 import { EnumXREye } from "./enum/EnumXREye";
 import { EnumXRSpaceType } from "./enum/EnumXRSpaceType";
 import { Entity } from "../Entity";
+import { XRInputManager } from "./XRInputManager";
 
 export class XRManager {
+  xrInput: XRInputManager;
+
   private _mode: EnumXRMode;
   private _engine: Engine;
   private _spaceType: EnumXRSpaceType = EnumXRSpaceType.Local;
@@ -177,6 +180,8 @@ export class XRManager {
           const view = views[i];
           xrCameras[EnumXREye[view.eye]]?.updateByEye(view);
         }
+        this.xrInput.updateHandedness(frame, this._xrSpace);
+        this.xrInput.updateSessionEvent();
       }
     } else {
       const rhi = engine._hardwareRenderer;
@@ -197,22 +202,12 @@ export class XRManager {
 
   constructor(engine: Engine) {
     this._engine = engine;
-    // end
-    this._onEnd = this._onEnd.bind(this);
-    // select
-    this._onSelect = this._onSelect.bind(this);
-    this._onSelectStart = this._onSelectStart.bind(this);
-    this._onSelectEnd = this._onSelectEnd.bind(this);
-    // squeeze
-    this._onSqueeze = this._onSqueeze.bind(this);
-    this._onSqueezeStart = this._onSqueezeStart.bind(this);
-    this._onSqueezeEnd = this._onSqueezeEnd.bind(this);
-    // input
-    this._onInputSourcesChange = this._onInputSourcesChange.bind(this);
+    this.xrInput = new XRInputManager(engine);
     this._update = this._update.bind(this);
   }
 
   private _addXRListener() {
+    this.xrInput.init(this._session);
     this._session.addEventListener(EnumXREvent.End, this._onEnd);
   }
 
@@ -223,12 +218,4 @@ export class XRManager {
   private _onEnd(event: Event) {
     this.destroy();
   }
-
-  private _onSelect(event: Event) {}
-  private _onSelectStart(event: Event) {}
-  private _onSelectEnd(event: Event) {}
-  private _onSqueeze(event: Event) {}
-  private _onSqueezeStart(event: Event) {}
-  private _onSqueezeEnd(event: Event) {}
-  private _onInputSourcesChange(event: Event) {}
 }

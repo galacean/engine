@@ -1,7 +1,10 @@
+export { EnumXRHandedness } from "./enum/EnumXRHandedness";
 export { EnumXRSpaceType } from "./enum/EnumXRSpaceType";
 export { EnumXRFeature } from "./enum/EnumXRFeature";
+export { EnumXRButtonBin, EnumXRButtonDec } from "./enum/EnumXRButton";
 export { EnumXREvent } from "./enum/EnumXREvent";
 export { EnumXRMode } from "./enum/EnumXRMode";
 export { EnumXREye } from "./enum/EnumXREye";
 export { XRManager } from "./XRManager";
+export { XRHandle } from "./XRHandle";
 export { XRCamera } from "./XRCamera";

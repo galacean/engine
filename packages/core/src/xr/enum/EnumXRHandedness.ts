@@ -1,5 +1,5 @@
 export enum EnumXRHandedness {
-  none,
-  left,
-  right
+  none = 0,
+  left = 1,
+  right = 2
 }
