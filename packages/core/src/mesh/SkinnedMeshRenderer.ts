@@ -223,9 +223,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
   /**
    * @internal
-   * @override
    */
-  _onDestroy(): void {
+  override _onDestroy(): void {
     super._onDestroy();
     this.rootBone?.transform._updateFlagManager.removeListener(this._onTransformChanged);
     this._jointTexture?.destroy();
