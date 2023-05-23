@@ -1,5 +1,6 @@
 import { AssetPromise } from "./asset/AssetPromise";
 import { Engine } from "./Engine";
+import { SafeLoopArray } from "./SafeLoopArray";
 import { Scene } from "./Scene";
 
 /**
@@ -9,13 +10,13 @@ export class SceneManager {
   /** @internal */
   _allCreatedScenes: Scene[] = [];
   /** @internal */
-  _scenes: Scene[] = [];
+  _scenes: SafeLoopArray<Scene> = new SafeLoopArray<Scene>();
 
   /**
    * Get the scene list.
    */
   get scenes(): ReadonlyArray<Scene> {
-    return this._scenes;
+    return this._scenes.getArray();
   }
 
   /**
@@ -42,6 +43,11 @@ export class SceneManager {
     } else {
       this._scenes.push(scene);
     }
+
+    if (scene.engine !== this.engine) {
+      throw "The scene is not belong to this engine.";
+    }
+
     scene._processActive(true);
   }
 

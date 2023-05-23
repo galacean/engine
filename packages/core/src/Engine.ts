@@ -1,20 +1,9 @@
 import { IPhysics } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
-import { ContentRestorer } from "./asset/ContentRestorer";
-import { ResourceManager } from "./asset/ResourceManager";
-import { EventDispatcher, Logger, Time } from "./base";
-import { GLCapabilityType } from "./base/Constant";
 import { Canvas } from "./Canvas";
-import { ComponentsManager } from "./ComponentsManager";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
-import { ColorSpace } from "./enums/ColorSpace";
-import { InputManager } from "./input";
-import { LightManager } from "./lighting/LightManager";
-import { Material } from "./material/Material";
-import { PhysicsManager } from "./physics";
-import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
 import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -25,18 +14,28 @@ import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
 import { TextRenderData } from "./RenderPipeline/TextRenderData";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { BlendFactor } from "./shader/enums/BlendFactor";
-import { BlendOperation } from "./shader/enums/BlendOperation";
-import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
-import { CompareFunction } from "./shader/enums/CompareFunction";
-import { CullMode } from "./shader/enums/CullMode";
-import { RenderQueueType } from "./shader/enums/RenderQueueType";
+import { ContentRestorer } from "./asset/ContentRestorer";
+import { ResourceManager } from "./asset/ResourceManager";
+import { EventDispatcher, Logger, Time } from "./base";
+import { GLCapabilityType } from "./base/Constant";
+import { ColorSpace } from "./enums/ColorSpace";
+import { InputManager } from "./input";
+import { LightManager } from "./lighting/LightManager";
+import { Material } from "./material/Material";
+import { PhysicsManager } from "./physics";
+import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
+import { BlendFactor } from "./shader/enums/BlendFactor";
+import { BlendOperation } from "./shader/enums/BlendOperation";
+import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
+import { CompareFunction } from "./shader/enums/CompareFunction";
+import { CullMode } from "./shader/enums/CullMode";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
@@ -60,8 +59,7 @@ export class Engine extends EventDispatcher {
 
   /* @internal */
   _lightManager: LightManager = new LightManager();
-  /* @internal */
-  _componentsManager: ComponentsManager = new ComponentsManager();
+
   /* @internal */
   _hardwareRenderer: IHardwareRenderer;
   /* @internal */
@@ -301,8 +299,6 @@ export class Engine extends EventDispatcher {
       return;
     }
 
- 
-
     const time = this._time;
     time._update();
 
@@ -315,28 +311,29 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
-    const scenes = this._sceneManager._scenes;
-    const componentsManager = this._componentsManager;
-    for (let i = 0, n = scenes.length; i < n; i++) {
-      const scene = scenes[i];
-      // tod: 做保护防止数组被破坏，已经进入循环，可以下一帧生效
+    const loopScenes = this._sceneManager._scenes.getLoopArray();
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) {
+        continue;
+      }
 
-      scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
+      const componentsManager = scene._componentsManager;
       componentsManager.callScriptOnStart();
       // 场景独立
       this.physicsManager._initialized && this.physicsManager._update(deltaTime);
 
-      // 
       this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
       this._render(scene);
+
+      if (!this._waitingDestroy) {
+        componentsManager.handlingInvalidScripts();
+      }
     }
 
-    if (!this._waitingDestroy) {
-      componentsManager.handlingInvalidScripts();
-    }
     if (this._waitingDestroy) {
       this._destroy();
     }
@@ -369,7 +366,6 @@ export class Engine extends EventDispatcher {
 
   private _destroy(): void {
     this._sceneManager._destroyAllScene();
-    this._componentsManager.handlingInvalidScripts();
 
     this._resourceManager._destroy();
     this._magentaTexture2D.destroy(true);
@@ -436,7 +432,7 @@ export class Engine extends EventDispatcher {
    */
   _render(scene: Scene): void {
     const cameras = scene._activeCameras;
-    const componentsManager = this._componentsManager;
+    const componentsManager = scene._componentsManager;
     const deltaTime = this.time.deltaTime;
     componentsManager.callRendererOnUpdate(deltaTime);
 

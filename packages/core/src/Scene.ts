@@ -1,6 +1,7 @@
 import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
 import { Camera } from "./Camera";
+import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { EngineObject, Logger } from "./base";
@@ -43,6 +44,8 @@ export class Scene extends EngineObject {
   /** Max Shadow distance. */
   shadowDistance: number = 50;
 
+  /* @internal */
+  _componentsManager: ComponentsManager = new ComponentsManager();
   /** @internal */
   _activeCameras: Camera[] = [];
   /** @internal */
@@ -344,9 +347,12 @@ export class Scene extends EngineObject {
    * @internal
    */
   _attachRenderCamera(camera: Camera): void {
-    const index = this._activeCameras.indexOf(camera);
+    const activeCameras = this._activeCameras;
+    const index = activeCameras.indexOf(camera);
     if (index === -1) {
-      this._activeCameras.push(camera);
+      let index = activeCameras.length;
+      while (--index >= 0 && camera.priority < activeCameras[index].priority);
+      activeCameras.splice(index + 1, 0, camera);
     } else {
       Logger.warn("Camera already attached.");
     }
@@ -356,9 +362,10 @@ export class Scene extends EngineObject {
    * @internal
    */
   _detachRenderCamera(camera: Camera): void {
-    const index = this._activeCameras.indexOf(camera);
+    const activeCameras = this._activeCameras;
+    const index = activeCameras.indexOf(camera);
     if (index !== -1) {
-      this._activeCameras.splice(index, 1);
+      activeCameras.splice(index, 1);
     }
   }
 
@@ -433,6 +440,8 @@ export class Scene extends EngineObject {
     }
     this._activeCameras.length = 0;
     this.shaderData._addReferCount(-1);
+
+    this._componentsManager.handlingInvalidScripts();
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {
