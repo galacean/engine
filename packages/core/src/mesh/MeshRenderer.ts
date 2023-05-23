@@ -68,6 +68,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
     const mesh = this._mesh;
     if (mesh && !mesh.destroyed) {
       mesh._addRefCount(-1);
+      mesh._updateFlagManager.removeListener(this._onMeshChanged);
       this._mesh = null;
     }
   }
