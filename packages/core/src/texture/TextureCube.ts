@@ -186,4 +186,12 @@ export class TextureCube extends Texture {
       );
     }
   }
+
+  /**
+   * @internal
+   */
+  override _rebuild(): void {
+    this._platformTexture = this._engine._hardwareRenderer.createPlatformTextureCube(this);
+    super._rebuild();
+  }
 }

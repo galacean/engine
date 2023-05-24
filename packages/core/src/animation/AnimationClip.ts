@@ -1,3 +1,4 @@
+import { EngineObject } from "../base/EngineObject";
 import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { AnimationClipCurveBinding } from "./AnimationClipCurveBinding";
@@ -8,7 +9,7 @@ import { KeyframeValueType } from "./Keyframe";
 /**
  * Stores keyframe based animations.
  */
-export class AnimationClip {
+export class AnimationClip extends EngineObject {
   /** @internal */
   _curveBindings: AnimationClipCurveBinding[] = [];
 
@@ -39,7 +40,9 @@ export class AnimationClip {
   /**
    * @param name - The AnimationClip's name
    */
-  constructor(public readonly name: string) {}
+  constructor(public readonly name: string) {
+    super(null);
+  }
 
   /**
    * Adds an animation event to the clip.

@@ -1,25 +1,25 @@
 attribute vec3 POSITION;
 
-#ifdef O3_HAS_UV
+#ifdef RENDERER_HAS_UV
     attribute vec2 TEXCOORD_0;
 #endif
 
-#ifdef O3_HAS_UV1
+#ifdef RENDERER_HAS_UV1
     attribute vec2 TEXCOORD_1;
 #endif
 
-#ifdef O3_HAS_SKIN
+#ifdef RENDERER_HAS_SKIN
     attribute vec4 JOINTS_0;
     attribute vec4 WEIGHTS_0;
 
-    #ifdef O3_USE_JOINT_TEXTURE
-        uniform sampler2D u_jointSampler;
-        uniform float u_jointCount;
+    #ifdef RENDERER_USE_JOINT_TEXTURE
+        uniform sampler2D renderer_JointSampler;
+        uniform float renderer_JointCount;
 
         mat4 getJointMatrix(sampler2D smp, float index)
         {
-            float base = index / u_jointCount;
-            float hf = 0.5 / u_jointCount;
+            float base = index / renderer_JointCount;
+            float hf = 0.5 / renderer_JointCount;
             float v = base + hf;
 
             vec4 m0 = texture2D(smp, vec2(0.125, v ));
@@ -32,11 +32,11 @@ attribute vec3 POSITION;
         }
 
     #else
-        uniform mat4 u_jointMatrix[ O3_JOINTS_NUM ];
+        uniform mat4 renderer_JointMatrix[ RENDERER_JOINTS_NUM ];
     #endif
 #endif
 
-#ifdef O3_HAS_VERTEXCOLOR
+#ifdef RENDERER_ENABLE_VERTEXCOLOR
     attribute vec4 COLOR_0;
 #endif
 
@@ -44,15 +44,15 @@ attribute vec3 POSITION;
 #include <transform_declare>
 #include <camera_declare>
 
-uniform vec4 u_tilingOffset;
+uniform vec4 material_TilingOffset;
 
 
-#ifndef OMIT_NORMAL
-    #ifdef O3_HAS_NORMAL
+#ifndef MATERIAL_OMIT_NORMAL
+    #ifdef RENDERER_HAS_NORMAL
         attribute vec3 NORMAL;
     #endif
 
-    #ifdef O3_HAS_TANGENT
+    #ifdef RENDERER_HAS_TANGENT
         attribute vec4 TANGENT;
     #endif
 #endif

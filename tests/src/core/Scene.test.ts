@@ -1,13 +1,34 @@
-import { Entity } from "@oasis-engine/core";
-import { WebGLEngine } from "@oasis-engine/rhi-webgl";
+import { Engine, Entity, Scene } from "@galacean/engine-core";
+import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
 
 describe("Scene", () => {
-  const engine = new WebGLEngine(document.createElement("canvas"));
-  const scene = engine.sceneManager.activeScene;
-  engine.run();
+  let engine: Engine;
+  let scene: Scene;
+  before(async () => {
+    engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
+  
+    engine.run();
+    scene = engine.sceneManager.activeScene;
+  });
+
   beforeEach(() => {
     scene.createRootEntity("root");
+  });
+  describe("Find entity", () => {
+    it("findEntityByName", () => {
+      const parent = new Entity(engine, "parent");
+      scene.addRootEntity(parent);
+      const child = new Entity(engine, "child");
+      child.parent = parent;
+      const child2 = new Entity(engine, "child2");
+      child2.parent = parent;
+      expect(scene.findEntityByName("parent")).eq(parent);
+      expect(scene.findEntityByName("child")).eq(child);
+      expect(scene.findEntityByName("child2")).eq(child2);
+      scene.removeRootEntity(scene.rootEntities[0]);
+      scene.removeRootEntity(scene.rootEntities[0]);
+    });
   });
 
   describe("rootEntities", () => {

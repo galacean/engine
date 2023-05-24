@@ -1,22 +1,29 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Color, Vector3, Vector4 } from "@galacean/engine-math";
 import { Background } from "./Background";
-import { EngineObject, Logger } from "./base";
 import { Camera } from "./Camera";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
+import { EngineObject, Logger } from "./base";
+import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
-import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
+import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
-import { ShadowType } from "./shadow/enum/ShadowType";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
+import { ShadowType } from "./shadow/enum/ShadowType";
 
 /**
  * Scene.
  */
 export class Scene extends EngineObject {
+  private static _fogColorProperty = ShaderProperty.getByName("scene_FogColor");
+  private static _fogParamsProperty = ShaderProperty.getByName("scene_FogParams");
+  private static _sunlightColorProperty = ShaderProperty.getByName("scene_SunlightColor");
+  private static _sunlightDirectionProperty = ShaderProperty.getByName("scene_SunlightDirection");
+
   /** Scene name. */
   name: string;
 
@@ -49,6 +56,12 @@ export class Scene extends EngineObject {
 
   private _shadowCascades: ShadowCascadesMode = ShadowCascadesMode.NoCascades;
   private _ambientLight: AmbientLight;
+  private _fogMode: FogMode = FogMode.None;
+  private _fogColor: Color = new Color(0.5, 0.5, 0.5, 1.0);
+  private _fogStart: number = 0;
+  private _fogEnd: number = 300;
+  private _fogDensity: number = 0.01;
+  private _fogParams: Vector4 = new Vector4();
 
   /**
    *  Number of cascades to use for directional light shadows.
@@ -59,7 +72,7 @@ export class Scene extends EngineObject {
 
   set shadowCascades(value: ShadowCascadesMode) {
     if (this._shadowCascades !== value) {
-      this.shaderData.enableMacro("CASCADED_COUNT", value.toString());
+      this.shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", value.toString());
       this._shadowCascades = value;
     }
   }
@@ -82,6 +95,80 @@ export class Scene extends EngineObject {
       lastAmbientLight && lastAmbientLight._removeFromScene(this);
       value._addToScene(this);
       this._ambientLight = value;
+    }
+  }
+
+  /**
+   * Fog mode.
+   * @remarks
+   * If set to `FogMode.None`, the fog will be disabled.
+   * If set to `FogMode.Linear`, the fog will be linear and controlled by `fogStart` and `fogEnd`.
+   * If set to `FogMode.Exponential`, the fog will be exponential and controlled by `fogDensity`.
+   * If set to `FogMode.ExponentialSquared`, the fog will be exponential squared and controlled by `fogDensity`.
+   */
+  get fogMode(): FogMode {
+    return this._fogMode;
+  }
+
+  set fogMode(value: FogMode) {
+    if (this._fogMode !== value) {
+      this.shaderData.enableMacro("SCENE_FOG_MODE", value.toString());
+      this._fogMode = value;
+    }
+  }
+
+  /**
+   * Fog color.
+   */
+  get fogColor(): Color {
+    return this._fogColor;
+  }
+
+  set fogColor(value: Color) {
+    if (this._fogColor !== value) {
+      this._fogColor.copyFrom(value);
+    }
+  }
+
+  /**
+   * Fog start.
+   */
+  get fogStart(): number {
+    return this._fogStart;
+  }
+
+  set fogStart(value: number) {
+    if (this._fogStart !== value) {
+      this._computeLinearFogParams(value, this._fogEnd);
+      this._fogStart = value;
+    }
+  }
+
+  /**
+   * Fog end.
+   */
+  get fogEnd(): number {
+    return this._fogEnd;
+  }
+
+  set fogEnd(value: number) {
+    if (this._fogEnd !== value) {
+      this._computeLinearFogParams(this._fogStart, value);
+      this._fogEnd = value;
+    }
+  }
+
+  /**
+   * Fog density.
+   */
+  get fogDensity(): number {
+    return this._fogDensity;
+  }
+
+  set fogDensity(value: number) {
+    if (this._fogDensity !== value) {
+      this._computeExponentialFogParams(value);
+      this._fogDensity = value;
     }
   }
 
@@ -109,11 +196,17 @@ export class Scene extends EngineObject {
     this.name = name || "";
 
     const shaderData = this.shaderData;
-    shaderData._addRefCount(1);
+    shaderData._addReferCount(1);
     this.ambientLight = new AmbientLight();
     engine.sceneManager._allScenes.push(this);
 
-    this.shaderData.enableMacro("CASCADED_COUNT", this.shadowCascades.toString());
+    shaderData.enableMacro("SCENE_FOG_MODE", this._fogMode.toString());
+    shaderData.enableMacro("SCENE_SHADOW_CASCADED_COUNT", this.shadowCascades.toString());
+    shaderData.setColor(Scene._fogColorProperty, this._fogColor);
+    shaderData.setVector4(Scene._fogParamsProperty, this._fogParams);
+
+    this._computeLinearFogParams(this._fogStart, this._fogEnd);
+    this._computeExponentialFogParams(this._fogDensity);
   }
 
   /**
@@ -204,17 +297,9 @@ export class Scene extends EngineObject {
    * @returns Entity
    */
   findEntityByName(name: string): Entity | null {
-    const children = this._rootEntities;
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      if (child.name === name) {
-        return child;
-      }
-    }
-
-    for (let i = children.length - 1; i >= 0; i--) {
-      const child = children[i];
-      const entity = child.findByName(name);
+    const rootEntities = this._rootEntities;
+    for (let i = 0, n = rootEntities.length; i < n; i++) {
+      const entity = rootEntities[i].findByName(name);
       if (entity) {
         return entity;
       }
@@ -244,7 +329,7 @@ export class Scene extends EngineObject {
   /**
    * Destroy this scene.
    */
-  destroy(): void {
+  override destroy(): void {
     if (this._destroyed) {
       return;
     }
@@ -296,19 +381,25 @@ export class Scene extends EngineObject {
    */
   _updateShaderData(): void {
     const shaderData = this.shaderData;
-    const lightManager = this._engine._lightManager;
+    const engine = this._engine;
+    const lightManager = engine._lightManager;
+
+    engine.time._updateSceneShaderData(shaderData);
 
     lightManager._updateShaderData(this.shaderData);
+
     const sunLightIndex = lightManager._getSunLightIndex();
     if (sunLightIndex !== -1) {
-      this._sunLight = lightManager._directLights.get(sunLightIndex);
+      const sunlight = lightManager._directLights.get(sunLightIndex);
+      shaderData.setColor(Scene._sunlightColorProperty, sunlight._getLightIntensityColor());
+      shaderData.setVector3(Scene._sunlightDirectionProperty, sunlight.direction);
+      this._sunLight = sunlight;
     }
 
     if (this.castShadows && this._sunLight && this._sunLight.shadowType !== ShadowType.None) {
-      shaderData.enableMacro("CASCADED_SHADOW_MAP");
-      this.shaderData.enableMacro("SHADOW_MODE", this._sunLight.shadowType.toString());
+      shaderData.enableMacro("SCENE_SHADOW_TYPE", this._sunLight.shadowType.toString());
     } else {
-      shaderData.disableMacro("CASCADED_SHADOW_MAP");
+      shaderData.disableMacro("SCENE_SHADOW_TYPE");
     }
 
     // union scene and camera macro.
@@ -341,7 +432,7 @@ export class Scene extends EngineObject {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
-    this.shaderData._addRefCount(-1);
+    this.shaderData._addReferCount(-1);
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {
@@ -360,5 +451,17 @@ export class Scene extends EngineObject {
         rootEntities[i]._siblingIndex++;
       }
     }
+  }
+
+  private _computeLinearFogParams(fogStart: number, fogEnd: number): void {
+    const fogRange = fogEnd - fogStart;
+    const fogParams = this._fogParams;
+    fogParams.x = -1 / fogRange;
+    fogParams.y = fogEnd / fogRange;
+  }
+
+  private _computeExponentialFogParams(density: number) {
+    this._fogParams.z = density / Math.LN2;
+    this._fogParams.w = density / Math.sqrt(Math.LN2);
   }
 }

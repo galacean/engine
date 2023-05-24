@@ -1,8 +1,8 @@
-import { IBoxColliderShape } from "@oasis-engine/design";
-import { BoundingBox, Ray, Vector3 } from "oasis-engine";
-import { LiteColliderShape } from "./LiteColliderShape";
+import { BoundingBox, Ray, Vector3 } from "@galacean/engine";
+import { IBoxColliderShape } from "@galacean/engine-design";
 import { LiteHitResult } from "../LiteHitResult";
 import { LitePhysicsMaterial } from "../LitePhysicsMaterial";
+import { LiteColliderShape } from "./LiteColliderShape";
 
 /**
  * Box collider shape in Lite.
@@ -33,7 +33,7 @@ export class LiteBoxColliderShape extends LiteColliderShape implements IBoxColli
   /**
    * {@inheritDoc IColliderShape.setPosition }
    */
-  setPosition(position: Vector3): void {
+  override setPosition(position: Vector3): void {
     super.setPosition(position);
     this._setBondingBox();
   }

@@ -1,63 +1,44 @@
-import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@oasis-engine/core";
-import { GLTFParser } from "./gltf/GLTFParser";
+import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
+import { GLTFPipeline } from "./gltf/GLTFPipeline";
 import { GLTFResource } from "./gltf/GLTFResource";
-import { GLTFUtil } from "./gltf/GLTFUtil";
-import { ParserContext } from "./gltf/parser/ParserContext";
+import { GLTFParserContext } from "./gltf/parser";
+import { GLTFContentRestorer } from "./GLTFContentRestorer";
 
-@resourceLoader(AssetType.Prefab, ["gltf", "glb"])
+@resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
-  load(item: LoadItem, resourceManager: ResourceManager): AssetPromise<GLTFResource> {
-    const url = item.url;
-    return new AssetPromise((resolve, reject) => {
-      const context = new ParserContext();
-      const glTFResource = new GLTFResource(resourceManager.engine);
-      context.glTFResource = glTFResource;
-      glTFResource.url = url;
-      context.keepMeshData = item.params?.keepMeshData ?? false;
 
-      let pipeline = GLTFParser.defaultPipeline;
+  
+  override load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
+    const { url } = item;
+    const params = <GLTFParams>item.params;
+    const context = new GLTFParserContext(url);
+    const glTFResource = new GLTFResource(resourceManager.engine, url);
+    const restorer = new GLTFContentRestorer(glTFResource);
+    const masterPromiseInfo = context.masterPromiseInfo;
 
-      const { query, baseUrl } = GLTFUtil.parseUrl(url);
-      if (query) {
-        glTFResource.url = baseUrl;
-        const path = GLTFUtil.stringToPath(query);
-        const key = path[0];
-        const value1 = Number(path[1]) || 0;
-        const value2 = Number(path[2]) || 0;
+    context.contentRestorer = restorer;
+    context.glTFResource = glTFResource;
+    context.keepMeshData = params?.keepMeshData ?? false;
 
-        switch (key) {
-          case "textures":
-            pipeline = GLTFParser.texturePipeline;
-            context.textureIndex = value1;
-            break;
-          case "materials":
-            pipeline = GLTFParser.materialPipeline;
-            context.materialIndex = value1;
-            break;
-          case "animations":
-            pipeline = GLTFParser.animationPipeline;
-            context.animationIndex = value1;
-            break;
-          case "meshes":
-            pipeline = GLTFParser.meshPipeline;
-            context.meshIndex = value1;
-            context.subMeshIndex = value2;
-            break;
-          case "defaultSceneRoot":
-            pipeline = GLTFParser.defaultPipeline;
-            context.defaultSceneRootOnly = true;
-            break;
-        }
+    masterPromiseInfo.onCancel(() => {
+      const { chainPromises } = context;
+      for (const promise of chainPromises) {
+        promise.cancel();
       }
-
-      pipeline
-        .parse(context)
-        .then(resolve)
-        .catch((e) => {
-          console.error(e);
-          reject(`Error loading glTF model from ${url} .`);
-        });
     });
+
+    (params?.pipeline || GLTFPipeline.defaultPipeline)
+      ._parse(context)
+      .then((glTFResource) => {
+        resourceManager.addContentRestorer(restorer);
+        masterPromiseInfo.resolve(glTFResource);
+      })
+      .catch((e) => {
+        console.error(e);
+        masterPromiseInfo.reject(`Error loading glTF model from ${url} .`);
+      });
+
+    return context.promiseMap;
   }
 }
 
@@ -65,6 +46,11 @@ export class GLTFLoader extends Loader<GLTFResource> {
  * GlTF loader params.
  */
 export interface GLTFParams {
-  /** Keep raw mesh data for glTF parser, default is false. */
+  /**
+   * @beta Now only contains vertex information, need to improve.
+   * Keep raw mesh data for glTF parser, default is false.
+   */
   keepMeshData: boolean;
+  /** Custom glTF pipeline. */
+  pipeline: GLTFPipeline;
 }

@@ -1,4 +1,4 @@
-import { EngineObject } from "../base";
+import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
 import { IPlatformRenderTarget } from "../renderingHardwareInterface";
 import { RenderBufferDepthFormat } from "./enums/RenderBufferDepthFormat";
@@ -8,7 +8,7 @@ import { Texture } from "./Texture";
 /**
  * The render target used for off-screen rendering.
  */
-export class RenderTarget extends EngineObject {
+export class RenderTarget extends GraphicsResource {
   /** @internal */
   _platformRenderTarget: IPlatformRenderTarget;
 
@@ -207,9 +207,10 @@ export class RenderTarget extends EngineObject {
   }
 
   /**
-   * Destroy render target.
+   * @internal
    */
-  destroy() {
+  protected override _onDestroy(): void {
+    super._onDestroy();
     this._platformRenderTarget.destroy();
     this._colorTextures.length = 0;
     this._depthTexture = null;
@@ -228,5 +229,12 @@ export class RenderTarget extends EngineObject {
    */
   _blitRenderTarget(): void {
     this._platformRenderTarget.blitRenderTarget();
+  }
+
+  /**
+   * @internal
+   */
+  override _rebuild(): void {
+    this._platformRenderTarget = this._engine._hardwareRenderer.createPlatformRenderTarget(this);
   }
 }

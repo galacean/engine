@@ -1,4 +1,4 @@
-import { MeshTopology } from "@oasis-engine/core";
+import { MeshTopology } from "@galacean/engine-core";
 
 export interface IVector3 {
   x: number;
@@ -100,6 +100,10 @@ export interface IEncodedModelMesh {
     type: number;
     start: number;
     end: number;
+  };
+  bounds?: {
+    min: IVector3[];
+    max: IVector3[];
   };
   subMeshes: {
     start: number;

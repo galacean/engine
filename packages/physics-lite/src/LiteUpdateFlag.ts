@@ -1,20 +1,4 @@
-/**
- * Fastly remove an element from array.
- * @param array - Array
- * @param item - Element
- */
-export function removeFromArray(array: any[], item: any): boolean {
-  const index = array.indexOf(item);
-  if (index < 0) {
-    return false;
-  }
-  const last = array.length - 1;
-  if (index !== last) {
-    array[index] = array[last];
-  }
-  array.length--;
-  return true;
-}
+import { Utils } from "@galacean/engine";
 
 /**
  * Used to update tags.
@@ -31,7 +15,7 @@ export class LiteUpdateFlag {
    * Destroy.
    */
   destroy(): void {
-    removeFromArray(this._flags, this);
+    Utils.removeFromArray(this._flags, this);
     this._flags = null;
   }
 }

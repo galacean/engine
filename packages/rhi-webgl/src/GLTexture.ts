@@ -9,9 +9,9 @@ import {
   TextureFilterMode,
   TextureFormat,
   TextureWrapMode
-} from "@oasis-engine/core";
+} from "@galacean/engine-core";
 import { GLCompressedTextureInternalFormat, TextureFormatDetail } from "./type";
-import { WebGLRenderer } from "./WebGLRenderer";
+import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
 /**
  * Texture in WebGL platform.
@@ -233,7 +233,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       default:
-        throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
+        throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
   }
 
@@ -313,7 +313,7 @@ export class GLTexture implements IPlatformTexture {
           attachment: gl.DEPTH_STENCIL_ATTACHMENT
         };
       default:
-        throw new Error(`this TextureFormat is not supported in Oasis Engine: ${format}`);
+        throw new Error(`this TextureFormat is not supported in Galacean Engine: ${format}`);
     }
   }
 
@@ -321,7 +321,7 @@ export class GLTexture implements IPlatformTexture {
    * Check whether the corresponding texture format is supported.
    * @internal
    */
-  static _supportTextureFormat(format: TextureFormat, rhi: WebGLRenderer): boolean {
+  static _supportTextureFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     switch (format) {
       case TextureFormat.R16G16B16A16:
         if (!rhi.canIUse(GLCapabilityType.textureHalfFloat)) {
@@ -352,7 +352,7 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLRenderer): boolean {
+  static _supportRenderBufferColorFormat(format: TextureFormat, rhi: WebGLGraphicDevice): boolean {
     let isSupported = true;
 
     switch (format) {
@@ -378,7 +378,7 @@ export class GLTexture implements IPlatformTexture {
   /**
    * @internal
    */
-  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi: WebGLRenderer): boolean {
+  static _supportRenderBufferDepthFormat(format: RenderBufferDepthFormat, rhi: WebGLGraphicDevice): boolean {
     if (!rhi.isWebGL2) {
       switch (format) {
         case RenderBufferDepthFormat.Depth24:
@@ -396,7 +396,7 @@ export class GLTexture implements IPlatformTexture {
   /** @internal */
   _glTexture: WebGLTexture;
   /** @internal */
-  _rhi: WebGLRenderer;
+  _rhi: WebGLGraphicDevice;
   /** @internal */
   _gl: WebGLRenderingContext & WebGL2RenderingContext;
   /** @internal */
@@ -492,7 +492,7 @@ export class GLTexture implements IPlatformTexture {
   /**
    * Create texture in WebGL platform.
    */
-  constructor(rhi: WebGLRenderer, texture: Texture, target: GLenum) {
+  constructor(rhi: WebGLGraphicDevice, texture: Texture, target: GLenum) {
     this._texture = texture;
     this._rhi = rhi;
     this._gl = rhi.gl as WebGLRenderingContext & WebGL2RenderingContext;
@@ -523,8 +523,11 @@ export class GLTexture implements IPlatformTexture {
    * Generate multi-level textures based on the 0th level data.
    */
   generateMipmaps(): void {
-    this._bind();
-    this._gl.generateMipmap(this._target);
+    // @todo (1x1).generateMipmap() will flash back in uc.
+    if (this._texture.width !== 1 || this._texture.height !== 1) {
+      this._bind();
+      this._gl.generateMipmap(this._target);
+    }
   }
 
   protected _bind() {

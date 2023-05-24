@@ -1,5 +1,8 @@
-vec3 getNormal(){
-    #ifdef O3_HAS_NORMAL
+// gl_FrontFacing has random value on Adreno GPUs
+// the Adreno bug is only when gl_FrontFacing is inside a function
+// https://bugs.chromium.org/p/chromium/issues/detail?id=1154842
+vec3 getNormal(bool isFrontFacing){
+    #ifdef RENDERER_HAS_NORMAL
         vec3 normal = normalize(v_normal);
     #elif defined(HAS_DERIVATIVES)
         vec3 pos_dx = dFdx(v_pos);
@@ -9,25 +12,25 @@ vec3 getNormal(){
         vec3 normal = vec3(0, 0, 1);
     #endif
 
-    normal *= float( gl_FrontFacing ) * 2.0 - 1.0;
+    normal *= float( isFrontFacing ) * 2.0 - 1.0;
     return normal;
 }
 
-vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalIntensity, vec2 uv){
+vec3 getNormalByNormalTexture(mat3 tbn, sampler2D normalTexture, float normalIntensity, vec2 uv, bool isFrontFacing){
     vec3 normal = texture2D(normalTexture, uv).rgb;
     normal = normalize(tbn * ((2.0 * normal - 1.0) * vec3(normalIntensity, normalIntensity, 1.0)));
-    normal *= float( gl_FrontFacing ) * 2.0 - 1.0;
+    normal *= float( isFrontFacing ) * 2.0 - 1.0;
 
     return normal;
 }
 
-mat3 getTBN(){
-    #if defined(O3_HAS_NORMAL) && defined(O3_HAS_TANGENT) && ( defined(NORMALTEXTURE) || defined(HAS_CLEARCOATNORMALTEXTURE) )
+mat3 getTBN(bool isFrontFacing){
+    #if defined(RENDERER_HAS_NORMAL) && defined(RENDERER_HAS_TANGENT) && ( defined(MATERIAL_HAS_NORMALTEXTURE) || defined(MATERIAL_HAS_CLEAR_COAT_NORMAL_TEXTURE) )
         mat3 tbn = v_TBN;
     #else
-        vec3 normal = getNormal();
+        vec3 normal = getNormal(isFrontFacing);
         vec3 position = v_pos;
-        vec2 uv = gl_FrontFacing? v_uv: -v_uv;
+        vec2 uv = isFrontFacing? v_uv: -v_uv;
 
         #ifdef HAS_DERIVATIVES
             // ref: http://www.thetenthplanet.de/archives/1180

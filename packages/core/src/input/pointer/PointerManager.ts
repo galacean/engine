@@ -1,4 +1,4 @@
-import { Ray, Vector2 } from "@oasis-engine/math";
+import { Ray, Vector2 } from "@galacean/engine-math";
 import { Canvas } from "../../Canvas";
 import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
@@ -45,41 +45,36 @@ export class PointerManager implements IInput {
    * @param engine - The current engine instance
    * @param htmlCanvas - HTMLCanvasElement
    */
-  constructor(engine: Engine, htmlCanvas: HTMLCanvasElement) {
+  constructor(engine: Engine) {
+    // @ts-ignore
+    const htmlCanvas = engine._canvas._webCanvas;
     this._engine = engine;
     this._canvas = engine.canvas;
     this._htmlCanvas = htmlCanvas;
-    htmlCanvas.oncontextmenu = (event: UIEvent) => {
-      return false;
-    };
     this._onPointerEvent = this._onPointerEvent.bind(this);
     this._updatePointerWithPhysics = this._updatePointerWithPhysics.bind(this);
     this._updatePointerWithoutPhysics = this._updatePointerWithoutPhysics.bind(this);
     this._onFocus();
-    // If there are no compatibility issues, navigator.maxTouchPoints should be used here.
+    // If there are no compatibility issues, navigator.maxTouchPoints should be used here
     this._pointerPool = new Array<Pointer>(11);
   }
 
   /**
    * @internal
    */
-  _update(frameCount: number): void {
+  _update(): void {
     const { _pointers: pointers, _nativeEvents: nativeEvents } = this;
-    /** Clean up the pointer released in the previous frame. */
+    // Clean up the pointer released in the previous frame
     let lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
       for (let i = lastIndex; i >= 0; i--) {
         if (pointers[i].phase === PointerPhase.Leave) {
-          if (i !== lastIndex) {
-            pointers[i] = pointers[lastIndex];
-          }
-          --lastIndex;
+          pointers.splice(i, 1);
         }
       }
-      pointers.length = lastIndex + 1;
     }
 
-    /** Generate the pointer received for this frame. */
+    // Generate the pointer received for this frame
     lastIndex = nativeEvents.length - 1;
     if (lastIndex >= 0) {
       for (let i = 0; i <= lastIndex; i++) {
@@ -89,20 +84,22 @@ export class PointerManager implements IInput {
       nativeEvents.length = 0;
     }
 
-    /** Pointer handles its own events. */
+    // Pointer handles its own events
     this._upList.length = this._downList.length = 0;
     this._buttons = PointerButton.None;
     lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
+      const frameCount = this._engine.time.frameCount;
       const updatePointer = this._engine.physicsManager._initialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;
+      const clientRect = this._htmlCanvas.getBoundingClientRect();
       const { clientWidth, clientHeight } = this._htmlCanvas;
       const { width, height } = this._canvas;
       for (let i = lastIndex; i >= 0; i--) {
         const pointer = pointers[i];
         pointer._upList.length = pointer._downList.length = 0;
-        updatePointer(frameCount, pointer, clientWidth, clientHeight, width, height);
+        updatePointer(frameCount, pointer, clientRect, clientWidth, clientHeight, width, height);
         this._buttons |= pointer.pressedButtons;
       }
     }
@@ -116,8 +113,9 @@ export class PointerManager implements IInput {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.addEventListener("pointerdown", onPointerEvent);
       htmlCanvas.addEventListener("pointerup", onPointerEvent);
-      htmlCanvas.addEventListener("pointerout", onPointerEvent);
+      htmlCanvas.addEventListener("pointerleave", onPointerEvent);
       htmlCanvas.addEventListener("pointermove", onPointerEvent);
+      htmlCanvas.addEventListener("pointercancel", onPointerEvent);
       this._hadListener = true;
     }
   }
@@ -130,8 +128,9 @@ export class PointerManager implements IInput {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
       htmlCanvas.removeEventListener("pointerup", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerleave", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
       this._downList.length = 0;
       this._upList.length = 0;
@@ -152,8 +151,9 @@ export class PointerManager implements IInput {
       const { _htmlCanvas: htmlCanvas, _onPointerEvent: onPointerEvent } = this;
       htmlCanvas.removeEventListener("pointerdown", onPointerEvent);
       htmlCanvas.removeEventListener("pointerup", onPointerEvent);
-      htmlCanvas.removeEventListener("pointerout", onPointerEvent);
+      htmlCanvas.removeEventListener("pointerleave", onPointerEvent);
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
+      htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
     }
     this._pointerPool.length = 0;
@@ -165,7 +165,6 @@ export class PointerManager implements IInput {
   }
 
   private _onPointerEvent(evt: PointerEvent) {
-    evt.cancelable && evt.preventDefault();
     evt.type === "pointerdown" && this._htmlCanvas.focus();
     this._nativeEvents.push(evt);
   }
@@ -189,7 +188,7 @@ export class PointerManager implements IInput {
       const lastCount = pointers.length;
       if (lastCount === 0 || this._multiPointerEnabled) {
         const { _pointerPool: pointerPool } = this;
-        // Get Pointer smallest index.
+        // Get Pointer smallest index
         let i = 0;
         for (; i < lastCount; i++) {
           if (pointers[i].id > i) {
@@ -239,6 +238,7 @@ export class PointerManager implements IInput {
   private _updatePointerWithPhysics(
     frameCount: number,
     pointer: Pointer,
+    rect: DOMRect,
     clientW: number,
     clientH: number,
     canvasW: number,
@@ -249,17 +249,11 @@ export class PointerManager implements IInput {
     if (length > 0) {
       const { _upList, _upMap, _downList, _downMap } = this;
       const latestEvent = events[length - 1];
-      const normalizedX = latestEvent.offsetX / clientW;
-      const normalizedY = latestEvent.offsetY / clientH;
+      const normalizedX = (latestEvent.clientX - rect.left) / clientW;
+      const normalizedY = (latestEvent.clientY - rect.top) / clientH;
       const currX = normalizedX * canvasW;
       const currY = normalizedY * canvasH;
-      if (currX === position.x && currY === position.y) {
-        pointer.deltaPosition.set(0, 0);
-        pointer.phase = PointerPhase.Stationary;
-      } else {
-        pointer.deltaPosition.set(currX - position.x, currY - position.y);
-        pointer.phase = PointerPhase.Move;
-      }
+      pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
       pointer._firePointerDrag();
       const rayCastEntity = this._pointerRayCast(normalizedX, normalizedY);
@@ -286,7 +280,11 @@ export class PointerManager implements IInput {
             pointer.phase = PointerPhase.Up;
             pointer._firePointerUpAndClick(rayCastEntity);
             break;
-          case "pointerout":
+          case "pointermove":
+            pointer.phase = PointerPhase.Move;
+            break;
+          case "pointerleave":
+          case "pointercancel":
             pointer.phase = PointerPhase.Leave;
             pointer._firePointerExitAndEnter(null);
           default:
@@ -305,6 +303,7 @@ export class PointerManager implements IInput {
   private _updatePointerWithoutPhysics(
     frameCount: number,
     pointer: Pointer,
+    rect: DOMRect,
     clientW: number,
     clientH: number,
     canvasW: number,
@@ -315,8 +314,8 @@ export class PointerManager implements IInput {
     if (length > 0) {
       const { position } = pointer;
       const latestEvent = events[length - 1];
-      const currX = (latestEvent.offsetX / clientW) * canvasW;
-      const currY = (latestEvent.offsetY / clientH) * canvasH;
+      const currX = ((latestEvent.clientX - rect.left) / clientW) * canvasW;
+      const currY = ((latestEvent.clientY - rect.top) / clientH) * canvasH;
       pointer.deltaPosition.set(currX - position.x, currY - position.y);
       position.set(currX, currY);
       pointer.button = _pointerDec2BinMap[latestEvent.button] || PointerButton.None;
@@ -342,7 +341,8 @@ export class PointerManager implements IInput {
           case "pointermove":
             pointer.phase = PointerPhase.Move;
             break;
-          case "pointerout":
+          case "pointerleave":
+          case "pointercancel":
             pointer.phase = PointerPhase.Leave;
           default:
             break;

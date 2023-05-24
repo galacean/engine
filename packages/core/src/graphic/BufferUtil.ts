@@ -1,7 +1,7 @@
-import { BufferUsage } from "./enums/BufferUsage";
-import { VertexElementFormat } from "./enums/VertexElementFormat";
 import { DataType } from "../base/Constant";
+import { BufferUsage } from "./enums/BufferUsage";
 import { IndexFormat } from "./enums/IndexFormat";
+import { VertexElementFormat } from "./enums/VertexElementFormat";
 
 export interface ElementInfo {
   size: number;
@@ -10,20 +10,6 @@ export interface ElementInfo {
 }
 
 export class BufferUtil {
-  /**
-   * @internal
-   */
-  static _getGLBufferUsage(gl: WebGLRenderingContext, bufferUsage: BufferUsage): number {
-    switch (bufferUsage) {
-      case BufferUsage.Static:
-        return gl.STATIC_DRAW;
-      case BufferUsage.Dynamic:
-        return gl.DYNAMIC_DRAW;
-      case BufferUsage.Stream:
-        return gl.STREAM_DRAW;
-    }
-  }
-
   static _getGLIndexType(indexFormat: IndexFormat): DataType {
     switch (indexFormat) {
       case IndexFormat.UInt8:
@@ -35,7 +21,7 @@ export class BufferUtil {
     }
   }
 
-  static _getGLIndexByteCount(indexFormat: IndexFormat): DataType {
+  static _getGLIndexByteCount(indexFormat: IndexFormat): number {
     switch (indexFormat) {
       case IndexFormat.UInt8:
         return 1;

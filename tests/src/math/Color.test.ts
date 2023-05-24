@@ -1,4 +1,4 @@
-import { Color } from "@oasis-engine/math";
+import { Color } from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("Color test", () => {
@@ -84,4 +84,10 @@ describe("Color test", () => {
       expect(Color.equals(colorLinear, colorNewLinear)).to.eq(true);
     }
   });
+
+  it('toJSON', ()=>{
+    const color = new Color(1, 0.5, 0.5, 1);
+    const json = color.toJSON();
+    expect(json).to.deep.eq({r: 1, g: 0.5, b: 0.5, a: 1});
+  })
 });

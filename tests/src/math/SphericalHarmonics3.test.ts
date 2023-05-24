@@ -1,4 +1,4 @@
-import { Color, SphericalHarmonics3, Vector3 } from "@oasis-engine/math";
+import { Color, SphericalHarmonics3, Vector3 } from "@galacean/engine-math";
 import { expect } from "chai";
 
 describe("SphericalHarmonics3 test", () => {

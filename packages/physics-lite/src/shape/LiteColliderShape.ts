@@ -1,5 +1,5 @@
-import { IColliderShape, IPhysicsMaterial } from "@oasis-engine/design";
-import { Matrix, Ray, Vector3 } from "oasis-engine";
+import { IColliderShape, IPhysicsMaterial } from "@galacean/engine-design";
+import { Matrix, Ray, Vector3 } from "@galacean/engine";
 import { LiteCollider } from "../LiteCollider";
 import { LiteHitResult } from "../LiteHitResult";
 import { LiteTransform } from "../LiteTransform";
@@ -73,13 +73,6 @@ export abstract class LiteColliderShape implements IColliderShape {
    */
   setIsTrigger(value: boolean): void {
     console.log("Physics-lite don't support setIsTrigger. Use Physics-PhysX instead!");
-  }
-
-  /**
-   * {@inheritDoc IColliderShape.setIsSceneQuery }
-   */
-  setIsSceneQuery(value: boolean): void {
-    console.log("Physics-lite don't support setIsSceneQuery. Use Physics-PhysX instead!");
   }
 
   /**

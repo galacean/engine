@@ -1,4 +1,4 @@
-import { Vector3 } from "@oasis-engine/math";
+import { Vector3 } from "@galacean/engine-math";
 import { IPhysicsMaterial } from "../IPhysicsMaterial";
 
 /**
@@ -40,12 +40,6 @@ export interface IColliderShape {
    * @param value - True for TriggerShape, false for SimulationShape
    */
   setIsTrigger(value: boolean): void;
-
-  /**
-   * Set scene query or not.
-   * @param value - True for Query, false for not Query
-   */
-  setIsSceneQuery(value: boolean): void;
 
   /**
    * Decrements the reference count of a shape and releases it if the new reference count is zero.

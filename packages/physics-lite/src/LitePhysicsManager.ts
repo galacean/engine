@@ -1,5 +1,5 @@
-import { ICharacterController, IPhysicsManager } from "@oasis-engine/design";
-import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "oasis-engine";
+import { ICharacterController, IPhysicsManager } from "@galacean/engine-design";
+import { BoundingBox, BoundingSphere, CollisionUtil, Ray, Vector3 } from "@galacean/engine";
 import { DisorderedArray } from "./DisorderedArray";
 import { LiteCollider } from "./LiteCollider";
 import { LiteHitResult } from "./LiteHitResult";
@@ -111,6 +111,7 @@ export class LitePhysicsManager implements IPhysicsManager {
   raycast(
     ray: Ray,
     distance: number,
+    onRaycast: (obj: number) => boolean,
     hit?: (shapeUniqueID: number, distance: number, position: Vector3, normal: Vector3) => void
   ): boolean {
     const colliders = this._colliders;
@@ -125,7 +126,7 @@ export class LitePhysicsManager implements IPhysicsManager {
     for (let i = 0, len = colliders.length; i < len; i++) {
       const collider = colliders[i];
 
-      if (collider._raycast(ray, curHit)) {
+      if (collider._raycast(ray, onRaycast, curHit)) {
         isHit = true;
         if (curHit.distance < distance) {
           if (hitResult) {
