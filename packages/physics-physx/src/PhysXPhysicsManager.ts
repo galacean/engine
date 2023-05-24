@@ -141,12 +141,15 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.addCharacterController }
    */
   addCharacterController(characterController: PhysXCharacterController): void {
-    const lastPXManager = characterController._pxManager;
-    const shape = characterController._shape;
-    if (shape) {
-      if (lastPXManager !== this) {
-        lastPXManager && characterController._destroyPXController();
-        characterController._createPXController(this, shape);
+    // Physx have no API to remove/readd cct into scene.
+    if (!characterController._pxController) {
+      const shape = characterController._shape;
+      if (shape) {
+        const lastPXManager = characterController._pxManager;
+        if (lastPXManager !== this) {
+          lastPXManager && characterController._destroyPXController();
+          characterController._createPXController(this, shape);
+        }
       }
     }
     characterController._pxManager = this;
@@ -156,7 +159,6 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.removeCharacterController }
    */
   removeCharacterController(characterController: PhysXCharacterController): void {
-    characterController._pxController = null;
     characterController._pxManager = null;
   }
 

@@ -2,11 +2,11 @@ import { Vector2, Vector3 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
+import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
+import { VertexElement } from "../graphic/VertexElement";
 import { BufferBindFlag } from "../graphic/enums/BufferBindFlag";
 import { BufferUsage } from "../graphic/enums/BufferUsage";
 import { VertexElementFormat } from "../graphic/enums/VertexElementFormat";
-import { VertexBufferBinding } from "../graphic/VertexBufferBinding";
-import { VertexElement } from "../graphic/VertexElement";
 import { ShaderData } from "../shader/ShaderData";
 import { ShaderMacro } from "../shader/ShaderMacro";
 import { ShaderProperty } from "../shader/ShaderProperty";
@@ -338,6 +338,7 @@ export class BlendShapeManager {
     const subDataDirtyFlags = this._subDataDirtyFlags;
     const blendShapeFloatStride = this._vertexElementCount * 3;
     const blendShapeByteStride = blendShapeFloatStride * 4;
+    const bufferOffset = this._bufferBindingOffset;
 
     // @todo: should fix bug when dataChangedFlag is true
     for (let i = 0, n = blendShapes.length; i < n; i++) {
@@ -359,7 +360,7 @@ export class BlendShapeManager {
 
         let storeInfo = storeInfos[i];
         storeInfo || (storeInfos[i] = storeInfo = new Vector2());
-        storeInfo.set(bufferIndex + 1, indexInBuffer * blendShapeByteStride); // BlendShape buffer is start from 1
+        storeInfo.set(bufferOffset + bufferIndex, indexInBuffer * blendShapeByteStride); // BufferOffset is mesh vertexBuffer offset
 
         const { deltaPositions } = endFrame;
         for (let j = 0; j < vertexCount; j++) {

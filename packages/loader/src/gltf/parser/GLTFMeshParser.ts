@@ -9,7 +9,7 @@ import {
   VertexElement
 } from "@galacean/engine-core";
 import { Vector3, Vector4 } from "@galacean/engine-math";
-import { BlendShapeRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFContentRestorer";
+import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFContentRestorer";
 import { IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
@@ -81,6 +81,7 @@ export class GLTFMeshParser extends GLTFParser {
             vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
             vertexBuffer.setData(vertices);
             accessorBuffer.vertexBuffer = vertexBuffer;
+            meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
           }
           mesh.setVertexBufferBinding(vertexBuffer, stride, bufferBindIndex);
           vertexBindingInfos[meshId] = bufferBindIndex++;
@@ -93,6 +94,8 @@ export class GLTFMeshParser extends GLTFParser {
 
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
+        meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
+        
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
         vertexBindingInfos[meshId] = bufferBindIndex++;
       }
