@@ -59,7 +59,7 @@ export class SceneManager {
     const scenes = this._scenes;
     const index = scenes.indexOf(scene);
     if (index !== -1) {
-      const removedScene = scenes[index];
+      const removedScene = scenes.getArray()[index];
       scenes.splice(index, 1);
       removedScene._processActive(false);
     }
