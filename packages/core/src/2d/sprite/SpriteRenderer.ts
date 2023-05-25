@@ -1,12 +1,11 @@
 import { BoundingBox, Color } from "@galacean/engine-math";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { IAssembler } from "../assembler/IAssembler";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { SlicedSpriteAssembler } from "../assembler/SlicedSpriteAssembler";
@@ -20,7 +19,7 @@ import { Sprite } from "./Sprite";
 /**
  * Renders a Sprite for 2D graphics.
  */
-export class SpriteRenderer extends Renderer implements ICustomClone {
+export class SpriteRenderer extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_spriteTexture");
 
@@ -230,6 +229,7 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _cloneTo(target: SpriteRenderer): void {
+    super._cloneTo(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
   }
