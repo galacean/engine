@@ -110,15 +110,15 @@ export class Collider extends Component {
   /**
    * @internal
    */
-  override _onEnable(): void {
-    this.engine.physicsManager._addCollider(this);
+  override _onEnableInScene(): void {
+    this.scene.physics._addCollider(this);
   }
 
   /**
    * @internal
    */
-  override _onDisable(): void {
-    this.engine.physicsManager._removeCollider(this);
+  override _onDisableInScene(): void {
+    this.scene.physics._removeCollider(this);
   }
 
   /**

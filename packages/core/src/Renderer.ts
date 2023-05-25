@@ -283,7 +283,7 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  override _onEnable(): void {
+  override _onEnableInScene(): void {
     const componentsManager = this.scene._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.addOnUpdateRenderers(this);
@@ -294,7 +294,7 @@ export class Renderer extends Component {
   /**
    * @internal
    */
-  override _onDisable(): void {
+  override _onDisableInScene(): void {
     const componentsManager = this.scene._componentsManager;
     if (this._overrideUpdate) {
       componentsManager.removeOnUpdateRenderers(this);

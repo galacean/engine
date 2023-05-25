@@ -168,7 +168,6 @@ export class Script extends Component {
 
   /**
    * @internal
-   * @inheritDoc
    */
   override _onAwake(): void {
     this.onAwake();
@@ -176,9 +175,22 @@ export class Script extends Component {
 
   /**
    * @internal
-   * @inheritDoc
    */
   override _onEnable(): void {
+    this.onEnable();
+  }
+
+  /**
+   * @internal
+   */
+  override _onDisable(): void {
+    this.onDisable();
+  }
+
+  /**
+   * @internal
+   */
+  override _onEnableInScene(): void {
     if (this._waitHandlingInValid) {
       this._waitHandlingInValid = false;
     } else {
@@ -198,18 +210,14 @@ export class Script extends Component {
       }
       this._entity._addScript(this);
     }
-
-    this.onEnable();
   }
 
   /**
    * @internal
-   * @inheritDoc
    */
-  override _onDisable(): void {
+  override _onDisableInScene(): void {
     this._waitHandlingInValid = true;
     this.scene._componentsManager.addDisableScript(this);
-    this.onDisable();
   }
 
   /**

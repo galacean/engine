@@ -84,18 +84,16 @@ export class DirectLight extends Light {
   }
 
   /**
-   * Mount to the current Scene.
    * @internal
    */
-  override _onEnable(): void {
-    this.engine._lightManager._attachDirectLight(this);
+  override _onEnableInScene(): void {
+    this.scene._lightManager._attachDirectLight(this);
   }
 
   /**
-   * Unmount from the current Scene.
    * @internal
    */
-  override _onDisable(): void {
-    this.engine._lightManager._detachDirectLight(this);
+  override _onDisableInScene(): void {
+    this.scene._lightManager._detachDirectLight(this);
   }
 }

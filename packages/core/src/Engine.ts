@@ -58,9 +58,6 @@ export class Engine extends EventDispatcher {
   readonly inputManager: InputManager;
 
   /* @internal */
-  _lightManager: LightManager = new LightManager();
-
-  /* @internal */
   _hardwareRenderer: IHardwareRenderer;
   /* @internal */
   _lastRenderState: RenderState = new RenderState();

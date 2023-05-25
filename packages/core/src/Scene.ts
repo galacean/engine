@@ -16,6 +16,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
+import { LightManager } from "./lighting/LightManager";
 
 /**
  * Scene.
@@ -47,6 +48,8 @@ export class Scene extends EngineObject {
   /** Max Shadow distance. */
   shadowDistance: number = 50;
 
+  /* @internal */
+  _lightManager: LightManager = new LightManager();
   /* @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
   /** @internal */
