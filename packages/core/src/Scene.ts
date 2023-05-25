@@ -417,7 +417,7 @@ export class Scene extends EngineObject {
   _updateShaderData(): void {
     const shaderData = this.shaderData;
     const engine = this._engine;
-    const lightManager = engine._lightManager;
+    const lightManager = this._lightManager;
 
     engine.time._updateSceneShaderData(shaderData);
 
