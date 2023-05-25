@@ -1,10 +1,9 @@
 import { BoundingBox } from "@galacean/engine-math";
-import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { Entity } from "../../Entity";
-import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { SpriteMaskElement } from "../../RenderPipeline/SpriteMaskElement";
+import { Renderer, RendererUpdateFlags } from "../../Renderer";
+import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
 import { Shader } from "../../shader/Shader";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
@@ -16,7 +15,7 @@ import { Sprite } from "./Sprite";
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer implements ICustomClone {
+export class SpriteMask extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = Shader.getPropertyByName("u_maskTexture");
   /** @internal */
@@ -187,6 +186,7 @@ export class SpriteMask extends Renderer implements ICustomClone {
    * @internal
    */
   _cloneTo(target: SpriteMask): void {
+    super._cloneTo(target);
     target.sprite = this._sprite;
   }
 

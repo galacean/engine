@@ -1,12 +1,11 @@
 import { BoundingBox, Color, Vector3 } from "@galacean/engine-math";
-import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
-import { Renderer } from "../../Renderer";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
-import { CompareFunction } from "../../shader/enums/CompareFunction";
+import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
+import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
+import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
 import { SpriteMaskLayer } from "../enums/SpriteMaskLayer";
@@ -21,7 +20,7 @@ import { TextUtils } from "./TextUtils";
 /**
  * Renders a text for 2D graphics.
  */
-export class TextRenderer extends Renderer implements ICustomClone {
+export class TextRenderer extends Renderer {
   private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -307,6 +306,7 @@ export class TextRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _cloneTo(target: TextRenderer): void {
+    super._cloneTo(target);
     target.font = this._font;
     target._subFont = this._subFont;
   }
