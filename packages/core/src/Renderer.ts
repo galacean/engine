@@ -336,7 +336,7 @@ export class Renderer extends Component implements ICustomClone {
   _cloneTo(target: Renderer): void {
     const materials = this._materials;
     for (let i = 0, n = materials.length; i < n; i++) {
-      target.setMaterial(i, materials[i]);
+      target._setMaterial(i, materials[i]);
     }
   }
 
