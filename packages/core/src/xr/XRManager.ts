@@ -93,44 +93,45 @@ export class XRManager {
         if (!attributes) {
           reject(Error("GetContextAttributes Error!"));
         }
-        if (!!!attributes.xrCompatible) {
-          gl.makeXRCompatible().then(() => {
-            console.log("makeXRCompatible success");
-            const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
-            if (session.renderState.layers === undefined || !!!this._engine._hardwareRenderer.isWebGL2) {
-              const layerInit = {
-                antialias: session.renderState.layers === undefined ? attributes.antialias : true,
-                alpha: true,
-                depth: attributes.depth,
-                stencil: attributes.stencil,
-                framebufferScaleFactor: scaleFactor
-              };
-              this._xrBaseLayer = new XRWebGLLayer(session, gl, layerInit);
-              session.updateRenderState({
-                baseLayer: this._xrBaseLayer
-              });
-            } else {
-              // console.log("makeXRCompatible WebGLRenderingContext");
-              // const layerInit = {
-              //   antialias: true,
-              //   alpha: attributes.alpha,
-              //   depth: attributes.depth,
-              //   stencil: attributes.stencil,
-              //   framebufferScaleFactor: scaleFactor
-              // };
-              this._xrBaseLayer = new XRWebGLLayer(session, gl);
-              session.updateRenderState(<XRRenderStateInit>{
-                layers: [this._xrBaseLayer]
-              });
-            }
-            session.requestReferenceSpace(this._spaceType).then((value: XRReferenceSpace | XRBoundedReferenceSpace) => {
-              this._xrSpace = value;
-              resolve();
-            }, reject);
+        // if (!!!attributes.xrCompatible) {
+        // Pico 此处有问题
+        gl.makeXRCompatible().then(() => {
+          console.log("makeXRCompatible success");
+          const scaleFactor = XRWebGLLayer.getNativeFramebufferScaleFactor(session);
+          if (session.renderState.layers === undefined || !!!this._engine._hardwareRenderer.isWebGL2) {
+            const layerInit = {
+              antialias: session.renderState.layers === undefined ? attributes.antialias : true,
+              alpha: true,
+              depth: attributes.depth,
+              stencil: attributes.stencil,
+              framebufferScaleFactor: scaleFactor
+            };
+            this._xrBaseLayer = new XRWebGLLayer(session, gl, layerInit);
+            session.updateRenderState({
+              baseLayer: this._xrBaseLayer
+            });
+          } else {
+            // console.log("makeXRCompatible WebGLRenderingContext");
+            // const layerInit = {
+            //   antialias: true,
+            //   alpha: attributes.alpha,
+            //   depth: attributes.depth,
+            //   stencil: attributes.stencil,
+            //   framebufferScaleFactor: scaleFactor
+            // };
+            this._xrBaseLayer = new XRWebGLLayer(session, gl);
+            session.updateRenderState(<XRRenderStateInit>{
+              layers: [this._xrBaseLayer]
+            });
+          }
+          session.requestReferenceSpace(this._spaceType).then((value: XRReferenceSpace | XRBoundedReferenceSpace) => {
+            this._xrSpace = value;
+            resolve();
           }, reject);
-        } else {
-          reject(Error("MakeXRCompatible Error!"));
-        }
+        }, reject);
+        // } else {
+        //   reject(Error("MakeXRCompatible Error!"));
+        // }
       }, reject);
     });
   }
@@ -204,6 +205,7 @@ export class XRManager {
     this._engine = engine;
     this.xrInput = new XRInputManager(engine);
     this._update = this._update.bind(this);
+    this._onEnd = this._onEnd.bind(this);
   }
 
   private _addXRListener() {
@@ -212,7 +214,7 @@ export class XRManager {
   }
 
   private _removeXRListener() {
-    this._session.removeEventListener(EnumXREvent.End, this._onEnd);
+    this._session?.removeEventListener(EnumXREvent.End, this._onEnd);
   }
 
   private _onEnd(event: Event) {

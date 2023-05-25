@@ -23,6 +23,12 @@ export class XRInputManager {
   updateHandedness(frame: XRFrame, space: XRReferenceSpace) {
     // 处理每个 input 的逻辑
     const { _inputs: inputs, _xrHandles: xrHandles } = this;
+    // 计算 delta
+    const { time } = this._engine;
+    const currentSystemTime = performance.now() / 1000;
+    // @ts-ignore
+    const deltaTime = currentSystemTime - time._lastSystemTime;
+
     inputs.forEach((input) => {
       if (!!input) {
         const oriMatrix = frame.getPose(input.gripSpace, space)?.transform.matrix;
@@ -37,9 +43,9 @@ export class XRInputManager {
                 oriMatrix[13] - handle.position.y,
                 oriMatrix[14] - handle.position.z
               )
-              .scale(1 / this._engine.time.deltaTime);
+              .scale(1 / deltaTime);
           } else {
-            handle = (xrHandles[EnumXRHandedness[input.handedness]] = new XRHandle());
+            handle = xrHandles[EnumXRHandedness[input.handedness]] = new XRHandle();
             handle.matrix.copyFromArray(oriMatrix);
           }
           handle.position.set(oriMatrix[12], oriMatrix[13], oriMatrix[14]);
