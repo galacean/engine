@@ -104,7 +104,7 @@ export class Component extends EngineObject {
   /**
    * @internal
    */
-  _setBelongToScene(scene: Scene): void {}
+  _setBelongToScene(lastScene: Scene, scene: Scene): void {}
 
   /**
    * @internal

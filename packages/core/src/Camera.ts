@@ -1,23 +1,24 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependentComponents, DependentMode } from "./ComponentsDependencies";
+import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { Scene } from "./Scene";
+import { Transform } from "./Transform";
+import { VirtualCamera } from "./VirtualCamera";
+import { Logger } from "./base";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTagKey } from "./shader/ShaderTagKey";
-import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
+import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { RenderTarget } from "./texture/RenderTarget";
-import { Transform } from "./Transform";
-import { VirtualCamera } from "./VirtualCamera";
+import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -516,7 +517,8 @@ export class Camera extends Component {
    * @inheritdoc
    */
   override _onEnable(): void {
-    this.entity.scene._attachRenderCamera(this);
+    const scene = this.entity.scene;
+    scene._isActiveInEngine && scene._attachRenderCamera(this);
   }
 
   /**
@@ -524,6 +526,14 @@ export class Camera extends Component {
    */
   override _onDisable(): void {
     this.entity.scene._detachRenderCamera(this);
+  }
+
+  /**
+   * @internal
+   */
+  override _setBelongToScene(lastScene: Scene, scene: Scene): void {
+    lastScene ?? lastScene._detachRenderCamera(this);
+    scene ?? scene._attachRenderCamera(this);
   }
 
   /**

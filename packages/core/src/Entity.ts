@@ -33,6 +33,7 @@ export class Entity extends EngineObject {
    * @internal
    */
   static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
+    const lastScene = entity._scene;
     entity._scene = scene;
     entity._setBelongToScene(scene);
     const children = entity._children;
@@ -468,10 +469,10 @@ export class Entity extends EngineObject {
     this._setActiveComponents(false);
   }
 
-  private _setBelongToScene(scene: Scene): void {
+  private _setBelongToScene(lastScene:Scene,scene: Scene): void {
     const components = this._components;
     for (let i = 0, n = components.length; i < n; i++) {
-      components[i]._setBelongToScene(scene);
+      components[i]._setBelongToScene(lastScene,scene);
     }
   }
 
