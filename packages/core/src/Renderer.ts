@@ -5,7 +5,8 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { ICustomClone } from "./clone/ComponentCloner";
 import { Material } from "./material";
 import { ShaderMacro, ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -17,7 +18,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform, DependentMode.CheckOnly)`
  */
 @dependentComponents(Transform, DependentMode.CheckOnly)
-export class Renderer extends Component {
+export class Renderer extends Component implements ICustomClone {
   private static _tempVector0 = new Vector3();
 
   private static _receiveShadowMacro = ShaderMacro.getByName("RENDERER_IS_RECEIVE_SHADOWS");
@@ -53,7 +54,7 @@ export class Renderer extends Component {
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
-  @shallowClone
+  @ignoreClone
   protected _materials: Material[] = [];
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
@@ -326,6 +327,16 @@ export class Renderer extends Component {
       this.shaderData._macroCollection,
       this._globalShaderMacro
     );
+  }
+
+  /**
+   * @internal
+   */
+  _cloneTo(target: Renderer): void {
+    const materials = this._materials;
+    for (let i = 0, n = materials.length; i < n; i++) {
+      target._setMaterial(i, materials[i]);
+    }
   }
 
   /**
