@@ -369,7 +369,6 @@ export class Animator extends Component {
       const owner = curveOwners[i];
       if (!owner) continue;
       owner.crossCurveMarks[layerIndex] = crossCurveMark;
-      owner.crossOwnerCollectionIndices[layerIndex] = crossOwnerCollection.length;
       saveFixed && owner.saveFixedPoseValue();
       this._addCrossOwner(crossOwnerCollection, owner, layerIndex, i, -1);
     }
@@ -387,12 +386,11 @@ export class Animator extends Component {
       const owner = curveOwners[i];
       if (!owner) continue;
       if (owner.crossCurveMarks[layerIndex] === crossCurveMark) {
-        crossOwnerCollection[owner.crossOwnerCollectionIndices[layerIndex]].crossDestCurveIndices[layerIndex] = i;
+        owner.crossDestCurveIndices[layerIndex] = i;
       } else {
         owner.saveDefaultValue();
         saveFixed && owner.saveFixedPoseValue();
         owner.crossCurveMarks[layerIndex] = crossCurveMark;
-        owner.crossOwnerCollectionIndices[layerIndex] = crossOwnerCollection.length;
         this._addCrossOwner(crossOwnerCollection, owner, layerIndex, -1, i);
       }
     }

@@ -33,7 +33,6 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   readonly component: Component;
 
   crossCurveMarks: number[] = [];
-  crossOwnerCollectionIndices: number[] = [];
   defaultValue: V;
   fixedPoseValue: V;
   hasSavedDefaultValue: boolean = false;
