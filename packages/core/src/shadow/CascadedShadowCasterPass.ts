@@ -99,7 +99,7 @@ export class CascadedShadowCasterPass {
       _transparentQueue: transparentQueue
     } = camera._renderPipeline;
 
-    const componentsManager = engine._componentsManager;
+    const componentsManager = camera.scene._componentsManager;
     const rhi = engine._hardwareRenderer;
     const shadowCascades = camera.scene.shadowCascades;
     const splitDistance = CascadedShadowCasterPass._cascadesSplitDistance;

@@ -1,8 +1,8 @@
 import { ICharacterController, ICollider, IPhysics, IPhysicsManager } from "@galacean/engine-design";
 import { Ray, Vector3 } from "@galacean/engine-math";
 import { DisorderedArray } from "../DisorderedArray";
-import { Engine } from "../Engine";
 import { Layer } from "../Layer";
+import { Scene } from "../Scene";
 import { CharacterController } from "./CharacterController";
 import { Collider } from "./Collider";
 import { Collision } from "./Collision";
@@ -21,7 +21,7 @@ export class PhysicsManager {
   /** @internal */
   _initialized: boolean = false;
 
-  private _engine: Engine;
+  private _scene: Scene;
   private _restTime: number = 0;
 
   private _colliders: DisorderedArray<Collider> = new DisorderedArray();
@@ -169,8 +169,8 @@ export class PhysicsManager {
     }
   }
 
-  constructor(engine: Engine) {
-    this._engine = engine;
+  constructor(scene: Scene) {
+    this._scene = scene;
 
     this._setGravity = this._setGravity.bind(this);
     //@ts-ignore
@@ -303,7 +303,7 @@ export class PhysicsManager {
    */
   _update(deltaTime: number): void {
     const { fixedTimeStep, _nativePhysicsManager: nativePhysicsManager } = this;
-    const componentsManager = this._engine._componentsManager;
+    const componentsManager = this._scene._componentsManager;
 
     const simulateTime = this._restTime + deltaTime;
     const step = Math.floor(simulateTime / fixedTimeStep);

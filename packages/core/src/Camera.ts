@@ -5,7 +5,6 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-import { Scene } from "./Scene";
 import { Transform } from "./Transform";
 import { VirtualCamera } from "./VirtualCamera";
 import { Logger } from "./base";
@@ -516,24 +515,15 @@ export class Camera extends Component {
   /**
    * @inheritdoc
    */
-  override _onEnable(): void {
-    const scene = this.entity.scene;
-    scene._isActiveInEngine && scene._attachRenderCamera(this);
+  override _onEnableInScene(): void {
+    this.scene._attachRenderCamera(this);
   }
 
   /**
    * @inheritdoc
    */
-  override _onDisable(): void {
-    this.entity.scene._detachRenderCamera(this);
-  }
-
-  /**
-   * @internal
-   */
-  override _setBelongToScene(lastScene: Scene, scene: Scene): void {
-    lastScene ?? lastScene._detachRenderCamera(this);
-    scene ?? scene._attachRenderCamera(this);
+  override _onDisableInScene(): void {
+    this.scene._detachRenderCamera(this);
   }
 
   /**

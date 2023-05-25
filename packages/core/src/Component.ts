@@ -16,6 +16,8 @@ export class Component extends EngineObject {
 
   @ignoreClone
   private _phasedActive: boolean = false;
+  @ignoreClone
+  private _phasedActiveInScene: boolean = false;
   @assignmentClone
   private _enabled: boolean = true;
 
@@ -78,33 +80,56 @@ export class Component extends EngineObject {
   /**
    * @internal
    */
-  _setActive(value: boolean): void {
-    const entity = this._entity;
-    if (value) {
-      // Awake condition is un awake && current entity is active in hierarchy
-      if (!this._awoken && entity._isActiveInHierarchy) {
-        this._awoken = true;
-        this._onAwake();
-      }
-      // Developer maybe do `isActive = false` in `onAwake` method
-      // Enable condition is phased active state is false && current component is active in hierarchy
-      if (!this._phasedActive && entity._isActiveInHierarchy && this._enabled) {
-        this._phasedActive = true;
-        this._onEnable();
-      }
-    } else {
-      // Disable condition is phased active state is true && current component is inActive in hierarchy
-      if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
-        this._phasedActive = false;
-        this._onDisable();
-      }
-    }
-  }
+  _onEnableInScene(): void {}
 
   /**
    * @internal
    */
-  _setBelongToScene(lastScene: Scene, scene: Scene): void {}
+  _onDisableInScene(): void {}
+
+  /**
+   * @internal
+   */
+  _setActive(value: boolean, activeChangeFlag: ActiveChangeFlag): void {
+    const entity = this._entity;
+    // Process active in hierarchy
+    if (activeChangeFlag & ActiveChangeFlag.Hierarchy) {
+      if (value) {
+        // Awake condition is un awake && current entity is active in hierarchy
+        if (!this._awoken && entity._isActiveInHierarchy) {
+          this._awoken = true;
+          this._onAwake();
+        }
+        // Developer maybe do `isActive = false` in `onAwake` method
+        // Enable condition is phased active state is false && current component is active in hierarchy
+        if (!this._phasedActive && entity._isActiveInHierarchy && this._enabled) {
+          this._phasedActive = true;
+          this._onEnable();
+        }
+      } else {
+        // Disable condition is phased active state is true && current component is inActive in hierarchy
+        if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
+          this._phasedActive = false;
+          this._onDisable();
+        }
+      }
+    }
+
+    // Process active in scene, precautions ditto
+    if (activeChangeFlag & ActiveChangeFlag.Scene) {
+      if (value) {
+        if (!this._phasedActiveInScene && entity._isActiveInScene && this._enabled) {
+          this._phasedActiveInScene = true;
+          this._onEnableInScene();
+        }
+      } else {
+        if (this._phasedActiveInScene && !(entity._isActiveInScene && this._enabled)) {
+          this._phasedActiveInScene = false;
+          this._onDisableInScene();
+        }
+      }
+    }
+  }
 
   /**
    * @internal

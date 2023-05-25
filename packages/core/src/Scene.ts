@@ -8,6 +8,7 @@ import { EngineObject, Logger } from "./base";
 import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
+import { PhysicsManager } from "./physics/PhysicsManager";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -28,6 +29,8 @@ export class Scene extends EngineObject {
   /** Scene name. */
   name: string;
 
+  /** Physics. */
+  readonly physics: PhysicsManager = new PhysicsManager(this);
   /** The background of the scene. */
   readonly background: Background = new Background(this._engine);
   /** Scene-related shader data. */
@@ -259,17 +262,31 @@ export class Scene extends EngineObject {
         oldScene._removeFromEntityList(entity);
       }
       this._addToRootEntityList(index, entity);
-      Entity._traverseSetOwnerScene(entity, this);
     } else if (!isRoot) {
       this._addToRootEntityList(index, entity);
     }
 
     // process entity active/inActive
+    let inActiveChangeFlag = ActiveChangeFlag.None;
     if (this._isActiveInEngine) {
-      !entity._isActiveInHierarchy && entity._isActive && entity._processActive();
+      // cross scene should inActive first and then active
+      entity._isActiveInHierarchy && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
     } else {
-      entity._isActiveInHierarchy && entity._processInActive();
+      entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
     }
+    inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
+
+    if (oldScene !== this) {
+      Entity._traverseSetOwnerScene(entity, this);
+    }
+
+    let activeChangeFlag = ActiveChangeFlag.None;
+    if (this._isActiveInEngine) {
+      if (!entity._isActiveInHierarchy || oldScene !== this) {
+        entity._isActive && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+      }
+    }
+    activeChangeFlag && entity._processActive(activeChangeFlag);
   }
 
   /**
@@ -280,7 +297,11 @@ export class Scene extends EngineObject {
     if (entity._isRoot && entity._scene == this) {
       this._removeFromEntityList(entity);
       entity._isRoot = false;
-      this._isActiveInEngine && entity._isActiveInHierarchy && entity._processInActive();
+
+      let inActiveChangeFlag = ActiveChangeFlag.None;
+      this._isActiveInEngine && entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+      entity._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
+      inActiveChangeFlag && entity._processInActive(inActiveChangeFlag);
       Entity._traverseSetOwnerScene(entity, null);
     }
   }
@@ -378,7 +399,11 @@ export class Scene extends EngineObject {
     for (let i = rootEntities.length - 1; i >= 0; i--) {
       const entity = rootEntities[i];
       if (entity._isActive) {
-        active ? entity._processActive() : entity._processInActive();
+        if (active) {
+          entity._processActive(ActiveChangeFlag.Hierarchy);
+        } else {
+          entity._processInActive(ActiveChangeFlag.Hierarchy);
+        }
       }
     }
   }

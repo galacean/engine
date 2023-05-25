@@ -225,10 +225,11 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
-    this.physicsManager = new PhysicsManager(this);
-
+  
     this._canvas = canvas;
     this._sceneManager.activeScene = new Scene(this, "DefaultScene");
+    // @todo: use first
+    this.physicsManager = this._sceneManager.activeScene.physics;
 
     this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
