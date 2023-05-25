@@ -93,13 +93,18 @@ export class Component extends EngineObject {
         this._onEnable();
       }
     } else {
-      // Disable condition is phased active state is true && current compoment is inActive in hierarchy
+      // Disable condition is phased active state is true && current component is inActive in hierarchy
       if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
         this._phasedActive = false;
         this._onDisable();
       }
     }
   }
+
+  /**
+   * @internal
+   */
+  _setBelongToScene(scene: Scene): void {}
 
   /**
    * @internal

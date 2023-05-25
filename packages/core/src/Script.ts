@@ -182,7 +182,7 @@ export class Script extends Component {
     if (this._waitHandlingInValid) {
       this._waitHandlingInValid = false;
     } else {
-      const { _componentsManager: componentsManager } = this.engine;
+      const { _componentsManager: componentsManager } = this.scene;
       const { prototype } = Script;
       if (!this._started) {
         componentsManager.addOnStartScript(this);
@@ -208,7 +208,7 @@ export class Script extends Component {
    */
   override _onDisable(): void {
     this._waitHandlingInValid = true;
-    this._engine._componentsManager.addDisableScript(this);
+    this.scene._componentsManager.addDisableScript(this);
     this.onDisable();
   }
 
@@ -216,7 +216,7 @@ export class Script extends Component {
    * @internal
    */
   _handlingInValid(): void {
-    const componentsManager = this.engine._componentsManager;
+    const componentsManager = this.scene._componentsManager;
     const { prototype } = Script;
     if (this.onUpdate !== prototype.onUpdate) {
       componentsManager.removeOnUpdateScript(this);
@@ -237,6 +237,6 @@ export class Script extends Component {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._engine._componentsManager.addPendingDestroyScript(this);
+    this.scene._componentsManager.addPendingDestroyScript(this);
   }
 }

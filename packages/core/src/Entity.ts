@@ -34,8 +34,9 @@ export class Entity extends EngineObject {
    */
   static _traverseSetOwnerScene(entity: Entity, scene: Scene): void {
     entity._scene = scene;
+    entity._setBelongToScene(scene);
     const children = entity._children;
-    for (let i = entity.childCount - 1; i >= 0; i--) {
+    for (let i = children.length - 1; i >= 0; i--) {
       this._traverseSetOwnerScene(children[i], scene);
     }
   }
@@ -450,7 +451,7 @@ export class Entity extends EngineObject {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main inActive entity' active in hierarchy, if the operation is in main inActive entity or it's children script's onDisable Event.";
     }
-    this._activeChangedComponents = this._engine._componentsManager.getActiveChangedTempList();
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(true);
   }
@@ -462,9 +463,16 @@ export class Entity extends EngineObject {
     if (this._activeChangedComponents) {
       throw "Note: can't set the 'main active entity' inActive in hierarchy, if the operation is in main active entity or it's children script's onEnable Event.";
     }
-    this._activeChangedComponents = this._engine._componentsManager.getActiveChangedTempList();
+    this._activeChangedComponents = this._scene._componentsManager.getActiveChangedTempList();
     this._setInActiveInHierarchy(this._activeChangedComponents);
     this._setActiveComponents(false);
+  }
+
+  private _setBelongToScene(scene: Scene): void {
+    const components = this._components;
+    for (let i = 0, n = components.length; i < n; i++) {
+      components[i]._setBelongToScene(scene);
+    }
   }
 
   private _addToChildrenList(index: number, child: Entity): void {
@@ -530,7 +538,7 @@ export class Entity extends EngineObject {
     for (let i = 0, length = activeChangedComponents.length; i < length; ++i) {
       activeChangedComponents[i]._setActive(isActive);
     }
-    this._engine._componentsManager.putActiveChangedTempList(activeChangedComponents);
+    this._scene._componentsManager.putActiveChangedTempList(activeChangedComponents);
     this._activeChangedComponents = null;
   }
 
@@ -557,7 +565,7 @@ export class Entity extends EngineObject {
     }
     const children = this._children;
     for (let i = children.length - 1; i >= 0; i--) {
-      const child: Entity = children[i];
+      const child = children[i];
       child.isActive && child._setInActiveInHierarchy(activeChangedComponents);
     }
   }
