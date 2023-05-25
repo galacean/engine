@@ -1,29 +1,25 @@
 import {
   AssetPromise,
   AssetType,
-  Loader,
   LoadItem,
+  Loader,
   Material,
-  resourceLoader,
   ResourceManager,
   Shader,
-  Texture2D
+  Texture2D,
+  resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { IPrefabMaterial } from "./resource-deserialize/resources/prefab/PrefabDesign";
 
-function set(obj: Object, path: string, value: any) {
-  const paths = path.split(".");
-  const length = paths.length;
-  let current = obj;
-  for (let i = 0; i < length - 1; i++) {
-    const key = paths[i];
-    if (!current[key]) {
-      current[key] = {};
+function setProperty(object: Object, key: string, value: any) {
+  if (typeof value === "object") {
+    for (let subKey in value) {
+      setProperty(object[key], subKey, value[subKey]);
     }
-    current = current[key];
+  } else {
+    object[key] = value;
   }
-  current[paths[length - 1]] = value;
 }
 
 @resourceLoader(AssetType.Material, ["json"])
@@ -81,9 +77,7 @@ class MaterialLoader extends Loader<Material> {
             }
           }
 
-          for (let key in renderState) {
-            set(material.renderState, key, renderState[key]);
-          }
+          setProperty(material, "renderState", renderState);
 
           return Promise.all(texturePromises).then(() => {
             resolve(material);

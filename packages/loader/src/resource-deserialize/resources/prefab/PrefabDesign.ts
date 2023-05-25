@@ -1,4 +1,10 @@
-import type { BackgroundMode, DiffuseMode, ShadowCascadesMode, ShadowResolution } from "@galacean/engine-core";
+import type {
+  BackgroundMode,
+  DiffuseMode,
+  RenderState,
+  ShadowCascadesMode,
+  ShadowResolution
+} from "@galacean/engine-core";
 import { IReferable } from "@galacean/engine-core/types/asset/IReferable";
 import { IColor } from "../mesh/IModelMesh";
 
@@ -91,7 +97,5 @@ export interface IPrefabMaterial {
     };
   };
   macros: Array<{ name: string; value?: string }>;
-  renderState: {
-    [key: string]: any;
-  };
+  renderState: RenderState;
 }
