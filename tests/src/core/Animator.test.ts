@@ -1,5 +1,5 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
-import { Animator, AssetType, Camera } from "@galacean/engine-core";
+import { Animator, Camera } from "@galacean/engine-core";
 import { expect } from "chai";
 import { GLTFResource } from "@galacean/engine-loader";
 
@@ -10,14 +10,13 @@ canvasDOM.height = 1024;
 describe("Animator test", function () {
   let animator: Animator;
   let resource: GLTFResource;
-  //let engine: WebGLEngine;
+  let engine: WebGLEngine;
 
   before(async () => {
-    const engine = await WebGLEngine.create({ canvas: canvasDOM });
+    engine = await WebGLEngine.create({ canvas: canvasDOM });
     const scene = engine.sceneManager.activeScene;
     const rootEntity = scene.createRootEntity();
     rootEntity.addComponent(Camera);
-    debugger;
 
     resource = await engine.resourceManager.load<GLTFResource>(glbResource);
     const defaultSceneRoot = resource.defaultSceneRoot;
@@ -25,6 +24,10 @@ describe("Animator test", function () {
     animator = defaultSceneRoot.getComponent(Animator);
 
     engine.run();
+  });
+
+  after(function(){
+    engine.destroy();
   });
 
   it("constructor", () => {
