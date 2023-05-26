@@ -9,7 +9,7 @@ describe("Scene", () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
 
     engine.run();
-    scene = engine.sceneManager.activeScene;
+    scene = engine.sceneManager.scenes[0];
   });
 
   beforeEach(() => {
@@ -90,6 +90,23 @@ describe("Scene", () => {
       expect(scene.rootEntities.length).eq(4);
       scene.rootEntities[0].destroy();
       expect(scene.rootEntities.length).eq(3);
+    });
+  });
+
+  describe("multiScene", () => {
+    it("add and remove", () => {
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+      expect(engine.sceneManager.scenes.length).eq(2);
+      engine.sceneManager.removeScene(scene);
+      expect(engine.sceneManager.scenes.length).eq(1);
+    });
+
+    it("Added scene destroy", () => {
+      const scene = new Scene(engine);
+      engine.sceneManager.addScene(scene);
+      scene.destroy();
+      expect(engine.sceneManager.scenes.length).eq(1);
     });
   });
 
