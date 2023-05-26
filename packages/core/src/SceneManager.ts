@@ -1,7 +1,7 @@
-import { AssetPromise } from "./asset/AssetPromise";
 import { Engine } from "./Engine";
-import { SafeLoopArray } from "./SafeLoopArray";
 import { Scene } from "./Scene";
+import { AssetPromise } from "./asset/AssetPromise";
+import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
  * Scene manager.
