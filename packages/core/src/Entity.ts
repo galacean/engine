@@ -10,6 +10,7 @@ import { Script } from "./Script";
 import { Transform } from "./Transform";
 import { EngineObject } from "./base";
 import { ComponentCloner } from "./clone/ComponentCloner";
+import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 
 /**
  * Entity, be used as components container.

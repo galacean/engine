@@ -1,6 +1,7 @@
 import { EngineObject } from "./base";
 import { assignmentClone, ignoreClone } from "./clone/CloneManager";
 import { Entity } from "./Entity";
+import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { Scene } from "./Scene";
 
 /**

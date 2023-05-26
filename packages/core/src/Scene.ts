@@ -5,9 +5,11 @@ import { ComponentsManager } from "./ComponentsManager";
 import { Engine } from "./Engine";
 import { Entity } from "./Entity";
 import { EngineObject, Logger } from "./base";
+import { ActiveChangeFlag } from "./enums/ActiveChangeFlag";
 import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
+import { LightManager } from "./lighting/LightManager";
 import { PhysicsManager } from "./physics/PhysicsManager";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -16,7 +18,6 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { ShadowCascadesMode } from "./shadow/enum/ShadowCascadesMode";
 import { ShadowResolution } from "./shadow/enum/ShadowResolution";
 import { ShadowType } from "./shadow/enum/ShadowType";
-import { LightManager } from "./lighting/LightManager";
 
 /**
  * Scene.
