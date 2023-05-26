@@ -2,7 +2,7 @@ import { ICharacterController } from "@galacean/engine-design";
 import { Vector3 } from "@galacean/engine-math";
 import { Entity } from "../Entity";
 import { Collider } from "./Collider";
-import { PhysicsManager } from "./PhysicsManager";
+import { PhysicsScene } from "./PhysicsScene";
 import { ControllerNonWalkableMode } from "./enums/ControllerNonWalkableMode";
 import { ColliderShape } from "./shape";
 
@@ -75,7 +75,7 @@ export class CharacterController extends Collider {
    */
   constructor(entity: Entity) {
     super(entity);
-    (<ICharacterController>this._nativeCollider) = PhysicsManager._nativePhysics.createCharacterController();
+    (<ICharacterController>this._nativeCollider) = PhysicsScene._nativePhysics.createCharacterController();
 
     this._setUpDirection = this._setUpDirection.bind(this);
     //@ts-ignore

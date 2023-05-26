@@ -4,7 +4,7 @@ import { DisorderedArray } from "../../DisorderedArray";
 import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
-import { HitResult, PhysicsManager } from "../../physics";
+import { HitResult } from "../../physics";
 import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
 import { IInput } from "../interface/IInput";
@@ -90,7 +90,7 @@ export class PointerManager implements IInput {
     lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
       const frameCount = this._engine.time.frameCount;
-      const updatePointer = PhysicsManager._initialized
+      const updatePointer = this._engine._physicsInitialized
         ? this._updatePointerWithPhysics
         : this._updatePointerWithoutPhysics;
       const clientRect = this._htmlCanvas.getBoundingClientRect();

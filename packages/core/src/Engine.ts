@@ -1,4 +1,4 @@
-import { IPhysics } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
@@ -21,7 +21,8 @@ import { GLCapabilityType } from "./base/Constant";
 import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
 import { Material } from "./material/Material";
-import { PhysicsManager } from "./physics/PhysicsManager";
+import { PhysicsScene } from "./physics/PhysicsScene";
+import { ColliderShape } from "./physics/shape/ColliderShape";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
@@ -54,6 +55,12 @@ export class Engine extends EventDispatcher {
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
 
+  /** @internal */
+  _physicsInitialized: boolean = false;
+  /** @internal */
+  _physicalObjectsMap: Record<number, ColliderShape> = {};
+  /** @internal */
+  _nativePhysicsManager: IPhysicsManager;
   /* @internal */
   _hardwareRenderer: IHardwareRenderer;
   /* @internal */
@@ -312,7 +319,7 @@ export class Engine extends EventDispatcher {
       const componentsManager = scene._componentsManager;
       componentsManager.callScriptOnStart();
 
-      PhysicsManager._initialized && scene.physics._update(deltaTime);
+      this._physicsInitialized && scene.physics._update(deltaTime);
 
       this.inputManager._update();
 
@@ -516,7 +523,9 @@ export class Engine extends EventDispatcher {
     const physics = configuration.physics;
     if (physics) {
       return physics.initialize().then(() => {
-        PhysicsManager._initialize(physics);
+        PhysicsScene._nativePhysics = physics;
+        this._nativePhysicsManager = physics.createPhysicsManager();
+        this._physicsInitialized = true;
         return this;
       });
     } else {

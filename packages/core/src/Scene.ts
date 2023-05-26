@@ -10,7 +10,7 @@ import { FogMode } from "./enums/FogMode";
 import { Light } from "./lighting";
 import { AmbientLight } from "./lighting/AmbientLight";
 import { LightManager } from "./lighting/LightManager";
-import { PhysicsManager } from "./physics/PhysicsManager";
+import { PhysicsScene } from "./physics/PhysicsScene";
 import { ShaderProperty } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
@@ -32,7 +32,7 @@ export class Scene extends EngineObject {
   name: string;
 
   /** Physics. */
-  readonly physics: PhysicsManager = new PhysicsManager(this);
+  readonly physics: PhysicsScene = new PhysicsScene(this);
   /** The background of the scene. */
   readonly background: Background = new Background(this._engine);
   /** Scene-related shader data. */

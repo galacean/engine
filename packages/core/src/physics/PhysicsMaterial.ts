@@ -1,5 +1,5 @@
 import { IPhysicsMaterial } from "@galacean/engine-design";
-import { PhysicsManager } from "./PhysicsManager";
+import { PhysicsScene } from "./PhysicsScene";
 import { PhysicsMaterialCombineMode } from "./enums/PhysicsMaterialCombineMode";
 
 /**
@@ -16,7 +16,7 @@ export class PhysicsMaterial {
   _nativeMaterial: IPhysicsMaterial;
 
   constructor() {
-    this._nativeMaterial = PhysicsManager._nativePhysics.createPhysicsMaterial(
+    this._nativeMaterial = PhysicsScene._nativePhysics.createPhysicsMaterial(
       this._staticFriction,
       this._dynamicFriction,
       this._bounciness,
