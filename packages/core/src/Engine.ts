@@ -312,10 +312,10 @@ export class Engine extends EventDispatcher {
       const componentsManager = scene._componentsManager;
       componentsManager.callScriptOnStart();
 
-      const physics = scene.physics;
-      PhysicsManager._initialized && physics._update(deltaTime);
+      PhysicsManager._initialized && scene.physics._update(deltaTime);
 
       this.inputManager._update();
+      
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
