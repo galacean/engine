@@ -27,6 +27,7 @@ describe("Animator test", function () {
   });
 
   after(function(){
+    animator.destroy();
     engine.destroy();
   });
 
