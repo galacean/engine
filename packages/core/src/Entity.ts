@@ -256,7 +256,7 @@ export class Entity extends EngineObject {
       this._addToChildrenList(index, child);
       child._parent = this;
 
-      const lastScene = child._scene;
+      const oldScene = child._scene;
       const newScene = this._scene;
 
       let inActiveChangeFlag = ActiveChangeFlag.None;
@@ -265,7 +265,7 @@ export class Entity extends EngineObject {
       }
       if (this._isActiveInScene) {
         // cross scene should inActive first and then active
-        child._isActiveInScene && lastScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+        child._isActiveInScene && oldScene !== newScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
       } else {
         child._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
       }
@@ -281,7 +281,7 @@ export class Entity extends EngineObject {
           !child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
         }
         if (this._isActiveInScene) {
-          (!child._isActiveInScene || lastScene !== newScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
+          (!child._isActiveInScene || oldScene !== newScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
         }
       }
       activeChangeFlag && child._processActive(activeChangeFlag);

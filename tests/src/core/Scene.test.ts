@@ -7,7 +7,7 @@ describe("Scene", () => {
   let scene: Scene;
   before(async () => {
     engine = await WebGLEngine.create({ canvas: document.createElement("canvas") });
-  
+
     engine.run();
     scene = engine.sceneManager.activeScene;
   });
@@ -101,6 +101,7 @@ describe("Scene", () => {
       scene.createRootEntity("root4");
       scene.createRootEntity("root5");
       scene.destroy();
+      expect(scene.destroyed).eq(true);
       expect(scene.rootEntitiesCount).eq(0);
     });
   });

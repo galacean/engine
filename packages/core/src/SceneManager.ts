@@ -39,7 +39,7 @@ export class SceneManager {
 
   addScene(indexOrScene: number | Scene, scene?: Scene): void {
     if (typeof indexOrScene === "number") {
-      this._scenes.splice(indexOrScene, 0, scene);
+      this._scenes.add(indexOrScene, scene);
     } else {
       scene = indexOrScene;
       this._scenes.push(scene);
@@ -61,7 +61,7 @@ export class SceneManager {
     const index = scenes.indexOf(scene);
     if (index !== -1) {
       const removedScene = scenes.getArray()[index];
-      scenes.splice(index, 1);
+      scenes.removeByIndex(index);
       removedScene._processActive(false);
     }
   }
@@ -104,10 +104,9 @@ export class SceneManager {
    */
   _destroyAllScene(): void {
     const allCreatedScenes = this._allCreatedScenes;
-    for (let i = 0, n = allCreatedScenes.length; i < n; i++) {
-      allCreatedScenes[i]._destroy();
+    while (allCreatedScenes.length > 0) {
+      allCreatedScenes[0].destroy();
     }
-    allCreatedScenes.length = 0;
   }
 
   /**
@@ -125,6 +124,6 @@ export class SceneManager {
     if (firstScene) {
       this.removeScene(firstScene);
     }
-    this.addScene(0, scene);
+    scene && this.addScene(0, scene);
   }
 }

@@ -354,28 +354,6 @@ export class Scene extends EngineObject {
   }
 
   /**
-   * Destroy this scene.
-   */
-  override destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    // @todo: 应该有 BUG，destroyed 没有设置为 true
-    this._destroy();
-
-    const sceneManager = this._engine.sceneManager;
-    const allCreatedScenes = sceneManager._allCreatedScenes;
-    allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
-
-    // Remove from sceneManager
-    const scenes = sceneManager._scenes;
-    if (scenes.indexOf(this) !== -1) {
-      scenes.splice(scenes.indexOf(this), 1);
-    }
-  }
-
-  /**
    * @internal
    */
   _attachRenderCamera(camera: Camera): void {
@@ -469,15 +447,22 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
-  _destroy(): void {
-    this._isActiveInEngine && (this._engine.sceneManager.activeScene = null);
+  protected override _onDestroy(): void {
+    super._onDestroy();
+
+    // Remove from sceneManager
+    const sceneManager = this._engine.sceneManager;
+    sceneManager.removeScene(this);
+
     while (this.rootEntitiesCount > 0) {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
     this.shaderData._addReferCount(-1);
-
     this._componentsManager.handlingInvalidScripts();
+
+    const allCreatedScenes = sceneManager._allCreatedScenes;
+    allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {
