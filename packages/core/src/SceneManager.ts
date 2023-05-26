@@ -22,9 +22,7 @@ export class SceneManager {
   /**
    * @internal
    */
-  constructor(public readonly engine: Engine) {
-    this.addScene(new Scene(engine, "DefaultScene"));
-  }
+  constructor(public readonly engine: Engine) {}
 
   /**
    * Add scene.
@@ -43,6 +41,7 @@ export class SceneManager {
     if (typeof indexOrScene === "number") {
       this._scenes.splice(indexOrScene, 0, scene);
     } else {
+      scene = indexOrScene;
       this._scenes.push(scene);
     }
 
@@ -118,7 +117,7 @@ export class SceneManager {
    * Get the first scene.
    */
   get activeScene(): Scene {
-    return this._scenes[0];
+    return this._scenes.getArray()[0];
   }
 
   set activeScene(scene: Scene) {

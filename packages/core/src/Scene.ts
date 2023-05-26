@@ -285,10 +285,9 @@ export class Scene extends EngineObject {
     }
 
     let activeChangeFlag = ActiveChangeFlag.None;
-    if (this._isActiveInEngine) {
-      if (!entity._isActiveInHierarchy || oldScene !== this) {
-        entity._isActive && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
+    if (this._isActiveInEngine && entity._isActive) {
+      !entity._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+      (!entity._isActiveInScene || oldScene !== this) && (activeChangeFlag |= ActiveChangeFlag.Scene);
     }
     activeChangeFlag && entity._processActive(activeChangeFlag);
   }

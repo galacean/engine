@@ -190,14 +190,16 @@ export class PhysicsManager {
     //@ts-ignore
     this._gravity._onValueChanged = this._setGravity;
 
-    this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
-      this._onContactEnter,
-      this._onContactExit,
-      this._onContactStay,
-      this._onTriggerEnter,
-      this._onTriggerExit,
-      this._onTriggerStay
-    );
+    if (PhysicsManager._initialized) {
+      this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
+        this._onContactEnter,
+        this._onContactExit,
+        this._onContactStay,
+        this._onTriggerEnter,
+        this._onTriggerExit,
+        this._onTriggerStay
+      );
+    }
   }
 
   /**

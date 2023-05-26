@@ -276,15 +276,14 @@ export class Entity extends EngineObject {
       }
 
       let activeChangeFlag = ActiveChangeFlag.None;
-      if (this._isActiveInHierarchy) {
-        !child._isActiveInHierarchy && child._isActive && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-      }
-      if (this._isActiveInScene) {
-        if (!child._isActiveInScene || lastScene !== newScene) {
-          child._isActive && (activeChangeFlag |= ActiveChangeFlag.Scene);
+      if (child._isActive) {
+        if (this._isActiveInHierarchy) {
+          !child._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+        }
+        if (this._isActiveInScene) {
+          (!child._isActiveInScene || lastScene !== newScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
         }
       }
-
       activeChangeFlag && child._processActive(activeChangeFlag);
 
       child._setTransformDirty();
@@ -530,7 +529,7 @@ export class Entity extends EngineObject {
       if (parent) {
         parent._addToChildrenList(siblingIndex, this);
 
-        const lastScene = this._scene;
+        const oldScene = this._scene;
         const parentScene = parent._scene;
 
         let inActiveChangeFlag = ActiveChangeFlag.None;
@@ -539,25 +538,27 @@ export class Entity extends EngineObject {
         }
         if (parent._isActiveInScene) {
           // cross scene should inActive first and then active
-          this._isActiveInScene && lastScene !== parentScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
+          this._isActiveInScene && oldScene !== parentScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
         } else {
           this._isActiveInScene && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
         }
         inActiveChangeFlag && this._processInActive(inActiveChangeFlag);
 
-        if (lastScene !== parentScene) {
+        if (oldScene !== parentScene) {
           Entity._traverseSetOwnerScene(this, parentScene);
         }
 
         let activeChangeFlag = ActiveChangeFlag.None;
-        if (parent._isActiveInHierarchy) {
-          !this._isActiveInHierarchy && this._isActive && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
-        }
-        if (parent._isActiveInScene) {
-          if (!this._isActiveInScene || lastScene !== parentScene) {
-            this._isActive && (activeChangeFlag |= ActiveChangeFlag.Scene);
+
+        if (this._isActive) {
+          if (parent._isActiveInHierarchy) {
+            !this._isActiveInHierarchy && (activeChangeFlag |= ActiveChangeFlag.Hierarchy);
+          }
+          if (parent._isActiveInScene) {
+            (!this._isActiveInScene || oldScene !== parentScene) && (activeChangeFlag |= ActiveChangeFlag.Scene);
           }
         }
+
         activeChangeFlag && this._processActive(activeChangeFlag);
       } else {
         let inActiveChangeFlag = ActiveChangeFlag.None;
