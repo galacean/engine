@@ -19,6 +19,7 @@ export class PhysicsManager {
   static _initialized: boolean = false;
 
   private static _collision = new Collision();
+  private static _physicalObjectsMap: Record<number, ColliderShape> = {};
 
   /**
    * @internal
@@ -35,10 +36,11 @@ export class PhysicsManager {
 
   private _gravity: Vector3 = new Vector3(0, -9.81, 0);
   private _nativePhysicsManager: IPhysicsManager;
-  private _physicalObjectsMap: Record<number, ColliderShape> = {};
+
   private _onContactEnter = (obj1: number, obj2: number) => {
-    const shape1 = this._physicalObjectsMap[obj1];
-    const shape2 = this._physicalObjectsMap[obj2];
+    const physicalObjectsMap = PhysicsManager._physicalObjectsMap;
+    const shape1 = physicalObjectsMap[obj1];
+    const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
@@ -61,8 +63,9 @@ export class PhysicsManager {
     }
   };
   private _onContactExit = (obj1: number, obj2: number) => {
-    const shape1 = this._physicalObjectsMap[obj1];
-    const shape2 = this._physicalObjectsMap[obj2];
+    const physicalObjectsMap = PhysicsManager._physicalObjectsMap;
+    const shape1 = physicalObjectsMap[obj1];
+    const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
@@ -85,8 +88,9 @@ export class PhysicsManager {
     }
   };
   private _onContactStay = (obj1: number, obj2: number) => {
-    const shape1 = this._physicalObjectsMap[obj1];
-    const shape2 = this._physicalObjectsMap[obj2];
+    const physicalObjectsMap = PhysicsManager._physicalObjectsMap;
+    const shape1 = physicalObjectsMap[obj1];
+    const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
@@ -109,8 +113,9 @@ export class PhysicsManager {
     }
   };
   private _onTriggerEnter = (obj1: number, obj2: number) => {
-    const shape1 = this._physicalObjectsMap[obj1];
-    const shape2 = this._physicalObjectsMap[obj2];
+    const physicalObjectsMap = PhysicsManager._physicalObjectsMap;
+    const shape1 = physicalObjectsMap[obj1];
+    const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
@@ -126,8 +131,9 @@ export class PhysicsManager {
   };
 
   private _onTriggerExit = (obj1: number, obj2: number) => {
-    const shape1 = this._physicalObjectsMap[obj1];
-    const shape2 = this._physicalObjectsMap[obj2];
+    const physicalObjectsMap = PhysicsManager._physicalObjectsMap;
+    const shape1 = physicalObjectsMap[obj1];
+    const shape2 =physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
@@ -143,8 +149,9 @@ export class PhysicsManager {
   };
 
   private _onTriggerStay = (obj1: number, obj2: number) => {
-    const shape1 = this._physicalObjectsMap[obj1];
-    const shape2 = this._physicalObjectsMap[obj2];
+    const physicalObjectsMap = PhysicsManager._physicalObjectsMap;
+    const shape1 =physicalObjectsMap[obj1];
+    const shape2 =physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
@@ -271,13 +278,13 @@ export class PhysicsManager {
     }
 
     const onRaycast = (obj: number) => {
-      const shape = this._physicalObjectsMap[obj];
+      const shape = PhysicsManager._physicalObjectsMap[obj];
       return shape.collider.entity.layer & layerMask && shape.isSceneQuery;
     };
 
     if (hitResult != undefined) {
       const result = this._nativePhysicsManager.raycast(ray, distance, onRaycast, (idx, distance, position, normal) => {
-        hitResult.entity = this._physicalObjectsMap[idx]._collider.entity;
+        hitResult.entity = PhysicsManager._physicalObjectsMap[idx]._collider.entity;
         hitResult.distance = distance;
         hitResult.normal.copyFrom(normal);
         hitResult.point.copyFrom(position);
@@ -322,7 +329,7 @@ export class PhysicsManager {
    * @internal
    */
   _addColliderShape(colliderShape: ColliderShape): void {
-    this._physicalObjectsMap[colliderShape.id] = colliderShape;
+    PhysicsManager._physicalObjectsMap[colliderShape.id] = colliderShape;
     this._nativePhysicsManager.addColliderShape(colliderShape._nativeShape);
   }
 
@@ -332,7 +339,7 @@ export class PhysicsManager {
    * @internal
    */
   _removeColliderShape(colliderShape: ColliderShape): void {
-    delete this._physicalObjectsMap[colliderShape.id];
+    delete PhysicsManager._physicalObjectsMap[colliderShape.id];
     this._nativePhysicsManager.removeColliderShape(colliderShape._nativeShape);
   }
 

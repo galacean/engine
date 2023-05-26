@@ -1,5 +1,5 @@
-import { IPhysicsManager } from "@galacean/engine-design";
 import { Ray, Vector3 } from "@galacean/engine";
+import { IPhysicsManager } from "@galacean/engine-design";
 import { DisorderedArray } from "./DisorderedArray";
 import { PhysXCharacterController } from "./PhysXCharacterController";
 import { PhysXCollider } from "./PhysXCollider";
@@ -15,6 +15,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
 
   private static _tempPosition: Vector3 = new Vector3();
   private static _tempNormal: Vector3 = new Vector3();
+  private static _eventMap: Record<number, Record<number, TriggerEvent>> = {};
 
   private _physXPhysics: PhysXPhysics;
   private _pxRaycastHit: any;
@@ -30,7 +31,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
   private readonly _onTriggerStay?: (obj1: number, obj2: number) => void;
 
   private _currentEvents: DisorderedArray<TriggerEvent> = new DisorderedArray<TriggerEvent>();
-  private _eventMap: Record<number, Record<number, TriggerEvent>> = {};
+
   private _eventPool: TriggerEvent[] = [];
 
   constructor(
@@ -75,11 +76,11 @@ export class PhysXPhysicsManager implements IPhysicsManager {
       onTriggerEnd: (index1, index2) => {
         let event: TriggerEvent;
         if (index1 < index2) {
-          const subMap = this._eventMap[index1];
+          const subMap = PhysXPhysicsManager._eventMap[index1];
           event = subMap[index2];
           subMap[index2] = undefined;
         } else {
-          const subMap = this._eventMap[index2];
+          const subMap = PhysXPhysicsManager._eventMap[index2];
           event = subMap[index1];
           subMap[index1] = undefined;
         }
@@ -104,7 +105,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
    * {@inheritDoc IPhysicsManager.addColliderShape }
    */
   addColliderShape(colliderShape: PhysXColliderShape) {
-    this._eventMap[colliderShape._id] = {};
+    PhysXPhysicsManager._eventMap[colliderShape._id] = {};
   }
 
   /**
@@ -120,7 +121,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
         eventPool.push(event);
       }
     }
-    delete this._eventMap[shapeID];
+    delete PhysXPhysicsManager._eventMap[shapeID];
   }
 
   /**
@@ -242,7 +243,7 @@ export class PhysXPhysicsManager implements IPhysicsManager {
     } else {
       event = new TriggerEvent(index1, index2);
     }
-    this._eventMap[index1][index2] = event;
+    PhysXPhysicsManager._eventMap[index1][index2] = event;
     return event;
   }
 
