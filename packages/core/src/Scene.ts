@@ -362,10 +362,18 @@ export class Scene extends EngineObject {
       return;
     }
 
+    // @todo: 应该有 BUG，destroyed 没有设置为 true
     this._destroy();
 
-    const allCreatedScenes = this.engine.sceneManager._allCreatedScenes;
+    const sceneManager = this._engine.sceneManager;
+    const allCreatedScenes = sceneManager._allCreatedScenes;
     allCreatedScenes.splice(allCreatedScenes.indexOf(this), 1);
+
+    // Remove from sceneManager
+    const scenes = sceneManager._scenes;
+    if (scenes.indexOf(this) !== -1) {
+      scenes.splice(scenes.indexOf(this), 1);
+    }
   }
 
   /**
