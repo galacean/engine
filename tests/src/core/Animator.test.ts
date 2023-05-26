@@ -27,10 +27,11 @@ describe("Animator test", function () {
   });
 
   after(function(){
+    animator.destroy();
     engine.destroy();
   });
 
-  it("constructor", () => {
+  it("animator constructor", () => {
     // Test default values
     expect(animator).not.to.be.undefined;
     expect(animator.cullingMode).to.eq(0);
@@ -86,7 +87,7 @@ describe("Animator test", function () {
     expect(animatorState.name).to.eq('Walk');
   });
 
-  it("animation enabled", () => {
+  it("animator enabled", () => {
     // Test animator play.
     animator.play('Survey');
 
@@ -111,7 +112,7 @@ describe("Animator test", function () {
     expect(animatorState.name).to.eq(expectedStateName);
   });
 
-  it("animation getCurrentAnimatorState", () => {
+  it("animator getCurrentAnimatorState", () => {
     //get random animation element from gltf resource
     const min = 0;
     const max = resource.animations.length - 1;
@@ -125,7 +126,7 @@ describe("Animator test", function () {
     expect(currentAnimatorState.name).to.eq(expectedStateName);
   });
 
-  it("animation cross fade", () => {
+  it("animator cross fade", () => {
     //@ts-ignore
     animator._reset();
     animator.play('Walk');
@@ -140,10 +141,10 @@ describe("Animator test", function () {
     expect(layerState).to.eq(2);
   });
 
-  it("animation fix cross fade", () => {
+  it("animator fix cross fade", () => {
     //@ts-ignore
     animator._reset();
-    animator.play('');
+    animator.play('Walk');
     animator.update(1);
     animator.crossFade('Survey', 5);
     animator.crossFade('Run', 0.5);
