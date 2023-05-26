@@ -133,7 +133,7 @@ export class PhysicsManager {
   private _onTriggerExit = (obj1: number, obj2: number) => {
     const physicalObjectsMap = PhysicsManager._physicalObjectsMap;
     const shape1 = physicalObjectsMap[obj1];
-    const shape2 =physicalObjectsMap[obj2];
+    const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, n = scripts.length; i < n; i++) {
@@ -150,8 +150,8 @@ export class PhysicsManager {
 
   private _onTriggerStay = (obj1: number, obj2: number) => {
     const physicalObjectsMap = PhysicsManager._physicalObjectsMap;
-    const shape1 =physicalObjectsMap[obj1];
-    const shape2 =physicalObjectsMap[obj2];
+    const shape1 = physicalObjectsMap[obj1];
+    const shape2 = physicalObjectsMap[obj2];
 
     let scripts = shape1.collider.entity._scripts;
     for (let i = 0, len = scripts.length; i < len; i++) {
