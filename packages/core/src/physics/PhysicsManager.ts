@@ -13,13 +13,20 @@ import { ColliderShape } from "./shape";
  * A physics manager is a collection of colliders and constraints which can interact.
  */
 export class PhysicsManager {
-  private static _collision = new Collision();
-
   /** @internal */
   static _nativePhysics: IPhysics;
-
   /** @internal */
-  _initialized: boolean = false;
+  static _initialized: boolean = false;
+
+  private static _collision = new Collision();
+
+  /**
+   * @internal
+   */
+  static _initialize(physics: IPhysics): void {
+    PhysicsManager._nativePhysics = physics;
+    PhysicsManager._initialized = true;
+  }
 
   private _scene: Scene;
   private _restTime: number = 0;
@@ -175,6 +182,15 @@ export class PhysicsManager {
     this._setGravity = this._setGravity.bind(this);
     //@ts-ignore
     this._gravity._onValueChanged = this._setGravity;
+
+    this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
+      this._onContactEnter,
+      this._onContactExit,
+      this._onContactStay,
+      this._onTriggerEnter,
+      this._onTriggerExit,
+      this._onTriggerStay
+    );
   }
 
   /**
@@ -279,22 +295,6 @@ export class PhysicsManager {
     } else {
       return this._nativePhysicsManager.raycast(ray, distance, onRaycast);
     }
-  }
-
-  /**
-   * @internal
-   */
-  _initialize(physics: IPhysics): void {
-    PhysicsManager._nativePhysics = physics;
-    this._nativePhysicsManager = PhysicsManager._nativePhysics.createPhysicsManager(
-      this._onContactEnter,
-      this._onContactExit,
-      this._onContactStay,
-      this._onTriggerEnter,
-      this._onTriggerExit,
-      this._onTriggerStay
-    );
-    this._initialized = true;
   }
 
   /**
