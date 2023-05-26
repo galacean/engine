@@ -20,9 +20,7 @@ import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
-import { LightManager } from "./lighting/LightManager";
 import { Material } from "./material/Material";
-import { PhysicsManager } from "./physics";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
@@ -52,8 +50,6 @@ export class Engine extends EventDispatcher {
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
 
-  /** Physics manager of Engine. */
-  readonly physicsManager: PhysicsManager;
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
 
@@ -222,11 +218,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
-  
     this._canvas = canvas;
-    this._sceneManager.activeScene = new Scene(this, "DefaultScene");
-    // @todo: use first
-    this.physicsManager = this._sceneManager.activeScene.physics;
 
     this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
@@ -318,8 +310,9 @@ export class Engine extends EventDispatcher {
 
       const componentsManager = scene._componentsManager;
       componentsManager.callScriptOnStart();
-      // 场景独立
-      this.physicsManager._initialized && this.physicsManager._update(deltaTime);
+
+      const physics = scene.physics;
+      physics._initialized && physics._update(deltaTime);
 
       this.inputManager._update();
       componentsManager.callScriptOnUpdate(deltaTime);
@@ -586,6 +579,14 @@ export class Engine extends EventDispatcher {
       .catch((error) => {
         console.error(error);
       });
+  }
+
+  /**
+   * @deprecated
+   * The first scene physics manager.
+   */
+  get physicsManager() {
+    return this.sceneManager.scenes[0]?.physics;
   }
 }
 

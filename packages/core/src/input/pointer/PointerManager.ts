@@ -5,8 +5,8 @@ import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
+import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
-import { PointerButton, _pointerBin2DecMap, _pointerDec2BinMap } from "../enums/PointerButton";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
 
@@ -210,7 +210,8 @@ export class PointerManager implements IInput {
 
   private _pointerRayCast(normalizedX: number, normalizedY: number): Entity {
     const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
-    const { _activeCameras: cameras } = this._engine.sceneManager.activeScene;
+    const scene = this._engine.sceneManager.activeScene;
+    const { _activeCameras: cameras } = scene;
     for (let i = cameras.length - 1; i >= 0; i--) {
       const camera = cameras[i];
       if (!camera.enabled || camera.renderTarget) {
@@ -220,12 +221,7 @@ export class PointerManager implements IInput {
       if (normalizedX >= vpX && normalizedY >= vpY && normalizedX - vpX <= vpW && normalizedY - vpY <= vpH) {
         point.set((normalizedX - vpX) / vpW, (normalizedY - vpY) / vpH);
         if (
-          this._engine.physicsManager.raycast(
-            camera.viewportPointToRay(point, ray),
-            Number.MAX_VALUE,
-            camera.cullingMask,
-            hitResult
-          )
+          scene.physics.raycast(camera.viewportPointToRay(point, ray), Number.MAX_VALUE, camera.cullingMask, hitResult)
         ) {
           return hitResult.entity;
         } else if (camera.clearFlags & CameraClearFlags.Color) {

@@ -22,7 +22,9 @@ export class SceneManager {
   /**
    * @internal
    */
-  constructor(public readonly engine: Engine) {}
+  constructor(public readonly engine: Engine) {
+    this.addScene(new Scene(engine, "DefaultScene"));
+  }
 
   /**
    * Add scene.
@@ -113,7 +115,7 @@ export class SceneManager {
    * @deprecated
    * Please use `scenes` instead.
    *
-   * Get the activated scene.
+   * Get the first scene.
    */
   get activeScene(): Scene {
     return this._scenes[0];

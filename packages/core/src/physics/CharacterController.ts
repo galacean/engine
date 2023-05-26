@@ -144,15 +144,15 @@ export class CharacterController extends Collider {
   /**
    * @internal
    */
-  override _onEnable() {
-    this.engine.physicsManager._addCharacterController(this);
+  override _onEnableInScene() {
+    this.scene.physics._addCharacterController(this);
   }
 
   /**
    * @internal
    */
-  override _onDisable() {
-    this.engine.physicsManager._removeCharacterController(this);
+  override _onDisableInScene() {
+    this.scene.physics._removeCharacterController(this);
   }
 
   private _setUpDirection(): void {
