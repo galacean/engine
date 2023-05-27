@@ -137,9 +137,11 @@ export class Component extends EngineObject {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._entity._removeComponent(this);
-    if (this._entity.isActiveInHierarchy) {
-      this._enabled && this._onDisable();
+    const entity = this._entity;
+    entity._removeComponent(this);
+    if (this._enabled) {
+      entity._isActiveInHierarchy && this._onDisable();
+      entity._isActiveInScene && this._onDisableInScene();
     }
   }
 }

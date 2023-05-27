@@ -91,20 +91,35 @@ describe("Scene", () => {
       scene.rootEntities[0].destroy();
       expect(scene.rootEntities.length).eq(3);
     });
+
+    it("Root entity enable", () => {
+      const scene = new Scene(engine);
+      const child0 = new Entity(engine, "child0");
+      const child1 = new Entity(engine, "child1");
+      scene.addRootEntity(child0);
+      scene.addRootEntity(child1);
+      engine.sceneManager.addScene(scene);
+      expect(child0.isActiveInHierarchy).eq(true);
+      expect(child1.isActiveInHierarchy).eq(true);
+      scene.destroy();
+    });
   });
 
-  describe("multiScene", () => {
-    it("add and remove", () => {
+  describe("MultiScene test", () => {
+    it("Add and remove", () => {
       const scene = new Scene(engine);
+
       engine.sceneManager.addScene(scene);
       expect(engine.sceneManager.scenes.length).eq(2);
+
       engine.sceneManager.removeScene(scene);
       expect(engine.sceneManager.scenes.length).eq(1);
     });
 
-    it("Added scene destroy", () => {
+    it("The second scene destroy", () => {
       const scene = new Scene(engine);
       engine.sceneManager.addScene(scene);
+
       scene.destroy();
       expect(engine.sceneManager.scenes.length).eq(1);
     });
