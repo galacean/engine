@@ -8,4 +8,3 @@ export type { IPhysicsManager } from "./IPhysicsManager";
 export type { IStaticCollider } from "./IStaticCollider";
 export * from "./joints/index";
 export * from "./shape/index";
-
