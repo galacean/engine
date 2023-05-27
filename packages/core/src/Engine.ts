@@ -315,6 +315,7 @@ export class Engine extends EventDispatcher {
       if (scene.destroyed) {
         continue;
       }
+      scene._cameraNeedSorting && scene._sortCameras();
 
       const componentsManager = scene._componentsManager;
       componentsManager.callScriptOnStart();

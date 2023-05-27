@@ -39,9 +39,6 @@ export class Camera extends Component {
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
 
-  /** Rendering priority - A Camera with higher priority will be rendered on top of a camera with lower priority. */
-  priority: number = 0;
-
   /** Whether to enable frustum culling, it is enabled by default. */
   enableFrustumCulling: boolean = true;
 
@@ -73,6 +70,7 @@ export class Camera extends Component {
   /** @internal */
   _replacementSubShaderTag: ShaderTagKey = null;
 
+  private _priority: number = 0;
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
@@ -164,6 +162,22 @@ export class Camera extends Component {
       this._viewport.copyFrom(value);
     }
     this._projMatChange();
+  }
+
+  /**
+   * Rendering priority, higher priority will be rendered on top of a camera with lower priority.
+   */
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    if (this._priority !== value) {
+      if (this._entity._isActiveInScene && this.enabled) {
+        this.scene._cameraNeedSorting = true;
+      }
+      this._priority = value;
+    }
   }
 
   /**

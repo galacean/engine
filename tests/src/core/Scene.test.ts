@@ -103,6 +103,36 @@ describe("Scene", () => {
       expect(child1.isActiveInHierarchy).eq(true);
       scene.destroy();
     });
+
+    it("Cross scene add entity", () => {
+      const secondScene = new Scene(engine);
+      const child0 = new Entity(engine, "child0");
+      secondScene.addRootEntity(child0);
+      expect(secondScene.rootEntities.length).eq(1);
+
+      const sceneRootEntityCount = scene.rootEntities.length;
+      scene.addRootEntity(child0);
+      expect(secondScene.rootEntities.length).eq(0);
+      expect(scene.rootEntities.length).eq(sceneRootEntityCount + 1);
+      secondScene.destroy();
+    });
+
+    it("Child entity became root entity", () => {
+     
+      const child0 = new Entity(engine, "child0");
+      const child1 = new Entity(engine, "child1");
+      child0.addChild(child1);
+      scene.addRootEntity(child0);
+      expect(child0.children.length).eq(1);
+
+      const previousSceneRootEntityCount = scene.rootEntities.length;
+      scene.addRootEntity(child1);
+      expect(child1.children.length).eq(0);
+      expect(scene.rootEntities.length).eq(previousSceneRootEntityCount + 1);
+      
+      child0.destroy();
+      expect(scene.rootEntities.length).eq(previousSceneRootEntityCount);
+    });
   });
 
   describe("MultiScene test", () => {

@@ -50,6 +50,8 @@ export class Scene extends EngineObject {
   shadowDistance: number = 50;
 
   /* @internal */
+  _cameraNeedSorting: boolean = false;
+  /* @internal */
   _lightManager: LightManager = new LightManager();
   /* @internal */
   _componentsManager: ComponentsManager = new ComponentsManager();
@@ -253,13 +255,13 @@ export class Scene extends EngineObject {
     }
 
     const isRoot = entity._isRoot;
-    // let entity become root
+    // Let entity become root
     if (!isRoot) {
       entity._isRoot = true;
       entity._removeFromParent();
     }
 
-    // add or remove from scene's rootEntities
+    // Add or remove from scene's rootEntities
     const oldScene = entity._scene;
     if (oldScene !== this) {
       if (oldScene && isRoot) {
@@ -270,10 +272,10 @@ export class Scene extends EngineObject {
       this._addToRootEntityList(index, entity);
     }
 
-    // process entity active/inActive
+    // Process entity active/inActive
     let inActiveChangeFlag = ActiveChangeFlag.None;
     if (this._isActiveInEngine) {
-      // cross scene should inActive first and then active
+      // Cross scene should inActive first and then active
       entity._isActiveInHierarchy && oldScene !== this && (inActiveChangeFlag |= ActiveChangeFlag.Scene);
     } else {
       entity._isActiveInHierarchy && (inActiveChangeFlag |= ActiveChangeFlag.Hierarchy);
@@ -356,13 +358,20 @@ export class Scene extends EngineObject {
   /**
    * @internal
    */
+  _sortCameras(): void {
+    this._activeCameras.sort((a, b) => a.priority - b.priority);
+    this._cameraNeedSorting = false;
+  }
+
+  /**
+   * @internal
+   */
   _attachRenderCamera(camera: Camera): void {
     const activeCameras = this._activeCameras;
     const index = activeCameras.indexOf(camera);
     if (index === -1) {
-      let index = activeCameras.length;
-      while (--index >= 0 && camera.priority < activeCameras[index].priority);
-      activeCameras.splice(index + 1, 0, camera);
+      activeCameras.push(camera);
+      this._cameraNeedSorting = true;
     } else {
       Logger.warn("Camera already attached.");
     }
