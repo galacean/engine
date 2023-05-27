@@ -1,10 +1,4 @@
-import {
-  AssetPromise,
-  Loader,
-  LoadItem,
-  resourceLoader,
-  ResourceManager,
-  Texture2D} from "@galacean/engine-core";
+import { AssetPromise, Loader, LoadItem, resourceLoader, ResourceManager, Texture2D } from "@galacean/engine-core";
 import { decode } from "../..";
 
 @resourceLoader("EditorTexture2D", ["prefab"], true)
