@@ -335,7 +335,7 @@ export class Engine extends EventDispatcher {
     }
 
     if (this._waitingDestroy) {
-      // this._destroy();
+      this._destroy();
     }
     this._frameInProcess = false;
   }
