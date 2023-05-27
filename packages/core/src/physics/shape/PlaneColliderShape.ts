@@ -7,9 +7,6 @@ import { ColliderShape } from "./ColliderShape";
 export class PlaneColliderShape extends ColliderShape {
   constructor() {
     super();
-    this._nativeShape = PhysicsScene._nativePhysics.createPlaneColliderShape(
-      this._id,
-      this._material._nativeMaterial
-    );
+    this._nativeShape = PhysicsScene._nativePhysics.createPlaneColliderShape(this._id, this._material._nativeMaterial);
   }
 }
