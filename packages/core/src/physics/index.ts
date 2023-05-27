@@ -8,3 +8,4 @@ export { StaticCollider } from "./StaticCollider";
 export * from "./enums";
 export * from "./joint";
 export * from "./shape";
+
