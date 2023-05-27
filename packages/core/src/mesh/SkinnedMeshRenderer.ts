@@ -192,6 +192,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
               this._jointTexture?.destroy();
               this._jointTexture = new Texture2D(engine, 4, jointCount, TextureFormat.R32G32B32A32, false);
               this._jointTexture.filterMode = TextureFilterMode.Point;
+              this._jointTexture.isGCIgnored = true;
             }
             shaderData.disableMacro("RENDERER_JOINTS_NUM");
             shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
@@ -218,6 +219,15 @@ export class SkinnedMeshRenderer extends MeshRenderer {
 
     const layer = entity.layer;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
+  }
+
+  /**
+   * @internal
+   */
+  override _onDestroy(): void {
+    super._onDestroy();
+    this.rootBone?.transform._updateFlagManager.removeListener(this._onTransformChanged);
+    this._jointTexture?.destroy();
   }
 
   /**

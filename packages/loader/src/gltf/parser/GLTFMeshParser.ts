@@ -95,7 +95,7 @@ export class GLTFMeshParser extends GLTFParser {
         const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices.byteLength, BufferUsage.Static);
         vertexBuffer.setData(vertices);
         meshRestoreInfo.vertexBuffers.push(new BufferRestoreInfo(vertexBuffer, accessorBuffer.restoreInfo));
-        
+
         mesh.setVertexBufferBinding(vertexBuffer, accessorBuffer.stride, bufferBindIndex);
         vertexBindingInfos[meshId] = bufferBindIndex++;
       }

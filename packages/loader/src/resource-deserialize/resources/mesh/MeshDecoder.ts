@@ -6,7 +6,7 @@ import { IEncodedModelMesh } from "./IModelMesh";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 
 /**
- * @todo refactor 
+ * @todo refactor
  */
 @decoder("Mesh")
 export class MeshDecoder {
@@ -177,7 +177,7 @@ export class MeshDecoder {
         }
         modelMesh.setIndices(indices);
       }
-      
+
       encodedMeshData.subMeshes.forEach((subMesh) => modelMesh.addSubMesh(subMesh));
       modelMesh.uploadData(false);
       resolve(modelMesh);
