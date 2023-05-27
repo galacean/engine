@@ -16,7 +16,9 @@ export class AmbientLight {
 
   private static _diffuseColorProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuse");
   private static _diffuseSHProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSH");
-  private static _diffuseIntensityProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvMapLight.diffuseIntensity");
+  private static _diffuseIntensityProperty: ShaderProperty = ShaderProperty.getByName(
+    "scene_EnvMapLight.diffuseIntensity"
+  );
   private static _specularTextureProperty: ShaderProperty = ShaderProperty.getByName("scene_EnvSpecularSampler");
   private static _specularIntensityProperty: ShaderProperty = ShaderProperty.getByName(
     "scene_EnvMapLight.specularIntensity"
