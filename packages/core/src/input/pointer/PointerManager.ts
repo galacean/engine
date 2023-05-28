@@ -40,7 +40,6 @@ export class PointerManager implements IInput {
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _hadListener: boolean = false;
-  private _hitMap: number[] = [];
 
   /**
    * Create a PointerManager.
@@ -105,71 +104,15 @@ export class PointerManager implements IInput {
     }
   }
 
-  _updatePointerInfo(
-    frameCount: number,
-    pointer: Pointer,
-    left: number,
-    top: number,
-    widthPixelRatio: number,
-    heightPixelRatio: number
-  ) {
-    const { _events: events, position } = pointer;
-    const length = events.length;
-    if (length > 0) {
-      const { _upList, _upMap, _downList, _downMap } = this;
-      const latestEvent = events[length - 1];
-      const currX = (latestEvent.clientX - left) * widthPixelRatio;
-      const currY = (latestEvent.clientY - top) * heightPixelRatio;
-      pointer.deltaPosition.set(currX - position.x, currY - position.y);
-      position.set(currX, currY);
-      for (let i = 0; i < length; i++) {
-        const event = events[i];
-        const { button } = event;
-        pointer.button = _pointerDec2BinMap[button] || PointerButton.None;
-        pointer.pressedButtons = event.buttons;
-        switch (event.type) {
-          case "pointerdown":
-            _downList.add(button);
-            _downMap[button] = frameCount;
-            pointer._downList.add(button);
-            pointer._downMap[button] = frameCount;
-            pointer.phase = PointerPhase.Down;
-            break;
-          case "pointerup":
-            _upList.add(button);
-            _upMap[button] = frameCount;
-            pointer._upList.add(button);
-            pointer._upMap[button] = frameCount;
-            pointer.phase = PointerPhase.Up;
-            break;
-          case "pointermove":
-            pointer.phase = PointerPhase.Move;
-            break;
-          case "pointerleave":
-          case "pointercancel":
-            pointer.phase = PointerPhase.Leave;
-          default:
-            break;
-        }
-      }
-    } else {
-      pointer.deltaPosition.set(0, 0);
-      pointer.phase = PointerPhase.Stationary;
-    }
-    pointer._firePointerDrag();
-  }
-
   /**
    * @internal
    */
   _updateByScene(scenes: readonly Scene[]) {
-    const { _pointers: pointers, _canvas: canvas, _hitMap: hitMap } = this;
-    const frameCount = this._engine.time.frameCount;
+    const { _pointers: pointers, _canvas: canvas } = this;
     for (let i = 0, n = pointers.length; i < n; i++) {
       const pointer = pointers[i];
       const { _events: events, position } = pointer;
       const rayCastEntity = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
-      rayCastEntity && (hitMap[pointer.id] = frameCount);
       const length = events.length;
       for (let i = 0; i < length; i++) {
         switch (events[i].type) {
@@ -296,6 +239,60 @@ export class PointerManager implements IInput {
         return null;
       }
     }
+  }
+
+  private _updatePointerInfo(
+    frameCount: number,
+    pointer: Pointer,
+    left: number,
+    top: number,
+    widthPixelRatio: number,
+    heightPixelRatio: number
+  ) {
+    const { _events: events, position } = pointer;
+    const length = events.length;
+    if (length > 0) {
+      const { _upList, _upMap, _downList, _downMap } = this;
+      const latestEvent = events[length - 1];
+      const currX = (latestEvent.clientX - left) * widthPixelRatio;
+      const currY = (latestEvent.clientY - top) * heightPixelRatio;
+      pointer.deltaPosition.set(currX - position.x, currY - position.y);
+      position.set(currX, currY);
+      for (let i = 0; i < length; i++) {
+        const event = events[i];
+        const { button } = event;
+        pointer.button = _pointerDec2BinMap[button] || PointerButton.None;
+        pointer.pressedButtons = event.buttons;
+        switch (event.type) {
+          case "pointerdown":
+            _downList.add(button);
+            _downMap[button] = frameCount;
+            pointer._downList.add(button);
+            pointer._downMap[button] = frameCount;
+            pointer.phase = PointerPhase.Down;
+            break;
+          case "pointerup":
+            _upList.add(button);
+            _upMap[button] = frameCount;
+            pointer._upList.add(button);
+            pointer._upMap[button] = frameCount;
+            pointer.phase = PointerPhase.Up;
+            break;
+          case "pointermove":
+            pointer.phase = PointerPhase.Move;
+            break;
+          case "pointerleave":
+          case "pointercancel":
+            pointer.phase = PointerPhase.Leave;
+          default:
+            break;
+        }
+      }
+    } else {
+      pointer.deltaPosition.set(0, 0);
+      pointer.phase = PointerPhase.Stationary;
+    }
+    pointer._firePointerDrag();
   }
 
   private _pointerRayCast(scenes: readonly Scene[], normalizedX: number, normalizedY: number): Entity {
