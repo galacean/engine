@@ -4,7 +4,6 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { VertexData2D } from "../data/VertexData2D";
@@ -15,7 +14,7 @@ import { Sprite } from "./Sprite";
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer implements ICustomClone {
+export class SpriteMask extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
@@ -174,7 +173,8 @@ export class SpriteMask extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: SpriteMask): void {
+  override _cloneTo(target: SpriteMask): void {
+    super._cloneTo(target);
     target.sprite = this._sprite;
   }
 

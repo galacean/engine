@@ -20,13 +20,21 @@ export class SafeLoopArray<T> {
   }
 
   /**
-   * Splice the array.
+   * Add item to the array.
    * @param index - The index of the array
-   * @param deleteCount - The count of the array which want to be deleted
    * @param item - The item which want to be added
    */
-  splice(index: number, deleteCount: number, item?: T): void {
-    this._array.splice(index, deleteCount, item);
+  add(index: number, item: T): void {
+    this._array.splice(index, 0, item);
+    this._loopArrayDirty = true;
+  }
+
+  /**
+   * Remove item from the array.
+   * @param index - The index of the array
+   */
+  removeByIndex(index: number): void {
+    this._array.splice(index, 1);
     this._loopArrayDirty = true;
   }
 

@@ -54,7 +54,7 @@ export class Sprite extends ReferResource {
 
   /**
    * The width of the sprite (in world coordinates).
-   * 
+   *
    * @remarks
    * If width is set, return the set value,
    * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
@@ -77,7 +77,7 @@ export class Sprite extends ReferResource {
 
   /**
    * The height of the sprite (in world coordinates).
-   * 
+   *
    * @remarks
    * If height is set, return the set value,
    * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.

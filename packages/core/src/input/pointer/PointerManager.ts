@@ -5,10 +5,11 @@ import { Engine } from "../../Engine";
 import { Entity } from "../../Entity";
 import { CameraClearFlags } from "../../enums/CameraClearFlags";
 import { HitResult } from "../../physics";
+import { PointerButton, _pointerDec2BinMap } from "../enums/PointerButton";
 import { PointerPhase } from "../enums/PointerPhase";
-import { PointerButton, _pointerBin2DecMap, _pointerDec2BinMap } from "../enums/PointerButton";
 import { IInput } from "../interface/IInput";
 import { Pointer } from "./Pointer";
+import { Scene } from "../../Scene";
 
 /**
  * Pointer Manager.
@@ -39,7 +40,7 @@ export class PointerManager implements IInput {
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _hadListener: boolean = false;
-  private _pointerHitMap: Record<number, boolean> = {};
+  private _hitMap: number[] = [];
 
   /**
    * Create a PointerManager.
@@ -161,12 +162,14 @@ export class PointerManager implements IInput {
   /**
    * @internal
    */
-  _updateByScene() {
-    const { _pointers: pointers, _canvas: canvas } = this;
+  _updateByScene(scenes: readonly Scene[]) {
+    const { _pointers: pointers, _canvas: canvas, _hitMap: hitMap } = this;
+    const frameCount = this._engine.time.frameCount;
     for (let i = 0, n = pointers.length; i < n; i++) {
       const pointer = pointers[i];
       const { _events: events, position } = pointer;
-      const rayCastEntity = this._pointerRayCast(position.x / canvas.width, position.y / canvas.height);
+      const rayCastEntity = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
+      rayCastEntity && (hitMap[pointer.id] = frameCount);
       const length = events.length;
       for (let i = 0; i < length; i++) {
         switch (events[i].type) {
@@ -295,30 +298,37 @@ export class PointerManager implements IInput {
     }
   }
 
-  private _pointerRayCast(normalizedX: number, normalizedY: number): Entity {
+  private _pointerRayCast(scenes: readonly Scene[], normalizedX: number, normalizedY: number): Entity {
     const { _tempPoint: point, _tempRay: ray, _tempHitResult: hitResult } = PointerManager;
-    const { _activeCameras: cameras } = this._engine.sceneManager.activeScene;
-    for (let i = cameras.length - 1; i >= 0; i--) {
-      const camera = cameras[i];
-      if (!camera.enabled || camera.renderTarget) {
+    for (let i = scenes.length - 1; i >= 0; i--) {
+      const scene = scenes[i];
+      if (scene.destroyed) {
         continue;
       }
-      const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
-      if (normalizedX >= vpX && normalizedY >= vpY && normalizedX - vpX <= vpW && normalizedY - vpY <= vpH) {
-        point.set((normalizedX - vpX) / vpW, (normalizedY - vpY) / vpH);
-        if (
-          this._engine.physicsManager.raycast(
-            camera.viewportPointToRay(point, ray),
-            Number.MAX_VALUE,
-            camera.cullingMask,
-            hitResult
-          )
-        ) {
-          return hitResult.entity;
-        } else if (camera.clearFlags & CameraClearFlags.Color) {
-          return null;
+      const { _activeCameras: cameras } = scene;
+      for (let j = 0; j < cameras.length; j++) {
+        const camera = cameras[i];
+        if (!camera.enabled || camera.renderTarget) {
+          continue;
+        }
+        const { x: vpX, y: vpY, z: vpW, w: vpH } = camera.viewport;
+        if (normalizedX >= vpX && normalizedY >= vpY && normalizedX - vpX <= vpW && normalizedY - vpY <= vpH) {
+          point.set((normalizedX - vpX) / vpW, (normalizedY - vpY) / vpH);
+          if (
+            scene.physics.raycast(
+              camera.viewportPointToRay(point, ray),
+              Number.MAX_VALUE,
+              camera.cullingMask,
+              hitResult
+            )
+          ) {
+            return hitResult.entity;
+          } else if (camera.clearFlags & CameraClearFlags.Color) {
+            return null;
+          }
         }
       }
     }
+    return null;
   }
 }

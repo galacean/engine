@@ -1,4 +1,12 @@
-import { AssetPromise, AssetType, Font, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
+import {
+  AssetPromise,
+  AssetType,
+  Font,
+  Loader,
+  LoadItem,
+  resourceLoader,
+  ResourceManager
+} from "@galacean/engine-core";
 
 @resourceLoader(AssetType.Font, ["font"], false)
 class FontLoader extends Loader<Font> {

@@ -8,4 +8,3 @@ export { PBRBaseMaterial } from "./PBRBaseMaterial";
 export { PBRMaterial } from "./PBRMaterial";
 export { PBRSpecularMaterial } from "./PBRSpecularMaterial";
 export { UnlitMaterial } from "./UnlitMaterial";
-

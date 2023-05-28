@@ -6,8 +6,6 @@ import { GLTFContentRestorer } from "./GLTFContentRestorer";
 
 @resourceLoader(AssetType.GLTF, ["gltf", "glb"])
 export class GLTFLoader extends Loader<GLTFResource> {
-
-  
   override load(item: LoadItem, resourceManager: ResourceManager): Record<string, AssetPromise<any>> {
     const { url } = item;
     const params = <GLTFParams>item.params;

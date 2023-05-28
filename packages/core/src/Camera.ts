@@ -5,7 +5,6 @@ import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-import { Scene } from "./Scene";
 import { Transform } from "./Transform";
 import { VirtualCamera } from "./VirtualCamera";
 import { Logger } from "./base";
@@ -40,9 +39,6 @@ export class Camera extends Component {
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
 
-  /** Rendering priority - A Camera with higher priority will be rendered on top of a camera with lower priority. */
-  priority: number = 0;
-
   /** Whether to enable frustum culling, it is enabled by default. */
   enableFrustumCulling: boolean = true;
 
@@ -74,6 +70,7 @@ export class Camera extends Component {
   /** @internal */
   _replacementSubShaderTag: ShaderTagKey = null;
 
+  private _priority: number = 0;
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
@@ -165,6 +162,22 @@ export class Camera extends Component {
       this._viewport.copyFrom(value);
     }
     this._projMatChange();
+  }
+
+  /**
+   * Rendering priority, higher priority will be rendered on top of a camera with lower priority.
+   */
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    if (this._priority !== value) {
+      if (this._entity._isActiveInScene && this.enabled) {
+        this.scene._cameraNeedSorting = true;
+      }
+      this._priority = value;
+    }
   }
 
   /**
@@ -516,24 +529,15 @@ export class Camera extends Component {
   /**
    * @inheritdoc
    */
-  override _onEnable(): void {
-    const scene = this.entity.scene;
-    scene._isActiveInEngine && scene._attachRenderCamera(this);
+  override _onEnableInScene(): void {
+    this.scene._attachRenderCamera(this);
   }
 
   /**
    * @inheritdoc
    */
-  override _onDisable(): void {
-    this.entity.scene._detachRenderCamera(this);
-  }
-
-  /**
-   * @internal
-   */
-  override _setBelongToScene(lastScene: Scene, scene: Scene): void {
-    lastScene ?? lastScene._detachRenderCamera(this);
-    scene ?? scene._attachRenderCamera(this);
+  override _onDisableInScene(): void {
+    this.scene._detachRenderCamera(this);
   }
 
   /**

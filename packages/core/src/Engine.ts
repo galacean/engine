@@ -1,4 +1,4 @@
-import { IPhysics } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
@@ -20,9 +20,9 @@ import { EventDispatcher, Logger, Time } from "./base";
 import { GLCapabilityType } from "./base/Constant";
 import { ColorSpace } from "./enums/ColorSpace";
 import { InputManager } from "./input";
-import { LightManager } from "./lighting/LightManager";
 import { Material } from "./material/Material";
-import { PhysicsManager } from "./physics";
+import { PhysicsScene } from "./physics/PhysicsScene";
+import { ColliderShape } from "./physics/shape/ColliderShape";
 import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
@@ -52,14 +52,15 @@ export class Engine extends EventDispatcher {
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
 
-  /** Physics manager of Engine. */
-  readonly physicsManager: PhysicsManager;
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
 
-  /* @internal */
-  _lightManager: LightManager = new LightManager();
-
+  /** @internal */
+  _physicsInitialized: boolean = false;
+  /** @internal */
+  _physicalObjectsMap: Record<number, ColliderShape> = {};
+  /** @internal */
+  _nativePhysicsManager: IPhysicsManager;
   /* @internal */
   _hardwareRenderer: IHardwareRenderer;
   /* @internal */
@@ -225,10 +226,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
-    this.physicsManager = new PhysicsManager(this);
-
     this._canvas = canvas;
-    this._sceneManager.activeScene = new Scene(this, "DefaultScene");
 
     this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
@@ -311,19 +309,28 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
+    const { inputManager } = this;
     const loopScenes = this._sceneManager._scenes.getLoopArray();
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
+    const n = loopScenes.length;
+
+    for (let i = 0; i < n; i++) {
       const scene = loopScenes[i];
       if (scene.destroyed) {
         continue;
       }
+      scene._cameraNeedSorting && scene._sortCameras();
+      scene._componentsManager.callScriptOnStart();
+      this._physicsInitialized && scene.physics._update(deltaTime);
+    }
 
-      const componentsManager = scene._componentsManager;
-      componentsManager.callScriptOnStart();
-      // 场景独立
-      this.physicsManager._initialized && this.physicsManager._update(deltaTime);
+    this._physicsInitialized && inputManager._updateByScene(loopScenes);
 
-      this.inputManager._update();
+    for (let i = 0; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) {
+        continue;
+      }
+      const { _componentsManager: componentsManager } = scene;
       componentsManager.callScriptOnUpdate(deltaTime);
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
@@ -524,7 +531,9 @@ export class Engine extends EventDispatcher {
     const physics = configuration.physics;
     if (physics) {
       return physics.initialize().then(() => {
-        this.physicsManager._initialize(physics);
+        PhysicsScene._nativePhysics = physics;
+        this._nativePhysicsManager = physics.createPhysicsManager();
+        this._physicsInitialized = true;
         return this;
       });
     } else {
@@ -588,6 +597,14 @@ export class Engine extends EventDispatcher {
       .catch((error) => {
         console.error(error);
       });
+  }
+
+  /**
+   * @deprecated
+   * The first scene physics manager.
+   */
+  get physicsManager() {
+    return this.sceneManager.scenes[0]?.physics;
   }
 }
 

@@ -1,7 +1,7 @@
-import { AssetPromise } from "./asset/AssetPromise";
 import { Engine } from "./Engine";
-import { SafeLoopArray } from "./SafeLoopArray";
 import { Scene } from "./Scene";
+import { AssetPromise } from "./asset/AssetPromise";
+import { SafeLoopArray } from "./utils/SafeLoopArray";
 
 /**
  * Scene manager.
@@ -39,8 +39,9 @@ export class SceneManager {
 
   addScene(indexOrScene: number | Scene, scene?: Scene): void {
     if (typeof indexOrScene === "number") {
-      this._scenes.splice(indexOrScene, 0, scene);
+      this._scenes.add(indexOrScene, scene);
     } else {
+      scene = indexOrScene;
       this._scenes.push(scene);
     }
 
@@ -60,7 +61,7 @@ export class SceneManager {
     const index = scenes.indexOf(scene);
     if (index !== -1) {
       const removedScene = scenes.getArray()[index];
-      scenes.splice(index, 1);
+      scenes.removeByIndex(index);
       removedScene._processActive(false);
     }
   }
@@ -103,20 +104,19 @@ export class SceneManager {
    */
   _destroyAllScene(): void {
     const allCreatedScenes = this._allCreatedScenes;
-    for (let i = 0, n = allCreatedScenes.length; i < n; i++) {
-      allCreatedScenes[i]._destroy();
+    while (allCreatedScenes.length > 0) {
+      allCreatedScenes[0].destroy();
     }
-    allCreatedScenes.length = 0;
   }
 
   /**
    * @deprecated
    * Please use `scenes` instead.
    *
-   * Get the activated scene.
+   * Get the first scene.
    */
   get activeScene(): Scene {
-    return this._scenes[0];
+    return this._scenes.getArray()[0];
   }
 
   set activeScene(scene: Scene) {
@@ -124,6 +124,6 @@ export class SceneManager {
     if (firstScene) {
       this.removeScene(firstScene);
     }
-    this.addScene(0, scene);
+    scene && this.addScene(0, scene);
   }
 }

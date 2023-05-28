@@ -99,9 +99,10 @@ export class CascadedShadowCasterPass {
       _transparentQueue: transparentQueue
     } = camera._renderPipeline;
 
-    const componentsManager = engine._componentsManager;
+    const scene = camera.scene;
+    const componentsManager = scene._componentsManager;
     const rhi = engine._hardwareRenderer;
-    const shadowCascades = camera.scene.shadowCascades;
+    const shadowCascades = scene.shadowCascades;
     const splitDistance = CascadedShadowCasterPass._cascadesSplitDistance;
     const boundSphere = shadowSliceData.splitBoundSphere;
     const lightWorld = CascadedShadowCasterPass._tempMatrix0;
@@ -110,7 +111,7 @@ export class CascadedShadowCasterPass {
     const lightSide = this._lightSide;
     const lightForward = shadowSliceData.virtualCamera.forward;
 
-    const sunLightIndex = engine._lightManager._getSunLightIndex();
+    const sunLightIndex = scene._lightManager._getSunLightIndex();
 
     if (sunLightIndex !== -1) {
       const light = camera.scene._sunLight;
