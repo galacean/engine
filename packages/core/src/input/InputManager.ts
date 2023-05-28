@@ -179,6 +179,13 @@ export class InputManager {
   /**
    * @internal
    */
+  _updateByScene(): void {
+    this._initialized && this._pointerManager._updateByScene();
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     if (this._initialized) {
       window.removeEventListener("blur", this._onBlur);

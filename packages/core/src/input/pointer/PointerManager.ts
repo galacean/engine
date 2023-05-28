@@ -39,6 +39,7 @@ export class PointerManager implements IInput {
   private _nativeEvents: PointerEvent[] = [];
   private _pointerPool: Pointer[];
   private _hadListener: boolean = false;
+  private _pointerHitMap: Record<number, boolean> = {};
 
   /**
    * Create a PointerManager.
@@ -52,8 +53,6 @@ export class PointerManager implements IInput {
     this._canvas = engine.canvas;
     this._htmlCanvas = htmlCanvas;
     this._onPointerEvent = this._onPointerEvent.bind(this);
-    this._updatePointerWithPhysics = this._updatePointerWithPhysics.bind(this);
-    this._updatePointerWithoutPhysics = this._updatePointerWithoutPhysics.bind(this);
     this._onFocus();
     // If there are no compatibility issues, navigator.maxTouchPoints should be used here
     this._pointerPool = new Array<Pointer>(11);
@@ -90,17 +89,105 @@ export class PointerManager implements IInput {
     lastIndex = pointers.length - 1;
     if (lastIndex >= 0) {
       const frameCount = this._engine.time.frameCount;
-      const updatePointer = this._engine.physicsManager._initialized
-        ? this._updatePointerWithPhysics
-        : this._updatePointerWithoutPhysics;
-      const clientRect = this._htmlCanvas.getBoundingClientRect();
+      const { left, top } = this._htmlCanvas.getBoundingClientRect();
       const { clientWidth, clientHeight } = this._htmlCanvas;
       const { width, height } = this._canvas;
+      // Device Pixel Ratio
+      const widthDPR = width / clientWidth;
+      const heightDPR = height / clientHeight;
       for (let i = lastIndex; i >= 0; i--) {
         const pointer = pointers[i];
         pointer._upList.length = pointer._downList.length = 0;
-        updatePointer(frameCount, pointer, clientRect, clientWidth, clientHeight, width, height);
+        this._updatePointerInfo(frameCount, pointer, left, top, widthDPR, heightDPR);
         this._buttons |= pointer.pressedButtons;
+      }
+    }
+  }
+
+  _updatePointerInfo(
+    frameCount: number,
+    pointer: Pointer,
+    left: number,
+    top: number,
+    widthPixelRatio: number,
+    heightPixelRatio: number
+  ) {
+    const { _events: events, position } = pointer;
+    const length = events.length;
+    if (length > 0) {
+      const { _upList, _upMap, _downList, _downMap } = this;
+      const latestEvent = events[length - 1];
+      const currX = (latestEvent.clientX - left) * widthPixelRatio;
+      const currY = (latestEvent.clientY - top) * heightPixelRatio;
+      pointer.deltaPosition.set(currX - position.x, currY - position.y);
+      position.set(currX, currY);
+      for (let i = 0; i < length; i++) {
+        const event = events[i];
+        const { button } = event;
+        pointer.button = _pointerDec2BinMap[button] || PointerButton.None;
+        pointer.pressedButtons = event.buttons;
+        switch (event.type) {
+          case "pointerdown":
+            _downList.add(button);
+            _downMap[button] = frameCount;
+            pointer._downList.add(button);
+            pointer._downMap[button] = frameCount;
+            pointer.phase = PointerPhase.Down;
+            break;
+          case "pointerup":
+            _upList.add(button);
+            _upMap[button] = frameCount;
+            pointer._upList.add(button);
+            pointer._upMap[button] = frameCount;
+            pointer.phase = PointerPhase.Up;
+            break;
+          case "pointermove":
+            pointer.phase = PointerPhase.Move;
+            break;
+          case "pointerleave":
+          case "pointercancel":
+            pointer.phase = PointerPhase.Leave;
+          default:
+            break;
+        }
+      }
+    } else {
+      pointer.deltaPosition.set(0, 0);
+      pointer.phase = PointerPhase.Stationary;
+    }
+    pointer._firePointerDrag();
+  }
+
+  /**
+   * @internal
+   */
+  _updateByScene() {
+    const { _pointers: pointers, _canvas: canvas } = this;
+    for (let i = 0, n = pointers.length; i < n; i++) {
+      const pointer = pointers[i];
+      const { _events: events, position } = pointer;
+      const rayCastEntity = this._pointerRayCast(position.x / canvas.width, position.y / canvas.height);
+      const length = events.length;
+      for (let i = 0; i < length; i++) {
+        switch (events[i].type) {
+          case "pointerdown":
+            pointer.phase = PointerPhase.Down;
+            pointer._firePointerDown(rayCastEntity);
+            break;
+          case "pointerup":
+            pointer.phase = PointerPhase.Up;
+            pointer._firePointerUpAndClick(rayCastEntity);
+            break;
+          case "pointerleave":
+          case "pointercancel":
+            pointer.phase = PointerPhase.Leave;
+            pointer._firePointerExitAndEnter(null);
+          default:
+            break;
+        }
+      }
+      if (pointer.phase !== PointerPhase.Leave) {
+        pointer._firePointerExitAndEnter(rayCastEntity);
       }
     }
   }
@@ -232,126 +319,6 @@ export class PointerManager implements IInput {
           return null;
         }
       }
-    }
-  }
-
-  private _updatePointerWithPhysics(
-    frameCount: number,
-    pointer: Pointer,
-    rect: DOMRect,
-    clientW: number,
-    clientH: number,
-    canvasW: number,
-    canvasH: number
-  ): void {
-    const { _events: events, position } = pointer;
-    const length = events.length;
-    if (length > 0) {
-      const { _upList, _upMap, _downList, _downMap } = this;
-      const latestEvent = events[length - 1];
-      const normalizedX = (latestEvent.clientX - rect.left) / clientW;
-      const normalizedY = (latestEvent.clientY - rect.top) / clientH;
-      const currX = normalizedX * canvasW;
-      const currY = normalizedY * canvasH;
-      pointer.deltaPosition.set(currX - position.x, currY - position.y);
-      position.set(currX, currY);
-      pointer._firePointerDrag();
-      const rayCastEntity = this._pointerRayCast(normalizedX, normalizedY);
-      pointer._firePointerExitAndEnter(rayCastEntity);
-      for (let i = 0; i < length; i++) {
-        const event = events[i];
-        const { button } = event;
-        pointer.button = _pointerDec2BinMap[button] || PointerButton.None;
-        pointer.pressedButtons = event.buttons;
-        switch (event.type) {
-          case "pointerdown":
-            _downList.add(button);
-            _downMap[button] = frameCount;
-            pointer._downList.add(button);
-            pointer._downMap[button] = frameCount;
-            pointer.phase = PointerPhase.Down;
-            pointer._firePointerDown(rayCastEntity);
-            break;
-          case "pointerup":
-            _upList.add(button);
-            _upMap[button] = frameCount;
-            pointer._upList.add(button);
-            pointer._upMap[button] = frameCount;
-            pointer.phase = PointerPhase.Up;
-            pointer._firePointerUpAndClick(rayCastEntity);
-            break;
-          case "pointermove":
-            pointer.phase = PointerPhase.Move;
-            break;
-          case "pointerleave":
-          case "pointercancel":
-            pointer.phase = PointerPhase.Leave;
-            pointer._firePointerExitAndEnter(null);
-          default:
-            break;
-        }
-      }
-      pointer._events.length = 0;
-    } else {
-      pointer.deltaPosition.set(0, 0);
-      pointer.phase = PointerPhase.Stationary;
-      pointer._firePointerDrag();
-      pointer._firePointerExitAndEnter(this._pointerRayCast(position.x / canvasW, position.y / canvasH));
-    }
-  }
-
-  private _updatePointerWithoutPhysics(
-    frameCount: number,
-    pointer: Pointer,
-    rect: DOMRect,
-    clientW: number,
-    clientH: number,
-    canvasW: number,
-    canvasH: number
-  ): void {
-    const { _events: events } = pointer;
-    const length = events.length;
-    if (length > 0) {
-      const { position } = pointer;
-      const latestEvent = events[length - 1];
-      const currX = ((latestEvent.clientX - rect.left) / clientW) * canvasW;
-      const currY = ((latestEvent.clientY - rect.top) / clientH) * canvasH;
-      pointer.deltaPosition.set(currX - position.x, currY - position.y);
-      position.set(currX, currY);
-      pointer.button = _pointerDec2BinMap[latestEvent.button] || PointerButton.None;
-      pointer.pressedButtons = latestEvent.buttons;
-      const { _upList, _upMap, _downList, _downMap } = this;
-      for (let i = 0; i < length; i++) {
-        const { button } = events[i];
-        switch (events[i].type) {
-          case "pointerdown":
-            _downList.add(button);
-            _downMap[button] = frameCount;
-            pointer._downList.add(button);
-            pointer._downMap[button] = frameCount;
-            pointer.phase = PointerPhase.Down;
-            break;
-          case "pointerup":
-            _upList.add(button);
-            _upMap[button] = frameCount;
-            pointer._upList.add(button);
-            pointer._upMap[button] = frameCount;
-            pointer.phase = PointerPhase.Up;
-            break;
-          case "pointermove":
-            pointer.phase = PointerPhase.Move;
-            break;
-          case "pointerleave":
-          case "pointercancel":
-            pointer.phase = PointerPhase.Leave;
-          default:
-            break;
-        }
-      }
-      pointer._events.length = 0;
-    } else {
-      pointer.deltaPosition.set(0, 0);
-      pointer.phase = PointerPhase.Stationary;
     }
   }
 }
