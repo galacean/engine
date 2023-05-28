@@ -309,10 +309,11 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
-    const { inputManager } = this;
+    const { inputManager, _physicsInitialized: physicsInitialized, _waitingDestroy: waitingDestroy } = this;
+    inputManager._update();
+
     const loopScenes = this._sceneManager._scenes.getLoopArray();
     const n = loopScenes.length;
-
     for (let i = 0; i < n; i++) {
       const scene = loopScenes[i];
       if (scene.destroyed) {
@@ -320,10 +321,10 @@ export class Engine extends EventDispatcher {
       }
       scene._cameraNeedSorting && scene._sortCameras();
       scene._componentsManager.callScriptOnStart();
-      this._physicsInitialized && scene.physics._update(deltaTime);
+      physicsInitialized && scene.physics._update(deltaTime);
     }
 
-    this._physicsInitialized && inputManager._updateByScene(loopScenes);
+    physicsInitialized && inputManager._updateByScene(loopScenes);
 
     for (let i = 0; i < n; i++) {
       const scene = loopScenes[i];
@@ -335,13 +336,12 @@ export class Engine extends EventDispatcher {
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
       this._render(scene);
-
-      if (!this._waitingDestroy) {
+      if (!waitingDestroy) {
         componentsManager.handlingInvalidScripts();
       }
     }
 
-    if (this._waitingDestroy) {
+    if (waitingDestroy) {
       this._destroy();
     }
     this._frameInProcess = false;
