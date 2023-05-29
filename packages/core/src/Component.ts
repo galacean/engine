@@ -93,6 +93,22 @@ export class Component extends EngineObject {
    */
   _setActive(value: boolean, activeChangeFlag: ActiveChangeFlag): void {
     const entity = this._entity;
+
+    // Process active in scene, precautions are the same as below
+    if (activeChangeFlag & ActiveChangeFlag.Scene) {
+      if (value) {
+        if (!this._phasedActiveInScene && entity._isActiveInScene && this._enabled) {
+          this._phasedActiveInScene = true;
+          this._onEnableInScene();
+        }
+      } else {
+        if (this._phasedActiveInScene && !(entity._isActiveInScene && this._enabled)) {
+          this._phasedActiveInScene = false;
+          this._onDisableInScene();
+        }
+      }
+    }
+
     // Process active in hierarchy
     if (activeChangeFlag & ActiveChangeFlag.Hierarchy) {
       if (value) {
@@ -112,21 +128,6 @@ export class Component extends EngineObject {
         if (this._phasedActive && !(entity._isActiveInHierarchy && this._enabled)) {
           this._phasedActive = false;
           this._onDisable();
-        }
-      }
-    }
-
-    // Process active in scene, precautions ditto
-    if (activeChangeFlag & ActiveChangeFlag.Scene) {
-      if (value) {
-        if (!this._phasedActiveInScene && entity._isActiveInScene && this._enabled) {
-          this._phasedActiveInScene = true;
-          this._onEnableInScene();
-        }
-      } else {
-        if (this._phasedActiveInScene && !(entity._isActiveInScene && this._enabled)) {
-          this._phasedActiveInScene = false;
-          this._onDisableInScene();
         }
       }
     }
