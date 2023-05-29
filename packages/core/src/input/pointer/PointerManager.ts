@@ -114,26 +114,29 @@ export class PointerManager implements IInput {
       const { _events: events, position } = pointer;
       const rayCastEntity = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
       const length = events.length;
-      for (let i = 0; i < length; i++) {
-        switch (events[i].type) {
-          case "pointerdown":
-            pointer.phase = PointerPhase.Down;
-            pointer._firePointerDown(rayCastEntity);
-            break;
-          case "pointerup":
-            pointer.phase = PointerPhase.Up;
-            pointer._firePointerUpAndClick(rayCastEntity);
-            break;
-          case "pointerleave":
-          case "pointercancel":
-            pointer.phase = PointerPhase.Leave;
-            pointer._firePointerExitAndEnter(null);
-          default:
-            break;
+      if (length > 0) {
+        for (let i = 0; i < length; i++) {
+          switch (events[i].type) {
+            case "pointerdown":
+              pointer.phase = PointerPhase.Down;
+              pointer._firePointerDown(rayCastEntity);
+              break;
+            case "pointerup":
+              pointer.phase = PointerPhase.Up;
+              pointer._firePointerUpAndClick(rayCastEntity);
+              break;
+            case "pointerleave":
+            case "pointercancel":
+              pointer.phase = PointerPhase.Leave;
+              pointer._firePointerExitAndEnter(null);
+            default:
+              break;
+          }
         }
-      }
-      if (pointer.phase !== PointerPhase.Leave) {
-        pointer._firePointerExitAndEnter(rayCastEntity);
+        if (pointer.phase !== PointerPhase.Leave) {
+          pointer._firePointerExitAndEnter(rayCastEntity);
+        }
+        events.length = 0;
       }
     }
   }
@@ -288,6 +291,7 @@ export class PointerManager implements IInput {
             break;
         }
       }
+      !this._engine._physicsInitialized && (events.length = 0);
     } else {
       pointer.deltaPosition.set(0, 0);
       pointer.phase = PointerPhase.Stationary;

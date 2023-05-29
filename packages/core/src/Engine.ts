@@ -309,7 +309,7 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
-    const { inputManager, _physicsInitialized: physicsInitialized, _waitingDestroy: waitingDestroy } = this;
+    const { inputManager, _physicsInitialized: physicsInitialized } = this;
     inputManager._update();
 
     const loopScenes = this._sceneManager._scenes.getLoopArray();
@@ -336,12 +336,12 @@ export class Engine extends EventDispatcher {
       componentsManager.callAnimationUpdate(deltaTime);
       componentsManager.callScriptOnLateUpdate(deltaTime);
       this._render(scene);
-      if (!waitingDestroy) {
+      if (!this._waitingDestroy) {
         componentsManager.handlingInvalidScripts();
       }
     }
 
-    if (waitingDestroy) {
+    if (this._waitingDestroy) {
       this._destroy();
     }
     this._frameInProcess = false;
