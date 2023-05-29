@@ -1,6 +1,5 @@
-import { Engine, Entity } from "@galacean/engine-core";
-import type { IEntity, IPrefabFile } from "./PrefabDesign";
-import { ReflectionParser } from "./ReflectionParser";
+import { Entity } from "@galacean/engine-core";
+import { IEntity } from "../schema";
 
 export class PrefabParser {
   static parseChildren(entitiesConfig: Map<string, IEntity>, entities: Map<string, Entity>, parentId: string) {

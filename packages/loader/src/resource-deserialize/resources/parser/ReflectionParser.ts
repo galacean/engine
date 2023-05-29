@@ -1,5 +1,5 @@
 import { Engine, Entity, Loader } from "@galacean/engine-core";
-import { IBasicType, IClassObject, IEntity, IAssetRef } from "./PrefabDesign";
+import { IAssetRef, IBasicType, IClassObject, IEntity } from "../schema";
 
 export class ReflectionParser {
   static customParseComponentHandles = new Map<string, Function>();

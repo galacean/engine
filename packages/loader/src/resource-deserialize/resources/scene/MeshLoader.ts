@@ -1,13 +1,4 @@
-import {
-  AssetPromise,
-  Loader,
-  LoadItem,
-  Mesh,
-  ModelMesh,
-  resourceLoader,
-  ResourceManager,
-  UnlitMaterial
-} from "@galacean/engine-core";
+import { AssetPromise, Loader, LoadItem, ModelMesh, resourceLoader, ResourceManager } from "@galacean/engine-core";
 import { decode } from "../..";
 
 @resourceLoader("Mesh", ["prefab"], true)
