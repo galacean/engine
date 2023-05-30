@@ -283,11 +283,11 @@ export class Animator extends Component {
         const { instanceId } = targetEntity;
 
         // Get owner
-        const propertyOwners = curveOwnerPool[instanceId] || (curveOwnerPool[instanceId] = {});
+        const propertyOwners = (curveOwnerPool[instanceId] ||= {});
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
 
         // Get layer owner
-        const layerPropertyOwners = layerCurveOwnerPool[instanceId] || (layerCurveOwnerPool[instanceId] = {});
+        const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= {});
         const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
 
         curveOwnerLayerData[i] = layerOwner;
