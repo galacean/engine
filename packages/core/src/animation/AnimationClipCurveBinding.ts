@@ -3,6 +3,7 @@ import { Entity } from "../Entity";
 import { AnimationCurve } from "./animationCurve";
 import { IAnimationCurveCalculator } from "./animationCurve/interfaces/IAnimationCurveCalculator";
 import { AnimationCurveOwner } from "./internal/animationCurveOwner/AnimationCurveOwner";
+import { AnimationCurveOwnerLayerData } from "./internal/AnimationCurveOwnerLayerData";
 import { KeyframeValueType } from "./Keyframe";
 
 /**
@@ -29,9 +30,17 @@ export class AnimationClipCurveBinding {
   _createCurveOwner(entity: Entity): AnimationCurveOwner<KeyframeValueType> {
     const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
     const owner = new AnimationCurveOwner(entity, this.type, this.property, curveType);
-
     curveType._initializeOwner(owner);
     return owner;
+  }
+
+  /**
+   * @internal
+   */
+  _createCurveLayerOwner(owner: AnimationCurveOwner<KeyframeValueType>): AnimationCurveOwnerLayerData {
+    const layerOwner = new AnimationCurveOwnerLayerData();
+    layerOwner.curveOwner = owner;
+    return layerOwner;
   }
 
   /**

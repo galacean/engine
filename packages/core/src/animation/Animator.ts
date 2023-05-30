@@ -37,7 +37,7 @@ export class Animator extends Component {
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
-  private _animationCurveOwners: Record<string, AnimationCurveOwner<KeyframeValueType>>[] = [];
+  private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
 
@@ -202,7 +202,7 @@ export class Animator extends Component {
    * @internal
    */
   _reset(): void {
-    const { _animationCurveOwners: animationCurveOwners } = this;
+    const { _curveOwnerPool: animationCurveOwners } = this;
     for (let instanceId in animationCurveOwners) {
       const propertyOwners = animationCurveOwners[instanceId];
       for (let property in propertyOwners) {
@@ -212,7 +212,7 @@ export class Animator extends Component {
     }
 
     this._animatorLayersData.length = 0;
-    this._animationCurveOwners.length = 0;
+    this._curveOwnerPool = {};
     this._animationEventHandlerPool.resetPool();
 
     if (this._controllerUpdateFlag) {
@@ -270,27 +270,27 @@ export class Animator extends Component {
     animatorStateData: AnimatorStateData,
     animatorLayerData: AnimatorLayerData
   ): void {
-    const { entity, _animationCurveOwners: animationCurveOwners } = this;
+    const { entity, _curveOwnerPool: curveOwnerPool } = this;
     const { curveOwnerLayerData } = animatorStateData;
-    const { curveOwnerMap } = animatorLayerData;
+    const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
     const { _curveBindings: curves } = animatorState.clip;
+
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
       const targetEntity = curve.relativePath === "" ? entity : entity.findByPath(curve.relativePath);
       if (targetEntity) {
         const { property } = curve;
         const { instanceId } = targetEntity;
-        const propertyOwners = animationCurveOwners[instanceId] || (animationCurveOwners[instanceId] = {});
-        const owner = propertyOwners[property] || (propertyOwners[property] = curve._createCurveOwner(targetEntity));
 
-        if (!curveOwnerLayerData[i]) {
-          let ownerData = curveOwnerMap.get(owner);
-          if (!ownerData) {
-            ownerData = new AnimationCurveOwnerLayerData();
-            ownerData.curveOwner = owner;
-          }
-          curveOwnerLayerData[i] = ownerData;
-        }
+        // Get owner
+        const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
+        const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
+
+        // Get layer owner
+        const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
+        const layerOwner = (layerPropertyOwners[property] ||= curve._createCurveLayerOwner(owner));
+
+        curveOwnerLayerData[i] = layerOwner;
       } else {
         curveOwnerLayerData[i] = null;
         console.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
