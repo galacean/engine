@@ -180,8 +180,8 @@ export class InputManager {
   /**
    * @internal
    */
-  _updateByScene(scenes: readonly Scene[]): void {
-    this._initialized && this._pointerManager._updateByScene(scenes);
+  _firePointScript(scenes: readonly Scene[]): void {
+    this._initialized && this._pointerManager._firePointScript(scenes);
   }
 
   /**
@@ -192,8 +192,11 @@ export class InputManager {
       window.removeEventListener("blur", this._onBlur);
       window.removeEventListener("focus", this._onFocus);
       this._wheelManager._destroy();
+      this._wheelManager = null;
       this._pointerManager._destroy();
+      this._pointerManager = null;
       this._keyboardManager._destroy();
+      this._keyboardManager = null;
     }
   }
 

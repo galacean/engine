@@ -107,12 +107,14 @@ export class PointerManager implements IInput {
   /**
    * @internal
    */
-  _updateByScene(scenes: readonly Scene[]) {
+  _firePointScript(scenes: readonly Scene[]) {
     const { _pointers: pointers, _canvas: canvas } = this;
     for (let i = 0, n = pointers.length; i < n; i++) {
       const pointer = pointers[i];
       const { _events: events, position } = pointer;
+      pointer._firePointerDrag();
       const rayCastEntity = this._pointerRayCast(scenes, position.x / canvas.width, position.y / canvas.height);
+      pointer._firePointerExitAndEnter(rayCastEntity);
       const length = events.length;
       if (length > 0) {
         for (let i = 0; i < length; i++) {
@@ -132,9 +134,6 @@ export class PointerManager implements IInput {
             default:
               break;
           }
-        }
-        if (pointer.phase !== PointerPhase.Leave) {
-          pointer._firePointerExitAndEnter(rayCastEntity);
         }
         events.length = 0;
       }
@@ -168,13 +167,9 @@ export class PointerManager implements IInput {
       htmlCanvas.removeEventListener("pointermove", onPointerEvent);
       htmlCanvas.removeEventListener("pointercancel", onPointerEvent);
       this._hadListener = false;
+      this._pointers.length = 0;
       this._downList.length = 0;
       this._upList.length = 0;
-      const { _pointers: pointers } = this;
-      for (let i = pointers.length - 1; i >= 0; i--) {
-        pointers[i].phase = PointerPhase.Leave;
-      }
-      pointers.length = 0;
     }
   }
 
@@ -193,10 +188,21 @@ export class PointerManager implements IInput {
       this._hadListener = false;
     }
     this._pointerPool.length = 0;
+    this._pointerPool = null;
     this._pointers.length = 0;
+    this._pointers = null;
     this._downList.length = 0;
+    this._downList = null;
     this._upList.length = 0;
+    this._upList = null;
+    this._nativeEvents.length = 0;
+    this._nativeEvents = null;
+    this._upMap.length = 0;
+    this._upMap = null;
+    this._downMap.length = 0;
+    this._downMap = null;
     this._htmlCanvas = null;
+    this._canvas = null;
     this._engine = null;
   }
 
@@ -296,7 +302,6 @@ export class PointerManager implements IInput {
       pointer.deltaPosition.set(0, 0);
       pointer.phase = PointerPhase.Stationary;
     }
-    pointer._firePointerDrag();
   }
 
   private _pointerRayCast(scenes: readonly Scene[], normalizedX: number, normalizedY: number): Entity {

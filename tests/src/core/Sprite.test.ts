@@ -3,7 +3,7 @@ import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Rect, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { expect } from "chai";
 
-describe("TextRenderer", async () => {
+describe("Sprite", async () => {
   const canvas = document.createElement("canvas");
   const engine = await WebGLEngine.create({ canvas: canvas });
   const scene = engine.sceneManager.activeScene;
