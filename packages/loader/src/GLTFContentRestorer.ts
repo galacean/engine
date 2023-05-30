@@ -10,7 +10,7 @@ import {
 import { RequestConfig } from "@galacean/engine-core/types/asset/request";
 import { Vector2 } from "@galacean/engine-math";
 import { GLTFResource } from "./gltf/GLTFResource";
-import { IBufferView } from "./gltf/GLTFSchema";
+import type { IBufferView } from "./gltf/GLTFSchema";
 import { GLTFUtils } from "./gltf/GLTFUtils";
 
 /**

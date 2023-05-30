@@ -1,4 +1,4 @@
-import { IMaterialNormalTextureInfo, ITextureInfo } from "../GLTFSchema";
+import type { IMaterialNormalTextureInfo, ITextureInfo } from "../GLTFSchema";
 
 /**
  * Interfaces from the KHR_lights_punctual extension

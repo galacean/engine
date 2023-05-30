@@ -1,7 +1,7 @@
 import { Engine, Entity, Loader, Scene } from "@galacean/engine-core";
-import { IEntity, IScene } from "../prefab/PrefabDesign";
-import { PrefabParser } from "../prefab/PrefabParser";
-import { ReflectionParser } from "../prefab/ReflectionParser";
+import { PrefabParser } from "../parser/PrefabParser";
+import { ReflectionParser } from "../parser/ReflectionParser";
+import type { IScene } from "../schema";
 import { SceneParserContext } from "./SceneParserContext";
 
 /** @Internal */

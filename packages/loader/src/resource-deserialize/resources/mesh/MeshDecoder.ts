@@ -1,9 +1,9 @@
-import { ModelMesh, BlendShape } from "@galacean/engine-core";
-import { decoder } from "../../utils/Decorator";
 import type { Engine } from "@galacean/engine-core";
-import type { BufferReader } from "../../utils/BufferReader";
-import { IEncodedModelMesh } from "./IModelMesh";
+import { BlendShape, ModelMesh } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import type { BufferReader } from "../../utils/BufferReader";
+import { decoder } from "../../utils/Decorator";
+import type { IEncodedModelMesh } from "./IModelMesh";
 
 /**
  * @todo refactor

@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { BufferDataRestoreInfo, GLTFContentRestorer } from "../../GLTFContentRestorer";
 import { GLTFResource } from "../GLTFResource";
-import { IGLTF } from "../GLTFSchema";
+import type { IGLTF } from "../GLTFSchema";
 
 /**
  * @internal

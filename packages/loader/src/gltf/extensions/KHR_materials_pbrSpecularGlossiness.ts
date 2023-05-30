@@ -1,6 +1,6 @@
 import { PBRSpecularMaterial } from "@galacean/engine-core";
 import { Color } from "@galacean/engine-math";
-import { IMaterial } from "../GLTFSchema";
+import type { IMaterial } from "../GLTFSchema";
 import { GLTFMaterialParser } from "../parser/GLTFMaterialParser";
 import { GLTFParser, registerGLTFExtension } from "../parser/GLTFParser";
 import { GLTFParserContext } from "../parser/GLTFParserContext";
