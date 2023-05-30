@@ -8,7 +8,7 @@ import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
  * @internal
  */
 export class AnimatorLayerData {
-  curveOwnerPool: Record<number, Record<string, AnimationCurveOwnerLayerData>> = {};
+  curveOwnerPool: Record<number, Record<string, AnimationCurveOwnerLayerData>> = Object.create(null);
 
   animatorStateDataMap: Record<string, AnimatorStateData> = {};
   srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
