@@ -259,15 +259,20 @@ export class Animator extends Component {
     if (!animatorStateData) {
       animatorStateData = new AnimatorStateData();
       animatorStateDataMap[stateName] = animatorStateData;
-      this._saveAnimatorStateData(animatorState, animatorStateData);
+      this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData);
       this._saveAnimatorEventHandlers(animatorState, animatorStateData);
     }
     return animatorStateData;
   }
 
-  private _saveAnimatorStateData(animatorState: AnimatorState, animatorStateData: AnimatorStateData): void {
-    const { entity, _animationCurveOwners: animationCureOwners } = this;
-    const { curveOwnerLayerData, curveOwnerMap } = animatorStateData;
+  private _saveAnimatorStateData(
+    animatorState: AnimatorState,
+    animatorStateData: AnimatorStateData,
+    animatorLayerData: AnimatorLayerData
+  ): void {
+    const { entity, _animationCurveOwners: animationCurveOwners } = this;
+    const { curveOwnerLayerData } = animatorStateData;
+    const { curveOwnerMap } = animatorLayerData;
     const { _curveBindings: curves } = animatorState.clip;
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
@@ -275,7 +280,7 @@ export class Animator extends Component {
       if (targetEntity) {
         const { property } = curve;
         const { instanceId } = targetEntity;
-        const propertyOwners = animationCureOwners[instanceId] || (animationCureOwners[instanceId] = {});
+        const propertyOwners = animationCurveOwners[instanceId] || (animationCurveOwners[instanceId] = {});
         const owner = propertyOwners[property] || (propertyOwners[property] = curve._createCurveOwner(targetEntity));
 
         if (!curveOwnerLayerData[i]) {

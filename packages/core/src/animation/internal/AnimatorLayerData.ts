@@ -1,5 +1,7 @@
 import { AnimatorStateTransition } from "../AnimatorTransition";
+import { KeyframeValueType } from "../Keyframe";
 import { LayerState } from "../enums/LayerState";
+import { AnimationCurveOwner } from "./animationCurveOwner/AnimationCurveOwner";
 import { AnimationCurveOwnerLayerData } from "./AnimationCurveOwnerLayerData";
 import { AnimatorStateData } from "./AnimatorStateData";
 import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
@@ -16,6 +18,7 @@ export class AnimatorLayerData {
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
   crossFadeTransition: AnimatorStateTransition;
   crossOwnerLayerDataCollection: AnimationCurveOwnerLayerData[] = [];
+  curveOwnerMap: WeakMap<AnimationCurveOwner<KeyframeValueType>, AnimationCurveOwnerLayerData> = new WeakMap();
 
   switchPlayData(): void {
     const srcPlayData = this.destPlayData;
