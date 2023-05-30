@@ -379,7 +379,7 @@ export class Animator extends Component {
   }
 
   private _prepareDestCrossData(animatorLayerData: AnimatorLayerData, saveFixed: boolean): void {
-    const { curveLayerOwner: curveLayerOwner } = animatorLayerData.destPlayData.stateData;
+    const { curveLayerOwner } = animatorLayerData.destPlayData.stateData;
     for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
       const layerOwner = curveLayerOwner[i];
       if (!layerOwner) continue;
@@ -433,7 +433,7 @@ export class Animator extends Component {
     additive: boolean,
     aniUpdate: boolean
   ): void {
-    const { curveLayerOwner: curveLayerOwner, eventHandlers } = playData.stateData;
+    const { curveLayerOwner, eventHandlers } = playData.stateData;
     const { state, playState: lastPlayState, clipTime: lastClipTime } = playData;
     const { _curveBindings: curveBindings } = state.clip;
 
@@ -624,9 +624,9 @@ export class Animator extends Component {
     if (layerData.layerState === LayerState.Playing) {
       const srcPlayData = layerData.srcPlayData;
       if (srcPlayData.state !== playState) {
-        const { curveLayerOwner: curveLayerOwner } = srcPlayData.stateData;
+        const { curveLayerOwner } = srcPlayData.stateData;
         for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
-          const owner = curveLayerOwner[i].curveOwner;
+          const owner = curveLayerOwner[i]?.curveOwner;
           owner?.hasSavedDefaultValue && owner.revertDefaultValue();
         }
         this._saveDefaultValues(playStateData);
@@ -635,8 +635,8 @@ export class Animator extends Component {
       // layerState is CrossFading, FixedCrossFading, Standby
       const { crossOwnerLayerDataCollection } = layerData;
       for (let i = crossOwnerLayerDataCollection.length - 1; i >= 0; i--) {
-        const owner = crossOwnerLayerDataCollection[i]?.curveOwner;
-        owner?.hasSavedDefaultValue && owner.revertDefaultValue();
+        const owner = crossOwnerLayerDataCollection[i].curveOwner;
+        owner.hasSavedDefaultValue && owner.revertDefaultValue();
       }
       this._saveDefaultValues(playStateData);
     }
