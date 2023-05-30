@@ -627,7 +627,7 @@ export class Animator extends Component {
         const { curveLayerOwner } = srcPlayData.stateData;
         for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
           const owner = curveLayerOwner[i]?.curveOwner;
-          owner.hasSavedDefaultValue && owner.revertDefaultValue();
+          owner?.hasSavedDefaultValue && owner.revertDefaultValue();
         }
         this._saveDefaultValues(playStateData);
       }
