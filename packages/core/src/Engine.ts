@@ -310,27 +310,61 @@ export class Engine extends EventDispatcher {
     this._textRenderDataPool.resetPool();
 
     const loopScenes = this._sceneManager._scenes.getLoopArray();
+
+    // Sort cameras and fire script `onStart`
     for (let i = 0, n = loopScenes.length; i < n; i++) {
       const scene = loopScenes[i];
-      if (scene.destroyed) {
-        continue;
-      }
+      if (scene.destroyed) continue;
       scene._cameraNeedSorting && scene._sortCameras();
+      scene._componentsManager.callScriptOnStart();
+    }
 
-      const componentsManager = scene._componentsManager;
-      componentsManager.callScriptOnStart();
+    // Update physics and fire `onPhysicsUpdate`
+    if (this._physicsInitialized) {
+      for (let i = 0, n = loopScenes.length; i < n; i++) {
+        const scene = loopScenes[i];
+        if (scene.destroyed) continue;
+        scene.physics._update(deltaTime);
+      }
+    }
 
-      this._physicsInitialized && scene.physics._update(deltaTime);
-
+    // Fire `onPointerXX`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
       this.inputManager._update();
+    }
 
-      componentsManager.callScriptOnUpdate(deltaTime);
-      componentsManager.callAnimationUpdate(deltaTime);
-      componentsManager.callScriptOnLateUpdate(deltaTime);
-      this._render(scene);
+    // Fire `onUpdate`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      scene._componentsManager.callScriptOnUpdate(deltaTime);
+    }
 
+    // Update `Animator` logic
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      scene._componentsManager.callAnimationUpdate(deltaTime);
+    }
+
+    // Fire `onLateUpdate`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      scene._componentsManager.callScriptOnLateUpdate(deltaTime);
+    }
+
+    // Render scene and fire `onBeginRender` and `onEndRender`
+    this._render(loopScenes);
+
+    // Handling invalid scripts and fire `onDestroy`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
       if (!this._waitingDestroy) {
-        componentsManager.handlingInvalidScripts();
+        scene._componentsManager.handlingInvalidScripts();
       }
     }
 
@@ -430,28 +464,38 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _render(scene: Scene): void {
-    const cameras = scene._activeCameras;
-    const componentsManager = scene._componentsManager;
-    const deltaTime = this.time.deltaTime;
-    componentsManager.callRendererOnUpdate(deltaTime);
+  _render(loopScenes: ReadonlyArray<Scene>): void {
+    // Update `Renderer` logic and shader data
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      const deltaTime = this.time.deltaTime;
+      scene._componentsManager.callRendererOnUpdate(deltaTime);
+      scene._updateShaderData();
+    }
 
-    scene._updateShaderData();
+    // Fire script `onBeginRender` and `onEndRender`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      const cameras = scene._activeCameras;
+      const cameraCount = cameras.length;
+      if (cameraCount > 0) {
+        for (let i = 0; i < cameraCount; i++) {
+          const camera = cameras[i];
+          const componentsManager = scene._componentsManager;
+          componentsManager.callCameraOnBeginRender(camera);
+          camera.render();
+          componentsManager.callCameraOnEndRender(camera);
 
-    if (cameras.length > 0) {
-      for (let i = 0, n = cameras.length; i < n; i++) {
-        const camera = cameras[i];
-        componentsManager.callCameraOnBeginRender(camera);
-        camera.render();
-        componentsManager.callCameraOnEndRender(camera);
-
-        // Temp solution for webgl implement bug
-        if (this._hardwareRenderer._options._forceFlush) {
-          this._hardwareRenderer.flush();
+          // Temp solution for webgl implement bug
+          if (this._hardwareRenderer._options._forceFlush) {
+            this._hardwareRenderer.flush();
+          }
         }
+      } else {
+        Logger.debug("No active camera in scene.");
       }
-    } else {
-      Logger.debug("NO active camera.");
     }
   }
 
