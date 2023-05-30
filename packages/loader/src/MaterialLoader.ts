@@ -10,7 +10,7 @@ import {
   resourceLoader
 } from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { IAssetRef, IColor, IMaterialSchema, IVector2, IVector3, IVector4 } from "./resource-deserialize";
+import type { IAssetRef, IColor, IMaterialSchema, IVector2, IVector3, IVector4 } from "./resource-deserialize";
 
 function parseProperty(object: Object, key: string, value: any) {
   if (typeof value === "object") {

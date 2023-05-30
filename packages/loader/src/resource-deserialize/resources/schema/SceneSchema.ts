@@ -1,6 +1,6 @@
 import { BackgroundMode, DiffuseMode, ShadowCascadesMode, ShadowResolution } from "@galacean/engine-core";
-import { IReferable } from "@galacean/engine-core/types/asset/IReferable";
-import { IColor, IPrefabFile } from "./BasicSchema";
+import type { IReferable } from "@galacean/engine-core/types/asset/IReferable";
+import type { IColor, IPrefabFile } from "./BasicSchema";
 
 export enum SpecularMode {
   Sky = "Sky",

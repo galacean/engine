@@ -1,5 +1,5 @@
 import { MeshTopology } from "@galacean/engine-core";
-import { IColor, IVector2, IVector3, IVector4 } from "../schema/BasicSchema";
+import type { IColor, IVector2, IVector3, IVector4 } from "../schema/BasicSchema";
 
 export interface IEncodedModelMesh {
   positions: {

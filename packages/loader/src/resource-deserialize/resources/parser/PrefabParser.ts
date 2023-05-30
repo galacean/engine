@@ -1,5 +1,5 @@
 import { Entity } from "@galacean/engine-core";
-import { IEntity } from "../schema";
+import type { IEntity } from "../schema";
 
 export class PrefabParser {
   static parseChildren(entitiesConfig: Map<string, IEntity>, entities: Map<string, Entity>, parentId: string) {
