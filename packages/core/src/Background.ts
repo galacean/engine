@@ -48,6 +48,8 @@ export class Background {
 
   set texture(value: Texture2D) {
     if (this._texture !== value) {
+      value?._addReferCount(1);
+      this._texture?._addReferCount(-1);
       this._texture = value;
       this._engine._backgroundTextureMaterial.shaderData.setTexture("material_BaseTexture", value);
     }
@@ -143,6 +145,12 @@ export class Background {
 
     mesh.uploadData(false);
     mesh.addSubMesh(0, indices.length);
+
+    const vertexBufferBindings = mesh._vertexBufferBindings;
+    for (let i = vertexBufferBindings.length; i >= 0; i--) {
+      vertexBufferBindings[i] && (vertexBufferBindings[i]._buffer.isGCIgnored = true);
+    }
+    mesh._indexBufferBinding._buffer.isGCIgnored = true;
     return mesh;
   }
 }

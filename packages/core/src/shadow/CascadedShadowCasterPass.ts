@@ -302,11 +302,13 @@ export class CascadedShadowCasterPass {
         depthTexture.depthCompareFunction = TextureDepthCompareFunction.Less;
       }
 
+      renderTarget?._addReferCount(-1);
       if (this._supportDepthTexture) {
         renderTarget = this._renderTargets = new RenderTarget(engine, width, height, null, depthTexture);
       } else {
         renderTarget = this._renderTargets = new RenderTarget(engine, width, height, depthTexture);
       }
+      renderTarget._addReferCount(1);
     }
     return renderTarget;
   }
@@ -342,6 +344,7 @@ export class CascadedShadowCasterPass {
         this._shadowMapSize.set(1.0 / width, 1.0 / height, width, height);
       }
 
+      this._renderTargets?._addReferCount(-1);
       this._renderTargets = null;
 
       const viewportOffset = this._viewportOffsets;
