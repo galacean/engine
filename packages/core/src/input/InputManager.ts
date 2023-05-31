@@ -180,8 +180,8 @@ export class InputManager {
   /**
    * @internal
    */
-  _firePointScript(scenes: readonly Scene[]): void {
-    this._initialized && this._pointerManager._firePointScript(scenes);
+  _firePointerScript(scenes: readonly Scene[]): void {
+    this._initialized && this._pointerManager._firePointerScript(scenes);
   }
 
   /**

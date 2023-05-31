@@ -332,7 +332,7 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire `onPointerXX`
-    physicsInitialized && inputManager._firePointScript(loopScenes);
+    physicsInitialized && inputManager._firePointerScript(loopScenes);
 
     // Fire `onUpdate`
     for (let i = 0; i < sceneCount; i++) {

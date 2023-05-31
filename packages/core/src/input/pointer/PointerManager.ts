@@ -107,7 +107,7 @@ export class PointerManager implements IInput {
   /**
    * @internal
    */
-  _firePointScript(scenes: readonly Scene[]) {
+  _firePointerScript(scenes: readonly Scene[]) {
     const { _pointers: pointers, _canvas: canvas } = this;
     for (let i = 0, n = pointers.length; i < n; i++) {
       const pointer = pointers[i];
@@ -297,7 +297,7 @@ export class PointerManager implements IInput {
             break;
         }
       }
-      !this._engine._physicsInitialized && (events.length = 0);
+      this._engine._physicsInitialized || (events.length = 0);
     } else {
       pointer.deltaPosition.set(0, 0);
       pointer.phase = PointerPhase.Stationary;
