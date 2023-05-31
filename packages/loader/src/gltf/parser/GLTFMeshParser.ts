@@ -10,7 +10,7 @@ import {
 } from "@galacean/engine-core";
 import { Vector3, Vector4 } from "@galacean/engine-math";
 import { BlendShapeRestoreInfo, BufferRestoreInfo, ModelMeshRestoreInfo } from "../../GLTFContentRestorer";
-import { IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
+import type { IGLTF, IMesh, IMeshPrimitive } from "../GLTFSchema";
 import { GLTFUtils } from "../GLTFUtils";
 import { GLTFParser } from "./GLTFParser";
 import { BufferInfo, GLTFParserContext } from "./GLTFParserContext";

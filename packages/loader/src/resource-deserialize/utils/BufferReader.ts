@@ -1,6 +1,4 @@
 import { Utils } from "@galacean/engine-core";
-import { GLTFUtils } from "../../gltf/GLTFUtils";
-import { ab2str } from "./Utils";
 
 class ImageData {
   type: "image/png" | "image/jpg" | "image/webp" | "ktx";
