@@ -1,11 +1,11 @@
+import { Vector3 } from "@galacean/engine-math";
 import { Engine } from "../Engine";
-import { KeyboardManager } from "./keyboard/KeyboardManager";
 import { Keys } from "./enums/Keys";
+import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
+import { KeyboardManager } from "./keyboard/KeyboardManager";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
-import { PointerButton, _pointerBin2DecMap } from "./enums/PointerButton";
 import { WheelManager } from "./wheel/WheelManager";
-import { Vector3 } from "@galacean/engine-math";
 
 /**
  * InputManager manages device input such as mouse, touch, keyboard, etc.

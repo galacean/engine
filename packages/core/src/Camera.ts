@@ -1,23 +1,23 @@
 import { BoundingFrustum, MathUtil, Matrix, Ray, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { Logger } from "./base";
 import { BoolUpdateFlag } from "./BoolUpdateFlag";
-import { deepClone, ignoreClone } from "./clone/CloneManager";
 import { Component } from "./Component";
-import { dependentComponents, DependentMode } from "./ComponentsDependencies";
+import { DependentMode, dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
-import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Layer } from "./Layer";
 import { BasicRenderPipeline } from "./RenderPipeline/BasicRenderPipeline";
-import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
+import { Transform } from "./Transform";
+import { VirtualCamera } from "./VirtualCamera";
+import { Logger } from "./base";
+import { deepClone, ignoreClone } from "./clone/CloneManager";
+import { CameraClearFlags } from "./enums/CameraClearFlags";
 import { Shader } from "./shader/Shader";
 import { ShaderData } from "./shader/ShaderData";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderProperty } from "./shader/ShaderProperty";
 import { ShaderTagKey } from "./shader/ShaderTagKey";
-import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
+import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
 import { RenderTarget } from "./texture/RenderTarget";
-import { Transform } from "./Transform";
-import { VirtualCamera } from "./VirtualCamera";
+import { TextureCubeFace } from "./texture/enums/TextureCubeFace";
 
 class MathTemp {
   static tempVec4 = new Vector4();
@@ -38,9 +38,6 @@ export class Camera extends Component {
 
   /** Shader data. */
   readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
-
-  /** Rendering priority - A Camera with higher priority will be rendered on top of a camera with lower priority. */
-  priority: number = 0;
 
   /** Whether to enable frustum culling, it is enabled by default. */
   enableFrustumCulling: boolean = true;
@@ -73,6 +70,7 @@ export class Camera extends Component {
   /** @internal */
   _replacementSubShaderTag: ShaderTagKey = null;
 
+  private _priority: number = 0;
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
@@ -164,6 +162,22 @@ export class Camera extends Component {
       this._viewport.copyFrom(value);
     }
     this._projMatChange();
+  }
+
+  /**
+   * Rendering priority, higher priority will be rendered on top of a camera with lower priority.
+   */
+  get priority(): number {
+    return this._priority;
+  }
+
+  set priority(value: number) {
+    if (this._priority !== value) {
+      if (this._entity._isActiveInScene && this.enabled) {
+        this.scene._cameraNeedSorting = true;
+      }
+      this._priority = value;
+    }
   }
 
   /**
@@ -515,15 +529,15 @@ export class Camera extends Component {
   /**
    * @inheritdoc
    */
-  override _onEnable(): void {
-    this.entity.scene._attachRenderCamera(this);
+  override _onEnableInScene(): void {
+    this.scene._attachRenderCamera(this);
   }
 
   /**
    * @inheritdoc
    */
-  override _onDisable(): void {
-    this.entity.scene._detachRenderCamera(this);
+  override _onDisableInScene(): void {
+    this.scene._detachRenderCamera(this);
   }
 
   /**

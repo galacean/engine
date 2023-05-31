@@ -4,23 +4,23 @@ import { Background } from "../Background";
 import { Camera } from "../Camera";
 import { DisorderedArray } from "../DisorderedArray";
 import { Engine } from "../Engine";
+import { Layer } from "../Layer";
 import { BackgroundMode } from "../enums/BackgroundMode";
 import { BackgroundTextureFillMode } from "../enums/BackgroundTextureFillMode";
 import { CameraClearFlags } from "../enums/CameraClearFlags";
-import { Layer } from "../Layer";
 import { Material } from "../material";
-import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { Shader } from "../shader/Shader";
 import { ShaderPass } from "../shader/ShaderPass";
+import { RenderQueueType } from "../shader/enums/RenderQueueType";
 import { RenderState } from "../shader/state/RenderState";
 import { CascadedShadowCasterPass } from "../shadow/CascadedShadowCasterPass";
 import { ShadowType } from "../shadow/enum/ShadowType";
 import { RenderTarget, TextureCubeFace } from "../texture";
-import { PipelineStage } from "./enums/PipelineStage";
 import { RenderContext } from "./RenderContext";
 import { RenderData } from "./RenderData";
 import { RenderPass } from "./RenderPass";
 import { RenderQueue } from "./RenderQueue";
+import { PipelineStage } from "./enums/PipelineStage";
 
 /**
  * Basic render pipeline.
@@ -302,8 +302,9 @@ export class BasicRenderPipeline {
 
   private _callRender(context: RenderContext): void {
     const engine = context.camera.engine;
-    const renderers = engine._componentsManager._renderers;
     const camera = context.camera;
+    const renderers = camera.scene._componentsManager._renderers;
+
     const elements = renderers._elements;
     for (let i = renderers.length - 1; i >= 0; --i) {
       const renderer = elements[i];

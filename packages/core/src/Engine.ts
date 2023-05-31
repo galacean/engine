@@ -1,20 +1,9 @@
-import { IPhysics } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
-import { ContentRestorer } from "./asset/ContentRestorer";
-import { ResourceManager } from "./asset/ResourceManager";
-import { EventDispatcher, Logger, Time } from "./base";
-import { GLCapabilityType } from "./base/Constant";
 import { Canvas } from "./Canvas";
-import { ComponentsManager } from "./ComponentsManager";
 import { EngineSettings } from "./EngineSettings";
 import { Entity } from "./Entity";
-import { ColorSpace } from "./enums/ColorSpace";
-import { InputManager } from "./input";
-import { LightManager } from "./lighting/LightManager";
-import { Material } from "./material/Material";
-import { PhysicsManager } from "./physics";
-import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { ClassPool } from "./RenderPipeline/ClassPool";
 import { MeshRenderData } from "./RenderPipeline/MeshRenderData";
 import { RenderContext } from "./RenderPipeline/RenderContext";
@@ -25,18 +14,28 @@ import { SpriteRenderData } from "./RenderPipeline/SpriteRenderData";
 import { TextRenderData } from "./RenderPipeline/TextRenderData";
 import { Scene } from "./Scene";
 import { SceneManager } from "./SceneManager";
-import { BlendFactor } from "./shader/enums/BlendFactor";
-import { BlendOperation } from "./shader/enums/BlendOperation";
-import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
-import { CompareFunction } from "./shader/enums/CompareFunction";
-import { CullMode } from "./shader/enums/CullMode";
-import { RenderQueueType } from "./shader/enums/RenderQueueType";
+import { ContentRestorer } from "./asset/ContentRestorer";
+import { ResourceManager } from "./asset/ResourceManager";
+import { EventDispatcher, Logger, Time } from "./base";
+import { GLCapabilityType } from "./base/Constant";
+import { ColorSpace } from "./enums/ColorSpace";
+import { InputManager } from "./input";
+import { Material } from "./material/Material";
+import { PhysicsScene } from "./physics/PhysicsScene";
+import { ColliderShape } from "./physics/shape/ColliderShape";
+import { IHardwareRenderer } from "./renderingHardwareInterface";
 import { Shader } from "./shader/Shader";
 import { ShaderMacro } from "./shader/ShaderMacro";
 import { ShaderMacroCollection } from "./shader/ShaderMacroCollection";
 import { ShaderPass } from "./shader/ShaderPass";
 import { ShaderPool } from "./shader/ShaderPool";
 import { ShaderProgramPool } from "./shader/ShaderProgramPool";
+import { BlendFactor } from "./shader/enums/BlendFactor";
+import { BlendOperation } from "./shader/enums/BlendOperation";
+import { ColorWriteMask } from "./shader/enums/ColorWriteMask";
+import { CompareFunction } from "./shader/enums/CompareFunction";
+import { CullMode } from "./shader/enums/CullMode";
+import { RenderQueueType } from "./shader/enums/RenderQueueType";
 import { RenderState } from "./shader/state/RenderState";
 import { Texture2D, Texture2DArray, TextureCube, TextureCubeFace, TextureFormat } from "./texture";
 
@@ -53,15 +52,15 @@ export class Engine extends EventDispatcher {
   /** @internal Conversion of space units to pixel units for 2D. */
   static _pixelsPerUnit: number = 100;
 
-  /** Physics manager of Engine. */
-  readonly physicsManager: PhysicsManager;
   /** Input manager of Engine. */
   readonly inputManager: InputManager;
 
-  /* @internal */
-  _lightManager: LightManager = new LightManager();
-  /* @internal */
-  _componentsManager: ComponentsManager = new ComponentsManager();
+  /** @internal */
+  _physicsInitialized: boolean = false;
+  /** @internal */
+  _physicalObjectsMap: Record<number, ColliderShape> = {};
+  /** @internal */
+  _nativePhysicsManager: IPhysicsManager;
   /* @internal */
   _hardwareRenderer: IHardwareRenderer;
   /* @internal */
@@ -227,10 +226,7 @@ export class Engine extends EventDispatcher {
     this._hardwareRenderer = hardwareRenderer;
     this._hardwareRenderer.init(canvas, this._onDeviceLost.bind(this), this._onDeviceRestored.bind(this));
 
-    this.physicsManager = new PhysicsManager(this);
-
     this._canvas = canvas;
-    this._sceneManager.activeScene = new Scene(this, "DefaultScene");
 
     this._spriteMaskManager = new SpriteMaskManager(this);
     this._spriteDefaultMaterial = this._createSpriteMaterial();
@@ -313,23 +309,65 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
-    const scene = this._sceneManager._activeScene;
-    const componentsManager = this._componentsManager;
-    if (scene) {
-      scene._activeCameras.sort((camera1, camera2) => camera1.priority - camera2.priority);
+    const loopScenes = this._sceneManager._scenes.getLoopArray();
 
-      componentsManager.callScriptOnStart();
-      this.physicsManager._initialized && this.physicsManager._update(deltaTime);
+    // Sort cameras and fire script `onStart`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      scene._cameraNeedSorting && scene._sortCameras();
+      scene._componentsManager.callScriptOnStart();
+    }
+
+    // Update physics and fire `onPhysicsUpdate`
+    if (this._physicsInitialized) {
+      for (let i = 0, n = loopScenes.length; i < n; i++) {
+        const scene = loopScenes[i];
+        if (scene.destroyed) continue;
+        scene.physics._update(deltaTime);
+      }
+    }
+
+    // Fire `onPointerXX`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
       this.inputManager._update();
-      componentsManager.callScriptOnUpdate(deltaTime);
-      componentsManager.callAnimationUpdate(deltaTime);
-      componentsManager.callScriptOnLateUpdate(deltaTime);
-      this._render(scene);
     }
 
-    if (!this._waitingDestroy) {
-      componentsManager.handlingInvalidScripts();
+    // Fire `onUpdate`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      scene._componentsManager.callScriptOnUpdate(deltaTime);
     }
+
+    // Update `Animator` logic
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      scene._componentsManager.callAnimationUpdate(deltaTime);
+    }
+
+    // Fire `onLateUpdate`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      scene._componentsManager.callScriptOnLateUpdate(deltaTime);
+    }
+
+    // Render scene and fire `onBeginRender` and `onEndRender`
+    this._render(loopScenes);
+
+    // Handling invalid scripts and fire `onDestroy`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      if (!this._waitingDestroy) {
+        scene._componentsManager.handlingInvalidScripts();
+      }
+    }
+
     if (this._waitingDestroy) {
       this._destroy();
     }
@@ -362,7 +400,6 @@ export class Engine extends EventDispatcher {
 
   private _destroy(): void {
     this._sceneManager._destroyAllScene();
-    this._componentsManager.handlingInvalidScripts();
 
     this._resourceManager._destroy();
     this._magentaTexture2D.destroy(true);
@@ -427,28 +464,38 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
-  _render(scene: Scene): void {
-    const cameras = scene._activeCameras;
-    const componentsManager = this._componentsManager;
-    const deltaTime = this.time.deltaTime;
-    componentsManager.callRendererOnUpdate(deltaTime);
+  _render(loopScenes: ReadonlyArray<Scene>): void {
+    // Update `Renderer` logic and shader data
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      const deltaTime = this.time.deltaTime;
+      scene._componentsManager.callRendererOnUpdate(deltaTime);
+      scene._updateShaderData();
+    }
 
-    scene._updateShaderData();
+    // Fire script `onBeginRender` and `onEndRender`
+    for (let i = 0, n = loopScenes.length; i < n; i++) {
+      const scene = loopScenes[i];
+      if (scene.destroyed) continue;
+      const cameras = scene._activeCameras;
+      const cameraCount = cameras.length;
+      if (cameraCount > 0) {
+        for (let i = 0; i < cameraCount; i++) {
+          const camera = cameras[i];
+          const componentsManager = scene._componentsManager;
+          componentsManager.callCameraOnBeginRender(camera);
+          camera.render();
+          componentsManager.callCameraOnEndRender(camera);
 
-    if (cameras.length > 0) {
-      for (let i = 0, n = cameras.length; i < n; i++) {
-        const camera = cameras[i];
-        componentsManager.callCameraOnBeginRender(camera);
-        camera.render();
-        componentsManager.callCameraOnEndRender(camera);
-
-        // Temp solution for webgl implement bug
-        if (this._hardwareRenderer._options._forceFlush) {
-          this._hardwareRenderer.flush();
+          // Temp solution for webgl implement bug
+          if (this._hardwareRenderer._options._forceFlush) {
+            this._hardwareRenderer.flush();
+          }
         }
+      } else {
+        Logger.debug("No active camera in scene.");
       }
-    } else {
-      Logger.debug("NO active camera.");
     }
   }
 
@@ -521,7 +568,9 @@ export class Engine extends EventDispatcher {
     const physics = configuration.physics;
     if (physics) {
       return physics.initialize().then(() => {
-        this.physicsManager._initialize(physics);
+        PhysicsScene._nativePhysics = physics;
+        this._nativePhysicsManager = physics.createPhysicsManager();
+        this._physicsInitialized = true;
         return this;
       });
     } else {
@@ -585,6 +634,14 @@ export class Engine extends EventDispatcher {
       .catch((error) => {
         console.error(error);
       });
+  }
+
+  /**
+   * @deprecated
+   * The first scene physics manager.
+   */
+  get physicsManager() {
+    return this.sceneManager.scenes[0]?.physics;
   }
 }
 

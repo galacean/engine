@@ -39,7 +39,9 @@ export class Pointer {
   private _currentPressedEntity: Entity;
   private _currentEnteredEntity: Entity;
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _firePointerExitAndEnter(rayCastEntity: Entity): void {
     if (this._currentEnteredEntity !== rayCastEntity) {
       if (this._currentEnteredEntity) {
@@ -60,7 +62,9 @@ export class Pointer {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _firePointerDown(rayCastEntity: Entity): void {
     if (rayCastEntity) {
       const scripts = rayCastEntity._scripts;
@@ -72,7 +76,9 @@ export class Pointer {
     this._currentPressedEntity = rayCastEntity;
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _firePointerDrag(): void {
     if (this._currentPressedEntity) {
       const scripts = this._currentPressedEntity._scripts;
@@ -83,7 +89,9 @@ export class Pointer {
     }
   }
 
-  /** @internal */
+  /**
+   * @internal
+   */
   _firePointerUpAndClick(rayCastEntity: Entity): void {
     const { _currentPressedEntity: pressedEntity } = this;
     if (pressedEntity) {

@@ -4,6 +4,7 @@ import { Component } from "../Component";
 import { Entity } from "../Entity";
 import { Renderer } from "../Renderer";
 import { ClassPool } from "../RenderPipeline/ClassPool";
+import { Scene } from "../Scene";
 import { AnimatorController } from "./AnimatorController";
 import { AnimatorState } from "./AnimatorState";
 import { AnimatorStateTransition } from "./AnimatorTransition";
@@ -188,7 +189,6 @@ export class Animator extends Component {
    * @internal
    */
   override _onEnable(): void {
-    this.engine._componentsManager.addOnUpdateAnimations(this);
     this.animatorController && this._checkAutoPlay();
     this._entity.getComponentsIncludeChildren(Renderer, this._controlledRenderers);
   }
@@ -196,8 +196,14 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  override _onDisable(): void {
-    this.engine._componentsManager.removeOnUpdateAnimations(this);
+  override _onEnableInScene(): void {
+    this.scene._componentsManager.addOnUpdateAnimations(this);
+  }
+  /**
+   * @internal
+   */
+  override _onDisableInScene(): void {
+    this.scene._componentsManager.removeOnUpdateAnimations(this);
   }
 
   /**
