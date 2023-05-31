@@ -38,6 +38,28 @@ export class Buffer extends GraphicsResource {
   }
 
   /**
+   * If buffer is readable.
+   */
+  get readable(): boolean {
+    return this._readable;
+  }
+
+  /**
+   * Buffer data.
+   *
+   * @remarks
+   * Buffer must be readable.
+   * If data is modified, you must call setData() to update buffer.
+   */
+  get data(): Uint8Array {
+    if (this._readable) {
+      return this._data;
+    } else {
+      throw "Buffer is not readable.";
+    }
+  }
+
+  /**
    * Create Buffer.
    * @param engine - Engine
    * @param type - Buffer binding flag
@@ -74,6 +96,7 @@ export class Buffer extends GraphicsResource {
     this._engine = engine;
     this._type = type;
     this._bufferUsage = bufferUsage;
+    this._readable = readable;
 
     if (typeof byteLengthOrData === "number") {
       this._byteLength = byteLengthOrData;
@@ -87,8 +110,8 @@ export class Buffer extends GraphicsResource {
       this._byteLength = byteLength;
       this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLength, bufferUsage, data);
       if (readable) {
-        const dataBuffer = data.constructor === ArrayBuffer ? data.slice(0) : (<ArrayBufferView>data).buffer.slice(0);
-        this._data = new Uint8Array(dataBuffer);
+        const buffer = (data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer).slice(0, byteLength);
+        this._data = new Uint8Array(buffer);
       }
     }
   }
@@ -146,10 +169,13 @@ export class Buffer extends GraphicsResource {
     options: SetDataOptions = SetDataOptions.None
   ): void {
     this._platformBuffer.setData(this._byteLength, data, bufferByteOffset, dataOffset, dataLength, options);
+
     if (this._readable) {
-      let arrayBuffer = data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer;
-      const srcData = new Uint8Array(arrayBuffer, dataOffset, dataLength);
-      this._data.set(srcData, bufferByteOffset);
+      const arrayBuffer = data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer;
+      if (this._data.buffer !== arrayBuffer) {
+        const srcData = new Uint8Array(arrayBuffer, dataOffset, dataLength);
+        this._data.set(srcData, bufferByteOffset);
+      }
     }
   }
 
@@ -177,6 +203,14 @@ export class Buffer extends GraphicsResource {
 
   getData(data: ArrayBufferView, bufferByteOffset: number = 0, dataOffset: number = 0, dataLength?: number): void {
     this._platformBuffer.getData(data, bufferByteOffset, dataOffset, dataLength);
+  }
+
+  /**
+   * Mark buffer as readable, the `data` property will be not accessible anymore.
+   */
+  markAsUnreadable(): void {
+    this._data = null;
+    this._readable = false;
   }
 
   override _rebuild(): void {
