@@ -13,6 +13,8 @@ export class Buffer extends GraphicsResource {
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
   private _platformBuffer: IPlatformBuffer;
+  private _readable: boolean;
+  private _data: Uint8Array;
 
   /**
    * Buffer binding flag.
@@ -41,8 +43,9 @@ export class Buffer extends GraphicsResource {
    * @param type - Buffer binding flag
    * @param byteLength - Byte length
    * @param bufferUsage - Buffer usage
+   * @param readable - If buffer is readable
    */
-  constructor(engine: Engine, type: BufferBindFlag, byteLength: number, bufferUsage?: BufferUsage);
+  constructor(engine: Engine, type: BufferBindFlag, byteLength: number, bufferUsage?: BufferUsage, readable?: boolean);
 
   /**
    * Create Buffer.
@@ -50,14 +53,22 @@ export class Buffer extends GraphicsResource {
    * @param type - Buffer binding flag
    * @param data - Byte
    * @param bufferUsage - Buffer usage
+   * @param readable - If buffer is readable
    */
-  constructor(engine: Engine, type: BufferBindFlag, data: ArrayBuffer | ArrayBufferView, bufferUsage?: BufferUsage);
+  constructor(
+    engine: Engine,
+    type: BufferBindFlag,
+    data: ArrayBuffer | ArrayBufferView,
+    bufferUsage?: BufferUsage,
+    readable?: boolean
+  );
 
   constructor(
     engine: Engine,
     type: BufferBindFlag,
     byteLengthOrData: number | ArrayBuffer | ArrayBufferView,
-    bufferUsage: BufferUsage = BufferUsage.Static
+    bufferUsage: BufferUsage = BufferUsage.Static,
+    readable: boolean = false
   ) {
     super(engine);
     this._engine = engine;
@@ -67,15 +78,18 @@ export class Buffer extends GraphicsResource {
     if (typeof byteLengthOrData === "number") {
       this._byteLength = byteLengthOrData;
       this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLengthOrData, bufferUsage);
+      if (readable) {
+        this._data = new Uint8Array(byteLengthOrData);
+      }
     } else {
-      const byteLength = byteLengthOrData.byteLength;
+      const data = byteLengthOrData;
+      const byteLength = data.byteLength;
       this._byteLength = byteLength;
-      this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(
-        type,
-        byteLength,
-        bufferUsage,
-        byteLengthOrData
-      );
+      this._platformBuffer = engine._hardwareRenderer.createPlatformBuffer(type, byteLength, bufferUsage, data);
+      if (readable) {
+        const dataBuffer = data.constructor === ArrayBuffer ? data.slice(0) : (<ArrayBufferView>data).buffer.slice(0);
+        this._data = new Uint8Array(dataBuffer);
+      }
     }
   }
 
@@ -132,6 +146,11 @@ export class Buffer extends GraphicsResource {
     options: SetDataOptions = SetDataOptions.None
   ): void {
     this._platformBuffer.setData(this._byteLength, data, bufferByteOffset, dataOffset, dataLength, options);
+    if (this._readable) {
+      let arrayBuffer = data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer;
+      const srcData = new Uint8Array(arrayBuffer, dataOffset, dataLength);
+      this._data.set(srcData, bufferByteOffset);
+    }
   }
 
   /**
