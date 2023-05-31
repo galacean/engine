@@ -6,6 +6,7 @@ import { KeyboardManager } from "./keyboard/KeyboardManager";
 import { Pointer } from "./pointer/Pointer";
 import { PointerManager } from "./pointer/PointerManager";
 import { WheelManager } from "./wheel/WheelManager";
+import { Scene } from "../Scene";
 
 /**
  * InputManager manages device input such as mouse, touch, keyboard, etc.
@@ -179,13 +180,23 @@ export class InputManager {
   /**
    * @internal
    */
+  _firePointerScript(scenes: readonly Scene[]): void {
+    this._initialized && this._pointerManager._firePointerScript(scenes);
+  }
+
+  /**
+   * @internal
+   */
   _destroy(): void {
     if (this._initialized) {
       window.removeEventListener("blur", this._onBlur);
       window.removeEventListener("focus", this._onFocus);
       this._wheelManager._destroy();
+      this._wheelManager = null;
       this._pointerManager._destroy();
+      this._pointerManager = null;
       this._keyboardManager._destroy();
+      this._keyboardManager = null;
     }
   }
 

@@ -32,6 +32,15 @@ export class Component extends EngineObject {
   set enabled(value: boolean) {
     if (value !== this._enabled) {
       this._enabled = value;
+      if (this._entity._isActiveInScene) {
+        if (value) {
+          this._phasedActiveInScene = true;
+          this._onEnableInScene();
+        } else {
+          this._phasedActiveInScene = false;
+          this._onDisableInScene();
+        }
+      }
       if (this._entity.isActiveInHierarchy) {
         if (value) {
           this._phasedActive = true;
@@ -141,8 +150,8 @@ export class Component extends EngineObject {
     const entity = this._entity;
     entity._removeComponent(this);
     if (this._enabled) {
-      entity._isActiveInHierarchy && this._onDisable();
       entity._isActiveInScene && this._onDisableInScene();
+      entity._isActiveInHierarchy && this._onDisable();
     }
   }
 }

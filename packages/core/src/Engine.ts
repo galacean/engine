@@ -309,10 +309,13 @@ export class Engine extends EventDispatcher {
     this._spriteMaskRenderDataPool.resetPool();
     this._textRenderDataPool.resetPool();
 
-    const loopScenes = this._sceneManager._scenes.getLoopArray();
+    const { inputManager, _physicsInitialized: physicsInitialized } = this;
+    inputManager._update();
 
+    const loopScenes = this._sceneManager._scenes.getLoopArray();
+    const sceneCount = loopScenes.length;
     // Sort cameras and fire script `onStart`
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
+    for (let i = 0; i < sceneCount; i++) {
       const scene = loopScenes[i];
       if (scene.destroyed) continue;
       scene._cameraNeedSorting && scene._sortCameras();
@@ -320,8 +323,8 @@ export class Engine extends EventDispatcher {
     }
 
     // Update physics and fire `onPhysicsUpdate`
-    if (this._physicsInitialized) {
-      for (let i = 0, n = loopScenes.length; i < n; i++) {
+    if (physicsInitialized) {
+      for (let i = 0; i < sceneCount; i++) {
         const scene = loopScenes[i];
         if (scene.destroyed) continue;
         scene.physics._update(deltaTime);
@@ -329,28 +332,24 @@ export class Engine extends EventDispatcher {
     }
 
     // Fire `onPointerXX`
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
-      const scene = loopScenes[i];
-      if (scene.destroyed) continue;
-      this.inputManager._update();
-    }
+    physicsInitialized && inputManager._firePointerScript(loopScenes);
 
     // Fire `onUpdate`
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
+    for (let i = 0; i < sceneCount; i++) {
       const scene = loopScenes[i];
       if (scene.destroyed) continue;
       scene._componentsManager.callScriptOnUpdate(deltaTime);
     }
 
     // Update `Animator` logic
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
+    for (let i = 0; i < sceneCount; i++) {
       const scene = loopScenes[i];
       if (scene.destroyed) continue;
       scene._componentsManager.callAnimationUpdate(deltaTime);
     }
 
     // Fire `onLateUpdate`
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
+    for (let i = 0; i < sceneCount; i++) {
       const scene = loopScenes[i];
       if (scene.destroyed) continue;
       scene._componentsManager.callScriptOnLateUpdate(deltaTime);
@@ -360,7 +359,7 @@ export class Engine extends EventDispatcher {
     this._render(loopScenes);
 
     // Handling invalid scripts and fire `onDestroy`
-    for (let i = 0, n = loopScenes.length; i < n; i++) {
+    for (let i = 0; i < sceneCount; i++) {
       const scene = loopScenes[i];
       if (scene.destroyed) continue;
       if (!this._waitingDestroy) {
