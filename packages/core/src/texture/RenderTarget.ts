@@ -164,10 +164,11 @@ export class RenderTarget extends GraphicsResource {
     if (renderTexture) {
       const colorTextures = renderTexture instanceof Array ? renderTexture.slice() : [renderTexture];
       for (let i = 0, n = colorTextures.length; i < n; i++) {
-        if (colorTextures[i]._isDepthTexture) {
+        const colorTexture = colorTextures[i];
+        if (colorTexture._isDepthTexture) {
           throw "Render texture can't use depth format.";
         }
-        colorTextures[i]._addReferCount(1);
+        colorTexture._addReferCount(1);
       }
       this._colorTextures = colorTextures;
     } else {

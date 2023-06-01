@@ -73,6 +73,17 @@ export class Background {
   }
 
   /**
+   * @internal
+   */
+  destroy(): void {
+    this._mesh._addReferCount(-1);
+    this._mesh = null;
+    this.texture = null;
+    this.solidColor = null;
+    this.sky.destroy();
+  }
+
+  /**
    * Constructor of Background.
    * @param _engine Engine Which the background belongs to.
    */
@@ -86,6 +97,7 @@ export class Background {
    */
   _initMesh(engine): void {
     this._mesh = this._createPlane(engine);
+    this._mesh._addReferCount(1);
   }
 
   /**
@@ -145,12 +157,6 @@ export class Background {
 
     mesh.uploadData(false);
     mesh.addSubMesh(0, indices.length);
-
-    const vertexBufferBindings = mesh._vertexBufferBindings;
-    for (let i = vertexBufferBindings.length; i >= 0; i--) {
-      vertexBufferBindings[i] && (vertexBufferBindings[i]._buffer.isGCIgnored = true);
-    }
-    mesh._indexBufferBinding._buffer.isGCIgnored = true;
     return mesh;
   }
 }

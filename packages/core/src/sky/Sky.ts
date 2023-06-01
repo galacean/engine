@@ -50,6 +50,14 @@ export class Sky {
   /**
    * @internal
    */
+  destroy(): void {
+    this.mesh = null;
+    this.material = null;
+  }
+
+  /**
+   * @internal
+   */
   _render(context: RenderContext): void {
     const { material, mesh } = this;
     if (!material) {

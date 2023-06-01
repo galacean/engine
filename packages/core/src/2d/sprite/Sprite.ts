@@ -267,6 +267,9 @@ export class Sprite extends ReferResource {
     return this._bounds;
   }
 
+  /**
+   * @internal
+   */
   override _addReferCount(value: number): void {
     super._addReferCount(value);
     this._atlas?._addReferCount(value);
