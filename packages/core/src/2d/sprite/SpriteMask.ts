@@ -133,9 +133,13 @@ export class SpriteMask extends Renderer {
   set sprite(value: Sprite | null) {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
-      lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      if (lastSprite) {
+        lastSprite._addRefCount(-1);
+        lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      }
       this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
       if (value) {
+        value._addRefCount(1);
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
@@ -169,17 +173,6 @@ export class SpriteMask extends Renderer {
     this.setMaterial(this._engine._spriteMaskDefaultMaterial);
     this.shaderData.setFloat(SpriteMask._alphaCutoffProperty, this._alphaCutoff);
     this._onSpriteChange = this._onSpriteChange.bind(this);
-  }
-
-  /**
-   * @override
-   * @inheritdoc
-   */
-  _onDestroy(): void {
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
-    this._sprite = null;
-    this._renderData = null;
-    super._onDestroy();
   }
 
   /**
@@ -228,6 +221,21 @@ export class SpriteMask extends Renderer {
     maskElement.setValue(this, this._renderData, this.getMaterial());
     context.camera._renderPipeline._allSpriteMasks.add(this);
     this._maskElement = maskElement;
+  }
+
+  /**
+   * @internal
+   * @inheritdoc
+   */
+  _onDestroy(): void {
+    super._onDestroy();
+    const sprite = this._sprite;
+    if (sprite) {
+      sprite._addRefCount(-1);
+      sprite._updateFlagManager.removeListener(this._onSpriteChange);
+    }
+    this._sprite = null;
+    this._renderData = null;
   }
 
   private _calDefaultSize(): void {

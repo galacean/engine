@@ -90,9 +90,13 @@ export class SpriteRenderer extends Renderer {
   set sprite(value: Sprite | null) {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
-      lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      if (lastSprite) {
+        lastSprite._addRefCount(-1);
+        lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      }
       this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
       if (value) {
+        value._addRefCount(1);
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
@@ -235,18 +239,6 @@ export class SpriteRenderer extends Renderer {
   }
 
   /**
-   * @internal
-   */
-  _onDestroy(): void {
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
-    this._color = null;
-    this._sprite = null;
-    this._assembler = null;
-    this._renderData = null;
-    super._onDestroy();
-  }
-
-  /**
    * @override
    */
   protected _updateBounds(worldBounds: BoundingBox): void {
@@ -288,6 +280,22 @@ export class SpriteRenderer extends Renderer {
       spriteElement.setValue(this, this._renderData, material, texture, renderStates[i], passes[i]);
       context.camera._renderPipeline.pushPrimitive(spriteElement);
     }
+  }
+
+  /**
+   * @internal
+   */
+  _onDestroy(): void {
+    super._onDestroy();
+    const sprite = this._sprite;
+    if (sprite) {
+      sprite._addRefCount(-1);
+      sprite._updateFlagManager.removeListener(this._onSpriteChange);
+    }
+    this._color = null;
+    this._sprite = null;
+    this._assembler = null;
+    this._renderData = null;
   }
 
   private _calDefaultSize(): void {
