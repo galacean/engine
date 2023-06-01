@@ -174,10 +174,10 @@ export abstract class Mesh extends RefObject {
    * @internal
    */
   _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
-    if (this._getRefCount() > 0) {
-      const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addRefCount(-1);
-      binding._buffer._addRefCount(1);
+    const referCount = this._getRefCount();
+    if (referCount > 0) {
+      this._vertexBufferBindings[index]?._buffer._addRefCount(-referCount);
+      binding?._buffer._addRefCount(referCount);
     }
     this._vertexBufferBindings[index] = binding;
     this._bufferStructChanged = true;
@@ -200,6 +200,7 @@ export abstract class Mesh extends RefObject {
     for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
       vertexBufferBindings[i]._buffer._addRefCount(value);
     }
+    this._indexBufferBinding?._buffer._addRefCount(value);
   }
 
   /**
@@ -223,6 +224,11 @@ export abstract class Mesh extends RefObject {
 
   protected _setIndexBufferBinding(binding: IndexBufferBinding | null): void {
     const lastBinding = this._indexBufferBinding;
+    const referCount = this._getRefCount();
+    if (referCount > 0) {
+      lastBinding?.buffer._addRefCount(-referCount);
+      binding?.buffer._addRefCount(referCount);
+    }
     if (binding) {
       this._indexBufferBinding = binding;
       this._glIndexType = BufferUtil._getGLIndexType(binding.format);

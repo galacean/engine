@@ -602,7 +602,7 @@ export class ShaderData implements IRefObject, IClone {
   cloneTo(target: ShaderData): void {
     CloneManager.deepCloneObject(this._macroCollection, target._macroCollection);
     Object.assign(target._macroMap, this._macroMap);
-
+    const referCount = target._getRefCount();
     const propertyValueMap = this._propertyValueMap;
     const targetPropertyValueMap = target._propertyValueMap;
     const keys = Object.keys(propertyValueMap);
@@ -614,6 +614,7 @@ export class ShaderData implements IRefObject, IClone {
           targetPropertyValueMap[k] = property;
         } else if (property instanceof Texture) {
           targetPropertyValueMap[k] = property;
+          referCount > 0 && property._addRefCount(referCount);
         } else if (property instanceof Array || property instanceof Float32Array || property instanceof Int32Array) {
           targetPropertyValueMap[k] = property.slice();
         } else {

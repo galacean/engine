@@ -4,6 +4,7 @@ import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
+import { SpriteAtlas } from "../atlas/SpriteAtlas";
 
 /**
  * 2D sprite.
@@ -33,6 +34,8 @@ export class Sprite extends RefObject {
   private _dirtyUpdateFlag: SpriteUpdateFlags = SpriteUpdateFlags.all;
 
   /** @internal */
+  _atlas: SpriteAtlas;
+  /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
@@ -54,7 +57,7 @@ export class Sprite extends RefObject {
 
   /**
    * The width of the sprite (in world coordinates).
-   * 
+   *
    * @remarks
    * If width is set, return the set value,
    * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
@@ -77,7 +80,7 @@ export class Sprite extends RefObject {
 
   /**
    * The height of the sprite (in world coordinates).
-   * 
+   *
    * @remarks
    * If height is set, return the set value,
    * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
@@ -266,11 +269,31 @@ export class Sprite extends RefObject {
 
   /**
    * @override
+   * @internal
+   */
+  _addRefCount(value: number): void {
+    super._addRefCount(value);
+    this._atlas?._addRefCount(value);
+  }
+
+  /**
+   * @override
+   * @internal
    */
   _onDestroy(): void {
-    if (this._texture) {
-      this._texture = null;
-    }
+    this._positions.length = 0;
+    this._positions = null;
+    this._uvs.length = 0;
+    this._uvs = null;
+    this._atlasRegion = null;
+    this._atlasRegionOffset = null;
+    this._region = null;
+    this._pivot = null;
+    this._border = null;
+    this._bounds = null;
+    this._atlas = null;
+    this._texture = null;
+    this._updateFlagManager = null;
   }
 
   private _calDefaultSize(): void {
