@@ -64,7 +64,7 @@ export interface WebGLGraphicDeviceOptions extends WebGLContextAttributes {
   /**
    * @internal
    * Max allow skin uniform vectors count, default is 256
-   * 
+   *
    * @remarks large count maybe cause performance issue.
    */
   _maxAllowSkinUniformVectorCount?: number;
