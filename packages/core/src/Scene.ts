@@ -439,6 +439,7 @@ export class Scene extends EngineObject {
       this._rootEntities[0].destroy();
     }
     this._activeCameras.length = 0;
+    this.background.destroy();
     this.shaderData._addRefCount(-1);
   }
 

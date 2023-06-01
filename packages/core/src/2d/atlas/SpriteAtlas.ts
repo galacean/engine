@@ -63,12 +63,19 @@ export class SpriteAtlas extends RefObject {
    */
   _addSprite(sprite: Sprite): void {
     this._spriteNamesToIndex[sprite.name] = this._sprites.push(sprite) - 1;
+    sprite._atlas = this;
+    sprite.isGCIgnored = true;
   }
 
   /**
    * @override
    */
   _onDestroy(): void {
+    const { _sprites: sprites } = this;
+    for (let i = 0, n = sprites.length; i < n; i++) {
+      sprites[i].destroy();
+    }
+    sprites.length = 0;
     this._sprites = null;
     this._spriteNamesToIndex = null;
   }

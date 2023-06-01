@@ -128,26 +128,28 @@ export abstract class Basic2DBatcher {
   private _createMesh(engine: Engine, index: number): BufferMesh {
     const { MAX_VERTEX_COUNT } = Basic2DBatcher;
     const mesh = new BufferMesh(engine, `BufferMesh${index}`);
-
+    mesh.isGCIgnored = true;
     const vertexElements: VertexElement[] = [];
     const vertexStride = this.createVertexElements(vertexElements);
 
     // vertices
-    this._vertexBuffers[index] = new Buffer(
+    const vertexBuffer = (this._vertexBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
       MAX_VERTEX_COUNT * 4 * vertexStride,
       BufferUsage.Dynamic
-    );
+    ));
+    vertexBuffer.isGCIgnored = true;
     // indices
-    this._indiceBuffers[index] = new Buffer(
+    const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
       MAX_VERTEX_COUNT * 2 * 3,
       BufferUsage.Dynamic
-    );
-    mesh.setVertexBufferBinding(this._vertexBuffers[index], vertexStride);
-    mesh.setIndexBufferBinding(this._indiceBuffers[index], IndexFormat.UInt16);
+    ));
+    indiceBuffer.isGCIgnored = true;
+    mesh.setVertexBufferBinding(vertexBuffer, vertexStride);
+    mesh.setIndexBufferBinding(indiceBuffer, IndexFormat.UInt16);
     mesh.setVertexElements(vertexElements);
 
     return mesh;
