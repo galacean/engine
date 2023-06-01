@@ -344,8 +344,12 @@ export class CascadedShadowCasterPass {
         this._shadowMapSize.set(1.0 / width, 1.0 / height, width, height);
       }
 
-      this._renderTargets?._addReferCount(-1);
-      this._renderTargets = null;
+      const renderTargets = this._renderTargets;
+      if (renderTargets) {
+        renderTargets._addReferCount(-1);
+        renderTargets.destroy();
+        this._renderTargets = null;
+      }
 
       const viewportOffset = this._viewportOffsets;
       const shadowTileResolution = this._shadowTileResolution;
