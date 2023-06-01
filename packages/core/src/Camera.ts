@@ -268,7 +268,11 @@ export class Camera extends Component {
   }
 
   set renderTarget(value: RenderTarget | null) {
-    this._renderTarget = value;
+    if (this._renderTarget !== value) {
+      value?._addReferCount(1);
+      this._renderTarget?._addReferCount(-1);
+      this._renderTarget = value;
+    }
   }
 
   /**
