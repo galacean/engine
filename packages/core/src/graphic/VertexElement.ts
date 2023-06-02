@@ -5,7 +5,7 @@ import { VertexElementFormat } from "./enums/VertexElementFormat";
  * Vertex element.
  */
 export class VertexElement {
-  _glElementInfo: ElementInfo;
+  _formatMetaInfo: ElementInfo;
 
   private _semantic: string;
   private _offset: number;
@@ -75,7 +75,7 @@ export class VertexElement {
     this._offset = offset;
     this._format = format;
     this._bindingIndex = bindingIndex;
-    this._glElementInfo = BufferUtil._getElementInfo(this.format);
+    this._formatMetaInfo = BufferUtil._getElementInfo(this.format);
     this._instanceStepRate = Math.floor(instanceStepRate);
   }
 }
