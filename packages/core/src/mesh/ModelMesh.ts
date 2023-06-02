@@ -433,7 +433,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
   getUVs(channelIndex: number): Vector2[] | null;
-  
+
   getUVs(channelIndex?: number): Vector2[] | null {
     if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
@@ -875,9 +875,12 @@ export class ModelMesh extends Mesh {
     onVertexParse: (dataReader: TypedArray, offset: number) => T
   ): T[] {
     const vertexElement = this._vertexElementMap[attributeType];
+    if (!vertexElement) {
+      return null;
+    }
+
     const bufferBinding = this._vertexBufferBindings[vertexElement.bindingIndex];
     const buffer = bufferBinding?.buffer;
-
     if (!buffer) {
       return null;
     }

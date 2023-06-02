@@ -144,13 +144,6 @@ export class GLTFMeshParser extends GLTFParser {
 
     mesh.uploadData(!keepMeshData);
 
-    //@ts-ignore
-    mesh._positions = positions;
-    //@ts-ignore
-    mesh._boneIndices = boneIndices;
-    //@ts-ignore
-    mesh._boneWeights = boneWeights;
-
     return Promise.resolve(mesh);
   }
 
