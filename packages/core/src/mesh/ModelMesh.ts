@@ -144,7 +144,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get positions for the mesh.
+   * Get a copy of positions for the mesh.
    * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
   getPositions(): Vector3[] | null {
@@ -189,7 +189,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get normals for the mesh.
+   * Get a copy of normals for the mesh.
    * @remarks Please call the setNormals() method after modification to ensure that the modification takes effect.
    */
   getNormals(): Vector3[] | null {
@@ -219,7 +219,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get colors for the mesh.
+   * Get a copy of colors for the mesh.
    * @remarks Please call the setColors() method after modification to ensure that the modification takes effect.
    */
   getColors(): Color[] | null {
@@ -249,7 +249,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get weights for the mesh.
+   * Get a copy of bone weights for the mesh.
    * @remarks Please call the setWeights() method after modification to ensure that the modification takes effect.
    */
   getBoneWeights(): Vector4[] | null {
@@ -279,7 +279,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get joints for the mesh.
+   * Get a copy of bone indices for the mesh.
    * @remarks Please call the setBoneIndices() method after modification to ensure that the modification takes effect.
    */
   getBoneIndices(): Vector4[] | null {
@@ -309,7 +309,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get tangents for the mesh.
+   * Get a copy of tangents for the mesh.
    * @remarks Please call the setTangents() method after modification to ensure that the modification takes effect.
    */
   getTangents(): Vector4[] | null {
@@ -423,16 +423,17 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get uv for the mesh.
+   * Get a copy of uv for the mesh.
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
   getUVs(): Vector2[] | null;
   /**
-   * Get uv for the mesh by channelIndex.
+   * Get a copy of uv for the mesh by channelIndex.
    * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
   getUVs(channelIndex: number): Vector2[] | null;
+  
   getUVs(channelIndex?: number): Vector2[] | null {
     if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
