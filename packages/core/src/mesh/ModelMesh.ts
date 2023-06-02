@@ -151,8 +151,7 @@ export class ModelMesh extends Mesh {
     if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
-
-    return this._readVertexData(VertexAttribute.Position) as Vector3[];
+    return this._readVector3VertexData(VertexAttribute.Position);
   }
 
   private _getVertexDataReader(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
@@ -197,7 +196,7 @@ export class ModelMesh extends Mesh {
     if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._readVertexData(VertexAttribute.Normal) as Vector3[];
+    return this._readVector3VertexData(VertexAttribute.Normal);
   }
 
   /**
@@ -227,7 +226,7 @@ export class ModelMesh extends Mesh {
     if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._readVertexData(VertexAttribute.Color) as Color[];
+    return this._readColorVertexData(VertexAttribute.Color);
   }
 
   /**
@@ -257,7 +256,7 @@ export class ModelMesh extends Mesh {
     if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._readVertexData(VertexAttribute.BoneWeight) as Vector4[];
+    return this._readVector4VertexData(VertexAttribute.BoneWeight);
   }
 
   /**
@@ -287,7 +286,7 @@ export class ModelMesh extends Mesh {
     if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._readVertexData(VertexAttribute.BoneIndex) as Vector4[];
+    return this._readVector4VertexData(VertexAttribute.BoneIndex);
   }
 
   /**
@@ -317,7 +316,7 @@ export class ModelMesh extends Mesh {
     if (!this._readable) {
       throw "Not allowed to access data while accessible is false.";
     }
-    return this._readVertexData(VertexAttribute.Tangent) as Vector4[];
+    return this._readVector4VertexData(VertexAttribute.Tangent);
   }
 
   /**
@@ -441,21 +440,21 @@ export class ModelMesh extends Mesh {
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        return this._readVertexData(VertexAttribute.UV) as Vector2[];
+        return this._readVector2VertexData(VertexAttribute.UV) as Vector2[];
       case 1:
-        return this._readVertexData(VertexAttribute.UV1) as Vector2[];
+        return this._readVector2VertexData(VertexAttribute.UV1) as Vector2[];
       case 2:
-        return this._readVertexData(VertexAttribute.UV2) as Vector2[];
+        return this._readVector2VertexData(VertexAttribute.UV2) as Vector2[];
       case 3:
-        return this._readVertexData(VertexAttribute.UV3) as Vector2[];
+        return this._readVector2VertexData(VertexAttribute.UV3) as Vector2[];
       case 4:
-        return this._readVertexData(VertexAttribute.UV4) as Vector2[];
+        return this._readVector2VertexData(VertexAttribute.UV4) as Vector2[];
       case 5:
-        return this._readVertexData(VertexAttribute.UV5) as Vector2[];
+        return this._readVector2VertexData(VertexAttribute.UV5) as Vector2[];
       case 6:
-        return this._readVertexData(VertexAttribute.UV6) as Vector2[];
+        return this._readVector2VertexData(VertexAttribute.UV6) as Vector2[];
       case 7:
-        return this._readVertexData(VertexAttribute.UV7) as Vector2[];
+        return this._readVector2VertexData(VertexAttribute.UV7) as Vector2[];
     }
     throw "The index of channel needs to be in range [0 - 7].";
   }
@@ -846,7 +845,34 @@ export class ModelMesh extends Mesh {
     this._readable && this._releaseCache();
   }
 
-  private _readVertexData(attributeType: string): (Vector2 | Vector3 | Vector4 | Color)[] {
+  private _readVector2VertexData(attributeType: string): Vector2[] {
+    return this._readVertexData<Vector2>(attributeType, (dataReader: TypedArray, offset: number) => {
+      return new Vector2(dataReader[offset], dataReader[offset + 1]);
+    });
+  }
+
+  private _readVector3VertexData(attributeType: string): Vector3[] {
+    return this._readVertexData<Vector3>(attributeType, (dataReader: TypedArray, offset: number) => {
+      return new Vector3(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2]);
+    });
+  }
+
+  private _readVector4VertexData(attributeType: string): Vector4[] {
+    return this._readVertexData<Vector4>(attributeType, (dataReader: TypedArray, offset: number) => {
+      return new Vector4(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2], dataReader[offset + 3]);
+    });
+  }
+
+  private _readColorVertexData(attributeType: string): Color[] {
+    return this._readVertexData<Color>(attributeType, (dataReader: TypedArray, offset: number) => {
+      return new Color(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2], dataReader[offset + 3]);
+    });
+  }
+
+  private _readVertexData<T extends VertexType>(
+    attributeType: string,
+    onVertexParse: (dataReader: TypedArray, offset: number) => T
+  ): T[] {
     const vertexElement = this._vertexElementMap[attributeType];
     const bufferBinding = this._vertexBufferBindings[vertexElement.bindingIndex];
     const buffer = bufferBinding?.buffer;
@@ -860,65 +886,18 @@ export class ModelMesh extends Mesh {
 
     const vertexCount = this._vertexCount;
     const formatMetaInfo = vertexElement._formatMetaInfo;
-    const vertices = new Array<Vector2 | Vector3 | Vector4 | Color>(vertexCount);
+    const vertices = new Array<T>(vertexCount);
     const dataReader = this._getVertexDataReader(buffer.data.buffer, formatMetaInfo.type);
     const byteOffset = vertexElement.offset;
     const byteStride = bufferBinding.stride;
 
-    switch (attributeType) {
-      case VertexAttribute.Position:
-      case VertexAttribute.Normal:
-        for (let i = 0; i < vertexCount; i++) {
-          const offset = (i * byteStride + byteOffset) / dataReader.BYTES_PER_ELEMENT;
-          const vertex = new Vector3(dataReader[offset], dataReader[offset + 1], dataReader[offset + 2]);
-          formatMetaInfo.normalized && vertex.scale(formatMetaInfo.normalizedScaleFactor);
-          vertices[i] = vertex;
-        }
-        break;
-      case VertexAttribute.Tangent:
-      case VertexAttribute.BoneWeight:
-      case VertexAttribute.BoneIndex:
-        for (let i = 0; i < vertexCount; i++) {
-          const offset = (i * byteStride + byteOffset) / dataReader.BYTES_PER_ELEMENT;
-          const vertex = new Vector4(
-            dataReader[offset],
-            dataReader[offset + 1],
-            dataReader[offset + 2],
-            dataReader[offset + 3]
-          );
-          formatMetaInfo.normalized && vertex.scale(formatMetaInfo.normalizedScaleFactor);
-          vertices[i] = vertex;
-        }
-        break;
-      case VertexAttribute.Color:
-        for (let i = 0; i < vertexCount; i++) {
-          const offset = (i * byteStride + byteOffset) / dataReader.BYTES_PER_ELEMENT;
-          const vertex = new Color(
-            dataReader[offset],
-            dataReader[offset + 1],
-            dataReader[offset + 2],
-            dataReader[offset + 3]
-          );
-          formatMetaInfo.normalized && vertex.scale(formatMetaInfo.normalizedScaleFactor);
-          vertices[i] = vertex;
-        }
-        break;
-      case VertexAttribute.UV:
-      case VertexAttribute.UV1:
-      case VertexAttribute.UV2:
-      case VertexAttribute.UV3:
-      case VertexAttribute.UV4:
-      case VertexAttribute.UV5:
-      case VertexAttribute.UV6:
-      case VertexAttribute.UV7:
-        for (let i = 0; i < vertexCount; i++) {
-          const offset = (i * byteStride + byteOffset) / dataReader.BYTES_PER_ELEMENT;
-          const vertex = new Vector2(dataReader[offset], dataReader[offset + 1]);
-          formatMetaInfo.normalized && vertex.scale(formatMetaInfo.normalizedScaleFactor);
-          vertices[i] = vertex;
-        }
-        break;
+    for (let i = 0; i < vertexCount; i++) {
+      const offset = (i * byteStride + byteOffset) / dataReader.BYTES_PER_ELEMENT;
+      const vertex = onVertexParse(dataReader, offset);
+      formatMetaInfo.normalized && vertex.scale(formatMetaInfo.normalizedScaleFactor);
+      vertices[i] = vertex;
     }
+
     return vertices;
   }
 
@@ -1318,3 +1297,5 @@ enum VertexChangedFlags {
   UV7 = 0x2000,
   All = 0xffff
 }
+
+type VertexType = Vector2 | Vector3 | Vector4 | Color;
