@@ -29,8 +29,6 @@ export class ModelMesh extends Mesh {
 
   private _vertexCount: number = 0;
   private _readable: boolean = true;
-  private _verticesFloat32: Float32Array | null = null;
-  private _verticesUint8: Uint8Array | null = null;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
   private _indicesChangeFlag: boolean = false;
@@ -51,11 +49,12 @@ export class ModelMesh extends Mesh {
   private _boneIndices: Vector4[] | null = null;
 
   private _bufferStrides: number[] = [];
-  private _vertexBufferUpdateFlag: number = 0;
-  private _vertexDataUpdateFlag: number = 0;
+  private _internalVertexBufferUpdateFlag: number = 0;
   private _vertexElementsUpdate: boolean = false;
+  private _internalVertexElementsUpdate: boolean = false;
   private _customVertexElements: VertexElement[] = [];
-  private _vertexCountChanged: boolean = false;
+  private _internalVertexCountChanged: boolean = false;
+  private _vertexCountDirty: boolean = false;
   private _internalVertexBufferIndex: number = -1;
 
   /**
@@ -66,10 +65,10 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Vertex count of current mesh.
+   * Vertex count of mesh.
    */
   get vertexCount(): number {
-    if (this._vertexDataUpdateFlag & VertexChangedFlags.Position) {
+    if (this._vertexCountDirty) {
       let vertexCount = 0;
       const positionElement = this._vertexElementMap[VertexAttribute.Position];
       if (positionElement) {
@@ -78,9 +77,8 @@ export class ModelMesh extends Mesh {
           vertexCount = positionBufferBinding.buffer.byteLength / positionBufferBinding.stride;
         }
       }
-
       this._vertexCount = vertexCount;
-      this._vertexDataUpdateFlag &= ~VertexChangedFlags.Position;
+      this._vertexCountDirty = false;
     }
     return this._vertexCount;
   }
@@ -135,12 +133,12 @@ export class ModelMesh extends Mesh {
     }
 
     const newVertexCount = positions?.length ?? 0;
-    this._vertexCountChanged = this._vertexCount != newVertexCount;
+    this._internalVertexCountChanged = this._vertexCount != newVertexCount;
     this._vertexCount = newVertexCount;
+    this._vertexCountDirty = false;
 
-    this._vertexElementsUpdate = !!this._positions !== !!positions;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.Position;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Position;
+    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._positions !== !!positions;
+    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Position;
     this._positions = positions;
   }
 
@@ -183,9 +181,8 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._vertexElementsUpdate = !!this._normals !== !!normals;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.Normal;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Normal;
+    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._normals !== !!normals;
+    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Normal;
     this._normals = normals;
   }
 
@@ -213,9 +210,8 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._vertexElementsUpdate = !!this._colors !== !!colors;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.Color;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Color;
+    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._colors !== !!colors;
+    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Color;
     this._colors = colors;
   }
 
@@ -243,9 +239,8 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._vertexElementsUpdate = !!this._boneWeights !== !!boneWeights;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.BoneWeight;
+    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._boneWeights !== !!boneWeights;
+    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight;
     this._boneWeights = boneWeights;
   }
 
@@ -273,9 +268,8 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._vertexElementsUpdate = !!this._boneIndices !== !!boneIndices;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.BoneIndex;
+    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._boneIndices !== !!boneIndices;
+    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex;
     this._boneIndices = boneIndices;
   }
 
@@ -303,9 +297,8 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._vertexElementsUpdate = !!this._tangents !== !!tangents;
-    this._vertexBufferUpdateFlag |= VertexChangedFlags.Tangent;
-    this._vertexDataUpdateFlag &= ~VertexChangedFlags.Tangent;
+    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._tangents !== !!tangents;
+    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Tangent;
     this._tangents = tangents;
   }
 
@@ -343,9 +336,8 @@ export class ModelMesh extends Mesh {
           return;
         }
 
-        this._vertexElementsUpdate = !!this._uv !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV;
+        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv !== !!uv;
+        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV;
         this._uv = uv;
         break;
       case 1:
@@ -353,9 +345,8 @@ export class ModelMesh extends Mesh {
           return;
         }
 
-        this._vertexElementsUpdate = !!this._uv1 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV1;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV1;
+        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv1 !== !!uv;
+        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV1;
         this._uv1 = uv;
         break;
       case 2:
@@ -363,9 +354,8 @@ export class ModelMesh extends Mesh {
           return;
         }
 
-        this._vertexElementsUpdate = !!this._uv2 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV2;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV2;
+        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv2 !== !!uv;
+        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV2;
         this._uv2 = uv;
         break;
       case 3:
@@ -373,9 +363,8 @@ export class ModelMesh extends Mesh {
           return;
         }
 
-        this._vertexElementsUpdate = !!this._uv3 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV3;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV3;
+        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv3 !== !!uv;
+        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV3;
         this._uv3 = uv;
         break;
       case 4:
@@ -383,9 +372,8 @@ export class ModelMesh extends Mesh {
           return;
         }
 
-        this._vertexElementsUpdate = !!this._uv4 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV4;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV4;
+        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv4 !== !!uv;
+        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV4;
         this._uv4 = uv;
         break;
       case 5:
@@ -393,9 +381,8 @@ export class ModelMesh extends Mesh {
           return;
         }
 
-        this._vertexElementsUpdate = !!this._uv5 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV5;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV5;
+        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv5 !== !!uv;
+        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV5;
         this._uv5 = uv;
         break;
       case 6:
@@ -403,9 +390,8 @@ export class ModelMesh extends Mesh {
           return;
         }
 
-        this._vertexElementsUpdate = !!this._uv6 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV6;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV6;
+        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv6 !== !!uv;
+        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV6;
         this._uv6 = uv;
         break;
       case 7:
@@ -413,9 +399,8 @@ export class ModelMesh extends Mesh {
           return;
         }
 
-        this._vertexElementsUpdate = !!this._uv7 !== !!uv;
-        this._vertexBufferUpdateFlag |= VertexChangedFlags.UV7;
-        this._vertexDataUpdateFlag &= ~VertexChangedFlags.UV7;
+        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv7 !== !!uv;
+        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV7;
         this._uv7 = uv;
         break;
       default:
@@ -517,6 +502,7 @@ export class ModelMesh extends Mesh {
 
     this._internalVertexBufferIndex = -1;
     this._vertexElementsUpdate = true;
+    this._vertexCountDirty = true;
   }
 
   /**
@@ -553,7 +539,7 @@ export class ModelMesh extends Mesh {
     const bindings = this._vertexBufferBindings;
     bindings.length <= index && (bindings.length = index + 1);
     this._setVertexBufferBinding(isBinding ? strideOrFirstIndex : index, binding);
-    this._vertexDataUpdateFlag |= VertexChangedFlags.Position;
+    this._vertexCountDirty = true;
   }
 
   /**
@@ -596,47 +582,41 @@ export class ModelMesh extends Mesh {
     return blendShapes[index].name;
   }
 
+  private _updateInternalVertexBuffer(readable: boolean): void {
+    const vertexBufferIndex = this._internalVertexBufferIndex;
+
+    let vertexBuffer = this._vertexBufferBindings[vertexBufferIndex]?._buffer;
+
+    // Need recreate internal vertex buffer
+    if (this._internalVertexCountChanged || this._internalVertexElementsUpdate) {
+      this._internalVertexBufferUpdateFlag = VertexChangedFlags.All;
+
+      // Destroy old internal vertex buffer
+      vertexBuffer?.destroy();
+
+      const bufferStride = this._bufferStrides[vertexBufferIndex];
+      const bufferUsage = readable ? BufferUsage.Static : BufferUsage.Dynamic;
+      const byteLength = bufferStride * this.vertexCount;
+
+      vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, !readable);
+      this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride * 4));
+      this._internalVertexCountChanged = this._internalVertexElementsUpdate = false;
+    }
+
+    // Update internal vertex buffer data
+    if (this._internalVertexBufferUpdateFlag & VertexChangedFlags.All) {
+      this._updateInternalVertices();
+      vertexBuffer.setData(vertexBuffer.data);
+    }
+  }
+
   /**
    * Upload Mesh Data to GPU.
    * @param noLongerReadable - Whether to read data later. If true, you'll never read data anymore (free memory cache)
    */
   uploadData(noLongerReadable: boolean): void {
     this._updateVertexElements();
-
-    // Vertex count change
-    const vertexBuffer = this._vertexBufferBindings[0]?._buffer;
-    if (this._vertexCountChanged) {
-      this._vertexBufferUpdateFlag = VertexChangedFlags.All;
-      vertexBuffer?.destroy();
-
-      const internalVertexBufferIndex = this._internalVertexBufferIndex;
-      const elementCount = this._bufferStrides[internalVertexBufferIndex] / 4;
-      const vertexFloatCount = elementCount * this.vertexCount;
-      const vertices = new Float32Array(vertexFloatCount);
-      this._verticesFloat32 = vertices;
-      this._verticesUint8 = new Uint8Array(vertices.buffer);
-      this._updateVertices();
-      // TODO: update only changed part
-      // TODO: create buffer before update
-      const bufferUsage = noLongerReadable ? BufferUsage.Static : BufferUsage.Dynamic;
-      const newVertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, vertices, bufferUsage);
-
-      this._setVertexBufferBinding(0, new VertexBufferBinding(newVertexBuffer, elementCount * 4));
-      this._vertexCountChanged = false;
-    } else {
-      if (this._vertexBufferUpdateFlag & VertexChangedFlags.All) {
-        let vertices = this._verticesFloat32;
-        if (!vertices) {
-          const elementCount = this._bufferStrides[0] / 4;
-          const vertexFloatCount = elementCount * this.vertexCount;
-          this._verticesFloat32 = vertices = new Float32Array(vertexFloatCount);
-        }
-
-        this._updateVertices();
-        // TODO: update only changed part
-        vertexBuffer.setData(vertices);
-      }
-    }
+    this._updateInternalVertexBuffer(!noLongerReadable);
 
     if (this._indicesChangeFlag) {
       const { _indices: indices } = this;
@@ -661,7 +641,8 @@ export class ModelMesh extends Mesh {
     }
 
     const { _blendShapeManager: blendShapeManager } = this;
-    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(this._vertexCountChanged, noLongerReadable);
+    blendShapeManager._blendShapeCount > 0 &&
+      blendShapeManager._update(this._internalVertexCountChanged, noLongerReadable);
 
     if (noLongerReadable) {
       this._readable = false;
@@ -889,14 +870,14 @@ export class ModelMesh extends Mesh {
 
   private _updateVertexElements(): void {
     const bsManager = this._blendShapeManager;
-    const bsAttributeUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
+    const bsVertexElementsUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
 
-    if (this._vertexElementsUpdate || bsAttributeUpdate) {
+    if (this._vertexElementsUpdate || bsVertexElementsUpdate) {
       this._clearVertexElements();
       this._addCustomVertexElements();
       this._addInternalVertexElements();
 
-      if (bsAttributeUpdate && bsManager._blendShapeCount > 0) {
+      if (bsVertexElementsUpdate && bsManager._blendShapeCount > 0) {
         // Reserve at least 1 placeholder to save the built-in vertex buffer
         bsManager._setAttributeModeOffsetInfo(this._vertexElements.length, this._vertexBufferBindings.length || 1);
         bsManager._addVertexElements(this);
@@ -972,93 +953,67 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _updateVertices(): void {
+  private _updateInternalVertices(): void {
     // prettier-ignore
-    const { _positions, _normals, _colors, _vertexBufferUpdateFlag: _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const { _positions, _normals, _colors, _internalVertexBufferUpdateFlag: _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     if (_vertexChangeFlag & VertexChangedFlags.Position) {
-      this._setInternalVector3VertexData(VertexAttribute.Normal, _positions);
+      this._setInternalVector3VertexData(VertexAttribute.Position, _positions);
     }
 
-    if (_normals) {
-      if (_vertexChangeFlag & VertexChangedFlags.Normal) {
-        this._setInternalVector3VertexData(VertexAttribute.Normal, _normals);
-      }
+    if (_normals && _vertexChangeFlag & VertexChangedFlags.Normal) {
+      this._setInternalVector3VertexData(VertexAttribute.Normal, _normals);
     }
 
-    if (_colors) {
-      if (_vertexChangeFlag & VertexChangedFlags.Color) {
-        this._setInternalColorVertexData(VertexAttribute.Color, _colors);
-      }
+    if (_colors && _vertexChangeFlag & VertexChangedFlags.Color) {
+      this._setInternalColorVertexData(VertexAttribute.Color, _colors);
     }
 
-    if (_boneWeights) {
-      if (_vertexChangeFlag & VertexChangedFlags.BoneWeight) {
-        this._setInternalVector4VertexData(VertexAttribute.BoneWeight, _boneWeights);
-      }
+    if (_boneWeights && _vertexChangeFlag & VertexChangedFlags.BoneWeight) {
+      this._setInternalVector4VertexData(VertexAttribute.BoneWeight, _boneWeights);
     }
 
-    if (_boneIndices) {
-      if (_vertexChangeFlag & VertexChangedFlags.BoneIndex) {
-        this._setInternalVector4VertexData(VertexAttribute.BoneIndex, _boneIndices);
-      }
+    if (_boneIndices && _vertexChangeFlag & VertexChangedFlags.BoneIndex) {
+      this._setInternalVector4VertexData(VertexAttribute.BoneIndex, _boneIndices);
     }
 
-    if (_tangents) {
-      if (_vertexChangeFlag & VertexChangedFlags.Tangent) {
-        this._setInternalVector4VertexData(VertexAttribute.Tangent, _tangents);
-      }
+    if (_tangents && _vertexChangeFlag & VertexChangedFlags.Tangent) {
+      this._setInternalVector4VertexData(VertexAttribute.Tangent, _tangents);
     }
 
-    if (_uv) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV) {
-        this._setInternalVector2VertexData(VertexAttribute.UV, _uv);
-      }
+    if (_uv && _vertexChangeFlag & VertexChangedFlags.UV) {
+      this._setInternalVector2VertexData(VertexAttribute.UV, _uv);
     }
 
-    if (_uv1) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV1) {
-        this._setInternalVector2VertexData(VertexAttribute.UV1, _uv1);
-      }
+    if (_uv1 && _vertexChangeFlag & VertexChangedFlags.UV1) {
+      this._setInternalVector2VertexData(VertexAttribute.UV1, _uv1);
     }
 
-    if (_uv2) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV2) {
-        this._setInternalVector2VertexData(VertexAttribute.UV2, _uv2);
-      }
+    if (_uv2 && _vertexChangeFlag & VertexChangedFlags.UV2) {
+      this._setInternalVector2VertexData(VertexAttribute.UV2, _uv2);
     }
 
-    if (_uv3) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV3) {
-        this._setInternalVector2VertexData(VertexAttribute.UV3, _uv3);
-      }
+    if (_uv3 && _vertexChangeFlag & VertexChangedFlags.UV3) {
+      this._setInternalVector2VertexData(VertexAttribute.UV3, _uv3);
     }
 
-    if (_uv4) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV4) {
-        this._setInternalVector2VertexData(VertexAttribute.UV4, _uv4);
-      }
+    if (_uv4 && _vertexChangeFlag & VertexChangedFlags.UV4) {
+      this._setInternalVector2VertexData(VertexAttribute.UV4, _uv4);
     }
 
-    if (_uv5) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV5) {
-        this._setInternalVector2VertexData(VertexAttribute.UV5, _uv5);
-      }
+    if (_uv5 && _vertexChangeFlag & VertexChangedFlags.UV5) {
+      this._setInternalVector2VertexData(VertexAttribute.UV5, _uv5);
     }
 
-    if (_uv6) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV6) {
-        this._setInternalVector2VertexData(VertexAttribute.UV6, _uv6);
-      }
+    if (_uv6 && _vertexChangeFlag & VertexChangedFlags.UV6) {
+      this._setInternalVector2VertexData(VertexAttribute.UV6, _uv6);
     }
 
-    if (_uv7) {
-      if (_vertexChangeFlag & VertexChangedFlags.UV7) {
-        this._setInternalVector2VertexData(VertexAttribute.UV7, _uv7);
-      }
+    if (_uv7 && _vertexChangeFlag & VertexChangedFlags.UV7) {
+      this._setInternalVector2VertexData(VertexAttribute.UV7, _uv7);
     }
 
-    this._vertexBufferUpdateFlag = 0;
+    this._internalVertexBufferUpdateFlag = 0;
   }
 
   private _updateInternalVertexBufferIndex(): void {
@@ -1139,9 +1094,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
-    this._verticesUint8 = null;
     this._indices = null;
-    this._verticesFloat32 = null;
     this._positions = null;
     this._tangents = null;
     this._normals = null;
