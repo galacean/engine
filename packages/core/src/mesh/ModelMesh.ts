@@ -50,12 +50,13 @@ export class ModelMesh extends Mesh {
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
 
-  private _internalBufferStride: number;
-  private _internalVertexElementsOffset: number = 0;
   private _internalVertexElementsUpdate: boolean = false;
+  private _internalVertexElementsOffset: number = 0;
+  private _internalBufferStride: number;
   private _internalVertexBufferUpdateFlag: number = 0;
   private _internalVertexCountChanged: boolean = false;
   private _vertexCountDirty: boolean = false;
+  private _vertexElementCount: number = 0;
 
   /**
    * Whether to access data of the mesh.
@@ -744,7 +745,7 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
-  private _addInternalVertexElements(): number {
+  private _addInternalVertexElements(): void {
     this._updateInternalVertexBufferIndex();
     this._internalBufferStride = 0;
 
@@ -805,21 +806,27 @@ export class ModelMesh extends Mesh {
     if (this._uv7 && !vertexElementMap[VertexAttribute.UV7]) {
       this._addInternalVertexAttribute(VertexAttribute.UV7, offset++);
     }
-    return;
+    this._blendShapeManager._vertexElementOffset = offset;
   }
 
   private _updateVertexElements(): void {
+    const vertexElements = this._vertexElements;
     const bsManager = this._blendShapeManager;
-    const lastBSOffset = bsManager._vertexElementOffset;
+
+    const previousCount = vertexElements.length;
+    const previousBSOffset = bsManager._vertexElementOffset;
+
     if (this._internalVertexElementsUpdate) {
-      bsManager._vertexElementOffset = this._addInternalVertexElements();
+      this._addInternalVertexElements();
       this._internalVertexElementsUpdate = false;
     }
 
     const bsUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
-    if (lastBSOffset !== bsManager._vertexElementOffset || (bsUpdate && bsManager._blendShapeCount > 0)) {
+    if (previousBSOffset !== bsManager._vertexElementOffset || (bsUpdate && bsManager._blendShapeCount > 0)) {
       const length = bsManager._addVertexElements(this);
-      this._setVertexElementsLength(length);
+      if (length < previousCount) {
+        this._setVertexElementsLength(length);
+      }
     }
   }
 
