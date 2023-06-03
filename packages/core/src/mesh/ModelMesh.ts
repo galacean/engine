@@ -56,6 +56,7 @@ export class ModelMesh extends Mesh {
   private _vertexElementsUpdate: boolean = false;
   private _customVertexElements: VertexElement[] = [];
   private _vertexCountChanged: boolean = false;
+  private _internalVertexBufferIndex: number = -1;
 
   /**
    * Whether to read data of the mesh.
@@ -600,7 +601,6 @@ export class ModelMesh extends Mesh {
    * @param noLongerReadable - Whether to read data later. If true, you'll never read data anymore (free memory cache)
    */
   uploadData(noLongerReadable: boolean): void {
-    // Update vertex elements
     this._updateVertexElements();
 
     // Vertex count change
@@ -609,13 +609,15 @@ export class ModelMesh extends Mesh {
       this._vertexBufferUpdateFlag = VertexChangedFlags.All;
       vertexBuffer?.destroy();
 
-      const elementCount = this._bufferStrides[0] / 4;
+      const internalVertexBufferIndex = this._internalVertexBufferIndex;
+      const elementCount = this._bufferStrides[internalVertexBufferIndex] / 4;
       const vertexFloatCount = elementCount * this.vertexCount;
       const vertices = new Float32Array(vertexFloatCount);
       this._verticesFloat32 = vertices;
       this._verticesUint8 = new Uint8Array(vertices.buffer);
-      this._updateVertices(vertices);
-
+      this._updateVertices();
+      // TODO: update only changed part
+      // TODO: create buffer before update
       const bufferUsage = noLongerReadable ? BufferUsage.Static : BufferUsage.Dynamic;
       const newVertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, vertices, bufferUsage);
 
@@ -630,7 +632,8 @@ export class ModelMesh extends Mesh {
           this._verticesFloat32 = vertices = new Float32Array(vertexFloatCount);
         }
 
-        this._updateVertices(vertices);
+        this._updateVertices();
+        // TODO: update only changed part
         vertexBuffer.setData(vertices);
       }
     }
@@ -902,231 +905,161 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _updateVertices(vertices: Float32Array): void {
-    // prettier-ignore
-    const { _bufferStrides,_vertexCount, _positions, _normals, _colors, _vertexBufferUpdateFlag: _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
-    const _vertexStrideFloat = _bufferStrides[0] / 4;
+  private _setInternalVector2VertexData(attributeType: VertexAttribute, vertices: Vector2[]): void {
+    this._setInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      dataReader[offset] = vertex.x;
+      dataReader[offset + 1] = vertex.y;
+    });
+  }
 
-    if (_vertexChangeFlag & VertexChangedFlags.Position) {
-      for (let i = 0; i < _vertexCount; i++) {
-        const start = _vertexStrideFloat * i;
-        const position = _positions[i];
-        vertices[start] = position.x;
-        vertices[start + 1] = position.y;
-        vertices[start + 2] = position.z;
+  private _setInternalVector3VertexData(attributeType: VertexAttribute, vertices: Vector3[]): void {
+    this._setInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      dataReader[offset] = vertex.x;
+      dataReader[offset + 1] = vertex.y;
+      dataReader[offset + 2] = vertex.z;
+    });
+  }
+
+  private _setInternalVector4VertexData(attributeType: VertexAttribute, vertices: Vector4[]): void {
+    this._setInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      dataReader[offset] = vertex.x;
+      dataReader[offset + 1] = vertex.y;
+      dataReader[offset + 2] = vertex.z;
+      dataReader[offset + 3] = vertex.w;
+    });
+  }
+
+  private _setInternalColorVertexData(attributeType: VertexAttribute, vertices: Color[]): void {
+    this._setInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      dataReader[offset] = vertex.r;
+      dataReader[offset + 1] = vertex.g;
+      dataReader[offset + 2] = vertex.b;
+      dataReader[offset + 3] = vertex.a;
+    });
+  }
+
+  private _setInternalVertexData<T extends VertexType>(
+    attributeType: VertexAttribute,
+    onVertexSet: (dataReader: TypedArray, offset: number, index: number) => void
+  ): void {
+    const vertexElement = this._vertexElementMap[attributeType];
+    const bufferBinding = this._vertexBufferBindings[vertexElement.bindingIndex];
+    const buffer = bufferBinding?.buffer;
+    if (!buffer) {
+      return;
+    }
+    const formatMetaInfo = vertexElement._formatMetaInfo;
+    const dataReader = this._getVertexDataReader(buffer.data.buffer, formatMetaInfo.type);
+    const { BYTES_PER_ELEMENT } = dataReader;
+
+    const vertexCount = this._vertexCount;
+    const byteOffset = vertexElement.offset;
+    const byteStride = bufferBinding.stride;
+
+    const { normalized, size, normalizedScaleFactor } = formatMetaInfo;
+    for (let i = 0; i < vertexCount; i++) {
+      const offset = (i * byteStride + byteOffset) / BYTES_PER_ELEMENT;
+      onVertexSet(dataReader, offset, i);
+      if (normalized) {
+        for (let j = 0; j < size; j++) {
+          dataReader[offset + j] /= normalizedScaleFactor;
+        }
       }
     }
+  }
 
-    let offset = 3;
+  private _updateVertices(): void {
+    // prettier-ignore
+    const { _positions, _normals, _colors, _vertexBufferUpdateFlag: _vertexChangeFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+
+    if (_vertexChangeFlag & VertexChangedFlags.Position) {
+      this._setInternalVector3VertexData(VertexAttribute.Normal, _positions);
+    }
 
     if (_normals) {
       if (_vertexChangeFlag & VertexChangedFlags.Normal) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const normal = _normals[i];
-          if (normal) {
-            vertices[start] = normal.x;
-            vertices[start + 1] = normal.y;
-            vertices[start + 2] = normal.z;
-          }
-        }
+        this._setInternalVector3VertexData(VertexAttribute.Normal, _normals);
       }
-      offset += 3;
     }
 
     if (_colors) {
       if (_vertexChangeFlag & VertexChangedFlags.Color) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const color = _colors[i];
-          if (color) {
-            vertices[start] = color.r;
-            vertices[start + 1] = color.g;
-            vertices[start + 2] = color.b;
-            vertices[start + 3] = color.a;
-          }
-        }
+        this._setInternalColorVertexData(VertexAttribute.Color, _colors);
       }
-      offset += 4;
     }
 
     if (_boneWeights) {
       if (_vertexChangeFlag & VertexChangedFlags.BoneWeight) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const weight = _boneWeights[i];
-          if (weight) {
-            vertices[start] = weight.x;
-            vertices[start + 1] = weight.y;
-            vertices[start + 2] = weight.z;
-            vertices[start + 3] = weight.w;
-          }
-        }
+        this._setInternalVector4VertexData(VertexAttribute.BoneWeight, _boneWeights);
       }
-      offset += 4;
     }
 
     if (_boneIndices) {
       if (_vertexChangeFlag & VertexChangedFlags.BoneIndex) {
-        const { _verticesUint8 } = this;
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const joint = _boneIndices[i];
-          if (joint) {
-            const internalStart = start * 4;
-            _verticesUint8[internalStart] = joint.x;
-            _verticesUint8[internalStart + 1] = joint.y;
-            _verticesUint8[internalStart + 2] = joint.z;
-            _verticesUint8[internalStart + 3] = joint.w;
-          }
-        }
+        this._setInternalVector4VertexData(VertexAttribute.BoneIndex, _boneIndices);
       }
-      offset += 1;
     }
 
     if (_tangents) {
       if (_vertexChangeFlag & VertexChangedFlags.Tangent) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const tangent = _tangents[i];
-          if (tangent) {
-            vertices[start] = tangent.x;
-            vertices[start + 1] = tangent.y;
-            vertices[start + 2] = tangent.z;
-            vertices[start + 3] = tangent.w;
-          }
-        }
+        this._setInternalVector4VertexData(VertexAttribute.Tangent, _tangents);
       }
-      offset += 4;
     }
+
     if (_uv) {
       if (_vertexChangeFlag & VertexChangedFlags.UV) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
+        this._setInternalVector2VertexData(VertexAttribute.UV, _uv);
       }
-      offset += 2;
     }
+
     if (_uv1) {
       if (_vertexChangeFlag & VertexChangedFlags.UV1) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv1[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
+        this._setInternalVector2VertexData(VertexAttribute.UV1, _uv1);
       }
-      offset += 2;
     }
+
     if (_uv2) {
       if (_vertexChangeFlag & VertexChangedFlags.UV2) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv2[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
+        this._setInternalVector2VertexData(VertexAttribute.UV2, _uv2);
       }
-      offset += 2;
     }
+
     if (_uv3) {
       if (_vertexChangeFlag & VertexChangedFlags.UV3) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv3[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
+        this._setInternalVector2VertexData(VertexAttribute.UV3, _uv3);
       }
-      offset += 2;
     }
+
     if (_uv4) {
       if (_vertexChangeFlag & VertexChangedFlags.UV4) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv4[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
+        this._setInternalVector2VertexData(VertexAttribute.UV4, _uv4);
       }
-      offset += 2;
     }
+
     if (_uv5) {
       if (_vertexChangeFlag & VertexChangedFlags.UV5) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv5[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
+        this._setInternalVector2VertexData(VertexAttribute.UV5, _uv5);
       }
-      offset += 2;
     }
+
     if (_uv6) {
       if (_vertexChangeFlag & VertexChangedFlags.UV6) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv6[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
+        this._setInternalVector2VertexData(VertexAttribute.UV6, _uv6);
       }
-      offset += 2;
     }
+
     if (_uv7) {
       if (_vertexChangeFlag & VertexChangedFlags.UV7) {
-        for (let i = 0; i < _vertexCount; i++) {
-          const start = _vertexStrideFloat * i + offset;
-          const uv = _uv7[i];
-          if (uv) {
-            vertices[start] = uv.x;
-            vertices[start + 1] = uv.y;
-          }
-        }
+        this._setInternalVector2VertexData(VertexAttribute.UV7, _uv7);
       }
-      offset += 2;
     }
+
     this._vertexBufferUpdateFlag = 0;
   }
-
-  private _insertVertexAttribute(vertexAttribute: VertexAttribute): void {
-    const format = this._getAttributeFormat(vertexAttribute);
-    const needByteLength = this._getAttributeByteLength(vertexAttribute);
-    const vertexElements = this._vertexElements;
-
-    let i = 0;
-    let lastOffset = 0;
-    for (let n = vertexElements.length; i < n; i++) {
-      const vertexElement = vertexElements[i];
-      if (vertexElement.bindingIndex == 0) {
-        if (vertexElement.offset - lastOffset >= needByteLength) {
-          break;
-        }
-        lastOffset = vertexElement.offset + this._getAttributeByteLength(vertexElement.semantic);
-      }
-    }
-    this._insertVertexElement(i, new VertexElement(vertexAttribute, lastOffset, format, 0));
-    this._bufferStrides[0] = lastOffset + needByteLength;
-  }
-
-  private _internalVertexBufferIndex: number = -1;
 
   private _updateInternalVertexBufferIndex(): void {
     if (this._internalVertexBufferIndex !== -1) {
