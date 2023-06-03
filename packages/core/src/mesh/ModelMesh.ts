@@ -420,7 +420,6 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * @beta
    * Set vertex buffer binding.
    * @param vertexBufferBindings - Vertex buffer binding
    * @param index - Vertex buffer index, the default value is 0
@@ -428,7 +427,6 @@ export class ModelMesh extends Mesh {
   setVertexBufferBinding(vertexBufferBindings: VertexBufferBinding, index?: number): void;
 
   /**
-   * @beta
    * Set vertex buffer binding.
    * @param vertexBuffer - Vertex buffer
    * @param stride - Vertex buffer data stride
@@ -436,11 +434,6 @@ export class ModelMesh extends Mesh {
    */
   setVertexBufferBinding(vertexBuffer: Buffer, stride: number, index?: number): void;
 
-  /**
-   * @beta
-   * @todo Use this way to update gpu buffer should can get cpu data(may be should support get data form GPU).
-   * @use `setPosition` and `setVertexBufferBinding` at the same time, thew VertexBufferBinding and Vertex buffer data should right.
-   */
   setVertexBufferBinding(
     bufferOrBinding: Buffer | VertexBufferBinding,
     strideOrFirstIndex: number = 0,
