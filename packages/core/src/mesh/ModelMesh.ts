@@ -497,11 +497,11 @@ export class ModelMesh extends Mesh {
 
   /**
    * Upload Mesh Data to GPU.
-   * @param noLongerReadable - Whether to read data later. If true, you'll never read data anymore (free memory cache)
+   * @param noLongerAccessible - Whether to access data later. If true, you'll never read data anymore (free memory cache)
    */
-  uploadData(noLongerReadable: boolean): void {
+  uploadData(noLongerAccessible: boolean): void {
     this._updateVertexElements();
-    this._updateInternalVertexBuffer(!noLongerReadable);
+    this._updateInternalVertexBuffer(!noLongerAccessible);
 
     if (this._indicesChangeFlag) {
       const { _indices: indices } = this;
@@ -525,11 +525,11 @@ export class ModelMesh extends Mesh {
       this._indicesChangeFlag = false;
     }
 
-    const { _blendShapeManager: blendShapeManager } = this;
+    const blendShapeManager = this._blendShapeManager;
     blendShapeManager._blendShapeCount > 0 &&
-      blendShapeManager._update(this._internalVertexCountChanged, noLongerReadable);
+      blendShapeManager._update(this._internalVertexCountChanged, noLongerAccessible);
 
-    if (noLongerReadable) {
+    if (noLongerAccessible) {
       this._accessible = false;
       this._releaseCache();
     }
@@ -648,7 +648,7 @@ export class ModelMesh extends Mesh {
     return true;
   }
 
-  private _updateInternalVertexBuffer(readable: boolean): void {
+  private _updateInternalVertexBuffer(accessible: boolean): void {
     const vertexBufferIndex = this._internalVertexBufferIndex;
 
     let vertexBuffer = this._vertexBufferBindings[vertexBufferIndex]?._buffer;
@@ -661,10 +661,10 @@ export class ModelMesh extends Mesh {
       vertexBuffer?.destroy();
 
       const bufferStride = this._bufferStrides[vertexBufferIndex];
-      const bufferUsage = readable ? BufferUsage.Static : BufferUsage.Dynamic;
+      const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
       const byteLength = bufferStride * this.vertexCount;
 
-      vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, !readable);
+      vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, !accessible);
       this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride * 4));
       this._internalVertexCountChanged = this._internalVertexElementsUpdate = false;
     }
