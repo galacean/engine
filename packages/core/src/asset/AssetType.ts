@@ -48,5 +48,7 @@ export enum AssetType {
   /** Font. */
   Font = "Font",
   /** Source Font, include ttf、 otf and woff. */
-  SourceFont = "SourceFont"
+  SourceFont = "SourceFont",
+  /** AudioClip, inclue ogg, wav and mp3 */
+  Audio = "Audio"
 }
