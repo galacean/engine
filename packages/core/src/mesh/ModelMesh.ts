@@ -28,7 +28,7 @@ export class ModelMesh extends Mesh {
   _blendShapeManager: BlendShapeManager;
 
   private _vertexCount: number = 0;
-  private _readable: boolean = true;
+  private _accessible: boolean = true;
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
   private _indicesChangeFlag: boolean = false;
@@ -57,10 +57,10 @@ export class ModelMesh extends Mesh {
   private _internalVertexBufferIndex: number = -1;
 
   /**
-   * Whether to read data of the mesh.
+   * Whether to access data of the mesh.
    */
-  get readable(): boolean {
-    return this._readable;
+  get accessible(): boolean {
+    return this._accessible;
   }
 
   /**
@@ -127,18 +127,44 @@ export class ModelMesh extends Mesh {
    * @param positions - The positions for the mesh.
    */
   setPositions(positions: Vector3[] | null): void {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
+
     if (!this._positions && !positions) {
       return;
     }
+
+    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._positions !== !!positions;
+    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Position;
+    this._positions = positions;
 
     const newVertexCount = positions?.length ?? 0;
     this._internalVertexCountChanged = this._vertexCount != newVertexCount;
     this._vertexCount = newVertexCount;
     this._vertexCountDirty = false;
+  }
 
-    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._positions !== !!positions;
-    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Position;
-    this._positions = positions;
+  private _beforeSetInternalVertexData<T extends VertexType>(
+    oldVertices: T[],
+    vertices: T[],
+    vertexChangeFlag: VertexChangedFlags
+  ): boolean {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
+
+    if (vertices) {
+      if (vertices.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
+    } else if (!oldVertices) {
+      return false;
+    }
+
+    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!oldVertices !== !!vertices;
+    this._internalVertexBufferUpdateFlag |= vertexChangeFlag;
+    return true;
   }
 
   /**
@@ -146,7 +172,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
   getPositions(): Vector3[] | null {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._readVector3VertexData(VertexAttribute.Position);
@@ -172,17 +198,9 @@ export class ModelMesh extends Mesh {
    * @param normals - The normals for the mesh.
    */
   setNormals(normals: Vector3[] | null): void {
-    if (normals) {
-      if (normals.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._normals) {
-      return;
+    if (this._beforeSetInternalVertexData(this._normals, normals, VertexChangedFlags.Normal)) {
+      this._normals = normals;
     }
-
-    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._normals !== !!normals;
-    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Normal;
-    this._normals = normals;
   }
 
   /**
@@ -190,7 +208,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setNormals() method after modification to ensure that the modification takes effect.
    */
   getNormals(): Vector3[] | null {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._readVector3VertexData(VertexAttribute.Normal);
@@ -201,17 +219,9 @@ export class ModelMesh extends Mesh {
    * @param colors - The colors for the mesh.
    */
   setColors(colors: Color[] | null): void {
-    if (colors) {
-      if (colors.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._colors) {
-      return;
+    if (this._beforeSetInternalVertexData(this._colors, colors, VertexChangedFlags.Color)) {
+      this._colors = colors;
     }
-
-    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._colors !== !!colors;
-    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Color;
-    this._colors = colors;
   }
 
   /**
@@ -219,7 +229,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setColors() method after modification to ensure that the modification takes effect.
    */
   getColors(): Color[] | null {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._readColorVertexData(VertexAttribute.Color);
@@ -230,17 +240,9 @@ export class ModelMesh extends Mesh {
    * @param boneWeights - The bone weights for the mesh.
    */
   setBoneWeights(boneWeights: Vector4[] | null): void {
-    if (boneWeights) {
-      if (boneWeights.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._boneWeights) {
-      return;
+    if (this._beforeSetInternalVertexData(this._boneWeights, boneWeights, VertexChangedFlags.BoneWeight)) {
+      this._boneWeights = boneWeights;
     }
-
-    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._boneWeights !== !!boneWeights;
-    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight;
-    this._boneWeights = boneWeights;
   }
 
   /**
@@ -248,7 +250,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setWeights() method after modification to ensure that the modification takes effect.
    */
   getBoneWeights(): Vector4[] | null {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._readVector4VertexData(VertexAttribute.BoneWeight);
@@ -259,17 +261,9 @@ export class ModelMesh extends Mesh {
    * @param boneIndices - The bone indices for the mesh.
    */
   setBoneIndices(boneIndices: Vector4[] | null): void {
-    if (boneIndices) {
-      if (boneIndices?.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._boneIndices) {
-      return;
+    if (this._beforeSetInternalVertexData(this._boneWeights, boneIndices, VertexChangedFlags.BoneIndex)) {
+      this._boneIndices = boneIndices;
     }
-
-    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._boneIndices !== !!boneIndices;
-    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex;
-    this._boneIndices = boneIndices;
   }
 
   /**
@@ -277,7 +271,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setBoneIndices() method after modification to ensure that the modification takes effect.
    */
   getBoneIndices(): Vector4[] | null {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._readVector4VertexData(VertexAttribute.BoneIndex);
@@ -288,17 +282,9 @@ export class ModelMesh extends Mesh {
    * @param tangents - The tangents for the mesh.
    */
   setTangents(tangents: Vector4[] | null): void {
-    if (tangents) {
-      if (tangents.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!this._tangents) {
-      return;
+    if (this._beforeSetInternalVertexData(this._tangents, tangents, VertexChangedFlags.Tangent)) {
+      this._tangents = tangents;
     }
-
-    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._tangents !== !!tangents;
-    this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Tangent;
-    this._tangents = tangents;
   }
 
   /**
@@ -306,7 +292,7 @@ export class ModelMesh extends Mesh {
    * @remarks Please call the setTangents() method after modification to ensure that the modification takes effect.
    */
   getTangents(): Vector4[] | null {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._readVector4VertexData(VertexAttribute.Tangent);
@@ -324,83 +310,47 @@ export class ModelMesh extends Mesh {
    */
   setUVs(uv: Vector2[] | null, channelIndex: number): void;
   setUVs(uv: Vector2[] | null, channelIndex?: number): void {
-    if (uv && uv.length !== this._vertexCount) {
-      throw "The array provided needs to be the same size as vertex count.";
-    }
-
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        if (!this._uv && !uv) {
-          return;
+        if (this._beforeSetInternalVertexData(this._uv, uv, VertexChangedFlags.UV)) {
+          this._uv = uv;
         }
-
-        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv !== !!uv;
-        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV;
-        this._uv = uv;
         break;
       case 1:
-        if (!this._uv1 && !uv) {
-          return;
+        if (this._beforeSetInternalVertexData(this._uv1, uv, VertexChangedFlags.UV1)) {
+          this._uv1 = uv;
         }
-
-        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv1 !== !!uv;
-        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV1;
-        this._uv1 = uv;
         break;
       case 2:
-        if (!this._uv2 && !uv) {
-          return;
+        if (this._beforeSetInternalVertexData(this._uv2, uv, VertexChangedFlags.UV2)) {
+          this._uv2 = uv;
         }
-
-        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv2 !== !!uv;
-        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV2;
-        this._uv2 = uv;
         break;
       case 3:
-        if (!this._uv3 && !uv) {
-          return;
+        if (this._beforeSetInternalVertexData(this._uv3, uv, VertexChangedFlags.UV3)) {
+          this._uv3 = uv;
         }
-
-        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv3 !== !!uv;
-        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV3;
-        this._uv3 = uv;
         break;
       case 4:
-        if (!this._uv4 && !uv) {
-          return;
+        if (this._beforeSetInternalVertexData(this._uv4, uv, VertexChangedFlags.UV4)) {
+          this._uv4 = uv;
         }
-
-        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv4 !== !!uv;
-        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV4;
-        this._uv4 = uv;
         break;
       case 5:
-        if (!this._uv5 && !uv) {
-          return;
+        if (this._beforeSetInternalVertexData(this._uv5, uv, VertexChangedFlags.UV5)) {
+          this._uv5 = uv;
         }
-
-        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv5 !== !!uv;
-        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV5;
-        this._uv5 = uv;
         break;
       case 6:
-        if (!this._uv6 && !uv) {
-          return;
+        if (this._beforeSetInternalVertexData(this._uv6, uv, VertexChangedFlags.UV6)) {
+          this._uv6 = uv;
         }
-
-        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv6 !== !!uv;
-        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV6;
-        this._uv6 = uv;
         break;
       case 7:
-        if (!this._uv7 && !uv) {
-          return;
+        if (this._beforeSetInternalVertexData(this._uv7, uv, VertexChangedFlags.UV7)) {
+          this._uv7 = uv;
         }
-
-        this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._uv7 !== !!uv;
-        this._internalVertexBufferUpdateFlag |= VertexChangedFlags.UV7;
-        this._uv7 = uv;
         break;
       default:
         throw "The index of channel needs to be in range [0 - 7].";
@@ -420,7 +370,7 @@ export class ModelMesh extends Mesh {
   getUVs(channelIndex: number): Vector2[] | null;
 
   getUVs(channelIndex?: number): Vector2[] | null {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     channelIndex = channelIndex ?? 0;
@@ -468,7 +418,7 @@ export class ModelMesh extends Mesh {
    * Get indices for the mesh.
    */
   getIndices(): Uint8Array | Uint16Array | Uint32Array {
-    if (!this._readable) {
+    if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._indices;
@@ -643,7 +593,7 @@ export class ModelMesh extends Mesh {
       blendShapeManager._update(this._internalVertexCountChanged, noLongerReadable);
 
     if (noLongerReadable) {
-      this._readable = false;
+      this._accessible = false;
       this._releaseCache();
     }
   }
@@ -736,7 +686,7 @@ export class ModelMesh extends Mesh {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._readable && this._releaseCache();
+    this._accessible && this._releaseCache();
   }
 
   private _readVector2VertexData(attributeType: string): Vector2[] {
@@ -876,7 +826,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _setInternalVector2VertexData(attributeType: VertexAttribute, vertices: Vector2[]): void {
-    this._setInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+    this._writeInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
       dataReader[offset] = vertex.x;
       dataReader[offset + 1] = vertex.y;
@@ -884,7 +834,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _setInternalVector3VertexData(attributeType: VertexAttribute, vertices: Vector3[]): void {
-    this._setInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+    this._writeInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
       dataReader[offset] = vertex.x;
       dataReader[offset + 1] = vertex.y;
@@ -893,7 +843,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _setInternalVector4VertexData(attributeType: VertexAttribute, vertices: Vector4[]): void {
-    this._setInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+    this._writeInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
       dataReader[offset] = vertex.x;
       dataReader[offset + 1] = vertex.y;
@@ -903,7 +853,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _setInternalColorVertexData(attributeType: VertexAttribute, vertices: Color[]): void {
-    this._setInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+    this._writeInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
       dataReader[offset] = vertex.r;
       dataReader[offset + 1] = vertex.g;
@@ -912,7 +862,7 @@ export class ModelMesh extends Mesh {
     });
   }
 
-  private _setInternalVertexData<T extends VertexType>(
+  private _writeInternalVertexData<T extends VertexType>(
     attributeType: VertexAttribute,
     onVertexSet: (dataReader: TypedArray, offset: number, index: number) => void
   ): void {
