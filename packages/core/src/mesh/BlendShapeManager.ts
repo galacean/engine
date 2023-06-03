@@ -42,13 +42,14 @@ export class BlendShapeManager {
   _vertices: Float32Array;
   /** @internal */
   _uniformOccupiesCount: number = 0;
+  /** @internal */
+  _bufferBindingOffset: number = -1;
+  /** @internal */
+  _vertexElementOffset: number;
 
   private _useBlendNormal: boolean = false;
   private _useBlendTangent: boolean = false;
   private _vertexElementCount: number = 0;
-  private _bufferBindingOffset: number;
-  private _vertexElementOffset: number;
-
   private _storeInVertexBufferInfo: Vector2[] = [];
   private _maxCountSingleVertexBuffer: number = 0;
   private readonly _engine: Engine;
@@ -193,39 +194,53 @@ export class BlendShapeManager {
     return false;
   }
 
-  /**
-   * @internal
-   */
-  _setAttributeModeOffsetInfo(vertexElementOffset: number, bufferBindingOffset: number): void {
-    this._vertexElementOffset = vertexElementOffset;
-    this._bufferBindingOffset = bufferBindingOffset;
+  private _updateVertexBufferIndex(): void {
+    if (this._bufferBindingOffset !== -1) {
+      return;
+    }
+
+    let i = 0;
+    const vertexBufferBindings = this._modelMesh._vertexBufferBindings;
+    for (let n = vertexBufferBindings.length; i < n; i++) {
+      if (!vertexBufferBindings[i] && i !== this._modelMesh._internalVertexBufferIndex) {
+        break;
+      }
+    }
+    this._bufferBindingOffset = i;
   }
 
   /**
    * @internal
    */
-  _addVertexElements(modelMesh: ModelMesh): void {
+  _addVertexElements(modelMesh: ModelMesh): number {
+    this._updateVertexBufferIndex();
+
+    let elementIndex = this._vertexElementOffset;
     const bindingOffset = this._bufferBindingOffset;
 
     let offset = 0;
     for (let i = 0, n = Math.min(this._blendShapeCount, this._getVertexBufferModeSupportCount()); i < n; i++) {
-      modelMesh._addVertexElement(
+      modelMesh._setVertexElement(
+        elementIndex++,
         new VertexElement(`POSITION_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
       );
       offset += 12;
       if (this._useBlendNormal) {
-        modelMesh._addVertexElement(
+        modelMesh._setVertexElement(
+          elementIndex++,
           new VertexElement(`NORMAL_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
         );
         offset += 12;
       }
       if (this._useBlendTangent) {
-        modelMesh._addVertexElement(
+        modelMesh._setVertexElement(
+          elementIndex++,
           new VertexElement(`TANGENT_BS${i}`, offset, VertexElementFormat.Vector3, bindingOffset)
         );
         offset += 12;
       }
     }
+    return elementIndex;
   }
 
   /**

@@ -49,12 +49,12 @@ export class ModelMesh extends Mesh {
   private _boneIndices: Vector4[] | null = null;
 
   private _bufferStrides: number[] = [];
-  private _internalVertexBufferUpdateFlag: number = 0;
-  private _vertexElementsUpdate: boolean = false;
+  private _internalVertexElementsOffset: number = -1;
   private _internalVertexElementsUpdate: boolean = false;
+  private _internalVertexBufferUpdateFlag: number = 0;
   private _internalVertexCountChanged: boolean = false;
   private _vertexCountDirty: boolean = false;
-  private _internalVertexBufferIndex: number = -1;
+  _internalVertexBufferIndex: number = -1;
 
   /**
    * Whether to access data of the mesh.
@@ -135,7 +135,7 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!this._positions !== !!positions;
+    this._internalVertexElementsUpdate = !!this._positions !== !!positions;
     this._internalVertexBufferUpdateFlag |= VertexChangedFlags.Position;
     this._positions = positions;
 
@@ -143,28 +143,6 @@ export class ModelMesh extends Mesh {
     this._internalVertexCountChanged = this._vertexCount != newVertexCount;
     this._vertexCount = newVertexCount;
     this._vertexCountDirty = false;
-  }
-
-  private _beforeSetInternalVertexData<T extends VertexType>(
-    oldVertices: T[],
-    vertices: T[],
-    vertexChangeFlag: VertexChangedFlags
-  ): boolean {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    if (vertices) {
-      if (vertices.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!oldVertices) {
-      return false;
-    }
-
-    this._vertexElementsUpdate = this._internalVertexElementsUpdate = !!oldVertices !== !!vertices;
-    this._internalVertexBufferUpdateFlag |= vertexChangeFlag;
-    return true;
   }
 
   /**
@@ -176,21 +154,6 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while accessible is false.";
     }
     return this._readVector3VertexData(VertexAttribute.Position);
-  }
-
-  private _getVertexDataReader(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
-    switch (dataType) {
-      case DataType.BYTE:
-        return new Int8Array(vertexDataBuffer);
-      case DataType.UNSIGNED_BYTE:
-        return new Uint8Array(vertexDataBuffer);
-      case DataType.SHORT:
-        return new Int16Array(vertexDataBuffer);
-      case DataType.UNSIGNED_SHORT:
-        return new Uint16Array(vertexDataBuffer);
-      case DataType.FLOAT:
-        return new Float32Array(vertexDataBuffer);
-    }
   }
 
   /**
@@ -433,7 +396,9 @@ export class ModelMesh extends Mesh {
    */
   setVertexElements(elements: VertexElement[]): void {
     this._clearVertexElements();
-    for (let i = 0, n = elements.length; i < n; i++) {
+
+    const count = elements.length;
+    for (let i = 0; i < count; i++) {
       this._addVertexElement(elements[i]);
     }
 
@@ -447,10 +412,10 @@ export class ModelMesh extends Mesh {
       this.setUVs(null, i);
     }
 
+    this._internalVertexElementsOffset = count;
     this._internalVertexBufferIndex = -1;
+    this._internalVertexElementsUpdate = false;
     this._vertexCountDirty = true;
-
-    this._vertexElementsUpdate = true;
   }
 
   /**
@@ -528,34 +493,6 @@ export class ModelMesh extends Mesh {
   getBlendShapeName(index: number): string {
     const blendShapes = this._blendShapeManager._blendShapes;
     return blendShapes[index].name;
-  }
-
-  private _updateInternalVertexBuffer(readable: boolean): void {
-    const vertexBufferIndex = this._internalVertexBufferIndex;
-
-    let vertexBuffer = this._vertexBufferBindings[vertexBufferIndex]?._buffer;
-
-    // Need recreate internal vertex buffer
-    if (this._internalVertexCountChanged || this._internalVertexElementsUpdate) {
-      this._internalVertexBufferUpdateFlag = VertexChangedFlags.All;
-
-      // Destroy old internal vertex buffer
-      vertexBuffer?.destroy();
-
-      const bufferStride = this._bufferStrides[vertexBufferIndex];
-      const bufferUsage = readable ? BufferUsage.Static : BufferUsage.Dynamic;
-      const byteLength = bufferStride * this.vertexCount;
-
-      vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, !readable);
-      this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride * 4));
-      this._internalVertexCountChanged = this._internalVertexElementsUpdate = false;
-    }
-
-    // Update internal vertex buffer data
-    if (this._internalVertexBufferUpdateFlag & VertexChangedFlags.All) {
-      this._updateInternalVertices();
-      vertexBuffer.setData(vertexBuffer.data);
-    }
   }
 
   /**
@@ -689,6 +626,71 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
+  private _beforeSetInternalVertexData<T extends VertexType>(
+    oldVertices: T[],
+    vertices: T[],
+    vertexChangeFlag: VertexChangedFlags
+  ): boolean {
+    if (!this._accessible) {
+      throw "Not allowed to access data while accessible is false.";
+    }
+
+    if (vertices) {
+      if (vertices.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
+    } else if (!oldVertices) {
+      return false;
+    }
+
+    this._internalVertexElementsUpdate = !!oldVertices !== !!vertices;
+    this._internalVertexBufferUpdateFlag |= vertexChangeFlag;
+    return true;
+  }
+
+  private _updateInternalVertexBuffer(readable: boolean): void {
+    const vertexBufferIndex = this._internalVertexBufferIndex;
+
+    let vertexBuffer = this._vertexBufferBindings[vertexBufferIndex]?._buffer;
+
+    // Need recreate internal vertex buffer
+    if (this._internalVertexCountChanged || this._internalVertexElementsUpdate) {
+      this._internalVertexBufferUpdateFlag = VertexChangedFlags.All;
+
+      // Destroy old internal vertex buffer
+      vertexBuffer?.destroy();
+
+      const bufferStride = this._bufferStrides[vertexBufferIndex];
+      const bufferUsage = readable ? BufferUsage.Static : BufferUsage.Dynamic;
+      const byteLength = bufferStride * this.vertexCount;
+
+      vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, !readable);
+      this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride * 4));
+      this._internalVertexCountChanged = this._internalVertexElementsUpdate = false;
+    }
+
+    // Update internal vertex buffer data
+    if (this._internalVertexBufferUpdateFlag & VertexChangedFlags.All) {
+      this._updateInternalVertices();
+      vertexBuffer.setData(vertexBuffer.data);
+    }
+  }
+
+  private _getVertexDataReader(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
+    switch (dataType) {
+      case DataType.BYTE:
+        return new Int8Array(vertexDataBuffer);
+      case DataType.UNSIGNED_BYTE:
+        return new Uint8Array(vertexDataBuffer);
+      case DataType.SHORT:
+        return new Int16Array(vertexDataBuffer);
+      case DataType.UNSIGNED_SHORT:
+        return new Uint16Array(vertexDataBuffer);
+      case DataType.FLOAT:
+        return new Float32Array(vertexDataBuffer);
+    }
+  }
+
   private _readVector2VertexData(attributeType: string): Vector2[] {
     return this._readVertexData<Vector2>(attributeType, (dataReader: TypedArray, offset: number) => {
       return new Vector2(dataReader[offset], dataReader[offset + 1]);
@@ -748,80 +750,81 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
-  private _addInternalVertexElements(): void {
+  private _addInternalVertexElements(): number {
     this._updateInternalVertexBufferIndex();
 
+    let offset = this._internalVertexElementsOffset;
     const vertexElementMap = this._vertexElementMap;
     if (this._positions && !vertexElementMap[VertexAttribute.Position]) {
-      this._addInternalVertexAttribute(VertexAttribute.Position);
+      this._addInternalVertexAttribute(VertexAttribute.Position, offset++);
     }
 
     if (this._normals && !vertexElementMap[VertexAttribute.Normal]) {
-      this._addInternalVertexAttribute(VertexAttribute.Normal);
+      this._addInternalVertexAttribute(VertexAttribute.Normal, offset++);
     }
 
     if (this._colors && !vertexElementMap[VertexAttribute.Color]) {
-      this._addInternalVertexAttribute(VertexAttribute.Color);
+      this._addInternalVertexAttribute(VertexAttribute.Color, offset++);
     }
 
     if (this._boneWeights && !vertexElementMap[VertexAttribute.BoneWeight]) {
-      this._addInternalVertexAttribute(VertexAttribute.BoneWeight);
+      this._addInternalVertexAttribute(VertexAttribute.BoneWeight, offset++);
     }
 
     if (this._boneIndices && !vertexElementMap[VertexAttribute.BoneIndex]) {
-      this._addInternalVertexAttribute(VertexAttribute.BoneIndex);
+      this._addInternalVertexAttribute(VertexAttribute.BoneIndex, offset++);
     }
 
     if (this._tangents && !vertexElementMap[VertexAttribute.Tangent]) {
-      this._addInternalVertexAttribute(VertexAttribute.Tangent);
+      this._addInternalVertexAttribute(VertexAttribute.Tangent, offset++);
     }
 
     if (this._uv && !vertexElementMap[VertexAttribute.UV]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV);
+      this._addInternalVertexAttribute(VertexAttribute.UV, offset++);
     }
 
     if (this._uv1 && !vertexElementMap[VertexAttribute.UV1]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV1);
+      this._addInternalVertexAttribute(VertexAttribute.UV1, offset++);
     }
 
     if (this._uv2 && !vertexElementMap[VertexAttribute.UV2]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV2);
+      this._addInternalVertexAttribute(VertexAttribute.UV2, offset++);
     }
 
     if (this._uv3 && !vertexElementMap[VertexAttribute.UV3]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV3);
+      this._addInternalVertexAttribute(VertexAttribute.UV3, offset++);
     }
 
     if (this._uv4 && !vertexElementMap[VertexAttribute.UV4]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV4);
+      this._addInternalVertexAttribute(VertexAttribute.UV4, offset++);
     }
 
     if (this._uv5 && !vertexElementMap[VertexAttribute.UV5]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV5);
+      this._addInternalVertexAttribute(VertexAttribute.UV5, offset++);
     }
 
     if (this._uv6 && !vertexElementMap[VertexAttribute.UV6]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV6);
+      this._addInternalVertexAttribute(VertexAttribute.UV6, offset++);
     }
 
     if (this._uv7 && !vertexElementMap[VertexAttribute.UV7]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV7);
+      this._addInternalVertexAttribute(VertexAttribute.UV7, offset++);
     }
+    return;
   }
 
   private _updateVertexElements(): void {
     const bsManager = this._blendShapeManager;
-    const bsVertexElementsUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
+    const lastBSOffset = bsManager._vertexElementOffset;
+    if (this._internalVertexElementsUpdate) {
+      bsManager._vertexElementOffset = this._addInternalVertexElements();
+      this._internalVertexElementsUpdate = false;
+    }
 
-    if (this._vertexElementsUpdate || bsVertexElementsUpdate) {
-      this._addInternalVertexElements();
-
-      if (bsVertexElementsUpdate && bsManager._blendShapeCount > 0) {
-        // Reserve at least 1 placeholder to save the built-in vertex buffer
-        bsManager._setAttributeModeOffsetInfo(this._vertexElements.length, this._vertexBufferBindings.length || 1);
-        bsManager._addVertexElements(this);
-      }
-      this._vertexElementsUpdate = false;
+    const bsUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
+    if (lastBSOffset !== bsManager._vertexElementOffset || (bsUpdate && bsManager._blendShapeCount > 0)) {
+      const length = bsManager._addVertexElements(this);
+      this._setVertexElementsLength(length);
     }
   }
 
@@ -970,14 +973,13 @@ export class ModelMesh extends Mesh {
     this._internalVertexBufferIndex = i;
   }
 
-  private _addInternalVertexAttribute(vertexAttribute: VertexAttribute): void {
+  private _addInternalVertexAttribute(vertexAttribute: VertexAttribute, index: number): void {
     const format = this._getAttributeFormat(vertexAttribute);
-    const needByteLength = this._getAttributeByteLength(vertexAttribute);
     const bufferIndex = this._internalVertexBufferIndex;
-
     const bufferStrides = this._bufferStrides;
-    this._addVertexElement(new VertexElement(vertexAttribute, bufferStrides[bufferIndex], format, bufferIndex));
-    bufferStrides[bufferIndex] += needByteLength;
+    this._setVertexElement(index, new VertexElement(vertexAttribute, bufferStrides[bufferIndex], format, bufferIndex));
+
+    bufferStrides[bufferIndex] += this._getAttributeByteLength(vertexAttribute);
   }
 
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {
