@@ -1150,7 +1150,7 @@ export class ModelMesh extends Mesh {
 
     const bufferStrides = this._bufferStrides;
     this._addVertexElement(new VertexElement(vertexAttribute, bufferStrides[bufferIndex], format, bufferIndex));
-    bufferStrides[bufferIndex] = needByteLength;
+    bufferStrides[bufferIndex] += needByteLength;
   }
 
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {
