@@ -52,7 +52,6 @@ export class ModelMesh extends Mesh {
   private _internalVertexBufferUpdateFlag: number = 0;
   private _vertexElementsUpdate: boolean = false;
   private _internalVertexElementsUpdate: boolean = false;
-  private _customVertexElements: VertexElement[] = [];
   private _internalVertexCountChanged: boolean = false;
   private _vertexCountDirty: boolean = false;
   private _internalVertexBufferIndex: number = -1;
@@ -476,18 +475,16 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * @beta
-   * @todo Update buffer should support custom vertex elements.
    * Set vertex elements.
    * @param elements - Vertex element collection
+   *
+   * @remarks
+   * Call this method will clear the vertex data set by the setPositions(), setNormals(), setColors(), setBoneWeights(), setBoneIndices(), setTangents(), setUVs() methods.
    */
   setVertexElements(elements: VertexElement[]): void {
-    const count = elements.length;
-
-    const customVertexElements = this._customVertexElements;
-    customVertexElements.length = count;
-    for (let i = 0; i < count; i++) {
-      customVertexElements[i] = elements[i];
+    this._clearVertexElements();
+    for (let i = 0, n = elements.length; i < n; i++) {
+      this._addVertexElement(elements[i]);
     }
 
     this.setPositions(null);
@@ -501,8 +498,9 @@ export class ModelMesh extends Mesh {
     }
 
     this._internalVertexBufferIndex = -1;
-    this._vertexElementsUpdate = true;
     this._vertexCountDirty = true;
+
+    this._vertexElementsUpdate = true;
   }
 
   /**
@@ -800,13 +798,6 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
-  private _addCustomVertexElements(): void {
-    const customVertexElements = this._customVertexElements;
-    for (let i = 0, n = customVertexElements.length; i < n; i++) {
-      this._addVertexElement(customVertexElements[i]);
-    }
-  }
-
   private _addInternalVertexElements(): void {
     this._updateInternalVertexBufferIndex();
 
@@ -873,8 +864,6 @@ export class ModelMesh extends Mesh {
     const bsVertexElementsUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
 
     if (this._vertexElementsUpdate || bsVertexElementsUpdate) {
-      this._clearVertexElements();
-      this._addCustomVertexElements();
       this._addInternalVertexElements();
 
       if (bsVertexElementsUpdate && bsManager._blendShapeCount > 0) {
