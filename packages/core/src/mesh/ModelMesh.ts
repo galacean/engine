@@ -26,6 +26,8 @@ export class ModelMesh extends Mesh {
 
   /** @internal */
   _blendShapeManager: BlendShapeManager;
+  /** @internal */
+  _internalVertexBufferIndex: number = -1;
 
   private _vertexCount: number = 0;
   private _accessible: boolean = true;
@@ -48,13 +50,12 @@ export class ModelMesh extends Mesh {
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
 
-  private _bufferStrides: number[] = [];
+  private _internalBufferStride: number;
   private _internalVertexElementsOffset: number = -1;
   private _internalVertexElementsUpdate: boolean = false;
   private _internalVertexBufferUpdateFlag: number = 0;
   private _internalVertexCountChanged: boolean = false;
   private _vertexCountDirty: boolean = false;
-  _internalVertexBufferIndex: number = -1;
 
   /**
    * Whether to access data of the mesh.
@@ -660,7 +661,7 @@ export class ModelMesh extends Mesh {
       // Destroy old internal vertex buffer
       vertexBuffer?.destroy();
 
-      const bufferStride = this._bufferStrides[vertexBufferIndex];
+      const bufferStride = this._internalBufferStride;
       const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
       const byteLength = bufferStride * this.vertexCount;
 
@@ -976,10 +977,9 @@ export class ModelMesh extends Mesh {
   private _addInternalVertexAttribute(vertexAttribute: VertexAttribute, index: number): void {
     const format = this._getAttributeFormat(vertexAttribute);
     const bufferIndex = this._internalVertexBufferIndex;
-    const bufferStrides = this._bufferStrides;
-    this._setVertexElement(index, new VertexElement(vertexAttribute, bufferStrides[bufferIndex], format, bufferIndex));
+    this._setVertexElement(index, new VertexElement(vertexAttribute, this._internalBufferStride, format, bufferIndex));
 
-    bufferStrides[bufferIndex] += this._getAttributeByteLength(vertexAttribute);
+    this._internalBufferStride += this._getAttributeByteLength(vertexAttribute);
   }
 
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {
@@ -1008,7 +1008,7 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _getAttributeByteLength(attribute: string): number {
+  private _getAttributeByteLength(attribute: VertexAttribute): number {
     switch (attribute) {
       case VertexAttribute.Position:
         return 12;
