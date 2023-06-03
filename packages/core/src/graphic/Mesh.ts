@@ -168,12 +168,15 @@ export abstract class Mesh extends GraphicsResource {
    * @internal
    */
   _setVertexElement(index: number, element: VertexElement): void {
-    // Delete the old vertex element
-    const oldVertexElement = this._vertexElements[index];
-    delete this._vertexElementMap[oldVertexElement.semantic];
+    const vertexElementMap = this._vertexElementMap;
+    const vertexElements = this._vertexElements;
 
-    this._vertexElementMap[element.semantic] = element;
-    this._vertexElements[index] = element;
+    // Delete the old vertex element
+    const oldVertexElement = vertexElements[index];
+    oldVertexElement && delete vertexElementMap[oldVertexElement.semantic];
+    
+    vertexElementMap[element.semantic] = element;
+    vertexElements[index] = element;
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
     this._bufferStructChanged = true;
   }

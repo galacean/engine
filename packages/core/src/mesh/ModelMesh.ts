@@ -665,7 +665,7 @@ export class ModelMesh extends Mesh {
       const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
       const byteLength = bufferStride * this.vertexCount;
 
-      vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, !accessible);
+      vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, accessible);
       this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride * 4));
       this._internalVertexCountChanged = this._internalVertexElementsUpdate = false;
     }
