@@ -51,7 +51,7 @@ export class ModelMesh extends Mesh {
   private _boneIndices: Vector4[] | null = null;
 
   private _internalBufferStride: number;
-  private _internalVertexElementsOffset: number = -1;
+  private _internalVertexElementsOffset: number = 0;
   private _internalVertexElementsUpdate: boolean = false;
   private _internalVertexBufferUpdateFlag: number = 0;
   private _internalVertexCountChanged: boolean = false;
@@ -666,7 +666,7 @@ export class ModelMesh extends Mesh {
       const byteLength = bufferStride * this.vertexCount;
 
       vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, accessible);
-      this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride * 4));
+      this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
       this._internalVertexCountChanged = this._internalVertexElementsUpdate = false;
     }
 
@@ -753,6 +753,7 @@ export class ModelMesh extends Mesh {
 
   private _addInternalVertexElements(): number {
     this._updateInternalVertexBufferIndex();
+    this._internalBufferStride = 0;
 
     let offset = this._internalVertexElementsOffset;
     const vertexElementMap = this._vertexElementMap;
