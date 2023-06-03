@@ -152,8 +152,7 @@ export abstract class Mesh extends GraphicsResource {
    * @internal
    */
   _addVertexElement(element: VertexElement): void {
-    const { semantic } = element;
-    this._vertexElementMap[semantic] = element;
+    this._vertexElementMap[element.semantic] = element;
     this._vertexElements.push(element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
     this._bufferStructChanged = true;

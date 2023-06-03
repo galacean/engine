@@ -73,7 +73,7 @@ export class Buffer extends GraphicsResource {
    * Create Buffer.
    * @param engine - Engine
    * @param type - Buffer binding flag
-   * @param data - Byte
+   * @param data - Buffer data, if `readable` is true, the`data` property will store a copy of this
    * @param bufferUsage - Buffer usage
    * @param readable - If buffer is readable
    */

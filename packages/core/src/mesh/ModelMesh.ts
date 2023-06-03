@@ -133,7 +133,7 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    const newVertexCount = positions?.length || 0;
+    const newVertexCount = positions?.length ?? 0;
     this._vertexCountChanged = this._vertexCount != newVertexCount;
     this._vertexCount = newVertexCount;
 
@@ -496,114 +496,25 @@ export class ModelMesh extends Mesh {
    * @param elements - Vertex element collection
    */
   setVertexElements(elements: VertexElement[]): void {
+    const count = elements.length;
+
     const customVertexElements = this._customVertexElements;
-    customVertexElements.length = 0;
-
-    const customVertexElementMap: Record<string, VertexElement> = {};
-    for (let i = 0, n = elements.length; i < n; i++) {
-      const element = elements[i];
-      customVertexElements.push(element);
-      customVertexElementMap[element.semantic] = element;
+    customVertexElements.length = count;
+    for (let i = 0; i < count; i++) {
+      customVertexElements[i] = elements[i];
     }
 
-    if (customVertexElementMap[VertexAttribute.Position]) {
-      const positions = this.getPositions();
-      positions && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Position);
-    } else {
-      this.setPositions(null);
+    this.setPositions(null);
+    this.setNormals(null);
+    this.setColors(null);
+    this.setBoneWeights(null);
+    this.setBoneIndices(null);
+    this.setTangents(null);
+    for (let i = 0; i < 8; i++) {
+      this.setUVs(null, i);
     }
 
-    if (customVertexElementMap[VertexAttribute.Normal]) {
-      const normals = this.getNormals();
-      normals && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Normal);
-    } else {
-      this.setNormals(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.Color]) {
-      const colors = this.getColors();
-      colors && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Color);
-    } else {
-      this.setColors(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.BoneWeight]) {
-      const boneWeights = this.getBoneWeights();
-      boneWeights && (this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneWeight);
-    } else {
-      this.setBoneWeights(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.BoneIndex]) {
-      const boneIndices = this.getBoneIndices();
-      boneIndices && (this._vertexBufferUpdateFlag |= VertexChangedFlags.BoneIndex);
-    } else {
-      this.setBoneIndices(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.Tangent]) {
-      const tangents = this.getTangents();
-      tangents && (this._vertexBufferUpdateFlag |= VertexChangedFlags.Tangent);
-    } else {
-      this.setTangents(null);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV]) {
-      const uvs = this.getUVs(0);
-      uvs && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV);
-    } else {
-      this.setUVs(null, 0);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV1]) {
-      const uv1s = this.getUVs(1);
-      uv1s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV1);
-    } else {
-      this.setUVs(null, 1);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV2]) {
-      const uv2s = this.getUVs(2);
-      uv2s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV2);
-    } else {
-      this.setUVs(null, 2);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV3]) {
-      const uv3s = this.getUVs(3);
-      uv3s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV3);
-    } else {
-      this.setUVs(null, 3);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV4]) {
-      const uv4s = this.getUVs(4);
-      uv4s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV4);
-    } else {
-      this.setUVs(null, 4);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV5]) {
-      const uv5s = this.getUVs(5);
-      uv5s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV5);
-    } else {
-      this.setUVs(null, 5);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV6]) {
-      const uv6s = this.getUVs(6);
-      uv6s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV6);
-    } else {
-      this.setUVs(null, 6);
-    }
-
-    if (customVertexElementMap[VertexAttribute.UV7]) {
-      const uv7s = this.getUVs(7);
-      uv7s && (this._vertexBufferUpdateFlag |= VertexChangedFlags.UV7);
-    } else {
-      this.setUVs(null, 7);
-    }
-
+    this._internalVertexBufferIndex = -1;
     this._vertexElementsUpdate = true;
   }
 
@@ -905,70 +816,71 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
-  private _supplementaryVertexElements(): void {
-    this._clearVertexElements();
-
+  private _addCustomVertexElements(): void {
     const customVertexElements = this._customVertexElements;
     for (let i = 0, n = customVertexElements.length; i < n; i++) {
       this._addVertexElement(customVertexElements[i]);
     }
+  }
+
+  private _addInternalVertexElements(): void {
+    this._updateInternalVertexBufferIndex();
 
     const vertexElementMap = this._vertexElementMap;
     if (this._positions && !vertexElementMap[VertexAttribute.Position]) {
-      this._insertVertexAttribute(VertexAttribute.Position);
-    } else {
+      this._addInternalVertexAttribute(VertexAttribute.Position);
     }
 
     if (this._normals && !vertexElementMap[VertexAttribute.Normal]) {
-      this._insertVertexAttribute(VertexAttribute.Normal);
+      this._addInternalVertexAttribute(VertexAttribute.Normal);
     }
 
     if (this._colors && !vertexElementMap[VertexAttribute.Color]) {
-      this._insertVertexAttribute(VertexAttribute.Color);
+      this._addInternalVertexAttribute(VertexAttribute.Color);
     }
 
     if (this._boneWeights && !vertexElementMap[VertexAttribute.BoneWeight]) {
-      this._insertVertexAttribute(VertexAttribute.BoneWeight);
+      this._addInternalVertexAttribute(VertexAttribute.BoneWeight);
     }
 
     if (this._boneIndices && !vertexElementMap[VertexAttribute.BoneIndex]) {
-      this._insertVertexAttribute(VertexAttribute.BoneIndex);
+      this._addInternalVertexAttribute(VertexAttribute.BoneIndex);
     }
 
     if (this._tangents && !vertexElementMap[VertexAttribute.Tangent]) {
-      this._insertVertexAttribute(VertexAttribute.Tangent);
+      this._addInternalVertexAttribute(VertexAttribute.Tangent);
     }
 
     if (this._uv && !vertexElementMap[VertexAttribute.UV]) {
-      this._insertVertexAttribute(VertexAttribute.UV);
+      this._addInternalVertexAttribute(VertexAttribute.UV);
     }
 
     if (this._uv1 && !vertexElementMap[VertexAttribute.UV1]) {
-      this._insertVertexAttribute(VertexAttribute.UV1);
+      this._addInternalVertexAttribute(VertexAttribute.UV1);
     }
 
     if (this._uv2 && !vertexElementMap[VertexAttribute.UV2]) {
-      this._insertVertexAttribute(VertexAttribute.UV2);
+      this._addInternalVertexAttribute(VertexAttribute.UV2);
     }
 
     if (this._uv3 && !vertexElementMap[VertexAttribute.UV3]) {
-      this._insertVertexAttribute(VertexAttribute.UV3);
+      this._addInternalVertexAttribute(VertexAttribute.UV3);
     }
 
     if (this._uv4 && !vertexElementMap[VertexAttribute.UV4]) {
-      this._insertVertexAttribute(VertexAttribute.UV4);
+      this._addInternalVertexAttribute(VertexAttribute.UV4);
     }
 
     if (this._uv5 && !vertexElementMap[VertexAttribute.UV5]) {
-      this._insertVertexAttribute(VertexAttribute.UV5);
+      this._addInternalVertexAttribute(VertexAttribute.UV5);
     }
 
     if (this._uv6 && !vertexElementMap[VertexAttribute.UV6]) {
-      this._insertVertexAttribute(VertexAttribute.UV6);
+      this._addInternalVertexAttribute(VertexAttribute.UV6);
     }
 
     if (this._uv7 && !vertexElementMap[VertexAttribute.UV7]) {
-      this._insertVertexAttribute(VertexAttribute.UV7);
+      this._addInternalVertexAttribute(VertexAttribute.UV7);
     }
   }
 
@@ -977,7 +889,9 @@ export class ModelMesh extends Mesh {
     const bsAttributeUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
 
     if (this._vertexElementsUpdate || bsAttributeUpdate) {
-      this._supplementaryVertexElements();
+      this._clearVertexElements();
+      this._addCustomVertexElements();
+      this._addInternalVertexElements();
 
       if (bsAttributeUpdate && bsManager._blendShapeCount > 0) {
         // Reserve at least 1 placeholder to save the built-in vertex buffer
@@ -1210,6 +1124,33 @@ export class ModelMesh extends Mesh {
     }
     this._insertVertexElement(i, new VertexElement(vertexAttribute, lastOffset, format, 0));
     this._bufferStrides[0] = lastOffset + needByteLength;
+  }
+
+  private _internalVertexBufferIndex: number = -1;
+
+  private _updateInternalVertexBufferIndex(): void {
+    if (this._internalVertexBufferIndex !== -1) {
+      return;
+    }
+
+    let i = 0;
+    const vertexBufferBindings = this._vertexBufferBindings;
+    for (let n = vertexBufferBindings.length; i < n; i++) {
+      if (!vertexBufferBindings[i]) {
+        break;
+      }
+    }
+    this._internalVertexBufferIndex = i;
+  }
+
+  private _addInternalVertexAttribute(vertexAttribute: VertexAttribute): void {
+    const format = this._getAttributeFormat(vertexAttribute);
+    const needByteLength = this._getAttributeByteLength(vertexAttribute);
+    const bufferIndex = this._internalVertexBufferIndex;
+
+    const bufferStrides = this._bufferStrides;
+    this._addVertexElement(new VertexElement(vertexAttribute, bufferStrides[bufferIndex], format, bufferIndex));
+    bufferStrides[bufferIndex] = needByteLength;
   }
 
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {
