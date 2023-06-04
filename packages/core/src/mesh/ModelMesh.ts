@@ -629,6 +629,7 @@ export class ModelMesh extends Mesh {
       this._updateAdvancedVertices();
       this._internalDataSyncToBuffer = true;
       this._internalBuffer?.setData(this._internalBuffer.data);
+      this._internalBuffer?.markAsUnreadable();
       this._internalDataSyncToBuffer = false;
     }
 
@@ -818,7 +819,7 @@ export class ModelMesh extends Mesh {
         // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
         const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
-        vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, accessible);
+        vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, true);
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
         this._internalBuffer = vertexBuffer;
       } else {
@@ -1209,7 +1210,6 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
-    debugger;
     this._indices = null;
     this._positions = null;
     this._tangents = null;
