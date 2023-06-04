@@ -59,6 +59,7 @@ export class Buffer extends GraphicsResource {
     if (this._readable) {
       return this._data;
     } else {
+      debugger;
       throw "Buffer is not readable.";
     }
   }
