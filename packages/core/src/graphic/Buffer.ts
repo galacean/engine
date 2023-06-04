@@ -1,6 +1,7 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
 import { Engine } from "../Engine";
 import { IPlatformBuffer } from "../renderingHardwareInterface";
+import { UpdateFlagManager } from "../UpdateFlagManager";
 import { BufferBindFlag } from "./enums/BufferBindFlag";
 import { BufferUsage } from "./enums/BufferUsage";
 import { SetDataOptions } from "./enums/SetDataOptions";
@@ -9,6 +10,9 @@ import { SetDataOptions } from "./enums/SetDataOptions";
  * Buffer.
  */
 export class Buffer extends GraphicsResource {
+  /** @internal */
+  _dataUpdateManager: UpdateFlagManager = new UpdateFlagManager();
+
   private _type: BufferBindFlag;
   private _byteLength: number;
   private _bufferUsage: BufferUsage;
@@ -49,7 +53,7 @@ export class Buffer extends GraphicsResource {
    *
    * @remarks
    * Buffer must be readable.
-   * If data is modified, you must call setData() to update buffer.
+   * If data is modified, must call `setData()` to update buffer to GPU.
    */
   get data(): Uint8Array {
     if (this._readable) {
@@ -177,6 +181,7 @@ export class Buffer extends GraphicsResource {
         this._data.set(srcData, bufferByteOffset);
       }
     }
+    this._dataUpdateManager.dispatch();
   }
 
   /**

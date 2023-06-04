@@ -54,7 +54,7 @@ describe("ModelMesh Test", async function () {
   });
 
   it("init", () => {
-    expect(modelMesh.readable).true;
+    expect(modelMesh.accessible).true;
   });
 
   it("set position data", () => {
