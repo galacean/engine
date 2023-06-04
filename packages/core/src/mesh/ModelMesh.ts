@@ -206,16 +206,15 @@ export class ModelMesh extends Mesh {
     vertexElementIndex: ElementIndex,
     readVertexData: (vertexAttribute: VertexAttribute) => T[]
   ): T[] | null {
+    const advancedDataVersion = this._advancedVertexDataVersions[vertexElementIndex] ?? -1;
     const vertexElement = this._vertexElementMap[vertexAttribute];
-    const vertexBufferDataVersion = this._vertexBufferDataVersions[vertexElement.bindingIndex];
-    if (vertexElement !== null && vertexBufferDataVersion !== null) {
-      if (this._advancedVertexDataVersions[vertexElementIndex] > vertexBufferDataVersion) {
-        return vertices;
-      } else {
-        return readVertexData(vertexAttribute);
-      }
-    } else {
+    const bufferDataVersion = vertexElement ? this._vertexBufferDataVersions[vertexElement.bindingIndex] ?? -1 : -1;
+    if (advancedDataVersion > bufferDataVersion) {
       return vertices;
+    } else if (advancedDataVersion < bufferDataVersion) {
+      return readVertexData(vertexAttribute);
+    } else {
+      return null;
     }
   }
 
@@ -529,6 +528,7 @@ export class ModelMesh extends Mesh {
     this._internalVertexBufferIndex = -1;
     this._internalVertexElementsUpdate = false;
     this._vertexCountDirty = true;
+    this._blendShapeManager._bufferBindingOffset = -1;
   }
 
   /**
@@ -629,7 +629,6 @@ export class ModelMesh extends Mesh {
       this._updateAdvancedVertices();
       this._internalDataSyncToBuffer = true;
       this._internalBuffer?.setData(this._internalBuffer.data);
-      this._internalBuffer?.markAsUnreadable();
       this._internalDataSyncToBuffer = false;
     }
 
@@ -820,17 +819,16 @@ export class ModelMesh extends Mesh {
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
         const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
         vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, true);
+        this._internalDataSyncToBuffer = true;
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
+        this._internalDataSyncToBuffer = false;
         this._internalBuffer = vertexBuffer;
       } else {
         this._setVertexBufferBinding(vertexBufferIndex, null);
         this._internalBuffer = null;
       }
 
-      this._internalDataSyncToBuffer = true;
-
       this._internalVertexCountChanged = false;
-      this._internalDataSyncToBuffer = false;
       bufferCreatedInfo.set(bufferStride, vertexCount);
     }
   }
@@ -1210,6 +1208,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
+    this._internalBuffer?.markAsUnreadable();
     this._indices = null;
     this._positions = null;
     this._tangents = null;

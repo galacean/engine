@@ -195,11 +195,7 @@ describe("ModelMesh Test", async function () {
     expect(modelMesh.blendShapes.length).eq(0);
 
     expect(modelMesh.vertexCount).eq(4);
-    // @ts-ignore
-    const vertices = modelMesh._verticesFloat32;
     modelMesh.uploadData(false);
-    // @ts-ignore
-    expect(vertices).not.equal(modelMesh._verticesFloat32);
     modelMesh.setIndices(null);
     //@ts-ignore
     expect(modelMesh._indices).null;

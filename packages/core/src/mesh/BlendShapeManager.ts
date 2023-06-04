@@ -199,10 +199,10 @@ export class BlendShapeManager {
       return;
     }
 
-    let i = 0;
+    let i = this._modelMesh._internalVertexBufferIndex + 1;
     const vertexBufferBindings = this._modelMesh._vertexBufferBindings;
     for (let n = vertexBufferBindings.length; i < n; i++) {
-      if (!vertexBufferBindings[i] && i !== this._modelMesh._internalVertexBufferIndex) {
+      if (!vertexBufferBindings[i]) {
         break;
       }
     }
