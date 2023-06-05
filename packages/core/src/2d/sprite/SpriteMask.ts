@@ -234,6 +234,7 @@ export class SpriteMask extends Renderer {
       sprite._addRefCount(-1);
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
     }
+    this._entity = null;
     this._sprite = null;
     this._renderData = null;
   }

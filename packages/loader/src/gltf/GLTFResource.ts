@@ -47,20 +47,7 @@ export class GLTFResource extends RefObject {
   }
 
   /**
-   * @override
+   * @internal
    */
-  _onDestroy(): void {
-    this.textures && ((this.textures.length = 0), (this.textures = null));
-    this.materials && ((this.materials.length = 0), (this.materials = null));
-    this.meshes && ((this.meshes.length = 0), (this.meshes = null));
-    this.skins && ((this.skins.length = 0), (this.skins = null));
-    this.animations && ((this.animations.length = 0), (this.animations = null));
-    this.entities && ((this.entities.length = 0), (this.entities = null));
-    this.cameras && ((this.cameras.length = 0), (this.cameras = null));
-    this.lights && ((this.lights.length = 0), (this.lights = null));
-    this.sceneRoots && ((this.sceneRoots.length = 0), (this.sceneRoots = null));
-    this.variants && ((this.variants.length = 0), (this.variants = null));
-    this.defaultSceneRoot.destroy();
-    this.defaultSceneRoot = null;
-  }
+  _onDestroy(): void {}
 }
