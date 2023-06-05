@@ -4,9 +4,10 @@ import { Renderer } from "../Renderer";
 import { ShaderPass } from "../shader";
 import { RenderState } from "../shader/state/RenderState";
 import { Texture2D } from "../texture";
+import { IPoolElement } from "./IPoolElement";
 import { RenderElement } from "./RenderElement";
 
-export class SpriteElement extends RenderElement {
+export class SpriteElement extends RenderElement implements IPoolElement {
   renderData: RenderData2D;
   texture: Texture2D;
 
@@ -29,5 +30,9 @@ export class SpriteElement extends RenderElement {
     this.texture = texture;
     this.renderState = renderState;
     this.shaderPass = shaderPass;
+  }
+
+  dispose() {
+    this.component = this.renderData = this.material = this.texture = this.renderState = this.shaderPass = null;
   }
 }

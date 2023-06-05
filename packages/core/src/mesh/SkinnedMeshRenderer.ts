@@ -237,8 +237,19 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   _onDestroy(): void {
     super._onDestroy();
-    this.rootBone?.transform._updateFlagManager.removeListener(this._onTransformChanged);
+    this._rootBone?.transform._updateFlagManager.removeListener(this._onTransformChanged);
+    this._rootBone = null;
+    this._jointDataCreateCache = null;
+    this._skin = null;
+    this._blendShapeWeights = null;
+    this._localBounds = null;
+    this._jointMatrices = null;
     this._jointTexture?.destroy();
+    this._jointTexture = null;
+    if (this._jointEntities) {
+      this._jointEntities.length = 0;
+      this._jointEntities = null;
+    }
   }
 
   /**

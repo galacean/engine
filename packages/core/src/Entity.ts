@@ -10,6 +10,7 @@ import { Layer } from "./Layer";
 import { Scene } from "./Scene";
 import { Script } from "./Script";
 import { Transform } from "./Transform";
+import { RefObject } from "./asset/RefObject";
 
 /**
  * Entity, be used as components container.
@@ -63,6 +64,8 @@ export class Entity extends EngineObject {
   _isActive: boolean = true;
   /** @internal */
   _siblingIndex: number = -1;
+  /** @internal @todo: temporary solution */
+  _hookResource: RefObject;
 
   private _parent: Entity = null;
   private _activeChangedComponents: Component[];
@@ -350,7 +353,11 @@ export class Entity extends EngineObject {
    */
   clone(): Entity {
     const cloneEntity = new Entity(this._engine, this.name);
-
+    const { _hookResource: hookResource } = this;
+    if (hookResource) {
+      cloneEntity._hookResource = hookResource;
+      hookResource._addRefCount(1);
+    }
     cloneEntity._isActive = this._isActive;
     cloneEntity.transform.localMatrix = this.transform.localMatrix;
 
@@ -381,6 +388,10 @@ export class Entity extends EngineObject {
     }
 
     super.destroy();
+    if (this._hookResource) {
+      this._hookResource._addRefCount(-1);
+      this._hookResource = null;
+    }
     const components = this._components;
     for (let i = components.length - 1; i >= 0; i--) {
       components[i].destroy();

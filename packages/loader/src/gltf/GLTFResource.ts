@@ -2,11 +2,11 @@ import {
   AnimationClip,
   Camera,
   Engine,
-  EngineObject,
   Entity,
   Light,
   Material,
   ModelMesh,
+  RefObject,
   Skin,
   Texture2D
 } from "@galacean/engine-core";
@@ -14,7 +14,7 @@ import {
 /**
  * Product after GLTF parser, usually, `defaultSceneRoot` is only needed to use.
  */
-export class GLTFResource extends EngineObject {
+export class GLTFResource extends RefObject {
   /** GLTF file url. */
   url: string;
   /** Texture2D after TextureParser. */
@@ -46,25 +46,7 @@ export class GLTFResource extends EngineObject {
   }
 
   /**
-   * @override
+   * @internal
    */
-  destroy(): void {
-    if (this._destroyed) {
-      return;
-    }
-
-    super.destroy();
-    this.defaultSceneRoot.destroy();
-
-    this.textures = null;
-    this.materials = null;
-    this.meshes = null;
-    this.skins = null;
-    this.animations = null;
-    this.entities = null;
-    this.cameras = null;
-    this.lights = null;
-    this.sceneRoots = null;
-    this.extensionsData = null;
-  }
+  _onDestroy(): void {}
 }
