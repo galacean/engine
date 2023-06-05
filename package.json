@@ -66,6 +66,5 @@
       "eslint --fix",
       "git add"
     ]
-  },
-  "repository": "git@github.com:oasis-engine/engine.git"
+  }
 }

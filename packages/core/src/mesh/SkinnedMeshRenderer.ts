@@ -22,8 +22,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
   private static _jointMatrixProperty = ShaderProperty.getByName("renderer_JointMatrix");
 
   @ignoreClone
-  private _supportSkinning: boolean = false;
-  @ignoreClone
   private _hasInitSkin: boolean = false;
   @ignoreClone
   private _jointDataCreateCache: Vector2 = new Vector2(-1, -1);
@@ -143,8 +141,9 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this._hasInitSkin = true;
     }
 
-    if (this._supportSkinning) {
-      const ibms = this._skin.inverseBindMatrices;
+    const skin = this._skin;
+    if (skin) {
+      const ibms = skin.inverseBindMatrices;
       const worldToLocal = this._rootBone.getInvModelMatrix();
       const { _jointEntities: joints, _jointMatrices: jointMatrices } = this;
 
@@ -166,6 +165,8 @@ export class SkinnedMeshRenderer extends MeshRenderer {
    */
   protected override _updateShaderData(context: RenderContext): void {
     const entity = this.entity;
+    const worldMatrix = this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
+    this._updateTransformShaderData(context, worldMatrix);
 
     const shaderData = this.shaderData;
 
@@ -197,18 +198,13 @@ export class SkinnedMeshRenderer extends MeshRenderer {
             shaderData.disableMacro("RENDERER_JOINTS_NUM");
             shaderData.enableMacro("RENDERER_USE_JOINT_TEXTURE");
             shaderData.setTexture(SkinnedMeshRenderer._jointSamplerProperty, this._jointTexture);
-            this._supportSkinning = true;
           } else {
-            this._supportSkinning = false;
-            this._jointTexture?.destroy();
-            shaderData.disableMacro("O3_HAS_SKIN");
-            Logger.warn(
+            Logger.error(
               `component's joints count(${jointCount}) greater than device's MAX_VERTEX_UNIFORM_VECTORS number ${this._maxVertexUniformVectors}, and don't support jointTexture in this device. suggest joint count less than ${remainUniformJointCount}.`,
               this
             );
           }
         } else {
-          this._supportSkinning = true;
           this._jointTexture?.destroy();
           shaderData.disableMacro("RENDERER_USE_JOINT_TEXTURE");
           shaderData.enableMacro("RENDERER_JOINTS_NUM", remainUniformJointCount.toString());
@@ -221,11 +217,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         this._jointTexture.setPixelBuffer(this._jointMatrices);
       }
     }
-
-    const worldMatrix =
-      this._supportSkinning && this._rootBone ? this._rootBone.transform.worldMatrix : entity.transform.worldMatrix;
-    this._updateTransformShaderData(context, worldMatrix);
-
     const layer = entity.layer;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }

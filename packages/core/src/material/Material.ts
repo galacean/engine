@@ -107,7 +107,6 @@ export class Material extends ReferResource implements IClone {
   /**
    * @override
    */
-
   protected override _onDestroy(): void {
     this._engine = null;
     this._shader = null;
