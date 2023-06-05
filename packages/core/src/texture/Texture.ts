@@ -22,6 +22,7 @@ export abstract class Texture extends GraphicsResource {
   protected _format: TextureFormat;
   protected _width: number;
   protected _height: number;
+  protected _isVideo: boolean;
   protected _mipmapCount: number;
 
   private _wrapModeU: TextureWrapMode;
@@ -50,6 +51,13 @@ export abstract class Texture extends GraphicsResource {
    */
   get height(): number {
     return this._height;
+  }
+
+  /**
+   * The texture whether used for video play.
+   */
+  get isVideo(): boolean {
+    return this._isVideo;
   }
 
   /**

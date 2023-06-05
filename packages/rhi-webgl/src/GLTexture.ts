@@ -405,6 +405,8 @@ export class GLTexture implements IPlatformTexture {
   _target: GLenum; // gl.TEXTURE_2D | gl.TEXTURE_CUBE_MAP
   /** @internal */
   _formatDetail: TextureFormatDetail;
+  /** @internal */
+  _useTexStorage: boolean;
 
   /**
    * Wrapping mode for texture coordinate S.
@@ -542,11 +544,14 @@ export class GLTexture implements IPlatformTexture {
     const isWebGL2 = this._isWebGL2;
     let { internalFormat, baseFormat, dataType } = this._formatDetail;
     // @ts-ignore
-    const { mipmapCount, width, height, _isDepthTexture } = this._texture;
+    const { mipmapCount, width, height, isVideo, _isDepthTexture } = this._texture;
 
     this._bind();
 
-    if (isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA)) {
+    const useTexStorage = (this._useTexStorage =
+      isWebGL2 && !(baseFormat === gl.LUMINANCE_ALPHA || baseFormat === gl.ALPHA) && !isVideo);
+
+    if (useTexStorage) {
       gl.texStorage2D(this._target, mipmapCount, internalFormat, width, height);
     } else {
       if (!isCube) {
