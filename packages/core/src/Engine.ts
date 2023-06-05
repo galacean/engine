@@ -236,7 +236,7 @@ export class Engine extends EventDispatcher {
     this._spriteDefaultMaterial = this._createSpriteMaterial();
     this._spriteMaskDefaultMaterial = this._createSpriteMaskMaterial();
     this._textDefaultFont = Font.createFromOS(this, "Arial");
-    this._textDefaultFont.isGCIgnored = false;
+    this._textDefaultFont.isGCIgnored = true;
 
     this.inputManager = new InputManager(this);
 
@@ -251,6 +251,7 @@ export class Engine extends EventDispatcher {
     }
 
     const magentaMaterial = new Material(this, Shader.find("unlit"));
+    magentaMaterial.isGCIgnored = true;
     magentaMaterial.shaderData.setColor("material_BaseColor", new Color(1.0, 0.0, 1.01, 1.0));
     this._magentaMaterial = magentaMaterial;
 

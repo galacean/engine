@@ -4,6 +4,7 @@ import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { ReferResource } from "../../asset/ReferResource";
 import { Texture2D } from "../../texture/Texture2D";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
+import { SpriteAtlas } from "../atlas/SpriteAtlas";
 
 /**
  * 2D sprite.
@@ -32,6 +33,8 @@ export class Sprite extends ReferResource {
 
   private _dirtyUpdateFlag: SpriteUpdateFlags = SpriteUpdateFlags.all;
 
+  /** @internal */
+  _atlas: SpriteAtlas;
   /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
@@ -267,9 +270,29 @@ export class Sprite extends ReferResource {
   /**
    * @internal
    */
+  override _addReferCount(value: number): void {
+    super._addReferCount(value);
+    this._atlas?._addReferCount(value);
+  }
+
+  /**
+   * @internal
+   */
   protected override _onDestroy(): void {
     super._onDestroy();
+    this._positions.length = 0;
+    this._positions = null;
+    this._uvs.length = 0;
+    this._uvs = null;
+    this._atlasRegion = null;
+    this._atlasRegionOffset = null;
+    this._region = null;
+    this._pivot = null;
+    this._border = null;
+    this._bounds = null;
+    this._atlas = null;
     this._texture = null;
+    this._updateFlagManager = null;
   }
 
   private _calDefaultSize(): void {
