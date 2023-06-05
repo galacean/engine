@@ -58,7 +58,6 @@ export class Scene extends EngineObject {
   private _fogEnd: number = 300;
   private _fogDensity: number = 0.01;
   private _fogParams: Vector4 = new Vector4();
-  private _sunlightVector3: Vector3 = new Vector3();
 
   /**
    * Scene-related shader data.

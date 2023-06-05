@@ -140,7 +140,6 @@ export class SkinnedMeshRenderer extends MeshRenderer {
       this._initSkin();
       this._hasInitSkin = true;
     }
-
     const skin = this._skin;
     if (skin) {
       const ibms = skin.inverseBindMatrices;
@@ -217,6 +216,7 @@ export class SkinnedMeshRenderer extends MeshRenderer {
         this._jointTexture.setPixelBuffer(this._jointMatrices);
       }
     }
+
     const layer = entity.layer;
     this._rendererLayer.set(layer & 65535, (layer >>> 16) & 65535, 0, 0);
   }

@@ -11,6 +11,7 @@ export class TextRenderData extends RenderData implements IPoolElement {
   }
 
   dispose(): void {
+    this.component = this.material = null;
     this.charsData.length = 0;
   }
 }

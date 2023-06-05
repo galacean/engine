@@ -98,6 +98,6 @@ export class GLTFEntityParser extends GLTFParser {
     // @ts-ignore
     glTFResource.defaultSceneRoot._hookResource = glTFResource;
     // @ts-ignore
-    glTFResource._addRefCount(1);
+    glTFResource._addReferCount(1);
   }
 }

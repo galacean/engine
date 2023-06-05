@@ -7,7 +7,5 @@ export class AnimationEventHandler implements IPoolElement {
   event: AnimationEvent;
   handlers: Function[] = [];
 
-  dispose() {
-    this.handlers.length = 0;
-  }
+  dispose() {}
 }

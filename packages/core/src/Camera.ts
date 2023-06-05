@@ -546,7 +546,6 @@ export class Camera extends Component {
     this._isViewMatrixDirty.destroy();
     this.shaderData._addReferCount(-1);
 
-    this._engine = null;
     this._entity = null;
     this._globalShaderMacro = null;
     this._frustum = null;
