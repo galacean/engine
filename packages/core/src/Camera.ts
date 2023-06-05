@@ -34,9 +34,6 @@ export class Camera extends Component {
   /** @internal */
   private static _cameraPositionProperty = Shader.getPropertyByName("u_cameraPos");
 
-  /** Shader data. */
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
-
   /** Rendering priority - A Camera with higher priority will be rendered on top of a camera with lower priority. */
   priority: number = 0;
 
@@ -67,6 +64,7 @@ export class Camera extends Component {
   @ignoreClone
   _virtualCamera: VirtualCamera = new VirtualCamera();
 
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Camera);
   private _isProjMatSetting = false;
   private _nearClipPlane: number = 0.1;
   private _farClipPlane: number = 100;
@@ -94,6 +92,13 @@ export class Camera extends Component {
   private _lastAspectSize: Vector2 = new Vector2(0, 0);
   @deepClone
   private _invViewProjMat: Matrix = new Matrix();
+
+  /**
+   * Shader data.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Near clip plane - the closest point to the camera when rendering occurs.
@@ -493,6 +498,22 @@ export class Camera extends Component {
     this._isInvViewProjDirty.destroy();
     this._isViewMatrixDirty.destroy();
     this.shaderData._addRefCount(-1);
+
+    this._engine = null;
+    this._entity = null;
+    this._globalShaderMacro = null;
+    this._frustum = null;
+    this._renderPipeline = null;
+    this._virtualCamera = null;
+    this._shaderData = null;
+    this._frustumViewChangeFlag = null;
+    this._transform = null;
+    this._isViewMatrixDirty = null;
+    this._isInvViewProjDirty = null;
+    this._viewport = null;
+    this._inverseProjectionMatrix = null;
+    this._lastAspectSize = null;
+    this._invViewProjMat = null;
   }
 
   private _projMatChange(): void {

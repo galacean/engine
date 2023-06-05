@@ -29,10 +29,6 @@ export class Renderer extends Component implements ICustomClone {
   private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
   private static _rendererLayerProperty = Shader.getPropertyByName("oasis_RendererLayer");
 
-  /** ShaderData related to renderer. */
-  @deepClone
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
-
   /** @internal */
   @ignoreClone
   _distanceForSort: number;
@@ -58,6 +54,8 @@ export class Renderer extends Component implements ICustomClone {
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
 
+  @deepClone
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -75,6 +73,13 @@ export class Renderer extends Component implements ICustomClone {
 
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+
+  /**
+   * ShaderData related to renderer.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Whether it is culled in the current frame and does not participate in rendering.
@@ -352,6 +357,19 @@ export class Renderer extends Component implements ICustomClone {
     for (let i = 0, n = materials.length; i < n; i++) {
       materials[i]?._addRefCount(-1);
     }
+
+    this._entity = null;
+    this._engine = null;
+    this._globalShaderMacro = null;
+    this._bounds = null;
+    this._materials = null;
+    this._shaderData = null;
+    this._mvMatrix = null;
+    this._mvpMatrix = null;
+    this._mvInvMatrix = null;
+    this._normalMatrix = null;
+    this._materialsInstanced = null;
+    this._rendererLayer = null;
   }
 
   protected _updateShaderData(context: RenderContext): void {
