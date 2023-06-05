@@ -114,7 +114,6 @@ export class Material extends RefObject implements IClone {
    * @override
    */
   protected _onDestroy(): void {
-    this._engine = null;
     this._shader = null;
     this._shaderData = null;
     this._renderStates.length = 0;

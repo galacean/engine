@@ -11,9 +11,7 @@ export class TextRenderElement extends RenderElement implements IPoolElement {
   }
 
   dispose() {
-    const elements = this.charElements;
-    for (let i = elements.length; i >= 0; i--) {
-      elements[i].dispose();
-    }
+    this.component = this.material = this.renderState = this.shaderPass = null;
+    this.charElements.length = 0;
   }
 }
