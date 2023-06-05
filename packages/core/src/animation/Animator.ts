@@ -39,6 +39,8 @@ export class Animator extends Component {
   @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
   @ignoreClone
+  private _needRevertCurveOwners: AnimationCurveOwner<KeyframeValueType>[] = [];
+  @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
 
   @ignoreClone
@@ -156,17 +158,7 @@ export class Animator extends Component {
 
     deltaTime *= this.speed;
 
-    for (let i = 0, n = animatorController.layers.length; i < n; i++) {
-      const animatorLayerData = this._getAnimatorLayerData(i);
-      if (animatorLayerData.layerState === LayerState.Standby) {
-        continue;
-      }
-
-      const { srcPlayData, destPlayData } = this._animatorLayersData[i];
-
-      this._revertCurveOwners(srcPlayData?.stateData?.curveLayerOwner);
-      this._revertCurveOwners(destPlayData?.stateData?.curveLayerOwner);
-    }
+    this._revertCurveOwners();
 
     for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const animatorLayerData = this._getAnimatorLayerData(i);
@@ -296,9 +288,17 @@ export class Animator extends Component {
         const { property } = curve;
         const { instanceId } = targetEntity;
 
+        let needRevert = false;
+        const baseAnimatorLayerData = this._animatorLayersData[0];
+        if (!(baseAnimatorLayerData[instanceId] && baseAnimatorLayerData[instanceId][property])) {
+          needRevert = true;
+        }
+
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
+
+        needRevert && this._needRevertCurveOwners.push(owner);
 
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
@@ -833,12 +833,11 @@ export class Animator extends Component {
     }
   }
 
-  private _revertCurveOwners(curveLayerOwners: AnimationCurveLayerOwner[]): void {
-    if (curveLayerOwners?.length) {
-      for (let i = 0, n = curveLayerOwners.length; i < n; ++i) {
-        const curveOwner = curveLayerOwners[i]?.curveOwner;
-        curveOwner?.hasSavedDefaultValue && curveOwner.revertDefaultValue();
-      }
+  private _revertCurveOwners(): void {
+    const curveOwners = this._needRevertCurveOwners;
+    for (let i = 0, n = curveOwners.length; i < n; ++i) {
+      const curveOwner = curveOwners[i];
+      curveOwner.hasSavedDefaultValue && curveOwner.revertDefaultValue();
     }
   }
 }
