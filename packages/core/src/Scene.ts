@@ -453,17 +453,6 @@ export class Scene extends EngineObject {
     this._activeCameras.length = 0;
     this.background.destroy();
     this.shaderData._addRefCount(-1);
-    this.shadowFourCascadeSplits = null;
-    this._activeCameras = null;
-    this._globalShaderMacro = null;
-    this._rootEntities = null;
-    this._sunLight = null;
-    this._background = null;
-    this._shaderData = null;
-    this._ambientLight = null;
-    this._fogColor = null;
-    this._fogParams = null;
-    this._sunlightVector3 = null;
   }
 
   private _addToRootEntityList(index: number, rootEntity: Entity): void {
