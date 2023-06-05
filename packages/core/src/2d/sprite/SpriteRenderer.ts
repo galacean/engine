@@ -338,6 +338,8 @@ export class SpriteRenderer extends Renderer {
       sprite._addReferCount(-1);
       sprite._updateFlagManager.removeListener(this._onSpriteChange);
     }
+    this._engine = null;
+    this._entity = null;
     this._color = null;
     this._sprite = null;
     this._assembler = null;

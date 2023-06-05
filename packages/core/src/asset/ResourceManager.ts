@@ -148,6 +148,31 @@ export class ResourceManager {
    */
   gc(): void {
     this._gc(false);
+
+    const { engine } = this;
+    engine._renderElementPool.garbageCollection();
+    engine._meshRenderDataPool.garbageCollection();
+    engine._spriteRenderDataPool.garbageCollection();
+    engine._spriteMaskRenderDataPool.garbageCollection();
+    engine._textRenderDataPool.garbageCollection();
+
+    const { _componentsManager, _lightManager } = engine;
+    _componentsManager._renderers.garbageCollection();
+    // @ts-ignore
+    _componentsManager._onStartScripts.garbageCollection();
+    // @ts-ignore
+    _componentsManager._onUpdateScripts.garbageCollection();
+    // @ts-ignore
+    _componentsManager._onLateUpdateScripts.garbageCollection();
+    // @ts-ignore
+    _componentsManager._onPhysicsUpdateScripts.garbageCollection();
+    // @ts-ignore
+    _componentsManager._onUpdateAnimations.garbageCollection();
+    // @ts-ignore
+    _componentsManager._onUpdateRenderers.garbageCollection();
+    _lightManager._spotLights.garbageCollection();
+    _lightManager._pointLights.garbageCollection();
+    _lightManager._directLights.garbageCollection();
   }
 
   /**

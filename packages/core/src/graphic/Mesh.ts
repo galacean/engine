@@ -213,6 +213,7 @@ export abstract class Mesh extends GraphicsResource {
     this._indexBufferBinding = null;
     this._vertexElements = null;
     this._vertexElementMap = null;
+    this._updateFlagManager = null;
     this._platformPrimitive.destroy();
   }
 

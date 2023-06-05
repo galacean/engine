@@ -81,6 +81,7 @@ export class Background {
     this.texture = null;
     this.solidColor = null;
     this.sky.destroy();
+    this._engine = null;
   }
 
   /**

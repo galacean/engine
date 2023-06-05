@@ -88,3 +88,5 @@ struct Material {
     #endif
 
 };
+
+uniform float material_IOR;
