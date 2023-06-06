@@ -212,7 +212,7 @@ export class Animator extends Component {
       const propertyOwners = animationCurveOwners[instanceId];
       for (let property in propertyOwners) {
         const owner = propertyOwners[property];
-        owner?.hasSavedDefaultValue && owner.revertDefaultValue();
+        owner.hasSavedDefaultValue && owner.revertDefaultValue();
       }
     }
 
