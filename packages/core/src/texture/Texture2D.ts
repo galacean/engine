@@ -2,6 +2,7 @@ import { Engine } from "../Engine";
 import { IPlatformTexture2D } from "../renderingHardwareInterface";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
+import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 import { Texture } from "./Texture";
 
@@ -16,7 +17,7 @@ export class Texture2D extends Texture {
    * @param height - Texture height
    * @param format - Texture format. default  `TextureFormat.R8G8B8A8`
    * @param mipmap - Whether to use multi-level texture
-   * @param isVideo - Whether the texture used for video play
+   * @param usage - Texture usage
    */
   constructor(
     engine: Engine,
@@ -24,13 +25,13 @@ export class Texture2D extends Texture {
     height: number,
     format: TextureFormat = TextureFormat.R8G8B8A8,
     mipmap: boolean = true,
-    isVideo: boolean = false
+    usage: TextureUsage = TextureUsage.Static
   ) {
     super(engine);
     this._mipmap = mipmap;
     this._width = width;
     this._height = height;
-    this._isVideo = isVideo;
+    this._usage = usage;
     this._format = format;
     this._mipmapCount = this._getMipmapCount();
 

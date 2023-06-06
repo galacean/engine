@@ -1,4 +1,4 @@
-import { IPlatformTexture2D, Logger, Texture2D, TextureFormat } from "@galacean/engine-core";
+import { IPlatformTexture2D, Logger, Texture2D, TextureFormat, TextureUsage } from "@galacean/engine-core";
 import { GLTexture } from "./GLTexture";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
 
@@ -92,10 +92,10 @@ export class GLTexture2D extends GLTexture implements IPlatformTexture2D {
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, +flipY);
     gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, +premultiplyAlpha);
 
-    if (this._useTexStorage) {
-      gl.texSubImage2D(this._target, mipLevel, x || 0, y || 0, baseFormat, dataType, imageSource);
-    } else {
+    if (this._texture.usage === TextureUsage.Dynamic) {
       gl.texImage2D(this._target, mipLevel, baseFormat, baseFormat, dataType, imageSource);
+    } else {
+      gl.texSubImage2D(this._target, mipLevel, x || 0, y || 0, baseFormat, dataType, imageSource);
     }
   }
 
