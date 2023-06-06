@@ -1,4 +1,5 @@
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -23,6 +24,14 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
     owner.fixedPoseValue = new Float32Array(size);
     owner.baseEvaluateData.value = new Float32Array(size);
     owner.crossEvaluateData.value = new Float32Array(size);
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner<Float32Array>): void {
+    const size = owner.curveOwner.referenceTargetValue.length;
+    owner.lastValue = new Float32Array(size);
   }
 
   /**

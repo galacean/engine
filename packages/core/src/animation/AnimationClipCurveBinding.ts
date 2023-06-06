@@ -37,8 +37,10 @@ export class AnimationClipCurveBinding {
   /**
    * @internal
    */
-  _createCurveLayerOwner(owner: AnimationCurveOwner<KeyframeValueType>): AnimationCurveLayerOwner {
-    const layerOwner = new AnimationCurveLayerOwner();
+  _createCurveLayerOwner(owner: AnimationCurveOwner<KeyframeValueType>): AnimationCurveLayerOwner<KeyframeValueType> {
+    const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
+    const layerOwner = new AnimationCurveLayerOwner(curveType);
+    curveType._initializeLayerOwner(layerOwner);
     layerOwner.curveOwner = owner;
     return layerOwner;
   }

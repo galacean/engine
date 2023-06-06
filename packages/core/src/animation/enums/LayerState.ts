@@ -3,11 +3,13 @@
  */
 export enum LayerState {
   /** Standby state. */
-  Standby, //CM: Standby 优化
+  Standby,
   /** Playing state. */
   Playing,
   /** CrossFading state. */
   CrossFading,
   /** FixedCrossFading state. */
-  FixedCrossFading
+  FixedCrossFading,
+  /** Finished state. */
+  Finished
 }

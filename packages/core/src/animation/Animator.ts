@@ -217,6 +217,7 @@ export class Animator extends Component {
     }
 
     this._animatorLayersData.length = 0;
+    this._needRevertCurveOwners.length = 0;
     this._curveOwnerPool = {};
     this._animationEventHandlerPool.resetPool();
 
@@ -251,7 +252,9 @@ export class Animator extends Component {
     const { curveLayerOwner } = stateData;
     for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
       const curveOwner = curveLayerOwner[i]?.curveOwner;
-      !curveOwner?.hasSavedDefaultValue && curveOwner?.saveDefaultValue();
+      if (curveOwner) {
+        !curveOwner.hasSavedDefaultValue && curveOwner.saveDefaultValue();
+      }
     }
   }
 
@@ -298,7 +301,9 @@ export class Animator extends Component {
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
 
-        needRevert && this._needRevertCurveOwners.push(owner);
+        if (animatorLayerData !== baseAnimatorLayerData) {
+          needRevert && this._needRevertCurveOwners.push(owner);
+        }
 
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
@@ -343,7 +348,7 @@ export class Animator extends Component {
 
   private _addCrossOwner(
     animatorLayerData: AnimatorLayerData,
-    layerOwner: AnimationCurveLayerOwner,
+    layerOwner: AnimationCurveLayerOwner<KeyframeValueType>,
     curCurveIndex: number,
     nextCurveIndex: number
   ): void {
@@ -427,6 +432,7 @@ export class Animator extends Component {
 
     switch (layerData.layerState) {
       case LayerState.Playing:
+      case LayerState.Finished:
         this._updatePlayingState(srcPlayData, layerData, layerIndex, weight, deltaTime, additive, aniUpdate);
         break;
       case LayerState.FixedCrossFading:
@@ -461,13 +467,30 @@ export class Animator extends Component {
     eventHandlers.length && this._fireAnimationEvents(playData, eventHandlers, lastClipTime, clipTime);
 
     for (let i = curveBindings.length - 1; i >= 0; i--) {
-      curveLayerOwner[i]?.curveOwner.evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight, additive);
+      const layerOwner = curveLayerOwner[i];
+      const owner = layerOwner?.curveOwner;
+
+      if (!owner) continue;
+
+      layerData.layerState !== LayerState.Finished &&
+        owner.evaluateAndApplyValue(curveBindings[i].curve, clipTime, weight, additive);
+      if (playState === AnimatorStatePlayState.Finished) {
+        if (layerData.layerState !== LayerState.Finished) {
+          if (layerOwner) {
+            layerOwner.saveLastValue();
+          }
+        } else {
+          if (layerOwner) {
+            owner.applyValue(layerOwner.lastValue, weight, additive);
+          }
+        }
+      }
     }
 
     playData.frameTime += state.speed * delta;
 
     if (playState === AnimatorStatePlayState.Finished) {
-      layerData.layerState = LayerState.Standby;
+      layerData.layerState = LayerState.Finished;
     }
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
@@ -626,7 +649,7 @@ export class Animator extends Component {
     destPlayData.frameTime += destPlayData.state.speed * delta;
     if (crossWeight === 1.0) {
       if (destPlayData.playState === AnimatorStatePlayState.Finished) {
-        layerData.layerState = LayerState.Standby;
+        layerData.layerState = LayerState.Finished;
       } else {
         layerData.layerState = LayerState.Playing;
       }
@@ -649,7 +672,7 @@ export class Animator extends Component {
         this._saveDefaultValues(playStateData);
       }
     } else {
-      // layerState is CrossFading, FixedCrossFading, Standby
+      // layerState is CrossFading, FixedCrossFading, Standby, Finished
       const { crossLayerOwnerCollection } = layerData;
       for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
         const owner = crossLayerOwnerCollection[i].curveOwner;
@@ -697,13 +720,13 @@ export class Animator extends Component {
     destPlayData.reset(crossState, animatorStateData, offset);
 
     switch (layerState) {
-      // Maybe not play, maybe end.
       case LayerState.Standby:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareStandbyCrossFading(animatorLayerData);
         break;
       case LayerState.Playing:
+      case LayerState.Finished:
         animatorLayerData.layerState = LayerState.CrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareCrossFading(animatorLayerData);
