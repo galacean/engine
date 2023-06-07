@@ -4,13 +4,13 @@ import { AudioManager } from "./AudioManager";
 
 /**
  * Audio Listener
- * only one per scene 
+ * Can only have one in a scene.
  */
 export class AudioListener extends Component {
-    /**
-     * @internal
-     */
-   constructor(entity: Entity) {
+  /**
+   * @internal
+   */
+  constructor(entity: Entity) {
     super(entity);
     const gain = AudioManager.context.createGain();
     gain.connect(AudioManager.context.destination);
@@ -18,6 +18,6 @@ export class AudioListener extends Component {
   }
 
   protected override _onDestroy(): void {
-    AudioManager.listener = null
+    AudioManager.listener = null;
   }
 }
