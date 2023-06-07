@@ -131,6 +131,7 @@ export class Engine extends EventDispatcher {
   private _frameInProcess: boolean = false;
   private _waitingDestroy: boolean = false;
   private _isDeviceLost: boolean = false;
+  private _waitingGC: boolean = false;
 
   private _animate = () => {
     if (this._vSyncCount) {
@@ -334,6 +335,10 @@ export class Engine extends EventDispatcher {
     if (this._waitingDestroy) {
       this._destroy();
     }
+    if (this._waitingGC) {
+      this._gc();
+      this._waitingGC = false;
+    }
     this._frameInProcess = false;
   }
 
@@ -518,6 +523,17 @@ export class Engine extends EventDispatcher {
   /**
    * @internal
    */
+  _pendingGC() {
+    if (this._frameInProcess) {
+      this._waitingGC = true;
+    } else {
+      this._gc();
+    }
+  }
+
+  /**
+   * @internal
+   */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
     const physics = configuration.physics;
     if (physics) {
@@ -586,6 +602,18 @@ export class Engine extends EventDispatcher {
       .catch((error) => {
         console.error(error);
       });
+  }
+
+  private _gc() {
+    this._renderElementPool.garbageCollection();
+    this._meshRenderDataPool.garbageCollection();
+    this._spriteRenderDataPool.garbageCollection();
+    this._spriteMaskRenderDataPool.garbageCollection();
+    this._textRenderDataPool.garbageCollection();
+
+    this._componentsManager._gc();
+    this._lightManager._gc();
+    this.physicsManager._gc();
   }
 }
 
