@@ -144,7 +144,12 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._updateAdvancedVertexDataMarks(this._positions, positions, VertexElementFlags.Position, ElementIndex.Position);
+    this._updateAdvancedVertexDataMarks(
+      this._positions,
+      positions,
+      VertexElementFlags.Position,
+      VertexElementIndex.Position
+    );
     this._positions = positions;
 
     this._vertexCount = positions?.length ?? 0;
@@ -163,7 +168,7 @@ export class ModelMesh extends Mesh {
     return this._getVertexElementData(
       this._positions,
       VertexAttribute.Position,
-      ElementIndex.Position,
+      VertexElementIndex.Position,
       this._readVector3VertexData
     );
   }
@@ -173,7 +178,9 @@ export class ModelMesh extends Mesh {
    * @param normals - The normals for the mesh.
    */
   setNormals(normals: Vector3[] | null): void {
-    if (this._beforeSetAdvancedVertexData(this._normals, normals, VertexElementFlags.Normal, ElementIndex.Normal)) {
+    if (
+      this._beforeSetAdvancedVertexData(this._normals, normals, VertexElementFlags.Normal, VertexElementIndex.Normal)
+    ) {
       this._normals = normals;
     }
   }
@@ -190,7 +197,7 @@ export class ModelMesh extends Mesh {
     return this._getVertexElementData(
       this._normals,
       VertexAttribute.Normal,
-      ElementIndex.Normal,
+      VertexElementIndex.Normal,
       this._readVector3VertexData
     );
   }
@@ -198,7 +205,7 @@ export class ModelMesh extends Mesh {
   private _getVertexElementData<T extends VertexType>(
     vertices: T[],
     vertexAttribute: VertexAttribute,
-    vertexElementIndex: ElementIndex,
+    vertexElementIndex: VertexElementIndex,
     readVertexData: (vertexAttribute: VertexAttribute) => T[]
   ): T[] | null {
     const advancedDataVersion = this._advancedVertexDataVersions[vertexElementIndex] ?? -1;
@@ -218,7 +225,7 @@ export class ModelMesh extends Mesh {
    * @param colors - The colors for the mesh.
    */
   setColors(colors: Color[] | null): void {
-    if (this._beforeSetAdvancedVertexData(this._colors, colors, VertexElementFlags.Color, ElementIndex.Color)) {
+    if (this._beforeSetAdvancedVertexData(this._colors, colors, VertexElementFlags.Color, VertexElementIndex.Color)) {
       this._colors = colors;
     }
   }
@@ -234,7 +241,7 @@ export class ModelMesh extends Mesh {
     return this._getVertexElementData(
       this._colors,
       VertexAttribute.Color,
-      ElementIndex.Color,
+      VertexElementIndex.Color,
       this._readColorVertexData
     );
   }
@@ -249,7 +256,7 @@ export class ModelMesh extends Mesh {
         this._boneWeights,
         boneWeights,
         VertexElementFlags.BoneWeight,
-        ElementIndex.BoneWeight
+        VertexElementIndex.BoneWeight
       )
     ) {
       this._boneWeights = boneWeights;
@@ -268,7 +275,7 @@ export class ModelMesh extends Mesh {
     return this._getVertexElementData(
       this._boneWeights,
       VertexAttribute.BoneWeight,
-      ElementIndex.BoneWeight,
+      VertexElementIndex.BoneWeight,
       this._readVector4VertexData
     );
   }
@@ -283,7 +290,7 @@ export class ModelMesh extends Mesh {
         this._boneWeights,
         boneIndices,
         VertexElementFlags.BoneIndex,
-        ElementIndex.BoneIndex
+        VertexElementIndex.BoneIndex
       )
     ) {
       this._boneIndices = boneIndices;
@@ -302,7 +309,7 @@ export class ModelMesh extends Mesh {
     return this._getVertexElementData(
       this._boneIndices,
       VertexAttribute.BoneIndex,
-      ElementIndex.BoneIndex,
+      VertexElementIndex.BoneIndex,
       this._readVector4VertexData
     );
   }
@@ -312,7 +319,14 @@ export class ModelMesh extends Mesh {
    * @param tangents - The tangents for the mesh.
    */
   setTangents(tangents: Vector4[] | null): void {
-    if (this._beforeSetAdvancedVertexData(this._tangents, tangents, VertexElementFlags.Tangent, ElementIndex.Tangent)) {
+    if (
+      this._beforeSetAdvancedVertexData(
+        this._tangents,
+        tangents,
+        VertexElementFlags.Tangent,
+        VertexElementIndex.Tangent
+      )
+    ) {
       this._tangents = tangents;
     }
   }
@@ -328,7 +342,7 @@ export class ModelMesh extends Mesh {
     return this._getVertexElementData(
       this._tangents,
       VertexAttribute.Tangent,
-      ElementIndex.Tangent,
+      VertexElementIndex.Tangent,
       this._readVector4VertexData
     );
   }
@@ -348,42 +362,42 @@ export class ModelMesh extends Mesh {
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        if (this._beforeSetAdvancedVertexData(this._uv, uv, VertexElementFlags.UV, ElementIndex.UV)) {
+        if (this._beforeSetAdvancedVertexData(this._uv, uv, VertexElementFlags.UV, VertexElementIndex.UV)) {
           this._uv = uv;
         }
         break;
       case 1:
-        if (this._beforeSetAdvancedVertexData(this._uv1, uv, VertexElementFlags.UV1, ElementIndex.UV1)) {
+        if (this._beforeSetAdvancedVertexData(this._uv1, uv, VertexElementFlags.UV1, VertexElementIndex.UV1)) {
           this._uv1 = uv;
         }
         break;
       case 2:
-        if (this._beforeSetAdvancedVertexData(this._uv2, uv, VertexElementFlags.UV2, ElementIndex.UV2)) {
+        if (this._beforeSetAdvancedVertexData(this._uv2, uv, VertexElementFlags.UV2, VertexElementIndex.UV2)) {
           this._uv2 = uv;
         }
         break;
       case 3:
-        if (this._beforeSetAdvancedVertexData(this._uv3, uv, VertexElementFlags.UV3, ElementIndex.UV3)) {
+        if (this._beforeSetAdvancedVertexData(this._uv3, uv, VertexElementFlags.UV3, VertexElementIndex.UV3)) {
           this._uv3 = uv;
         }
         break;
       case 4:
-        if (this._beforeSetAdvancedVertexData(this._uv4, uv, VertexElementFlags.UV4, ElementIndex.UV4)) {
+        if (this._beforeSetAdvancedVertexData(this._uv4, uv, VertexElementFlags.UV4, VertexElementIndex.UV4)) {
           this._uv4 = uv;
         }
         break;
       case 5:
-        if (this._beforeSetAdvancedVertexData(this._uv5, uv, VertexElementFlags.UV5, ElementIndex.UV5)) {
+        if (this._beforeSetAdvancedVertexData(this._uv5, uv, VertexElementFlags.UV5, VertexElementIndex.UV5)) {
           this._uv5 = uv;
         }
         break;
       case 6:
-        if (this._beforeSetAdvancedVertexData(this._uv6, uv, VertexElementFlags.UV6, ElementIndex.UV6)) {
+        if (this._beforeSetAdvancedVertexData(this._uv6, uv, VertexElementFlags.UV6, VertexElementIndex.UV6)) {
           this._uv6 = uv;
         }
         break;
       case 7:
-        if (this._beforeSetAdvancedVertexData(this._uv7, uv, VertexElementFlags.UV7, ElementIndex.UV7)) {
+        if (this._beforeSetAdvancedVertexData(this._uv7, uv, VertexElementFlags.UV7, VertexElementIndex.UV7)) {
           this._uv7 = uv;
         }
         break;
@@ -411,54 +425,59 @@ export class ModelMesh extends Mesh {
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        return this._getVertexElementData(this._uv, VertexAttribute.UV, ElementIndex.UV, this._readVector2VertexData);
+        return this._getVertexElementData(
+          this._uv,
+          VertexAttribute.UV,
+          VertexElementIndex.UV,
+          this._readVector2VertexData
+        );
       case 1:
         return this._getVertexElementData(
           this._uv1,
           VertexAttribute.UV1,
-          ElementIndex.UV1,
+          VertexElementIndex.UV1,
           this._readVector2VertexData
         );
       case 2:
         return this._getVertexElementData(
           this._uv2,
           VertexAttribute.UV2,
-          ElementIndex.UV2,
+          VertexElementIndex.UV2,
           this._readVector2VertexData
         );
       case 3:
         return this._getVertexElementData(
           this._uv3,
           VertexAttribute.UV3,
-          ElementIndex.UV3,
+          VertexElementIndex.UV3,
           this._readVector2VertexData
         );
       case 4:
         return this._getVertexElementData(
           this._uv4,
           VertexAttribute.UV4,
-          ElementIndex.UV4,
+          VertexElementIndex.UV4,
           this._readVector2VertexData
         );
       case 5:
         return this._getVertexElementData(
           this._uv5,
           VertexAttribute.UV5,
-          ElementIndex.UV5,
+          VertexElementIndex.UV5,
           this._readVector2VertexData
         );
       case 6:
         return this._getVertexElementData(
           this._uv6,
           VertexAttribute.UV6,
-          ElementIndex.UV6,
+          VertexElementIndex.UV6,
           this._readVector2VertexData
         );
       case 7:
         return this._getVertexElementData(
           this._uv7,
           VertexAttribute.UV7,
-          ElementIndex.UV7,
+          VertexElementIndex.UV7,
           this._readVector2VertexData
         );
     }
@@ -774,7 +793,7 @@ export class ModelMesh extends Mesh {
     oldVertices: T[],
     vertices: T[],
     elementChangeFlag: VertexElementFlags,
-    elementIndex: ElementIndex
+    elementIndex: VertexElementIndex
   ): boolean {
     if (!this._accessible) {
       throw "Not allowed to access data while accessible is false.";
@@ -796,7 +815,7 @@ export class ModelMesh extends Mesh {
     oldVertices: T[],
     vertices: T[],
     elementChangeFlag: VertexElementFlags,
-    elementIndex: ElementIndex
+    elementIndex: VertexElementIndex
   ): void {
     this._internalVertexElementsUpdate ||= !!oldVertices !== !!vertices;
     this._advancedDataUpdateFlag |= elementChangeFlag;
@@ -1248,7 +1267,7 @@ enum VertexElementFlags {
   All = 0xffff
 }
 
-enum ElementIndex {
+enum VertexElementIndex {
   Position = 0,
   Normal = 1,
   Color = 2,
