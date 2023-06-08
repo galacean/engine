@@ -235,12 +235,4 @@ export class Buffer extends GraphicsResource {
     super._onDestroy();
     this._platformBuffer.destroy();
   }
-
-  /**
-   * @deprecated
-   */
-  resize(byteLength: number) {
-    this._platformBuffer.resize(byteLength);
-    this._byteLength = byteLength;
-  }
 }
