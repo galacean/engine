@@ -15,7 +15,7 @@ import "./SpriteLoader";
 import "./Texture2DLoader";
 import "./TextureCubeLoader";
 import "./AnimationClipLoader";
-import "./AudioLoader"
+import "./AudioLoader";
 
 export { parseSingleKTX } from "./compressed-texture";
 export type { GLTFParams } from "./GLTFLoader";
