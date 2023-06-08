@@ -804,14 +804,14 @@ export class ModelMesh extends Mesh {
   }
 
   private _updateInternalVertexBuffer(accessible: boolean): void {
-    const vertexBufferIndex = this._internalVertexBufferIndex;
-
-    // Need recreate internal vertex buffer
     const bufferStride = this._internalVertexBufferStride;
     const vertexCount = this.vertexCount;
-
     const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
+
+    // If need recreate internal vertex buffer
     if (bufferCreatedInfo.x !== bufferStride || bufferCreatedInfo.y !== vertexCount) {
+      const vertexBufferIndex = this._internalVertexBufferIndex;
+
       // Destroy old internal vertex buffer
       let vertexBuffer = this._vertexBufferBindings[vertexBufferIndex]?._buffer;
       vertexBuffer?.destroy();
@@ -1067,61 +1067,61 @@ export class ModelMesh extends Mesh {
 
   private _updateAdvancedVertices(): void {
     // prettier-ignore
-    const { _positions, _normals, _colors, _advancedDataUpdateFlag: _internalVertexBufferUpdateFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
+    const { _positions, _normals, _colors, _advancedDataUpdateFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
-    if (_internalVertexBufferUpdateFlag & VertexElementFlags.Position) {
+    if (_advancedDataUpdateFlag & VertexElementFlags.Position) {
       this._setInternalVector3VertexData(VertexAttribute.Position, _positions);
     }
 
-    if (_normals && _internalVertexBufferUpdateFlag & VertexElementFlags.Normal) {
+    if (_normals && _advancedDataUpdateFlag & VertexElementFlags.Normal) {
       this._setInternalVector3VertexData(VertexAttribute.Normal, _normals);
     }
 
-    if (_colors && _internalVertexBufferUpdateFlag & VertexElementFlags.Color) {
+    if (_colors && _advancedDataUpdateFlag & VertexElementFlags.Color) {
       this._setInternalColorVertexData(VertexAttribute.Color, _colors);
     }
 
-    if (_boneWeights && _internalVertexBufferUpdateFlag & VertexElementFlags.BoneWeight) {
+    if (_boneWeights && _advancedDataUpdateFlag & VertexElementFlags.BoneWeight) {
       this._setInternalVector4VertexData(VertexAttribute.BoneWeight, _boneWeights);
     }
 
-    if (_boneIndices && _internalVertexBufferUpdateFlag & VertexElementFlags.BoneIndex) {
+    if (_boneIndices && _advancedDataUpdateFlag & VertexElementFlags.BoneIndex) {
       this._setInternalVector4VertexData(VertexAttribute.BoneIndex, _boneIndices);
     }
 
-    if (_tangents && _internalVertexBufferUpdateFlag & VertexElementFlags.Tangent) {
+    if (_tangents && _advancedDataUpdateFlag & VertexElementFlags.Tangent) {
       this._setInternalVector4VertexData(VertexAttribute.Tangent, _tangents);
     }
 
-    if (_uv && _internalVertexBufferUpdateFlag & VertexElementFlags.UV) {
+    if (_uv && _advancedDataUpdateFlag & VertexElementFlags.UV) {
       this._setInternalVector2VertexData(VertexAttribute.UV, _uv);
     }
 
-    if (_uv1 && _internalVertexBufferUpdateFlag & VertexElementFlags.UV1) {
+    if (_uv1 && _advancedDataUpdateFlag & VertexElementFlags.UV1) {
       this._setInternalVector2VertexData(VertexAttribute.UV1, _uv1);
     }
 
-    if (_uv2 && _internalVertexBufferUpdateFlag & VertexElementFlags.UV2) {
+    if (_uv2 && _advancedDataUpdateFlag & VertexElementFlags.UV2) {
       this._setInternalVector2VertexData(VertexAttribute.UV2, _uv2);
     }
 
-    if (_uv3 && _internalVertexBufferUpdateFlag & VertexElementFlags.UV3) {
+    if (_uv3 && _advancedDataUpdateFlag & VertexElementFlags.UV3) {
       this._setInternalVector2VertexData(VertexAttribute.UV3, _uv3);
     }
 
-    if (_uv4 && _internalVertexBufferUpdateFlag & VertexElementFlags.UV4) {
+    if (_uv4 && _advancedDataUpdateFlag & VertexElementFlags.UV4) {
       this._setInternalVector2VertexData(VertexAttribute.UV4, _uv4);
     }
 
-    if (_uv5 && _internalVertexBufferUpdateFlag & VertexElementFlags.UV5) {
+    if (_uv5 && _advancedDataUpdateFlag & VertexElementFlags.UV5) {
       this._setInternalVector2VertexData(VertexAttribute.UV5, _uv5);
     }
 
-    if (_uv6 && _internalVertexBufferUpdateFlag & VertexElementFlags.UV6) {
+    if (_uv6 && _advancedDataUpdateFlag & VertexElementFlags.UV6) {
       this._setInternalVector2VertexData(VertexAttribute.UV6, _uv6);
     }
 
-    if (_uv7 && _internalVertexBufferUpdateFlag & VertexElementFlags.UV7) {
+    if (_uv7 && _advancedDataUpdateFlag & VertexElementFlags.UV7) {
       this._setInternalVector2VertexData(VertexAttribute.UV7, _uv7);
     }
 
@@ -1156,7 +1156,7 @@ export class ModelMesh extends Mesh {
     );
 
     this._internalVertexBufferStride += this._getAttributeByteLength(vertexAttribute);
-    this._internalVertexElementsFlags ||= vertexFlag;
+    this._internalVertexElementsFlags |= vertexFlag;
   }
 
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {
