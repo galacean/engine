@@ -852,7 +852,7 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _getVertexDataReader(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
+  private _getVertexTypedArray(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
     switch (dataType) {
       case DataType.BYTE:
         return new Int8Array(vertexDataBuffer);
@@ -912,7 +912,7 @@ export class ModelMesh extends Mesh {
     const vertexCount = this._vertexCount;
     const formatMetaInfo = vertexElement._formatMetaInfo;
     const vertices = new Array<T>(vertexCount);
-    const dataReader = this._getVertexDataReader(buffer.data.buffer, formatMetaInfo.type);
+    const dataReader = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
     const byteOffset = vertexElement.offset;
     const byteStride = bufferBinding.stride;
 
@@ -1017,45 +1017,45 @@ export class ModelMesh extends Mesh {
   }
 
   private _setVector2AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector2[]): void {
-    this._writeAdvancedVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+    this._writeAdvancedVertexData(attributeType, (typedArray: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
-      dataReader[offset] = vertex.x;
-      dataReader[offset + 1] = vertex.y;
+      typedArray[offset] = vertex.x;
+      typedArray[offset + 1] = vertex.y;
     });
   }
 
   private _setVector3AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector3[]): void {
-    this._writeAdvancedVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+    this._writeAdvancedVertexData(attributeType, (typedArray: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
-      dataReader[offset] = vertex.x;
-      dataReader[offset + 1] = vertex.y;
-      dataReader[offset + 2] = vertex.z;
+      typedArray[offset] = vertex.x;
+      typedArray[offset + 1] = vertex.y;
+      typedArray[offset + 2] = vertex.z;
     });
   }
 
   private _setVector4AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector4[]): void {
-    this._writeAdvancedVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+    this._writeAdvancedVertexData(attributeType, (typedArray: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
-      dataReader[offset] = vertex.x;
-      dataReader[offset + 1] = vertex.y;
-      dataReader[offset + 2] = vertex.z;
-      dataReader[offset + 3] = vertex.w;
+      typedArray[offset] = vertex.x;
+      typedArray[offset + 1] = vertex.y;
+      typedArray[offset + 2] = vertex.z;
+      typedArray[offset + 3] = vertex.w;
     });
   }
 
   private _setColorAdvancedVertexData(attributeType: VertexAttribute, vertices: Color[]): void {
-    this._writeAdvancedVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+    this._writeAdvancedVertexData(attributeType, (typedArray: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
-      dataReader[offset] = vertex.r;
-      dataReader[offset + 1] = vertex.g;
-      dataReader[offset + 2] = vertex.b;
-      dataReader[offset + 3] = vertex.a;
+      typedArray[offset] = vertex.r;
+      typedArray[offset + 1] = vertex.g;
+      typedArray[offset + 2] = vertex.b;
+      typedArray[offset + 3] = vertex.a;
     });
   }
 
   private _writeAdvancedVertexData(
     attributeType: VertexAttribute,
-    onVertexWrite: (dataReader: TypedArray, offset: number, index: number) => void
+    onVertexWrite: (typedArray: TypedArray, offset: number, index: number) => void
   ): void {
     const vertexElement = this._vertexElementMap[attributeType];
     const bufferBinding = this._vertexBufferBindings[vertexElement.bindingIndex];
@@ -1064,18 +1064,18 @@ export class ModelMesh extends Mesh {
       return;
     }
     const formatMetaInfo = vertexElement._formatMetaInfo;
-    const dataReader = this._getVertexDataReader(buffer.data.buffer, formatMetaInfo.type);
+    const typedArray = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
     const byteOffset = vertexElement.offset;
     const byteStride = bufferBinding.stride;
-    const { BYTES_PER_ELEMENT } = dataReader;
+    const { BYTES_PER_ELEMENT } = typedArray;
 
     const { normalized, size, normalizedScaleFactor } = formatMetaInfo;
     for (let i = 0, n = this._vertexCount; i < n; i++) {
       const offset = (i * byteStride + byteOffset) / BYTES_PER_ELEMENT;
-      onVertexWrite(dataReader, offset, i);
+      onVertexWrite(typedArray, offset, i);
       if (normalized) {
         for (let j = 0; j < size; j++) {
-          dataReader[offset + j] /= normalizedScaleFactor;
+          typedArray[offset + j] /= normalizedScaleFactor;
         }
       }
     }
