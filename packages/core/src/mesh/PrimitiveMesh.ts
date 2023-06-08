@@ -38,8 +38,10 @@ export class PrimitiveMesh {
   ): ModelMesh {
     const sphereMesh = new ModelMesh(engine);
     PrimitiveMesh._setSphereData(sphereMesh, radius, segments, noLongerAccessible, false);
+
+    const vertexBuffer = sphereMesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
-      new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, segments, noLongerAccessible))
+      new PrimitiveMeshRestorer(sphereMesh, new SphereRestoreInfo(radius, segments, vertexBuffer, noLongerAccessible))
     );
     return sphereMesh;
   }
@@ -62,8 +64,10 @@ export class PrimitiveMesh {
   ): ModelMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setCuboidData(mesh, width, height, depth, noLongerAccessible, false);
+
+    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
-      new PrimitiveMeshRestorer(mesh, new CuboidRestoreInfo(width, height, depth, noLongerAccessible))
+      new PrimitiveMeshRestorer(mesh, new CuboidRestoreInfo(width, height, depth, vertexBuffer, noLongerAccessible))
     );
     return mesh;
   }
@@ -88,10 +92,12 @@ export class PrimitiveMesh {
   ): ModelMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setPlaneData(mesh, width, height, horizontalSegments, verticalSegments, noLongerAccessible, false);
+
+    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
-        new PlaneRestoreInfo(width, height, horizontalSegments, verticalSegments, noLongerAccessible)
+        new PlaneRestoreInfo(width, height, horizontalSegments, verticalSegments, vertexBuffer, noLongerAccessible)
       )
     );
     return mesh;
@@ -128,10 +134,20 @@ export class PrimitiveMesh {
       noLongerAccessible,
       false
     );
+
+    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
-        new CylinderRestoreInfo(radiusTop, radiusBottom, height, radialSegments, heightSegments, noLongerAccessible)
+        new CylinderRestoreInfo(
+          radiusTop,
+          radiusBottom,
+          height,
+          radialSegments,
+          heightSegments,
+          vertexBuffer,
+          noLongerAccessible
+        )
       )
     );
     return mesh;
@@ -168,10 +184,12 @@ export class PrimitiveMesh {
       noLongerAccessible,
       false
     );
+
+    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
-        new TorusRestoreInfo(radius, tubeRadius, radialSegments, tubularSegments, arc, noLongerAccessible)
+        new TorusRestoreInfo(radius, tubeRadius, radialSegments, tubularSegments, arc, vertexBuffer, noLongerAccessible)
       )
     );
     return mesh;
@@ -197,10 +215,12 @@ export class PrimitiveMesh {
   ): ModelMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setConeData(mesh, radius, height, radialSegments, heightSegments, noLongerAccessible, false);
+
+    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
-        new ConeRestoreInfo(radius, height, radialSegments, heightSegments, noLongerAccessible)
+        new ConeRestoreInfo(radius, height, radialSegments, heightSegments, vertexBuffer, noLongerAccessible)
       )
     );
     return mesh;
@@ -226,10 +246,12 @@ export class PrimitiveMesh {
   ): ModelMesh {
     const mesh = new ModelMesh(engine);
     PrimitiveMesh._setCapsuleData(mesh, radius, height, radialSegments, heightSegments, noLongerAccessible, false);
+
+    const vertexBuffer = mesh.vertexBufferBindings[0].buffer;
     engine.resourceManager.addContentRestorer(
       new PrimitiveMeshRestorer(
         mesh,
-        new CapsuleRestoreInfo(radius, height, radialSegments, heightSegments, noLongerAccessible)
+        new CapsuleRestoreInfo(radius, height, radialSegments, heightSegments, vertexBuffer, noLongerAccessible)
       )
     );
     return mesh;
@@ -243,7 +265,8 @@ export class PrimitiveMesh {
     radius: number,
     segments: number,
     noLongerAccessible: boolean,
-    isRestoreMode: boolean
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
   ): void {
     segments = Math.max(2, Math.floor(segments));
 
@@ -310,7 +333,7 @@ export class PrimitiveMesh {
       bounds.max.set(radius, radius, radius);
     }
 
-    PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode);
+    PrimitiveMesh._initialize(sphereMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
   /**
@@ -322,7 +345,8 @@ export class PrimitiveMesh {
     height: number,
     depth: number,
     noLongerAccessible: boolean,
-    isRestoreMode: boolean
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
   ): void {
     const halfWidth = width / 2;
     const halfHeight = height / 2;
@@ -436,7 +460,7 @@ export class PrimitiveMesh {
       bounds.min.set(-halfWidth, -halfHeight, -halfDepth);
       bounds.max.set(halfWidth, halfHeight, halfDepth);
     }
-    PrimitiveMesh._initialize(cuboidMesh, vertices, indices, noLongerAccessible, isRestoreMode);
+    PrimitiveMesh._initialize(cuboidMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
   /**
@@ -449,7 +473,8 @@ export class PrimitiveMesh {
     horizontalSegments: number,
     verticalSegments: number,
     noLongerAccessible: boolean,
-    isRestoreMode: boolean
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
   ): void {
     horizontalSegments = Math.max(1, Math.floor(horizontalSegments));
     verticalSegments = Math.max(1, Math.floor(verticalSegments));
@@ -512,7 +537,7 @@ export class PrimitiveMesh {
       bounds.max.set(halfWidth, 0, halfHeight);
     }
 
-    PrimitiveMesh._initialize(planeMesh, vertices, indices, noLongerAccessible, isRestoreMode);
+    PrimitiveMesh._initialize(planeMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
   static _setCylinderData(
@@ -523,7 +548,8 @@ export class PrimitiveMesh {
     radialSegments: number = 20,
     heightSegments: number = 1,
     noLongerAccessible: boolean,
-    isRestoreMode: boolean
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
   ): void {
     radialSegments = Math.floor(radialSegments);
     heightSegments = Math.floor(heightSegments);
@@ -692,7 +718,7 @@ export class PrimitiveMesh {
       bounds.min.set(-radiusMax, -halfHeight, -radiusMax);
       bounds.max.set(radiusMax, halfHeight, radiusMax);
     }
-    PrimitiveMesh._initialize(cylinderMesh, vertices, indices, noLongerAccessible, isRestoreMode);
+    PrimitiveMesh._initialize(cylinderMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
   /**
@@ -706,7 +732,8 @@ export class PrimitiveMesh {
     tubularSegments: number,
     arc: number,
     noLongerAccessible: boolean,
-    isRestoreMode: boolean
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
   ): void {
     radialSegments = Math.floor(radialSegments);
     tubularSegments = Math.floor(tubularSegments);
@@ -779,7 +806,7 @@ export class PrimitiveMesh {
       bounds.max.set(outerRadius, outerRadius, tubeRadius);
     }
 
-    PrimitiveMesh._initialize(torusMesh, vertices, indices, noLongerAccessible, isRestoreMode);
+    PrimitiveMesh._initialize(torusMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
   /**
@@ -792,7 +819,8 @@ export class PrimitiveMesh {
     radialSegments: number,
     heightSegments: number,
     noLongerAccessible: boolean,
-    isRestoreMode: boolean
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
   ): void {
     radialSegments = Math.floor(radialSegments);
     heightSegments = Math.floor(heightSegments);
@@ -918,7 +946,7 @@ export class PrimitiveMesh {
       bounds.max.set(radius, halfHeight, radius);
     }
 
-    PrimitiveMesh._initialize(coneMesh, vertices, indices, noLongerAccessible, isRestoreMode);
+    PrimitiveMesh._initialize(coneMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
   static _setCapsuleData(
@@ -928,7 +956,8 @@ export class PrimitiveMesh {
     radialSegments: number,
     heightSegments: number,
     noLongerAccessible: boolean,
-    isRestoreMode: boolean
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
   ): void {
     radialSegments = Math.max(2, Math.floor(radialSegments));
     heightSegments = Math.floor(heightSegments);
@@ -1036,7 +1065,7 @@ export class PrimitiveMesh {
       bounds.max.set(radius, radius + halfHeight, radius);
     }
 
-    PrimitiveMesh._initialize(capsuleMesh, vertices, indices, noLongerAccessible, isRestoreMode);
+    PrimitiveMesh._initialize(capsuleMesh, vertices, indices, noLongerAccessible, isRestoreMode, restoreVertexBuffer);
   }
 
   private static _initialize(
@@ -1044,9 +1073,14 @@ export class PrimitiveMesh {
     vertices: Float32Array,
     indices: Uint16Array | Uint32Array,
     noLongerAccessible: boolean,
-    isRestoreMode: boolean
+    isRestoreMode: boolean,
+    restoreVertexBuffer?: Buffer
   ) {
-    if (!isRestoreMode) {
+    if (isRestoreMode) {
+      restoreVertexBuffer.setData(vertices);
+      mesh.setIndices(indices);
+      mesh.uploadData(noLongerAccessible);
+    } else {
       const vertexElements = [
         new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
         new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
@@ -1063,10 +1097,6 @@ export class PrimitiveMesh {
       mesh.uploadData(noLongerAccessible);
 
       mesh.addSubMesh(0, indices.length);
-    } else {
-      mesh.vertexBufferBindings[0].buffer.setData(vertices);
-      mesh.setIndices(indices);
-      mesh.uploadData(noLongerAccessible);
     }
   }
 
