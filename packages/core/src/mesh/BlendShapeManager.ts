@@ -1,5 +1,4 @@
-import { Vector2, Vector3 } from "@galacean/engine-math";
-import { Vector4 } from "oasis-engine";
+import { Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
