@@ -1,4 +1,5 @@
 import { Vector2, Vector3 } from "@galacean/engine-math";
+import { Vector4 } from "oasis-engine";
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { Engine } from "../Engine";
 import { Buffer } from "../graphic/Buffer";
@@ -54,7 +55,7 @@ export class BlendShapeManager {
   private _maxCountSingleVertexBuffer: number = 0;
   private readonly _engine: Engine;
   private readonly _modelMesh: ModelMesh;
-  private readonly _lastCreateHostInfo: Vector3 = new Vector3(0, 0, 0);
+  private readonly _lastHostCreatedInfo: Vector4 = new Vector4(); // x: blendShapeCount, y: useNormal, z: useBlendTangent, w: vertexCount
   private readonly _canUseTextureStoreData: boolean = true;
   private readonly _dataTextureInfo: Vector3 = new Vector3();
 
@@ -163,9 +164,14 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _layoutOrCountChange(): boolean {
-    const last = this._lastCreateHostInfo;
-    return last.x !== this._blendShapeCount || !!last.y !== this._useBlendNormal || !!last.z !== this._useBlendTangent;
+  _isCreateHost(vertexCount: number): boolean {
+    const createdInfo = this._lastHostCreatedInfo;
+    return (
+      createdInfo.x !== this._blendShapeCount ||
+      !!createdInfo.y !== this._useBlendNormal ||
+      !!createdInfo.z !== this._useBlendTangent ||
+      createdInfo.w !== vertexCount
+    );
   }
 
   /**
@@ -173,7 +179,7 @@ export class BlendShapeManager {
    */
   _vertexElementsNeedUpdate(): boolean {
     const maxSupportCount = this._getVertexBufferModeSupportCount();
-    const info = this._lastCreateHostInfo;
+    const info = this._lastHostCreatedInfo;
     return (
       Math.min(info.x, maxSupportCount) !== Math.min(this._blendShapeCount, maxSupportCount) ||
       !!info.y !== this._useBlendNormal ||
@@ -246,10 +252,10 @@ export class BlendShapeManager {
   /**
    * @internal
    */
-  _update(vertexCountChange: boolean, noLongerReadable: boolean): void {
+  _update(noLongerReadable: boolean): void {
     const { vertexCount } = this._modelMesh;
     const useTexture = this._useTextureMode();
-    const createHost = this._layoutOrCountChange() || vertexCountChange;
+    const createHost = this._isCreateHost(vertexCount);
 
     if (createHost) {
       if (useTexture) {
@@ -257,7 +263,7 @@ export class BlendShapeManager {
       } else {
         this._createVertexBuffers(vertexCount, noLongerReadable);
       }
-      this._lastCreateHostInfo.set(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent);
+      this._lastHostCreatedInfo.set(this._blendShapeCount, +this._useBlendNormal, +this._useBlendTangent, vertexCount);
     }
     if (this._needUpdateData()) {
       if (useTexture) {

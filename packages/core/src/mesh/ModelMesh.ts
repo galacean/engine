@@ -53,11 +53,10 @@ export class ModelMesh extends Mesh {
 
   private _internalVertexBuffer: Buffer;
   private _internalVertexBufferStride: number = 0;
-  private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
-  private _internalBufferCreatedInfo: Vector2 = new Vector2(); // x:vertexCount, y:vertexStride
-  private _internalVertexElementsUpdate: boolean = false;
+  private _internalVertexBufferCreatedInfo: Vector2 = new Vector2(); // x:vertexCount, y:vertexStride
   private _internalVertexElementsOffset: number = 0;
-  private _internalVertexCountChanged: boolean = false;
+  private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
+  private _internalVertexElementsUpdate: boolean = false;
   private _internalDataSyncToBuffer: boolean = false;
 
   private _vertexBufferDataVersions: number[] = [];
@@ -150,9 +149,7 @@ export class ModelMesh extends Mesh {
     this._advancedVertexDataVersions[ElementIndex.Position] = this._dataVersionCounter++;
     this._positions = positions;
 
-    const newVertexCount = positions?.length ?? 0;
-    this._internalVertexCountChanged = this._vertexCount != newVertexCount;
-    this._vertexCount = newVertexCount;
+    this._vertexCount = positions?.length ?? 0;
     this._vertexCountDirty = false;
   }
 
@@ -655,8 +652,7 @@ export class ModelMesh extends Mesh {
     }
 
     const blendShapeManager = this._blendShapeManager;
-    blendShapeManager._blendShapeCount > 0 &&
-      blendShapeManager._update(this._internalVertexCountChanged, noLongerAccessible);
+    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(noLongerAccessible);
 
     if (noLongerAccessible) {
       this._accessible = false;
@@ -807,7 +803,7 @@ export class ModelMesh extends Mesh {
     const bufferStride = this._internalVertexBufferStride;
     const vertexCount = this.vertexCount;
 
-    const bufferCreatedInfo = this._internalBufferCreatedInfo;
+    const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
     if (bufferCreatedInfo.x !== bufferStride || bufferCreatedInfo.y !== vertexCount) {
       // Destroy old internal vertex buffer
       let vertexBuffer = this._vertexBufferBindings[vertexBufferIndex]?._buffer;
@@ -827,8 +823,6 @@ export class ModelMesh extends Mesh {
         this._setVertexBufferBinding(vertexBufferIndex, null);
         this._internalVertexBuffer = null;
       }
-
-      this._internalVertexCountChanged = false;
       bufferCreatedInfo.set(bufferStride, vertexCount);
     }
   }
