@@ -228,4 +228,17 @@ export class ComponentsManager {
     componentContainer.length = 0;
     this._componentsContainerPool.push(componentContainer);
   }
+
+  /**
+   * @internal
+   */
+  _gc() {
+    this._renderers.garbageCollection();
+    this._onStartScripts.garbageCollection();
+    this._onUpdateScripts.garbageCollection();
+    this._onLateUpdateScripts.garbageCollection();
+    this._onPhysicsUpdateScripts.garbageCollection();
+    this._onUpdateAnimations.garbageCollection();
+    this._onUpdateRenderers.garbageCollection();
+  }
 }

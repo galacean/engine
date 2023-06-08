@@ -145,4 +145,13 @@ export class LightManager {
       shaderData.disableMacro("SCENE_SPOT_LIGHT_COUNT");
     }
   }
+
+  /**
+   * @internal
+   */
+  _gc() {
+    this._spotLights.garbageCollection();
+    this._pointLights.garbageCollection();
+    this._directLights.garbageCollection();
+  }
 }
