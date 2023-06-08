@@ -30,10 +30,9 @@ export class ModelMesh extends Mesh {
   _internalVertexBufferIndex: number = -1;
 
   private _vertexCount: number = 0;
+  private _vertexCountDirty: boolean = false;
   private _accessible: boolean = true;
-  private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
-  private _indicesFormat: IndexFormat = null;
-  private _indicesChangeFlag: boolean = false;
+  private _dataVersionCounter: number = 0;
 
   private _positions: Vector3[] | null = null;
   private _normals: Vector3[] | null = null;
@@ -49,22 +48,23 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
+  private _advancedDataUpdateFlag: VertexElementFlags = VertexElementFlags.None;
+  private _advancedVertexDataVersions: number[] = new Array<number>(13); // Only have 13 vertex element can set advanced data
 
-  private _dataVersionCounter: number = 0;
-  private _vertexBufferDataVersions: number[] = [];
-
-  private _internalBuffer: Buffer;
+  private _internalVertexBuffer: Buffer;
+  private _internalVertexBufferStride: number = 0;
   private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
-  private _internalBufferStride: number = 0;
   private _internalBufferCreatedInfo: Vector2 = new Vector2(); // x:vertexCount, y:vertexStride
   private _internalVertexElementsUpdate: boolean = false;
   private _internalVertexElementsOffset: number = 0;
   private _internalVertexCountChanged: boolean = false;
-  private _vertexCountDirty: boolean = false;
   private _internalDataSyncToBuffer: boolean = false;
 
-  private _advancedDataUpdateFlag: VertexElementFlags = VertexElementFlags.None;
-  private _advancedVertexDataVersions: number[] = new Array<number>(13); // Only have 13 vertex element can set advanced data
+  private _vertexBufferDataVersions: number[] = [];
+
+  private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
+  private _indicesFormat: IndexFormat = null;
+  private _indicesChangeFlag: boolean = false;
 
   /**
    * Whether to access data of the mesh.
@@ -628,7 +628,7 @@ export class ModelMesh extends Mesh {
     if (this._advancedDataUpdateFlag & VertexElementFlags.All) {
       this._updateAdvancedVertices();
       this._internalDataSyncToBuffer = true;
-      this._internalBuffer?.setData(this._internalBuffer.data);
+      this._internalVertexBuffer?.setData(this._internalVertexBuffer.data);
       this._internalDataSyncToBuffer = false;
     }
 
@@ -804,7 +804,7 @@ export class ModelMesh extends Mesh {
     const vertexBufferIndex = this._internalVertexBufferIndex;
 
     // Need recreate internal vertex buffer
-    const bufferStride = this._internalBufferStride;
+    const bufferStride = this._internalVertexBufferStride;
     const vertexCount = this.vertexCount;
 
     const bufferCreatedInfo = this._internalBufferCreatedInfo;
@@ -822,10 +822,10 @@ export class ModelMesh extends Mesh {
         this._internalDataSyncToBuffer = true;
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
         this._internalDataSyncToBuffer = false;
-        this._internalBuffer = vertexBuffer;
+        this._internalVertexBuffer = vertexBuffer;
       } else {
         this._setVertexBufferBinding(vertexBufferIndex, null);
-        this._internalBuffer = null;
+        this._internalVertexBuffer = null;
       }
 
       this._internalVertexCountChanged = false;
@@ -912,7 +912,7 @@ export class ModelMesh extends Mesh {
    */
   private _updateInternalVertexElements(): void {
     this._updateInternalVertexBufferIndex();
-    this._internalBufferStride = 0;
+    this._internalVertexBufferStride = 0;
     this._internalVertexElementsFlags = VertexElementFlags.None;
 
     let offset = this._internalVertexElementsOffset;
@@ -1149,9 +1149,12 @@ export class ModelMesh extends Mesh {
   ): void {
     const format = this._getAttributeFormat(vertexAttribute);
     const bufferIndex = this._internalVertexBufferIndex;
-    this._setVertexElement(index, new VertexElement(vertexAttribute, this._internalBufferStride, format, bufferIndex));
+    this._setVertexElement(
+      index,
+      new VertexElement(vertexAttribute, this._internalVertexBufferStride, format, bufferIndex)
+    );
 
-    this._internalBufferStride += this._getAttributeByteLength(vertexAttribute);
+    this._internalVertexBufferStride += this._getAttributeByteLength(vertexAttribute);
     this._internalVertexElementsFlags ||= vertexFlag;
   }
 
@@ -1208,7 +1211,7 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
-    this._internalBuffer?.markAsUnreadable();
+    this._internalVertexBuffer?.markAsUnreadable();
     this._indices = null;
     this._positions = null;
     this._tangents = null;
