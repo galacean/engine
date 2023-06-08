@@ -28,8 +28,8 @@ export class AnimationFloatCurve extends AnimationCurve<number> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner<number>): void {
-    owner.lastValue = 0;
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = 0;
   }
 
   /**

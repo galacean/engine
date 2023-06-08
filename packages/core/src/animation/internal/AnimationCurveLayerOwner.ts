@@ -1,29 +1,22 @@
-import { IAnimationCurveCalculator } from "../animationCurve/interfaces/IAnimationCurveCalculator";
 import { KeyframeValueType } from "../Keyframe";
 import { AnimationCurveOwner } from "./animationCurveOwner/AnimationCurveOwner";
 
 /**
  * @internal
  */
-export class AnimationCurveLayerOwner<V extends KeyframeValueType> {
+export class AnimationCurveLayerOwner {
   crossSrcCurveIndex: number;
   crossDestCurveIndex: number;
   crossCurveMark: number = 0;
-  curveOwner: AnimationCurveOwner<V>;
-  lastValue: V;
+  curveOwner: AnimationCurveOwner<KeyframeValueType>;
+  finalValue: KeyframeValueType;
 
-  private _cureType: IAnimationCurveCalculator<V>;
-
-  constructor(cureType: IAnimationCurveCalculator<V>) {
-    this._cureType = cureType;
-  }
-
-  saveLastValue(): void {
+  saveFinalValue(): void {
     const owner = this.curveOwner;
-    if (this._cureType._isReferenceType) {
-      owner.getCurrentValue(this.lastValue);
+    if (owner.cureType._isReferenceType) {
+      owner.getEvaluateValue(this.finalValue);
     } else {
-      this.lastValue = owner.getCurrentValue(this.lastValue);
+      this.finalValue = owner.getEvaluateValue(this.finalValue);
     }
   }
 }

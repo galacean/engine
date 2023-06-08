@@ -10,7 +10,7 @@ export interface IAnimationCurveCalculator<V extends KeyframeValueType> {
   _isInterpolationType: boolean;
 
   _initializeOwner(owner: AnimationCurveOwner<V>);
-  _initializeLayerOwner(owner: AnimationCurveLayerOwner<V>);
+  _initializeLayerOwner(owner: AnimationCurveLayerOwner);
 
   _lerpValue(src: V, dest: V, weight: number, out?: V): V;
   _additiveValue(additive: V, weight: number, srcOut: V): V;

@@ -9,7 +9,7 @@ import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
  * @internal
  */
 export class AnimatorLayerData {
-  curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner<KeyframeValueType>>> = Object.create(null);
+  curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
 
   animatorStateDataMap: Record<string, AnimatorStateData> = {};
   srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
@@ -18,7 +18,7 @@ export class AnimatorLayerData {
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
   crossFadeTransition: AnimatorStateTransition;
-  crossLayerOwnerCollection: AnimationCurveLayerOwner<KeyframeValueType>[] = [];
+  crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
   switchPlayData(): void {
     const srcPlayData = this.destPlayData;

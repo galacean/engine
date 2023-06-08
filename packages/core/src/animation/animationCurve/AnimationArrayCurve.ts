@@ -28,8 +28,8 @@ export class AnimationArrayCurve extends AnimationCurve<number[]> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner<number[]>): void {
-    owner.lastValue = [];
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = [];
   }
 
   /**

@@ -29,8 +29,8 @@ export class AnimationColorCurve extends AnimationCurve<Color> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner<Color>): void {
-    owner.lastValue = new Color();
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = new Color();
   }
 
   /**

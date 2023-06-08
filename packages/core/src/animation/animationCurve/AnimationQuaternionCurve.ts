@@ -32,8 +32,8 @@ export class AnimationQuaternionCurve extends AnimationCurve<Quaternion> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner<Quaternion>): void {
-    owner.lastValue = new Quaternion();
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = new Quaternion();
   }
 
   /**

@@ -6,6 +6,6 @@ import { AnimationEventHandler } from "./AnimationEventHandler";
  * @internal
  */
 export class AnimatorStateData {
-  curveLayerOwner: AnimationCurveLayerOwner<KeyframeValueType>[] = [];
+  curveLayerOwner: AnimationCurveLayerOwner[] = [];
   eventHandlers: AnimationEventHandler[] = [];
 }

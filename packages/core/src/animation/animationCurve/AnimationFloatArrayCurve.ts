@@ -29,9 +29,9 @@ export class AnimationFloatArrayCurve extends AnimationCurve<Float32Array> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner<Float32Array>): void {
-    const size = owner.curveOwner.referenceTargetValue.length;
-    owner.lastValue = new Float32Array(size);
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    const size = (<Float32Array>owner.curveOwner.referenceTargetValue).length;
+    owner.finalValue = new Float32Array(size);
   }
 
   /**

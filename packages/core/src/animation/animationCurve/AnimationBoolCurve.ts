@@ -28,8 +28,8 @@ export class AnimationBoolCurve extends AnimationCurve<boolean> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner<boolean>): void {
-    owner.lastValue = false;
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = false;
   }
 
   /**

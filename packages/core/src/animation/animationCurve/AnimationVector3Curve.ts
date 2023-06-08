@@ -29,8 +29,8 @@ export class AnimationVector3Curve extends AnimationCurve<Vector3> {
   /**
    * @internal
    */
-  static _initializeLayerOwner(owner: AnimationCurveLayerOwner<Vector3>): void {
-    owner.lastValue = new Vector3();
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = new Vector3();
   }
 
   /**
