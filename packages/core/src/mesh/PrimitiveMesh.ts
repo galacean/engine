@@ -1043,24 +1043,27 @@ export class PrimitiveMesh {
     noLongerAccessible: boolean,
     isRestoreMode: boolean
   ) {
-    const vertexElements = [
-      new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
-      new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
-      new VertexElement(VertexAttribute.UV, 24, VertexElementFormat.Vector2, 0)
-    ];
-
-    const vertexBuffer = new Buffer(mesh.engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
-
-    mesh.setVertexElements(vertexElements);
-    mesh.setVertexBufferBinding(vertexBuffer, 32, 0);
-
-    mesh.setIndices(indices);
-    // mesh.calculateTangents();
-
-    mesh.uploadData(noLongerAccessible);
-
     if (!isRestoreMode) {
+      const vertexElements = [
+        new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+        new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
+        new VertexElement(VertexAttribute.UV, 24, VertexElementFormat.Vector2, 0)
+      ];
+      mesh.setVertexElements(vertexElements);
+      const vertexBuffer = new Buffer(mesh.engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
+
+      mesh.setVertexBufferBinding(vertexBuffer, 32, 0);
+
+      mesh.setIndices(indices);
+      // mesh.calculateTangents();
+
+      mesh.uploadData(noLongerAccessible);
+
       mesh.addSubMesh(0, indices.length);
+    } else {
+      mesh.vertexBufferBindings[0].buffer.setData(vertices);
+      mesh.setIndices(indices);
+      mesh.uploadData(noLongerAccessible);
     }
   }
 
