@@ -813,15 +813,14 @@ export class ModelMesh extends Mesh {
       const vertexBufferIndex = this._internalVertexBufferIndex;
 
       // Destroy old internal vertex buffer
-      let vertexBuffer = this._vertexBufferBindings[vertexBufferIndex]?._buffer;
-      vertexBuffer?.destroy();
+      this._vertexBufferBindings[vertexBufferIndex]?._buffer?.destroy();
 
       const byteLength = bufferStride * this.vertexCount;
       if (byteLength > 0) {
         // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
         const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
-        vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, true);
+        const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, true);
         this._advancedDataSyncToBuffer = true;
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
         this._advancedDataSyncToBuffer = false;
