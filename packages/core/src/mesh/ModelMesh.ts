@@ -926,9 +926,6 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
-  /**
-   * @returns The internal vertex buffer index
-   */
   private _updateInternalVertexElements(): void {
     this._updateInternalVertexBufferIndex();
     this._internalVertexBufferStride = 0;
