@@ -591,12 +591,11 @@ export class ModelMesh extends Mesh {
   setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
     const count = vertexBufferBindings.length;
     const bindings = this._vertexBufferBindings;
-    const dataVersions = this._vertexBufferDataVersions;
 
     const needLength = firstIndex + count;
     if (bindings.length < needLength) {
       bindings.length = needLength;
-      dataVersions.length = needLength;
+      this._vertexBufferDataVersions.length = needLength;
     }
 
     for (let i = 0; i < count; i++) {
