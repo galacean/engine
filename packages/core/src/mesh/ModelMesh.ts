@@ -1016,16 +1016,16 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _setInternalVector2VertexData(attributeType: VertexAttribute, vertices: Vector2[]): void {
-    this._writeInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+  private _setVector2AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector2[]): void {
+    this._writeAdvancedVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
       dataReader[offset] = vertex.x;
       dataReader[offset + 1] = vertex.y;
     });
   }
 
-  private _setInternalVector3VertexData(attributeType: VertexAttribute, vertices: Vector3[]): void {
-    this._writeInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+  private _setVector3AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector3[]): void {
+    this._writeAdvancedVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
       dataReader[offset] = vertex.x;
       dataReader[offset + 1] = vertex.y;
@@ -1033,8 +1033,8 @@ export class ModelMesh extends Mesh {
     });
   }
 
-  private _setInternalVector4VertexData(attributeType: VertexAttribute, vertices: Vector4[]): void {
-    this._writeInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+  private _setVector4AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector4[]): void {
+    this._writeAdvancedVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
       dataReader[offset] = vertex.x;
       dataReader[offset + 1] = vertex.y;
@@ -1043,8 +1043,8 @@ export class ModelMesh extends Mesh {
     });
   }
 
-  private _setInternalColorVertexData(attributeType: VertexAttribute, vertices: Color[]): void {
-    this._writeInternalVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
+  private _setColorAdvancedVertexData(attributeType: VertexAttribute, vertices: Color[]): void {
+    this._writeAdvancedVertexData(attributeType, (dataReader: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
       dataReader[offset] = vertex.r;
       dataReader[offset + 1] = vertex.g;
@@ -1053,9 +1053,9 @@ export class ModelMesh extends Mesh {
     });
   }
 
-  private _writeInternalVertexData<T extends VertexType>(
+  private _writeAdvancedVertexData(
     attributeType: VertexAttribute,
-    onVertexSet: (dataReader: TypedArray, offset: number, index: number) => void
+    onVertexWrite: (dataReader: TypedArray, offset: number, index: number) => void
   ): void {
     const vertexElement = this._vertexElementMap[attributeType];
     const bufferBinding = this._vertexBufferBindings[vertexElement.bindingIndex];
@@ -1065,16 +1065,14 @@ export class ModelMesh extends Mesh {
     }
     const formatMetaInfo = vertexElement._formatMetaInfo;
     const dataReader = this._getVertexDataReader(buffer.data.buffer, formatMetaInfo.type);
-    const { BYTES_PER_ELEMENT } = dataReader;
-
-    const vertexCount = this._vertexCount;
     const byteOffset = vertexElement.offset;
     const byteStride = bufferBinding.stride;
+    const { BYTES_PER_ELEMENT } = dataReader;
 
     const { normalized, size, normalizedScaleFactor } = formatMetaInfo;
-    for (let i = 0; i < vertexCount; i++) {
+    for (let i = 0, n = this._vertexCount; i < n; i++) {
       const offset = (i * byteStride + byteOffset) / BYTES_PER_ELEMENT;
-      onVertexSet(dataReader, offset, i);
+      onVertexWrite(dataReader, offset, i);
       if (normalized) {
         for (let j = 0; j < size; j++) {
           dataReader[offset + j] /= normalizedScaleFactor;
@@ -1088,59 +1086,59 @@ export class ModelMesh extends Mesh {
     const { _positions, _normals, _colors, _advancedDataUpdateFlag, _boneWeights, _boneIndices, _tangents, _uv, _uv1, _uv2, _uv3, _uv4, _uv5, _uv6, _uv7 } = this;
 
     if (_advancedDataUpdateFlag & VertexElementFlags.Position) {
-      this._setInternalVector3VertexData(VertexAttribute.Position, _positions);
+      this._setVector3AdvancedVertexData(VertexAttribute.Position, _positions);
     }
 
     if (_normals && _advancedDataUpdateFlag & VertexElementFlags.Normal) {
-      this._setInternalVector3VertexData(VertexAttribute.Normal, _normals);
+      this._setVector3AdvancedVertexData(VertexAttribute.Normal, _normals);
     }
 
     if (_colors && _advancedDataUpdateFlag & VertexElementFlags.Color) {
-      this._setInternalColorVertexData(VertexAttribute.Color, _colors);
+      this._setColorAdvancedVertexData(VertexAttribute.Color, _colors);
     }
 
     if (_boneWeights && _advancedDataUpdateFlag & VertexElementFlags.BoneWeight) {
-      this._setInternalVector4VertexData(VertexAttribute.BoneWeight, _boneWeights);
+      this._setVector4AdvancedVertexData(VertexAttribute.BoneWeight, _boneWeights);
     }
 
     if (_boneIndices && _advancedDataUpdateFlag & VertexElementFlags.BoneIndex) {
-      this._setInternalVector4VertexData(VertexAttribute.BoneIndex, _boneIndices);
+      this._setVector4AdvancedVertexData(VertexAttribute.BoneIndex, _boneIndices);
     }
 
     if (_tangents && _advancedDataUpdateFlag & VertexElementFlags.Tangent) {
-      this._setInternalVector4VertexData(VertexAttribute.Tangent, _tangents);
+      this._setVector4AdvancedVertexData(VertexAttribute.Tangent, _tangents);
     }
 
     if (_uv && _advancedDataUpdateFlag & VertexElementFlags.UV) {
-      this._setInternalVector2VertexData(VertexAttribute.UV, _uv);
+      this._setVector2AdvancedVertexData(VertexAttribute.UV, _uv);
     }
 
     if (_uv1 && _advancedDataUpdateFlag & VertexElementFlags.UV1) {
-      this._setInternalVector2VertexData(VertexAttribute.UV1, _uv1);
+      this._setVector2AdvancedVertexData(VertexAttribute.UV1, _uv1);
     }
 
     if (_uv2 && _advancedDataUpdateFlag & VertexElementFlags.UV2) {
-      this._setInternalVector2VertexData(VertexAttribute.UV2, _uv2);
+      this._setVector2AdvancedVertexData(VertexAttribute.UV2, _uv2);
     }
 
     if (_uv3 && _advancedDataUpdateFlag & VertexElementFlags.UV3) {
-      this._setInternalVector2VertexData(VertexAttribute.UV3, _uv3);
+      this._setVector2AdvancedVertexData(VertexAttribute.UV3, _uv3);
     }
 
     if (_uv4 && _advancedDataUpdateFlag & VertexElementFlags.UV4) {
-      this._setInternalVector2VertexData(VertexAttribute.UV4, _uv4);
+      this._setVector2AdvancedVertexData(VertexAttribute.UV4, _uv4);
     }
 
     if (_uv5 && _advancedDataUpdateFlag & VertexElementFlags.UV5) {
-      this._setInternalVector2VertexData(VertexAttribute.UV5, _uv5);
+      this._setVector2AdvancedVertexData(VertexAttribute.UV5, _uv5);
     }
 
     if (_uv6 && _advancedDataUpdateFlag & VertexElementFlags.UV6) {
-      this._setInternalVector2VertexData(VertexAttribute.UV6, _uv6);
+      this._setVector2AdvancedVertexData(VertexAttribute.UV6, _uv6);
     }
 
     if (_uv7 && _advancedDataUpdateFlag & VertexElementFlags.UV7) {
-      this._setInternalVector2VertexData(VertexAttribute.UV7, _uv7);
+      this._setVector2AdvancedVertexData(VertexAttribute.UV7, _uv7);
     }
 
     this._advancedDataUpdateFlag = 0;
