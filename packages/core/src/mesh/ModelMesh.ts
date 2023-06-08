@@ -50,6 +50,7 @@ export class ModelMesh extends Mesh {
   private _boneIndices: Vector4[] | null = null;
   private _advancedDataUpdateFlag: VertexElementFlags = VertexElementFlags.None;
   private _advancedVertexDataVersions: number[] = new Array<number>(13); // Only have 13 vertex element can set advanced data
+  private _advancedDataSyncToBuffer: boolean = false;
 
   private _internalVertexBuffer: Buffer;
   private _internalVertexBufferStride: number = 0;
@@ -57,7 +58,6 @@ export class ModelMesh extends Mesh {
   private _internalVertexElementsOffset: number = 0;
   private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
   private _internalVertexElementsUpdate: boolean = false;
-  private _internalDataSyncToBuffer: boolean = false;
 
   private _vertexBufferDataVersions: number[] = [];
 
@@ -624,9 +624,9 @@ export class ModelMesh extends Mesh {
     // Update advanced vertex data to buffer
     if (this._advancedDataUpdateFlag & VertexElementFlags.All) {
       this._updateAdvancedVertices();
-      this._internalDataSyncToBuffer = true;
+      this._advancedDataSyncToBuffer = true;
       this._internalVertexBuffer?.setData(this._internalVertexBuffer.data);
-      this._internalDataSyncToBuffer = false;
+      this._advancedDataSyncToBuffer = false;
     }
 
     if (this._indicesChangeFlag) {
@@ -748,7 +748,7 @@ export class ModelMesh extends Mesh {
    */
   override _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
     const onVertexBufferChanged = () => {
-      this._vertexBufferDataVersions[index] = this._internalDataSyncToBuffer ? -1 : this._dataVersionCounter++;
+      this._vertexBufferDataVersions[index] = this._advancedDataSyncToBuffer ? -1 : this._dataVersionCounter++;
     };
 
     // Remove listener from previous binding
@@ -815,9 +815,9 @@ export class ModelMesh extends Mesh {
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
         const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
         vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, true);
-        this._internalDataSyncToBuffer = true;
+        this._advancedDataSyncToBuffer = true;
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
-        this._internalDataSyncToBuffer = false;
+        this._advancedDataSyncToBuffer = false;
         this._internalVertexBuffer = vertexBuffer;
       } else {
         this._setVertexBufferBinding(vertexBufferIndex, null);
