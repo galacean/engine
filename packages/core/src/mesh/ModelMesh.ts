@@ -144,9 +144,7 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._internalVertexElementsUpdate ||= !!this._positions !== !!positions;
-    this._advancedDataUpdateFlag |= VertexElementFlags.Position;
-    this._advancedVertexDataVersions[ElementIndex.Position] = this._dataVersionCounter++;
+    this._updateAdvancedVertexDataMarks(this._positions, positions, VertexElementFlags.Position, ElementIndex.Position);
     this._positions = positions;
 
     this._vertexCount = positions?.length ?? 0;
@@ -175,7 +173,7 @@ export class ModelMesh extends Mesh {
    * @param normals - The normals for the mesh.
    */
   setNormals(normals: Vector3[] | null): void {
-    if (this._beforeSetInternalVertexData(this._normals, normals, VertexElementFlags.Normal, ElementIndex.Normal)) {
+    if (this._beforeSetAdvancedVertexData(this._normals, normals, VertexElementFlags.Normal, ElementIndex.Normal)) {
       this._normals = normals;
     }
   }
@@ -220,7 +218,7 @@ export class ModelMesh extends Mesh {
    * @param colors - The colors for the mesh.
    */
   setColors(colors: Color[] | null): void {
-    if (this._beforeSetInternalVertexData(this._colors, colors, VertexElementFlags.Color, ElementIndex.Color)) {
+    if (this._beforeSetAdvancedVertexData(this._colors, colors, VertexElementFlags.Color, ElementIndex.Color)) {
       this._colors = colors;
     }
   }
@@ -247,7 +245,7 @@ export class ModelMesh extends Mesh {
    */
   setBoneWeights(boneWeights: Vector4[] | null): void {
     if (
-      this._beforeSetInternalVertexData(
+      this._beforeSetAdvancedVertexData(
         this._boneWeights,
         boneWeights,
         VertexElementFlags.BoneWeight,
@@ -281,7 +279,7 @@ export class ModelMesh extends Mesh {
    */
   setBoneIndices(boneIndices: Vector4[] | null): void {
     if (
-      this._beforeSetInternalVertexData(
+      this._beforeSetAdvancedVertexData(
         this._boneWeights,
         boneIndices,
         VertexElementFlags.BoneIndex,
@@ -314,7 +312,7 @@ export class ModelMesh extends Mesh {
    * @param tangents - The tangents for the mesh.
    */
   setTangents(tangents: Vector4[] | null): void {
-    if (this._beforeSetInternalVertexData(this._tangents, tangents, VertexElementFlags.Tangent, ElementIndex.Tangent)) {
+    if (this._beforeSetAdvancedVertexData(this._tangents, tangents, VertexElementFlags.Tangent, ElementIndex.Tangent)) {
       this._tangents = tangents;
     }
   }
@@ -350,42 +348,42 @@ export class ModelMesh extends Mesh {
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        if (this._beforeSetInternalVertexData(this._uv, uv, VertexElementFlags.UV, ElementIndex.UV)) {
+        if (this._beforeSetAdvancedVertexData(this._uv, uv, VertexElementFlags.UV, ElementIndex.UV)) {
           this._uv = uv;
         }
         break;
       case 1:
-        if (this._beforeSetInternalVertexData(this._uv1, uv, VertexElementFlags.UV1, ElementIndex.UV1)) {
+        if (this._beforeSetAdvancedVertexData(this._uv1, uv, VertexElementFlags.UV1, ElementIndex.UV1)) {
           this._uv1 = uv;
         }
         break;
       case 2:
-        if (this._beforeSetInternalVertexData(this._uv2, uv, VertexElementFlags.UV2, ElementIndex.UV2)) {
+        if (this._beforeSetAdvancedVertexData(this._uv2, uv, VertexElementFlags.UV2, ElementIndex.UV2)) {
           this._uv2 = uv;
         }
         break;
       case 3:
-        if (this._beforeSetInternalVertexData(this._uv3, uv, VertexElementFlags.UV3, ElementIndex.UV3)) {
+        if (this._beforeSetAdvancedVertexData(this._uv3, uv, VertexElementFlags.UV3, ElementIndex.UV3)) {
           this._uv3 = uv;
         }
         break;
       case 4:
-        if (this._beforeSetInternalVertexData(this._uv4, uv, VertexElementFlags.UV4, ElementIndex.UV4)) {
+        if (this._beforeSetAdvancedVertexData(this._uv4, uv, VertexElementFlags.UV4, ElementIndex.UV4)) {
           this._uv4 = uv;
         }
         break;
       case 5:
-        if (this._beforeSetInternalVertexData(this._uv5, uv, VertexElementFlags.UV5, ElementIndex.UV5)) {
+        if (this._beforeSetAdvancedVertexData(this._uv5, uv, VertexElementFlags.UV5, ElementIndex.UV5)) {
           this._uv5 = uv;
         }
         break;
       case 6:
-        if (this._beforeSetInternalVertexData(this._uv6, uv, VertexElementFlags.UV6, ElementIndex.UV6)) {
+        if (this._beforeSetAdvancedVertexData(this._uv6, uv, VertexElementFlags.UV6, ElementIndex.UV6)) {
           this._uv6 = uv;
         }
         break;
       case 7:
-        if (this._beforeSetInternalVertexData(this._uv7, uv, VertexElementFlags.UV7, ElementIndex.UV7)) {
+        if (this._beforeSetAdvancedVertexData(this._uv7, uv, VertexElementFlags.UV7, ElementIndex.UV7)) {
           this._uv7 = uv;
         }
         break;
@@ -772,7 +770,7 @@ export class ModelMesh extends Mesh {
     this._accessible && this._releaseCache();
   }
 
-  private _beforeSetInternalVertexData<T extends VertexType>(
+  private _beforeSetAdvancedVertexData<T extends VertexType>(
     oldVertices: T[],
     vertices: T[],
     elementChangeFlag: VertexElementFlags,
@@ -790,10 +788,19 @@ export class ModelMesh extends Mesh {
       return false;
     }
 
+    this._updateAdvancedVertexDataMarks(oldVertices, vertices, elementChangeFlag, elementIndex);
+    return true;
+  }
+
+  private _updateAdvancedVertexDataMarks<T extends VertexType>(
+    oldVertices: T[],
+    vertices: T[],
+    elementChangeFlag: VertexElementFlags,
+    elementIndex: ElementIndex
+  ): void {
     this._internalVertexElementsUpdate ||= !!oldVertices !== !!vertices;
     this._advancedDataUpdateFlag |= elementChangeFlag;
     this._advancedVertexDataVersions[elementIndex] = this._dataVersionCounter++;
-    return true;
   }
 
   private _updateInternalVertexBuffer(accessible: boolean): void {
