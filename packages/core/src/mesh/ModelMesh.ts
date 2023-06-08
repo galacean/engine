@@ -1014,38 +1014,46 @@ export class ModelMesh extends Mesh {
 
   private _setVector2AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector2[]): void {
     this._writeAdvancedVertexData(attributeType, (typedArray: TypedArray, offset: number, index: number) => {
-      const vertex = vertices[index];
-      typedArray[offset] = vertex.x;
-      typedArray[offset + 1] = vertex.y;
+      const vertex = vertices[index]; // vertex maybe null or advanced data array length less than vertexCount
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
+      }
     });
   }
 
   private _setVector3AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector3[]): void {
     this._writeAdvancedVertexData(attributeType, (typedArray: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
-      typedArray[offset] = vertex.x;
-      typedArray[offset + 1] = vertex.y;
-      typedArray[offset + 2] = vertex.z;
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
+        typedArray[offset + 2] = vertex.z;
+      }
     });
   }
 
   private _setVector4AdvancedVertexData(attributeType: VertexAttribute, vertices: Vector4[]): void {
     this._writeAdvancedVertexData(attributeType, (typedArray: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
-      typedArray[offset] = vertex.x;
-      typedArray[offset + 1] = vertex.y;
-      typedArray[offset + 2] = vertex.z;
-      typedArray[offset + 3] = vertex.w;
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
+        typedArray[offset + 2] = vertex.z;
+        typedArray[offset + 3] = vertex.w;
+      }
     });
   }
 
   private _setColorAdvancedVertexData(attributeType: VertexAttribute, vertices: Color[]): void {
     this._writeAdvancedVertexData(attributeType, (typedArray: TypedArray, offset: number, index: number) => {
       const vertex = vertices[index];
-      typedArray[offset] = vertex.r;
-      typedArray[offset + 1] = vertex.g;
-      typedArray[offset + 2] = vertex.b;
-      typedArray[offset + 3] = vertex.a;
+      if (vertex) {
+        typedArray[offset] = vertex.r;
+        typedArray[offset + 1] = vertex.g;
+        typedArray[offset + 2] = vertex.b;
+        typedArray[offset + 3] = vertex.a;
+      }
     });
   }
 
