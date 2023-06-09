@@ -244,42 +244,54 @@ describe("ModelMesh Test", async function () {
 
   it("Read the advanced vertex data of the model set by buffer", () => {
     const modelMesh = new ModelMesh(engine);
-    const arrayBuffer = new ArrayBuffer(36 * 2);
+    const arrayBuffer = new ArrayBuffer(40 * 2);
 
     const float32Array = new Float32Array(arrayBuffer);
     (float32Array[0] = 1), (float32Array[1] = 2), (float32Array[2] = 3);
     (float32Array[3] = 1), (float32Array[4] = 1), (float32Array[5] = 1);
     (float32Array[6] = 0.5), (float32Array[7] = 0.5);
-    (float32Array[9] = -1), (float32Array[10] = -2), (float32Array[11] = -3);
-    (float32Array[12] = 0), (float32Array[13] = -1), (float32Array[14] = 0);
-    (float32Array[15] = -0.5), (float32Array[16] = -0.5);
+
+    (float32Array[10] = -1), (float32Array[11] = -2), (float32Array[12] = -3);
+    (float32Array[13] = 0), (float32Array[14] = -1), (float32Array[15] = 0);
+    (float32Array[16] = -0.5), (float32Array[17] = -0.5);
 
     const uint8Array = new Uint8Array(arrayBuffer);
     (uint8Array[32] = 1), (uint8Array[33] = 2), (uint8Array[34] = 3), (uint8Array[35] = 4);
-    (uint8Array[68] = 9), (uint8Array[69] = 10), (uint8Array[70] = 11), (uint8Array[71] = 12);
+    (uint8Array[36] = 11), (uint8Array[37] = 12), (uint8Array[38] = 13), (uint8Array[39] = 14);
+
+    (uint8Array[72] = 9), (uint8Array[73] = 10), (uint8Array[74] = 11), (uint8Array[75] = 12);
+    (uint8Array[76] = 29), (uint8Array[77] = 55), (uint8Array[78] = 77), (uint8Array[79] = 88);
 
     const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, arrayBuffer, BufferUsage.Static, true);
-    modelMesh.setVertexBufferBinding(vertexBuffer, 36, 0);
+    modelMesh.setVertexBufferBinding(vertexBuffer, 40, 0);
+    // Test Vector3、Vector2、UByte4、NormalizedUByte4 format
     modelMesh.setVertexElements([
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
       new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0),
-      new VertexElement("JOINTS_0", 32, VertexElementFormat.UByte4, 0)
+      new VertexElement("JOINTS_0", 32, VertexElementFormat.UByte4, 0),
+      new VertexElement("WEIGHTS_0", 36, VertexElementFormat.NormalizedUByte4, 0)
     ]);
 
     const positions = modelMesh.getPositions();
     const normals = modelMesh.getNormals();
     const uvs = modelMesh.getUVs();
     const boneIndices = modelMesh.getBoneIndices();
+    const boneWeights = modelMesh.getBoneWeights();
 
     const rightPositions = [new Vector3(1, 2, 3), new Vector3(-1, -2, -3)];
     const rightNormals = [new Vector3(1, 1, 1), new Vector3(0, -1, 0)];
     const rightUVS = [new Vector2(0.5, 0.5), new Vector2(-0.5, -0.5)];
-    const rightBoneIndex = [new Vector4(1, 2, 3, 4), new Vector4(9, 10, 11, 12)];
+    const rightBoneIndices = [new Vector4(1, 2, 3, 4), new Vector4(9, 10, 11, 12)];
+    const rightBoneWeights = [
+      new Vector4(11 / 255, 12 / 255, 13 / 255, 14 / 255),
+      new Vector4(29 / 255, 55 / 255, 77 / 255, 88 / 255)
+    ];
 
     expect(positions).deep.eq(rightPositions);
     expect(normals).deep.eq(rightNormals);
     expect(uvs).deep.eq(rightUVS);
-    expect(boneIndices).deep.eq(rightBoneIndex);
+    expect(boneIndices).deep.eq(rightBoneIndices);
+    expect(boneWeights).deep.eq(rightBoneWeights);
   });
 });
