@@ -214,7 +214,7 @@ export class ModelMesh extends Mesh {
     if (advancedDataVersion > bufferDataVersion) {
       return vertices;
     } else if (advancedDataVersion < bufferDataVersion) {
-      return readVertexData(vertexAttribute);
+      return readVertexData.call(this, vertexAttribute);
     } else {
       return null;
     }
@@ -908,7 +908,7 @@ export class ModelMesh extends Mesh {
       throw "Not allowed to access data while vertex buffer readable is false.";
     }
 
-    const vertexCount = this._vertexCount;
+    const vertexCount = this.vertexCount;
     const formatMetaInfo = vertexElement._formatMetaInfo;
     const vertices = new Array<T>(vertexCount);
     const dataReader = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);

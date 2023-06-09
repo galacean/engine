@@ -1,4 +1,14 @@
-import { BlendShape, Engine, IndexFormat, ModelMesh } from "@galacean/engine-core";
+import {
+  BlendShape,
+  Buffer,
+  BufferBindFlag,
+  BufferUsage,
+  Engine,
+  IndexFormat,
+  ModelMesh,
+  VertexElement,
+  VertexElementFormat
+} from "@galacean/engine-core";
 import { Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { expect } from "chai";
@@ -230,5 +240,30 @@ describe("ModelMesh Test", async function () {
     expect(() => {
       modelMesh.getUVs();
     }).throw("Not allowed to access data while accessible is false.");
+  });
+
+  it("Read the advanced vertex data of the model set by buffer", () => {
+    const modelMesh = new ModelMesh(engine);
+    const vertices = new Float32Array([1, 2, 3, 0, 1, 0, 0.5, 0.5, -1, -2, -3, 0, -1, 0, -0.5, -0.5]);
+
+    const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, true);
+    modelMesh.setVertexBufferBinding(vertexBuffer, 32, 0);
+    modelMesh.setVertexElements([
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
+      new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
+    ]);
+
+    const positions = modelMesh.getPositions();
+    const normals = modelMesh.getNormals();
+    const uvs = modelMesh.getUVs();
+
+    const rightPositions = [new Vector3(1, 2, 3), new Vector3(-1, -2, -3)];
+    const rightNormals = [new Vector3(0, 1, 0), new Vector3(0, -1, 0)];
+    const rightUVS = [new Vector2(0.5, 0.5), new Vector2(-0.5, -0.5)];
+
+    expect(positions).deep.eq(rightPositions);
+    expect(normals).deep.eq(rightNormals);
+    expect(uvs).deep.eq(rightUVS);
   });
 });
