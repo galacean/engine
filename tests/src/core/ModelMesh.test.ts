@@ -244,26 +244,42 @@ describe("ModelMesh Test", async function () {
 
   it("Read the advanced vertex data of the model set by buffer", () => {
     const modelMesh = new ModelMesh(engine);
-    const vertices = new Float32Array([1, 2, 3, 0, 1, 0, 0.5, 0.5, -1, -2, -3, 0, -1, 0, -0.5, -0.5]);
+    const arrayBuffer = new ArrayBuffer(36 * 2);
 
-    const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, true);
-    modelMesh.setVertexBufferBinding(vertexBuffer, 32, 0);
+    const float32Array = new Float32Array(arrayBuffer);
+    (float32Array[0] = 1), (float32Array[1] = 2), (float32Array[2] = 3);
+    (float32Array[3] = 1), (float32Array[4] = 1), (float32Array[5] = 1);
+    (float32Array[6] = 0.5), (float32Array[7] = 0.5);
+    (float32Array[9] = -1), (float32Array[10] = -2), (float32Array[11] = -3);
+    (float32Array[12] = 0), (float32Array[13] = -1), (float32Array[14] = 0);
+    (float32Array[15] = -0.5), (float32Array[16] = -0.5);
+
+    const uint8Array = new Uint8Array(arrayBuffer);
+    (uint8Array[32] = 1), (uint8Array[33] = 2), (uint8Array[34] = 3), (uint8Array[35] = 4);
+    (uint8Array[68] = 9), (uint8Array[69] = 10), (uint8Array[70] = 11), (uint8Array[71] = 12);
+
+    const vertexBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, arrayBuffer, BufferUsage.Static, true);
+    modelMesh.setVertexBufferBinding(vertexBuffer, 36, 0);
     modelMesh.setVertexElements([
       new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
       new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
-      new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0)
+      new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0),
+      new VertexElement("JOINTS_0", 32, VertexElementFormat.UByte4, 0)
     ]);
 
     const positions = modelMesh.getPositions();
     const normals = modelMesh.getNormals();
     const uvs = modelMesh.getUVs();
+    const boneIndices = modelMesh.getBoneIndices();
 
     const rightPositions = [new Vector3(1, 2, 3), new Vector3(-1, -2, -3)];
-    const rightNormals = [new Vector3(0, 1, 0), new Vector3(0, -1, 0)];
+    const rightNormals = [new Vector3(1, 1, 1), new Vector3(0, -1, 0)];
     const rightUVS = [new Vector2(0.5, 0.5), new Vector2(-0.5, -0.5)];
+    const rightBoneIndex = [new Vector4(1, 2, 3, 4), new Vector4(9, 10, 11, 12)];
 
     expect(positions).deep.eq(rightPositions);
     expect(normals).deep.eq(rightNormals);
     expect(uvs).deep.eq(rightUVS);
+    expect(boneIndices).deep.eq(rightBoneIndex);
   });
 });
