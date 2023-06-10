@@ -31,7 +31,6 @@ export class ModelMesh extends Mesh {
 
   private _vertexCount: number = 0;
   private _vertexCountDirty: boolean = false;
-  private _accessible: boolean = true;
   private _dataVersionCounter: number = 0;
 
   private _positions: Vector3[] | null = null;
@@ -64,13 +63,6 @@ export class ModelMesh extends Mesh {
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
   private _indicesChangeFlag: boolean = false;
-
-  /**
-   * Whether to access data of the mesh.
-   */
-  get accessible(): boolean {
-    return this._accessible;
-  }
 
   /**
    * Vertex count of mesh.
@@ -133,13 +125,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Set positions for the mesh.
-   * @param positions - The positions for the mesh.
+   * @param positions - The positions for the mesh
    */
   setPositions(positions: Vector3[] | null): void {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     if (!this._positions && !positions) {
       return;
     }
@@ -157,25 +145,23 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get a copy of positions for the mesh.
+   * Get positions for the mesh.
    * @remarks Please call the setPositions() method after modification to ensure that the modification takes effect.
    */
   getPositions(): Vector3[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    return this._getVertexElementData(
+    const positions = this._getVertexElementData(
       this._positions,
       VertexAttribute.Position,
       VertexElementIndex.Position,
       this._readVector3VertexData
     );
+    this._positions = positions;
+    return positions;
   }
 
   /**
    * Set per-vertex normals for the mesh.
-   * @param normals - The normals for the mesh.
+   * @param normals - The normals for the mesh
    */
   setNormals(normals: Vector3[] | null): void {
     if (
@@ -186,43 +172,23 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get a copy of normals for the mesh.
+   * Get normals for the mesh.
    * @remarks Please call the setNormals() method after modification to ensure that the modification takes effect.
    */
   getNormals(): Vector3[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    return this._getVertexElementData(
+    const normals = this._getVertexElementData(
       this._normals,
       VertexAttribute.Normal,
       VertexElementIndex.Normal,
       this._readVector3VertexData
     );
-  }
-
-  private _getVertexElementData<T extends VertexType>(
-    vertices: T[],
-    vertexAttribute: VertexAttribute,
-    vertexElementIndex: VertexElementIndex,
-    readVertexData: (vertexAttribute: VertexAttribute) => T[]
-  ): T[] | null {
-    const advancedDataVersion = this._advancedVertexDataVersions[vertexElementIndex] ?? -1;
-    const vertexElement = this._vertexElementMap[vertexAttribute];
-    const bufferDataVersion = vertexElement ? this._vertexBufferDataVersions[vertexElement.bindingIndex] ?? -1 : -1;
-    if (advancedDataVersion > bufferDataVersion) {
-      return vertices;
-    } else if (advancedDataVersion < bufferDataVersion) {
-      return readVertexData.call(this, vertexAttribute);
-    } else {
-      return null;
-    }
+    this._normals = normals;
+    return normals;
   }
 
   /**
    * Set per-vertex colors for the mesh.
-   * @param colors - The colors for the mesh.
+   * @param colors - The colors for the mesh
    */
   setColors(colors: Color[] | null): void {
     if (this._beforeSetAdvancedVertexData(this._colors, colors, VertexElementFlags.Color, VertexElementIndex.Color)) {
@@ -231,24 +197,23 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get a copy of colors for the mesh.
+   * Get colors for the mesh.
    * @remarks Please call the setColors() method after modification to ensure that the modification takes effect.
    */
   getColors(): Color[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._getVertexElementData(
+    const colors = this._getVertexElementData(
       this._colors,
       VertexAttribute.Color,
       VertexElementIndex.Color,
       this._readColorVertexData
     );
+    this._colors = colors;
+    return colors;
   }
 
   /**
    * Set per-vertex bone weights for the mesh.
-   * @param boneWeights - The bone weights for the mesh.
+   * @param boneWeights - The bone weights for the mesh
    */
   setBoneWeights(boneWeights: Vector4[] | null): void {
     if (
@@ -264,25 +229,23 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get a copy of bone weights for the mesh.
+   * Get bone weights for the mesh.
    * @remarks Please call the setWeights() method after modification to ensure that the modification takes effect.
    */
   getBoneWeights(): Vector4[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    return this._getVertexElementData(
+    const boneWeights = this._getVertexElementData(
       this._boneWeights,
       VertexAttribute.BoneWeight,
       VertexElementIndex.BoneWeight,
       this._readVector4VertexData
     );
+    this._boneWeights = boneWeights;
+    return boneWeights;
   }
 
   /**
    * Set per-vertex bone indices for the mesh.
-   * @param boneIndices - The bone indices for the mesh.
+   * @param boneIndices - The bone indices for the mesh
    */
   setBoneIndices(boneIndices: Vector4[] | null): void {
     if (
@@ -298,25 +261,23 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get a copy of bone indices for the mesh.
+   * Get bone indices for the mesh.
    * @remarks Please call the setBoneIndices() method after modification to ensure that the modification takes effect.
    */
   getBoneIndices(): Vector4[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
-    return this._getVertexElementData(
+    const boneIndices = this._getVertexElementData(
       this._boneIndices,
       VertexAttribute.BoneIndex,
       VertexElementIndex.BoneIndex,
       this._readVector4VertexData
     );
+    this._boneIndices = boneIndices;
+    return boneIndices;
   }
 
   /**
    * Set per-vertex tangents for the mesh.
-   * @param tangents - The tangents for the mesh.
+   * @param tangents - The tangents for the mesh
    */
   setTangents(tangents: Vector4[] | null): void {
     if (
@@ -332,30 +293,29 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get a copy of tangents for the mesh.
+   * Get tangents for the mesh.
    * @remarks Please call the setTangents() method after modification to ensure that the modification takes effect.
    */
   getTangents(): Vector4[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-    return this._getVertexElementData(
+    const tangents = this._getVertexElementData(
       this._tangents,
       VertexAttribute.Tangent,
       VertexElementIndex.Tangent,
       this._readVector4VertexData
     );
+    this._tangents = tangents;
+    return tangents;
   }
 
   /**
    * Set per-vertex uv for the mesh.
-   * @param uv - The uv for the mesh.
+   * @param uv - The uv for the mesh
    */
   setUVs(uv: Vector2[] | null): void;
   /**
    * Set per-vertex uv for the mesh by channelIndex.
-   * @param uv - The uv for the mesh.
-   * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
+   * @param uv - The uv for the mesh
+   * @param channelIndex - The index of uv channels, in [0 ~ 7] range
    */
   setUVs(uv: Vector2[] | null, channelIndex: number): void;
   setUVs(uv: Vector2[] | null, channelIndex?: number): void {
@@ -407,86 +367,100 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Get a copy of uv for the mesh.
+   * Get uv for the mesh.
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
   getUVs(): Vector2[] | null;
+
   /**
-   * Get a copy of uv for the mesh by channelIndex.
+   * Get uv for the mesh by channelIndex.
    * @param channelIndex - The index of uv channels, in [0 ~ 7] range.
    * @remarks Please call the setUV() method after modification to ensure that the modification takes effect.
    */
   getUVs(channelIndex: number): Vector2[] | null;
 
   getUVs(channelIndex?: number): Vector2[] | null {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        return this._getVertexElementData(
+        const uvs = this._getVertexElementData(
           this._uv,
           VertexAttribute.UV,
           VertexElementIndex.UV,
           this._readVector2VertexData
         );
+        this._uv = uvs;
+        return uvs;
       case 1:
-        return this._getVertexElementData(
+        const uv1s = this._getVertexElementData(
           this._uv1,
           VertexAttribute.UV1,
           VertexElementIndex.UV1,
           this._readVector2VertexData
         );
+        this._uv1 = uv1s;
+        return uv1s;
       case 2:
-        return this._getVertexElementData(
+        const uv2s = this._getVertexElementData(
           this._uv2,
           VertexAttribute.UV2,
           VertexElementIndex.UV2,
           this._readVector2VertexData
         );
+        this._uv2 = uv2s;
+        return uv2s;
       case 3:
-        return this._getVertexElementData(
+        const uv3s = this._getVertexElementData(
           this._uv3,
           VertexAttribute.UV3,
           VertexElementIndex.UV3,
           this._readVector2VertexData
         );
+        this._uv3 = uv3s;
+        return uv3s;
       case 4:
-        return this._getVertexElementData(
+        const uv4s = this._getVertexElementData(
           this._uv4,
           VertexAttribute.UV4,
           VertexElementIndex.UV4,
           this._readVector2VertexData
         );
+        this._uv4 = uv4s;
+        return uv4s;
       case 5:
-        return this._getVertexElementData(
+        const uv5s = this._getVertexElementData(
           this._uv5,
           VertexAttribute.UV5,
           VertexElementIndex.UV5,
           this._readVector2VertexData
         );
+        this._uv5 = uv5s;
+        return uv5s;
       case 6:
-        return this._getVertexElementData(
+        const uv6s = this._getVertexElementData(
           this._uv6,
           VertexAttribute.UV6,
           VertexElementIndex.UV6,
           this._readVector2VertexData
         );
+        this._uv6 = uv6s;
+        return uv6s;
       case 7:
-        return this._getVertexElementData(
+        const uv7s = this._getVertexElementData(
           this._uv7,
           VertexAttribute.UV7,
           VertexElementIndex.UV7,
           this._readVector2VertexData
         );
+        this._uv7 = uv7s;
+        return uv7s;
     }
     throw "The index of channel needs to be in range [0 - 7].";
   }
 
   /**
    * Set indices for the mesh.
-   * @param indices - The indices for the mesh.
+   * @param indices - The indices for the mesh
    */
   setIndices(indices: Uint8Array | Uint16Array | Uint32Array): void {
     if (this._indices !== indices) {
@@ -630,12 +604,12 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * Upload Mesh Data to GPU.
-   * @param noLongerAccessible - Whether to access data later. If true, you'll never read data anymore (free memory cache)
+   * Upload data to GPU set by `setPositions()`, `setNormals()`, `setColors()`, `setBoneWeights()`, `setBoneIndices()`, `setTangents()`, `setUVs()`, `setIndices()` methods.
+   * @param releaseData - Whether to release the data set by above methods, release data will save memory. If you already released the data, when call `getPositions()`, `getNormals()`, `getColors()`, `getBoneWeights()`, `getBoneIndices()`, `getTangents()`, `getUVs()`, `getIndices()` methods again will copy data from vertex buffer
    */
-  uploadData(noLongerAccessible: boolean): void {
+  uploadData(releaseData: boolean): void {
     this._updateVertexElements();
-    this._updateInternalVertexBuffer(!noLongerAccessible);
+    this._updateInternalVertexBuffer(!releaseData);
 
     // Update advanced vertex data to buffer
     if (this._advancedDataUpdateFlag & VertexElementFlags.All) {
@@ -674,9 +648,9 @@ export class ModelMesh extends Mesh {
     }
 
     const blendShapeManager = this._blendShapeManager;
-    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(noLongerAccessible);
+    blendShapeManager._blendShapeCount > 0 && blendShapeManager._update(releaseData);
 
-    if (noLongerAccessible) {
+    if (releaseData) {
       this._accessible = false;
       this._releaseCache();
     }
@@ -816,7 +790,25 @@ export class ModelMesh extends Mesh {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._accessible && this._releaseCache();
+    this._releaseCache();
+  }
+
+  private _getVertexElementData<T extends VertexType>(
+    vertices: T[],
+    vertexAttribute: VertexAttribute,
+    vertexElementIndex: VertexElementIndex,
+    readVertexData: (vertexAttribute: VertexAttribute) => T[]
+  ): T[] | null {
+    const advancedVertexDataVersions = this._advancedVertexDataVersions;
+    const advancedDataVersion = advancedVertexDataVersions[vertexElementIndex] ?? -1;
+    const vertexElement = this._vertexElementMap[vertexAttribute];
+    const bufferDataVersion = vertexElement ? this._vertexBufferDataVersions[vertexElement.bindingIndex] ?? -1 : -1;
+    if (advancedDataVersion >= bufferDataVersion) {
+      return vertices;
+    } else {
+      advancedVertexDataVersions[vertexElementIndex] = bufferDataVersion;
+      return readVertexData.call(this, vertexAttribute);
+    }
   }
 
   private _beforeSetAdvancedVertexData<T extends VertexType>(
@@ -825,10 +817,6 @@ export class ModelMesh extends Mesh {
     elementChangeFlag: VertexElementFlags,
     elementIndex: VertexElementIndex
   ): boolean {
-    if (!this._accessible) {
-      throw "Not allowed to access data while accessible is false.";
-    }
-
     if (vertices) {
       if (vertices.length !== this._vertexCount) {
         throw "The array provided needs to be the same size as vertex count.";
@@ -870,7 +858,7 @@ export class ModelMesh extends Mesh {
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
         const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
         const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, true);
-        this._advancedDataSyncToBuffer = true;
+        accessible && (this._advancedDataSyncToBuffer = true);
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
         this._advancedDataSyncToBuffer = false;
         this._internalVertexBuffer = vertexBuffer;
@@ -1115,6 +1103,9 @@ export class ModelMesh extends Mesh {
     if (!buffer) {
       return;
     }
+    if (!buffer.readable) {
+      throw "Vertex buffer is not readable, can't write vertex data.";
+    }
 
     const advancedDataVersion = this._advancedVertexDataVersions[vertexElementIndex] ?? -1;
     if (advancedDataVersion > this._vertexBufferDataVersions[bindingIndex]) {
@@ -1278,8 +1269,6 @@ export class ModelMesh extends Mesh {
   }
 
   private _releaseCache(): void {
-    this._internalVertexBuffer?.markAsUnreadable();
-    this._indices = null;
     this._positions = null;
     this._tangents = null;
     this._normals = null;
@@ -1292,7 +1281,18 @@ export class ModelMesh extends Mesh {
     this._uv5 = null;
     this._uv6 = null;
     this._uv7 = null;
+    this._indices = null;
     this._blendShapeManager._releaseMemoryCache();
+  }
+
+  private _accessible: boolean = true;
+
+  /**
+   * @deprecated
+   * Whether to access data of the mesh.
+   */
+  get accessible(): boolean {
+    return this._accessible;
   }
 }
 
