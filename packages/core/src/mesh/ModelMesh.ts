@@ -1234,17 +1234,14 @@ export class ModelMesh extends Mesh {
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {
     switch (attribute) {
       case VertexAttribute.Position:
-        return VertexElementFormat.Vector3;
       case VertexAttribute.Normal:
         return VertexElementFormat.Vector3;
       case VertexAttribute.Color:
-        return VertexElementFormat.Vector4;
       case VertexAttribute.BoneWeight:
+      case VertexAttribute.Tangent:
         return VertexElementFormat.Vector4;
       case VertexAttribute.BoneIndex:
         return VertexElementFormat.UByte4;
-      case VertexAttribute.Tangent:
-        return VertexElementFormat.Vector4;
       case VertexAttribute.UV:
       case VertexAttribute.UV1:
       case VertexAttribute.UV2:
