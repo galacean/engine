@@ -1257,17 +1257,14 @@ export class ModelMesh extends Mesh {
   private _getAttributeByteLength(attribute: VertexAttribute): number {
     switch (attribute) {
       case VertexAttribute.Position:
-        return 12;
       case VertexAttribute.Normal:
         return 12;
       case VertexAttribute.Color:
-        return 16;
       case VertexAttribute.BoneWeight:
+      case VertexAttribute.Tangent:
         return 16;
       case VertexAttribute.BoneIndex:
         return 4;
-      case VertexAttribute.Tangent:
-        return 16;
       case VertexAttribute.UV:
       case VertexAttribute.UV1:
       case VertexAttribute.UV2:
