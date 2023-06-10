@@ -682,10 +682,15 @@ export class ModelMesh extends Mesh {
    * @remark based on http://foundationsofgameenginedev.com/FGED2-sample.pdf
    */
   calculateTangents(): void {
-    if (!this._normals || !this._uv) {
+    const positions = this.getPositions();
+    const normals = this.getNormals();
+    const uvs = this.getUVs();
+
+    if (!normals || !uvs) {
       throw "Set normal and uv before calculation.";
     }
-    const { _indices: indices, _positions: positions, _normals: normals, _uv: uvs, _vertexCount: vertexCount } = this;
+
+    const { _indices: indices, vertexCount } = this;
     const { _tempVec0: e1, _tempVec1: e2, _tempVec2: t, _tempVec3: b, _tempVec4: temp } = ModelMesh;
     const triangleCount = indices ? indices.length / 3 : positions.length / 3;
     const tangents = new Array<Vector4>(vertexCount);

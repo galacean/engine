@@ -1087,14 +1087,15 @@ export class PrimitiveMesh {
         new VertexElement(VertexAttribute.UV, 24, VertexElementFormat.Vector2, 0)
       ];
       mesh.setVertexElements(vertexElements);
-      const vertexBuffer = new Buffer(mesh.engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static);
 
+      const vertexBuffer = new Buffer(mesh.engine, BufferBindFlag.VertexBuffer, vertices, BufferUsage.Static, true);
       mesh.setVertexBufferBinding(vertexBuffer, 32, 0);
 
       mesh.setIndices(indices);
-      // mesh.calculateTangents();
+      mesh.calculateTangents();
 
       mesh.uploadData(noLongerAccessible);
+      noLongerAccessible && vertexBuffer.markAsUnreadable();
 
       mesh.addSubMesh(0, indices.length);
     }
