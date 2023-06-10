@@ -781,6 +781,24 @@ export class ModelMesh extends Mesh {
   }
 
   /**
+   * @internal 
+   */
+  _getVertexTypedArray(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
+    switch (dataType) {
+      case DataType.BYTE:
+        return new Int8Array(vertexDataBuffer);
+      case DataType.UNSIGNED_BYTE:
+        return new Uint8Array(vertexDataBuffer);
+      case DataType.SHORT:
+        return new Int16Array(vertexDataBuffer);
+      case DataType.UNSIGNED_SHORT:
+        return new Uint16Array(vertexDataBuffer);
+      case DataType.FLOAT:
+        return new Float32Array(vertexDataBuffer);
+    }
+  }
+
+  /**
    * @internal
    */
   protected override _onDestroy(): void {
@@ -848,21 +866,6 @@ export class ModelMesh extends Mesh {
         this._internalVertexBuffer = null;
       }
       bufferCreatedInfo.set(bufferStride, vertexCount);
-    }
-  }
-
-  private _getVertexTypedArray(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
-    switch (dataType) {
-      case DataType.BYTE:
-        return new Int8Array(vertexDataBuffer);
-      case DataType.UNSIGNED_BYTE:
-        return new Uint8Array(vertexDataBuffer);
-      case DataType.SHORT:
-        return new Int16Array(vertexDataBuffer);
-      case DataType.UNSIGNED_SHORT:
-        return new Uint16Array(vertexDataBuffer);
-      case DataType.FLOAT:
-        return new Float32Array(vertexDataBuffer);
     }
   }
 

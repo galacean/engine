@@ -1,4 +1,5 @@
 import { GraphicsResource } from "../asset/GraphicsResource";
+import { TypedArray } from "../base";
 import { Engine } from "../Engine";
 import { IPlatformBuffer } from "../renderingHardwareInterface";
 import { UpdateFlagManager } from "../UpdateFlagManager";
@@ -177,8 +178,13 @@ export class Buffer extends GraphicsResource {
 
     if (this._readable) {
       const arrayBuffer = data.constructor === ArrayBuffer ? data : (<ArrayBufferView>data).buffer;
+
       if (this._data.buffer !== arrayBuffer) {
-        const srcData = new Uint8Array(arrayBuffer, dataOffset, dataLength);
+        const byteSize = (<TypedArray>data).BYTES_PER_ELEMENT || 1; // TypeArray is BYTES_PER_ELEMENT, unTypeArray is 1
+        const dataByteLength = dataLength ? byteSize * dataLength : data.byteLength;
+        const isArrayBufferView = (<ArrayBufferView>data).byteOffset !== undefined;
+        const byteOffset = isArrayBufferView ? (<ArrayBufferView>data).byteOffset + dataOffset * byteSize : dataOffset;
+        const srcData = new Uint8Array(arrayBuffer, byteOffset, dataByteLength);
         this._data.set(srcData, bufferByteOffset);
       }
     }
