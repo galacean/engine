@@ -1015,88 +1015,72 @@ export class ModelMesh extends Mesh {
   }
 
   private _writeVector2AdvancedVertexData(
-    attributeType: VertexAttribute,
-    vertexElementIndex: VertexElementIndex,
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
     vertices: Vector2[]
   ): void {
-    this._writeAdvancedVertexData(
-      attributeType,
-      vertexElementIndex,
-      (typedArray: TypedArray, offset: number, index: number) => {
-        const vertex = vertices[index]; // vertex maybe null or advanced data array length less than vertexCount
-        if (vertex) {
-          typedArray[offset] = vertex.x;
-          typedArray[offset + 1] = vertex.y;
-        }
+    this._writeAdvancedVertexData(attribute, elementIndex, (typedArray: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index]; // vertex maybe null or advanced data array length less than vertexCount
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
       }
-    );
+    });
   }
 
   private _writeVector3AdvancedVertexData(
-    attributeType: VertexAttribute,
-    vertexElementIndex: VertexElementIndex,
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
     vertices: Vector3[]
   ): void {
-    this._writeAdvancedVertexData(
-      attributeType,
-      vertexElementIndex,
-      (typedArray: TypedArray, offset: number, index: number) => {
-        const vertex = vertices[index];
-        if (vertex) {
-          typedArray[offset] = vertex.x;
-          typedArray[offset + 1] = vertex.y;
-          typedArray[offset + 2] = vertex.z;
-        }
+    this._writeAdvancedVertexData(attribute, elementIndex, (typedArray: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
+        typedArray[offset + 2] = vertex.z;
       }
-    );
+    });
   }
 
   private _writeVector4AdvancedVertexData(
-    attributeType: VertexAttribute,
-    vertexElementIndex: VertexElementIndex,
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
     vertices: Vector4[]
   ): void {
-    this._writeAdvancedVertexData(
-      attributeType,
-      vertexElementIndex,
-      (typedArray: TypedArray, offset: number, index: number) => {
-        const vertex = vertices[index];
-        if (vertex) {
-          typedArray[offset] = vertex.x;
-          typedArray[offset + 1] = vertex.y;
-          typedArray[offset + 2] = vertex.z;
-          typedArray[offset + 3] = vertex.w;
-        }
+    this._writeAdvancedVertexData(attribute, elementIndex, (typedArray: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      if (vertex) {
+        typedArray[offset] = vertex.x;
+        typedArray[offset + 1] = vertex.y;
+        typedArray[offset + 2] = vertex.z;
+        typedArray[offset + 3] = vertex.w;
       }
-    );
+    });
   }
 
   private _writeColorAdvancedVertexData(
-    attributeType: VertexAttribute,
-    vertexElementIndex: VertexElementIndex,
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
     vertices: Color[]
   ): void {
-    this._writeAdvancedVertexData(
-      attributeType,
-      vertexElementIndex,
-      (typedArray: TypedArray, offset: number, index: number) => {
-        const vertex = vertices[index];
-        if (vertex) {
-          typedArray[offset] = vertex.r;
-          typedArray[offset + 1] = vertex.g;
-          typedArray[offset + 2] = vertex.b;
-          typedArray[offset + 3] = vertex.a;
-        }
+    this._writeAdvancedVertexData(attribute, elementIndex, (typedArray: TypedArray, offset: number, index: number) => {
+      const vertex = vertices[index];
+      if (vertex) {
+        typedArray[offset] = vertex.r;
+        typedArray[offset + 1] = vertex.g;
+        typedArray[offset + 2] = vertex.b;
+        typedArray[offset + 3] = vertex.a;
       }
-    );
+    });
   }
 
   private _writeAdvancedVertexData(
-    attributeType: VertexAttribute,
-    vertexElementIndex: VertexElementIndex,
+    attribute: VertexAttribute,
+    elementIndex: VertexElementIndex,
     onVertexWrite: (typedArray: TypedArray, offset: number, index: number) => void
   ): void {
-    const vertexElement = this._vertexElementMap[attributeType];
+    const vertexElement = this._vertexElementMap[attribute];
     const bindingIndex = vertexElement.bindingIndex;
     const bufferBinding = this._vertexBufferBindings[bindingIndex];
     const buffer = bufferBinding?.buffer;
@@ -1107,7 +1091,7 @@ export class ModelMesh extends Mesh {
       throw "Vertex buffer is not readable, can't write vertex data.";
     }
 
-    const advancedDataVersion = this._advancedVertexDataVersions[vertexElementIndex] ?? -1;
+    const advancedDataVersion = this._advancedVertexDataVersions[elementIndex] ?? -1;
     if (advancedDataVersion > this._vertexBufferDataVersions[bindingIndex]) {
       const formatMetaInfo = vertexElement._formatMetaInfo;
       const typedArray = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
