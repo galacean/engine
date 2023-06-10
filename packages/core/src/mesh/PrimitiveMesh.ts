@@ -493,7 +493,7 @@ export class PrimitiveMesh {
     const verticalSegmentsReciprocal = 1.0 / verticalSegments;
 
     const vertexFloatCount = 8;
-    const vertices = new Float32Array(24 * vertexFloatCount);
+    const vertices = new Float32Array(vertexCount * vertexFloatCount);
 
     for (let i = 0; i < vertexCount; ++i) {
       const x = i % horizontalCount;

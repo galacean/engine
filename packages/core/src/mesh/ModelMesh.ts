@@ -640,8 +640,14 @@ export class ModelMesh extends Mesh {
     // Update advanced vertex data to buffer
     if (this._advancedDataUpdateFlag & VertexElementFlags.All) {
       this._updateAdvancedVertices();
+
       this._advancedDataSyncToBuffer = true;
-      this._internalVertexBuffer?.setData(this._internalVertexBuffer.data);
+      // @todo: add buffer dirty flag
+      const vertexBufferBindings = this._vertexBufferBindings;
+      for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
+        const buffer = vertexBufferBindings[i]?._buffer;
+        buffer.readable && buffer.setData(buffer.data);
+      }
       this._advancedDataSyncToBuffer = false;
     }
 
@@ -769,7 +775,9 @@ export class ModelMesh extends Mesh {
    */
   override _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
     const onVertexBufferChanged = () => {
-      this._vertexBufferDataVersions[index] = this._advancedDataSyncToBuffer ? -1 : this._dataVersionCounter++;
+      if (!this._advancedDataSyncToBuffer) {
+        this._vertexBufferDataVersions[index] = this._dataVersionCounter++;
+      }
     };
 
     // Remove listener from previous binding
@@ -935,7 +943,6 @@ export class ModelMesh extends Mesh {
 
   private _updateInternalVertexElements(): void {
     this._updateInternalVertexBufferIndex();
-    this._internalVertexBufferStride = 0;
     this._internalVertexElementsFlags = VertexElementFlags.None;
 
     let offset = this._internalVertexElementsOffset;
@@ -1002,7 +1009,6 @@ export class ModelMesh extends Mesh {
   private _updateVertexElements(): void {
     const vertexElements = this._vertexElements;
     const bsManager = this._blendShapeManager;
-
     const previousCount = vertexElements.length;
     const previousBSOffset = bsManager._vertexElementOffset;
 
