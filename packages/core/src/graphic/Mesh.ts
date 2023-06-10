@@ -174,7 +174,7 @@ export abstract class Mesh extends GraphicsResource {
     // Delete the old vertex element
     const oldVertexElement = vertexElements[index];
     oldVertexElement && delete vertexElementMap[oldVertexElement.semantic];
-    
+
     vertexElementMap[element.semantic] = element;
     vertexElements[index] = element;
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);

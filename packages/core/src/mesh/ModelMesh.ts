@@ -781,7 +781,7 @@ export class ModelMesh extends Mesh {
   }
 
   /**
-   * @internal 
+   * @internal
    */
   _getVertexTypedArray(vertexDataBuffer: ArrayBuffer, dataType: DataType): TypedArray {
     switch (dataType) {
