@@ -58,7 +58,7 @@ export class ModelMesh extends Mesh {
   private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
   private _internalVertexElementsUpdate: boolean = false;
 
-  private _vertexBufferDataVersions: number[] = [];
+  private _vertexBufferInfos: BufferUpdateInfo[] = [];
 
   private _indices: Uint8Array | Uint16Array | Uint32Array | null = null;
   private _indicesFormat: IndexFormat = null;
@@ -545,12 +545,12 @@ export class ModelMesh extends Mesh {
     const index = isBinding ? strideOrFirstIndex : indexOrNull;
 
     const bindings = this._vertexBufferBindings;
-    const dataVersions = this._vertexBufferDataVersions;
+    const updateInfos = this._vertexBufferInfos;
 
     const needLength = index + 1;
     if (bindings.length < needLength) {
       bindings.length = needLength;
-      dataVersions.length = needLength;
+      updateInfos.length = needLength;
     }
 
     this._setVertexBufferBinding(index, binding);
@@ -565,11 +565,12 @@ export class ModelMesh extends Mesh {
   setVertexBufferBindings(vertexBufferBindings: VertexBufferBinding[], firstIndex: number = 0): void {
     const count = vertexBufferBindings.length;
     const bindings = this._vertexBufferBindings;
+    const updateInfos = this._vertexBufferInfos;
 
     const needLength = firstIndex + count;
     if (bindings.length < needLength) {
       bindings.length = needLength;
-      this._vertexBufferDataVersions.length = needLength;
+      updateInfos.length = needLength;
     }
 
     for (let i = 0; i < count; i++) {
@@ -605,7 +606,9 @@ export class ModelMesh extends Mesh {
 
   /**
    * Upload data to GPU set by `setPositions()`, `setNormals()`, `setColors()`, `setBoneWeights()`, `setBoneIndices()`, `setTangents()`, `setUVs()`, `setIndices()` methods.
-   * @param releaseData - Whether to release the data set by above methods, release data will save memory. If you already released the data, when call `getPositions()`, `getNormals()`, `getColors()`, `getBoneWeights()`, `getBoneIndices()`, `getTangents()`, `getUVs()`, `getIndices()` methods again will copy data from vertex buffer
+   * This method will be auto generate vertex element and vertex buffer binding if needed.
+   *
+   * @param releaseData - Whether to release the data cache, release data can reduce memory usage.
    */
   uploadData(releaseData: boolean): void {
     this._updateVertexElements();
@@ -616,11 +619,15 @@ export class ModelMesh extends Mesh {
       this._updateAdvancedVertices();
 
       this._advancedDataSyncToBuffer = true;
-      // @todo: add buffer dirty flag
+      const vertexBufferInfos = this._vertexBufferInfos;
       const vertexBufferBindings = this._vertexBufferBindings;
       for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
-        const buffer = vertexBufferBindings[i]?._buffer;
-        buffer.readable && buffer.setData(buffer.data);
+        const vertexBufferInfo = vertexBufferInfos[i];
+        if (vertexBufferInfo.uploadAdvancedData) {
+          const buffer = vertexBufferBindings[i]?._buffer;
+          buffer.setData(buffer.data);
+          vertexBufferInfo.uploadAdvancedData = false;
+        }
       }
       this._advancedDataSyncToBuffer = false;
     }
@@ -748,9 +755,10 @@ export class ModelMesh extends Mesh {
    * @internal
    */
   override _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    const updateInfos = this._vertexBufferInfos;
     const onVertexBufferChanged = () => {
       if (!this._advancedDataSyncToBuffer) {
-        this._vertexBufferDataVersions[index] = this._dataVersionCounter++;
+        updateInfos[index].dataVersion = this._dataVersionCounter++;
       }
     };
 
@@ -763,6 +771,7 @@ export class ModelMesh extends Mesh {
     // Add listener to new binding and trigger update
     if (binding) {
       binding.buffer._dataUpdateManager.addListener(onVertexBufferChanged);
+      (updateInfos[index] ||= new BufferUpdateInfo()).reset();
       onVertexBufferChanged();
     }
   }
@@ -802,7 +811,7 @@ export class ModelMesh extends Mesh {
     const advancedVertexDataVersions = this._advancedVertexDataVersions;
     const advancedDataVersion = advancedVertexDataVersions[vertexElementIndex] ?? -1;
     const vertexElement = this._vertexElementMap[vertexAttribute];
-    const bufferDataVersion = vertexElement ? this._vertexBufferDataVersions[vertexElement.bindingIndex] ?? -1 : -1;
+    const bufferDataVersion = vertexElement ? this._vertexBufferInfos[vertexElement.bindingIndex].dataVersion : -1;
     if (advancedDataVersion >= bufferDataVersion) {
       return vertices;
     } else {
@@ -1092,7 +1101,8 @@ export class ModelMesh extends Mesh {
     }
 
     const advancedDataVersion = this._advancedVertexDataVersions[elementIndex] ?? -1;
-    if (advancedDataVersion > this._vertexBufferDataVersions[bindingIndex]) {
+    const vertexBufferInfo = this._vertexBufferInfos[bindingIndex];
+    if (advancedDataVersion > vertexBufferInfo.dataVersion) {
       const formatMetaInfo = vertexElement._formatMetaInfo;
       const typedArray = this._getVertexTypedArray(buffer.data.buffer, formatMetaInfo.type);
       const byteOffset = vertexElement.offset;
@@ -1109,6 +1119,7 @@ export class ModelMesh extends Mesh {
           }
         }
       }
+      vertexBufferInfo.uploadAdvancedData = true;
     }
   }
 
@@ -1269,6 +1280,7 @@ export class ModelMesh extends Mesh {
     this._blendShapeManager._releaseMemoryCache();
   }
 
+  /** @deprecated */
   private _accessible: boolean = true;
 
   /**
@@ -1277,6 +1289,15 @@ export class ModelMesh extends Mesh {
    */
   get accessible(): boolean {
     return this._accessible;
+  }
+}
+
+class BufferUpdateInfo {
+  dataVersion: number = -1;
+  uploadAdvancedData: boolean = false;
+
+  reset(): void {
+    this.uploadAdvancedData = false;
   }
 }
 
