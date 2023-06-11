@@ -288,10 +288,19 @@ describe("ModelMesh Test", async function () {
       new Vector4(29 / 255, 55 / 255, 77 / 255, 88 / 255)
     ];
 
+    // Test advanced vertex data
     expect(positions).deep.eq(rightPositions);
     expect(normals).deep.eq(rightNormals);
     expect(uvs).deep.eq(rightUVS);
     expect(boneIndices).deep.eq(rightBoneIndices);
     expect(boneWeights).deep.eq(rightBoneWeights);
+
+    modelMesh.setPositions(null);
+    const positions0 = modelMesh.getPositions();
+    debugger;
+    expect(positions0).eq(null);
+    debugger;
+    const vertexElements = modelMesh.vertexElements;
+    expect(vertexElements.length).eq(4);
   });
 });
