@@ -56,7 +56,7 @@ export class ModelMesh extends Mesh {
   private _internalVertexBufferCreatedInfo: Vector2 = new Vector2(); // x:vertexCount, y:vertexStride
   private _internalVertexElementsOffset: number = 0;
   private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
-  private _internalVertexElementsUpdate: boolean = false;
+  private _advancedVertexElementsUpdate: boolean = false;
 
   private _vertexBufferInfos: BufferUpdateInfo[] = [];
 
@@ -514,7 +514,7 @@ export class ModelMesh extends Mesh {
 
     this._internalVertexElementsOffset = count;
     this._internalVertexBufferIndex = -1;
-    this._internalVertexElementsUpdate = false;
+    this._advancedVertexElementsUpdate = false;
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
   }
@@ -844,7 +844,7 @@ export class ModelMesh extends Mesh {
     elementChangeFlag: VertexElementFlags,
     elementIndex: VertexElementIndex
   ): void {
-    this._internalVertexElementsUpdate ||= !!oldVertices !== !!vertices;
+    this._advancedVertexElementsUpdate ||= !!oldVertices !== !!vertices;
     this._advancedDataUpdateFlag |= elementChangeFlag;
     this._advancedVertexDataVersions[elementIndex] = this._dataVersionCounter++;
   }
@@ -938,7 +938,7 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
-  private _updateInternalVertexElements(): void {
+  private _updateAdvancedVertexElements(): void {
     this._updateInternalVertexBufferIndex();
     this._internalVertexElementsFlags = VertexElementFlags.None;
 
@@ -1009,9 +1009,9 @@ export class ModelMesh extends Mesh {
     const previousCount = vertexElements.length;
     const previousBSOffset = bsManager._vertexElementOffset;
 
-    if (this._internalVertexElementsUpdate) {
-      this._updateInternalVertexElements();
-      this._internalVertexElementsUpdate = false;
+    if (this._advancedVertexElementsUpdate) {
+      this._updateAdvancedVertexElements();
+      this._advancedVertexElementsUpdate = false;
     }
 
     const bsUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
