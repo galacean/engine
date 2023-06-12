@@ -938,68 +938,90 @@ export class ModelMesh extends Mesh {
     return vertices;
   }
 
+  private _updateAdvancedVertexElement(
+    vertices: VertexType[],
+    attribute: VertexAttribute,
+    flag: VertexElementFlags,
+    elementOffset: number
+  ): number {
+    const vertexElementMap = this._vertexElementMap;
+
+    if (vertices) {
+      if (!vertexElementMap[attribute]) {
+        const format = this._getAttributeFormat(attribute);
+        const offset = this._internalVertexBufferStride;
+        const bufferIndex = this._internalVertexBufferIndex;
+        this._setVertexElement(elementOffset++, new VertexElement(attribute, offset, format, bufferIndex));
+
+        this._internalVertexBufferStride += this._getAttributeByteLength(attribute);
+        this._internalVertexElementsFlags |= flag;
+      }
+    } else {
+      const vertexElement = vertexElementMap[attribute];
+      if (vertexElement) {
+        const index = this._vertexElements.indexOf(vertexElement);
+        // If custom element should remove
+        if (index < this._internalVertexElementsOffset) {
+          this._internalVertexElementsOffset--;
+          elementOffset--;
+          this._removeVertexElement(index);
+        }
+      }
+    }
+    return elementOffset;
+  }
+
   private _updateAdvancedVertexElements(): void {
     this._updateInternalVertexBufferIndex();
     this._internalVertexElementsFlags = VertexElementFlags.None;
 
     let offset = this._internalVertexElementsOffset;
-    const vertexElementMap = this._vertexElementMap;
 
-    if (this._positions && !vertexElementMap[VertexAttribute.Position]) {
-      this._addInternalVertexAttribute(VertexAttribute.Position, offset++, VertexElementFlags.Position);
-    }
+    offset = this._updateAdvancedVertexElement(
+      this._positions,
+      VertexAttribute.Position,
+      VertexElementFlags.Position,
+      offset
+    );
 
-    if (this._normals && !vertexElementMap[VertexAttribute.Normal]) {
-      this._addInternalVertexAttribute(VertexAttribute.Normal, offset++, VertexElementFlags.Normal);
-    }
+    offset = this._updateAdvancedVertexElement(
+      this._normals,
+      VertexAttribute.Normal,
+      VertexElementFlags.Normal,
+      offset
+    );
 
-    if (this._colors && !vertexElementMap[VertexAttribute.Color]) {
-      this._addInternalVertexAttribute(VertexAttribute.Color, offset++, VertexElementFlags.Color);
-    }
+    offset = this._updateAdvancedVertexElement(this._colors, VertexAttribute.Color, VertexElementFlags.Color, offset);
 
-    if (this._boneWeights && !vertexElementMap[VertexAttribute.BoneWeight]) {
-      this._addInternalVertexAttribute(VertexAttribute.BoneWeight, offset++, VertexElementFlags.BoneWeight);
-    }
+    offset = this._updateAdvancedVertexElement(
+      this._boneWeights,
+      VertexAttribute.BoneWeight,
+      VertexElementFlags.BoneWeight,
+      offset
+    );
 
-    if (this._boneIndices && !vertexElementMap[VertexAttribute.BoneIndex]) {
-      this._addInternalVertexAttribute(VertexAttribute.BoneIndex, offset++, VertexElementFlags.BoneIndex);
-    }
+    offset = this._updateAdvancedVertexElement(
+      this._boneIndices,
+      VertexAttribute.BoneIndex,
+      VertexElementFlags.BoneIndex,
+      offset
+    );
 
-    if (this._tangents && !vertexElementMap[VertexAttribute.Tangent]) {
-      this._addInternalVertexAttribute(VertexAttribute.Tangent, offset++, VertexElementFlags.Tangent);
-    }
+    offset = this._updateAdvancedVertexElement(
+      this._tangents,
+      VertexAttribute.Tangent,
+      VertexElementFlags.Tangent,
+      offset
+    );
 
-    if (this._uv && !vertexElementMap[VertexAttribute.UV]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV, offset++, VertexElementFlags.UV);
-    }
-
-    if (this._uv1 && !vertexElementMap[VertexAttribute.UV1]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV1, offset++, VertexElementFlags.UV1);
-    }
-
-    if (this._uv2 && !vertexElementMap[VertexAttribute.UV2]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV2, offset++, VertexElementFlags.UV2);
-    }
-
-    if (this._uv3 && !vertexElementMap[VertexAttribute.UV3]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV3, offset++, VertexElementFlags.UV3);
-    }
-
-    if (this._uv4 && !vertexElementMap[VertexAttribute.UV4]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV4, offset++, VertexElementFlags.UV4);
-    }
-
-    if (this._uv5 && !vertexElementMap[VertexAttribute.UV5]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV5, offset++, VertexElementFlags.UV5);
-    }
-
-    if (this._uv6 && !vertexElementMap[VertexAttribute.UV6]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV6, offset++, VertexElementFlags.UV6);
-    }
-
-    if (this._uv7 && !vertexElementMap[VertexAttribute.UV7]) {
-      this._addInternalVertexAttribute(VertexAttribute.UV7, offset++, VertexElementFlags.UV7);
-    }
+    offset = this._updateAdvancedVertexElement(this._uv, VertexAttribute.UV, VertexElementFlags.UV, offset);
+    offset = this._updateAdvancedVertexElement(this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1, offset);
+    offset = this._updateAdvancedVertexElement(this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2, offset);
+    offset = this._updateAdvancedVertexElement(this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3, offset);
+    offset = this._updateAdvancedVertexElement(this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4, offset);
+    offset = this._updateAdvancedVertexElement(this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5, offset);
+    offset = this._updateAdvancedVertexElement(this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6, offset);
+    offset = this._updateAdvancedVertexElement(this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7, offset);
     this._blendShapeManager._vertexElementOffset = offset;
   }
 
@@ -1199,22 +1221,6 @@ export class ModelMesh extends Mesh {
       }
     }
     this._internalVertexBufferIndex = i;
-  }
-
-  private _addInternalVertexAttribute(
-    vertexAttribute: VertexAttribute,
-    index: number,
-    vertexFlag: VertexElementFlags
-  ): void {
-    const format = this._getAttributeFormat(vertexAttribute);
-    const bufferIndex = this._internalVertexBufferIndex;
-    this._setVertexElement(
-      index,
-      new VertexElement(vertexAttribute, this._internalVertexBufferStride, format, bufferIndex)
-    );
-
-    this._internalVertexBufferStride += this._getAttributeByteLength(vertexAttribute);
-    this._internalVertexElementsFlags |= vertexFlag;
   }
 
   private _getAttributeFormat(attribute: VertexAttribute): VertexElementFormat {

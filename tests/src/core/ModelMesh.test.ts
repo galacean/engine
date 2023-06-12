@@ -295,12 +295,19 @@ describe("ModelMesh Test", async function () {
     expect(boneIndices).deep.eq(rightBoneIndices);
     expect(boneWeights).deep.eq(rightBoneWeights);
 
+    // Test use advanced interface to delete
     modelMesh.setPositions(null);
     const positions0 = modelMesh.getPositions();
-    debugger;
     expect(positions0).eq(null);
-    debugger;
     const vertexElements = modelMesh.vertexElements;
     expect(vertexElements.length).eq(4);
+
+    // Test set positions with advanced interface again
+    modelMesh.setPositions(rightPositions);
+    const positions1 = modelMesh.getPositions();
+    expect(positions1).eq(rightPositions);
+
+    const vertexElements1 = modelMesh.vertexElements;
+    expect(vertexElements1.length).eq(5);
   });
 });
