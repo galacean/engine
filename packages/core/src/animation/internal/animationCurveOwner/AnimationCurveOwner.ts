@@ -62,12 +62,18 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     }
   }
 
-  evaluateAndApplyValue(curve: AnimationCurve<V>, time: number, layerWeight: number, additive: boolean): void {
+  evaluateAndApplyValue(
+    curve: AnimationCurve<V>,
+    time: number,
+    layerWeight: number,
+    additive: boolean,
+    aniUpdate: boolean
+  ): void {
     if (curve.keys.length) {
       const value = additive
         ? curve._evaluateAdditive(time, this.baseEvaluateData)
         : curve._evaluate(time, this.baseEvaluateData);
-      this.applyValue(value, layerWeight, additive);
+      aniUpdate && this.applyValue(value, layerWeight, additive);
     }
   }
 
@@ -78,7 +84,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     destTime: number,
     crossWeight: number,
     layerWeight: number,
-    additive: boolean
+    additive: boolean,
+    aniUpdate: boolean
   ): void {
     const srcValue =
       srcCurve && srcCurve.keys.length
@@ -98,7 +105,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
         ? this.cureType._getZeroValue(this.crossEvaluateData.value)
         : this.defaultValue;
 
-    this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
+    this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive, aniUpdate);
   }
 
   crossFadeFromPoseAndApplyValue(
@@ -106,7 +113,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     destTime: number,
     crossWeight: number,
     layerWeight: number,
-    additive: boolean
+    additive: boolean,
+    aniUpdate: boolean
   ): void {
     const srcValue = additive
       ? this.cureType._subtractValue(this.fixedPoseValue, this.defaultValue, this.baseEvaluateData.value)
@@ -120,7 +128,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
         ? this.cureType._getZeroValue(this.crossEvaluateData.value)
         : this.defaultValue;
 
-    this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive);
+    this._applyCrossValue(srcValue, destValue, crossWeight, layerWeight, additive, aniUpdate);
   }
 
   revertDefaultValue(): void {
@@ -188,7 +196,8 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
     destValue: V,
     crossWeight: number,
     layerWeight: number,
-    additive: boolean
+    additive: boolean,
+    aniUpdate: boolean
   ): void {
     let out: V;
     if (this.cureType._isReferenceType) {
@@ -198,7 +207,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
       out = this.baseEvaluateData.value = this.cureType._lerpValue(srcValue, destValue, crossWeight);
     }
 
-    this.applyValue(out, layerWeight, additive);
+    aniUpdate && this.applyValue(out, layerWeight, additive);
   }
 }
 

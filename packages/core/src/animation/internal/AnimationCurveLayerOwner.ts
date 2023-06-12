@@ -13,10 +13,6 @@ export class AnimationCurveLayerOwner {
 
   saveFinalValue(): void {
     const owner = this.curveOwner;
-    if (owner.cureType._isReferenceType) {
-      owner.getEvaluateValue(this.finalValue);
-    } else {
-      this.finalValue = owner.getEvaluateValue(this.finalValue);
-    }
+    this.finalValue = owner.getEvaluateValue(this.finalValue);
   }
 }

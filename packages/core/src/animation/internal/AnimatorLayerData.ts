@@ -1,6 +1,5 @@
 import { AnimatorStateTransition } from "../AnimatorTransition";
 import { LayerState } from "../enums/LayerState";
-import { KeyframeValueType } from "../Keyframe";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimatorStateData } from "./AnimatorStateData";
 import { AnimatorStatePlayData } from "./AnimatorStatePlayData";

@@ -1,4 +1,3 @@
-import { KeyframeValueType } from "../Keyframe";
 import { AnimationCurveLayerOwner } from "./AnimationCurveLayerOwner";
 import { AnimationEventHandler } from "./AnimationEventHandler";
 

@@ -123,7 +123,7 @@ export class AnimationClip extends EngineObject {
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
         const curveOwner = curveData._getTempCurveOwner(targetEntity);
-        curveOwner.evaluateAndApplyValue(curveData.curve, time, 1, false);
+        curveOwner.evaluateAndApplyValue(curveData.curve, time, 1, false, true);
       }
     }
   }
