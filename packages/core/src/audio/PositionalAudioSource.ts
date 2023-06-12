@@ -3,11 +3,12 @@ import { Entity } from "../Entity";
 import { AudioClip } from "./AudioClip";
 import { AudioManager } from "./AudioManager";
 import { deepClone, ignoreClone } from "../clone/CloneManager";
+import { TransformModifyFlags } from "../Transform";
 
 /**
- * Audio Source Component
+ * Positional Audio Source Component
  */
-export class AudioSource extends Component {
+export class PositionalAudioSource extends Component {
   @ignoreClone
   /** Whether the clip playing right now */
   isPlaying: Readonly<boolean>;
@@ -22,6 +23,8 @@ export class AudioSource extends Component {
   private _clip: AudioClip;
   @deepClone
   private _gainNode: GainNode;
+  @deepClone
+  private _pannerNode: PannerNode;
   @ignoreClone
   private _sourceNode: AudioBufferSourceNode;
 
@@ -127,6 +130,87 @@ export class AudioSource extends Component {
   }
 
   /**
+   * The spatialization algorithm to use to position the audio in 3D space.
+   * Default equal power.
+   */
+  get PanningMode(): PanningModelType {
+    return this._pannerNode.panningModel;
+  }
+
+  set PanningMode(value: PanningModelType) {
+    this._pannerNode.panningModel = value;
+  }
+
+  /**
+   * The algorithm to use to reduce the volume of the audio source as it moves away from the listener.
+   * Default inverse.
+   */
+  get distanceModel(): DistanceModelType {
+    return this._pannerNode.distanceModel;
+  }
+
+  set distanceModel(value: DistanceModelType) {
+    this._pannerNode.distanceModel = value;
+  }
+
+  /**
+   * The minimum distance which the volume start to reduce.
+   */
+  get minDistance(): number {
+    return this._pannerNode.refDistance;
+  }
+
+  set minDistance(value: number) {
+    this._pannerNode.refDistance = value;
+  }
+  /**
+   * The maximum distance beyond which the volume is not reduced any further.
+   */
+  get maxDistance(): number {
+    return this._pannerNode.maxDistance;
+  }
+
+  set maxDistance(value: number) {
+    this._pannerNode.maxDistance = value;
+  }
+
+  /**
+   * Direcitonal audio clip.
+   * The angle, in degrees, of a cone inside of which there will be no volume reduction.
+   */
+  get innerAngle(): number {
+    return this._pannerNode.coneInnerAngle;
+  }
+
+  set innerAngle(value: number) {
+    this._pannerNode.coneInnerAngle = value;
+  }
+
+  /**
+   * Directional audio clip.
+   * The angle, in degrees, of a cone outside of which the volume will be reduced by a constant value.
+   */
+  get outerAngle(): number {
+    return this._pannerNode.coneOuterAngle;
+  }
+
+  set outerAngle(value: number) {
+    this._pannerNode.coneOuterAngle = value;
+  }
+
+  /**
+   * Directional audio clip.
+   * The volume outside the cone defined by the coneOuterAngle. Default 0, meaning that no sound can be heard.
+   */
+  get outerVolume(): number {
+    return this._pannerNode.coneOuterGain;
+  }
+
+  set outerVolume(value: number) {
+    this._pannerNode.coneOuterGain = value;
+  }
+
+  /**
    * Playback position in seconds.
    */
   get time(): number {
@@ -189,8 +273,12 @@ export class AudioSource extends Component {
     super(entity);
     this._onPlayEnd = this._onPlayEnd.bind(this);
 
-    this._gainNode = AudioManager.context.createGain();
+    this._pannerNode = AudioManager.context.createPanner();
+    this._pannerNode.connect(this._gainNode);
     this._gainNode.connect(AudioManager.listener);
+
+    this._onTransformChanged = this._onTransformChanged.bind(this);
+    this._registerEntityTransformListener();
   }
 
   override _onAwake(): void {
@@ -219,6 +307,22 @@ export class AudioSource extends Component {
     if (this._clip) {
       this._clip._addReferCount(-1);
       this._clip = null;
+    }
+
+    this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
+  }
+
+  /**
+   * @internal
+   */
+  @ignoreClone
+  protected _onTransformChanged(type: TransformModifyFlags) {
+    if ((type & TransformModifyFlags.WmWp) != 0) {
+      this._updatePosition();
+    }
+
+    if ((type & TransformModifyFlags.WmWeWq) != 0) {
+      this._updateOrientation();
     }
   }
 
@@ -249,5 +353,29 @@ export class AudioSource extends Component {
   private _onPlayEnd(): void {
     if (!this.isPlaying) return;
     this.isPlaying = false;
+  }
+
+  private _registerEntityTransformListener() {
+    this.entity.transform._updateFlagManager.addListener(this._onTransformChanged);
+  }
+
+  private _updatePosition() {
+    const { _pannerNode: panner } = this;
+    const { position } = this.entity.transform;
+    const { context } = AudioManager;
+
+    panner.positionX.setValueAtTime(position.x, context.currentTime);
+    panner.positionY.setValueAtTime(position.y, context.currentTime);
+    panner.positionZ.setValueAtTime(position.z, context.currentTime);
+  }
+
+  private _updateOrientation() {
+    const { _pannerNode: panner } = this;
+    const { worldForward } = this.entity.transform;
+    const { context } = AudioManager;
+
+    panner.orientationX.setValueAtTime(worldForward.x, context.currentTime);
+    panner.orientationY.setValueAtTime(worldForward.y, context.currentTime);
+    panner.orientationZ.setValueAtTime(worldForward.z, context.currentTime);
   }
 }
