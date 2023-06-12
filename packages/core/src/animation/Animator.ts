@@ -603,6 +603,7 @@ export class Animator extends Component {
     const { clipTime: destClipTime } = destPlayData;
     const finished = playState === AnimatorStatePlayState.Finished;
 
+    // When the animator is culled (aniUpdate=false), if the play state has finished, the final value needs to be calculated and saved to be applied directly.
     if (aniUpdate || finished) {
       for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
         const layerOwner = crossLayerOwnerCollection[i];
