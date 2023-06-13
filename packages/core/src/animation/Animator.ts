@@ -286,21 +286,23 @@ export class Animator extends Component {
         let needRevert = false;
         const baseAnimatorLayerData = this._animatorLayersData[0];
         const baseLayerCurveOwnerPool = baseAnimatorLayerData.curveOwnerPool;
-        if (!(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])) {
+        if (
+          this.animatorController.layers[layerIndex].blendingMode === AnimatorLayerBlendingMode.Additive &&
+          animatorLayerData !== baseAnimatorLayerData &&
+          !(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])
+        ) {
           needRevert = true;
         }
 
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
-        //TODO: 这里有性能浪费后面在reset里同一组织
-        if (animatorLayerData !== baseAnimatorLayerData) {
-          if (needRevert) {
-            this._needRevertCurveOwners.push(owner);
-          } else {
-            const index = this._needRevertCurveOwners.indexOf(owner);
-            index > -1 && this._needRevertCurveOwners.splice(index, 1);
-          }
+        //@todo: There is performance waste here, which will be handled together with organizing AnimatorStateData later. The logic is changing from runtime to initialization.
+        if (needRevert) {
+          this._needRevertCurveOwners.push(owner);
+        } else {
+          const index = this._needRevertCurveOwners.indexOf(owner);
+          index > -1 && this._needRevertCurveOwners.splice(index, 1);
         }
 
         // Get layer owner
@@ -423,7 +425,7 @@ export class Animator extends Component {
     const { srcPlayData, destPlayData, crossFadeTransition: crossFadeTransitionInfo } = layerData;
     const additive = blendingMode === AnimatorLayerBlendingMode.Additive;
     firstLayer && (weight = 1.0);
-    //TODO: 任意情况都应该检查，后面要优化
+    //@todo: All situations should be checked, optimizations will follow later.
     layerData.layerState !== LayerState.FixedCrossFading &&
       this._checkTransition(srcPlayData, crossFadeTransitionInfo, layerIndex);
 
@@ -619,7 +621,7 @@ export class Animator extends Component {
       }
     }
 
-    //TODO: srcState 少了最新一段时间的判断
+    //@todo: srcState is missing the judgment of the most recent period."
     eventHandlers.length && this._fireAnimationEvents(destPlayData, eventHandlers, lastDestClipTime, destClipTime);
 
     if (lastPlayState === AnimatorStatePlayState.UnStarted) {
