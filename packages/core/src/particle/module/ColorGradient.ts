@@ -1,7 +1,6 @@
 import { IClone } from "@galacean/engine-design";
-import { Color } from "@galacean/engine-math";
+import { Color, Gradient } from "@galacean/engine-math";
 import { ParticleGradientMode } from "../enum/ParticleGradientMode";
-import { Gradient } from "./Gradient";
 
 /**
  *  The Color Gradient.

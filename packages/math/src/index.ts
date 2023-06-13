@@ -18,3 +18,4 @@ export { Color } from "./Color";
 export { Rect } from "./Rect";
 export { SphericalHarmonics3 } from "./SphericalHarmonics3";
 export { Rand } from "./Rand";
+export { Gradient } from "./Gradient";

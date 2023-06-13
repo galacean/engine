@@ -116,8 +116,6 @@ export class ParticleMesh extends BufferMesh {
   /** @internal */
   _boundingBoxCorners: Vector3[] = [];
   /** @internal */
-  _bounds = new BoundingBox(this._boundingBox.min, this._boundingBox.max);
-  /** @internal */
   _customBounds: BoundingBox = null;
   /** @internal */
   _useCustomBounds: boolean = false;
@@ -1670,9 +1668,8 @@ export class ParticleMesh extends BufferMesh {
 
   /**
    * @internal
-   * @override
    */
-  _onDestroy(): void {
+  override _onDestroy(): void {
     if (this._vertexBuffer) {
       this._vertexBuffer.destroy();
       this._vertexBuffer = null;
@@ -1685,7 +1682,6 @@ export class ParticleMesh extends BufferMesh {
     this._boundingBox = null;
     this._boundingSphere = null;
     this._boundingBoxCorners = null;
-    this._bounds = null;
     this._customBounds = null;
     this._renderer = null;
     this._vertices = null;
@@ -1726,7 +1722,7 @@ export class ParticleMesh extends BufferMesh {
    */
   _generateBounds(): void {
     const particleRender = this._renderer;
-    const { min: boundsMin, max: boundsMax } = this._bounds;
+    const { min: boundsMin, max: boundsMax } = this.bounds;
 
     // lifeTime
     let time: number = 0;

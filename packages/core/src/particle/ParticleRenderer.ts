@@ -3,11 +3,11 @@ import { ParticleMesh } from "./ParticleMesh";
 import { MeshRenderer } from "../mesh";
 import { Entity } from "../Entity";
 import { BoundingBox, Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
-import { Camera } from "../Camera";
 import { ParticleMaterial } from "./ParticleMaterial";
 import { Material } from "../material";
 import { Texture2D } from "../texture";
 import { ParticleCurveMode, ParticleRenderMode, ParticleScaleMode, ParticleSimulationSpace } from "./enum";
+import { RenderContext } from "../RenderPipeline/RenderContext";
 
 /**
  * Particle Renderer
@@ -119,7 +119,7 @@ export class ParticleRenderer extends MeshRenderer {
     super(entity);
     this._particleMesh = new ParticleMesh(this);
     this._particleMaterial = new ParticleMaterial(entity.engine);
-    this._setMaterial(0, this._particleMaterial);
+    this.setMaterial(0, this._particleMaterial);
     // used to map quaternion;
     this.shaderData.setVector4(ParticleShaderDeclaration.WORLD_ROTATION, new Vector4());
     this.renderMode = ParticleRenderMode.Billboard;
@@ -136,19 +136,19 @@ export class ParticleRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  override _render(camera: Camera): void {
+  override _render(context: RenderContext): void {
     if (this._renderMode !== ParticleRenderMode.None) {
       const mesh = this._particleMesh;
       const subMeshes = mesh.subMeshes;
-      const renderPipeline = camera._renderPipeline;
-      const renderElementPool = this._engine._renderElementPool;
+      const renderPipeline = context.camera._renderPipeline;
+      const meshRenderDataPool = this._engine._meshRenderDataPool;
       const material = this._particleMaterial;
       for (let i = 0, n = subMeshes.length; i < n; i++) {
         const subMesh = subMeshes[i];
         if (subMesh.count > 0) {
-          const element = renderElementPool.getFromPool();
-          element.setValue(this, mesh, subMeshes[i], material);
-          renderPipeline.pushPrimitive(element);
+          const renderData = meshRenderDataPool.getFromPool();
+          renderData.set(this, material, mesh, subMeshes[i]);
+          renderPipeline.pushRenderData(context, renderData);
         }
       }
     }
@@ -219,7 +219,7 @@ export class ParticleRenderer extends MeshRenderer {
       worldBounds.transform(this.entity.transform.worldMatrix);
     } else if (particleSystem._simulationSupported()) {
       particleSystem._generateBounds();
-      worldBounds.copyFrom(particleSystem._bounds);
+      worldBounds.copyFrom(particleSystem.bounds);
       worldBounds.transform(this.entity.transform.worldMatrix);
       // 在世界坐标下考虑重力影响
       if (particleSystem.gravityModifier != 0) {

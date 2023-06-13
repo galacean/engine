@@ -8,4 +8,3 @@ export { ParticleRenderMode } from "./ParticleRenderMode";
 
 export { ParticleShapeType } from "./ParticleShapeType";
 export { ParticleGradientMode } from "./ParticleGradientMode";
-export { GradientMode } from "./GradientMode";

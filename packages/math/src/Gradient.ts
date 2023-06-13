@@ -1,6 +1,8 @@
-import { GradientMode } from "../enum/GradientMode";
-import { Vector4, Color, ICopy } from "@galacean/engine-math";
-import { IClone } from "@galacean/engine-design";
+import { GradientMode } from "./enums/GradientMode";
+import { IClone } from "./IClone";
+import { ICopy } from "./ICopy";
+import { Vector4 } from "./Vector4";
+import { Color } from "./Color";
 
 /**
  * Gradient used for animating colors.
