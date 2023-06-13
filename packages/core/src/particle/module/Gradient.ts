@@ -1,8 +1,6 @@
 import { GradientMode } from "../enum/GradientMode";
-import { IClone } from "@oasis-engine/math/src/IClone";
-import { Vector4 } from "@oasis-engine/math/src/Vector4";
-import { Color } from "@oasis-engine/math/src/Color";
-import { ICopy } from "@oasis-engine/math/src/ICopy";
+import { Vector4, Color, ICopy } from "@galacean/engine-math";
+import { IClone } from "@galacean/engine-design";
 
 /**
  * Gradient used for animating colors.

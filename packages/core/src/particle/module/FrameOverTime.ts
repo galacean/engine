@@ -1,5 +1,5 @@
 import { ParticleCurve } from "./ParticleCurve";
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
 import { ParticleCurveMode } from "../enum";
 
 /**

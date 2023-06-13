@@ -1,6 +1,6 @@
 import { BaseShape } from "./BaseShape";
 import { ShapeUtils } from "./ShapeUtils";
-import { BoundingBox, Rand, Vector3 } from "@oasis-engine/math";
+import { BoundingBox, Rand, Vector3 } from "@galacean/engine-math";
 import { ParticleShapeType } from "../../enum/ParticleShapeType";
 
 /**
@@ -19,9 +19,8 @@ export class HemisphereShape extends BaseShape {
 
   /**
    * @inheritDoc
-   * @override
    */
-  protected _getShapeBoundBox(boundBox: BoundingBox): void {
+  protected override _getShapeBoundBox(boundBox: BoundingBox): void {
     const min: Vector3 = boundBox.min;
     min.x = min.y = min.z = -this.radius;
     const max: Vector3 = boundBox.max;
@@ -31,9 +30,8 @@ export class HemisphereShape extends BaseShape {
 
   /**
    * @inheritDoc
-   * @override
    */
-  protected _getSpeedBoundBox(boundBox: BoundingBox): void {
+  protected override _getSpeedBoundBox(boundBox: BoundingBox): void {
     const min: Vector3 = boundBox.min;
     min.x = min.y = -1;
     min.z = 0;
@@ -41,10 +39,7 @@ export class HemisphereShape extends BaseShape {
     max.x = max.y = max.z = 1;
   }
 
-  /**
-   * @override
-   */
-  _generatePositionAndDirection(
+  override _generatePositionAndDirection(
     position: Vector3,
     direction: Vector3,
     rand: Rand = null,
@@ -80,20 +75,14 @@ export class HemisphereShape extends BaseShape {
     direction.z *= -1.0;
   }
 
-  /**
-   * @override
-   */
-  cloneTo(destShape: HemisphereShape): void {
+  override cloneTo(destShape: HemisphereShape): void {
     super.cloneTo(destShape);
     destShape.radius = this.radius;
     destShape.emitFromShell = this.emitFromShell;
     destShape.randomDirectionAmount = this.randomDirectionAmount;
   }
 
-  /**
-   * @override
-   */
-  clone(): HemisphereShape {
+  override clone(): HemisphereShape {
     const destShape = new HemisphereShape();
     this.cloneTo(destShape);
     return destShape;

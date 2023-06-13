@@ -1,5 +1,5 @@
 import { Burst } from "./Burst";
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
 
 /**
  * The EmissionModule of a Particle System.

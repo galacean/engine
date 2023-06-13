@@ -1,4 +1,13 @@
-import { BoundingBox, BoundingSphere, Color, MathUtil, Quaternion, Rand, Vector2, Vector3 } from "@oasis-engine/math";
+import {
+  BoundingBox,
+  BoundingSphere,
+  Color,
+  MathUtil,
+  Quaternion,
+  Rand,
+  Vector2,
+  Vector3
+} from "@galacean/engine-math";
 import { ParticleRenderer } from "./ParticleRenderer";
 import { BufferMesh, ModelMesh } from "../mesh";
 import {

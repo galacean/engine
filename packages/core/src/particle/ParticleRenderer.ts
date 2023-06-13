@@ -2,7 +2,7 @@ import { ParticleShaderDeclaration } from "./ParticleShaderDeclaration";
 import { ParticleMesh } from "./ParticleMesh";
 import { MeshRenderer } from "../mesh";
 import { Entity } from "../Entity";
-import { BoundingBox, Color, Vector2, Vector3, Vector4 } from "@oasis-engine/math";
+import { BoundingBox, Color, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
 import { Camera } from "../Camera";
 import { ParticleMaterial } from "./ParticleMaterial";
 import { Material } from "../material";
@@ -128,7 +128,7 @@ export class ParticleRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  update(deltaTime: number): void {
+  override update(deltaTime: number): void {
     this._particleMesh._prepareRender(deltaTime / 1000);
     this._renderUpdate();
   }
@@ -136,7 +136,7 @@ export class ParticleRenderer extends MeshRenderer {
   /**
    * @internal
    */
-  _render(camera: Camera): void {
+  override _render(camera: Camera): void {
     if (this._renderMode !== ParticleRenderMode.None) {
       const mesh = this._particleMesh;
       const subMeshes = mesh.subMeshes;
@@ -212,10 +212,7 @@ export class ParticleRenderer extends MeshRenderer {
     shaderData.setFloat(ParticleShaderDeclaration.CURRENT_TIME, particleSystem._currentTime);
   }
 
-  /**
-   * @override
-   */
-  protected _updateBounds(worldBounds: BoundingBox): void {
+  protected override _updateBounds(worldBounds: BoundingBox): void {
     const particleSystem = this._particleMesh;
     if (particleSystem._useCustomBounds) {
       worldBounds.copyFrom(particleSystem.customBounds);
@@ -238,10 +235,7 @@ export class ParticleRenderer extends MeshRenderer {
     }
   }
 
-  /**
-   * @override
-   */
-  setMaterial(indexOrMaterial: number | Material, material: Material = null): void {
+  override setMaterial(indexOrMaterial: number | Material, material: Material = null): void {
     throw "can't set self-defined material for particle renderer!";
   }
 }

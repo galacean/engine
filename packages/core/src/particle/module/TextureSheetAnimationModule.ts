@@ -1,6 +1,6 @@
 import { FrameOverTime } from "./FrameOverTime";
 import { StartFrame } from "./StartFrame";
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
 import { ParticleAnimationRowMode, ParticleAnimationType } from "../enum";
 
 /**

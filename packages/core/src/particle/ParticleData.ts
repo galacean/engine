@@ -8,7 +8,7 @@ import {
   StartFrame,
   TextureSheetAnimationModule
 } from "./module";
-import { Color, MathUtil, Rand, Vector3, Vector4 } from "@oasis-engine/math";
+import { Color, MathUtil, Rand, Vector3, Vector4 } from "@galacean/engine-math";
 import { ParticleRenderer } from "./ParticleRenderer";
 import { ParticleCurveMode } from "./enum";
 

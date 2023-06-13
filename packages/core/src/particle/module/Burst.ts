@@ -1,4 +1,4 @@
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
 
 /**
  * A burst is a particle emission event, where a number of particles are all emitted at the same time

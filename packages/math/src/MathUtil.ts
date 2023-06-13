@@ -10,6 +10,16 @@ export class MathUtil {
   static readonly degreeToRadFactor: number = Math.PI / 180;
 
   /**
+   * Interpolate the left and right value
+   * @param left - The left
+   * @param right - The right
+   * @param amount - The ratio
+   */
+  static lerp(left: number, right: number, amount: number): number {
+    return left * (1 - amount) + right * amount;
+  }
+
+  /**
    * Clamps the specified value.
    * @param v - The specified value
    * @param min - The min value

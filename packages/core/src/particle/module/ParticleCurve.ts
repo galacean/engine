@@ -1,4 +1,4 @@
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
 
 /**
  * Store a collection of Keyframes that can be evaluated over time.

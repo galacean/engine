@@ -1,5 +1,5 @@
 import { RotationVelocityGradient } from "./RotationVelocityGradient";
-import { IClone } from "@oasis-engine/design";
+import { IClone } from "@galacean/engine-design";
 import { ParticleCurveMode } from "../enum";
 
 /**

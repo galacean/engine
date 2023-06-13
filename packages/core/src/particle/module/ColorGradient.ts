@@ -1,5 +1,5 @@
-import { IClone } from "@oasis-engine/design";
-import { Color } from "@oasis-engine/math";
+import { IClone } from "@galacean/engine-design";
+import { Color } from "@galacean/engine-math";
 import { ParticleGradientMode } from "../enum/ParticleGradientMode";
 import { Gradient } from "./Gradient";
 

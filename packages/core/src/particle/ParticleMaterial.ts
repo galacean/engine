@@ -1,6 +1,6 @@
 import { BaseMaterial, BlendMode, RenderFace } from "../material";
 import { Shader } from "../shader";
-import { Color, Vector4 } from "@oasis-engine/math";
+import { Color, Vector4 } from "@galacean/engine-math";
 import { Texture2D } from "../texture";
 import { Engine } from "../Engine";
 
@@ -71,10 +71,7 @@ export class ParticleMaterial extends BaseMaterial {
     shaderData.setVector4(ParticleMaterial._tilingOffsetProp, new Vector4(1, 1, 0, 0));
   }
 
-  /**
-   * @override
-   */
-  clone(): ParticleMaterial {
+  override clone(): ParticleMaterial {
     const dest = new ParticleMaterial(this._engine);
     this.cloneTo(dest);
     return dest;

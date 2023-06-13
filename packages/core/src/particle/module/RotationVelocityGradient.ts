@@ -1,6 +1,6 @@
 import { ParticleCurve } from "./ParticleCurve";
-import { IClone } from "@oasis-engine/design";
-import { Vector3 } from "@oasis-engine/math";
+import { IClone } from "@galacean/engine-design";
+import { Vector3 } from "@galacean/engine-math";
 import { ParticleGradientMode } from "../enum/ParticleGradientMode";
 import { ParticleCurveMode } from "../enum";
 
