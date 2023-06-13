@@ -13,9 +13,6 @@ export class PositionalAudioSource extends Component {
   /** Whether the clip playing right now */
   isPlaying: Readonly<boolean>;
   @deepClone
-  /** Whether the audio clip looping. Default false */
-  loop: boolean = false;
-  @deepClone
   /** If set to true, the audio source will automatically start playing on awake. */
   playOnAwake: boolean = false;
 
@@ -45,6 +42,8 @@ export class PositionalAudioSource extends Component {
   private _lastVolume: number = 1;
   @deepClone
   private _playbackRate: number = 1;
+  @deepClone
+  private _loop: boolean = false;
 
   /**
    * The audio cilp to play
@@ -107,6 +106,23 @@ export class PositionalAudioSource extends Component {
   }
 
   /**
+   * Whether the audio clip looping. Default false.
+   */
+  get loop(): boolean {
+    return this._loop;
+  }
+
+  set loop(value: boolean) {
+    if (value !== this._loop) {
+      this._loop = value;
+
+      if (this.isPlaying) {
+        this._setSourceNodeLoop(this._sourceNode);
+      }
+    }
+  }
+
+  /**
    * The time, in seconds, at which the sound should begin to play. Default 0.
    */
   get startTime(): number {
@@ -155,6 +171,8 @@ export class PositionalAudioSource extends Component {
 
   /**
    * The minimum distance which the volume start to reduce.
+   * Used by all distance models.
+   * Defalut 1.
    */
   get minDistance(): number {
     return this._pannerNode.refDistance;
@@ -165,6 +183,8 @@ export class PositionalAudioSource extends Component {
   }
   /**
    * The maximum distance beyond which the volume is not reduced any further.
+   * Only effective when distance model set to 'linear'.
+   * Default 10000.
    */
   get maxDistance(): number {
     return this._pannerNode.maxDistance;
@@ -177,6 +197,7 @@ export class PositionalAudioSource extends Component {
   /**
    * Direcitonal audio clip.
    * The angle, in degrees, of a cone inside of which there will be no volume reduction.
+   * Default 360.
    */
   get innerAngle(): number {
     return this._pannerNode.coneInnerAngle;
@@ -189,6 +210,7 @@ export class PositionalAudioSource extends Component {
   /**
    * Directional audio clip.
    * The angle, in degrees, of a cone outside of which the volume will be reduced by a constant value.
+   * Default 360.
    */
   get outerAngle(): number {
     return this._pannerNode.coneOuterAngle;
@@ -201,6 +223,7 @@ export class PositionalAudioSource extends Component {
   /**
    * Directional audio clip.
    * The volume outside the cone defined by the coneOuterAngle. Default 0, meaning that no sound can be heard.
+   * Default 0.
    */
   get outerVolume(): number {
     return this._pannerNode.coneOuterGain;
@@ -273,16 +296,17 @@ export class PositionalAudioSource extends Component {
     super(entity);
     this._onPlayEnd = this._onPlayEnd.bind(this);
 
+    this._gainNode = AudioManager.context.createGain();
     this._pannerNode = AudioManager.context.createPanner();
+
     this._pannerNode.connect(this._gainNode);
     this._gainNode.connect(AudioManager.listener);
 
     this._onTransformChanged = this._onTransformChanged.bind(this);
     this._registerEntityTransformListener();
-  }
 
-  override _onAwake(): void {
-    this.playOnAwake && this._clip && this.play();
+    this._updatePosition();
+    this._updateOrientation();
   }
 
   /**
@@ -332,16 +356,10 @@ export class PositionalAudioSource extends Component {
     source.onended = this._onPlayEnd;
     source.playbackRate.value = this._playbackRate;
 
-    if (this.loop) {
-      source.loop = true;
-      source.loopStart = startTime;
-      if (this.endTime) {
-        source.loopEnd = this.endTime;
-      }
-    }
+    this._setSourceNodeLoop(source);
 
     this._gainNode.gain.setValueAtTime(this._volume, 0);
-    source.connect(this._gainNode);
+    source.connect(this._pannerNode);
 
     duration ? source.start(0, startTime, duration) : source.start(0, startTime);
 
@@ -353,6 +371,16 @@ export class PositionalAudioSource extends Component {
   private _onPlayEnd(): void {
     if (!this.isPlaying) return;
     this.isPlaying = false;
+  }
+
+  private _setSourceNodeLoop(sourceNode: AudioBufferSourceNode) {
+    sourceNode.loop = this._loop;
+    if (this._loop) {
+      sourceNode.loopStart = this.startTime;
+      if (this.endTime) {
+        sourceNode.loopEnd = this.endTime;
+      }
+    }
   }
 
   private _registerEntityTransformListener() {
