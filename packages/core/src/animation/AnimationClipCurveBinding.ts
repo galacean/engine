@@ -43,6 +43,7 @@ export class AnimationClipCurveBinding {
     const layerOwner = new AnimationCurveLayerOwner();
     curveType._initializeLayerOwner(layerOwner);
     layerOwner.curveOwner = owner;
+    layerOwner.initFinalValue();
     return layerOwner;
   }
 
