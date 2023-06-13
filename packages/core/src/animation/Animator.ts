@@ -656,9 +656,7 @@ export class Animator extends Component {
 
       if (!owner) continue;
 
-      if (curveBindings[i].curve.keys.length) {
-        owner.applyValue(layerOwner.finalValue, weight, additive);
-      }
+      owner.applyValue(layerOwner.finalValue, weight, additive);
     }
   }
 
