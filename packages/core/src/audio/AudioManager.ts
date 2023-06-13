@@ -8,7 +8,7 @@ export class AudioManager {
   /** @internal */
   private static _listener: GainNode;
 
-  private static _unlocked: boolean = true;
+  private static _unlocked: boolean = false;
 
   /**
    * Audio context
@@ -17,11 +17,8 @@ export class AudioManager {
     if (!AudioManager._context) {
       AudioManager._context = new window.AudioContext();
     }
-    if (AudioManager._context.state != "running") {
-      AudioManager._unlock();
-      window.document.addEventListener("mousedown", AudioManager._unlock, true);
-      window.document.addEventListener("touchend", AudioManager._unlock, true);
-      window.document.addEventListener("touchstart", AudioManager._unlock, true);
+    if (AudioManager._context.state !== "running") {
+      window.document.addEventListener("pointerdown", AudioManager._unlock, true);
     }
     return AudioManager._context;
   }
@@ -41,22 +38,11 @@ export class AudioManager {
     if (AudioManager._unlocked) {
       return;
     }
-    AudioManager._playEmptySound();
-    if (AudioManager._context.state == "running") {
-      window.document.removeEventListener("mousedown", AudioManager._unlock, true);
-      window.document.removeEventListener("touchend", AudioManager._unlock, true);
-      window.document.removeEventListener("touchstart", AudioManager._unlock, true);
-      AudioManager._unlocked = true;
-    }
-  }
-
-  private static _playEmptySound(): void {
-    if (!AudioManager._context) {
-      return;
-    }
-    const source = AudioManager.context.createBufferSource();
-    source.buffer = AudioManager.context.createBuffer(1, 1, 22050);
-    source.connect(AudioManager.context.destination);
-    source.start(0, 0, 0);
+    AudioManager._context.resume().then(() => {
+      if (AudioManager._context.state === "running") {
+        window.document.removeEventListener("pointerdown", AudioManager._unlock, true);
+        AudioManager._unlocked = true;
+      }
+    });
   }
 }
