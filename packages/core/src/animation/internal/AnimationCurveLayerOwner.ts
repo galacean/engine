@@ -12,7 +12,6 @@ export class AnimationCurveLayerOwner {
   finalValue: KeyframeValueType;
 
   saveFinalValue(): void {
-    const owner = this.curveOwner;
-    this.finalValue = owner.getEvaluateValue(this.finalValue);
+    this.finalValue = this.curveOwner.getEvaluateValue(this.finalValue);
   }
 }

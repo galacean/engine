@@ -39,9 +39,6 @@ export class Animator extends Component {
   @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
   @ignoreClone
-  private _needRevertOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> =
-    Object.create(null);
-  @ignoreClone
   private _needRevertCurveOwners: AnimationCurveOwner<KeyframeValueType>[] = [];
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
@@ -87,7 +84,7 @@ export class Animator extends Component {
     }
 
     const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
-    const { state } = stateInfo;
+    const { state, layerIndex: actualLayerIndex } = stateInfo;
 
     if (!state) {
       return;
@@ -98,7 +95,7 @@ export class Animator extends Component {
     }
 
     const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
-    const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData);
+    const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData, actualLayerIndex);
 
     this._preparePlay(animatorLayerData, state);
 
@@ -254,14 +251,15 @@ export class Animator extends Component {
   private _getAnimatorStateData(
     stateName: string,
     animatorState: AnimatorState,
-    animatorLayerData: AnimatorLayerData
+    animatorLayerData: AnimatorLayerData,
+    layerIndex: number
   ): AnimatorStateData {
     const { animatorStateDataMap } = animatorLayerData;
     let animatorStateData = animatorStateDataMap[stateName];
     if (!animatorStateData) {
       animatorStateData = new AnimatorStateData();
       animatorStateDataMap[stateName] = animatorStateData;
-      this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData);
+      this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData, layerIndex);
       this._saveAnimatorEventHandlers(animatorState, animatorStateData);
     }
     return animatorStateData;
@@ -270,9 +268,10 @@ export class Animator extends Component {
   private _saveAnimatorStateData(
     animatorState: AnimatorState,
     animatorStateData: AnimatorStateData,
-    animatorLayerData: AnimatorLayerData
+    animatorLayerData: AnimatorLayerData,
+    layerIndex: number
   ): void {
-    const { entity, _curveOwnerPool: curveOwnerPool, _needRevertOwnerPool: needRevertOwnerPool } = this;
+    const { entity, _curveOwnerPool: curveOwnerPool } = this;
     const { curveLayerOwner } = animatorStateData;
     const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
     const { _curveBindings: curves } = animatorState.clip;
@@ -287,23 +286,21 @@ export class Animator extends Component {
         let needRevert = false;
         const baseAnimatorLayerData = this._animatorLayersData[0];
         const baseLayerCurveOwnerPool = baseAnimatorLayerData.curveOwnerPool;
-        if (
-          !(
-            (baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property]) ||
-            (needRevertOwnerPool[instanceId] && needRevertOwnerPool[instanceId][property])
-          )
-        ) {
+        if (!(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])) {
           needRevert = true;
         }
 
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
-        needRevertOwnerPool[instanceId] ||= Object.create(null);
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
-
-        if (animatorLayerData !== baseAnimatorLayerData && needRevert) {
-          needRevertOwnerPool[instanceId][property] = owner;
-          this._needRevertCurveOwners.push(owner);
+        //TODO: 这里有性能浪费后面在reset里同一组织
+        if (animatorLayerData !== baseAnimatorLayerData) {
+          if (needRevert) {
+            this._needRevertCurveOwners.push(owner);
+          } else {
+            const index = this._needRevertCurveOwners.indexOf(owner);
+            index > -1 && this._needRevertCurveOwners.splice(index, 1);
+          }
         }
 
         // Get layer owner
@@ -591,7 +588,6 @@ export class Animator extends Component {
 
     const duration = state._getDuration() * layerData.crossFadeTransition.duration;
     let crossWeight = Math.abs(destPlayData.frameTime) / duration;
-    // state.duration may be 0
     (crossWeight >= 1.0 || duration === 0) && (crossWeight = 1.0);
 
     destPlayData.update(this.speed < 0);
@@ -713,7 +709,7 @@ export class Animator extends Component {
   private _crossFadeByTransition(transition: AnimatorStateTransition, layerIndex: number): void {
     const { name } = transition.destinationState;
     const stateInfo = this._getAnimatorStateInfo(name, layerIndex);
-    const { state: crossState } = stateInfo;
+    const { state: crossState, layerIndex: actualLayerIndex } = stateInfo;
     if (!crossState) {
       return;
     }
@@ -722,11 +718,11 @@ export class Animator extends Component {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(actualLayerIndex);
     const layerState = animatorLayerData.layerState;
     const { destPlayData } = animatorLayerData;
 
-    const animatorStateData = this._getAnimatorStateData(name, crossState, animatorLayerData);
+    const animatorStateData = this._getAnimatorStateData(name, crossState, animatorLayerData, actualLayerIndex);
     const duration = crossState._getDuration();
     const offset = duration * transition.offset;
     destPlayData.reset(crossState, animatorStateData, offset);
