@@ -288,7 +288,7 @@ export class Animator extends Component {
         const baseLayerCurveOwnerPool = baseAnimatorLayerData.curveOwnerPool;
         if (
           this.animatorController.layers[layerIndex].blendingMode === AnimatorLayerBlendingMode.Additive &&
-          animatorLayerData !== baseAnimatorLayerData &&
+          layerIndex > 0 &&
           !(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])
         ) {
           needRevert = true;
