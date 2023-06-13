@@ -120,7 +120,8 @@ export class AnimationClip {
       const targetEntity = entity.findByPath(curveData.relativePath);
       if (targetEntity) {
         const curveOwner = curveData._getTempCurveOwner(targetEntity);
-        curveOwner.evaluateAndApplyValue(curveData.curve, time, 1, false);
+        const value = curveOwner.evaluateValue(curveData.curve, time, false);
+        curveOwner.applyValue(value, 1, false);
       }
     }
   }

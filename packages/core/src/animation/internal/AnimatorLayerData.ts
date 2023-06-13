@@ -17,7 +17,7 @@ export class AnimatorLayerData {
   crossCurveMark: number = 0;
   manuallyTransition: AnimatorStateTransition = new AnimatorStateTransition();
   crossFadeTransition: AnimatorStateTransition;
-  crossOwnerLayerDataCollection: AnimationCurveLayerOwner[] = [];
+  crossLayerOwnerCollection: AnimationCurveLayerOwner[] = [];
 
   switchPlayData(): void {
     const srcPlayData = this.destPlayData;
