@@ -12,9 +12,6 @@ export class PositionalAudioSource extends Component {
   @ignoreClone
   /** Whether the clip playing right now */
   isPlaying: Readonly<boolean>;
-  @deepClone
-  /** If set to true, the audio source will automatically start playing on awake. */
-  playOnAwake: boolean = false;
 
   @ignoreClone
   private _clip: AudioClip;
