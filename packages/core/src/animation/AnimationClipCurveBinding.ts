@@ -41,8 +41,8 @@ export class AnimationClipCurveBinding {
   _createCurveLayerOwner(owner: AnimationCurveOwner<KeyframeValueType>): AnimationCurveLayerOwner {
     const curveType = (<unknown>this.curve.constructor) as IAnimationCurveCalculator<KeyframeValueType>;
     const layerOwner = new AnimationCurveLayerOwner();
-    curveType._initializeLayerOwner(layerOwner);
     layerOwner.curveOwner = owner;
+    curveType._initializeLayerOwner(layerOwner);
     // If curve.keys.length is 0, updateFinishedState will assign 0 to the target, causing an error, so initialize by assigning defaultValue to finalValue.
     layerOwner.initFinalValue();
     return layerOwner;

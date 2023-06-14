@@ -406,6 +406,13 @@ export class PhysicsManager {
     }
   }
 
+  /**
+   * @internal
+   */
+  _gc(): void {
+    this._colliders.garbageCollection();
+  }
+
   private _setGravity(): void {
     this._nativePhysicsManager.setGravity(this._gravity);
   }
