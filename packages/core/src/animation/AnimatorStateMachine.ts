@@ -1,4 +1,6 @@
+import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorState } from "./AnimatorState";
+import { AnimatorControllerUpdateMode } from "./enums/AnimatorControllerUpdateMode";
 export interface AnimatorStateMap {
   [key: string]: AnimatorState;
 }
@@ -19,6 +21,9 @@ export class AnimatorStateMachine {
   /** @internal */
   _statesMap: AnimatorStateMap = {};
 
+  /** @internal */
+  _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
+
   /**
    * Add a state to the state machine.
    * @param name - The name of the new state
@@ -29,6 +34,7 @@ export class AnimatorStateMachine {
       state = new AnimatorState(name);
       this.states.push(state);
       this._statesMap[name] = state;
+      this._updateFlagManager.dispatch(AnimatorControllerUpdateMode.AddState, state);
     } else {
       console.warn(`The state named ${name} has existed.`);
     }
@@ -44,8 +50,9 @@ export class AnimatorStateMachine {
     const index = this.states.indexOf(state);
     if (index > -1) {
       this.states.splice(index, 1);
+      delete this._statesMap[name];
+      this._updateFlagManager.dispatch(AnimatorControllerUpdateMode.RemoveState, state);
     }
-    delete this._statesMap[name];
   }
 
   /**

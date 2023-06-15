@@ -10,7 +10,7 @@ import { AnimatorStatePlayData } from "./AnimatorStatePlayData";
 export class AnimatorLayerData {
   curveOwnerPool: Record<number, Record<string, AnimationCurveLayerOwner>> = Object.create(null);
 
-  animatorStateDataMap: Record<string, AnimatorStateData> = {};
+  animatorStateDataMap: Record<string, AnimatorStateData> = Object.create(null);
   srcPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   destPlayData: AnimatorStatePlayData = new AnimatorStatePlayData();
   layerState: LayerState = LayerState.Standby;

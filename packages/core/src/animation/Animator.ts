@@ -18,6 +18,7 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { KeyframeValueType } from "./Keyframe";
+import { AnimatorControllerUpdateMode } from "./enums/AnimatorControllerUpdateMode";
 
 /**
  * The controller of the animation system.
@@ -58,10 +59,8 @@ export class Animator extends Component {
 
   set animatorController(animatorController: AnimatorController) {
     if (animatorController !== this._animatorController) {
-      this._reset();
-      this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
-      this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
       this._animatorController = animatorController;
+      this._reinitialize();
     }
   }
 
@@ -79,13 +78,13 @@ export class Animator extends Component {
    * @param normalizedTimeOffset - The time offset between 0 and 1(default 0)
    */
   play(stateName: string, layerIndex: number = -1, normalizedTimeOffset: number = 0): void {
-    if (this._controllerUpdateFlag?.flag) {
-      this._reset();
+    // _controllerUpdateFlag is undefined when the animator is created by clone.
+    if (!this._controllerUpdateFlag || this._controllerUpdateFlag?.flag) {
+      this._reinitialize();
     }
 
     const stateInfo = this._getAnimatorStateInfo(stateName, layerIndex);
     const { state, layerIndex: playLayerIndex } = stateInfo;
-
     if (!state) {
       return;
     }
@@ -94,8 +93,11 @@ export class Animator extends Component {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
-    const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData, playLayerIndex);
+    const animatorLayerData = this._animatorLayersData[playLayerIndex];
+    const animatorStateData = animatorLayerData.animatorStateDataMap[stateName];
+
+    // During the playback process, if the AnimatorController data is modified, it will automatically replay after being reinitialized.
+    this.animatorController.layers[playLayerIndex].stateMachine.defaultState = state;
 
     this._preparePlay(animatorLayerData, state);
 
@@ -117,7 +119,7 @@ export class Animator extends Component {
     normalizedTimeOffset: number = 0
   ): void {
     if (this._controllerUpdateFlag?.flag) {
-      this._reset();
+      this._reinitialize();
     }
 
     const { state } = this._getAnimatorStateInfo(stateName, layerIndex);
@@ -206,7 +208,61 @@ export class Animator extends Component {
   /**
    * @internal
    */
-  _reset(): void {
+  _reinitialize() {
+    const { animatorController } = this;
+
+    this._controllerUpdateFlag && this._controllerUpdateFlag.destroy();
+    this._controllerUpdateFlag = animatorController && animatorController._registerChangeFlag();
+
+    this._animatorLayersData.length = 0;
+    this._needRevertCurveOwners.length = 0;
+    this._curveOwnerPool = Object.create(null);
+    this._animationEventHandlerPool.resetPool();
+
+    if (this._controllerUpdateFlag) {
+      this._controllerUpdateFlag.flag = false;
+    }
+
+    if (!animatorController) return;
+
+    const { layers } = animatorController;
+    for (let i = 0, n = layers.length; i < n; i++) {
+      const layer = layers[i];
+      const animatorLayerData = (this._animatorLayersData[i] = new AnimatorLayerData());
+      const { stateMachine } = layer;
+      if (!stateMachine) continue;
+
+      const { states, _updateFlagManager } = stateMachine;
+
+      for (let j = 0, m = states.length; j < m; j++) {
+        const state = states[j];
+        this._saveAnimatorStateData(state, animatorLayerData, i);
+      }
+
+      let onStateMachineUpdate = layer._onStateMachineUpdate;
+      if (onStateMachineUpdate) {
+        _updateFlagManager.removeListener(onStateMachineUpdate);
+      }
+      onStateMachineUpdate = layer._onStateMachineUpdate = (
+        type: AnimatorControllerUpdateMode,
+        state: AnimatorState
+      ) => {
+        if (type === AnimatorControllerUpdateMode.AddState) {
+          this._saveAnimatorStateData(state, animatorLayerData, i);
+        }
+        if (type === AnimatorControllerUpdateMode.RemoveState) {
+          delete animatorLayerData.animatorStateDataMap[state.name];
+        }
+      };
+
+      _updateFlagManager.addListener(onStateMachineUpdate);
+    }
+  }
+
+  /**
+   * @internal
+   */
+  _reset() {
     const { _curveOwnerPool: animationCurveOwners } = this;
     for (let instanceId in animationCurveOwners) {
       const propertyOwners = animationCurveOwners[instanceId];
@@ -216,14 +272,7 @@ export class Animator extends Component {
       }
     }
 
-    this._animatorLayersData.length = 0;
-    this._needRevertCurveOwners.length = 0;
-    this._curveOwnerPool = {};
-    this._animationEventHandlerPool.resetPool();
-
-    if (this._controllerUpdateFlag) {
-      this._controllerUpdateFlag.flag = false;
-    }
+    this._reinitialize();
   }
 
   private _getAnimatorStateInfo(stateName: string, layerIndex: number): IAnimatorStateInfo {
@@ -248,32 +297,15 @@ export class Animator extends Component {
     return stateInfo;
   }
 
-  private _getAnimatorStateData(
-    stateName: string,
-    animatorState: AnimatorState,
-    animatorLayerData: AnimatorLayerData,
-    layerIndex: number
-  ): AnimatorStateData {
-    const { animatorStateDataMap } = animatorLayerData;
-    let animatorStateData = animatorStateDataMap[stateName];
-    if (!animatorStateData) {
-      animatorStateData = new AnimatorStateData();
-      animatorStateDataMap[stateName] = animatorStateData;
-      this._saveAnimatorStateData(animatorState, animatorStateData, animatorLayerData, layerIndex);
-      this._saveAnimatorEventHandlers(animatorState, animatorStateData);
-    }
-    return animatorStateData;
-  }
-
   private _saveAnimatorStateData(
     animatorState: AnimatorState,
-    animatorStateData: AnimatorStateData,
     animatorLayerData: AnimatorLayerData,
     layerIndex: number
   ): void {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
+    const animatorStateData = new AnimatorStateData();
     const { curveLayerOwner } = animatorStateData;
-    const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
+    const { curveOwnerPool: layerCurveOwnerPool, animatorStateDataMap } = animatorLayerData;
     const { _curveBindings: curves } = animatorState.clip;
 
     for (let i = curves.length - 1; i >= 0; i--) {
@@ -315,14 +347,12 @@ export class Animator extends Component {
         console.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
       }
     }
-  }
 
-  private _saveAnimatorEventHandlers(state: AnimatorState, animatorStateData: AnimatorStateData): void {
     const eventHandlerPool = this._animationEventHandlerPool;
     const scripts = this._entity._scripts;
     const scriptCount = scripts.length;
     const { eventHandlers } = animatorStateData;
-    const { events } = state.clip;
+    const { events } = animatorState.clip;
 
     eventHandlers.length = 0;
     for (let i = 0, n = events.length; i < n; i++) {
@@ -339,6 +369,8 @@ export class Animator extends Component {
       }
       eventHandlers.push(eventHandler);
     }
+
+    animatorStateDataMap[animatorState.name] = animatorStateData;
   }
 
   private _clearCrossData(animatorLayerData: AnimatorLayerData): void {
@@ -724,11 +756,11 @@ export class Animator extends Component {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
+    const animatorLayerData = this._animatorLayersData[playLayerIndex];
     const layerState = animatorLayerData.layerState;
     const { destPlayData } = animatorLayerData;
 
-    const animatorStateData = this._getAnimatorStateData(name, crossState, animatorLayerData, playLayerIndex);
+    const animatorStateData = animatorLayerData.animatorStateDataMap[name];
     const duration = crossState._getDuration();
     const offset = duration * transition.offset;
     destPlayData.reset(crossState, animatorStateData, offset);

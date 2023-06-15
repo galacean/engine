@@ -1,6 +1,7 @@
 import { BoolUpdateFlag } from "../BoolUpdateFlag";
 import { UpdateFlagManager } from "../UpdateFlagManager";
 import { AnimatorControllerLayer } from "./AnimatorControllerLayer";
+import { AnimatorControllerUpdateMode } from "./enums/AnimatorControllerUpdateMode";
 
 /**
  * Store the data for Animator playback.
@@ -32,6 +33,7 @@ export class AnimatorController {
   addLayer(layer: AnimatorControllerLayer): void {
     this._layers.push(layer);
     this._layersMap[layer.name] = layer;
+    layer._updateFlagManager.addListener(this._onLayerUpdate);
     this._updateFlagManager.dispatch();
   }
 
@@ -43,6 +45,7 @@ export class AnimatorController {
     const theLayer = this.layers[layerIndex];
     this._layers.splice(layerIndex, 1);
     delete this._layersMap[theLayer.name];
+    theLayer._updateFlagManager.removeListener(this._onLayerUpdate);
     this._updateFlagManager.dispatch();
   }
 
@@ -63,4 +66,13 @@ export class AnimatorController {
   _registerChangeFlag(): BoolUpdateFlag {
     return this._updateFlagManager.createFlag(BoolUpdateFlag);
   }
+
+  /**
+   * @internal
+   */
+  _onLayerUpdate = (type?: number) => {
+    if (type === AnimatorControllerUpdateMode.UpdateStateMachine) {
+      this._updateFlagManager.dispatch();
+    }
+  };
 }
