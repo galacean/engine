@@ -277,10 +277,6 @@ export class Animator extends Component {
     const { curveLayerOwner } = animatorStateData;
     const { _curveBindings: curves } = animatorState.clip;
 
-    if (layerIndex === 0) {
-      animatorLayerData.curveOwnerPool = Object.create(null);
-    }
-
     const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
 
     for (let i = curves.length - 1; i >= 0; i--) {
@@ -291,12 +287,9 @@ export class Animator extends Component {
         const { instanceId } = targetEntity;
 
         let needRevert = false;
-        const baseAnimatorLayerData = this._animatorLayersData[0];
-        const baseLayerCurveOwnerPool = baseAnimatorLayerData.curveOwnerPool;
         if (
           this.animatorController.layers[layerIndex].blendingMode === AnimatorLayerBlendingMode.Additive &&
-          layerIndex > 0 &&
-          !(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])
+          layerIndex > 0
         ) {
           needRevert = true;
         }
@@ -320,25 +313,6 @@ export class Animator extends Component {
       } else {
         curveLayerOwner[i] = null;
         console.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
-      }
-    }
-
-    if (layerIndex === 0) {
-      this._needRevertCurveOwners.length = 0;
-      for (let i = 1, n = this._animatorLayersData.length; i < n; ++i) {
-        const layerData = this._animatorLayersData[i];
-        const { curveOwnerPool: playingCurveOwnerPool } = layerData;
-        for (let instanceId in playingCurveOwnerPool) {
-          for (let property in playingCurveOwnerPool[instanceId]) {
-            const layerOwner = playingCurveOwnerPool[instanceId][property];
-            if (this.animatorController.layers[i].blendingMode === AnimatorLayerBlendingMode.Additive) {
-              const baseLayerCurveOwnerPool = this._animatorLayersData[0].curveOwnerPool;
-              if (!(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])) {
-                this._needRevertCurveOwners.push(layerOwner.curveOwner);
-              }
-            }
-          }
-        }
       }
     }
   }
