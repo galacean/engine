@@ -4,14 +4,13 @@ import { RenderContext } from "../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../Renderer";
 import { Logger } from "../base/Logger";
 import { ignoreClone } from "../clone/CloneManager";
-import { ICustomClone } from "../clone/ComponentCloner";
 import { Mesh, MeshModifyFlags } from "../graphic/Mesh";
 import { Shader } from "../shader/Shader";
 
 /**
  * MeshRenderer Component.
  */
-export class MeshRenderer extends Renderer implements ICustomClone {
+export class MeshRenderer extends Renderer {
   private static _uvMacro = Shader.getMacroByName("O3_HAS_UV");
   private static _uv1Macro = Shader.getMacroByName("O3_HAS_UV1");
   private static _normalMacro = Shader.getMacroByName("O3_HAS_NORMAL");
@@ -66,8 +65,9 @@ export class MeshRenderer extends Renderer implements ICustomClone {
   _onDestroy(): void {
     super._onDestroy();
     const mesh = this._mesh;
-    if (mesh && !mesh.destroyed) {
-      mesh._addRefCount(-1);
+    if (mesh) {
+      mesh.destroyed || mesh._addRefCount(-1);
+      mesh._updateFlagManager.removeListener(this._onMeshChanged);
       this._mesh = null;
     }
   }
@@ -76,6 +76,7 @@ export class MeshRenderer extends Renderer implements ICustomClone {
    * @internal
    */
   _cloneTo(target: MeshRenderer): void {
+    super._cloneTo(target);
     target.mesh = this._mesh;
   }
 

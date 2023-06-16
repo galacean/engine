@@ -4,12 +4,13 @@ import { Material } from "../material/Material";
 import { Renderer } from "../Renderer";
 import { ShaderPass } from "../shader/ShaderPass";
 import { RenderState } from "../shader/state/RenderState";
+import { IPoolElement } from "./IPoolElement";
 import { RenderElement } from "./RenderElement";
 
 /**
  * Render element.
  */
-export class MeshRenderElement extends RenderElement {
+export class MeshRenderElement extends RenderElement implements IPoolElement {
   /** Mesh. */
   mesh: Mesh;
   /** Sub mesh. */
@@ -29,5 +30,9 @@ export class MeshRenderElement extends RenderElement {
     this.material = material;
     this.renderState = renderState;
     this.shaderPass = shaderPass;
+  }
+
+  dispose() {
+    this.component = this.mesh = this.subMesh = this.material = this.renderState = this.shaderPass = null;
   }
 }

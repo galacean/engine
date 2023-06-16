@@ -95,5 +95,9 @@ export class EntityParser extends Parser {
 
     glTFResource.sceneRoots = sceneRoots;
     glTFResource.defaultSceneRoot = sceneRoots[sceneID];
+    // @ts-ignore
+    glTFResource.defaultSceneRoot._hookResource = glTFResource;
+    // @ts-ignore
+    glTFResource._addRefCount(1);
   }
 }

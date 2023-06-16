@@ -4,6 +4,7 @@ import { Engine } from "../../Engine";
 import { Texture2D } from "../../texture/Texture2D";
 import { UpdateFlagManager } from "../../UpdateFlagManager";
 import { SpriteModifyFlags } from "../enums/SpriteModifyFlags";
+import { SpriteAtlas } from "../atlas/SpriteAtlas";
 
 /**
  * 2D sprite.
@@ -12,8 +13,10 @@ export class Sprite extends RefObject {
   /** The name of sprite. */
   name: string;
 
-  private _width: number = undefined;
-  private _height: number = undefined;
+  private _automaticWidth: number = 0;
+  private _automaticHeight: number = 0;
+  private _customWidth: number = undefined;
+  private _customHeight: number = undefined;
 
   private _positions: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
   private _uvs: Vector2[] = [new Vector2(), new Vector2(), new Vector2(), new Vector2()];
@@ -31,6 +34,8 @@ export class Sprite extends RefObject {
   private _dirtyUpdateFlag: SpriteUpdateFlags = SpriteUpdateFlags.all;
 
   /** @internal */
+  _atlas: SpriteAtlas;
+  /** @internal */
   _updateFlagManager: UpdateFlagManager = new UpdateFlagManager();
 
   /**
@@ -44,36 +49,54 @@ export class Sprite extends RefObject {
     if (this._texture !== value) {
       this._texture = value;
       this._dispatchSpriteChange(SpriteModifyFlags.texture);
-      (this._width === undefined || this._height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
+      if (this._customWidth === undefined || this._customHeight === undefined) {
+        this._dispatchSpriteChange(SpriteModifyFlags.size);
+      }
     }
   }
 
   /**
    * The width of the sprite (in world coordinates).
+   *
+   * @remarks
+   * If width is set, return the set value,
+   * otherwise return the width calculated according to `Texture.width`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
    */
   get width(): number {
-    this._width === undefined && this._calDefaultSize();
-    return this._width;
+    if (this._customWidth !== undefined) {
+      return this._customWidth;
+    } else {
+      this._dirtyUpdateFlag & SpriteUpdateFlags.automaticSize && this._calDefaultSize();
+      return this._automaticWidth;
+    }
   }
 
   set width(value: number) {
-    if (this._width !== value) {
-      this._width = value;
+    if (this._customWidth !== value) {
+      this._customWidth = value;
       this._dispatchSpriteChange(SpriteModifyFlags.size);
     }
   }
 
   /**
    * The height of the sprite (in world coordinates).
+   *
+   * @remarks
+   * If height is set, return the set value,
+   * otherwise return the height calculated according to `Texture.height`, `Sprite.region`, `Sprite.atlasRegion`, `Sprite.atlasRegionOffset` and `Engine._pixelsPerUnit`.
    */
   get height(): number {
-    this._height === undefined && this._calDefaultSize();
-    return this._height;
+    if (this._customHeight !== undefined) {
+      return this._customHeight;
+    } else {
+      this._dirtyUpdateFlag & SpriteUpdateFlags.automaticSize && this._calDefaultSize();
+      return this._automaticHeight;
+    }
   }
 
   set height(value: number) {
-    if (this._height !== value) {
-      this._height = value;
+    if (this._customHeight !== value) {
+      this._customHeight = value;
       this._dispatchSpriteChange(SpriteModifyFlags.size);
     }
   }
@@ -103,7 +126,9 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegion.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.atlasRegion);
-    (this._width === undefined || this._height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
+    }
   }
 
   /**
@@ -118,7 +143,9 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     this._atlasRegionOffset.set(x, y, MathUtil.clamp(value.z, 0, 1 - x), MathUtil.clamp(value.w, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.atlasRegionOffset);
-    (this._width === undefined || this._height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
+    }
   }
 
   /**
@@ -134,7 +161,9 @@ export class Sprite extends RefObject {
     const y = MathUtil.clamp(value.y, 0, 1);
     region.set(x, y, MathUtil.clamp(value.width, 0, 1 - x), MathUtil.clamp(value.height, 0, 1 - y));
     this._dispatchSpriteChange(SpriteModifyFlags.region);
-    (this._width === undefined || this._height === undefined) && this._dispatchSpriteChange(SpriteModifyFlags.size);
+    if (this._customWidth === undefined || this._customHeight === undefined) {
+      this._dispatchSpriteChange(SpriteModifyFlags.size);
+    }
   }
 
   /**
@@ -240,26 +269,49 @@ export class Sprite extends RefObject {
 
   /**
    * @override
+   * @internal
+   */
+  _addRefCount(value: number): void {
+    super._addRefCount(value);
+    this._atlas?._addRefCount(value);
+  }
+
+  /**
+   * @override
+   * @internal
    */
   _onDestroy(): void {
-    if (this._texture) {
-      this._texture = null;
-    }
+    this._positions.length = 0;
+    this._positions = null;
+    this._uvs.length = 0;
+    this._uvs = null;
+    this._atlasRegion = null;
+    this._atlasRegionOffset = null;
+    this._region = null;
+    this._pivot = null;
+    this._border = null;
+    this._bounds = null;
+    this._atlas = null;
+    this._texture = null;
+    this._updateFlagManager = null;
   }
 
   private _calDefaultSize(): void {
     if (this._texture) {
       const { _texture, _atlasRegion, _atlasRegionOffset, _region } = this;
       const pixelsPerUnitReciprocal = 1.0 / Engine._pixelsPerUnit;
-      this._width =
+      this._automaticWidth =
         ((_texture.width * _atlasRegion.width) / (1 - _atlasRegionOffset.x - _atlasRegionOffset.z)) *
         _region.width *
         pixelsPerUnitReciprocal;
-      this._height =
+      this._automaticHeight =
         ((_texture.height * _atlasRegion.height) / (1 - _atlasRegionOffset.y - _atlasRegionOffset.w)) *
         _region.height *
         pixelsPerUnitReciprocal;
+    } else {
+      this._automaticWidth = this._automaticHeight = 0;
     }
+    this._dirtyUpdateFlag &= ~SpriteUpdateFlags.automaticSize;
   }
 
   private _updatePositions(): void {
@@ -324,11 +376,16 @@ export class Sprite extends RefObject {
 
   private _dispatchSpriteChange(type: SpriteModifyFlags): void {
     switch (type) {
+      case SpriteModifyFlags.texture:
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.automaticSize;
+        break;
       case SpriteModifyFlags.atlasRegionOffset:
       case SpriteModifyFlags.region:
         this._dirtyUpdateFlag |= SpriteUpdateFlags.all;
         break;
       case SpriteModifyFlags.atlasRegion:
+        this._dirtyUpdateFlag |= SpriteUpdateFlags.automaticSize | SpriteUpdateFlags.uvs;
+        break;
       case SpriteModifyFlags.border:
         this._dirtyUpdateFlag |= SpriteUpdateFlags.uvs;
         break;
@@ -340,5 +397,6 @@ export class Sprite extends RefObject {
 enum SpriteUpdateFlags {
   positions = 0x1,
   uvs = 0x2,
-  all = 0x3
+  automaticSize = 0x4,
+  all = 0x7
 }

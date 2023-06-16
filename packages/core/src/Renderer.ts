@@ -4,7 +4,8 @@ import { dependentComponents } from "./ComponentsDependencies";
 import { Entity } from "./Entity";
 import { RenderContext } from "./RenderPipeline/RenderContext";
 import { Transform, TransformModifyFlags } from "./Transform";
-import { assignmentClone, deepClone, ignoreClone, shallowClone } from "./clone/CloneManager";
+import { assignmentClone, deepClone, ignoreClone } from "./clone/CloneManager";
+import { ICustomClone } from "./clone/ComponentCloner";
 import { Material } from "./material/Material";
 import { Shader } from "./shader";
 import { ShaderData } from "./shader/ShaderData";
@@ -16,7 +17,7 @@ import { ShaderDataGroup } from "./shader/enums/ShaderDataGroup";
  * @decorator `@dependentComponents(Transform)`
  */
 @dependentComponents(Transform)
-export class Renderer extends Component {
+export class Renderer extends Component implements ICustomClone {
   private static _tempVector0 = new Vector3();
 
   private static _receiveShadowMacro = Shader.getMacroByName("OASIS_RECEIVE_SHADOWS");
@@ -27,10 +28,6 @@ export class Renderer extends Component {
   private static _mvInvMatrixProperty = Shader.getPropertyByName("u_MVInvMat");
   private static _normalMatrixProperty = Shader.getPropertyByName("u_normalMat");
   private static _rendererLayerProperty = Shader.getPropertyByName("oasis_RendererLayer");
-
-  /** ShaderData related to renderer. */
-  @deepClone
-  readonly shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
 
   /** @internal */
   @ignoreClone
@@ -52,11 +49,13 @@ export class Renderer extends Component {
 
   @ignoreClone
   protected _overrideUpdate: boolean = false;
-  @shallowClone
+  @ignoreClone
   protected _materials: Material[] = [];
   @ignoreClone
   protected _dirtyUpdateFlag: number = 0;
 
+  @deepClone
+  private _shaderData: ShaderData = new ShaderData(ShaderDataGroup.Renderer);
   @ignoreClone
   private _mvMatrix: Matrix = new Matrix();
   @ignoreClone
@@ -74,6 +73,13 @@ export class Renderer extends Component {
 
   @ignoreClone
   protected _rendererLayer: Vector4 = new Vector4();
+
+  /**
+   * ShaderData related to renderer.
+   */
+  get shaderData(): ShaderData {
+    return this._shaderData;
+  }
 
   /**
    * Whether it is culled in the current frame and does not participate in rendering.
@@ -332,6 +338,16 @@ export class Renderer extends Component {
   /**
    * @internal
    */
+  _cloneTo(target: Renderer): void {
+    const materials = this._materials;
+    for (let i = 0, n = materials.length; i < n; i++) {
+      target._setMaterial(i, materials[i]);
+    }
+  }
+
+  /**
+   * @internal
+   */
   _onDestroy(): void {
     this.entity.transform._updateFlagManager.removeListener(this._onTransformChanged);
 
@@ -341,6 +357,18 @@ export class Renderer extends Component {
     for (let i = 0, n = materials.length; i < n; i++) {
       materials[i]?._addRefCount(-1);
     }
+
+    this._entity = null;
+    this._globalShaderMacro = null;
+    this._bounds = null;
+    this._materials = null;
+    this._shaderData = null;
+    this._mvMatrix = null;
+    this._mvpMatrix = null;
+    this._mvInvMatrix = null;
+    this._normalMatrix = null;
+    this._materialsInstanced = null;
+    this._rendererLayer = null;
   }
 
   protected _updateShaderData(context: RenderContext): void {

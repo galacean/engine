@@ -63,7 +63,7 @@ export interface WebGLRendererOptions extends WebGLContextAttributes {
    * 
    * @remarks large count maybe cause performance issue.
    */
-  _maxAllowSkinUniformVectorsCount?: number;
+  _maxAllowSkinUniformVectorCount?: number;
 }
 
 /**
