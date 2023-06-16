@@ -94,7 +94,7 @@ export class Animator extends Component {
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
     const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData, playLayerIndex);
 
     this._preparePlay(animatorLayerData, state);
@@ -120,8 +120,8 @@ export class Animator extends Component {
       this._reset();
     }
 
-    const { state } = this._getAnimatorStateInfo(stateName, layerIndex);
-    const { manuallyTransition } = this._getAnimatorLayerData(layerIndex);
+    const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
+    const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
@@ -275,8 +275,13 @@ export class Animator extends Component {
   ): void {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
     const { curveLayerOwner } = animatorStateData;
-    const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
     const { _curveBindings: curves } = animatorState.clip;
+
+    if (layerIndex === 0) {
+      animatorLayerData.curveOwnerPool = Object.create(null);
+    }
+
+    const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
@@ -315,6 +320,25 @@ export class Animator extends Component {
       } else {
         curveLayerOwner[i] = null;
         console.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
+      }
+    }
+
+    if (layerIndex === 0) {
+      this._needRevertCurveOwners.length = 0;
+      for (let i = 1, n = this._animatorLayersData.length; i < n; ++i) {
+        const layerData = this._animatorLayersData[i];
+        const { curveOwnerPool: playingCurveOwnerPool } = layerData;
+        for (let instanceId in playingCurveOwnerPool) {
+          for (let property in playingCurveOwnerPool[instanceId]) {
+            const layerOwner = playingCurveOwnerPool[instanceId][property];
+            if (this.animatorController.layers[i].blendingMode === AnimatorLayerBlendingMode.Additive) {
+              const baseLayerCurveOwnerPool = this._animatorLayersData[0].curveOwnerPool;
+              if (!(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])) {
+                this._needRevertCurveOwners.push(layerOwner.curveOwner);
+              }
+            }
+          }
+        }
       }
     }
   }
@@ -684,16 +708,14 @@ export class Animator extends Component {
       if (srcPlayData.state !== playState) {
         const { curveLayerOwner } = srcPlayData.stateData;
         for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
-          const owner = curveLayerOwner[i]?.curveOwner;
-          owner.revertDefaultValue();
+          curveLayerOwner[i]?.curveOwner.revertDefaultValue();
         }
       }
     } else {
       // layerState is CrossFading, FixedCrossFading, Standby, Finished
       const { crossLayerOwnerCollection } = layerData;
       for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
-        const owner = crossLayerOwnerCollection[i].curveOwner;
-        owner.revertDefaultValue();
+        crossLayerOwnerCollection[i].curveOwner.revertDefaultValue();
       }
     }
   }
