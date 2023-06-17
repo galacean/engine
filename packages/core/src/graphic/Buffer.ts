@@ -50,17 +50,16 @@ export class Buffer extends GraphicsResource {
   }
 
   /**
-   * Buffer data.
+   * Buffer data cache.
    *
    * @remarks
    * Buffer must be readable.
-   * If data is modified, must call `setData()` to update buffer to GPU.
+   * If the data you get is modified, must call `setData()` to update buffer to GPU.
    */
   get data(): Uint8Array {
     if (this._readable) {
       return this._data;
     } else {
-      debugger;
       throw "Buffer is not readable.";
     }
   }
