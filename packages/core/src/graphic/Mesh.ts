@@ -152,14 +152,17 @@ export abstract class Mesh extends GraphicsResource {
    * @internal
    */
   _addVertexElement(element: VertexElement): void {
+    const vertexElementMap = this._vertexElementMap;
+    const vertexElements = this._vertexElements;
+
     const semantic = element.semantic;
-    const oldVertexElement = this._vertexElementMap[semantic];
+    const oldVertexElement = vertexElementMap[semantic];
     if (oldVertexElement) {
       console.warn(`VertexElement ${semantic} already exists.`);
-      this._vertexElements.splice(this._vertexElements.indexOf(oldVertexElement), 1);
+      vertexElements.splice(vertexElements.indexOf(oldVertexElement), 1);
     }
-    this._vertexElementMap[semantic] = element;
-    this._vertexElements.push(element);
+    vertexElementMap[semantic] = element;
+    vertexElements.push(element);
     this._updateFlagManager.dispatch(MeshModifyFlags.VertexElements);
     this._bufferStructChanged = true;
   }
@@ -181,6 +184,7 @@ export abstract class Mesh extends GraphicsResource {
 
   /**
    * @internal
+   * @remarks should use together with `_setVertexElementsLength`
    */
   _setVertexElement(index: number, element: VertexElement): void {
     const vertexElementMap = this._vertexElementMap;
@@ -198,13 +202,17 @@ export abstract class Mesh extends GraphicsResource {
 
   /**
    * @internal
+   *
    */
   _setVertexElementsLength(length: number): void {
-    for (let i = length, n = this._vertexElements.length; i < n; i++) {
-      const element = this._vertexElements[i];
-      delete this._vertexElementMap[element.semantic];
+    const vertexElementMap = this._vertexElementMap;
+    const vertexElements = this._vertexElements;
+
+    for (let i = length, n = vertexElements.length; i < n; i++) {
+      const element = vertexElements[i];
+      delete vertexElementMap[element.semantic];
     }
-    this._vertexElements.length = length;
+    vertexElements.length = length;
   }
 
   /**

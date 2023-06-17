@@ -619,13 +619,17 @@ export class ModelMesh extends Mesh {
    */
   uploadData(releaseData: boolean): void {
     this._updateVertexElements();
-    this._updateInternalVertexBuffer(!releaseData);
+
+    // If releaseData is false, we shouldn't update buffer data version
+    releaseData || (this._advancedDataSyncToBuffer = true);
+
+    // Update internal vertex buffer if needed
+    this._updateInternalVertexBuffer(releaseData);
 
     // Update advanced vertex data to buffer
     if (this._advancedDataUpdateFlag & VertexElementFlags.All) {
       this._updateAdvancedVertices();
 
-      this._advancedDataSyncToBuffer = true;
       const vertexBufferInfos = this._vertexBufferInfos;
       const vertexBufferBindings = this._vertexBufferBindings;
       for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
@@ -636,8 +640,8 @@ export class ModelMesh extends Mesh {
           vertexBufferInfo.uploadAdvancedData = false;
         }
       }
-      this._advancedDataSyncToBuffer = false;
     }
+    this._advancedDataSyncToBuffer = false;
 
     if (this._indicesChangeFlag) {
       const { _indices: indices } = this;
@@ -666,7 +670,7 @@ export class ModelMesh extends Mesh {
 
     if (releaseData) {
       this._accessible = false;
-      this._releaseCache();
+      this._releaseCache(false);
     }
   }
 
@@ -811,7 +815,7 @@ export class ModelMesh extends Mesh {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._releaseCache();
+    this._releaseCache(true);
   }
 
   private _getVertexElementData<T extends VertexType>(
@@ -861,7 +865,7 @@ export class ModelMesh extends Mesh {
     this._advancedVertexDataVersions[elementIndex] = this._dataVersionCounter++;
   }
 
-  private _updateInternalVertexBuffer(accessible: boolean): void {
+  private _updateInternalVertexBuffer(releaseData: boolean): void {
     const bufferStride = this._internalVertexBufferStride;
     const vertexCount = this.vertexCount;
     const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
@@ -877,11 +881,9 @@ export class ModelMesh extends Mesh {
       if (byteLength > 0) {
         // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
-        const bufferUsage = accessible ? BufferUsage.Static : BufferUsage.Dynamic;
+        const bufferUsage = releaseData ? BufferUsage.Static : BufferUsage.Dynamic;
         const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, true);
-        accessible && (this._advancedDataSyncToBuffer = true);
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
-        this._advancedDataSyncToBuffer = false;
       } else {
         this._setVertexBufferBinding(vertexBufferIndex, null);
       }
@@ -1279,7 +1281,7 @@ export class ModelMesh extends Mesh {
     }
   }
 
-  private _releaseCache(): void {
+  private _releaseCache(isDestroy: boolean): void {
     this._positions = null;
     this._tangents = null;
     this._normals = null;
@@ -1294,6 +1296,10 @@ export class ModelMesh extends Mesh {
     this._uv7 = null;
     this._indices = null;
     this._blendShapeManager._releaseMemoryCache();
+
+    if (!isDestroy) {
+      this._vertexBufferBindings[this._internalVertexBufferIndex]?.buffer.markAsUnreadable();
+    }
   }
 
   /** @deprecated */
