@@ -5,7 +5,6 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Renderer } from "../../Renderer";
 import { TransformModifyFlags } from "../../Transform";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { FontStyle } from "../enums/FontStyle";
 import { SpriteMaskInteraction } from "../enums/SpriteMaskInteraction";
@@ -21,7 +20,7 @@ import { TextUtils } from "./TextUtils";
 /**
  * Renders a text for 2D graphics.
  */
-export class TextRenderer extends Renderer implements ICustomClone {
+export class TextRenderer extends Renderer {
   private static _charRenderDataPool: CharRenderDataPool<CharRenderData> = new CharRenderDataPool(CharRenderData, 50);
   private static _tempVec30: Vector3 = new Vector3();
   private static _tempVec31: Vector3 = new Vector3();
@@ -313,7 +312,8 @@ export class TextRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: TextRenderer): void {
+  override _cloneTo(target: TextRenderer): void {
+    super._cloneTo(target);
     target.font = this._font;
     target._subFont = this._subFont;
   }
@@ -482,8 +482,6 @@ export class TextRenderer extends Renderer implements ICustomClone {
   private _updateLocalData(): void {
     const { color, horizontalAlignment, verticalAlignment, _charRenderDatas: charRenderDatas } = this;
     const { min, max } = this._localBounds;
-    min.set(0, 0, 0);
-    max.set(0, 0, 0);
     const { _pixelsPerUnit } = Engine;
     const pixelsPerUnitReciprocal = 1.0 / _pixelsPerUnit;
     const charFont = this._subFont;
@@ -515,63 +513,65 @@ export class TextRenderer extends Renderer implements ICustomClone {
     }
 
     let renderDataCount = 0;
+    let firstLine = -1;
     let minX = Number.MAX_SAFE_INTEGER;
     let minY = Number.MAX_SAFE_INTEGER;
     let maxX = Number.MIN_SAFE_INTEGER;
     let maxY = Number.MIN_SAFE_INTEGER;
-    let lastLineIndex = linesLen - 1;
     for (let i = 0; i < linesLen; ++i) {
-      const line = lines[i];
       const lineWidth = lineWidths[i];
-
-      let startX = 0;
-      switch (horizontalAlignment) {
-        case TextHorizontalAlignment.Left:
-          startX = -halfRendererWidth;
-          break;
-        case TextHorizontalAlignment.Center:
-          startX = -lineWidth * 0.5;
-          break;
-        case TextHorizontalAlignment.Right:
-          startX = halfRendererWidth - lineWidth;
-          break;
-      }
-
-      for (let j = 0, m = line.length - 1; j <= m; ++j) {
-        const char = line[j];
-        const charInfo = charFont._getCharInfo(char);
-
-        if (charInfo.h > 0) {
-          const charRenderData = charRenderDatas[renderDataCount] || charRenderDataPool.get();
-          const { renderData, localPositions } = charRenderData;
-          charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
-          renderData.color = color;
-
-          renderData.uvs = charInfo.uvs;
-          const { w, ascent, descent } = charInfo;
-
-          const left = startX * pixelsPerUnitReciprocal;
-          const right = (startX + w) * pixelsPerUnitReciprocal;
-          const top = (startY + ascent) * pixelsPerUnitReciprocal;
-          const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
-
-          localPositions.set(left, top, right, bottom);
-          charRenderDatas[renderDataCount] = charRenderData;
-          renderDataCount++;
-
-          i === 0 && (maxY = Math.max(maxY, top));
-          i === lastLineIndex && (minY = Math.min(minY, bottom));
-          j === 0 && (minX = Math.min(minX, left));
-          j === m && (maxX = Math.max(maxX, right));
+      if (lineWidth > 0) {
+        const line = lines[i];
+        let startX = 0;
+        let firstRow = -1;
+        if (firstLine < 0) {
+          firstLine = i;
         }
-        startX += charInfo.xAdvance;
-      }
+        switch (horizontalAlignment) {
+          case TextHorizontalAlignment.Left:
+            startX = -halfRendererWidth;
+            break;
+          case TextHorizontalAlignment.Center:
+            startX = -lineWidth * 0.5;
+            break;
+          case TextHorizontalAlignment.Right:
+            startX = halfRendererWidth - lineWidth;
+            break;
+        }
+        for (let j = 0, n = line.length; j < n; ++j) {
+          const char = line[j];
+          const charInfo = charFont._getCharInfo(char);
+          if (charInfo.h > 0) {
+            firstRow < 0 && (firstRow = j);
+            const charRenderData = (charRenderDatas[renderDataCount++] ||= charRenderDataPool.get());
+            const { renderData, localPositions } = charRenderData;
+            charRenderData.texture = charFont._getTextureByIndex(charInfo.index);
+            renderData.color = color;
+            renderData.uvs = charInfo.uvs;
 
+            const { w, ascent, descent } = charInfo;
+            const left = startX * pixelsPerUnitReciprocal;
+            const right = (startX + w) * pixelsPerUnitReciprocal;
+            const top = (startY + ascent) * pixelsPerUnitReciprocal;
+            const bottom = (startY - descent + 1) * pixelsPerUnitReciprocal;
+            localPositions.set(left, top, right, bottom);
+            i === firstLine && (maxY = Math.max(maxY, top));
+            minY = Math.min(minY, bottom);
+            j === firstRow && (minX = Math.min(minX, left));
+            maxX = Math.max(maxX, right);
+          }
+          startX += charInfo.xAdvance;
+        }
+      }
       startY -= lineHeight;
     }
-
-    min.set(minX, minY, 0);
-    max.set(maxX, maxY, 0);
+    if (firstLine < 0) {
+      min.set(0, 0, 0);
+      max.set(0, 0, 0);
+    } else {
+      min.set(minX, minY, 0);
+      max.set(maxX, maxY, 0);
+    }
 
     // Revert excess render data to pool.
     const lastRenderDataCount = charRenderDatas.length;

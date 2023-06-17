@@ -8,8 +8,6 @@ import { PhysXPhysics } from "./PhysXPhysics";
  * @remarks Mostly used for object which always stays at the same place and never moves around.
  */
 export class PhysXStaticCollider extends PhysXCollider implements IStaticCollider {
-
-  
   constructor(physXPhysics: PhysXPhysics, position: Vector3, rotation: Quaternion) {
     super(physXPhysics);
     this._pxActor = physXPhysics._pxPhysics.createRigidStatic(this._transform(position, rotation));

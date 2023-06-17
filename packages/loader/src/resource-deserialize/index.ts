@@ -5,8 +5,8 @@ import { FileHeader } from "./utils/FileHeader";
 
 export { MeshDecoder } from "./resources/mesh/MeshDecoder";
 export { Texture2DDecoder } from "./resources/texture2D/TextureDecoder";
-export { ReflectionParser } from "./resources/prefab/ReflectionParser";
-export { PrefabParser } from "./resources/prefab/PrefabParser";
+export { ReflectionParser } from "./resources/parser/ReflectionParser";
+export { PrefabParser } from "./resources/parser/PrefabParser";
 export * from "./resources/animationClip/AnimationClipDecoder";
 export type { IModelMesh } from "./resources/mesh/IModelMesh";
 
@@ -25,7 +25,7 @@ export function decode<T>(arrayBuffer: ArrayBuffer, engine: Engine): Promise<T> 
   });
 }
 
-export * from "./resources/prefab/PrefabDesign";
+export * from "./resources/schema";
 export * from "./resources/scene/SceneParser";
 export * from "./resources/scene/MeshLoader";
 export * from "./resources/scene/EditorTextureLoader";

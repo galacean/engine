@@ -1,5 +1,6 @@
 import { Vector4 } from "@galacean/engine-math";
 import { StaticInterfaceImplement } from "../../base/StaticInterfaceImplement";
+import { AnimationCurveLayerOwner } from "../internal/AnimationCurveLayerOwner";
 import { AnimationCurveOwner } from "../internal/animationCurveOwner/AnimationCurveOwner";
 import { Keyframe } from "../Keyframe";
 import { AnimationCurve } from "./AnimationCurve";
@@ -23,6 +24,13 @@ export class AnimationVector4Curve extends AnimationCurve<Vector4> {
     owner.fixedPoseValue = new Vector4();
     owner.baseEvaluateData.value = new Vector4();
     owner.crossEvaluateData.value = new Vector4();
+  }
+
+  /**
+   * @internal
+   */
+  static _initializeLayerOwner(owner: AnimationCurveLayerOwner): void {
+    owner.finalValue = new Vector4();
   }
 
   /**

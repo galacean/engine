@@ -4,7 +4,6 @@ import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { RenderElement } from "../../RenderPipeline/RenderElement";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { SimpleSpriteAssembler } from "../assembler/SimpleSpriteAssembler";
 import { VertexData2D } from "../data/VertexData2D";
@@ -15,7 +14,7 @@ import { Sprite } from "./Sprite";
 /**
  * A component for masking Sprites.
  */
-export class SpriteMask extends Renderer implements ICustomClone {
+export class SpriteMask extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_MaskTexture");
   /** @internal */
@@ -133,9 +132,13 @@ export class SpriteMask extends Renderer implements ICustomClone {
   set sprite(value: Sprite | null) {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
-      lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      if (lastSprite) {
+        lastSprite._addReferCount(-1);
+        lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      }
       this._dirtyUpdateFlag |= SpriteMaskUpdateFlags.All;
       if (value) {
+        value._addReferCount(1);
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(SpriteMask._textureProperty, value.texture);
       } else {
@@ -174,7 +177,8 @@ export class SpriteMask extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: SpriteMask): void {
+  override _cloneTo(target: SpriteMask): void {
+    super._cloneTo(target);
     target.sprite = this._sprite;
   }
 
@@ -228,7 +232,12 @@ export class SpriteMask extends Renderer implements ICustomClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
+    const sprite = this._sprite;
+    if (sprite) {
+      sprite._addReferCount(-1);
+      sprite._updateFlagManager.removeListener(this._onSpriteChange);
+    }
+    this._entity = null;
     this._sprite = null;
     this._verticesData = null;
   }

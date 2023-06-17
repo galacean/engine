@@ -3,7 +3,6 @@ import { Entity } from "../../Entity";
 import { RenderContext } from "../../RenderPipeline/RenderContext";
 import { Renderer, RendererUpdateFlags } from "../../Renderer";
 import { assignmentClone, deepClone, ignoreClone } from "../../clone/CloneManager";
-import { ICustomClone } from "../../clone/ComponentCloner";
 import { ShaderProperty } from "../../shader/ShaderProperty";
 import { CompareFunction } from "../../shader/enums/CompareFunction";
 import { IAssembler } from "../assembler/IAssembler";
@@ -21,7 +20,7 @@ import { Sprite } from "./Sprite";
 /**
  * Renders a Sprite for 2D graphics.
  */
-export class SpriteRenderer extends Renderer implements ICustomClone {
+export class SpriteRenderer extends Renderer {
   /** @internal */
   static _textureProperty: ShaderProperty = ShaderProperty.getByName("renderer_SpriteTexture");
 
@@ -132,9 +131,13 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   set sprite(value: Sprite | null) {
     const lastSprite = this._sprite;
     if (lastSprite !== value) {
-      lastSprite && lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      if (lastSprite) {
+        lastSprite._addReferCount(-1);
+        lastSprite._updateFlagManager.removeListener(this._onSpriteChange);
+      }
       this._dirtyUpdateFlag |= SpriteRendererUpdateFlags.All;
       if (value) {
+        value._addReferCount(1);
         value._updateFlagManager.addListener(this._onSpriteChange);
         this.shaderData.setTexture(SpriteRenderer._textureProperty, value.texture);
       } else {
@@ -270,7 +273,8 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
   /**
    * @internal
    */
-  _cloneTo(target: SpriteRenderer): void {
+  override _cloneTo(target: SpriteRenderer): void {
+    super._cloneTo(target);
     target._assembler.resetData(target);
     target.sprite = this._sprite;
     target.drawMode = this._drawMode;
@@ -329,7 +333,12 @@ export class SpriteRenderer extends Renderer implements ICustomClone {
    */
   protected override _onDestroy(): void {
     super._onDestroy();
-    this._sprite?._updateFlagManager.removeListener(this._onSpriteChange);
+    const sprite = this._sprite;
+    if (sprite) {
+      sprite._addReferCount(-1);
+      sprite._updateFlagManager.removeListener(this._onSpriteChange);
+    }
+    this._entity = null;
     this._color = null;
     this._sprite = null;
     this._assembler = null;

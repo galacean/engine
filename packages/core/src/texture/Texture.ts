@@ -4,6 +4,7 @@ import { IPlatformTexture } from "../renderingHardwareInterface";
 import { TextureDepthCompareFunction } from "./enums/TextureDepthCompareFunction";
 import { TextureFilterMode } from "./enums/TextureFilterMode";
 import { TextureFormat } from "./enums/TextureFormat";
+import { TextureUsage } from "./enums/TextureUsage";
 import { TextureWrapMode } from "./enums/TextureWrapMode";
 
 /**
@@ -22,6 +23,7 @@ export abstract class Texture extends GraphicsResource {
   protected _format: TextureFormat;
   protected _width: number;
   protected _height: number;
+  protected _usage: TextureUsage;
   protected _mipmapCount: number;
 
   private _wrapModeU: TextureWrapMode;
@@ -50,6 +52,13 @@ export abstract class Texture extends GraphicsResource {
    */
   get height(): number {
     return this._height;
+  }
+
+  /**
+   * The usage of the texture.
+   */
+  get usage(): TextureUsage {
+    return this._usage;
   }
 
   /**
