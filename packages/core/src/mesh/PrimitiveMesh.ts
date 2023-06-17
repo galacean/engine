@@ -1095,7 +1095,6 @@ export class PrimitiveMesh {
       mesh.calculateTangents();
 
       mesh.uploadData(noLongerAccessible);
-      noLongerAccessible && vertexBuffer.markAsUnreadable();
 
       mesh.addSubMesh(0, indices.length);
     }
