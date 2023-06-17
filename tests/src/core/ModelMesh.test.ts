@@ -309,5 +309,36 @@ describe("ModelMesh Test", async function () {
 
     const vertexElements1 = modelMesh.vertexElements;
     expect(vertexElements1.length).eq(5);
+
+    // Test set advanced vertex data, then set vertex buffer data
+    const normals2 = [new Vector3(1, 0, 0), new Vector3(-1, -1, -1)];
+    modelMesh.setNormals(normals2);
+    modelMesh.vertexBufferBindings[0].buffer.setData(float32Array);
+    const curNormals = modelMesh.getNormals();
+    expect(curNormals).deep.eq(rightNormals);
+
+    // Test if use cache data when get again
+    const curNormals2 = modelMesh.getNormals();
+    expect(curNormals).eq(curNormals2);
+
+    // Test vertex buffer binding
+    modelMesh.uploadData(true);
+    const vertexBufferBindings = modelMesh.vertexBufferBindings;
+
+    // Test vertex buffer binding count
+    expect(vertexBufferBindings.length).eq(2);
+
+    // Test if first vertex buffer binding is custom vertex buffer
+    expect(vertexBufferBindings[0].buffer).eq(vertexBuffer);
+
+    // Test reset vertex elements if internal buffer is destroyed
+    modelMesh.setVertexElements([
+      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
+      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
+      new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0),
+      new VertexElement("JOINTS_0", 32, VertexElementFormat.UByte4, 0),
+      new VertexElement("WEIGHTS_0", 36, VertexElementFormat.NormalizedUByte4, 0)
+    ]);
+    expect(vertexBufferBindings.length).eq(1);
   });
 });

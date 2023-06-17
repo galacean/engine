@@ -50,13 +50,12 @@ export class ModelMesh extends Mesh {
   private _advancedDataUpdateFlag: VertexElementFlags = VertexElementFlags.None;
   private _advancedVertexDataVersions: number[] = new Array<number>(13); // Only have 13 vertex element can set advanced data
   private _advancedDataSyncToBuffer: boolean = false;
+  private _advancedVertexElementsUpdate: boolean = false;
 
-  private _internalVertexBuffer: Buffer;
   private _internalVertexBufferStride: number = 0;
   private _internalVertexBufferCreatedInfo: Vector2 = new Vector2(); // x:vertexCount, y:vertexStride
   private _internalVertexElementsOffset: number = 0;
   private _internalVertexElementsFlags: VertexElementFlags = VertexElementFlags.None;
-  private _advancedVertexElementsUpdate: boolean = false;
 
   private _vertexBufferInfos: BufferUpdateInfo[] = [];
 
@@ -95,6 +94,7 @@ export class ModelMesh extends Mesh {
    * Vertex buffer binding collection.
    */
   get vertexBufferBindings(): Readonly<VertexBufferBinding[]> {
+    // @todo: update if dirty like `vertexElements` is better
     return this._vertexBufferBindings;
   }
 
@@ -512,8 +512,15 @@ export class ModelMesh extends Mesh {
       this.setUVs(null, i);
     }
 
+    // Destroy internal vertex buffer
+    const internalVertexBufferIndex = this._internalVertexBufferIndex;
+    if (internalVertexBufferIndex !== -1) {
+      this._setVertexBufferBinding(internalVertexBufferIndex, null);
+      this._vertexBufferBindings[internalVertexBufferIndex]?._buffer?.destroy();
+      this._internalVertexBufferIndex = -1;
+    }
+
     this._internalVertexElementsOffset = count;
-    this._internalVertexBufferIndex = -1;
     this._advancedVertexElementsUpdate = false;
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
@@ -755,6 +762,7 @@ export class ModelMesh extends Mesh {
    * @internal
    */
   override _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
+    const vertexBufferBindings = this._vertexBufferBindings;
     const updateInfos = this._vertexBufferInfos;
     const onVertexBufferChanged = () => {
       if (!this._advancedDataSyncToBuffer) {
@@ -763,7 +771,7 @@ export class ModelMesh extends Mesh {
     };
 
     // Remove listener from previous binding
-    const previousBinding = this._vertexBufferBindings[index];
+    const previousBinding = vertexBufferBindings[index];
     previousBinding && previousBinding.buffer._dataUpdateManager.removeListener(onVertexBufferChanged);
 
     super._setVertexBufferBinding(index, binding);
@@ -773,6 +781,10 @@ export class ModelMesh extends Mesh {
       binding.buffer._dataUpdateManager.addListener(onVertexBufferChanged);
       (updateInfos[index] ||= new BufferUpdateInfo()).reset();
       onVertexBufferChanged();
+    } else {
+      if (index + 1 == vertexBufferBindings.length) {
+        vertexBufferBindings.length--;
+      }
     }
   }
 
@@ -870,10 +882,8 @@ export class ModelMesh extends Mesh {
         accessible && (this._advancedDataSyncToBuffer = true);
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
         this._advancedDataSyncToBuffer = false;
-        this._internalVertexBuffer = vertexBuffer;
       } else {
         this._setVertexBufferBinding(vertexBufferIndex, null);
-        this._internalVertexBuffer = null;
       }
       bufferCreatedInfo.set(bufferStride, vertexCount);
     }
