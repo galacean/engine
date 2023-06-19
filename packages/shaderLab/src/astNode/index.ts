@@ -174,9 +174,6 @@ export class MutliplicationExprAstNode extends AstNode<IFnMultiplicationExprAstC
 export class FnAtomicExprAstNode extends AstNode<IFnAtomicExprAstContent> {
   override _doSerialization(context: RuntimeContext): string {
     const signStr = this.content.sign?.serialize(context) ?? "";
-    if (signStr) {
-      debugger;
-    }
     return signStr + this.content.RuleFnAtomicExpr.serialize(context);
   }
 }
@@ -237,7 +234,7 @@ export class FnReturnStatemtneAstNode extends AstNode<IFnReturnStatementAstConte
     if (context.currentFunctionInfo.fnAst === context.currentMainFnAst) {
       return "";
     }
-    return `return ${this.content.serialize(context)}`;
+    return `return ${this.content.serialize(context)};`;
   }
 }
 
@@ -321,7 +318,15 @@ export class TagAssignmentAstNode extends AstNode<ITagAssignmentAstContent> {
   }
 }
 
-export class TagAstNode extends AstNode<ITagAstContent> {}
+export class TagAstNode extends AstNode<ITagAstContent> {
+  toObj(): Record<string, any> {
+    const ret = {} as any;
+    for (const t of this.content) {
+      ret[t.content.tag] = t.content.value.replace(/"(.*)"/, "$1");
+    }
+    return ret;
+  }
+}
 
 export class PropertyItemAstNode extends AstNode<IPropertyItemAstContent> {}
 

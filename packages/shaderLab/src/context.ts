@@ -102,7 +102,7 @@ export default class RuntimeContext {
     this.shaderAst = ast;
     const ret = {} as IShaderInfo;
     ret.ast = ast;
-    ret.editorProperties = ast.content.editorProperties.toJson();
+    ret.editorProperties = ast.content.editorProperties?.toJson();
     ret.name = ast.content.name;
     ret.subShaders = ast.content.subShader.map((ast) => this.parseSubShaderInfo(ast));
 
@@ -114,7 +114,7 @@ export default class RuntimeContext {
 
     const ret = {} as ISubShader;
     ret.name = ast.content.name;
-    ret.tags = ast.content.tags.toJson();
+    ret.tags = ast.content.tags?.toObj();
     ret.passes = ast.content.pass.map((item) => this.parsePassInfo(item));
     return ret;
   }
@@ -126,7 +126,7 @@ export default class RuntimeContext {
 
     const ret = {} as IShaderPass;
     ret.name = ast.content.name;
-    ret.tags = ast.content.tags.toJson();
+    ret.tags = ast.content.tags?.toObj();
     ret.renderStates = {};
     ast.content.propterties.forEach((prop) => {
       if (prop.content.type === VERT_FN_NAME) {

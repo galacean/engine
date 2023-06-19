@@ -1,4 +1,4 @@
-import { IPhysics, IPhysicsManager } from "@galacean/engine-design";
+import { IPhysics, IPhysicsManager, IShaderLab } from "@galacean/engine-design";
 import { Color } from "@galacean/engine-math/src/Color";
 import { Font } from "./2d/text/Font";
 import { Canvas } from "./Canvas";
@@ -564,7 +564,7 @@ export class Engine extends EventDispatcher {
    * @internal
    */
   protected _initialize(configuration: EngineConfiguration): Promise<Engine> {
-    const physics = configuration.physics;
+    const { physics, shaderLab } = configuration;
     if (physics) {
       return physics.initialize().then(() => {
         PhysicsScene._nativePhysics = physics;
@@ -572,9 +572,14 @@ export class Engine extends EventDispatcher {
         this._physicsInitialized = true;
         return this;
       });
-    } else {
-      return Promise.resolve(this);
     }
+    if (shaderLab) {
+      return shaderLab.initialize().then(() => {
+        Shader.shaderLab = shaderLab;
+        return this;
+      });
+    }
+    return Promise.resolve(this);
   }
 
   private _createSpriteMaterial(): Material {
@@ -652,4 +657,6 @@ export interface EngineConfiguration {
   physics?: IPhysics;
   /** Color space. */
   colorSpace?: ColorSpace;
+  /** ShaderLab */
+  shaderLab?: IShaderLab;
 }

@@ -9,6 +9,12 @@ const outDir = path.join(__dirname, "../output");
 if (!fs.existsSync(outDir)) fs.mkdirSync(outDir);
 
 fs.writeFileSync(path.join(outDir, "ast.json"), JSON.stringify(shaderInfo.ast.toJson(false, true), null, 2));
+
+// @ts-ignore
+delete shaderInfo.ast;
+console.dir(shaderInfo, { depth: null });
+
+console.log("ast info written to", path.join(outDir, "ast.json"));
 shaderInfo.subShaders.forEach((subShader) => {
   const shaderDirName = path.join(outDir, subShader.name);
   if (!fs.existsSync(shaderDirName)) fs.mkdirSync(shaderDirName);
@@ -16,7 +22,5 @@ shaderInfo.subShaders.forEach((subShader) => {
     fs.writeFileSync(path.join(shaderDirName, `${pass.name}.vert`), pass.vert);
     fs.writeFileSync(path.join(shaderDirName, `${pass.name}.frag`), pass.frag);
   });
+  console.log("glsl shader file written to", shaderDirName);
 });
-// @ts-ignore
-delete shaderInfo.ast;
-console.dir(shaderInfo, { depth: null });

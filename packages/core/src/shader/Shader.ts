@@ -1,3 +1,4 @@
+import { IShaderLab } from "@galacean/engine-design";
 import { Engine } from "../Engine";
 import { ShaderMacro } from "./ShaderMacro";
 import { ShaderMacroCollection } from "./ShaderMacroCollection";
@@ -17,8 +18,20 @@ export class Shader {
     "GL_OES_standard_derivatives",
     "GL_EXT_draw_buffers"
   ];
+  /** @internal */
+  static _shaderLab?: IShaderLab;
 
   private static _shaderMap: Record<string, Shader> = Object.create(null);
+
+  static set shaderLab(parser: IShaderLab) {
+    this._shaderLab = parser;
+  }
+
+  /**
+   * Create a shader
+   * @param galaceanShader - shader code
+   */
+  static create(galaceanShader: string): Shader;
 
   /**
    * Create a shader.
@@ -46,30 +59,50 @@ export class Shader {
   static create(name: string, subShaders: SubShader[]): Shader;
 
   static create(
-    name: string,
-    vertexSourceOrShaderPassesOrSubShaders: SubShader[] | ShaderPass[] | string,
+    nameOrGalaceanShader: string,
+    vertexSourceOrShaderPassesOrSubShaders?: SubShader[] | ShaderPass[] | string,
     fragmentSource?: string
   ): Shader {
-    const shaderMap = Shader._shaderMap;
-    if (shaderMap[name]) {
-      throw `Shader named "${name}" already exists.`;
-    }
     let shader: Shader;
-    if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
-      const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
-      shader = new Shader(name, [new SubShader("Default", [shaderPass])]);
+    const shaderMap = Shader._shaderMap;
+
+    if (!vertexSourceOrShaderPassesOrSubShaders) {
+      if (!this._shaderLab) {
+        throw "ShaderLab not been setted up";
+      }
+      // TODO: render state
+      const shaderInfo = this._shaderLab.parseShader(nameOrGalaceanShader);
+      const subShaderList = shaderInfo.subShaders.map((subshader) => {
+        const passList = subshader.passes.map((pass) => {
+          return new ShaderPass(pass.vert, pass.frag, pass.tags);
+        });
+        return new SubShader(subshader.name, passList, subshader.tags);
+      });
+
+      return new Shader(shaderInfo.name, subShaderList);
     } else {
-      if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
-        if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
-          shader = new Shader(name, [new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)]);
-        } else {
-          shader = new Shader(name, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
-        }
+      if (shaderMap[nameOrGalaceanShader]) {
+        throw `Shader named "${nameOrGalaceanShader}" already exists.`;
+      }
+      if (typeof vertexSourceOrShaderPassesOrSubShaders === "string") {
+        const shaderPass = new ShaderPass(vertexSourceOrShaderPassesOrSubShaders, fragmentSource);
+        shader = new Shader(nameOrGalaceanShader, [new SubShader("Default", [shaderPass])]);
       } else {
-        throw "SubShader or ShaderPass count must large than 0.";
+        if (vertexSourceOrShaderPassesOrSubShaders.length > 0) {
+          if (vertexSourceOrShaderPassesOrSubShaders[0].constructor === ShaderPass) {
+            shader = new Shader(nameOrGalaceanShader, [
+              new SubShader("Default", <ShaderPass[]>vertexSourceOrShaderPassesOrSubShaders)
+            ]);
+          } else {
+            shader = new Shader(nameOrGalaceanShader, <SubShader[]>vertexSourceOrShaderPassesOrSubShaders.slice());
+          }
+        } else {
+          throw "SubShader or ShaderPass count must large than 0.";
+        }
       }
     }
-    shaderMap[name] = shader;
+
+    shaderMap[nameOrGalaceanShader] = shader;
     return shader;
   }
 

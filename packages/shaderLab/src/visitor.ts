@@ -93,16 +93,9 @@ import {
   VariableDeclarationAstNode,
   VariableTypeAstNode
 } from "./astNode";
-import {
-  IAstInfo,
-  IPassAstContent,
-  IPosition,
-  IPositionRange,
-  IShaderAstContent,
-  ISubShaderAstContent
-} from "./astNode/types";
+import { IPassAstContent, IPosition, IPositionRange, IShaderAstContent, ISubShaderAstContent } from "./astNode/types";
 
-export { IAstInfo };
+export {};
 export const parser = new ShaderParser();
 
 const ShaderVisitorConstructor = parser.getBaseCstVisitorConstructorWithDefaults<any, AstNode>();
@@ -135,7 +128,7 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
   }
 
   RuleSubShader(ctx: RuleSubShaderCstChildren) {
-    const tags = ctx.RuleTag ? this.visit(ctx.RuleTag) : undefined;
+    const tags = ctx.RuleTag ? (this.visit(ctx.RuleTag) as TagAstNode) : undefined;
 
     const pass = ctx.RuleShaderPass?.map((item) => this.visit(item));
 
@@ -154,7 +147,7 @@ export default class ShaderVisitor extends ShaderVisitorConstructor implements P
   }
 
   RuleShaderPass(ctx: RuleShaderPassCstChildren) {
-    const tags = ctx.RuleTag ? this.visit(ctx.RuleTag) : undefined;
+    const tags = ctx.RuleTag ? (this.visit(ctx.RuleTag) as TagAstNode) : undefined;
     const propterties = ctx.SubShaderPassPropertyAssignment?.map((item) => this.visit(item));
     const structs = ctx.RuleStruct?.map((item) => {
       const ret = this.visit(item);

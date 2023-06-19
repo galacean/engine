@@ -14,7 +14,7 @@
     "skipLibCheck": true,
     "stripInternal": true
   },
-  "include": ["src/**/*", "scripts/**/*"],
+  "include": ["src/**/*"],
   "ts-node": {
     "compilerOptions": {
       "module": "commonjs",

@@ -87,6 +87,8 @@ export function stringifyFragmentFunction(
   }
   context.setMainFnAst(fragFnAst);
 
+  context.varyingStructInfo.objectName = fragFnAst.content.args[0].content.name;
+
   const fragmentFnStr = fragFnAst.serialize(context);
-  return [context.getGlobalText(), fragmentFnStr].join("\n");
+  return [context.getVaryingText(), context.getGlobalText(), fragmentFnStr].join("\n");
 }

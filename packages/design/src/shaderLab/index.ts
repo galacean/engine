@@ -1,0 +1,1 @@
+export { IShaderLab } from "./IShaderLab";
