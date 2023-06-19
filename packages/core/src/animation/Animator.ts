@@ -91,11 +91,11 @@ export class Animator extends Component {
       return;
     }
     if (!state.clip) {
-      console.warn(`The state named ${stateName} has no AnimationClip data.`);
+      Logger.warn(`The state named ${stateName} has no AnimationClip data.`);
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
     const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData, playLayerIndex);
 
     this._preparePlay(animatorLayerData, state);
@@ -121,8 +121,8 @@ export class Animator extends Component {
       this._reset();
     }
 
-    const { state } = this._getAnimatorStateInfo(stateName, layerIndex);
-    const { manuallyTransition } = this._getAnimatorLayerData(layerIndex);
+    const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
+    const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
@@ -275,8 +275,9 @@ export class Animator extends Component {
   ): void {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
     const { curveLayerOwner } = animatorStateData;
-    const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
     const { _curveBindings: curves } = animatorState.clip;
+
+    const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
@@ -286,12 +287,9 @@ export class Animator extends Component {
         const { instanceId } = targetEntity;
 
         let needRevert = false;
-        const baseAnimatorLayerData = this._animatorLayersData[0];
-        const baseLayerCurveOwnerPool = baseAnimatorLayerData.curveOwnerPool;
         if (
           this.animatorController.layers[layerIndex].blendingMode === AnimatorLayerBlendingMode.Additive &&
-          layerIndex > 0 &&
-          !(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])
+          layerIndex > 0
         ) {
           needRevert = true;
         }
@@ -307,7 +305,7 @@ export class Animator extends Component {
         curveLayerOwner[i] = layerOwner;
       } else {
         curveLayerOwner[i] = null;
-        console.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
+        Logger.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
       }
     }
   }
