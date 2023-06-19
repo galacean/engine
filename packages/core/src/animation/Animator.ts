@@ -18,6 +18,7 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { KeyframeValueType } from "./Keyframe";
+import { Logger } from "../base";
 
 /**
  * The controller of the animation system.
@@ -90,7 +91,7 @@ export class Animator extends Component {
       return;
     }
     if (!state.clip) {
-      console.warn(`The state named ${stateName} has no AnimationClip data.`);
+      Logger.warn(`The state named ${stateName} has no AnimationClip data.`);
       return;
     }
 
@@ -309,7 +310,7 @@ export class Animator extends Component {
         curveLayerOwner[i] = layerOwner;
       } else {
         curveLayerOwner[i] = null;
-        console.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
+        Logger.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
       }
     }
   }
@@ -557,7 +558,7 @@ export class Animator extends Component {
     if (lastSrcPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(srcState, layerIndex);
     }
-    if (srcPlayState === AnimatorStatePlayState.Finished) {
+    if (crossWeight === 1.0 || srcPlayState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(srcState, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(srcState, layerIndex);
@@ -716,7 +717,7 @@ export class Animator extends Component {
       return;
     }
     if (!crossState.clip) {
-      console.warn(`The state named ${name} has no AnimationClip data.`);
+      Logger.warn(`The state named ${name} has no AnimationClip data.`);
       return;
     }
 
@@ -731,6 +732,7 @@ export class Animator extends Component {
 
     switch (layerState) {
       case LayerState.Standby:
+      case LayerState.Finished:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareStandbyCrossFading(animatorLayerData);
@@ -739,11 +741,6 @@ export class Animator extends Component {
         animatorLayerData.layerState = LayerState.CrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareCrossFading(animatorLayerData);
-        break;
-      case LayerState.Finished:
-        animatorLayerData.layerState = LayerState.FixedCrossFading;
-        this._clearCrossData(animatorLayerData);
-        this._prepareFixedPoseCrossFading(animatorLayerData);
         break;
       case LayerState.CrossFading:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
