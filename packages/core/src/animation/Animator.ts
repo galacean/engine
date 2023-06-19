@@ -558,7 +558,7 @@ export class Animator extends Component {
     if (lastSrcPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(srcState, layerIndex);
     }
-    if (crossWeight === 1.0 || srcPlayState === AnimatorStatePlayState.Finished) {
+    if (crossWeight === 1 || srcPlayState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(srcState, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(srcState, layerIndex);
@@ -659,7 +659,7 @@ export class Animator extends Component {
   }
 
   private _updateCrossFadeData(layerData: AnimatorLayerData, crossWeight: number, delta: number, fixed: boolean): void {
-    const { srcPlayData, destPlayData } = layerData;
+    const { destPlayData } = layerData;
     destPlayData.frameTime += destPlayData.state.speed * delta;
     if (crossWeight === 1.0) {
       if (destPlayData.playState === AnimatorStatePlayState.Finished) {
@@ -667,7 +667,6 @@ export class Animator extends Component {
       } else {
         layerData.layerState = LayerState.Playing;
       }
-      srcPlayData.playState = AnimatorStatePlayState.Finished;
       layerData.switchPlayData();
       layerData.crossFadeTransition = null;
     } else {
