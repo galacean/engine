@@ -300,9 +300,6 @@ export class Animator extends Component {
         //@todo: There is performance waste here, which will be handled together with organizing AnimatorStateData later. The logic is changing from runtime to initialization.
         if (needRevert) {
           this._needRevertCurveOwners.push(owner);
-        } else {
-          const index = this._needRevertCurveOwners.indexOf(owner);
-          index > -1 && this._needRevertCurveOwners.splice(index, 1);
         }
 
         // Get layer owner
@@ -560,7 +557,7 @@ export class Animator extends Component {
     if (lastSrcPlayState === AnimatorStatePlayState.UnStarted) {
       this._callAnimatorScriptOnEnter(srcState, layerIndex);
     }
-    if (crossWeight === 1 || srcPlayState === AnimatorStatePlayState.Finished) {
+    if (srcPlayState === AnimatorStatePlayState.Finished) {
       this._callAnimatorScriptOnExit(srcState, layerIndex);
     } else {
       this._callAnimatorScriptOnUpdate(srcState, layerIndex);
@@ -661,7 +658,7 @@ export class Animator extends Component {
   }
 
   private _updateCrossFadeData(layerData: AnimatorLayerData, crossWeight: number, delta: number, fixed: boolean): void {
-    const { destPlayData } = layerData;
+    const { srcPlayData, destPlayData } = layerData;
     destPlayData.frameTime += destPlayData.state.speed * delta;
     if (crossWeight === 1.0) {
       if (destPlayData.playState === AnimatorStatePlayState.Finished) {
@@ -669,6 +666,7 @@ export class Animator extends Component {
       } else {
         layerData.layerState = LayerState.Playing;
       }
+      srcPlayData.playState = AnimatorStatePlayState.Finished;
       layerData.switchPlayData();
       layerData.crossFadeTransition = null;
     } else {
@@ -738,10 +736,14 @@ export class Animator extends Component {
         this._prepareStandbyCrossFading(animatorLayerData);
         break;
       case LayerState.Playing:
-      case LayerState.Finished:
         animatorLayerData.layerState = LayerState.CrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareCrossFading(animatorLayerData);
+        break;
+      case LayerState.Finished:
+        animatorLayerData.layerState = LayerState.FixedCrossFading;
+        this._clearCrossData(animatorLayerData);
+        this._prepareFixedPoseCrossFading(animatorLayerData);
         break;
       case LayerState.CrossFading:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
