@@ -1,4 +1,12 @@
-import { AssetPromise, AssetType, Loader, LoadItem, resourceLoader, ResourceManager } from "@galacean/engine-core";
+import {
+  AssetPromise,
+  AssetType,
+  Loader,
+  LoadItem,
+  Logger,
+  resourceLoader,
+  ResourceManager
+} from "@galacean/engine-core";
 import { GLTFPipeline } from "./gltf/GLTFPipeline";
 import { GLTFResource } from "./gltf/GLTFResource";
 import { GLTFParserContext } from "./gltf/parser/GLTFParserContext";
@@ -26,8 +34,14 @@ export class GLTFLoader extends Loader<GLTFResource> {
       ._parse(context)
       .then(masterPromiseInfo.resolve)
       .catch((e) => {
-        console.error(e);
-        masterPromiseInfo.reject(`Error loading glTF model from ${url} .`);
+        const msg = `Error loading glTF model from ${url} .`;
+        Logger.error(msg);
+        masterPromiseInfo.reject(msg);
+        context.defaultSceneRootPromiseInfo.reject(e);
+        context.texturesPromiseInfo.reject(e);
+        context.materialsPromiseInfo.reject(e);
+        context.meshesPromiseInfo.reject(e);
+        context.animationClipsPromiseInfo.reject(e);
       });
 
     return context.promiseMap;
