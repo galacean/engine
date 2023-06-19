@@ -22,9 +22,9 @@ export class AudioSource extends Component {
   @deepClone
   private _startTime: number = 0;
   @deepClone
-  private _pausedTime: number = null;
+  private _pausedTime: number = -1;
   @deepClone
-  private _endTime: number = null;
+  private _endTime: number = -1;
   @deepClone
   private _duration: number = null;
   @ignoreClone
@@ -144,7 +144,7 @@ export class AudioSource extends Component {
    */
   get time(): number {
     if (this.isPlaying) {
-      return this._pausedTime
+      return this._pausedTime > 0
         ? this.engine.time.elapsedTime - this._absoluteStartTime + this._pausedTime
         : this.engine.time.elapsedTime - this._absoluteStartTime + this.startTime;
     }
@@ -159,7 +159,7 @@ export class AudioSource extends Component {
     if (this.startTime > this._clip.duration || this.startTime < 0) return;
     if (this._duration && this._duration < 0) return;
 
-    this._pausedTime = null;
+    this._pausedTime = -1;
     this._play(this.startTime, this._duration);
   }
 
@@ -191,8 +191,8 @@ export class AudioSource extends Component {
    * Unpause the paused playback of this AudioSource.
    */
   unPause(): void {
-    if (!this.isPlaying && this._pausedTime) {
-      const duration = this.endTime ? this.endTime - this._pausedTime : null;
+    if (!this.isPlaying && this._pausedTime > 0) {
+      const duration = this.endTime > 0 ? this.endTime - this._pausedTime : null;
       this._play(this._pausedTime, duration);
     }
   }
@@ -258,7 +258,7 @@ export class AudioSource extends Component {
     sourceNode.loop = this._loop;
     if (this._loop) {
       sourceNode.loopStart = this.startTime;
-      if (this.endTime) {
+      if (this.endTime > 0) {
         sourceNode.loopEnd = this.endTime;
       }
     }
