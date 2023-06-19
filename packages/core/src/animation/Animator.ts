@@ -465,9 +465,7 @@ export class Animator extends Component {
 
         const curve = curveBindings[i].curve;
         if (curve.keys.length) {
-          if (additive && owner.updateMark !== this._updateMark) {
-            owner.revertDefaultValue();
-          }
+          this._checkRevertOwner(owner, additive);
           owner.updateMark = this._updateMark;
 
           const value = owner.evaluateValue(curve, clipTime, additive);
@@ -536,9 +534,7 @@ export class Animator extends Component {
         const srcCurveIndex = layerOwner.crossSrcCurveIndex;
         const destCurveIndex = layerOwner.crossDestCurveIndex;
 
-        if (additive && owner.updateMark !== this._updateMark) {
-          owner.revertDefaultValue();
-        }
+        this._checkRevertOwner(owner, additive);
         owner.updateMark = this._updateMark;
 
         const value = owner.evaluateCrossFadeValue(
@@ -617,9 +613,7 @@ export class Animator extends Component {
 
         const curveIndex = layerOwner.crossDestCurveIndex;
 
-        if (additive && owner.updateMark !== this._updateMark) {
-          owner.revertDefaultValue();
-        }
+        this._checkRevertOwner(owner, additive);
         owner.updateMark = this._updateMark;
 
         const value = layerOwner.curveOwner.crossFadeFromPoseAndApplyValue(
@@ -665,9 +659,7 @@ export class Animator extends Component {
 
       if (!owner) continue;
 
-      if (additive && owner.updateMark !== this._updateMark) {
-        owner.revertDefaultValue();
-      }
+      this._checkRevertOwner(owner, additive);
       owner.updateMark = this._updateMark;
 
       owner.applyValue(layerOwner.finalValue, weight, additive);
@@ -879,6 +871,12 @@ export class Animator extends Component {
       if (stateMachine?.defaultState) {
         this.play(stateMachine.defaultState.name, i);
       }
+    }
+  }
+
+  private _checkRevertOwner(owner: AnimationCurveOwner<KeyframeValueType>, additive: boolean): void {
+    if (additive && owner.updateMark !== this._updateMark) {
+      owner.revertDefaultValue();
     }
   }
 }
