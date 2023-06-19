@@ -18,6 +18,7 @@ import { AnimatorLayerData } from "./internal/AnimatorLayerData";
 import { AnimatorStateData } from "./internal/AnimatorStateData";
 import { AnimatorStatePlayData } from "./internal/AnimatorStatePlayData";
 import { KeyframeValueType } from "./Keyframe";
+import { Logger } from "../base";
 
 /**
  * The controller of the animation system.
@@ -33,13 +34,13 @@ export class Animator extends Component {
 
   @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
+  @ignoreClone
+  protected _updateMark: number = 0;
 
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
-  @ignoreClone
-  private _needRevertCurveOwners: AnimationCurveOwner<KeyframeValueType>[] = [];
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
 
@@ -90,11 +91,11 @@ export class Animator extends Component {
       return;
     }
     if (!state.clip) {
-      console.warn(`The state named ${stateName} has no AnimationClip data.`);
+      Logger.warn(`The state named ${stateName} has no AnimationClip data.`);
       return;
     }
 
-    const animatorLayerData = this._getAnimatorLayerData(stateInfo.layerIndex);
+    const animatorLayerData = this._getAnimatorLayerData(playLayerIndex);
     const animatorStateData = this._getAnimatorStateData(stateName, state, animatorLayerData, playLayerIndex);
 
     this._preparePlay(animatorLayerData, state);
@@ -120,8 +121,8 @@ export class Animator extends Component {
       this._reset();
     }
 
-    const { state } = this._getAnimatorStateInfo(stateName, layerIndex);
-    const { manuallyTransition } = this._getAnimatorLayerData(layerIndex);
+    const { state, layerIndex: playLayerIndex } = this._getAnimatorStateInfo(stateName, layerIndex);
+    const { manuallyTransition } = this._getAnimatorLayerData(playLayerIndex);
     manuallyTransition.duration = normalizedTransitionDuration;
     manuallyTransition.offset = normalizedTimeOffset;
     manuallyTransition.destinationState = state;
@@ -158,7 +159,7 @@ export class Animator extends Component {
 
     deltaTime *= this.speed;
 
-    this._revertCurveOwners();
+    this._updateMark++;
 
     for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const animatorLayerData = this._getAnimatorLayerData(i);
@@ -217,7 +218,6 @@ export class Animator extends Component {
     }
 
     this._animatorLayersData.length = 0;
-    this._needRevertCurveOwners.length = 0;
     this._curveOwnerPool = {};
     this._animationEventHandlerPool.resetPool();
 
@@ -273,8 +273,9 @@ export class Animator extends Component {
   ): void {
     const { entity, _curveOwnerPool: curveOwnerPool } = this;
     const { curveLayerOwner } = animatorStateData;
-    const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
     const { _curveBindings: curves } = animatorState.clip;
+
+    const { curveOwnerPool: layerCurveOwnerPool } = animatorLayerData;
 
     for (let i = curves.length - 1; i >= 0; i--) {
       const curve = curves[i];
@@ -283,27 +284,9 @@ export class Animator extends Component {
         const { property } = curve;
         const { instanceId } = targetEntity;
 
-        let needRevert = false;
-        const baseAnimatorLayerData = this._animatorLayersData[0];
-        const baseLayerCurveOwnerPool = baseAnimatorLayerData.curveOwnerPool;
-        if (
-          this.animatorController.layers[layerIndex].blendingMode === AnimatorLayerBlendingMode.Additive &&
-          layerIndex > 0 &&
-          !(baseLayerCurveOwnerPool[instanceId] && baseLayerCurveOwnerPool[instanceId][property])
-        ) {
-          needRevert = true;
-        }
-
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
-        //@todo: There is performance waste here, which will be handled together with organizing AnimatorStateData later. The logic is changing from runtime to initialization.
-        if (needRevert) {
-          this._needRevertCurveOwners.push(owner);
-        } else {
-          const index = this._needRevertCurveOwners.indexOf(owner);
-          index > -1 && this._needRevertCurveOwners.splice(index, 1);
-        }
 
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
@@ -312,7 +295,7 @@ export class Animator extends Component {
         curveLayerOwner[i] = layerOwner;
       } else {
         curveLayerOwner[i] = null;
-        console.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
+        Logger.warn(`The entity don\'t have the child entity which path is ${curve.relativePath}.`);
       }
     }
   }
@@ -472,6 +455,9 @@ export class Animator extends Component {
 
         const curve = curveBindings[i].curve;
         if (curve.keys.length) {
+          this._checkRevertOwner(owner, additive);
+          owner.updateMark = this._updateMark;
+
           const value = owner.evaluateValue(curve, clipTime, additive);
           aniUpdate && owner.applyValue(value, weight, additive);
           finished && layerOwner.saveFinalValue();
@@ -537,6 +523,9 @@ export class Animator extends Component {
 
         const srcCurveIndex = layerOwner.crossSrcCurveIndex;
         const destCurveIndex = layerOwner.crossDestCurveIndex;
+
+        this._checkRevertOwner(owner, additive);
+        owner.updateMark = this._updateMark;
 
         const value = owner.evaluateCrossFadeValue(
           srcCurveIndex >= 0 ? srcCurves[srcCurveIndex].curve : null,
@@ -613,6 +602,10 @@ export class Animator extends Component {
         if (!owner) continue;
 
         const curveIndex = layerOwner.crossDestCurveIndex;
+
+        this._checkRevertOwner(owner, additive);
+        owner.updateMark = this._updateMark;
+
         const value = layerOwner.curveOwner.crossFadeFromPoseAndApplyValue(
           curveIndex >= 0 ? curveBindings[curveIndex].curve : null,
           destClipTime,
@@ -656,6 +649,9 @@ export class Animator extends Component {
 
       if (!owner) continue;
 
+      this._checkRevertOwner(owner, additive);
+      owner.updateMark = this._updateMark;
+
       owner.applyValue(layerOwner.finalValue, weight, additive);
     }
   }
@@ -682,16 +678,14 @@ export class Animator extends Component {
       if (srcPlayData.state !== playState) {
         const { curveLayerOwner } = srcPlayData.stateData;
         for (let i = curveLayerOwner.length - 1; i >= 0; i--) {
-          const owner = curveLayerOwner[i]?.curveOwner;
-          owner.revertDefaultValue();
+          curveLayerOwner[i]?.curveOwner.revertDefaultValue();
         }
       }
     } else {
       // layerState is CrossFading, FixedCrossFading, Standby, Finished
       const { crossLayerOwnerCollection } = layerData;
       for (let i = crossLayerOwnerCollection.length - 1; i >= 0; i--) {
-        const owner = crossLayerOwnerCollection[i].curveOwner;
-        owner.revertDefaultValue();
+        crossLayerOwnerCollection[i].curveOwner.revertDefaultValue();
       }
     }
   }
@@ -720,7 +714,7 @@ export class Animator extends Component {
       return;
     }
     if (!crossState.clip) {
-      console.warn(`The state named ${name} has no AnimationClip data.`);
+      Logger.warn(`The state named ${name} has no AnimationClip data.`);
       return;
     }
 
@@ -735,12 +729,12 @@ export class Animator extends Component {
 
     switch (layerState) {
       case LayerState.Standby:
+      case LayerState.Finished:
         animatorLayerData.layerState = LayerState.FixedCrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareStandbyCrossFading(animatorLayerData);
         break;
       case LayerState.Playing:
-      case LayerState.Finished:
         animatorLayerData.layerState = LayerState.CrossFading;
         this._clearCrossData(animatorLayerData);
         this._prepareCrossFading(animatorLayerData);
@@ -870,10 +864,9 @@ export class Animator extends Component {
     }
   }
 
-  private _revertCurveOwners(): void {
-    const curveOwners = this._needRevertCurveOwners;
-    for (let i = 0, n = curveOwners.length; i < n; ++i) {
-      curveOwners[i].revertDefaultValue();
+  private _checkRevertOwner(owner: AnimationCurveOwner<KeyframeValueType>, additive: boolean): void {
+    if (additive && owner.updateMark !== this._updateMark) {
+      owner.revertDefaultValue();
     }
   }
 }
