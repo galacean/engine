@@ -466,7 +466,6 @@ export class Animator extends Component {
         const curve = curveBindings[i].curve;
         if (curve.keys.length) {
           this._checkRevertOwner(owner, additive);
-          owner.updateMark = this._updateMark;
 
           const value = owner.evaluateValue(curve, clipTime, additive);
           aniUpdate && owner.applyValue(value, weight, additive);
@@ -535,7 +534,6 @@ export class Animator extends Component {
         const destCurveIndex = layerOwner.crossDestCurveIndex;
 
         this._checkRevertOwner(owner, additive);
-        owner.updateMark = this._updateMark;
 
         const value = owner.evaluateCrossFadeValue(
           srcCurveIndex >= 0 ? srcCurves[srcCurveIndex].curve : null,
@@ -614,7 +612,6 @@ export class Animator extends Component {
         const curveIndex = layerOwner.crossDestCurveIndex;
 
         this._checkRevertOwner(owner, additive);
-        owner.updateMark = this._updateMark;
 
         const value = layerOwner.curveOwner.crossFadeFromPoseAndApplyValue(
           curveIndex >= 0 ? curveBindings[curveIndex].curve : null,
@@ -660,7 +657,6 @@ export class Animator extends Component {
       if (!owner) continue;
 
       this._checkRevertOwner(owner, additive);
-      owner.updateMark = this._updateMark;
 
       owner.applyValue(layerOwner.finalValue, weight, additive);
     }
@@ -877,6 +873,7 @@ export class Animator extends Component {
   private _checkRevertOwner(owner: AnimationCurveOwner<KeyframeValueType>, additive: boolean): void {
     if (additive && owner.updateMark !== this._updateMark) {
       owner.revertDefaultValue();
+      owner.updateMark = this._updateMark;
     }
   }
 }
