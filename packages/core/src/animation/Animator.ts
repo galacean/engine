@@ -286,14 +286,6 @@ export class Animator extends Component {
         const { property } = curve;
         const { instanceId } = targetEntity;
 
-        let needRevert = false;
-        if (
-          this.animatorController.layers[layerIndex].blendingMode === AnimatorLayerBlendingMode.Additive &&
-          layerIndex > 0
-        ) {
-          needRevert = true;
-        }
-
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
