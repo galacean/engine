@@ -34,13 +34,13 @@ export class Animator extends Component {
 
   @ignoreClone
   protected _controllerUpdateFlag: BoolUpdateFlag;
+  @ignoreClone
+  protected _updateMark: number = 0;
 
   @ignoreClone
   private _animatorLayersData: AnimatorLayerData[] = [];
   @ignoreClone
   private _curveOwnerPool: Record<number, Record<string, AnimationCurveOwner<KeyframeValueType>>> = Object.create(null);
-  @ignoreClone
-  private _needRevertCurveOwners: AnimationCurveOwner<KeyframeValueType>[] = [];
   @ignoreClone
   private _animationEventHandlerPool: ClassPool<AnimationEventHandler> = new ClassPool(AnimationEventHandler);
 
@@ -159,7 +159,7 @@ export class Animator extends Component {
 
     deltaTime *= this.speed;
 
-    this._revertCurveOwners();
+    this._updateMark++;
 
     for (let i = 0, n = animatorController.layers.length; i < n; i++) {
       const animatorLayerData = this._getAnimatorLayerData(i);
@@ -220,7 +220,6 @@ export class Animator extends Component {
     }
 
     this._animatorLayersData.length = 0;
-    this._needRevertCurveOwners.length = 0;
     this._curveOwnerPool = {};
     this._animationEventHandlerPool.resetPool();
 
@@ -298,10 +297,6 @@ export class Animator extends Component {
         // Get owner
         const propertyOwners = (curveOwnerPool[instanceId] ||= Object.create(null));
         const owner = (propertyOwners[property] ||= curve._createCurveOwner(targetEntity));
-        //@todo: There is performance waste here, which will be handled together with organizing AnimatorStateData later. The logic is changing from runtime to initialization.
-        if (needRevert) {
-          this._needRevertCurveOwners.push(owner);
-        }
 
         // Get layer owner
         const layerPropertyOwners = (layerCurveOwnerPool[instanceId] ||= Object.create(null));
@@ -470,6 +465,9 @@ export class Animator extends Component {
 
         const curve = curveBindings[i].curve;
         if (curve.keys.length) {
+          this._checkRevertOwner(owner, additive);
+          owner.updateMark = this._updateMark;
+
           const value = owner.evaluateValue(curve, clipTime, additive);
           aniUpdate && owner.applyValue(value, weight, additive);
           finished && layerOwner.saveFinalValue();
@@ -535,6 +533,9 @@ export class Animator extends Component {
 
         const srcCurveIndex = layerOwner.crossSrcCurveIndex;
         const destCurveIndex = layerOwner.crossDestCurveIndex;
+
+        this._checkRevertOwner(owner, additive);
+        owner.updateMark = this._updateMark;
 
         const value = owner.evaluateCrossFadeValue(
           srcCurveIndex >= 0 ? srcCurves[srcCurveIndex].curve : null,
@@ -611,6 +612,10 @@ export class Animator extends Component {
         if (!owner) continue;
 
         const curveIndex = layerOwner.crossDestCurveIndex;
+
+        this._checkRevertOwner(owner, additive);
+        owner.updateMark = this._updateMark;
+
         const value = layerOwner.curveOwner.crossFadeFromPoseAndApplyValue(
           curveIndex >= 0 ? curveBindings[curveIndex].curve : null,
           destClipTime,
@@ -653,6 +658,9 @@ export class Animator extends Component {
       const owner = layerOwner?.curveOwner;
 
       if (!owner) continue;
+
+      this._checkRevertOwner(owner, additive);
+      owner.updateMark = this._updateMark;
 
       owner.applyValue(layerOwner.finalValue, weight, additive);
     }
@@ -866,10 +874,9 @@ export class Animator extends Component {
     }
   }
 
-  private _revertCurveOwners(): void {
-    const curveOwners = this._needRevertCurveOwners;
-    for (let i = 0, n = curveOwners.length; i < n; ++i) {
-      curveOwners[i].revertDefaultValue();
+  private _checkRevertOwner(owner: AnimationCurveOwner<KeyframeValueType>, additive: boolean): void {
+    if (additive && owner.updateMark !== this._updateMark) {
+      owner.revertDefaultValue();
     }
   }
 }
