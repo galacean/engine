@@ -148,7 +148,7 @@ export abstract class Basic2DBatcher {
     const vertexBuffer = (this._vertexBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
-      MAX_VERTEX_COUNT * 4 * vertexStride,
+      MAX_VERTEX_COUNT * vertexStride,
       BufferUsage.Dynamic
     ));
     vertexBuffer.isGCIgnored = true;
