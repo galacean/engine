@@ -863,8 +863,8 @@ export class Animator extends Component {
   private _checkRevertOwner(owner: AnimationCurveOwner<KeyframeValueType>, additive: boolean): void {
     if (additive && owner.updateMark !== this._updateMark) {
       owner.revertDefaultValue();
-      owner.updateMark = this._updateMark;
     }
+    owner.updateMark = this._updateMark;
   }
 }
 
