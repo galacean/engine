@@ -1,7 +1,10 @@
 import { WebGLEngine } from "@galacean/engine-rhi-webgl";
 import { Animator, Camera } from "@galacean/engine-core";
-import { expect } from "chai";
 import { GLTFResource } from "@galacean/engine-loader";
+import chai, { expect } from "chai";
+import spies from "chai-spies";
+
+chai.use(spies);
 
 const canvasDOM = document.createElement("canvas");
 canvasDOM.width = 1024;
@@ -26,7 +29,7 @@ describe("Animator test", function () {
     engine.run();
   });
 
-  after(function(){
+  after(function () {
     animator.destroy();
     engine.destroy();
   });
@@ -46,15 +49,7 @@ describe("Animator test", function () {
     expect(animator["_tempAnimatorStateInfo"].layerIndex).to.eq(-1);
   });
 
-  it("animator property value", () => {
-    // Test animator cullingMode.
-    const cullingMode = 0;
-    const expectedCullingMode = 1;
-    animator.cullingMode = expectedCullingMode;
-    expect(animator.cullingMode).to.eq(expectedCullingMode);
-    animator.cullingMode = cullingMode;
-    expect(animator.cullingMode).to.eq(cullingMode);
-
+  it("animator speed value", () => {
     // Test animator speed.
     const speed = 1;
     let expectedSpeed = speed * 0.5;
@@ -84,17 +79,45 @@ describe("Animator test", function () {
     // Test animator change play state.
     animator.play('Walk', layerIndex, normalizedTimeOffset);
     animatorState = animator.getCurrentAnimatorState(layerIndex);
-    expect(animatorState.name).to.eq('Walk');
+    expect(animatorState.name).to.eq('Walk');    
+  });
+
+  it("animator cullingMode", () => {
+    // Test animator cullingMode.
+    const cullingMode = 0;
+    const expectedCullingMode = 1;
+
+    animator.play('Run');
+
+    let animatorLayerData = animator["_animatorLayersData"];
+    let frameTime = animatorLayerData[0].srcPlayData.frameTime;
+    expect(frameTime).to.eq(0);
+    
+    animator.cullingMode = expectedCullingMode;
+    expect(animator.cullingMode).to.eq(expectedCullingMode);
+
+    animator.update(5);
+    animatorLayerData = animator["_animatorLayersData"];
+    frameTime = animatorLayerData[0].srcPlayData.frameTime;
+    expect(frameTime).to.eq(5);
+
+    animator.cullingMode = cullingMode;
+    expect(animator.cullingMode).to.eq(cullingMode);
   });
 
   it("animation enabled", () => {
     // Test animator play.
     animator.play('Survey');
+    const onDisableSpy = chai.spy.on(animator, '_onDisable');
+    const onEnableSpy = chai.spy.on(animator, '_onEnable');
 
     animator.enabled = false;
     expect(animator["_enabled"]).to.eq(false);
+    expect(onDisableSpy).to.have.been.called.exactly(1);
+
     animator.enabled = true;
     expect(animator["_enabled"]).to.eq(true);
+    expect(onEnableSpy).to.have.been.called.exactly(1);
   });
 
   it("find animator state", () => {
@@ -105,10 +128,12 @@ describe("Animator test", function () {
     const currentAnimatorState = animator.getCurrentAnimatorState(layerIndex);
     let animatorState = animator.findAnimatorState(stateName, layerIndex);
     expect(animatorState).to.deep.eq(currentAnimatorState);
+    expect(animatorState).to.eq(currentAnimatorState);
 
     animator.play(expectedStateName);
     animatorState = animator.findAnimatorState(expectedStateName, layerIndex);
     expect(animatorState).not.to.deep.eq(currentAnimatorState);
+    expect(animatorState).not.to.eq(currentAnimatorState);
     expect(animatorState.name).to.eq(expectedStateName);
   });
 
@@ -130,8 +155,8 @@ describe("Animator test", function () {
     //@ts-ignore
     animator._reset();
     animator.play('Walk');
-    animator.update(1);
     animator.crossFade('Run', 0.5);
+    animator.update(1);
 
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const animatorLayerData = animator["_animatorLayersData"];
@@ -144,10 +169,11 @@ describe("Animator test", function () {
   it("animation fix cross fade", () => {
     //@ts-ignore
     animator._reset();
-    animator.play('');
+    animator.play('Walk');
     animator.update(1);
     animator.crossFade('Survey', 5);
     animator.crossFade('Run', 0.5);
+    animator.update(10);
 
     const layerIndex = animator["_tempAnimatorStateInfo"].layerIndex;
     const animatorLayerData = animator["_animatorLayersData"];
