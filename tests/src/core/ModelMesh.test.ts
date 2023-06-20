@@ -6,6 +6,7 @@ import {
   Engine,
   IndexFormat,
   ModelMesh,
+  VertexAttribute,
   VertexElement,
   VertexElementFormat
 } from "@galacean/engine-core";
@@ -266,11 +267,11 @@ describe("ModelMesh Test", async function () {
     modelMesh.setVertexBufferBinding(vertexBuffer, 40, 0);
     // Test Vector3、Vector2、UByte4、NormalizedUByte4 format
     modelMesh.setVertexElements([
-      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
-      new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0),
-      new VertexElement("JOINTS_0", 32, VertexElementFormat.UByte4, 0),
-      new VertexElement("WEIGHTS_0", 36, VertexElementFormat.NormalizedUByte4, 0)
+      new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+      new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
+      new VertexElement(VertexAttribute.UV, 24, VertexElementFormat.Vector2, 0),
+      new VertexElement(VertexAttribute.BoneIndex, 32, VertexElementFormat.UByte4, 0),
+      new VertexElement(VertexAttribute.BoneWeight, 36, VertexElementFormat.NormalizedUByte4, 0)
     ]);
 
     const positions = modelMesh.getPositions();
@@ -333,11 +334,11 @@ describe("ModelMesh Test", async function () {
 
     // Test reset vertex elements if internal buffer is destroyed
     modelMesh.setVertexElements([
-      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("NORMAL", 12, VertexElementFormat.Vector3, 0),
-      new VertexElement("TEXCOORD_0", 24, VertexElementFormat.Vector2, 0),
-      new VertexElement("JOINTS_0", 32, VertexElementFormat.UByte4, 0),
-      new VertexElement("WEIGHTS_0", 36, VertexElementFormat.NormalizedUByte4, 0)
+      new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+      new VertexElement(VertexAttribute.Normal, 12, VertexElementFormat.Vector3, 0),
+      new VertexElement(VertexAttribute.UV, 24, VertexElementFormat.Vector2, 0),
+      new VertexElement(VertexAttribute.BoneIndex, 32, VertexElementFormat.UByte4, 0),
+      new VertexElement(VertexAttribute.BoneWeight, 36, VertexElementFormat.NormalizedUByte4, 0)
     ]);
     expect(vertexBufferBindings.length).eq(1);
   });
@@ -389,9 +390,9 @@ describe("ModelMesh Test", async function () {
     const uvBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, uv, BufferUsage.Static, true);
     const mesh = new ModelMesh(engine);
     const vertexElements = [
-      new VertexElement("POSITION", 0, VertexElementFormat.Vector3, 0),
-      new VertexElement("NORMAL", 0, VertexElementFormat.Vector3, 2),
-      new VertexElement("TEXCOORD_0", 0, VertexElementFormat.Vector2, 3)
+      new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+      new VertexElement(VertexAttribute.Normal, 0, VertexElementFormat.Vector3, 2),
+      new VertexElement(VertexAttribute.UV, 0, VertexElementFormat.Vector2, 3)
     ];
 
     mesh.setPositions(rightPositions);
