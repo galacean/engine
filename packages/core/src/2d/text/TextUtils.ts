@@ -60,11 +60,7 @@ export class TextUtils {
     let { _textContext: textContext } = TextUtils;
     if (!textContext) {
       let canvas: HTMLCanvasElement | OffscreenCanvas;
-      try {
-        canvas = new OffscreenCanvas(0, 0);
-      } catch {
-        canvas = document.createElement("canvas");
-      }
+      canvas = document.createElement("canvas");
       const context = canvas.getContext("2d");
       textContext = { canvas, context };
       TextUtils._textContext = textContext;
