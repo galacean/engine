@@ -156,7 +156,7 @@ export abstract class Basic2DBatcher {
     const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 2 * 3,
+      MAX_VERTEX_COUNT * 6,
       BufferUsage.Dynamic
     ));
     indiceBuffer.isGCIgnored = true;
