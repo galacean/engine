@@ -28,7 +28,6 @@
     "types/**/*"
   ],
   "dependencies": {
-    "@galacean/engine-core": "workspace:*",
     "chevrotain": "^10.5.0"
   },
   "devDependencies": {

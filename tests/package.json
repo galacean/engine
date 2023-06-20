@@ -8,7 +8,8 @@
   "types": "types/index.d.ts",
   "debug": "src/index.ts",
   "scripts": {
-    "b:types": "echo hi"
+    "b:types": "echo hi",
+    "test": "cross-env TS_NODE_PROJECT=tsconfig.json floss --require ts-node/register -p"
   },
   "files": [
     "dist/**/*",
@@ -20,7 +21,7 @@
     "@galacean/engine-design": "workspace:*",
     "@galacean/engine-math": "workspace:*",
     "@galacean/engine-rhi-webgl": "workspace:*",
-    "@galacean/engine-physics-lite": "workspace:*"
-    
+    "@galacean/engine-physics-lite": "workspace:*",
+    "@galacean/engine-shaderlab": "workspace:*"
   }
 }

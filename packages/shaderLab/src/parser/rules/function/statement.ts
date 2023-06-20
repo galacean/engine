@@ -1,7 +1,7 @@
 import { CstParser } from "chevrotain";
 import { Others, Symbols, GLKeywords, Values } from "../../tokens";
 import { ALL_RULES } from "../common";
-import { IShaderParser } from "../@types";
+import { IShaderParser } from "../interface";
 
 function RuleFnVariableDeclaration(this: CstParser) {
   const $ = this as any as IShaderParser;

@@ -1,7 +1,7 @@
 import { CstParser } from "chevrotain";
 import { GLKeywords, Others, Symbols } from "../../tokens";
 import { ALL_RULES } from "../common";
-import { IShaderParser } from "../@types";
+import { IShaderParser } from "../interface";
 
 export * from "./expression";
 export * from "./statement";

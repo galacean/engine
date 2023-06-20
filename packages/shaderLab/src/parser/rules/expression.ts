@@ -2,7 +2,7 @@ import { CstParser } from "chevrotain";
 import { GLKeywords, Keywords, Others, Symbols, Types, Values } from "../tokens";
 import { ALL_RULES } from "./common";
 import { ValueFalse, ValueFloat, ValueInt, ValueTrue } from "../tokens/value";
-import { IShaderParser } from "./@types";
+import { IShaderParser } from "./interface";
 
 function RuleDeclare(this: CstParser) {
   const $ = this as any as IShaderParser;

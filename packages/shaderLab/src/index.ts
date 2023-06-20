@@ -7,7 +7,6 @@ import { IShaderInfo } from "@galacean/engine-design/types/shaderLab/IShaderLab"
 export { ShaderParser, parser, ShaderVisitor };
 
 export function parseShader(input: string) {
-  console.log("parsing ...");
   parser.parse(input);
   const cst = (parser as any).RuleShader();
   if (parser.errors.length > 0) {
@@ -17,7 +16,6 @@ export function parseShader(input: string) {
 
   const visitor = new ShaderVisitor();
   const ast = visitor.visit(cst);
-  console.log("parsing done");
 
   const context = new RuntimeContext();
   const shaderInfo = context.parse(ast);

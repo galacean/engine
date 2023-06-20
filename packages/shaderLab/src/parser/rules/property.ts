@@ -1,7 +1,7 @@
 import { CstParser } from "chevrotain";
 import { EditorTypes, Keywords, Others, Symbols, Values } from "../tokens";
 import { ALL_RULES } from "./common";
-import { IShaderParser } from "./@types";
+import { IShaderParser } from "./interface";
 
 export function RuleProteryItem(this: CstParser) {
   const $ = this as any as IShaderParser;

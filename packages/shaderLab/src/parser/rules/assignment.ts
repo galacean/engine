@@ -1,7 +1,7 @@
 import { CstParser } from "chevrotain";
 import { Keywords, Others, Symbols } from "../tokens";
 import { ALL_RULES } from "./common";
-import { IShaderParser } from "./@types";
+import { IShaderParser } from "./interface";
 
 function SubShaderPassPropertyAssignment(this: CstParser) {
   const $ = this as any as IShaderParser;
