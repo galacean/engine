@@ -48,7 +48,7 @@ export class ModelMesh extends Mesh {
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
   private _advancedDataUpdateFlag: VertexElementFlags = VertexElementFlags.None;
-  private _advancedVertexDataVersions: number[] = new Array<number>(13); // Only have 13 vertex element can set advanced data
+  private _advancedVertexDataVersions: number[] = new Array<number>(14); // Only have 14 vertex element can set advanced data
   private _advancedDataSyncToBuffer: boolean = false;
   private _advancedVertexElementsUpdate: boolean = false;
 
