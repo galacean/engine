@@ -7,4 +7,3 @@ export { PrimitiveMesh } from "./PrimitiveMesh";
 export { Skin } from "./Skin";
 export { SkinnedMeshRenderer } from "./SkinnedMeshRenderer";
 export { VertexAttribute } from "./enums/VertexAttribute";
-
