@@ -1,4 +1,5 @@
 import { Color, Quaternion, Vector2, Vector3, Vector4 } from "@galacean/engine-math";
+import { ReferResource } from "../asset/ReferResource";
 
 /**
  * Keyframe.
@@ -16,6 +17,8 @@ export class Keyframe<
     ? Vector4
     : V extends number[] | Float32Array
     ? number[]
+    : V extends ReferResource
+    ? ReferResource
     : never
 > {
   /** The time of the Keyframe. */
@@ -40,4 +43,5 @@ export type KeyframeValueType =
   | Float32Array
   | Quaternion
   | Color
-  | boolean;
+  | boolean
+  | ReferResource;

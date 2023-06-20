@@ -12,7 +12,7 @@ import { IAnimationCurveCalculator } from "./interfaces/IAnimationCurveCalculato
 @StaticInterfaceImplement<IAnimationCurveCalculator<Vector4>>()
 export class AnimationVector4Curve extends AnimationCurve<Vector4> {
   /** @internal */
-  static _isReferenceType: boolean = true;
+  static _keepOriginReference: boolean = true;
   /** @internal */
   static _isInterpolationType: boolean = true;
 
