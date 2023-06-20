@@ -14,9 +14,9 @@ export class VertexElement {
   private _instanceStepRate: number;
 
   /**
-   * Vertex attribute name.
+   * Vertex attribute.
    */
-  get attributeName(): string {
+  get attribute(): string {
     return this._attributeName;
   }
 
@@ -58,20 +58,20 @@ export class VertexElement {
 
   /**
    * Create vertex element.
-   * @param attributeName - Input attribute name
+   * @param attribute - Input attribute
    * @param offset - Vertex data byte offset
    * @param format - Vertex data format
    * @param bindingIndex - Vertex buffer binding index
    * @param instanceStepRate - Instance cadence, the number of instances drawn for each vertex in the buffer, non-instance elements must be 0.
    */
   constructor(
-    attributeName: string,
+    attribute: string,
     offset: number,
     format: VertexElementFormat,
     bindingIndex: number,
     instanceStepRate: number = 0
   ) {
-    this._attributeName = attributeName;
+    this._attributeName = attribute;
     this._offset = offset;
     this._format = format;
     this._bindingIndex = bindingIndex;
@@ -83,6 +83,6 @@ export class VertexElement {
    * @deprecated use `attributeName` instead
    */
   get semantic(): string {
-    return this.attributeName;
+    return this.attribute;
   }
 }
