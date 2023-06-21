@@ -543,13 +543,13 @@ export class ModelMesh extends Mesh {
 
   setVertexBufferBinding(
     bufferOrBinding: Buffer | VertexBufferBinding,
-    strideOrFirstIndex: number = 0,
+    strideOrIndex: number = 0,
     indexOrNull: number = 0
   ): void {
     let binding = <VertexBufferBinding>bufferOrBinding;
     const isBinding = binding.buffer !== undefined;
-    isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrFirstIndex));
-    const index = isBinding ? strideOrFirstIndex : indexOrNull;
+    isBinding || (binding = new VertexBufferBinding(<Buffer>bufferOrBinding, strideOrIndex));
+    const index = isBinding ? strideOrIndex : indexOrNull;
 
     const bindings = this._vertexBufferBindings;
     const updateInfos = this._vertexBufferInfos;
@@ -872,7 +872,8 @@ export class ModelMesh extends Mesh {
     const bufferCreatedInfo = this._internalVertexBufferCreatedInfo;
 
     // If need recreate internal vertex buffer
-    if (bufferCreatedInfo.x !== bufferStride || bufferCreatedInfo.y !== vertexCount) {
+    const needByteLength = bufferStride * vertexCount;
+    if (bufferCreatedInfo.x * bufferCreatedInfo.y !== needByteLength) {
       // Destroy old internal vertex buffer
       const createdInternalBufferIndex = bufferCreatedInfo.z;
       if (createdInternalBufferIndex !== -1) {
@@ -885,9 +886,9 @@ export class ModelMesh extends Mesh {
       if (isCreate) {
         // No matter the internal buffer is stride change or vertex count change, we need set to internal buffer again
         this._advancedDataUpdateFlag |= this._internalVertexElementsFlags;
-        const byteLength = bufferStride * this.vertexCount;
+
         const bufferUsage = releaseData ? BufferUsage.Static : BufferUsage.Dynamic;
-        const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, byteLength, bufferUsage, true);
+        const vertexBuffer = new Buffer(this._engine, BufferBindFlag.VertexBuffer, needByteLength, bufferUsage, true);
         this._setVertexBufferBinding(vertexBufferIndex, new VertexBufferBinding(vertexBuffer, bufferStride));
       }
       bufferCreatedInfo.set(bufferStride, vertexCount, isCreate ? vertexBufferIndex : -1);
