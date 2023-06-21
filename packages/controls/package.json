@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/controls",
-  "version": "0.7.11",
+  "version": "0.7.12",
   "license": "MIT",
   "scripts": {
     "b:types": "tsc",
