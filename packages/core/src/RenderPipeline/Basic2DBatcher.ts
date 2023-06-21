@@ -148,7 +148,7 @@ export abstract class Basic2DBatcher {
     const vertexBuffer = (this._vertexBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.VertexBuffer,
-      MAX_VERTEX_COUNT * 4 * vertexStride,
+      MAX_VERTEX_COUNT * vertexStride,
       BufferUsage.Dynamic
     ));
     vertexBuffer.isGCIgnored = true;
@@ -156,7 +156,7 @@ export abstract class Basic2DBatcher {
     const indiceBuffer = (this._indiceBuffers[index] = new Buffer(
       engine,
       BufferBindFlag.IndexBuffer,
-      MAX_VERTEX_COUNT * 2 * 3,
+      MAX_VERTEX_COUNT * 6,
       BufferUsage.Dynamic
     ));
     indiceBuffer.isGCIgnored = true;

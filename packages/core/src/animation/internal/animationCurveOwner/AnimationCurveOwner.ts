@@ -38,6 +38,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
   crossEvaluateData: IEvaluateData<V> = { curKeyframeIndex: 0, value: null };
   referenceTargetValue: V;
   cureType: IAnimationCurveCalculator<V>;
+  updateMark: number = 0;
 
   private _assembler: IAnimationCurveOwnerAssembler<V>;
 
