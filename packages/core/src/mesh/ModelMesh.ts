@@ -520,6 +520,7 @@ export class ModelMesh extends Mesh {
       this._internalVertexBufferCreatedInfo.z = -1;
     }
 
+    this._internalVertexBufferStride = 0;
     this._internalVertexElementsOffset = count;
     this._advancedVertexElementsUpdate = false;
     this._vertexCountDirty = true;
@@ -976,12 +977,14 @@ export class ModelMesh extends Mesh {
       const vertexElement = vertexElementMap[attribute];
       if (vertexElement) {
         const index = this._vertexElements.indexOf(vertexElement);
-        // If custom element should remove
+        // If custom element should be removed
         if (index < this._internalVertexElementsOffset) {
           this._internalVertexElementsOffset--;
           elementOffset--;
-          this._removeVertexElement(index);
+        } else {
+          this._internalVertexBufferStride -= this._getAttributeByteLength(attribute);
         }
+        this._removeVertexElement(index);
       }
     }
     return elementOffset;

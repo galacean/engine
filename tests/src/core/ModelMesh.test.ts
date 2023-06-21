@@ -413,4 +413,83 @@ describe("ModelMesh Test", async function () {
     expect(normals).deep.eq(rightNormals);
     expect(uvs).deep.eq(rightUVs);
   });
+
+  it("Test vertexElement two-way setting", () => {
+    const vertexCount = 4;
+    const halfWidth = 0.5;
+    const halfHeight = 0.5;
+    const halfDepth = 0.5;
+    const rightPositions = new Array<Vector3>(4);
+    const rightNormals = new Array<Vector3>(4);
+    const rightUVs = new Array<Vector2>(4);
+
+    // 顶点
+    const pos = new Float32Array(3 * vertexCount);
+    // 法线
+    const nor = new Float32Array(3 * vertexCount);
+    // UV
+    const uv = new Float32Array(2 * vertexCount);
+
+    (pos[0] = -halfWidth), (pos[1] = halfHeight), (pos[2] = halfDepth);
+    (pos[3] = halfWidth), (pos[4] = halfHeight), (pos[5] = halfDepth);
+    (pos[6] = halfWidth), (pos[7] = -halfHeight), (pos[8] = halfDepth);
+    (pos[9] = -halfWidth), (pos[10] = -halfHeight), (pos[11] = halfDepth);
+    rightPositions[0] = new Vector3(-halfWidth, halfHeight, halfDepth);
+    rightPositions[1] = new Vector3(halfWidth, halfHeight, halfDepth);
+    rightPositions[2] = new Vector3(halfWidth, -halfHeight, halfDepth);
+    rightPositions[3] = new Vector3(-halfWidth, -halfHeight, halfDepth);
+
+    (nor[0] = 0), (nor[1] = 0), (nor[2] = 1);
+    (nor[3] = 0), (nor[4] = 0), (nor[5] = 1);
+    (nor[6] = 0), (nor[7] = 0), (nor[8] = 1);
+    (nor[9] = 0), (nor[10] = 0), (nor[11] = 1);
+    rightNormals[0] = new Vector3(0, 0, 1);
+    rightNormals[1] = new Vector3(0, 0, 1);
+    rightNormals[2] = new Vector3(0, 0, 1);
+    rightNormals[3] = new Vector3(0, 0, 1);
+
+    (uv[0] = 0), (uv[1] = 0);
+    (uv[2] = 1), (uv[3] = 0);
+    (uv[4] = 1), (uv[5] = 1);
+    (uv[6] = 0), (uv[7] = 1);
+    rightUVs[0] = new Vector2(0, 0);
+    rightUVs[1] = new Vector2(1, 0);
+    rightUVs[2] = new Vector2(1, 1);
+    rightUVs[3] = new Vector2(0, 1);
+    const posBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, pos, BufferUsage.Static, true);
+    const norBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, nor, BufferUsage.Static, true);
+    const uvBuffer = new Buffer(engine, BufferBindFlag.VertexBuffer, uv, BufferUsage.Static, true);
+    const mesh = new ModelMesh(engine);
+    const vertexElements = [
+      new VertexElement(VertexAttribute.Position, 0, VertexElementFormat.Vector3, 0),
+      new VertexElement(VertexAttribute.Normal, 0, VertexElementFormat.Vector3, 2),
+      new VertexElement(VertexAttribute.UV, 0, VertexElementFormat.Vector2, 3)
+    ];
+
+    
+    mesh.setPositions(rightPositions);
+    expect(mesh.vertexElements.length).deep.eq(1);
+
+    mesh.setPositions(null);
+    expect(mesh.vertexElements.length).deep.eq(0);
+
+    mesh.setPositions(rightPositions);
+    expect(mesh.vertexElements.length).deep.eq(1);
+
+    mesh.setVertexElements(vertexElements);
+    mesh.setVertexBufferBinding(posBuffer, 12, 0);
+    mesh.setVertexBufferBinding(norBuffer, 12, 2);
+    mesh.setVertexBufferBinding(uvBuffer, 8, 3);
+    mesh.setIndices(indices);
+    mesh.uploadData(false);
+    mesh.addSubMesh(0, indices.length);
+
+    const positions = mesh.getPositions();
+    const normals = mesh.getNormals();
+    const uvs = mesh.getUVs();
+
+    expect(positions).deep.eq(rightPositions);
+    expect(normals).deep.eq(rightNormals);
+    expect(uvs).deep.eq(rightUVs);
+  });
 });
