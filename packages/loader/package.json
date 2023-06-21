@@ -1,6 +1,6 @@
 {
   "name": "@oasis-engine/loader",
-  "version": "0.7.8",
+  "version": "0.7.9",
   "license": "MIT",
   "types": "types/index.d.ts",
   "scripts": {
