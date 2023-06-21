@@ -466,7 +466,6 @@ describe("ModelMesh Test", async function () {
       new VertexElement(VertexAttribute.UV, 0, VertexElementFormat.Vector2, 3)
     ];
 
-    
     mesh.setPositions(rightPositions);
     expect(mesh.vertexElements.length).deep.eq(1);
 
@@ -477,6 +476,8 @@ describe("ModelMesh Test", async function () {
     expect(mesh.vertexElements.length).deep.eq(1);
 
     mesh.setVertexElements(vertexElements);
+    expect(mesh.vertexElements.length).deep.eq(3);
+
     mesh.setVertexBufferBinding(posBuffer, 12, 0);
     mesh.setVertexBufferBinding(norBuffer, 12, 2);
     mesh.setVertexBufferBinding(uvBuffer, 8, 3);
@@ -491,5 +492,18 @@ describe("ModelMesh Test", async function () {
     expect(positions).deep.eq(rightPositions);
     expect(normals).deep.eq(rightNormals);
     expect(uvs).deep.eq(rightUVs);
+
+    // Test set vertexElements after set positions
+    mesh.setVertexElements(vertexElements);
+    mesh.setPositions(rightPositions);
+    expect(mesh.vertexElements.length).deep.eq(3);
+
+    const positions1 = mesh.getPositions();
+    const normals1 = mesh.getNormals();
+    const uvs1 = mesh.getUVs();
+
+    expect(positions1).deep.eq(rightPositions);
+    expect(normals1).deep.eq(rightNormals);
+    expect(uvs1).deep.eq(rightUVs);
   });
 });

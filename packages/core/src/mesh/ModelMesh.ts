@@ -47,10 +47,10 @@ export class ModelMesh extends Mesh {
   private _uv7: Vector2[] | null = null;
   private _boneWeights: Vector4[] | null = null;
   private _boneIndices: Vector4[] | null = null;
+  private _advancedElementUpdateFlag: VertexElementFlags = VertexElementFlags.None;
   private _advancedDataUpdateFlag: VertexElementFlags = VertexElementFlags.None;
   private _advancedVertexDataVersions: number[] = new Array<number>(14); // Only have 14 vertex element can set advanced data
   private _advancedDataSyncToBuffer: boolean = false;
-  private _advancedVertexElementsUpdate: boolean = false;
 
   private _internalVertexBufferStride: number = 0;
   private _internalVertexBufferCreatedInfo: Vector3 = new Vector3(0, 0, -1); // x:vertexCount, y:vertexStride, z:bufferIndex
@@ -250,7 +250,7 @@ export class ModelMesh extends Mesh {
   setBoneIndices(boneIndices: Vector4[] | null): void {
     if (
       this._beforeSetAdvancedVertexData(
-        this._boneWeights,
+        this._boneIndices,
         boneIndices,
         VertexElementFlags.BoneIndex,
         VertexElementIndex.BoneIndex
@@ -502,15 +502,22 @@ export class ModelMesh extends Mesh {
       this._addVertexElement(elements[i]);
     }
 
-    this.setPositions(null);
-    this.setNormals(null);
-    this.setColors(null);
-    this.setBoneWeights(null);
-    this.setBoneIndices(null);
-    this.setTangents(null);
-    for (let i = 0; i < 8; i++) {
-      this.setUVs(null, i);
-    }
+    // Clear data if vertex element not contains
+    const vertexElementMap = this._vertexElementMap;
+    vertexElementMap[VertexAttribute.Position] || this.setPositions(null);
+    vertexElementMap[VertexAttribute.Normal] || this.setNormals(null);
+    vertexElementMap[VertexAttribute.Color] || this.setColors(null);
+    vertexElementMap[VertexAttribute.BoneWeight] || this.setBoneWeights(null);
+    vertexElementMap[VertexAttribute.BoneIndex] || this.setBoneIndices(null);
+    vertexElementMap[VertexAttribute.Tangent] || this.setTangents(null);
+    vertexElementMap[VertexAttribute.UV] || this.setUVs(null, 0);
+    vertexElementMap[VertexAttribute.UV1] || this.setUVs(null, 1);
+    vertexElementMap[VertexAttribute.UV2] || this.setUVs(null, 2);
+    vertexElementMap[VertexAttribute.UV3] || this.setUVs(null, 3);
+    vertexElementMap[VertexAttribute.UV4] || this.setUVs(null, 4);
+    vertexElementMap[VertexAttribute.UV5] || this.setUVs(null, 5);
+    vertexElementMap[VertexAttribute.UV6] || this.setUVs(null, 6);
+    vertexElementMap[VertexAttribute.UV7] || this.setUVs(null, 7);
 
     // Destroy internal vertex buffer immediately
     const internalVertexBufferIndex = this._internalVertexBufferCreatedInfo.z;
@@ -522,7 +529,7 @@ export class ModelMesh extends Mesh {
 
     this._internalVertexBufferStride = 0;
     this._internalVertexElementsOffset = count;
-    this._advancedVertexElementsUpdate = false;
+    this._advancedElementUpdateFlag = VertexElementFlags.None;
     this._vertexCountDirty = true;
     this._blendShapeManager._bufferBindingOffset = -1;
   }
@@ -862,7 +869,7 @@ export class ModelMesh extends Mesh {
     elementChangeFlag: VertexElementFlags,
     elementIndex: VertexElementIndex
   ): void {
-    this._advancedVertexElementsUpdate ||= !!oldVertices !== !!vertices;
+    !!oldVertices !== !!vertices && (this._advancedElementUpdateFlag |= elementChangeFlag);
     this._advancedDataUpdateFlag |= elementChangeFlag;
     this._advancedVertexDataVersions[elementIndex] = this._dataVersionCounter++;
   }
@@ -994,53 +1001,89 @@ export class ModelMesh extends Mesh {
     this._internalVertexBufferIndex = -1;
     this._internalVertexElementsFlags = VertexElementFlags.None;
 
+    const advancedElementUpdateFlag = this._advancedElementUpdateFlag;
     let offset = this._internalVertexElementsOffset;
 
-    offset = this._updateAdvancedVertexElement(
-      this._positions,
-      VertexAttribute.Position,
-      VertexElementFlags.Position,
-      offset
-    );
+    if (advancedElementUpdateFlag & VertexElementFlags.Position) {
+      offset = this._updateAdvancedVertexElement(
+        this._positions,
+        VertexAttribute.Position,
+        VertexElementFlags.Position,
+        offset
+      );
+    }
 
-    offset = this._updateAdvancedVertexElement(
-      this._normals,
-      VertexAttribute.Normal,
-      VertexElementFlags.Normal,
-      offset
-    );
+    if (advancedElementUpdateFlag & VertexElementFlags.Normal) {
+      offset = this._updateAdvancedVertexElement(
+        this._normals,
+        VertexAttribute.Normal,
+        VertexElementFlags.Normal,
+        offset
+      );
+    }
 
-    offset = this._updateAdvancedVertexElement(this._colors, VertexAttribute.Color, VertexElementFlags.Color, offset);
+    if (advancedElementUpdateFlag & VertexElementFlags.Color) {
+      offset = this._updateAdvancedVertexElement(this._colors, VertexAttribute.Color, VertexElementFlags.Color, offset);
+    }
 
-    offset = this._updateAdvancedVertexElement(
-      this._boneWeights,
-      VertexAttribute.BoneWeight,
-      VertexElementFlags.BoneWeight,
-      offset
-    );
+    if (advancedElementUpdateFlag & VertexElementFlags.BoneWeight) {
+      offset = this._updateAdvancedVertexElement(
+        this._boneWeights,
+        VertexAttribute.BoneWeight,
+        VertexElementFlags.BoneWeight,
+        offset
+      );
+    }
 
-    offset = this._updateAdvancedVertexElement(
-      this._boneIndices,
-      VertexAttribute.BoneIndex,
-      VertexElementFlags.BoneIndex,
-      offset
-    );
+    if (advancedElementUpdateFlag & VertexElementFlags.BoneIndex) {
+      offset = this._updateAdvancedVertexElement(
+        this._boneIndices,
+        VertexAttribute.BoneIndex,
+        VertexElementFlags.BoneIndex,
+        offset
+      );
+    }
 
-    offset = this._updateAdvancedVertexElement(
-      this._tangents,
-      VertexAttribute.Tangent,
-      VertexElementFlags.Tangent,
-      offset
-    );
+    if (advancedElementUpdateFlag & VertexElementFlags.Tangent) {
+      offset = this._updateAdvancedVertexElement(
+        this._tangents,
+        VertexAttribute.Tangent,
+        VertexElementFlags.Tangent,
+        offset
+      );
+    }
 
-    offset = this._updateAdvancedVertexElement(this._uv, VertexAttribute.UV, VertexElementFlags.UV, offset);
-    offset = this._updateAdvancedVertexElement(this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1, offset);
-    offset = this._updateAdvancedVertexElement(this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2, offset);
-    offset = this._updateAdvancedVertexElement(this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3, offset);
-    offset = this._updateAdvancedVertexElement(this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4, offset);
-    offset = this._updateAdvancedVertexElement(this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5, offset);
-    offset = this._updateAdvancedVertexElement(this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6, offset);
-    offset = this._updateAdvancedVertexElement(this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7, offset);
+    if (advancedElementUpdateFlag & VertexElementFlags.UV) {
+      offset = this._updateAdvancedVertexElement(this._uv, VertexAttribute.UV, VertexElementFlags.UV, offset);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV1) {
+      offset = this._updateAdvancedVertexElement(this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1, offset);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV2) {
+      offset = this._updateAdvancedVertexElement(this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2, offset);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV3) {
+      offset = this._updateAdvancedVertexElement(this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3, offset);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV4) {
+      offset = this._updateAdvancedVertexElement(this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4, offset);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV5) {
+      offset = this._updateAdvancedVertexElement(this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5, offset);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV6) {
+      offset = this._updateAdvancedVertexElement(this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6, offset);
+    }
+
+    if (advancedElementUpdateFlag & VertexElementFlags.UV7) {
+      offset = this._updateAdvancedVertexElement(this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7, offset);
+    }
     this._blendShapeManager._vertexElementOffset = offset;
   }
 
@@ -1050,9 +1093,9 @@ export class ModelMesh extends Mesh {
     const previousCount = vertexElements.length;
     const previousBSOffset = bsManager._vertexElementOffset;
 
-    if (this._advancedVertexElementsUpdate) {
+    if (this._advancedElementUpdateFlag & VertexElementFlags.All) {
       this._updateAdvancedVertexElements();
-      this._advancedVertexElementsUpdate = false;
+      this._advancedElementUpdateFlag = VertexElementFlags.None;
     }
 
     const bsUpdate = !bsManager._useTextureMode() && bsManager._vertexElementsNeedUpdate();
