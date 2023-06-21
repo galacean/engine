@@ -3,6 +3,22 @@ import { ICopy } from "./ICopy";
 
 // A 2d rectangle defined by x and y position, width and height.
 export class Rect implements IClone<Rect>, ICopy<Rect, Rect> {
+  /**
+   * Performs a linear interpolation between two vectors.
+   * @param start - The first vector
+   * @param end - The second vector
+   * @param t - The blend amount where 0 returns start and 1 end
+   * @param out - The result of linear blending between two vectors
+   */
+  static lerp(start: Rect, end: Rect, t: number, out: Rect): void {
+    const { _x, _y, _width, _height } = start;
+    out._x = _x + (end._x - _x) * t;
+    out._y = _y + (end._y - _y) * t;
+    out._width = _width + (end._width - _width) * t;
+    out._height = _height + (end._height - _height) * t;
+    out._onValueChanged && out._onValueChanged();
+  }
+
   /** @internal */
   _x: number;
   /** @internal */
