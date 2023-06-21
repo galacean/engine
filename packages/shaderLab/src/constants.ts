@@ -1,6 +1,3 @@
-import { AstNode, TagAstNode } from "./astNode";
-import { IAstInfo, IPositionRange, IShaderAstContent } from "./astNode/types";
-
 export const enum DiagnosticSeverity {
   /**
    * Reports an error.
@@ -19,52 +16,6 @@ export const enum DiagnosticSeverity {
    */
   Hint = 4
 }
-
-export interface IDiagnostic {
-  severity: DiagnosticSeverity;
-  message: string;
-  /**
-   * The token which caused the parser error.
-   */
-  token: IPositionRange;
-}
-
-export interface IShaderMainFunction {
-  type: "vert" | "frag";
-  functionAst: IAstInfo;
-}
-
-interface IReference {
-  referenced: boolean;
-}
-
-export interface IGlobal extends IReference {
-  ast: AstNode;
-  name: string;
-}
-
-export interface IShaderInfo {
-  ast: AstNode<IShaderAstContent>;
-  name: string;
-  subShaders: Array<ISubShader>;
-  editorProperties: Record<string, any>;
-}
-
-export interface ISubShader {
-  name: string;
-  passes: Array<IShaderPass>;
-  tags?: Record<string, any>;
-}
-
-export interface IShaderPass {
-  name: string;
-  vert: string;
-  frag: string;
-  tags?: Record<string, any>;
-  renderStates: IRenderState;
-}
-
-export type IRenderState = Record<string, any>;
 
 /** The shader pass property name which reference the fragment shader main function */
 export const FRAG_FN_NAME = "FragmentShader";

@@ -114,8 +114,8 @@ export class FnCallAstNode extends AstNode<IFnCallAstContent> {
     if (this.content.isCustom) {
       if (!context.referenceGlobal(this.content.function)) {
         context.diagnostics.push({
-          severity: DiagnosticSeverity.Error,
-          message: "Not found function definition",
+          severity: DiagnosticSeverity.Warning,
+          message: `Not found function definition: ${this.content.function}`,
           token: this.position
         });
       }
@@ -219,7 +219,7 @@ export class FnVariableAstNode extends AstNode<IFnVariableAstContent> {
       if (!context.referenceGlobal(objName)) {
         context.diagnostics.push({
           severity: DiagnosticSeverity.Error,
-          message: "Not found variable definition",
+          message: `Not found variable definition: ${objName}`,
           token: this.position
         });
       }

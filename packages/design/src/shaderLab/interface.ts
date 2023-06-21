@@ -1,5 +1,6 @@
-import { AstNode, TagAstNode } from "./astNode";
+import { AstNode } from "./astNode";
 import { IAstInfo, IPositionRange, IShaderAstContent } from "./astNode/types";
+export type DiagnosticSeverity = number;
 
 /**
  * Shader lab interface
@@ -7,30 +8,10 @@ import { IAstInfo, IPositionRange, IShaderAstContent } from "./astNode/types";
 export interface IShaderLab {
   /**  */
   initialize(): Promise<void>;
-
   /**
    * parse galacean shader
    */
   parseShader(shaderCode: string): IShaderInfo;
-}
-
-export declare const enum DiagnosticSeverity {
-  /**
-   * Reports an error.
-   */
-  Error = 1,
-  /**
-   * Reports a warning.
-   */
-  Warning = 2,
-  /**
-   * Reports an information.
-   */
-  Information = 3,
-  /**
-   * Reports a hint.
-   */
-  Hint = 4
 }
 export interface IDiagnostic {
   severity: DiagnosticSeverity;
@@ -56,6 +37,7 @@ export interface IShaderInfo {
   name: string;
   subShaders: Array<ISubShader>;
   editorProperties: Record<string, any>;
+  diagnostics: Array<IDiagnostic>;
 }
 export interface ISubShader {
   name: string;
@@ -70,8 +52,4 @@ export interface IShaderPass {
   renderStates: IRenderState;
 }
 export declare type IRenderState = Record<string, any>;
-/** The shader pass property name which reference the fragment shader main function */
-export declare const FRAG_FN_NAME = "FragmentShader";
-/** The shader pass property name which reference the vertex shader main function */
-export declare const VERT_FN_NAME = "VertexShader";
 export {};

@@ -1,1 +1,2 @@
-export { IShaderLab } from "./IShaderLab";
+import { IShaderLab } from "./interface";
+export { IShaderLab };

@@ -10,7 +10,7 @@ export function stringifyVertexFunction(
   if (!vertFnAst) {
     context.diagnostics.push({
       severity: DiagnosticSeverity.Error,
-      message: "not found vertex shader definition",
+      message: `Not found vertex shader definition: ${vertexFnProperty.content.value}`,
       token: vertexFnProperty.position
     });
     return "";
@@ -80,7 +80,7 @@ export function stringifyFragmentFunction(
   if (!fragFnAst) {
     context.diagnostics.push({
       severity: DiagnosticSeverity.Error,
-      message: "not found fragment shader definition",
+      message: `Not found fragment shader definition: ${fragmentFnProperty.content.value}`,
       token: fragmentFnProperty.position
     });
     return "";

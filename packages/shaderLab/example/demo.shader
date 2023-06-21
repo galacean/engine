@@ -1,7 +1,9 @@
-Shader "Water" {
-  SubShader "water" {
+Shader "Water22" {
+  SubShader "water22" {
+    Tags { ReplacementTag = "Opaque",PipelineStage = "test" } 
 
     Pass "default" {
+      Tags { PipelineStage = "Forward"}
 
       struct a2v {
        vec4 POSITION;
@@ -13,10 +15,8 @@ Shader "Water" {
        vec3 v_position;
       }
 
-      mat4 renderer_MVPMat;
-      mat4 renderer_MVMat;
-
-      sampler2D material_BaseTexture;
+      mat4 u_MVPMat;
+      sampler2D u_baseTexture;
       vec4 u_color;
       vec4 u_fogColor;
       float u_fogDensity;
@@ -32,20 +32,20 @@ Shader "Water" {
         v2f o;
 
         o.v_uv = v.TEXCOORD_0;
-        vec4 tmp = renderer_MVMat * POSITION;
+        vec4 tmp = u_MVPMat * POSITION;
         o.v_position = tmp.xyz;
-        gl_Position = renderer_MVPMat * v.POSITION;
+        gl_Position = u_MVPMat * v.POSITION;
         return o;
       }
 
       void frag(v2f i) {
-        vec4 color = texture2D(material_BaseTexture, i.v_uv) * u_color;
+        vec4 color = texture2D(u_baseTexture, i.v_uv) * u_color;
         float fogDistance = length(i.v_position);
         float fogAmount = 1.0 - exp2(-u_fogDensity * u_fogDensity * fogDistance * fogDistance * 1.442695);
-        fogAmount = clamp(fogAmount, 0.0, 1.0);
+        fogAmount = clamp(fogAmount, 0.0, 1.0); 
         gl_FragColor = mix(color, u_fogColor, fogAmount); 
   
-        #ifndef ENGINE_IS_COLORSPACE_GAMMA
+        #ifndef OASIS_COLORSPACE_GAMMA
           gl_FragColor = linearToGamma(gl_FragColor);
         #endif
       }

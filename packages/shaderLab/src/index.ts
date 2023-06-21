@@ -1,8 +1,7 @@
-import { IShaderLab } from "@galacean/engine-design";
 import RuntimeContext from "./context";
 import { ShaderParser } from "./parser";
 import ShaderVisitor, { parser } from "./visitor";
-import { IShaderInfo } from "@galacean/engine-design/types/shaderLab/IShaderLab";
+import { IShaderInfo, IShaderLab } from "./interface";
 
 export { ShaderParser, parser, ShaderVisitor };
 
@@ -19,6 +18,7 @@ export function parseShader(input: string) {
 
   const context = new RuntimeContext();
   const shaderInfo = context.parse(ast);
+  shaderInfo.diagnostics = context.diagnostics;
   return shaderInfo;
 }
 

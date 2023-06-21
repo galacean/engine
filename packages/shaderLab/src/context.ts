@@ -9,8 +9,8 @@ import {
   StructAstNode
 } from "./astNode";
 import { IPassAstContent, IShaderAstContent, ISubShaderAstContent } from "./astNode/types";
-import { IShaderPass, ISubShader } from "./constants";
-import { IDiagnostic, DiagnosticSeverity, IGlobal, IShaderInfo, FRAG_FN_NAME, VERT_FN_NAME } from "./constants";
+import { IShaderPass, ISubShader, IDiagnostic, IGlobal, IShaderInfo } from "./interface";
+import { DiagnosticSeverity, FRAG_FN_NAME, VERT_FN_NAME } from "./constants";
 
 interface IReferenceStructInfo {
   /** varying or attribute object name */
