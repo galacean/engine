@@ -569,6 +569,15 @@ export class ModelMesh extends Mesh {
     }
 
     this._setVertexBufferBinding(index, binding);
+
+    // Reset internal vertex buffer index if by custom buffer binding
+    if (index === this._internalVertexBufferIndex) {
+      this._internalVertexBufferIndex = -1;
+    }
+    // Reset blend shape buffer binding offset if by custom buffer binding
+    if (index === this._blendShapeManager._bufferBindingOffset) {
+      this._blendShapeManager._bufferBindingOffset = -1;
+    }
     this._vertexCountDirty = true;
   }
 
@@ -589,7 +598,16 @@ export class ModelMesh extends Mesh {
     }
 
     for (let i = 0; i < count; i++) {
-      this._setVertexBufferBinding(firstIndex + i, vertexBufferBindings[i]);
+      const index = firstIndex + i;
+      this._setVertexBufferBinding(index, vertexBufferBindings[i]);
+      // Reset internal vertex buffer index if by custom buffer binding
+      if (index === this._internalVertexBufferIndex) {
+        this._internalVertexBufferIndex = -1;
+      }
+      // Reset blend shape buffer binding offset if by custom buffer binding
+      if (index === this._blendShapeManager._bufferBindingOffset) {
+        this._blendShapeManager._bufferBindingOffset = -1;
+      }
     }
     this._vertexCountDirty = true;
   }

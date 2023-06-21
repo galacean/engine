@@ -204,14 +204,14 @@ export class BlendShapeManager {
       return;
     }
 
-    let i = this._modelMesh._internalVertexBufferIndex + 1;
+    const internalVertexBufferIndex = this._modelMesh._internalVertexBufferIndex;
     const vertexBufferBindings = this._modelMesh._vertexBufferBindings;
-    for (let n = vertexBufferBindings.length; i < n; i++) {
-      if (!vertexBufferBindings[i]) {
+    for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
+      if (!vertexBufferBindings[i] && i !== internalVertexBufferIndex) {
         break;
       }
     }
-    this._bufferBindingOffset = i;
+    this._bufferBindingOffset = internalVertexBufferIndex + 1;
   }
 
   /**
