@@ -221,8 +221,8 @@ export abstract class Mesh extends GraphicsResource {
   _setVertexBufferBinding(index: number, binding: VertexBufferBinding): void {
     if (this._getReferCount() > 0) {
       const lastBinding = this._vertexBufferBindings[index];
-      lastBinding && lastBinding._buffer._addReferCount(-1);
-      binding._buffer._addReferCount(1);
+      lastBinding && lastBinding.buffer._addReferCount(-1);
+      binding.buffer._addReferCount(1);
     }
     this._vertexBufferBindings[index] = binding;
     this._bufferStructChanged = true;
@@ -240,7 +240,7 @@ export abstract class Mesh extends GraphicsResource {
     super._addReferCount(value);
     const vertexBufferBindings = this._vertexBufferBindings;
     for (let i = 0, n = vertexBufferBindings.length; i < n; i++) {
-      vertexBufferBindings[i]._buffer._addReferCount(value);
+      vertexBufferBindings[i]?.buffer._addReferCount(value);
     }
   }
 
