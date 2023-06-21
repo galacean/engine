@@ -981,10 +981,10 @@ export class ModelMesh extends Mesh {
         if (index < this._internalVertexElementsOffset) {
           this._internalVertexElementsOffset--;
           elementOffset--;
+          this._removeVertexElement(index);
         } else {
           this._internalVertexBufferStride -= this._getAttributeByteLength(attribute);
         }
-        this._removeVertexElement(index);
       }
     }
     return elementOffset;
