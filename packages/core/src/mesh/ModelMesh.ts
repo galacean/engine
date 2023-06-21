@@ -965,9 +965,8 @@ export class ModelMesh extends Mesh {
   private _updateAdvancedVertexElement(
     vertices: VertexType[],
     attribute: VertexAttribute,
-    flag: VertexElementFlags,
-    elementOffset: number
-  ): number {
+    flag: VertexElementFlags
+  ): void {
     const vertexElementMap = this._vertexElementMap;
 
     if (vertices) {
@@ -975,116 +974,86 @@ export class ModelMesh extends Mesh {
         const format = this._getAttributeFormat(attribute);
         const offset = this._internalVertexBufferStride;
         const bufferIndex = this._getInternalVertexBufferIndex();
-        this._setVertexElement(elementOffset++, new VertexElement(attribute, offset, format, bufferIndex));
+        this._addVertexElement(new VertexElement(attribute, offset, format, bufferIndex));
 
         this._internalVertexBufferStride += this._getAttributeByteLength(attribute);
         this._internalVertexElementsFlags |= flag;
+        this._blendShapeManager._vertexElementOffset++;
       }
     } else {
       const vertexElement = vertexElementMap[attribute];
       if (vertexElement) {
         const index = this._vertexElements.indexOf(vertexElement);
         // If custom element should be removed
-        if (index < this._internalVertexElementsOffset) {
-          this._internalVertexElementsOffset--;
-          elementOffset--;
-          this._removeVertexElement(index);
-        } else {
+        if (index >= this._internalVertexElementsOffset) {
           this._internalVertexBufferStride -= this._getAttributeByteLength(attribute);
+          this._internalVertexElementsFlags &= ~flag;
         }
+        this._internalVertexElementsOffset--;
+        this._blendShapeManager._vertexElementOffset--;
+        this._removeVertexElement(index);
       }
     }
-    return elementOffset;
   }
 
   private _updateAdvancedVertexElements(): void {
-    this._internalVertexBufferIndex = -1;
-    this._internalVertexElementsFlags = VertexElementFlags.None;
-
     const advancedElementUpdateFlag = this._advancedElementUpdateFlag;
-    let offset = this._internalVertexElementsOffset;
 
     if (advancedElementUpdateFlag & VertexElementFlags.Position) {
-      offset = this._updateAdvancedVertexElement(
-        this._positions,
-        VertexAttribute.Position,
-        VertexElementFlags.Position,
-        offset
-      );
+      this._updateAdvancedVertexElement(this._positions, VertexAttribute.Position, VertexElementFlags.Position);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Normal) {
-      offset = this._updateAdvancedVertexElement(
-        this._normals,
-        VertexAttribute.Normal,
-        VertexElementFlags.Normal,
-        offset
-      );
+      this._updateAdvancedVertexElement(this._normals, VertexAttribute.Normal, VertexElementFlags.Normal);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Color) {
-      offset = this._updateAdvancedVertexElement(this._colors, VertexAttribute.Color, VertexElementFlags.Color, offset);
+      this._updateAdvancedVertexElement(this._colors, VertexAttribute.Color, VertexElementFlags.Color);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.BoneWeight) {
-      offset = this._updateAdvancedVertexElement(
-        this._boneWeights,
-        VertexAttribute.BoneWeight,
-        VertexElementFlags.BoneWeight,
-        offset
-      );
+      this._updateAdvancedVertexElement(this._boneWeights, VertexAttribute.BoneWeight, VertexElementFlags.BoneWeight);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.BoneIndex) {
-      offset = this._updateAdvancedVertexElement(
-        this._boneIndices,
-        VertexAttribute.BoneIndex,
-        VertexElementFlags.BoneIndex,
-        offset
-      );
+      this._updateAdvancedVertexElement(this._boneIndices, VertexAttribute.BoneIndex, VertexElementFlags.BoneIndex);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.Tangent) {
-      offset = this._updateAdvancedVertexElement(
-        this._tangents,
-        VertexAttribute.Tangent,
-        VertexElementFlags.Tangent,
-        offset
-      );
+      this._updateAdvancedVertexElement(this._tangents, VertexAttribute.Tangent, VertexElementFlags.Tangent);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV) {
-      offset = this._updateAdvancedVertexElement(this._uv, VertexAttribute.UV, VertexElementFlags.UV, offset);
+      this._updateAdvancedVertexElement(this._uv, VertexAttribute.UV, VertexElementFlags.UV);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV1) {
-      offset = this._updateAdvancedVertexElement(this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1, offset);
+      this._updateAdvancedVertexElement(this._uv1, VertexAttribute.UV1, VertexElementFlags.UV1);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV2) {
-      offset = this._updateAdvancedVertexElement(this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2, offset);
+      this._updateAdvancedVertexElement(this._uv2, VertexAttribute.UV2, VertexElementFlags.UV2);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV3) {
-      offset = this._updateAdvancedVertexElement(this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3, offset);
+      this._updateAdvancedVertexElement(this._uv3, VertexAttribute.UV3, VertexElementFlags.UV3);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV4) {
-      offset = this._updateAdvancedVertexElement(this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4, offset);
+      this._updateAdvancedVertexElement(this._uv4, VertexAttribute.UV4, VertexElementFlags.UV4);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV5) {
-      offset = this._updateAdvancedVertexElement(this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5, offset);
+      this._updateAdvancedVertexElement(this._uv5, VertexAttribute.UV5, VertexElementFlags.UV5);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV6) {
-      offset = this._updateAdvancedVertexElement(this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6, offset);
+      this._updateAdvancedVertexElement(this._uv6, VertexAttribute.UV6, VertexElementFlags.UV6);
     }
 
     if (advancedElementUpdateFlag & VertexElementFlags.UV7) {
-      offset = this._updateAdvancedVertexElement(this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7, offset);
+      this._updateAdvancedVertexElement(this._uv7, VertexAttribute.UV7, VertexElementFlags.UV7);
     }
-    this._blendShapeManager._vertexElementOffset = offset;
   }
 
   private _updateVertexElements(): void {
