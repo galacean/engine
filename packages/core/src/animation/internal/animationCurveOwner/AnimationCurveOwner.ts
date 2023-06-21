@@ -182,7 +182,7 @@ export class AnimationCurveOwner<V extends KeyframeValueType> {
           const originValue = this._assembler.getTargetValue();
           const lerpValue = cureType._lerpValue(originValue, value, weight);
           this._assembler.setTargetValue(lerpValue);
-        }8
+        }
       }
     }
   }
