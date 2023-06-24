@@ -1002,12 +1002,14 @@ export class ModelMesh extends Mesh {
       const vertexElement = vertexElementMap[attribute];
       if (vertexElement) {
         const index = this._vertexElements.indexOf(vertexElement);
-        // If custom element should be removed
         if (index >= this._internalVertexElementsOffset) {
           this._internalVertexBufferStride -= this._getAttributeByteLength(attribute);
           this._internalVertexElementsFlags &= ~flag;
+        } else {
+          // If custom element should be removed
+          this._internalVertexElementsOffset--;
         }
-        this._internalVertexElementsOffset--;
+
         this._blendShapeManager._vertexElementOffset--;
         this._removeVertexElement(index);
       }
@@ -1325,6 +1327,8 @@ export class ModelMesh extends Mesh {
     this._tangents = null;
     this._normals = null;
     this._colors = null;
+    this._boneIndices = null;
+    this._boneWeights = null;
     this._uv = null;
     this._uv1 = null;
     this._uv2 = null;
