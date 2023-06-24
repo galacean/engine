@@ -132,12 +132,7 @@ export class ModelMesh extends Mesh {
       return;
     }
 
-    this._updateAdvancedVertexDataMarks(
-      this._positions,
-      positions,
-      VertexElementFlags.Position,
-      VertexElementIndex.Position
-    );
+    this._updateAdvancedVertexDataMarks(VertexElementFlags.Position, VertexElementIndex.Position);
     this._positions = positions;
 
     this._vertexCount = positions?.length ?? 0;
@@ -164,11 +159,8 @@ export class ModelMesh extends Mesh {
    * @param normals - The normals for the mesh
    */
   setNormals(normals: Vector3[] | null): void {
-    if (
-      this._beforeSetAdvancedVertexData(this._normals, normals, VertexElementFlags.Normal, VertexElementIndex.Normal)
-    ) {
-      this._normals = normals;
-    }
+    this._beforeSetAdvancedVertexData(normals, VertexElementFlags.Normal, VertexElementIndex.Normal);
+    this._normals = normals;
   }
 
   /**
@@ -191,9 +183,8 @@ export class ModelMesh extends Mesh {
    * @param colors - The colors for the mesh
    */
   setColors(colors: Color[] | null): void {
-    if (this._beforeSetAdvancedVertexData(this._colors, colors, VertexElementFlags.Color, VertexElementIndex.Color)) {
-      this._colors = colors;
-    }
+    this._beforeSetAdvancedVertexData(colors, VertexElementFlags.Color, VertexElementIndex.Color);
+    this._colors = colors;
   }
 
   /**
@@ -216,16 +207,8 @@ export class ModelMesh extends Mesh {
    * @param boneWeights - The bone weights for the mesh
    */
   setBoneWeights(boneWeights: Vector4[] | null): void {
-    if (
-      this._beforeSetAdvancedVertexData(
-        this._boneWeights,
-        boneWeights,
-        VertexElementFlags.BoneWeight,
-        VertexElementIndex.BoneWeight
-      )
-    ) {
-      this._boneWeights = boneWeights;
-    }
+    this._beforeSetAdvancedVertexData(boneWeights, VertexElementFlags.BoneWeight, VertexElementIndex.BoneWeight);
+    this._boneWeights = boneWeights;
   }
 
   /**
@@ -248,16 +231,8 @@ export class ModelMesh extends Mesh {
    * @param boneIndices - The bone indices for the mesh
    */
   setBoneIndices(boneIndices: Vector4[] | null): void {
-    if (
-      this._beforeSetAdvancedVertexData(
-        this._boneIndices,
-        boneIndices,
-        VertexElementFlags.BoneIndex,
-        VertexElementIndex.BoneIndex
-      )
-    ) {
-      this._boneIndices = boneIndices;
-    }
+    this._beforeSetAdvancedVertexData(boneIndices, VertexElementFlags.BoneIndex, VertexElementIndex.BoneIndex);
+    this._boneIndices = boneIndices;
   }
 
   /**
@@ -280,16 +255,8 @@ export class ModelMesh extends Mesh {
    * @param tangents - The tangents for the mesh
    */
   setTangents(tangents: Vector4[] | null): void {
-    if (
-      this._beforeSetAdvancedVertexData(
-        this._tangents,
-        tangents,
-        VertexElementFlags.Tangent,
-        VertexElementIndex.Tangent
-      )
-    ) {
-      this._tangents = tangents;
-    }
+    this._beforeSetAdvancedVertexData(tangents, VertexElementFlags.Tangent, VertexElementIndex.Tangent);
+    this._tangents = tangents;
   }
 
   /**
@@ -322,44 +289,36 @@ export class ModelMesh extends Mesh {
     channelIndex = channelIndex ?? 0;
     switch (channelIndex) {
       case 0:
-        if (this._beforeSetAdvancedVertexData(this._uv, uv, VertexElementFlags.UV, VertexElementIndex.UV)) {
-          this._uv = uv;
-        }
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV, VertexElementIndex.UV);
+        this._uv = uv;
         break;
       case 1:
-        if (this._beforeSetAdvancedVertexData(this._uv1, uv, VertexElementFlags.UV1, VertexElementIndex.UV1)) {
-          this._uv1 = uv;
-        }
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV1, VertexElementIndex.UV1);
+        this._uv1 = uv;
         break;
       case 2:
-        if (this._beforeSetAdvancedVertexData(this._uv2, uv, VertexElementFlags.UV2, VertexElementIndex.UV2)) {
-          this._uv2 = uv;
-        }
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV2, VertexElementIndex.UV2);
+        this._uv2 = uv;
         break;
       case 3:
-        if (this._beforeSetAdvancedVertexData(this._uv3, uv, VertexElementFlags.UV3, VertexElementIndex.UV3)) {
-          this._uv3 = uv;
-        }
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV3, VertexElementIndex.UV3);
+        this._uv3 = uv;
         break;
       case 4:
-        if (this._beforeSetAdvancedVertexData(this._uv4, uv, VertexElementFlags.UV4, VertexElementIndex.UV4)) {
-          this._uv4 = uv;
-        }
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV4, VertexElementIndex.UV4);
+        this._uv4 = uv;
         break;
       case 5:
-        if (this._beforeSetAdvancedVertexData(this._uv5, uv, VertexElementFlags.UV5, VertexElementIndex.UV5)) {
-          this._uv5 = uv;
-        }
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV5, VertexElementIndex.UV5);
+        this._uv5 = uv;
         break;
       case 6:
-        if (this._beforeSetAdvancedVertexData(this._uv6, uv, VertexElementFlags.UV6, VertexElementIndex.UV6)) {
-          this._uv6 = uv;
-        }
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV6, VertexElementIndex.UV6);
+        this._uv6 = uv;
         break;
       case 7:
-        if (this._beforeSetAdvancedVertexData(this._uv7, uv, VertexElementFlags.UV7, VertexElementIndex.UV7)) {
-          this._uv7 = uv;
-        }
+        this._beforeSetAdvancedVertexData(uv, VertexElementFlags.UV7, VertexElementIndex.UV7);
+        this._uv7 = uv;
         break;
       default:
         throw "The index of channel needs to be in range [0 - 7].";
@@ -864,30 +823,24 @@ export class ModelMesh extends Mesh {
   }
 
   private _beforeSetAdvancedVertexData<T extends VertexType>(
-    oldVertices: T[],
-    vertices: T[],
-    elementChangeFlag: VertexElementFlags,
-    elementIndex: VertexElementIndex
-  ): boolean {
-    if (vertices) {
-      if (vertices.length !== this._vertexCount) {
-        throw "The array provided needs to be the same size as vertex count.";
-      }
-    } else if (!oldVertices) {
-      return false;
-    }
-
-    this._updateAdvancedVertexDataMarks(oldVertices, vertices, elementChangeFlag, elementIndex);
-    return true;
-  }
-
-  private _updateAdvancedVertexDataMarks<T extends VertexType>(
-    oldVertices: T[],
     vertices: T[],
     elementChangeFlag: VertexElementFlags,
     elementIndex: VertexElementIndex
   ): void {
-    !!oldVertices !== !!vertices && (this._advancedElementUpdateFlag |= elementChangeFlag);
+    if (vertices) {
+      if (vertices.length !== this._vertexCount) {
+        throw "The array provided needs to be the same size as vertex count.";
+      }
+    }
+
+    this._updateAdvancedVertexDataMarks(elementChangeFlag, elementIndex);
+  }
+
+  private _updateAdvancedVertexDataMarks<T extends VertexType>(
+    elementChangeFlag: VertexElementFlags,
+    elementIndex: VertexElementIndex
+  ): void {
+    this._advancedElementUpdateFlag |= elementChangeFlag;
     this._advancedDataUpdateFlag |= elementChangeFlag;
     this._advancedVertexDataVersions[elementIndex] = this._dataVersionCounter++;
   }

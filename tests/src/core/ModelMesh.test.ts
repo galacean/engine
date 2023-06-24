@@ -475,8 +475,18 @@ describe("ModelMesh Test", async function () {
     mesh.setPositions(rightPositions);
     expect(mesh.vertexElements.length).deep.eq(1);
 
+    // Set vertexElements and clear before vertexElements
     mesh.setVertexElements(vertexElements);
     expect(mesh.vertexElements.length).deep.eq(3);
+
+    // Set advanced normal data to null and remove normal vertexElement
+    mesh.setNormals(null);
+    expect(mesh.vertexElements.length).deep.eq(2);
+
+    // Test normal data is null, then revert with advanced normal data
+    const normalsTest = mesh.getNormals();
+    expect(normalsTest).eq(null);
+    mesh.setNormals(rightNormals);
 
     mesh.setVertexBufferBinding(posBuffer, 12, 0);
     mesh.setVertexBufferBinding(norBuffer, 12, 2);
