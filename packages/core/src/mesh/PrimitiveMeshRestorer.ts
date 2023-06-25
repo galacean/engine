@@ -1,4 +1,5 @@
 import { ContentRestorer } from "../asset/ContentRestorer";
+import { Buffer } from "../graphic/Buffer";
 import { ModelMesh } from "./ModelMesh";
 import { PrimitiveMesh } from "./PrimitiveMesh";
 
@@ -20,7 +21,8 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
           sphereInfo.radius,
           sphereInfo.segments,
           sphereInfo.noLongerAccessible,
-          true
+          true,
+          sphereInfo.vertexBuffer
         );
         break;
       case PrimitiveType.Cuboid:
@@ -31,7 +33,8 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
           cuboidInfo.height,
           cuboidInfo.depth,
           cuboidInfo.noLongerAccessible,
-          true
+          true,
+          cuboidInfo.vertexBuffer
         );
         break;
       case PrimitiveType.Plane:
@@ -43,7 +46,8 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
           planeInfo.horizontalSegments,
           planeInfo.verticalSegments,
           planeInfo.noLongerAccessible,
-          true
+          true,
+          planeInfo.vertexBuffer
         );
         break;
       case PrimitiveType.Cylinder:
@@ -56,7 +60,8 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
           cylinderInfo.radialSegments,
           cylinderInfo.heightSegments,
           cylinderInfo.noLongerAccessible,
-          true
+          true,
+          cylinderInfo.vertexBuffer
         );
         break;
       case PrimitiveType.Torus:
@@ -69,7 +74,8 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
           torusInfo.tubularSegments,
           torusInfo.arc,
           torusInfo.noLongerAccessible,
-          true
+          true,
+          torusInfo.vertexBuffer
         );
         break;
       case PrimitiveType.Cone:
@@ -81,7 +87,8 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
           coneInfo.radialSegments,
           coneInfo.heightSegments,
           coneInfo.noLongerAccessible,
-          true
+          true,
+          coneInfo.vertexBuffer
         );
         break;
       case PrimitiveType.Capsule:
@@ -93,7 +100,8 @@ export class PrimitiveMeshRestorer extends ContentRestorer<ModelMesh> {
           capsuleInfo.radialSegments,
           capsuleInfo.heightSegments,
           capsuleInfo.noLongerAccessible,
-          true
+          true,
+          capsuleInfo.vertexBuffer
         );
         break;
     }
@@ -114,15 +122,15 @@ enum PrimitiveType {
  * @internal
  */
 export class PrimitiveRestoreInfo {
-  constructor(public type: PrimitiveType, public noLongerAccessible: boolean) {}
+  constructor(public type: PrimitiveType, public vertexBuffer: Buffer, public noLongerAccessible: boolean) {}
 }
 
 /**
  * @internal
  */
 export class SphereRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public radius: number, public segments: number, noLongerAccessible: boolean) {
-    super(PrimitiveType.Sphere, noLongerAccessible);
+  constructor(public radius: number, public segments: number, vertexBuffer: Buffer, noLongerAccessible: boolean) {
+    super(PrimitiveType.Sphere, vertexBuffer, noLongerAccessible);
   }
 }
 
@@ -130,8 +138,14 @@ export class SphereRestoreInfo extends PrimitiveRestoreInfo {
  * @internal
  */
 export class CuboidRestoreInfo extends PrimitiveRestoreInfo {
-  constructor(public width: number, public height: number, public depth: number, noLongerAccessible: boolean) {
-    super(PrimitiveType.Cuboid, noLongerAccessible);
+  constructor(
+    public width: number,
+    public height: number,
+    public depth: number,
+    vertexBuffer: Buffer,
+    noLongerAccessible: boolean
+  ) {
+    super(PrimitiveType.Cuboid, vertexBuffer, noLongerAccessible);
   }
 }
 
@@ -144,9 +158,10 @@ export class PlaneRestoreInfo extends PrimitiveRestoreInfo {
     public height: number,
     public horizontalSegments: number,
     public verticalSegments: number,
+    vertexBuffer: Buffer,
     noLongerAccessible: boolean
   ) {
-    super(PrimitiveType.Plane, noLongerAccessible);
+    super(PrimitiveType.Plane, vertexBuffer, noLongerAccessible);
   }
 }
 
@@ -160,9 +175,10 @@ export class CylinderRestoreInfo extends PrimitiveRestoreInfo {
     public height: number,
     public radialSegments: number,
     public heightSegments: number,
+    vertexBuffer: Buffer,
     noLongerAccessible: boolean
   ) {
-    super(PrimitiveType.Cylinder, noLongerAccessible);
+    super(PrimitiveType.Cylinder, vertexBuffer, noLongerAccessible);
   }
 }
 
@@ -176,9 +192,10 @@ export class TorusRestoreInfo extends PrimitiveRestoreInfo {
     public radialSegments: number,
     public tubularSegments: number,
     public arc: number,
+    vertexBuffer: Buffer,
     noLongerAccessible: boolean
   ) {
-    super(PrimitiveType.Torus, noLongerAccessible);
+    super(PrimitiveType.Torus, vertexBuffer, noLongerAccessible);
   }
 }
 
@@ -191,9 +208,10 @@ export class ConeRestoreInfo extends PrimitiveRestoreInfo {
     public height: number,
     public radialSegments: number,
     public heightSegments: number,
+    vertexBuffer: Buffer,
     noLongerAccessible: boolean
   ) {
-    super(PrimitiveType.Cone, noLongerAccessible);
+    super(PrimitiveType.Cone, vertexBuffer, noLongerAccessible);
   }
 }
 
@@ -206,8 +224,9 @@ export class CapsuleRestoreInfo extends PrimitiveRestoreInfo {
     public height: number,
     public radialSegments: number,
     public heightSegments: number,
+    vertexBuffer: Buffer,
     noLongerAccessible: boolean
   ) {
-    super(PrimitiveType.Capsule, noLongerAccessible);
+    super(PrimitiveType.Capsule, vertexBuffer, noLongerAccessible);
   }
 }
