@@ -156,7 +156,6 @@ describe("Animator test", function () {
     animator.play(stateName);
     const currentAnimatorState = animator.getCurrentAnimatorState(layerIndex);
     let animatorState = animator.findAnimatorState(stateName, layerIndex);
-    expect(animatorState).to.deep.eq(currentAnimatorState);
     expect(animatorState).to.eq(currentAnimatorState);
 
     animator.play(expectedStateName);
