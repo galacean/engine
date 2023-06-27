@@ -51,12 +51,17 @@ export interface IBasicEntity {
   parent?: string;
 }
 
-export type IEntity = IBasicEntity | IRefEntity;
+export type IEntity = IBasicEntity | IRefEntity | IPrefabEntity;
 
 export interface IRefEntity extends IBasicEntity {
   assetRefId: string;
   key?: string;
   isClone?: boolean;
+}
+
+export interface IPrefabEntity extends IBasicEntity {
+  prefabSource: { assetId: string };
+  modification: any[];
 }
 
 export type IComponent = { id: string; refId?: string } & IClassObject;
