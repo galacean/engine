@@ -1,7 +1,7 @@
 import { GLCapabilityType, Logger, Mesh, SubMesh } from "@galacean/engine-core";
 import { IPlatformPrimitive } from "@galacean/engine-design";
-import { WebGLExtension } from "./type";
 import { WebGLGraphicDevice } from "./WebGLGraphicDevice";
+import { WebGLExtension } from "./type";
 
 /**
  * Improvement of VAO:
@@ -131,7 +131,7 @@ export class GLPrimitive implements IPlatformPrimitive {
         }
 
         gl.enableVertexAttribArray(loc);
-        const elementInfo = element._glElementInfo;
+        const elementInfo = element._formatMetaInfo;
         gl.vertexAttribPointer(loc, elementInfo.size, elementInfo.type, elementInfo.normalized, stride, element.offset);
         if (this._canUseInstancedArrays) {
           gl.vertexAttribDivisor(loc, element.instanceStepRate);
