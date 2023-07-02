@@ -1,4 +1,4 @@
-import { Entity, Engine } from "@galacean/engine-core";
+import { Entity, Engine, Loader } from "@galacean/engine-core";
 import type { IEntity, IPrefabFile } from "../schema";
 import { PrefabParserContext } from "./PrefabParserContext";
 import { ReflectionParser } from "./ReflectionParser";
@@ -12,25 +12,27 @@ export class PrefabParser {
   private _resolve: (prefab: Entity) => void;
   private _reject: (reason: any) => void;
 
+  /**
+   * Parse scene data.
+   * @param engine - the engine of the parser context
+   * @param sceneData - scene data which is exported by editor
+   * @returns a promise of scene
+   */
+  static parse(engine: Engine, prefabData: IPrefabFile): Promise<Entity> {
+    const prefabEntity = new Entity(engine, "prefab");
+    const context = new PrefabParserContext(prefabData, prefabEntity);
+    const parser = new PrefabParser(context);
+    parser.start();
+    return parser.promise;
+  }
+
   constructor(public readonly context: PrefabParserContext) {
+    this._engine = this.context.prefabEntity.engine;
     this._organizeEntities = this._organizeEntities.bind(this);
     this.promise = new Promise<Entity>((resolve, reject) => {
       this._reject = reject;
       this._resolve = resolve;
     });
-  }
-
-  private _organizeEntities() {
-    const prefab = new Entity(this._engine, "prefab");
-    const { entityConfigMap, entityMap, rootIds } = this.context;
-    for (const rootId of rootIds) {
-      PrefabParser.parseChildren(entityConfigMap, entityMap, rootId);
-    }
-    const rootEntities = rootIds.map((id) => entityMap.get(id));
-    for (let i = 0; i < rootEntities.length; i++) {
-      prefab.addChild(rootEntities[i]);
-    }
-    return prefab;
   }
 
   /** start parse the prefab */
@@ -59,17 +61,17 @@ export class PrefabParser {
     });
   }
 
-  /**
-   * Parse scene data.
-   * @param engine - the engine of the parser context
-   * @param sceneData - scene data which is exported by editor
-   * @returns a promise of scene
-   */
-  static parse(engine: Engine, prefabData: IPrefabFile): Promise<Entity> {
-    const context = new PrefabParserContext(prefabData, engine);
-    const parser = new PrefabParser(context);
-    parser.start();
-    return parser.promise;
+  private _organizeEntities() {
+    const prefab = this.context.prefabEntity.clone();
+    const { entityConfigMap, entityMap, rootIds } = this.context;
+    for (const rootId of rootIds) {
+      PrefabParser.parseChildren(entityConfigMap, entityMap, rootId);
+    }
+    const rootEntities = rootIds.map((id) => entityMap.get(id));
+    for (let i = 0; i < rootEntities.length; i++) {
+      prefab.addChild(rootEntities[i]);
+    }
+    return prefab;
   }
 
   static parseChildren(entitiesConfig: Map<string, IEntity>, entities: Map<string, Entity>, parentId: string) {
